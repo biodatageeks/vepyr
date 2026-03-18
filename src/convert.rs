@@ -387,10 +387,19 @@ pub fn cache_to_parquet(
 
     let mut all_results = Vec::new();
     for kind in entities {
-        let results = rt
-            .block_on(convert_entity(cache_root, output_dir, &prefix, kind, partitions))
-            .map_err(|e| format!("Failed to convert {:?}: {e}", entity_label(kind)))?;
-        all_results.extend(results);
+        match rt.block_on(convert_entity(
+            cache_root, output_dir, &prefix, kind, partitions,
+        )) {
+            Ok(results) => all_results.extend(results),
+            Err(e) => {
+                let msg = e.to_string();
+                if msg.contains("No source files discovered") {
+                    log::info!("Skipping {:?}: no source files found", entity_label(kind));
+                    continue;
+                }
+                return Err(format!("Failed to convert {:?}: {e}", entity_label(kind)));
+            }
+        }
     }
 
     Ok(all_results)

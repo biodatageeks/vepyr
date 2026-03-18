@@ -8,11 +8,12 @@ __all__ = ["build_cache"]
 
 log = logging.getLogger(__name__)
 
-# Ensembl FTP URL template for VEP cache tarballs
-_ENSEMBL_FTP = (
-    "https://ftp.ensembl.org/pub/release-{release}"
-    "/variation/vep/{species}_vep_{release}_{assembly}.tar.gz"
-)
+# Ensembl FTP URL templates for VEP cache tarballs.
+# Release >=115 uses indexed_vep_cache/, older releases use vep/.
+_ENSEMBL_FTP_PATHS = [
+    "https://ftp.ensembl.org/pub/release-{release}/variation/indexed_vep_cache/{species}_vep_{release}_{assembly}.tar.gz",
+    "https://ftp.ensembl.org/pub/release-{release}/variation/vep/{species}_vep_{release}_{assembly}.tar.gz",
+]
 
 
 def _download_with_progress(url: str, dest: str) -> None:
@@ -40,6 +41,29 @@ def _download_with_progress(url: str, dest: str) -> None:
                     break
                 f.write(chunk)
                 pbar.update(len(chunk))
+
+
+def _download_cache(
+    release: int, species: str, assembly: str, dest: str
+) -> None:
+    """Try FTP URL patterns and download the cache tarball."""
+    import urllib.error
+
+    for pattern in _ENSEMBL_FTP_PATHS:
+        url = pattern.format(release=release, species=species, assembly=assembly)
+        try:
+            _download_with_progress(url, dest)
+            return
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                log.debug("Not found: %s", url)
+                continue
+            raise
+    raise FileNotFoundError(
+        f"VEP cache not found for {species} release {release} assembly {assembly}. "
+        f"Browse available caches at "
+        f"https://ftp.ensembl.org/pub/release-{release}/variation/"
+    )
 
 
 def build_cache(
@@ -85,11 +109,8 @@ def build_cache(
 
     # Download if not already present
     if not os.path.isdir(cache_root):
-        url = _ENSEMBL_FTP.format(
-            release=release, species=species, assembly=assembly
-        )
         if not os.path.isfile(tarball_path):
-            _download_with_progress(url, tarball_path)
+            _download_cache(release, species, assembly, tarball_path)
 
         # Extract
         log.info("Extracting %s ...", tarball_path)
