@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # PyO3 for Python bindings
-pyo3 = { version = "0.25", features = ["extension-module", "abi3-py311"] }
+pyo3 = { version = "0.25", features = ["extension-module", "abi3-py310"] }
 
 # Arrow interop between Rust and Python (PyArrow)
 arrow = { version = "56", features = ["pyarrow"] }
