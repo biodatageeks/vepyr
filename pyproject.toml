@@ -1,0 +1,19 @@
+[project]
+name = "vepyr"
+version = "0.1.0"
+description = "VEP Yielding Performant Results — Python interface for Ensembl VEP annotation in Rust"
+readme = "README.md"
+authors = [
+    { name = "Marek Wieiwórka", email = "marek.wiewiorka@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = ["pyarrow>=18.0"]
+
+[tool.maturin]
+module-name = "vepyr._core"
+python-packages = ["vepyr"]
+python-source = "src"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"

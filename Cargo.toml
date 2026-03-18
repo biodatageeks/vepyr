@@ -1,0 +1,24 @@
+[package]
+name = "vepyr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_core"
+# "cdylib" is necessary to produce a shared library for Python to import from.
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3 for Python bindings
+pyo3 = { version = "0.25", features = ["extension-module", "abi3-py39"] }
+
+# Arrow interop between Rust and Python (PyArrow)
+arrow = { version = "56", features = ["pyarrow"] }
+
+# DataFusion for query execution
+datafusion = "50.3"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
+# Upstream biodatageeks crates
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "f22c24ef03e6ba81b11de1825856b615a6a77837" }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2bbc77c87b10b7c0bd2ce684a64764c74c193264" }
