@@ -17,36 +17,58 @@ _ENSEMBL_FTP_PATHS = [
 
 
 def _download_with_progress(url: str, dest: str) -> None:
-    """Download a file with a tqdm progress bar."""
-    import shutil
-    import urllib.request
+    """Download a file with a tqdm progress bar.
+
+    Tracks progress by bytes written to disk to avoid urllib transparent
+    decompression inflating the byte count beyond Content-Length.
+    """
+    import http.client
+    import os
+    import urllib.parse
 
     from tqdm import tqdm
 
     filename = dest.rsplit("/", 1)[-1]
     log.info("Downloading %s", url)
 
-    # Disable transparent decompression so Content-Length matches bytes read
-    req = urllib.request.Request(url, headers={"Accept-Encoding": "identity"})
-    with urllib.request.urlopen(req) as response:
-        total = int(response.headers.get("Content-Length", 0)) or None
-        with (
-            tqdm(
-                total=total,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-                desc=f"Downloading {filename}",
-                miniters=1,
-            ) as pbar,
-            open(dest, "wb") as f,
-        ):
-            while True:
-                buf = response.read(8 * 1024 * 1024)  # 8 MB chunks
-                if not buf:
-                    break
-                f.write(buf)
-                pbar.update(len(buf))
+    # Use http.client directly to avoid urllib's transparent decompression
+    # which inflates byte counts for .tar.gz files
+    parsed = urllib.parse.urlparse(url)
+    conn = http.client.HTTPSConnection(parsed.hostname, timeout=60)
+    conn.request("GET", parsed.path, headers={"Accept-Encoding": "identity"})
+    resp = conn.getresponse()
+
+    if resp.status in (301, 302, 303, 307, 308):
+        location = resp.getheader("Location")
+        conn.close()
+        if location:
+            return _download_with_progress(location, dest)
+
+    if resp.status != 200:
+        conn.close()
+        raise urllib.error.HTTPError(
+            url, resp.status, resp.reason, resp.headers, None
+        )
+
+    total = int(resp.getheader("Content-Length", 0)) or None
+    with (
+        tqdm(
+            total=total,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            desc=f"Downloading {filename}",
+            miniters=1,
+        ) as pbar,
+        open(dest, "wb") as f,
+    ):
+        while True:
+            buf = resp.read(8 * 1024 * 1024)
+            if not buf:
+                break
+            f.write(buf)
+            pbar.update(len(buf))
+    conn.close()
 
 
 def _download_cache(
