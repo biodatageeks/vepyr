@@ -18,29 +18,35 @@ _ENSEMBL_FTP_PATHS = [
 
 def _download_with_progress(url: str, dest: str) -> None:
     """Download a file with a tqdm progress bar."""
+    import shutil
     import urllib.request
 
     from tqdm import tqdm
 
-    req = urllib.request.Request(url)
+    filename = dest.rsplit("/", 1)[-1]
+    log.info("Downloading %s", url)
+
+    # Disable transparent decompression so Content-Length matches bytes read
+    req = urllib.request.Request(url, headers={"Accept-Encoding": "identity"})
     with urllib.request.urlopen(req) as response:
-        total = int(response.headers.get("Content-Length", 0))
+        total = int(response.headers.get("Content-Length", 0)) or None
         with (
             tqdm(
                 total=total,
                 unit="B",
                 unit_scale=True,
                 unit_divisor=1024,
-                desc=dest.rsplit("/", 1)[-1],
+                desc=f"Downloading {filename}",
+                miniters=1,
             ) as pbar,
             open(dest, "wb") as f,
         ):
             while True:
-                chunk = response.read(1024 * 1024)  # 1 MB chunks
-                if not chunk:
+                buf = response.read(8 * 1024 * 1024)  # 8 MB chunks
+                if not buf:
                     break
-                f.write(chunk)
-                pbar.update(len(chunk))
+                f.write(buf)
+                pbar.update(len(buf))
 
 
 def _download_cache(
@@ -113,7 +119,10 @@ def build_cache(
             _download_cache(release, species, assembly, tarball_path)
 
         # Extract
-        log.info("Extracting %s ...", tarball_path)
+        tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
+        log.info(
+            "Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb
+        )
         with tarfile.open(tarball_path) as tar:
             tar.extractall(path=cache_dir)
         log.info("Extracted to %s", cache_root)
