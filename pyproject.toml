@@ -15,6 +15,9 @@ classifiers = [
 ]
 dependencies = ["pyarrow>=18.0"]
 
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
 [tool.maturin]
 module-name = "vepyr._core"
 python-packages = ["vepyr"]

@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
@@ -48,5 +48,5 @@ jobs:
       - name: Build and test
         run: |
           uv python install ${{ matrix.python-version }}
-          uv sync
+          uv sync --python ${{ matrix.python-version }}
           uv run pytest -v
