@@ -1,14 +1,45 @@
 from __future__ import annotations
 
+import logging
+
 from vepyr._core import cache_to_parquet as _cache_to_parquet
 
 __all__ = ["build_cache"]
+
+log = logging.getLogger(__name__)
 
 # Ensembl FTP URL template for VEP cache tarballs
 _ENSEMBL_FTP = (
     "https://ftp.ensembl.org/pub/release-{release}"
     "/variation/vep/{species}_vep_{release}_{assembly}.tar.gz"
 )
+
+
+def _download_with_progress(url: str, dest: str) -> None:
+    """Download a file with a tqdm progress bar."""
+    import urllib.request
+
+    from tqdm import tqdm
+
+    req = urllib.request.Request(url)
+    with urllib.request.urlopen(req) as response:
+        total = int(response.headers.get("Content-Length", 0))
+        with (
+            tqdm(
+                total=total,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                desc=dest.rsplit("/", 1)[-1],
+            ) as pbar,
+            open(dest, "wb") as f,
+        ):
+            while True:
+                chunk = response.read(1024 * 1024)  # 1 MB chunks
+                if not chunk:
+                    break
+                f.write(chunk)
+                pbar.update(len(chunk))
 
 
 def build_cache(
@@ -41,9 +72,7 @@ def build_cache(
         List of ``(parquet_file_path, row_count)`` for each written file.
     """
     import os
-    import shutil
     import tarfile
-    import urllib.request
 
     # Paths
     tarball_name = f"{species}_vep_{release}_{assembly}.tar.gz"
@@ -60,15 +89,13 @@ def build_cache(
             release=release, species=species, assembly=assembly
         )
         if not os.path.isfile(tarball_path):
-            print(f"Downloading {url} ...")
-            urllib.request.urlretrieve(url, tarball_path)
-            print(f"Downloaded to {tarball_path}")
+            _download_with_progress(url, tarball_path)
 
         # Extract
-        print(f"Extracting {tarball_path} ...")
+        log.info("Extracting %s ...", tarball_path)
         with tarfile.open(tarball_path) as tar:
             tar.extractall(path=cache_dir)
-        print(f"Extracted to {cache_root}")
+        log.info("Extracted to %s", cache_root)
 
         # Clean up tarball
         os.remove(tarball_path)
@@ -79,7 +106,7 @@ def build_cache(
         )
 
     # Convert to Parquet
-    print(f"Converting cache to Parquet ({partitions} partitions) ...")
+    log.info("Converting cache to Parquet (%d partitions) ...", partitions)
     results = _cache_to_parquet(cache_root, output_dir, partitions)
-    print(f"Done. Wrote {len(results)} Parquet files to {output_dir}")
+    log.info("Done. Wrote %d Parquet files to %s", len(results), output_dir)
     return results
