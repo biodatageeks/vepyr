@@ -4793,6 +4793,8 @@ dependencies = [
  "datafusion",
  "datafusion-bio-format-ensembl-cache",
  "datafusion-bio-function-vep",
+ "futures",
+ "log",
  "pyo3",
  "tokio",
 ]
