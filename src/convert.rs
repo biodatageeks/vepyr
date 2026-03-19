@@ -12,23 +12,7 @@ use datafusion_bio_format_ensembl_cache::{
     EnsemblCacheOptions, EnsemblCacheTableProvider, EnsemblEntityKind,
 };
 use futures::StreamExt;
-use kdam::{Bar, BarExt};
-
-fn make_progress_bar(desc: &str) -> Bar {
-    let mut pb = Bar::builder()
-        .desc(desc)
-        .unit(" rows")
-        .unit_scale(true)
-        .build()
-        .unwrap();
-    pb.mininterval = 0.3;
-    pb
-}
-
-fn finish_progress_bar(pb: &mut Bar) {
-    let _ = pb.refresh();
-    eprintln!();
-}
+use pyo3::prelude::*;
 
 fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
     match name {
@@ -157,11 +141,18 @@ fn project_batch(
     )?)
 }
 
+/// Call the Python progress callback, temporarily releasing the GIL.
+fn notify_progress(py: Python<'_>, callback: &PyObject, rows: usize) {
+    let _ = callback.call1(py, (rows,));
+}
+
 async fn write_translation_split(
+    py: Python<'_>,
     ctx: &SessionContext,
     table_name: &str,
     output_dir: &str,
     prefix: &str,
+    on_batch: &PyObject,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let dedup_query = format!(
         "SELECT * FROM (\
@@ -216,7 +207,6 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, core_schema.clone(), Some(core_props))?;
         let mut core_rows = 0usize;
-        let mut pb = make_progress_bar("translation_core");
 
         while let Some(batch_result) = core_stream.next().await {
             let batch = batch_result?;
@@ -225,11 +215,10 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
-            let _ = pb.update(batch.num_rows());
+            notify_progress(py, on_batch, batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
-        finish_progress_bar(&mut pb);
         results.push((core_file, core_rows));
     }
 
@@ -257,7 +246,6 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, sift_schema.clone(), Some(sift_props))?;
         let mut sift_rows = 0usize;
-        let mut pb = make_progress_bar("translation_sift");
 
         while let Some(batch_result) = sift_stream.next().await {
             let batch = batch_result?;
@@ -266,11 +254,10 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
-            let _ = pb.update(batch.num_rows());
+            notify_progress(py, on_batch, batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
-        finish_progress_bar(&mut pb);
         results.push((sift_file, sift_rows));
     }
 
@@ -280,16 +267,16 @@ async fn write_translation_split(
 
 /// Convert a single entity from the Ensembl VEP cache to Parquet.
 ///
-/// Returns `Ok(results)` with file paths and row counts,
-/// or `Err("skipped")` if no source files exist for this entity.
+/// `on_batch` is a Python callable invoked with the number of rows after each batch.
 pub fn convert_entity(
+    py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     entity: &str,
     partitions: usize,
+    on_batch: &PyObject,
 ) -> Result<Vec<(String, usize)>, String> {
-    let kind = parse_entity(entity)
-        .ok_or_else(|| format!("Unknown entity: {entity}"))?;
+    let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
     let prefix = std::path::Path::new(cache_root)
         .file_name()
@@ -303,7 +290,15 @@ pub fn convert_entity(
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
-    match rt.block_on(convert_entity_async(cache_root, output_dir, &prefix, kind, partitions)) {
+    match rt.block_on(convert_entity_async(
+        py,
+        cache_root,
+        output_dir,
+        &prefix,
+        kind,
+        partitions,
+        on_batch,
+    )) {
         Ok(results) => Ok(results),
         Err(e) => {
             let msg = e.to_string();
@@ -317,11 +312,13 @@ pub fn convert_entity(
 }
 
 async fn convert_entity_async(
+    py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
+    on_batch: &PyObject,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
     let ctx = SessionContext::new_with_config(config);
@@ -341,7 +338,7 @@ async fn convert_entity_async(
     ctx.register_table(table_name, provider)?;
 
     if kind == EnsemblEntityKind::Translation {
-        return write_translation_split(&ctx, table_name, output_dir, prefix).await;
+        return write_translation_split(py, &ctx, table_name, output_dir, prefix, on_batch).await;
     }
 
     let entity_label = match kind {
@@ -383,7 +380,6 @@ async fn convert_entity_async(
         .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
     let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
     let mut total_rows: usize = 0;
-    let mut pb = make_progress_bar(entity_label);
 
     while let Some(batch_result) = stream.next().await {
         let batch = batch_result?;
@@ -391,11 +387,10 @@ async fn convert_entity_async(
             continue;
         }
         total_rows += batch.num_rows();
-        let _ = pb.update(batch.num_rows());
+        notify_progress(py, on_batch, batch.num_rows());
         writer.write(&batch)?;
     }
     writer.close()?;
-    finish_progress_bar(&mut pb);
 
     Ok(vec![(output_file, total_rows)])
 }
