@@ -2,6 +2,7 @@ use std::fs::File;
 use std::sync::Arc;
 use std::time::Instant;
 
+use datafusion::arrow::array::Array;
 use datafusion::arrow::datatypes::SchemaRef;
 use datafusion::parquet::arrow::ArrowWriter;
 use datafusion::parquet::basic::Compression;
@@ -84,7 +85,11 @@ fn writer_properties(
     builder.build()
 }
 
-fn build_dedup_query(kind: EnsemblEntityKind, table_name: &str) -> String {
+fn build_dedup_query(kind: EnsemblEntityKind, table_name: &str, chrom: Option<&str>) -> String {
+    let where_clause = chrom
+        .map(|c| format!(" WHERE chrom = '{c}'"))
+        .unwrap_or_default();
+
     match kind {
         EnsemblEntityKind::Transcript => {
             format!(
@@ -93,7 +98,7 @@ fn build_dedup_query(kind: EnsemblEntityKind, table_name: &str) -> String {
                         PARTITION BY stable_id \
                         ORDER BY cds_start NULLS LAST\
                     ) AS _rn \
-                    FROM {table_name}\
+                    FROM {table_name}{where_clause}\
                 ) WHERE _rn = 1 \
                 ORDER BY chrom, start"
             )
@@ -106,13 +111,13 @@ fn build_dedup_query(kind: EnsemblEntityKind, table_name: &str) -> String {
                         PARTITION BY transcript_id, exon_number \
                         ORDER BY stable_id NULLS LAST\
                     ) AS _rn \
-                    FROM {table_name}\
+                    FROM {table_name}{where_clause}\
                 ) WHERE _rn = 1 \
                 ORDER BY transcript_id, start"
             )
         }
         _ => {
-            format!("SELECT * FROM {table_name} ORDER BY chrom, start")
+            format!("SELECT * FROM {table_name}{where_clause} ORDER BY chrom, start")
         }
     }
 }
@@ -156,7 +161,103 @@ fn print_progress(label: &str, rows: usize, elapsed: f64) {
     } else {
         "? rows/s".to_string()
     };
-    eprintln!("  {label}: {} rows [{:.1}s, {rate}]", format_rows(rows), elapsed);
+    eprintln!(
+        "  {label}: {} rows [{:.1}s, {rate}]",
+        format_rows(rows),
+        elapsed
+    );
+}
+
+/// Discover distinct chromosome names from the table.
+async fn discover_chroms(
+    ctx: &SessionContext,
+    table_name: &str,
+) -> datafusion::common::Result<Vec<String>> {
+    let df = ctx
+        .sql(&format!(
+            "SELECT DISTINCT chrom FROM {table_name} ORDER BY chrom"
+        ))
+        .await?;
+    let batches = df.collect().await?;
+    let mut chroms = Vec::new();
+    for batch in &batches {
+        let col = batch
+            .column_by_name("chrom")
+            .ok_or_else(|| {
+                datafusion::error::DataFusionError::Execution("no chrom column".into())
+            })?
+            .as_any();
+        if let Some(arr) = col.downcast_ref::<datafusion::arrow::array::StringArray>() {
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    chroms.push(arr.value(i).to_string());
+                }
+            }
+        } else if let Some(arr) =
+            col.downcast_ref::<datafusion::arrow::array::StringViewArray>()
+        {
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    chroms.push(arr.value(i).to_string());
+                }
+            }
+        }
+    }
+    Ok(chroms)
+}
+
+/// Write a query result to a parquet file, streaming batches.
+/// Returns number of rows written.
+async fn write_query_to_parquet(
+    ctx: &SessionContext,
+    query: &str,
+    output_file: &str,
+    kind: EnsemblEntityKind,
+    needs_rn_drop: bool,
+    label: &str,
+) -> datafusion::common::Result<usize> {
+    let df = ctx.sql(query).await?;
+
+    let df = if needs_rn_drop {
+        let schema = df.schema().clone();
+        let cols: Vec<_> = schema
+            .columns()
+            .into_iter()
+            .filter(|c| c.name() != "_rn")
+            .collect();
+        df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?
+    } else {
+        df
+    };
+
+    let mut stream = df.execute_stream().await?;
+    let schema = stream.schema();
+    let sk = sort_key(kind);
+    let props = writer_properties(kind, &schema, sk, None);
+
+    let file = File::create(output_file)
+        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
+    let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
+    let mut total_rows: usize = 0;
+    let start = Instant::now();
+    let mut last_report = Instant::now();
+
+    while let Some(batch_result) = stream.next().await {
+        let batch = batch_result?;
+        if batch.num_rows() == 0 {
+            continue;
+        }
+        total_rows += batch.num_rows();
+        writer.write(&batch)?;
+        if last_report.elapsed().as_secs() >= 5 {
+            print_progress(label, total_rows, start.elapsed().as_secs_f64());
+            last_report = Instant::now();
+        }
+    }
+    writer.close()?;
+    print_progress(label, total_rows, start.elapsed().as_secs_f64());
+
+    Ok(total_rows)
 }
 
 async fn write_translation_split(
@@ -221,7 +322,7 @@ async fn write_translation_split(
         let start = Instant::now();
         let mut last_report = Instant::now();
 
-        eprintln!("  translation_core: reading cache...");
+        eprintln!("  translation_core: writing...");
         while let Some(batch_result) = core_stream.next().await {
             let batch = batch_result?;
             if batch.num_rows() == 0 {
@@ -267,7 +368,7 @@ async fn write_translation_split(
         let start = Instant::now();
         let mut last_report = Instant::now();
 
-        eprintln!("  translation_sift: reading cache...");
+        eprintln!("  translation_sift: writing...");
         while let Some(batch_result) = sift_stream.next().await {
             let batch = batch_result?;
             if batch.num_rows() == 0 {
@@ -291,12 +392,14 @@ async fn write_translation_split(
 }
 
 /// Convert a single entity from the Ensembl VEP cache to Parquet.
+///
+/// For variation, processes per-chromosome to avoid OOM on large genomes.
 pub fn convert_entity(
     cache_root: &str,
     output_dir: &str,
     entity: &str,
     partitions: usize,
-    memory_limit_gb: usize,
+    _memory_limit_gb: usize,
 ) -> Result<Vec<(String, usize)>, String> {
     let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
@@ -313,7 +416,7 @@ pub fn convert_entity(
         .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
     match rt.block_on(convert_entity_async(
-        cache_root, output_dir, &prefix, kind, partitions, memory_limit_gb,
+        cache_root, output_dir, &prefix, kind, partitions,
     )) {
         Ok(results) => Ok(results),
         Err(e) => {
@@ -333,15 +436,12 @@ async fn convert_entity_async(
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
-    _memory_limit_gb: usize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
-
     let ctx = SessionContext::new_with_config(config);
 
     let mut options = EnsemblCacheOptions::new(cache_root);
     options.target_partitions = Some(partitions);
-    // Limit concurrent partition parsing to cap memory usage
     options.max_storable_partitions = Some(2);
     let provider = EnsemblCacheTableProvider::for_entity(kind, options)?;
 
@@ -368,55 +468,72 @@ async fn convert_entity_async(
         EnsemblEntityKind::Translation => unreachable!(),
     };
 
-    let output_file = format!("{output_dir}/{prefix}_{entity_label}.parquet");
-
-    let query = build_dedup_query(kind, table_name);
-    let df = ctx.sql(&query).await?;
-
     let needs_rn_drop = matches!(
         kind,
         EnsemblEntityKind::Transcript | EnsemblEntityKind::Exon
     );
-    let df = if needs_rn_drop {
-        let schema = df.schema().clone();
-        let cols: Vec<_> = schema
-            .columns()
-            .into_iter()
-            .filter(|c| c.name() != "_rn")
-            .collect();
-        df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?
-    } else {
-        df
-    };
 
-    let mut stream = df.execute_stream().await?;
-    let schema = stream.schema();
-    let sk = sort_key(kind);
-    let props = writer_properties(kind, &schema, sk, None);
+    // For variation, process per-chromosome to avoid OOM on large genomes.
+    // Each chrom's data fits in memory for sorting.
+    if kind == EnsemblEntityKind::Variation {
+        eprintln!("  {entity_label}: discovering chromosomes...");
+        let chroms = discover_chroms(&ctx, table_name).await?;
+        eprintln!("  {entity_label}: found {} chromosomes", chroms.len());
 
-    let file = File::create(&output_file)
-        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
-    let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
-    let mut total_rows: usize = 0;
-    let start = Instant::now();
-    let mut last_report = Instant::now();
+        let output_file = format!("{output_dir}/{prefix}_{entity_label}.parquet");
 
-    eprintln!("  {entity_label}: reading cache...");
-    while let Some(batch_result) = stream.next().await {
-        let batch = batch_result?;
-        if batch.num_rows() == 0 {
-            continue;
+        // Process first chrom to get schema, then append the rest
+        let mut total_rows: usize = 0;
+        let mut writer: Option<ArrowWriter<File>> = None;
+        let global_start = Instant::now();
+
+        for chrom in &chroms {
+            let query = build_dedup_query(kind, table_name, Some(chrom));
+            let df = ctx.sql(&query).await?;
+            let mut stream = df.execute_stream().await?;
+
+            if writer.is_none() {
+                let schema = stream.schema();
+                let sk = sort_key(kind);
+                let props = writer_properties(kind, &schema, sk, None);
+                let file = File::create(&output_file).map_err(|e| {
+                    datafusion::error::DataFusionError::Execution(format!("{e}"))
+                })?;
+                writer = Some(ArrowWriter::try_new(file, schema.clone(), Some(props))?);
+            }
+
+            let w = writer.as_mut().unwrap();
+            let mut chrom_rows = 0usize;
+            while let Some(batch_result) = stream.next().await {
+                let batch = batch_result?;
+                if batch.num_rows() == 0 {
+                    continue;
+                }
+                chrom_rows += batch.num_rows();
+                w.write(&batch)?;
+            }
+            total_rows += chrom_rows;
+            eprintln!(
+                "  {entity_label}: chr{chrom} {} rows (total: {})",
+                format_rows(chrom_rows),
+                format_rows(total_rows)
+            );
         }
-        total_rows += batch.num_rows();
-        writer.write(&batch)?;
-        // Report progress every 5 seconds
-        if last_report.elapsed().as_secs() >= 5 {
-            print_progress(entity_label, total_rows, start.elapsed().as_secs_f64());
-            last_report = Instant::now();
+
+        if let Some(w) = writer {
+            w.close()?;
         }
+        print_progress(entity_label, total_rows, global_start.elapsed().as_secs_f64());
+        return Ok(vec![(output_file, total_rows)]);
     }
-    writer.close()?;
-    print_progress(entity_label, total_rows, start.elapsed().as_secs_f64());
 
-    Ok(vec![(output_file, total_rows)])
+    // All other entities: single query
+    let output_file = format!("{output_dir}/{prefix}_{entity_label}.parquet");
+    let query = build_dedup_query(kind, table_name, None);
+    eprintln!("  {entity_label}: reading cache...");
+    let rows =
+        write_query_to_parquet(&ctx, &query, &output_file, kind, needs_rn_drop, entity_label)
+            .await?;
+
+    Ok(vec![(output_file, rows)])
 }
