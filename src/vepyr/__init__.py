@@ -101,6 +101,7 @@ def build_cache(
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
     partitions: int = 8,
+    local_cache: str | None = None,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to optimized Parquet files.
 
@@ -109,14 +110,17 @@ def build_cache(
     release : int
         Ensembl release number (e.g. 115).
     cache_dir : str
-        Directory where the cache will be downloaded, unpacked, and Parquet
-        files will be written.
+        Directory where Parquet files will be written.
     species : str
         Species name (default: ``"homo_sapiens"``).
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
     partitions : int
         Number of DataFusion partitions for parallelism (default: 8).
+    local_cache : str or None
+        Path to an already-unpacked Ensembl VEP cache directory (the one
+        containing ``info.txt``). When provided, downloading and extraction
+        are skipped entirely.
 
     Returns
     -------
@@ -126,36 +130,45 @@ def build_cache(
     import os
     import tarfile
 
-    # Paths
-    tarball_name = f"{species}_vep_{release}_{assembly}.tar.gz"
-    tarball_path = os.path.join(cache_dir, tarball_name)
-    # The tarball unpacks to <species>/<release>_<assembly>/
-    cache_root = os.path.join(cache_dir, species, f"{release}_{assembly}")
+    if local_cache is not None:
+        cache_root = local_cache
+        if not os.path.isdir(cache_root):
+            raise FileNotFoundError(
+                f"Local cache directory not found: {cache_root}"
+            )
+        log.info("Using local cache: %s", cache_root)
+    else:
+        # Paths
+        tarball_name = f"{species}_vep_{release}_{assembly}.tar.gz"
+        tarball_path = os.path.join(cache_dir, tarball_name)
+        # The tarball unpacks to <species>/<release>_<assembly>/
+        cache_root = os.path.join(cache_dir, species, f"{release}_{assembly}")
+
+        os.makedirs(cache_dir, exist_ok=True)
+
+        # Download if not already present
+        if not os.path.isdir(cache_root):
+            if not os.path.isfile(tarball_path):
+                _download_cache(release, species, assembly, tarball_path)
+
+            # Extract
+            tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
+            log.info(
+                "Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb
+            )
+            with tarfile.open(tarball_path) as tar:
+                tar.extractall(path=cache_dir)
+            log.info("Extracted to %s", cache_root)
+
+            # Clean up tarball
+            os.remove(tarball_path)
+
+        if not os.path.isdir(cache_root):
+            raise FileNotFoundError(
+                f"Cache directory not found after extraction: {cache_root}"
+            )
+
     output_dir = os.path.join(cache_dir, "parquet")
-
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # Download if not already present
-    if not os.path.isdir(cache_root):
-        if not os.path.isfile(tarball_path):
-            _download_cache(release, species, assembly, tarball_path)
-
-        # Extract
-        tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
-        log.info(
-            "Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb
-        )
-        with tarfile.open(tarball_path) as tar:
-            tar.extractall(path=cache_dir)
-        log.info("Extracted to %s", cache_root)
-
-        # Clean up tarball
-        os.remove(tarball_path)
-
-    if not os.path.isdir(cache_root):
-        raise FileNotFoundError(
-            f"Cache directory not found after extraction: {cache_root}"
-        )
 
     # Convert to Parquet
     log.info("Converting cache to Parquet (%d partitions) ...", partitions)
