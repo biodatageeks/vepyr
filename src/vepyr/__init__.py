@@ -180,8 +180,13 @@ def build_cache(
     all_results: list[tuple[str, int]] = []
     for entity in entities:
         pbar = tqdm(desc=entity, unit=" rows", unit_scale=True, dynamic_ncols=True)
+
+        def _on_batch(n: int, _pbar=pbar) -> None:
+            _pbar.update(n)
+            _pbar.refresh()
+
         result = _convert_entity(
-            cache_root, output_dir, entity, partitions, pbar.update
+            cache_root, output_dir, entity, partitions, _on_batch
         )
         pbar.close()
         if result is None:
