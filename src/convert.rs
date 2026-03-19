@@ -333,26 +333,11 @@ async fn convert_entity_async(
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
-    memory_limit_gb: usize,
+    _memory_limit_gb: usize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
 
-    // Use FairSpillPool so DataFusion can spill sorts to disk.
-    // Set generous limits for both memory and temp disk.
-    let pool = Arc::new(datafusion::execution::memory_pool::FairSpillPool::new(
-        memory_limit_gb * 1024 * 1024 * 1024,
-    ));
-    let rt_env = datafusion::execution::runtime_env::RuntimeEnvBuilder::new()
-        .with_memory_pool(pool)
-        .with_temp_file_path(output_dir)
-        .with_max_temp_directory_size(memory_limit_gb as u64 * 4 * 1024 * 1024 * 1024)
-        .build_arc()
-        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
-    let state = datafusion::execution::SessionStateBuilder::new()
-        .with_config(config)
-        .with_runtime_env(rt_env)
-        .build();
-    let ctx = SessionContext::new_with_state(state);
+    let ctx = SessionContext::new_with_config(config);
 
     let mut options = EnsemblCacheOptions::new(cache_root);
     options.target_partitions = Some(partitions);
