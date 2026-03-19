@@ -4,6 +4,8 @@ mod convert;
 
 /// Convert a single entity type from an Ensembl VEP cache to Parquet.
 ///
+/// Releases the GIL during heavy computation so Jupyter widgets can update.
+///
 /// Args:
 ///     cache_root: Path to the unpacked Ensembl VEP cache directory (contains info.txt).
 ///     output_dir: Directory where Parquet files will be written.
@@ -23,7 +25,7 @@ fn convert_entity(
     partitions: usize,
     on_batch: PyObject,
 ) -> PyResult<Option<Vec<(String, usize)>>> {
-    match convert::convert_entity(py, cache_root, output_dir, entity, partitions, &on_batch) {
+    match convert::convert_entity(py, cache_root, output_dir, entity, partitions, on_batch) {
         Ok(results) => Ok(Some(results)),
         Err(e) if e == "skipped" => Ok(None),
         Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),

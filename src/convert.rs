@@ -141,13 +141,15 @@ fn project_batch(
     )?)
 }
 
-/// Call the Python progress callback, temporarily releasing the GIL.
-fn notify_progress(py: Python<'_>, callback: &PyObject, rows: usize) {
-    let _ = callback.call1(py, (rows,));
+/// Acquire the GIL and call the Python progress callback.
+/// This is called from async code that does NOT hold the GIL.
+fn notify_progress(callback: &PyObject, rows: usize) {
+    Python::with_gil(|py| {
+        let _ = callback.call1(py, (rows,));
+    });
 }
 
 async fn write_translation_split(
-    py: Python<'_>,
     ctx: &SessionContext,
     table_name: &str,
     output_dir: &str,
@@ -215,7 +217,7 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
-            notify_progress(py, on_batch, batch.num_rows());
+            notify_progress(on_batch, batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
@@ -254,7 +256,7 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
-            notify_progress(py, on_batch, batch.num_rows());
+            notify_progress(on_batch, batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
@@ -267,14 +269,15 @@ async fn write_translation_split(
 
 /// Convert a single entity from the Ensembl VEP cache to Parquet.
 ///
-/// `on_batch` is a Python callable invoked with the number of rows after each batch.
+/// Releases the GIL during heavy computation and re-acquires it only
+/// for progress callbacks, allowing Jupyter widgets to update.
 pub fn convert_entity(
     py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     entity: &str,
     partitions: usize,
-    on_batch: &PyObject,
+    on_batch: PyObject,
 ) -> Result<Vec<(String, usize)>, String> {
     let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
@@ -287,32 +290,29 @@ pub fn convert_entity(
     std::fs::create_dir_all(output_dir)
         .map_err(|e| format!("Failed to create output dir: {e}"))?;
 
-    let rt = tokio::runtime::Runtime::new()
-        .map_err(|e| format!("Failed to create runtime: {e}"))?;
+    // Release the GIL so Jupyter's event loop can process widget updates
+    // while the heavy Rust/DataFusion work runs
+    py.allow_threads(|| {
+        let rt = tokio::runtime::Runtime::new()
+            .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
-    match rt.block_on(convert_entity_async(
-        py,
-        cache_root,
-        output_dir,
-        &prefix,
-        kind,
-        partitions,
-        on_batch,
-    )) {
-        Ok(results) => Ok(results),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("No source files discovered") {
-                Err("skipped".to_string())
-            } else {
-                Err(format!("Failed to convert {entity}: {e}"))
+        match rt.block_on(convert_entity_async(
+            cache_root, output_dir, &prefix, kind, partitions, &on_batch,
+        )) {
+            Ok(results) => Ok(results),
+            Err(e) => {
+                let msg = e.to_string();
+                if msg.contains("No source files discovered") {
+                    Err("skipped".to_string())
+                } else {
+                    Err(format!("Failed to convert {entity}: {e}"))
+                }
             }
         }
-    }
+    })
 }
 
 async fn convert_entity_async(
-    py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     prefix: &str,
@@ -338,7 +338,7 @@ async fn convert_entity_async(
     ctx.register_table(table_name, provider)?;
 
     if kind == EnsemblEntityKind::Translation {
-        return write_translation_split(py, &ctx, table_name, output_dir, prefix, on_batch).await;
+        return write_translation_split(&ctx, table_name, output_dir, prefix, on_batch).await;
     }
 
     let entity_label = match kind {
@@ -387,7 +387,7 @@ async fn convert_entity_async(
             continue;
         }
         total_rows += batch.num_rows();
-        notify_progress(py, on_batch, batch.num_rows());
+        notify_progress(on_batch, batch.num_rows());
         writer.write(&batch)?;
     }
     writer.close()?;
