@@ -296,6 +296,7 @@ pub fn convert_entity(
     output_dir: &str,
     entity: &str,
     partitions: usize,
+    memory_limit_gb: usize,
 ) -> Result<Vec<(String, usize)>, String> {
     let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
@@ -312,7 +313,7 @@ pub fn convert_entity(
         .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
     match rt.block_on(convert_entity_async(
-        cache_root, output_dir, &prefix, kind, partitions,
+        cache_root, output_dir, &prefix, kind, partitions, memory_limit_gb,
     )) {
         Ok(results) => Ok(results),
         Err(e) => {
@@ -332,12 +333,12 @@ async fn convert_entity_async(
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
+    memory_limit_gb: usize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
 
-    // Limit memory to 8GB — DataFusion will spill sorts to disk beyond this
     let pool = Arc::new(datafusion::execution::memory_pool::FairSpillPool::new(
-        8 * 1024 * 1024 * 1024,
+        memory_limit_gb * 1024 * 1024 * 1024,
     ));
     let rt_env = datafusion::execution::runtime_env::RuntimeEnvBuilder::new()
         .with_memory_pool(pool)

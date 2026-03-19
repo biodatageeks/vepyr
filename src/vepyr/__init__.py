@@ -101,6 +101,7 @@ def build_cache(
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
     partitions: int = 8,
+    memory_limit_gb: int = 32,
     local_cache: str | None = None,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to optimized Parquet files.
@@ -201,7 +202,7 @@ def build_cache(
     for i, entity in enumerate(entities):
         _show_status(f"[{i+1}/{len(entities)}] Converting {entity} ...")
         t0 = time.time()
-        result = _convert_entity(cache_root, output_dir, entity, partitions)
+        result = _convert_entity(cache_root, output_dir, entity, partitions, memory_limit_gb)
         elapsed = time.time() - t0
 
         if result is None:
