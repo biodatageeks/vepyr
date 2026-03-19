@@ -219,7 +219,9 @@ async fn write_translation_split(
         let mut writer = ArrowWriter::try_new(file, core_schema.clone(), Some(core_props))?;
         let mut core_rows = 0usize;
         let start = Instant::now();
+        let mut last_report = Instant::now();
 
+        eprintln!("  translation_core: reading cache...");
         while let Some(batch_result) = core_stream.next().await {
             let batch = batch_result?;
             if batch.num_rows() == 0 {
@@ -228,6 +230,10 @@ async fn write_translation_split(
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
             writer.write(&batch)?;
+            if last_report.elapsed().as_secs() >= 5 {
+                print_progress("translation_core", core_rows, start.elapsed().as_secs_f64());
+                last_report = Instant::now();
+            }
         }
         writer.close()?;
         print_progress("translation_core", core_rows, start.elapsed().as_secs_f64());
@@ -259,7 +265,9 @@ async fn write_translation_split(
         let mut writer = ArrowWriter::try_new(file, sift_schema.clone(), Some(sift_props))?;
         let mut sift_rows = 0usize;
         let start = Instant::now();
+        let mut last_report = Instant::now();
 
+        eprintln!("  translation_sift: reading cache...");
         while let Some(batch_result) = sift_stream.next().await {
             let batch = batch_result?;
             if batch.num_rows() == 0 {
@@ -268,6 +276,10 @@ async fn write_translation_split(
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
             writer.write(&batch)?;
+            if last_report.elapsed().as_secs() >= 5 {
+                print_progress("translation_sift", sift_rows, start.elapsed().as_secs_f64());
+                last_report = Instant::now();
+            }
         }
         writer.close()?;
         print_progress("translation_sift", sift_rows, start.elapsed().as_secs_f64());
@@ -322,10 +334,27 @@ async fn convert_entity_async(
     partitions: usize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
-    let ctx = SessionContext::new_with_config(config);
+
+    // Limit memory to 8GB — DataFusion will spill sorts to disk beyond this
+    let pool = Arc::new(datafusion::execution::memory_pool::FairSpillPool::new(
+        8 * 1024 * 1024 * 1024,
+    ));
+    let rt_env = datafusion::execution::runtime_env::RuntimeEnvBuilder::new()
+        .with_memory_pool(pool)
+        .with_temp_file_path(output_dir)
+        .with_max_temp_directory_size(500 * 1024 * 1024 * 1024) // 500 GB spill limit
+        .build_arc()
+        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
+    let state = datafusion::execution::SessionStateBuilder::new()
+        .with_config(config)
+        .with_runtime_env(rt_env)
+        .build();
+    let ctx = SessionContext::new_with_state(state);
 
     let mut options = EnsemblCacheOptions::new(cache_root);
     options.target_partitions = Some(partitions);
+    // Limit concurrent partition parsing to cap memory usage
+    options.max_storable_partitions = Some(2);
     let provider = EnsemblCacheTableProvider::for_entity(kind, options)?;
 
     let table_name = match kind {
@@ -382,7 +411,9 @@ async fn convert_entity_async(
     let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
     let mut total_rows: usize = 0;
     let start = Instant::now();
+    let mut last_report = Instant::now();
 
+    eprintln!("  {entity_label}: reading cache...");
     while let Some(batch_result) = stream.next().await {
         let batch = batch_result?;
         if batch.num_rows() == 0 {
@@ -390,6 +421,11 @@ async fn convert_entity_async(
         }
         total_rows += batch.num_rows();
         writer.write(&batch)?;
+        // Report progress every 5 seconds
+        if last_report.elapsed().as_secs() >= 5 {
+            print_progress(entity_label, total_rows, start.elapsed().as_secs_f64());
+            last_report = Instant::now();
+        }
     }
     writer.close()?;
     print_progress(entity_label, total_rows, start.elapsed().as_secs_f64());
