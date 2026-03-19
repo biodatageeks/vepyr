@@ -195,7 +195,7 @@ def build_cache(
         if _in_notebook:
             display(HTML(f"<pre>{msg}</pre>"))
         else:
-            print(msg, file=sys.stderr)
+            log.info(msg)
 
     all_results: list[tuple[str, int]] = []
     for i, entity in enumerate(entities):
