@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use datafusion::arrow::datatypes::SchemaRef;
@@ -12,7 +13,6 @@ use datafusion_bio_format_ensembl_cache::{
     EnsemblCacheOptions, EnsemblCacheTableProvider, EnsemblEntityKind,
 };
 use futures::StreamExt;
-use pyo3::prelude::*;
 
 fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
     match name {
@@ -26,7 +26,6 @@ fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
     }
 }
 
-/// Row group sizing per entity type.
 fn row_group_size(kind: EnsemblEntityKind) -> usize {
     match kind {
         EnsemblEntityKind::Variation => 100_000,
@@ -141,20 +140,12 @@ fn project_batch(
     )?)
 }
 
-/// Acquire the GIL and call the Python progress callback.
-/// This is called from async code that does NOT hold the GIL.
-fn notify_progress(callback: &PyObject, rows: usize) {
-    Python::with_gil(|py| {
-        let _ = callback.call1(py, (rows,));
-    });
-}
-
 async fn write_translation_split(
     ctx: &SessionContext,
     table_name: &str,
     output_dir: &str,
     prefix: &str,
-    on_batch: &PyObject,
+    counter: &AtomicUsize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let dedup_query = format!(
         "SELECT * FROM (\
@@ -217,7 +208,7 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
-            notify_progress(on_batch, batch.num_rows());
+            counter.fetch_add(batch.num_rows(), Ordering::Relaxed);
             writer.write(&batch)?;
         }
         writer.close()?;
@@ -256,7 +247,7 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
-            notify_progress(on_batch, batch.num_rows());
+            counter.fetch_add(batch.num_rows(), Ordering::Relaxed);
             writer.write(&batch)?;
         }
         writer.close()?;
@@ -267,17 +258,14 @@ async fn write_translation_split(
     Ok(results)
 }
 
-/// Convert a single entity from the Ensembl VEP cache to Parquet.
-///
-/// Releases the GIL during heavy computation and re-acquires it only
-/// for progress callbacks, allowing Jupyter widgets to update.
+/// Convert a single entity. Progress is tracked via a shared atomic counter
+/// that Python polls from a background thread — no GIL interaction from Rust.
 pub fn convert_entity(
-    py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     entity: &str,
     partitions: usize,
-    on_batch: PyObject,
+    counter: Arc<AtomicUsize>,
 ) -> Result<Vec<(String, usize)>, String> {
     let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
@@ -290,26 +278,22 @@ pub fn convert_entity(
     std::fs::create_dir_all(output_dir)
         .map_err(|e| format!("Failed to create output dir: {e}"))?;
 
-    // Release the GIL so Jupyter's event loop can process widget updates
-    // while the heavy Rust/DataFusion work runs
-    py.allow_threads(|| {
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| format!("Failed to create runtime: {e}"))?;
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
-        match rt.block_on(convert_entity_async(
-            cache_root, output_dir, &prefix, kind, partitions, &on_batch,
-        )) {
-            Ok(results) => Ok(results),
-            Err(e) => {
-                let msg = e.to_string();
-                if msg.contains("No source files discovered") {
-                    Err("skipped".to_string())
-                } else {
-                    Err(format!("Failed to convert {entity}: {e}"))
-                }
+    match rt.block_on(convert_entity_async(
+        cache_root, output_dir, &prefix, kind, partitions, &counter,
+    )) {
+        Ok(results) => Ok(results),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("No source files discovered") {
+                Err("skipped".to_string())
+            } else {
+                Err(format!("Failed to convert {entity}: {e}"))
             }
         }
-    })
+    }
 }
 
 async fn convert_entity_async(
@@ -318,7 +302,7 @@ async fn convert_entity_async(
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
-    on_batch: &PyObject,
+    counter: &AtomicUsize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
     let ctx = SessionContext::new_with_config(config);
@@ -338,7 +322,7 @@ async fn convert_entity_async(
     ctx.register_table(table_name, provider)?;
 
     if kind == EnsemblEntityKind::Translation {
-        return write_translation_split(&ctx, table_name, output_dir, prefix, on_batch).await;
+        return write_translation_split(&ctx, table_name, output_dir, prefix, counter).await;
     }
 
     let entity_label = match kind {
@@ -387,7 +371,7 @@ async fn convert_entity_async(
             continue;
         }
         total_rows += batch.num_rows();
-        notify_progress(on_batch, batch.num_rows());
+        counter.fetch_add(batch.num_rows(), Ordering::Relaxed);
         writer.write(&batch)?;
     }
     writer.close()?;

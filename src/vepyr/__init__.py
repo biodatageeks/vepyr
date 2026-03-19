@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from vepyr._core import convert_entity as _convert_entity
+from vepyr._core import ProgressCounter, convert_entity as _convert_entity
 
 __all__ = ["build_cache"]
 
@@ -170,7 +170,12 @@ def build_cache(
 
     output_dir = os.path.join(cache_dir, "parquet")
 
-    # Convert each entity type to Parquet with per-entity progress bars
+    # Convert each entity type to Parquet with per-entity progress bars.
+    # Rust releases the GIL and increments an atomic counter per batch.
+    # A Python background thread polls the counter to update tqdm.
+    import threading
+    import time
+
     from tqdm.auto import tqdm
 
     entities = [
@@ -179,16 +184,34 @@ def build_cache(
     ]
     all_results: list[tuple[str, int]] = []
     for entity in entities:
+        counter = ProgressCounter()
         pbar = tqdm(desc=entity, unit=" rows", unit_scale=True, dynamic_ncols=True)
+        done = threading.Event()
 
-        def _on_batch(n: int, _pbar=pbar) -> None:
-            _pbar.update(n)
-            _pbar.refresh()
+        def _poll_progress(
+            _counter=counter, _pbar=pbar, _done=done
+        ) -> None:
+            while not _done.is_set():
+                n = _counter.poll()
+                if n > 0:
+                    _pbar.update(n)
+                _done.wait(0.2)
+            # Drain remaining
+            n = _counter.poll()
+            if n > 0:
+                _pbar.update(n)
+
+        poller = threading.Thread(target=_poll_progress, daemon=True)
+        poller.start()
 
         result = _convert_entity(
-            cache_root, output_dir, entity, partitions, _on_batch
+            cache_root, output_dir, entity, partitions, counter
         )
+
+        done.set()
+        poller.join()
         pbar.close()
+
         if result is None:
             log.info("Skipping %s: no source files found", entity)
             continue
