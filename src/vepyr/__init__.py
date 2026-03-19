@@ -180,12 +180,16 @@ def build_cache(
         "translation", "regulatory", "motif",
     ]
 
-    # Detect Jupyter and set up display
+    # Detect if running inside a Jupyter notebook kernel
+    _in_notebook = False
     try:
-        from IPython.display import display, HTML
-        _in_notebook = True
+        from IPython import get_ipython
+        shell = get_ipython()
+        if shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell":
+            from IPython.display import display, HTML
+            _in_notebook = True
     except ImportError:
-        _in_notebook = False
+        pass
 
     def _show_status(msg: str) -> None:
         if _in_notebook:
