@@ -170,23 +170,46 @@ def build_cache(
 
     output_dir = os.path.join(cache_dir, "parquet")
 
-    # Convert each entity type to Parquet.
-    # Rust prints per-entity progress to stderr (rows, rate, elapsed).
+    # Convert each entity type to Parquet with a progress display.
+    # Uses IPython.display if in Jupyter, plain print otherwise.
+    import sys
+    import time
+
     entities = [
         "variation", "transcript", "exon",
         "translation", "regulatory", "motif",
     ]
+
+    # Detect Jupyter and set up display
+    try:
+        from IPython.display import display, HTML
+        _in_notebook = True
+    except ImportError:
+        _in_notebook = False
+
+    def _show_status(msg: str) -> None:
+        if _in_notebook:
+            display(HTML(f"<pre>{msg}</pre>"))
+        else:
+            print(msg, file=sys.stderr)
+
     all_results: list[tuple[str, int]] = []
-    for entity in entities:
-        log.info("Converting %s ...", entity)
+    for i, entity in enumerate(entities):
+        _show_status(f"[{i+1}/{len(entities)}] Converting {entity} ...")
+        t0 = time.time()
         result = _convert_entity(cache_root, output_dir, entity, partitions)
+        elapsed = time.time() - t0
+
         if result is None:
-            log.info("Skipping %s: no source files found", entity)
+            _show_status(f"[{i+1}/{len(entities)}] {entity}: skipped (no source files)")
             continue
+
         for path, rows in result:
-            log.info(
-                "%s: %s rows -> %s",
-                entity, f"{rows:,}", os.path.basename(path),
+            rate = f"{rows / elapsed:,.0f}" if elapsed > 0 else "?"
+            _show_status(
+                f"[{i+1}/{len(entities)}] {entity}: {rows:,} rows "
+                f"in {elapsed:.1f}s ({rate} rows/s) "
+                f"-> {os.path.basename(path)}"
             )
         all_results.extend(result)
 
