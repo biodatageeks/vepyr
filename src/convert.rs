@@ -12,6 +12,23 @@ use datafusion_bio_format_ensembl_cache::{
     EnsemblCacheOptions, EnsemblCacheTableProvider, EnsemblEntityKind,
 };
 use futures::StreamExt;
+use kdam::{Bar, BarExt};
+
+fn make_progress_bar(desc: &str) -> Bar {
+    let mut pb = Bar::builder()
+        .desc(desc)
+        .unit(" rows")
+        .unit_scale(true)
+        .build()
+        .unwrap();
+    pb.mininterval = 0.3;
+    pb
+}
+
+fn finish_progress_bar(pb: &mut Bar) {
+    let _ = pb.refresh();
+    eprintln!();
+}
 
 fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
     match name {
@@ -199,6 +216,7 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, core_schema.clone(), Some(core_props))?;
         let mut core_rows = 0usize;
+        let mut pb = make_progress_bar("translation_core");
 
         while let Some(batch_result) = core_stream.next().await {
             let batch = batch_result?;
@@ -207,9 +225,11 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
+            let _ = pb.update(batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
+        finish_progress_bar(&mut pb);
         results.push((core_file, core_rows));
     }
 
@@ -237,6 +257,7 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, sift_schema.clone(), Some(sift_props))?;
         let mut sift_rows = 0usize;
+        let mut pb = make_progress_bar("translation_sift");
 
         while let Some(batch_result) = sift_stream.next().await {
             let batch = batch_result?;
@@ -245,9 +266,11 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
+            let _ = pb.update(batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
+        finish_progress_bar(&mut pb);
         results.push((sift_file, sift_rows));
     }
 
@@ -360,6 +383,7 @@ async fn convert_entity_async(
         .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
     let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
     let mut total_rows: usize = 0;
+    let mut pb = make_progress_bar(entity_label);
 
     while let Some(batch_result) = stream.next().await {
         let batch = batch_result?;
@@ -367,9 +391,11 @@ async fn convert_entity_async(
             continue;
         }
         total_rows += batch.num_rows();
+        let _ = pb.update(batch.num_rows());
         writer.write(&batch)?;
     }
     writer.close()?;
+    finish_progress_bar(&mut pb);
 
     Ok(vec![(output_file, total_rows)])
 }

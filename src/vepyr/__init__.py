@@ -170,15 +170,14 @@ def build_cache(
 
     output_dir = os.path.join(cache_dir, "parquet")
 
-    # Convert each entity type to Parquet with progress
-    from tqdm.auto import tqdm
-
+    # Convert each entity type to Parquet
+    # Row-level progress bars are rendered by kdam on the Rust side
     entities = [
         "variation", "transcript", "exon",
         "translation", "regulatory", "motif",
     ]
     all_results: list[tuple[str, int]] = []
-    for entity in tqdm(entities, desc="Converting to Parquet", unit="entity"):
+    for entity in entities:
         result = _convert_entity(cache_root, output_dir, entity, partitions)
         if result is None:
             log.info("Skipping %s: no source files found", entity)
