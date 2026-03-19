@@ -1,6 +1,6 @@
 use std::fs::File;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 
 use datafusion::arrow::datatypes::SchemaRef;
 use datafusion::parquet::arrow::ArrowWriter;
@@ -140,12 +140,30 @@ fn project_batch(
     )?)
 }
 
+fn format_rows(n: usize) -> String {
+    if n >= 1_000_000 {
+        format!("{:.1}M", n as f64 / 1_000_000.0)
+    } else if n >= 1_000 {
+        format!("{:.1}k", n as f64 / 1_000.0)
+    } else {
+        format!("{n}")
+    }
+}
+
+fn print_progress(label: &str, rows: usize, elapsed: f64) {
+    let rate = if elapsed > 0.0 {
+        format!("{}/s", format_rows((rows as f64 / elapsed) as usize))
+    } else {
+        "? rows/s".to_string()
+    };
+    eprintln!("  {label}: {} rows [{:.1}s, {rate}]", format_rows(rows), elapsed);
+}
+
 async fn write_translation_split(
     ctx: &SessionContext,
     table_name: &str,
     output_dir: &str,
     prefix: &str,
-    counter: &AtomicUsize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let dedup_query = format!(
         "SELECT * FROM (\
@@ -200,6 +218,7 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, core_schema.clone(), Some(core_props))?;
         let mut core_rows = 0usize;
+        let start = Instant::now();
 
         while let Some(batch_result) = core_stream.next().await {
             let batch = batch_result?;
@@ -208,10 +227,10 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
-            counter.fetch_add(batch.num_rows(), Ordering::Relaxed);
             writer.write(&batch)?;
         }
         writer.close()?;
+        print_progress("translation_core", core_rows, start.elapsed().as_secs_f64());
         results.push((core_file, core_rows));
     }
 
@@ -239,6 +258,7 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, sift_schema.clone(), Some(sift_props))?;
         let mut sift_rows = 0usize;
+        let start = Instant::now();
 
         while let Some(batch_result) = sift_stream.next().await {
             let batch = batch_result?;
@@ -247,10 +267,10 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
-            counter.fetch_add(batch.num_rows(), Ordering::Relaxed);
             writer.write(&batch)?;
         }
         writer.close()?;
+        print_progress("translation_sift", sift_rows, start.elapsed().as_secs_f64());
         results.push((sift_file, sift_rows));
     }
 
@@ -258,14 +278,12 @@ async fn write_translation_split(
     Ok(results)
 }
 
-/// Convert a single entity. Progress is tracked via a shared atomic counter
-/// that Python polls from a background thread — no GIL interaction from Rust.
+/// Convert a single entity from the Ensembl VEP cache to Parquet.
 pub fn convert_entity(
     cache_root: &str,
     output_dir: &str,
     entity: &str,
     partitions: usize,
-    counter: Arc<AtomicUsize>,
 ) -> Result<Vec<(String, usize)>, String> {
     let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
@@ -282,7 +300,7 @@ pub fn convert_entity(
         .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
     match rt.block_on(convert_entity_async(
-        cache_root, output_dir, &prefix, kind, partitions, &counter,
+        cache_root, output_dir, &prefix, kind, partitions,
     )) {
         Ok(results) => Ok(results),
         Err(e) => {
@@ -302,7 +320,6 @@ async fn convert_entity_async(
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
-    counter: &AtomicUsize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
     let config = SessionConfig::new().with_target_partitions(partitions);
     let ctx = SessionContext::new_with_config(config);
@@ -322,7 +339,7 @@ async fn convert_entity_async(
     ctx.register_table(table_name, provider)?;
 
     if kind == EnsemblEntityKind::Translation {
-        return write_translation_split(&ctx, table_name, output_dir, prefix, counter).await;
+        return write_translation_split(&ctx, table_name, output_dir, prefix).await;
     }
 
     let entity_label = match kind {
@@ -364,6 +381,7 @@ async fn convert_entity_async(
         .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
     let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
     let mut total_rows: usize = 0;
+    let start = Instant::now();
 
     while let Some(batch_result) = stream.next().await {
         let batch = batch_result?;
@@ -371,10 +389,10 @@ async fn convert_entity_async(
             continue;
         }
         total_rows += batch.num_rows();
-        counter.fetch_add(batch.num_rows(), Ordering::Relaxed);
         writer.write(&batch)?;
     }
     writer.close()?;
+    print_progress(entity_label, total_rows, start.elapsed().as_secs_f64());
 
     Ok(vec![(output_file, total_rows)])
 }
