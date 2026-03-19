@@ -12,37 +12,17 @@ use datafusion_bio_format_ensembl_cache::{
     EnsemblCacheOptions, EnsemblCacheTableProvider, EnsemblEntityKind,
 };
 use futures::StreamExt;
-use kdam::{Bar, BarExt};
 
-fn entity_label(kind: EnsemblEntityKind) -> &'static str {
-    match kind {
-        EnsemblEntityKind::Variation => "variation",
-        EnsemblEntityKind::Transcript => "transcript",
-        EnsemblEntityKind::Exon => "exon",
-        EnsemblEntityKind::Translation => "translation",
-        EnsemblEntityKind::RegulatoryFeature => "regulatory",
-        EnsemblEntityKind::MotifFeature => "motif",
+fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
+    match name {
+        "variation" => Some(EnsemblEntityKind::Variation),
+        "transcript" => Some(EnsemblEntityKind::Transcript),
+        "exon" => Some(EnsemblEntityKind::Exon),
+        "translation" => Some(EnsemblEntityKind::Translation),
+        "regulatory" => Some(EnsemblEntityKind::RegulatoryFeature),
+        "motif" => Some(EnsemblEntityKind::MotifFeature),
+        _ => None,
     }
-}
-
-fn make_progress_bar(desc: &str) -> Bar {
-    let mut pb = Bar::builder()
-        .desc(desc)
-        .unit(" rows")
-        .unit_scale(true)
-        .build()
-        .unwrap();
-    pb.mininterval = 0.3;
-    pb
-}
-
-fn finish_progress_bar(pb: &mut Bar) {
-    let _ = pb.refresh();
-    eprintln!();
-}
-
-fn update_pb(pb: &mut Bar, n: usize) {
-    let _ = pb.update(n);
 }
 
 /// Row group sizing per entity type.
@@ -219,7 +199,6 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, core_schema.clone(), Some(core_props))?;
         let mut core_rows = 0usize;
-        let mut pb = make_progress_bar("translation_core");
 
         while let Some(batch_result) = core_stream.next().await {
             let batch = batch_result?;
@@ -228,11 +207,9 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
-            update_pb(&mut pb, batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
-        finish_progress_bar(&mut pb);
         results.push((core_file, core_rows));
     }
 
@@ -260,7 +237,6 @@ async fn write_translation_split(
             .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
         let mut writer = ArrowWriter::try_new(file, sift_schema.clone(), Some(sift_props))?;
         let mut sift_rows = 0usize;
-        let mut pb = make_progress_bar("translation_sift");
 
         while let Some(batch_result) = sift_stream.next().await {
             let batch = batch_result?;
@@ -269,11 +245,9 @@ async fn write_translation_split(
             }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
-            update_pb(&mut pb, batch.num_rows());
             writer.write(&batch)?;
         }
         writer.close()?;
-        finish_progress_bar(&mut pb);
         results.push((sift_file, sift_rows));
     }
 
@@ -282,7 +256,44 @@ async fn write_translation_split(
 }
 
 /// Convert a single entity from the Ensembl VEP cache to Parquet.
-async fn convert_entity(
+///
+/// Returns `Ok(results)` with file paths and row counts,
+/// or `Err("skipped")` if no source files exist for this entity.
+pub fn convert_entity(
+    cache_root: &str,
+    output_dir: &str,
+    entity: &str,
+    partitions: usize,
+) -> Result<Vec<(String, usize)>, String> {
+    let kind = parse_entity(entity)
+        .ok_or_else(|| format!("Unknown entity: {entity}"))?;
+
+    let prefix = std::path::Path::new(cache_root)
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+
+    std::fs::create_dir_all(output_dir)
+        .map_err(|e| format!("Failed to create output dir: {e}"))?;
+
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| format!("Failed to create runtime: {e}"))?;
+
+    match rt.block_on(convert_entity_async(cache_root, output_dir, &prefix, kind, partitions)) {
+        Ok(results) => Ok(results),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("No source files discovered") {
+                Err("skipped".to_string())
+            } else {
+                Err(format!("Failed to convert {entity}: {e}"))
+            }
+        }
+    }
+}
+
+async fn convert_entity_async(
     cache_root: &str,
     output_dir: &str,
     prefix: &str,
@@ -310,8 +321,16 @@ async fn convert_entity(
         return write_translation_split(&ctx, table_name, output_dir, prefix).await;
     }
 
-    let label = entity_label(kind);
-    let output_file = format!("{output_dir}/{prefix}_{label}.parquet");
+    let entity_label = match kind {
+        EnsemblEntityKind::Variation => "variation",
+        EnsemblEntityKind::Transcript => "transcript",
+        EnsemblEntityKind::Exon => "exon",
+        EnsemblEntityKind::RegulatoryFeature => "regulatory",
+        EnsemblEntityKind::MotifFeature => "motif",
+        EnsemblEntityKind::Translation => unreachable!(),
+    };
+
+    let output_file = format!("{output_dir}/{prefix}_{entity_label}.parquet");
 
     let query = build_dedup_query(kind, table_name);
     let df = ctx.sql(&query).await?;
@@ -341,7 +360,6 @@ async fn convert_entity(
         .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
     let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
     let mut total_rows: usize = 0;
-    let mut pb = make_progress_bar(label);
 
     while let Some(batch_result) = stream.next().await {
         let batch = batch_result?;
@@ -349,58 +367,9 @@ async fn convert_entity(
             continue;
         }
         total_rows += batch.num_rows();
-        update_pb(&mut pb, batch.num_rows());
         writer.write(&batch)?;
     }
     writer.close()?;
-    finish_progress_bar(&mut pb);
 
     Ok(vec![(output_file, total_rows)])
-}
-
-/// Convert all entity types from the Ensembl VEP cache to optimized Parquet files.
-///
-/// Returns a list of (file_path, row_count) for all written files.
-pub fn cache_to_parquet(
-    cache_root: &str,
-    output_dir: &str,
-    partitions: usize,
-) -> Result<Vec<(String, usize)>, String> {
-    let prefix = std::path::Path::new(cache_root)
-        .file_name()
-        .and_then(|f| f.to_str())
-        .unwrap_or("unknown")
-        .to_string();
-
-    std::fs::create_dir_all(output_dir).map_err(|e| format!("Failed to create output dir: {e}"))?;
-
-    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {e}"))?;
-
-    let entities = [
-        EnsemblEntityKind::Variation,
-        EnsemblEntityKind::Transcript,
-        EnsemblEntityKind::Exon,
-        EnsemblEntityKind::Translation,
-        EnsemblEntityKind::RegulatoryFeature,
-        EnsemblEntityKind::MotifFeature,
-    ];
-
-    let mut all_results = Vec::new();
-    for kind in entities {
-        match rt.block_on(convert_entity(
-            cache_root, output_dir, &prefix, kind, partitions,
-        )) {
-            Ok(results) => all_results.extend(results),
-            Err(e) => {
-                let msg = e.to_string();
-                if msg.contains("No source files discovered") {
-                    log::info!("Skipping {:?}: no source files found", entity_label(kind));
-                    continue;
-                }
-                return Err(format!("Failed to convert {:?}: {e}", entity_label(kind)));
-            }
-        }
-    }
-
-    Ok(all_results)
 }

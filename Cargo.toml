@@ -20,7 +20,6 @@ datafusion = "50.3"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 log = "0.4"
-kdam = { version = "0.6.4", features = ["template", "spinner"] }
 
 # Upstream biodatageeks crates
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "f22c24ef03e6ba81b11de1825856b615a6a77837" }

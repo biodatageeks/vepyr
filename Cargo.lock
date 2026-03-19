@@ -1866,12 +1866,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "formatx"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8866fac38f53fc87fa3ae1b09ddd723e0482f8fa74323518b4c59df2c55a00a"
-
-[[package]]
 name = "futures"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2472,17 +2466,6 @@ dependencies = [
  "serde",
  "serde_json",
  "simple_asn1",
-]
-
-[[package]]
-name = "kdam"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d847be338ef16a13f97637c062d97fb52ebe0ff3b77fa18456d5ed366317e4f7"
-dependencies = [
- "formatx",
- "terminal_size",
- "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4450,16 +4433,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "terminal_size"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b8cb979cb11c32ce1603f8137b22262a9d131aaa5c37b5678025f22b8becd0"
-dependencies = [
- "rustix",
- "windows-sys 0.60.2",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4821,7 +4794,6 @@ dependencies = [
  "datafusion-bio-format-ensembl-cache",
  "datafusion-bio-function-vep",
  "futures",
- "kdam",
  "log",
  "pyo3",
  "tokio",

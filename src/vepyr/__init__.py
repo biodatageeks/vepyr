@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from vepyr._core import cache_to_parquet as _cache_to_parquet
+from vepyr._core import convert_entity as _convert_entity
 
 __all__ = ["build_cache"]
 
@@ -170,8 +170,25 @@ def build_cache(
 
     output_dir = os.path.join(cache_dir, "parquet")
 
-    # Convert to Parquet
-    log.info("Converting cache to Parquet (%d partitions) ...", partitions)
-    results = _cache_to_parquet(cache_root, output_dir, partitions)
-    log.info("Done. Wrote %d Parquet files to %s", len(results), output_dir)
-    return results
+    # Convert each entity type to Parquet with progress
+    from tqdm.auto import tqdm
+
+    entities = [
+        "variation", "transcript", "exon",
+        "translation", "regulatory", "motif",
+    ]
+    all_results: list[tuple[str, int]] = []
+    for entity in tqdm(entities, desc="Converting to Parquet", unit="entity"):
+        result = _convert_entity(cache_root, output_dir, entity, partitions)
+        if result is None:
+            log.info("Skipping %s: no source files found", entity)
+            continue
+        for path, rows in result:
+            log.info(
+                "%s: %s rows -> %s",
+                entity, f"{rows:,}", os.path.basename(path),
+            )
+        all_results.extend(result)
+
+    log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
+    return all_results

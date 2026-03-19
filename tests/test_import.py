@@ -1,9 +1,9 @@
-from vepyr._core import cache_to_parquet
+from vepyr._core import convert_entity
 from vepyr import build_cache
 
 
-def test_cache_to_parquet_importable():
-    assert callable(cache_to_parquet)
+def test_convert_entity_importable():
+    assert callable(convert_entity)
 
 
 def test_build_cache_importable():
