@@ -3,16 +3,14 @@ def convert_entity(
     output_dir: str,
     entity: str,
     partitions: int = 8,
+    memory_limit_gb: int = 32,
 ) -> list[tuple[str, int]] | None:
-    """Convert a single entity type from an Ensembl VEP cache to Parquet.
+    """Convert a single entity type from an Ensembl VEP cache to Parquet."""
+    ...
 
-    Args:
-        cache_root: Path to unpacked Ensembl VEP cache (contains info.txt).
-        output_dir: Output directory for Parquet files.
-        entity: One of: variation, transcript, exon, translation, regulatory, motif.
-        partitions: DataFusion parallelism level.
+def _register_vep(ctx_ptr: int) -> None:
+    """Register VEP functions into a SessionContext via raw pointer.
 
-    Returns:
-        List of (file_path, row_count) for written files, or None if skipped.
+    Called internally by register_vep(). Do not call directly.
     """
     ...

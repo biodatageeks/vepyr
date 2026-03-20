@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 
 from vepyr._core import convert_entity as _convert_entity
+from vepyr._core import _register_vep
 
-__all__ = ["build_cache"]
+__all__ = ["build_cache", "register_vep"]
 
 log = logging.getLogger(__name__)
 
@@ -242,3 +243,44 @@ def build_cache(
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results
+
+
+def register_vep(ctx: object | None = None) -> None:
+    """Register VEP annotation functions into a polars-bio session.
+
+    Registers ``annotate_vep()``, ``lookup_variants()``, and VEP scalar
+    UDFs (``match_allele``, ``vep_allele``, etc.) into the given
+    polars-bio ``BioSessionContext``.
+
+    Parameters
+    ----------
+    ctx : BioSessionContext or None
+        The polars-bio session context. If ``None``, uses the default
+        ``polars_bio.ctx``.
+
+    Examples
+    --------
+    >>> import polars_bio as pb
+    >>> import vepyr
+    >>> vepyr.register_vep()  # registers into pb.ctx
+    >>> lf = pb.scan_vcf("input.vcf")
+    >>> result = pb.sql("SELECT * FROM annotate_vep('vcf', '/cache', 'parquet')")
+    """
+    if ctx is None:
+        try:
+            import polars_bio
+
+            ctx = polars_bio.ctx
+        except ImportError:
+            raise ImportError(
+                "polars-bio is required. Install with: pip install polars-bio"
+            ) from None
+
+    if not hasattr(ctx, "register_extension"):
+        raise TypeError(
+            "ctx must be a polars-bio BioSessionContext with register_extension() support. "
+            "Update polars-bio to the latest version."
+        )
+
+    ctx.register_extension(_register_vep)
+    log.info("VEP annotation functions registered")

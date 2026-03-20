@@ -1,3 +1,5 @@
+use datafusion::prelude::SessionContext;
+use datafusion_bio_function_vep::register_vep_functions;
 use pyo3::prelude::*;
 
 mod convert;
@@ -19,8 +21,20 @@ fn convert_entity(
     }
 }
 
+/// Register VEP annotation functions into a polars-bio SessionContext.
+///
+/// Called via `polars_bio.ctx.register_extension(vepyr._core._register_vep)`.
+/// The `ctx_ptr` is a raw pointer (usize) to a `datafusion::prelude::SessionContext`.
+#[pyfunction]
+fn _register_vep(ctx_ptr: usize) -> PyResult<()> {
+    let ctx = unsafe { &*(ctx_ptr as *const SessionContext) };
+    register_vep_functions(ctx);
+    Ok(())
+}
+
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(convert_entity, m)?)?;
+    m.add_function(wrap_pyfunction!(_register_vep, m)?)?;
     Ok(())
 }
