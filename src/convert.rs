@@ -1,8 +1,8 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::sync::Arc;
 use std::time::Instant;
 
-use datafusion::arrow::array::Array;
 use datafusion::arrow::datatypes::SchemaRef;
 use datafusion::parquet::arrow::ArrowWriter;
 use datafusion::parquet::basic::Compression;
@@ -15,6 +15,12 @@ use datafusion_bio_format_ensembl_cache::{
 };
 use futures::StreamExt;
 
+/// Main chromosomes that get their own parquet file.
+const MAIN_CHROMS: &[&str] = &[
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",
+    "18", "19", "20", "21", "22", "X", "Y",
+];
+
 fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
     match name {
         "variation" => Some(EnsemblEntityKind::Variation),
@@ -24,6 +30,17 @@ fn parse_entity(name: &str) -> Option<EnsemblEntityKind> {
         "regulatory" => Some(EnsemblEntityKind::RegulatoryFeature),
         "motif" => Some(EnsemblEntityKind::MotifFeature),
         _ => None,
+    }
+}
+
+fn entity_subdir(kind: EnsemblEntityKind) -> &'static str {
+    match kind {
+        EnsemblEntityKind::Variation => "variation",
+        EnsemblEntityKind::Transcript => "transcript",
+        EnsemblEntityKind::Exon => "exon",
+        EnsemblEntityKind::Translation => "translation",
+        EnsemblEntityKind::RegulatoryFeature => "regulatory",
+        EnsemblEntityKind::MotifFeature => "motif",
     }
 }
 
@@ -85,8 +102,8 @@ fn writer_properties(
     builder.build()
 }
 
-fn build_dedup_query(kind: EnsemblEntityKind, table_name: &str, chrom: Option<&str>) -> String {
-    let where_clause = chrom
+fn build_query(kind: EnsemblEntityKind, table_name: &str, chrom_filter: Option<&str>) -> String {
+    let where_clause = chrom_filter
         .map(|c| format!(" WHERE chrom = '{c}'"))
         .unwrap_or_default();
 
@@ -104,6 +121,55 @@ fn build_dedup_query(kind: EnsemblEntityKind, table_name: &str, chrom: Option<&s
             )
         }
         EnsemblEntityKind::Translation => unreachable!("use write_translation_split() instead"),
+        EnsemblEntityKind::Exon => {
+            format!(
+                "SELECT * FROM (\
+                    SELECT *, ROW_NUMBER() OVER (\
+                        PARTITION BY transcript_id, exon_number \
+                        ORDER BY stable_id NULLS LAST\
+                    ) AS _rn \
+                    FROM {table_name}{where_clause}\
+                ) WHERE _rn = 1 \
+                ORDER BY transcript_id, start"
+            )
+        }
+        _ => {
+            format!("SELECT * FROM {table_name}{where_clause} ORDER BY chrom, start")
+        }
+    }
+}
+
+/// Build a WHERE clause matching multiple chromosomes.
+fn build_multi_chrom_filter(chroms: &[&str]) -> String {
+    let list = chroms
+        .iter()
+        .map(|c| format!("'{c}'"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(" WHERE chrom IN ({list})")
+}
+
+fn build_query_multi_chrom(
+    kind: EnsemblEntityKind,
+    table_name: &str,
+    chroms: &[&str],
+) -> String {
+    let where_clause = build_multi_chrom_filter(chroms);
+
+    match kind {
+        EnsemblEntityKind::Transcript => {
+            format!(
+                "SELECT * FROM (\
+                    SELECT *, ROW_NUMBER() OVER (\
+                        PARTITION BY stable_id \
+                        ORDER BY cds_start NULLS LAST\
+                    ) AS _rn \
+                    FROM {table_name}{where_clause}\
+                ) WHERE _rn = 1 \
+                ORDER BY chrom, start"
+            )
+        }
+        EnsemblEntityKind::Translation => unreachable!(),
         EnsemblEntityKind::Exon => {
             format!(
                 "SELECT * FROM (\
@@ -145,6 +211,14 @@ fn project_batch(
     )?)
 }
 
+/// Get chromosome names from schema metadata (set by upstream PR #134).
+fn chroms_from_schema(schema: &SchemaRef) -> Option<Vec<String>> {
+    schema
+        .metadata()
+        .get("bio.vep.chromosomes")
+        .and_then(|json| serde_json::from_str(json).ok())
+}
+
 fn format_rows(n: usize) -> String {
     if n >= 1_000_000 {
         format!("{:.1}M", n as f64 / 1_000_000.0)
@@ -168,56 +242,31 @@ fn print_progress(label: &str, rows: usize, elapsed: f64) {
     );
 }
 
-/// Discover distinct chromosome names from the table.
-async fn discover_chroms(
-    ctx: &SessionContext,
+/// Create a fresh session + provider for a given entity and cache root.
+fn make_ctx_and_register(
+    cache_root: &str,
+    kind: EnsemblEntityKind,
     table_name: &str,
-) -> datafusion::common::Result<Vec<String>> {
-    let df = ctx
-        .sql(&format!(
-            "SELECT DISTINCT chrom FROM {table_name} ORDER BY chrom"
-        ))
-        .await?;
-    let batches = df.collect().await?;
-    let mut chroms = Vec::new();
-    for batch in &batches {
-        let col = batch
-            .column_by_name("chrom")
-            .ok_or_else(|| {
-                datafusion::error::DataFusionError::Execution("no chrom column".into())
-            })?
-            .as_any();
-        if let Some(arr) = col.downcast_ref::<datafusion::arrow::array::StringArray>() {
-            for i in 0..arr.len() {
-                if !arr.is_null(i) {
-                    chroms.push(arr.value(i).to_string());
-                }
-            }
-        } else if let Some(arr) =
-            col.downcast_ref::<datafusion::arrow::array::StringViewArray>()
-        {
-            for i in 0..arr.len() {
-                if !arr.is_null(i) {
-                    chroms.push(arr.value(i).to_string());
-                }
-            }
-        }
-    }
-    Ok(chroms)
+    partitions: usize,
+) -> datafusion::common::Result<SessionContext> {
+    let config = SessionConfig::new().with_target_partitions(partitions);
+    let ctx = SessionContext::new_with_config(config);
+    let mut options = EnsemblCacheOptions::new(cache_root);
+    options.target_partitions = Some(partitions);
+    options.max_storable_partitions = Some(2);
+    let provider = EnsemblCacheTableProvider::for_entity(kind, options)?;
+    ctx.register_table(table_name, provider)?;
+    Ok(ctx)
 }
 
-/// Write a query result to a parquet file, streaming batches.
-/// Returns number of rows written.
-async fn write_query_to_parquet(
+/// Stream a query to a parquet writer. Returns row count.
+async fn stream_to_writer(
     ctx: &SessionContext,
     query: &str,
-    output_file: &str,
-    kind: EnsemblEntityKind,
+    writer: &mut ArrowWriter<File>,
     needs_rn_drop: bool,
-    label: &str,
 ) -> datafusion::common::Result<usize> {
     let df = ctx.sql(query).await?;
-
     let df = if needs_rn_drop {
         let schema = df.schema().clone();
         let cols: Vec<_> = schema
@@ -229,171 +278,177 @@ async fn write_query_to_parquet(
     } else {
         df
     };
-
     let mut stream = df.execute_stream().await?;
-    let schema = stream.schema();
-    let sk = sort_key(kind);
-    let props = writer_properties(kind, &schema, sk, None);
-
-    let file = File::create(output_file)
-        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
-    let mut writer = ArrowWriter::try_new(file, schema.clone(), Some(props))?;
-    let mut total_rows: usize = 0;
-    let start = Instant::now();
-    let mut last_report = Instant::now();
-
+    let mut rows = 0usize;
     while let Some(batch_result) = stream.next().await {
         let batch = batch_result?;
         if batch.num_rows() == 0 {
             continue;
         }
-        total_rows += batch.num_rows();
+        rows += batch.num_rows();
         writer.write(&batch)?;
-        if last_report.elapsed().as_secs() >= 5 {
-            print_progress(label, total_rows, start.elapsed().as_secs_f64());
-            last_report = Instant::now();
-        }
     }
-    writer.close()?;
-    print_progress(label, total_rows, start.elapsed().as_secs_f64());
+    Ok(rows)
+}
 
-    Ok(total_rows)
+/// Create a parquet writer for a given file path and entity kind.
+fn create_writer(
+    path: &str,
+    schema: &SchemaRef,
+    kind: EnsemblEntityKind,
+    sort_cols: &[&str],
+    rg_override: Option<usize>,
+) -> datafusion::common::Result<ArrowWriter<File>> {
+    let props = writer_properties(kind, schema, sort_cols, rg_override);
+    let file = File::create(path)
+        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
+    ArrowWriter::try_new(file, schema.clone(), Some(props))
+        .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))
 }
 
 async fn write_translation_split(
-    ctx: &SessionContext,
-    table_name: &str,
+    cache_root: &str,
     output_dir: &str,
     prefix: &str,
+    partitions: usize,
+    chroms: &Option<Vec<String>>,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
-    let dedup_query = format!(
-        "SELECT * FROM (\
-            SELECT *, ROW_NUMBER() OVER (\
-                PARTITION BY transcript_id \
-                ORDER BY cdna_coding_start NULLS LAST\
-            ) AS _rn \
-            FROM {table_name}\
-        ) WHERE _rn = 1"
-    );
+    let table_name = "tl";
+    let main_set: HashSet<&str> = MAIN_CHROMS.iter().copied().collect();
 
-    let df = ctx.sql(&dedup_query).await?;
-    let schema = df.schema().clone();
-    let cols: Vec<_> = schema
-        .columns()
-        .into_iter()
-        .filter(|c| c.name() != "_rn")
-        .collect();
-    let df = df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?;
-    let deduped = df.collect().await?;
-
-    if deduped.is_empty() || deduped.iter().all(|b| b.num_rows() == 0) {
-        return Ok(vec![]);
-    }
-
-    let mem_table = datafusion::datasource::MemTable::try_new(deduped[0].schema(), vec![deduped])?;
-    ctx.register_table("_tl_deduped", Arc::new(mem_table))?;
+    // Determine which chroms to process
+    let (main_chroms, other_chroms): (Vec<&str>, Vec<&str>) = match chroms {
+        Some(all) => {
+            let main: Vec<&str> = all.iter().filter(|c| main_set.contains(c.as_str())).map(|s| s.as_str()).collect();
+            let other: Vec<&str> = all.iter().filter(|c| !main_set.contains(c.as_str())).map(|s| s.as_str()).collect();
+            (main, other)
+        }
+        None => (MAIN_CHROMS.to_vec(), vec![]),
+    };
 
     let mut results = Vec::new();
 
-    // translation_core: sorted by transcript_id
-    {
-        let core_schema = datafusion_bio_format_ensembl_cache::translation_core_schema(false);
-        let core_select = core_schema
-            .fields()
-            .iter()
-            .map(|f| format!("\"{}\"", f.name()))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let core_query = format!("SELECT {core_select} FROM _tl_deduped ORDER BY transcript_id");
-        let core_file = format!("{output_dir}/{prefix}_translation_core.parquet");
-        let core_props = writer_properties(
-            EnsemblEntityKind::Translation,
-            &core_schema,
-            &["transcript_id"],
-            None,
+    // Process each main chromosome
+    for chrom in &main_chroms {
+        let ctx = make_ctx_and_register(cache_root, EnsemblEntityKind::Translation, table_name, partitions)?;
+
+        let dedup_query = format!(
+            "SELECT * FROM (\
+                SELECT *, ROW_NUMBER() OVER (\
+                    PARTITION BY transcript_id \
+                    ORDER BY cdna_coding_start NULLS LAST\
+                ) AS _rn \
+                FROM {table_name} WHERE chrom = '{chrom}'\
+            ) WHERE _rn = 1"
         );
+        let df = ctx.sql(&dedup_query).await?;
+        let schema = df.schema().clone();
+        let cols: Vec<_> = schema.columns().into_iter().filter(|c| c.name() != "_rn").collect();
+        let df = df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?;
+        let deduped = df.collect().await?;
 
-        let core_df = ctx.sql(&core_query).await?;
-        let mut core_stream = core_df.execute_stream().await?;
-        let file = File::create(&core_file)
-            .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
-        let mut writer = ArrowWriter::try_new(file, core_schema.clone(), Some(core_props))?;
+        if deduped.is_empty() || deduped.iter().all(|b| b.num_rows() == 0) {
+            continue;
+        }
+
+        let mem_table = datafusion::datasource::MemTable::try_new(deduped[0].schema(), vec![deduped])?;
+        let split_ctx = SessionContext::new();
+        split_ctx.register_table("_tl_deduped", Arc::new(mem_table))?;
+
+        // translation_core
+        let core_schema = datafusion_bio_format_ensembl_cache::translation_core_schema(false);
+        let core_select = core_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
+        let core_file = format!("{output_dir}/translation_core/{prefix}_chr{chrom}.parquet");
+        let core_query = format!("SELECT {core_select} FROM _tl_deduped ORDER BY transcript_id");
+
+        let mut w = create_writer(&core_file, &core_schema, EnsemblEntityKind::Translation, &["transcript_id"], None)?;
+        let core_df = split_ctx.sql(&core_query).await?;
+        let mut stream = core_df.execute_stream().await?;
         let mut core_rows = 0usize;
-        let start = Instant::now();
-        let mut last_report = Instant::now();
-
-        eprintln!("  translation_core: writing...");
-        while let Some(batch_result) = core_stream.next().await {
+        while let Some(batch_result) = stream.next().await {
             let batch = batch_result?;
-            if batch.num_rows() == 0 {
-                continue;
-            }
+            if batch.num_rows() == 0 { continue; }
             let batch = project_batch(&batch, &core_schema)?;
             core_rows += batch.num_rows();
-            writer.write(&batch)?;
-            if last_report.elapsed().as_secs() >= 5 {
-                print_progress("translation_core", core_rows, start.elapsed().as_secs_f64());
-                last_report = Instant::now();
-            }
+            w.write(&batch)?;
         }
-        writer.close()?;
-        print_progress("translation_core", core_rows, start.elapsed().as_secs_f64());
+        w.close()?;
         results.push((core_file, core_rows));
-    }
 
-    // translation_sift: sorted by (chrom, start)
-    {
+        // translation_sift
         let sift_schema = datafusion_bio_format_ensembl_cache::translation_sift_schema(false);
-        let sift_select = sift_schema
-            .fields()
-            .iter()
-            .map(|f| format!("\"{}\"", f.name()))
-            .collect::<Vec<_>>()
-            .join(", ");
+        let sift_select = sift_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
+        let sift_file = format!("{output_dir}/translation_sift/{prefix}_chr{chrom}.parquet");
         let sift_query = format!("SELECT {sift_select} FROM _tl_deduped ORDER BY chrom, start");
-        let sift_file = format!("{output_dir}/{prefix}_translation_sift.parquet");
-        let sift_props = writer_properties(
-            EnsemblEntityKind::Translation,
-            &sift_schema,
-            &["chrom", "start"],
-            Some(256),
-        );
 
-        let sift_df = ctx.sql(&sift_query).await?;
-        let mut sift_stream = sift_df.execute_stream().await?;
-        let file = File::create(&sift_file)
-            .map_err(|e| datafusion::error::DataFusionError::Execution(format!("{e}")))?;
-        let mut writer = ArrowWriter::try_new(file, sift_schema.clone(), Some(sift_props))?;
+        let mut w = create_writer(&sift_file, &sift_schema, EnsemblEntityKind::Translation, &["chrom", "start"], Some(256))?;
+        let sift_df = split_ctx.sql(&sift_query).await?;
+        let mut stream = sift_df.execute_stream().await?;
         let mut sift_rows = 0usize;
-        let start = Instant::now();
-        let mut last_report = Instant::now();
-
-        eprintln!("  translation_sift: writing...");
-        while let Some(batch_result) = sift_stream.next().await {
+        while let Some(batch_result) = stream.next().await {
             let batch = batch_result?;
-            if batch.num_rows() == 0 {
-                continue;
-            }
+            if batch.num_rows() == 0 { continue; }
             let batch = project_batch(&batch, &sift_schema)?;
             sift_rows += batch.num_rows();
-            writer.write(&batch)?;
-            if last_report.elapsed().as_secs() >= 5 {
-                print_progress("translation_sift", sift_rows, start.elapsed().as_secs_f64());
-                last_report = Instant::now();
-            }
+            w.write(&batch)?;
         }
-        writer.close()?;
-        print_progress("translation_sift", sift_rows, start.elapsed().as_secs_f64());
+        w.close()?;
         results.push((sift_file, sift_rows));
+
+        split_ctx.deregister_table("_tl_deduped")?;
+        eprintln!("  translation: chr{chrom} core={} sift={}", format_rows(core_rows), format_rows(sift_rows));
     }
 
-    ctx.deregister_table("_tl_deduped")?;
+    // Process remaining contigs as "other"
+    if !other_chroms.is_empty() {
+        let ctx = make_ctx_and_register(cache_root, EnsemblEntityKind::Translation, table_name, partitions)?;
+        let in_list = other_chroms.iter().map(|c| format!("'{c}'")).collect::<Vec<_>>().join(", ");
+        let dedup_query = format!(
+            "SELECT * FROM (\
+                SELECT *, ROW_NUMBER() OVER (\
+                    PARTITION BY transcript_id \
+                    ORDER BY cdna_coding_start NULLS LAST\
+                ) AS _rn \
+                FROM {table_name} WHERE chrom IN ({in_list})\
+            ) WHERE _rn = 1"
+        );
+        let df = ctx.sql(&dedup_query).await?;
+        let schema = df.schema().clone();
+        let cols: Vec<_> = schema.columns().into_iter().filter(|c| c.name() != "_rn").collect();
+        let df = df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?;
+        let deduped = df.collect().await?;
+
+        if !deduped.is_empty() && deduped.iter().any(|b| b.num_rows() > 0) {
+            let mem_table = datafusion::datasource::MemTable::try_new(deduped[0].schema(), vec![deduped])?;
+            let split_ctx = SessionContext::new();
+            split_ctx.register_table("_tl_deduped", Arc::new(mem_table))?;
+
+            let core_schema = datafusion_bio_format_ensembl_cache::translation_core_schema(false);
+            let core_select = core_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
+            let core_file = format!("{output_dir}/translation_core/{prefix}_other.parquet");
+            let mut w = create_writer(&core_file, &core_schema, EnsemblEntityKind::Translation, &["transcript_id"], None)?;
+            let core_rows = stream_to_writer(&split_ctx, &format!("SELECT {core_select} FROM _tl_deduped ORDER BY transcript_id"), &mut w, false).await?;
+            w.close()?;
+            results.push((core_file, core_rows));
+
+            let sift_schema = datafusion_bio_format_ensembl_cache::translation_sift_schema(false);
+            let sift_select = sift_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
+            let sift_file = format!("{output_dir}/translation_sift/{prefix}_other.parquet");
+            let mut w = create_writer(&sift_file, &sift_schema, EnsemblEntityKind::Translation, &["chrom", "start"], Some(256))?;
+            let sift_rows = stream_to_writer(&split_ctx, &format!("SELECT {sift_select} FROM _tl_deduped ORDER BY chrom, start"), &mut w, false).await?;
+            w.close()?;
+            results.push((sift_file, sift_rows));
+
+            eprintln!("  translation: other ({} contigs) core={} sift={}", other_chroms.len(), format_rows(core_rows), format_rows(sift_rows));
+        }
+    }
+
     Ok(results)
 }
 
 /// Convert a single entity from the Ensembl VEP cache to Parquet.
-///
-/// For variation, processes per-chromosome to avoid OOM on large genomes.
+/// Output: <output_dir>/<entity>/<prefix>_chr<N>.parquet for main chroms,
+///         <output_dir>/<entity>/<prefix>_other.parquet for remaining contigs.
 pub fn convert_entity(
     cache_root: &str,
     output_dir: &str,
@@ -409,13 +464,24 @@ pub fn convert_entity(
         .unwrap_or("unknown")
         .to_string();
 
-    std::fs::create_dir_all(output_dir)
-        .map_err(|e| format!("Failed to create output dir: {e}"))?;
+    // Create entity subdirectory
+    let subdir = entity_subdir(kind);
+    let entity_dir = format!("{output_dir}/{subdir}");
+    std::fs::create_dir_all(&entity_dir)
+        .map_err(|e| format!("Failed to create dir {entity_dir}: {e}"))?;
+
+    // For translation, also create the split subdirs
+    if kind == EnsemblEntityKind::Translation {
+        std::fs::create_dir_all(format!("{output_dir}/translation_core"))
+            .map_err(|e| format!("Failed to create dir: {e}"))?;
+        std::fs::create_dir_all(format!("{output_dir}/translation_sift"))
+            .map_err(|e| format!("Failed to create dir: {e}"))?;
+    }
 
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
-    match rt.block_on(convert_entity_async(
+    match rt.block_on(convert_entity_per_chrom(
         cache_root, output_dir, &prefix, kind, partitions,
     )) {
         Ok(results) => Ok(results),
@@ -430,21 +496,13 @@ pub fn convert_entity(
     }
 }
 
-async fn convert_entity_async(
+async fn convert_entity_per_chrom(
     cache_root: &str,
     output_dir: &str,
     prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
-    let config = SessionConfig::new().with_target_partitions(partitions);
-    let ctx = SessionContext::new_with_config(config);
-
-    let mut options = EnsemblCacheOptions::new(cache_root);
-    options.target_partitions = Some(partitions);
-    options.max_storable_partitions = Some(2);
-    let provider = EnsemblCacheTableProvider::for_entity(kind, options)?;
-
     let table_name = match kind {
         EnsemblEntityKind::Variation => "var",
         EnsemblEntityKind::Transcript => "tx",
@@ -453,87 +511,116 @@ async fn convert_entity_async(
         EnsemblEntityKind::RegulatoryFeature => "reg",
         EnsemblEntityKind::MotifFeature => "motif",
     };
-    ctx.register_table(table_name, provider)?;
 
+    // Get chromosomes from schema metadata
+    let init_ctx = make_ctx_and_register(cache_root, kind, table_name, partitions)?;
+    let provider_schema = {
+        let table = init_ctx.table(table_name).await?;
+        table.schema().inner().clone()
+    };
+    let chroms = chroms_from_schema(&provider_schema);
+    drop(init_ctx);
+
+    // Translation has special split handling
     if kind == EnsemblEntityKind::Translation {
-        return write_translation_split(&ctx, table_name, output_dir, prefix).await;
+        return write_translation_split(cache_root, output_dir, prefix, partitions, &chroms).await;
     }
 
-    let entity_label = match kind {
-        EnsemblEntityKind::Variation => "variation",
-        EnsemblEntityKind::Transcript => "transcript",
-        EnsemblEntityKind::Exon => "exon",
-        EnsemblEntityKind::RegulatoryFeature => "regulatory",
-        EnsemblEntityKind::MotifFeature => "motif",
-        EnsemblEntityKind::Translation => unreachable!(),
+    let subdir = entity_subdir(kind);
+    let needs_rn_drop = matches!(kind, EnsemblEntityKind::Transcript | EnsemblEntityKind::Exon);
+    let main_set: HashSet<&str> = MAIN_CHROMS.iter().copied().collect();
+
+    let (main_chroms, other_chroms): (Vec<String>, Vec<String>) = match &chroms {
+        Some(all) => {
+            let main: Vec<String> = all.iter().filter(|c| main_set.contains(c.as_str())).cloned().collect();
+            let other: Vec<String> = all.iter().filter(|c| !main_set.contains(c.as_str())).cloned().collect();
+            (main, other)
+        }
+        None => (MAIN_CHROMS.iter().map(|s| s.to_string()).collect(), vec![]),
     };
 
-    let needs_rn_drop = matches!(
-        kind,
-        EnsemblEntityKind::Transcript | EnsemblEntityKind::Exon
-    );
+    eprintln!("  {subdir}: {} main chroms, {} other contigs", main_chroms.len(), other_chroms.len());
 
-    // For variation, process per-chromosome to avoid OOM on large genomes.
-    // Each chrom's data fits in memory for sorting.
-    if kind == EnsemblEntityKind::Variation {
-        eprintln!("  {entity_label}: discovering chromosomes...");
-        let chroms = discover_chroms(&ctx, table_name).await?;
-        eprintln!("  {entity_label}: found {} chromosomes", chroms.len());
+    let mut all_results = Vec::new();
+    let global_start = Instant::now();
+    let mut total_rows: usize = 0;
 
-        let output_file = format!("{output_dir}/{prefix}_{entity_label}.parquet");
+    // Process each main chromosome as a separate parquet file
+    for chrom in &main_chroms {
+        let ctx = make_ctx_and_register(cache_root, kind, table_name, partitions)?;
+        let query = build_query(kind, table_name, Some(chrom));
+        let output_file = format!("{output_dir}/{subdir}/{prefix}_chr{chrom}.parquet");
 
-        // Process first chrom to get schema, then append the rest
-        let mut total_rows: usize = 0;
-        let mut writer: Option<ArrowWriter<File>> = None;
-        let global_start = Instant::now();
+        // Get schema from first batch
+        let df = ctx.sql(&query).await?;
+        let df = if needs_rn_drop {
+            let schema = df.schema().clone();
+            let cols: Vec<_> = schema.columns().into_iter().filter(|c| c.name() != "_rn").collect();
+            df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?
+        } else {
+            df
+        };
+        let mut stream = df.execute_stream().await?;
+        let schema = stream.schema();
+        let sk = sort_key(kind);
+        let mut writer = create_writer(&output_file, &schema, kind, sk, None)?;
 
-        for chrom in &chroms {
-            let query = build_dedup_query(kind, table_name, Some(chrom));
-            let df = ctx.sql(&query).await?;
-            let mut stream = df.execute_stream().await?;
+        let mut chrom_rows = 0usize;
+        while let Some(batch_result) = stream.next().await {
+            let batch = batch_result?;
+            if batch.num_rows() == 0 { continue; }
+            chrom_rows += batch.num_rows();
+            writer.write(&batch)?;
+        }
+        writer.close()?;
+        total_rows += chrom_rows;
 
-            if writer.is_none() {
-                let schema = stream.schema();
-                let sk = sort_key(kind);
-                let props = writer_properties(kind, &schema, sk, None);
-                let file = File::create(&output_file).map_err(|e| {
-                    datafusion::error::DataFusionError::Execution(format!("{e}"))
-                })?;
-                writer = Some(ArrowWriter::try_new(file, schema.clone(), Some(props))?);
-            }
-
-            let w = writer.as_mut().unwrap();
-            let mut chrom_rows = 0usize;
-            while let Some(batch_result) = stream.next().await {
-                let batch = batch_result?;
-                if batch.num_rows() == 0 {
-                    continue;
-                }
-                chrom_rows += batch.num_rows();
-                w.write(&batch)?;
-            }
-            total_rows += chrom_rows;
+        if chrom_rows > 0 {
             eprintln!(
-                "  {entity_label}: chr{chrom} {} rows (total: {})",
-                format_rows(chrom_rows),
-                format_rows(total_rows)
+                "  {subdir}: chr{chrom} {} rows (total: {})",
+                format_rows(chrom_rows), format_rows(total_rows)
             );
         }
-
-        if let Some(w) = writer {
-            w.close()?;
-        }
-        print_progress(entity_label, total_rows, global_start.elapsed().as_secs_f64());
-        return Ok(vec![(output_file, total_rows)]);
+        all_results.push((output_file, chrom_rows));
     }
 
-    // All other entities: single query
-    let output_file = format!("{output_dir}/{prefix}_{entity_label}.parquet");
-    let query = build_dedup_query(kind, table_name, None);
-    eprintln!("  {entity_label}: reading cache...");
-    let rows =
-        write_query_to_parquet(&ctx, &query, &output_file, kind, needs_rn_drop, entity_label)
-            .await?;
+    // Process remaining contigs as "other.parquet"
+    if !other_chroms.is_empty() {
+        let ctx = make_ctx_and_register(cache_root, kind, table_name, partitions)?;
+        let other_refs: Vec<&str> = other_chroms.iter().map(|s| s.as_str()).collect();
+        let query = build_query_multi_chrom(kind, table_name, &other_refs);
+        let output_file = format!("{output_dir}/{subdir}/{prefix}_other.parquet");
 
-    Ok(vec![(output_file, rows)])
+        let df = ctx.sql(&query).await?;
+        let df = if needs_rn_drop {
+            let schema = df.schema().clone();
+            let cols: Vec<_> = schema.columns().into_iter().filter(|c| c.name() != "_rn").collect();
+            df.select_columns(&cols.iter().map(|c| c.name()).collect::<Vec<_>>())?
+        } else {
+            df
+        };
+        let mut stream = df.execute_stream().await?;
+        let schema = stream.schema();
+        let sk = sort_key(kind);
+        let mut writer = create_writer(&output_file, &schema, kind, sk, None)?;
+
+        let mut other_rows = 0usize;
+        while let Some(batch_result) = stream.next().await {
+            let batch = batch_result?;
+            if batch.num_rows() == 0 { continue; }
+            other_rows += batch.num_rows();
+            writer.write(&batch)?;
+        }
+        writer.close()?;
+        total_rows += other_rows;
+
+        eprintln!(
+            "  {subdir}: other ({} contigs) {} rows",
+            other_chroms.len(), format_rows(other_rows)
+        );
+        all_results.push((output_file, other_rows));
+    }
+
+    print_progress(subdir, total_rows, global_start.elapsed().as_secs_f64());
+    Ok(all_results)
 }

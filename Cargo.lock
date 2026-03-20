@@ -961,7 +961,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-format-core"
 version = "0.6.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=2bbc77c87b10b7c0bd2ce684a64764c74c193264#2bbc77c87b10b7c0bd2ce684a64764c74c193264"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=7cbc049902196fa5f484101f40d6e78ace6541ec#7cbc049902196fa5f484101f40d6e78ace6541ec"
 dependencies = [
  "async-compression",
  "bytes",
@@ -983,7 +983,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-format-ensembl-cache"
 version = "0.1.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=2bbc77c87b10b7c0bd2ce684a64764c74c193264#2bbc77c87b10b7c0bd2ce684a64764c74c193264"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=7cbc049902196fa5f484101f40d6e78ace6541ec#7cbc049902196fa5f484101f40d6e78ace6541ec"
 dependencies = [
  "async-trait",
  "datafusion",
@@ -4796,6 +4796,7 @@ dependencies = [
  "futures",
  "log",
  "pyo3",
+ "serde_json",
  "tokio",
 ]
 
