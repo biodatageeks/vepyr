@@ -24,9 +24,17 @@ fn convert_entity(
 /// Register VEP annotation functions into a polars-bio SessionContext.
 ///
 /// Called via `polars_bio.ctx.register_extension(vepyr._core._register_vep)`.
-/// The `ctx_ptr` is a raw pointer (usize) to a `datafusion::prelude::SessionContext`.
+/// Receives a raw pointer to `SessionContext` plus the DataFusion version
+/// string for ABI compatibility verification.
 #[pyfunction]
-fn _register_vep(ctx_ptr: usize) -> PyResult<()> {
+fn _register_vep(ctx_ptr: usize, datafusion_version: &str) -> PyResult<()> {
+    let our_version = datafusion::DATAFUSION_VERSION;
+    if datafusion_version != our_version {
+        return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "DataFusion version mismatch: polars-bio has {datafusion_version}, \
+             vepyr has {our_version}. Both must use the same version."
+        )));
+    }
     let ctx = unsafe { &*(ctx_ptr as *const SessionContext) };
     register_vep_functions(ctx);
     Ok(())
