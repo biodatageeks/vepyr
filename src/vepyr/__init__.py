@@ -5,7 +5,7 @@ import logging
 from vepyr._core import convert_entity as _convert_entity
 from vepyr._core import _register_vep
 
-__all__ = ["build_cache", "register_vep"]
+__all__ = ["build_cache", "annotate"]
 
 log = logging.getLogger(__name__)
 
@@ -245,42 +245,160 @@ def build_cache(
     return all_results
 
 
-def register_vep(ctx: object | None = None) -> None:
-    """Register VEP annotation functions into a polars-bio session.
+def _ensure_vep_registered() -> None:
+    """Auto-register VEP functions into polars-bio's session (once)."""
+    global _vep_registered
+    if _vep_registered:
+        return
+    try:
+        import polars_bio
 
-    Registers ``annotate_vep()``, ``lookup_variants()``, and VEP scalar
-    UDFs (``match_allele``, ``vep_allele``, etc.) into the given
-    polars-bio ``BioSessionContext``.
+        ctx = polars_bio.ctx
+        if hasattr(ctx, "register_extension"):
+            ctx.register_extension(_register_vep)
+            _vep_registered = True
+            log.info("VEP annotation functions registered into polars-bio session")
+    except ImportError:
+        pass  # polars-bio not installed, will error in annotate()
+
+
+_vep_registered = False
+
+
+def annotate(
+    vcf: str,
+    cache_dir: str,
+    *,
+    chrom: str | None = None,
+    backend: str = "parquet",
+    extended_probes: bool = False,
+    everything: bool = False,
+    hgvs: bool = False,
+    shift_hgvs: bool = False,
+    reference_fasta: str | None = None,
+    cache_size_mb: int = 1024,
+) -> object:
+    """Annotate variants from a VCF file with VEP consequences.
+
+    Reads the VCF, runs ``annotate_vep()`` against the parquet cache
+    produced by :func:`build_cache`, and returns a polars ``LazyFrame``.
 
     Parameters
     ----------
-    ctx : BioSessionContext or None
-        The polars-bio session context. If ``None``, uses the default
-        ``polars_bio.ctx``.
+    vcf : str
+        Path to the input VCF file.
+    cache_dir : str
+        Path to the parquet cache directory produced by :func:`build_cache`,
+        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_vep"``.
+    chrom : str or None
+        Chromosome to annotate (e.g. ``"22"``). If None, annotates all.
+    backend : str
+        Cache backend: ``"parquet"`` (default) or ``"fjall"``.
+    extended_probes : bool
+        Use interval-overlap fallback for shifted indels.
+    everything : bool
+        Enable all annotation features (80-field CSQ).
+    hgvs : bool
+        Add HGVS notation to output.
+    shift_hgvs : bool
+        3' shift HGVS notation.
+    reference_fasta : str or None
+        Path to reference FASTA (required for HGVS).
+    cache_size_mb : int
+        Annotation cache size in MB (default: 1024).
+
+    Returns
+    -------
+    polars.LazyFrame
+        Annotated variants with ``csq`` and ``most_severe_consequence``
+        columns, plus original VCF fields.
 
     Examples
     --------
-    >>> import polars_bio as pb
     >>> import vepyr
-    >>> vepyr.register_vep()  # registers into pb.ctx
-    >>> lf = pb.scan_vcf("input.vcf")
-    >>> result = pb.sql("SELECT * FROM annotate_vep('vcf', '/cache', 'parquet')")
+    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_vep")
+    >>> lf.collect()
     """
-    if ctx is None:
-        try:
-            import polars_bio
+    import json
+    import os
 
-            ctx = polars_bio.ctx
-        except ImportError:
-            raise ImportError(
-                "polars-bio is required. Install with: pip install polars-bio"
-            ) from None
+    try:
+        import polars_bio as pb
+    except ImportError:
+        raise ImportError(
+            "polars-bio is required for annotation. "
+            "Install with: pip install polars-bio"
+        ) from None
 
-    if not hasattr(ctx, "register_extension"):
-        raise TypeError(
-            "ctx must be a polars-bio BioSessionContext with register_extension() support. "
-            "Update polars-bio to the latest version."
+    _ensure_vep_registered()
+
+    if not _vep_registered:
+        raise RuntimeError(
+            "Failed to register VEP functions. "
+            "Ensure polars-bio >= 0.27 with register_extension() support."
         )
 
-    ctx.register_extension(_register_vep)
-    log.info("VEP annotation functions registered")
+    # Register VCF as a table
+    vcf_table = pb.read_vcf(vcf)
+    vcf_table_name = "_vepyr_vcf"
+    pb.from_polars(vcf_table, vcf_table_name)
+
+    # Build variation cache source path
+    if chrom is not None:
+        variation_source = os.path.join(cache_dir, "variation", f"chr{chrom}.parquet")
+    else:
+        variation_source = os.path.join(cache_dir, "variation")
+
+    # Build options JSON
+    opts: dict = {
+        "extended_probes": extended_probes,
+    }
+
+    if everything:
+        opts["everything"] = True
+    if hgvs:
+        opts["hgvs"] = True
+    if shift_hgvs:
+        opts["shift_hgvs"] = True
+    if reference_fasta:
+        opts["reference_fasta_path"] = reference_fasta
+
+    # Discover and register context tables
+    context_tables = {
+        "transcripts_table": "transcript",
+        "exons_table": "exon",
+        "translations_table": "translation_core",
+        "translations_sift_table": "translation_sift",
+        "regulatory_table": "regulatory",
+        "motif_table": "motif",
+    }
+
+    for json_key, entity_dir in context_tables.items():
+        entity_path = os.path.join(cache_dir, entity_dir)
+        if os.path.isdir(entity_path):
+            # Register the directory as a parquet table
+            table_name = f"_vepyr_{entity_dir.replace('/', '_')}"
+            pb.register_view(
+                f"CREATE VIEW {table_name} AS "
+                f"SELECT * FROM read_parquet('{entity_path}/*.parquet')",
+            )
+            opts[json_key] = table_name
+
+    options_json = json.dumps(opts)
+
+    # Run annotation SQL
+    sql = (
+        f"SELECT * FROM annotate_vep("
+        f"'{vcf_table_name}', "
+        f"'{_sql_escape(variation_source)}', "
+        f"'{_sql_escape(backend)}', "
+        f"'{_sql_escape(options_json)}')"
+    )
+
+    log.info("Running annotation: %s", sql)
+    return pb.sql(sql)
+
+
+def _sql_escape(s: str) -> str:
+    """Escape single quotes in SQL string literals."""
+    return s.replace("'", "''")
