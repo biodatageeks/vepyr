@@ -9,21 +9,17 @@ __all__ = ["build_cache"]
 log = logging.getLogger(__name__)
 
 # Ensembl FTP URL templates for VEP cache tarballs.
+# {method_infix} is "" for vep, "_merged" for merged, "_refseq" for refseq.
 # Release >=115 uses indexed_vep_cache/, older releases use vep/.
 _ENSEMBL_FTP_PATHS = [
-    "https://ftp.ensembl.org/pub/release-{release}/variation/indexed_vep_cache/{species}_vep_{release}_{assembly}.tar.gz",
-    "https://ftp.ensembl.org/pub/release-{release}/variation/vep/{species}_vep_{release}_{assembly}.tar.gz",
+    "https://ftp.ensembl.org/pub/release-{release}/variation/indexed_vep_cache/{species}{method_infix}_vep_{release}_{assembly}.tar.gz",
+    "https://ftp.ensembl.org/pub/release-{release}/variation/vep/{species}{method_infix}_vep_{release}_{assembly}.tar.gz",
 ]
 
 
 def _download_with_progress(url: str, dest: str) -> None:
-    """Download a file with a tqdm progress bar.
-
-    Tracks progress by bytes written to disk to avoid urllib transparent
-    decompression inflating the byte count beyond Content-Length.
-    """
+    """Download a file with a tqdm progress bar."""
     import http.client
-    import os
     import urllib.parse
 
     from tqdm import tqdm
@@ -31,8 +27,6 @@ def _download_with_progress(url: str, dest: str) -> None:
     filename = dest.rsplit("/", 1)[-1]
     log.info("Downloading %s", url)
 
-    # Use http.client directly to avoid urllib's transparent decompression
-    # which inflates byte counts for .tar.gz files
     parsed = urllib.parse.urlparse(url)
     conn = http.client.HTTPSConnection(parsed.hostname, timeout=60)
     conn.request("GET", parsed.path, headers={"Accept-Encoding": "identity"})
@@ -46,6 +40,8 @@ def _download_with_progress(url: str, dest: str) -> None:
 
     if resp.status != 200:
         conn.close()
+        import urllib.error
+
         raise urllib.error.HTTPError(
             url, resp.status, resp.reason, resp.headers, None
         )
@@ -72,13 +68,24 @@ def _download_with_progress(url: str, dest: str) -> None:
 
 
 def _download_cache(
-    release: int, species: str, assembly: str, dest: str
+    release: int,
+    species: str,
+    assembly: str,
+    method: str,
+    dest: str,
 ) -> None:
     """Try FTP URL patterns and download the cache tarball."""
     import urllib.error
 
+    method_infix = "" if method == "vep" else f"_{method}"
+
     for pattern in _ENSEMBL_FTP_PATHS:
-        url = pattern.format(release=release, species=species, assembly=assembly)
+        url = pattern.format(
+            release=release,
+            species=species,
+            assembly=assembly,
+            method_infix=method_infix,
+        )
         try:
             _download_with_progress(url, dest)
             return
@@ -88,8 +95,8 @@ def _download_cache(
                 continue
             raise
     raise FileNotFoundError(
-        f"VEP cache not found for {species} release {release} assembly {assembly}. "
-        f"Browse available caches at "
+        f"VEP cache not found for {species} {method} release {release} "
+        f"assembly {assembly}. Browse available caches at "
         f"https://ftp.ensembl.org/pub/release-{release}/variation/"
     )
 
@@ -100,6 +107,7 @@ def build_cache(
     *,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
+    method: str = "vep",
     partitions: int = 8,
     memory_limit_gb: int = 32,
     local_cache: str | None = None,
@@ -111,13 +119,17 @@ def build_cache(
     release : int
         Ensembl release number (e.g. 115).
     cache_dir : str
-        Directory where Parquet files will be written.
+        Root directory for cache data and Parquet output.
     species : str
         Species name (default: ``"homo_sapiens"``).
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
+    method : str
+        Cache type: ``"vep"`` (default), ``"merged"``, or ``"refseq"``.
     partitions : int
         Number of DataFusion partitions for parallelism (default: 8).
+    memory_limit_gb : int
+        Memory limit in GB for DataFusion (default: 32).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
@@ -131,6 +143,14 @@ def build_cache(
     import os
     import tarfile
 
+    if method not in ("vep", "merged", "refseq"):
+        raise ValueError(
+            f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'."
+        )
+
+    # Version directory name: e.g. "115_GRCh38_vep"
+    version_dir = f"{release}_{assembly}_{method}"
+
     if local_cache is not None:
         cache_root = local_cache
         if not os.path.isdir(cache_root):
@@ -139,20 +159,19 @@ def build_cache(
             )
         log.info("Using local cache: %s", cache_root)
     else:
-        # Paths
-        tarball_name = f"{species}_vep_{release}_{assembly}.tar.gz"
+        method_infix = "" if method == "vep" else f"_{method}"
+        tarball_name = (
+            f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
+        )
         tarball_path = os.path.join(cache_dir, tarball_name)
-        # The tarball unpacks to <species>/<release>_<assembly>/
         cache_root = os.path.join(cache_dir, species, f"{release}_{assembly}")
 
         os.makedirs(cache_dir, exist_ok=True)
 
-        # Download if not already present
         if not os.path.isdir(cache_root):
             if not os.path.isfile(tarball_path):
-                _download_cache(release, species, assembly, tarball_path)
+                _download_cache(release, species, assembly, method, tarball_path)
 
-            # Extract
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
             log.info(
                 "Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb
@@ -161,7 +180,6 @@ def build_cache(
                 tar.extractall(path=cache_dir)
             log.info("Extracted to %s", cache_root)
 
-            # Clean up tarball
             os.remove(tarball_path)
 
         if not os.path.isdir(cache_root):
@@ -169,10 +187,9 @@ def build_cache(
                 f"Cache directory not found after extraction: {cache_root}"
             )
 
-    output_dir = os.path.join(cache_dir, "parquet")
+    # Output: parquet/<version_dir>/<entity>/chr1.parquet
+    output_dir = os.path.join(cache_dir, "parquet", version_dir)
 
-    # Convert each entity type to Parquet with a progress display.
-    # Uses IPython.display if in Jupyter, plain print otherwise.
     import sys
     import time
 
@@ -181,13 +198,14 @@ def build_cache(
         "translation", "regulatory", "motif",
     ]
 
-    # Detect if running inside a Jupyter notebook kernel
     _in_notebook = False
     try:
         from IPython import get_ipython
+
         shell = get_ipython()
         if shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell":
             from IPython.display import display, HTML
+
             _in_notebook = True
     except ImportError:
         pass
@@ -202,19 +220,23 @@ def build_cache(
     for i, entity in enumerate(entities):
         _show_status(f"[{i+1}/{len(entities)}] Converting {entity} ...")
         t0 = time.time()
-        result = _convert_entity(cache_root, output_dir, entity, partitions, memory_limit_gb)
+        result = _convert_entity(
+            cache_root, output_dir, entity, partitions, memory_limit_gb
+        )
         elapsed = time.time() - t0
 
         if result is None:
-            _show_status(f"[{i+1}/{len(entities)}] {entity}: skipped (no source files)")
+            _show_status(
+                f"[{i+1}/{len(entities)}] {entity}: skipped (no source files)"
+            )
             continue
 
         for path, rows in result:
             rate = f"{rows / elapsed:,.0f}" if elapsed > 0 else "?"
+            rel_path = os.path.relpath(path, output_dir)
             _show_status(
                 f"[{i+1}/{len(entities)}] {entity}: {rows:,} rows "
-                f"in {elapsed:.1f}s ({rate} rows/s) "
-                f"-> {os.path.basename(path)}"
+                f"in {elapsed:.1f}s ({rate} rows/s) -> {rel_path}"
             )
         all_results.extend(result)
 

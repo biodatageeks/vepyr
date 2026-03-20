@@ -309,7 +309,6 @@ fn create_writer(
 async fn write_translation_split(
     cache_root: &str,
     output_dir: &str,
-    prefix: &str,
     partitions: usize,
     chroms: &Option<Vec<String>>,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
@@ -358,7 +357,7 @@ async fn write_translation_split(
         // translation_core
         let core_schema = datafusion_bio_format_ensembl_cache::translation_core_schema(false);
         let core_select = core_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
-        let core_file = format!("{output_dir}/translation_core/{prefix}_chr{chrom}.parquet");
+        let core_file = format!("{output_dir}/translation_core/chr{chrom}.parquet");
         let core_query = format!("SELECT {core_select} FROM _tl_deduped ORDER BY transcript_id");
 
         let mut w = create_writer(&core_file, &core_schema, EnsemblEntityKind::Translation, &["transcript_id"], None)?;
@@ -378,7 +377,7 @@ async fn write_translation_split(
         // translation_sift
         let sift_schema = datafusion_bio_format_ensembl_cache::translation_sift_schema(false);
         let sift_select = sift_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
-        let sift_file = format!("{output_dir}/translation_sift/{prefix}_chr{chrom}.parquet");
+        let sift_file = format!("{output_dir}/translation_sift/chr{chrom}.parquet");
         let sift_query = format!("SELECT {sift_select} FROM _tl_deduped ORDER BY chrom, start");
 
         let mut w = create_writer(&sift_file, &sift_schema, EnsemblEntityKind::Translation, &["chrom", "start"], Some(256))?;
@@ -425,7 +424,7 @@ async fn write_translation_split(
 
             let core_schema = datafusion_bio_format_ensembl_cache::translation_core_schema(false);
             let core_select = core_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
-            let core_file = format!("{output_dir}/translation_core/{prefix}_other.parquet");
+            let core_file = format!("{output_dir}/translation_core/other.parquet");
             let mut w = create_writer(&core_file, &core_schema, EnsemblEntityKind::Translation, &["transcript_id"], None)?;
             let core_rows = stream_to_writer(&split_ctx, &format!("SELECT {core_select} FROM _tl_deduped ORDER BY transcript_id"), &mut w, false).await?;
             w.close()?;
@@ -433,7 +432,7 @@ async fn write_translation_split(
 
             let sift_schema = datafusion_bio_format_ensembl_cache::translation_sift_schema(false);
             let sift_select = sift_schema.fields().iter().map(|f| format!("\"{}\"", f.name())).collect::<Vec<_>>().join(", ");
-            let sift_file = format!("{output_dir}/translation_sift/{prefix}_other.parquet");
+            let sift_file = format!("{output_dir}/translation_sift/other.parquet");
             let mut w = create_writer(&sift_file, &sift_schema, EnsemblEntityKind::Translation, &["chrom", "start"], Some(256))?;
             let sift_rows = stream_to_writer(&split_ctx, &format!("SELECT {sift_select} FROM _tl_deduped ORDER BY chrom, start"), &mut w, false).await?;
             w.close()?;
@@ -458,12 +457,6 @@ pub fn convert_entity(
 ) -> Result<Vec<(String, usize)>, String> {
     let kind = parse_entity(entity).ok_or_else(|| format!("Unknown entity: {entity}"))?;
 
-    let prefix = std::path::Path::new(cache_root)
-        .file_name()
-        .and_then(|f| f.to_str())
-        .unwrap_or("unknown")
-        .to_string();
-
     // Create entity subdirectory
     let subdir = entity_subdir(kind);
     let entity_dir = format!("{output_dir}/{subdir}");
@@ -482,7 +475,7 @@ pub fn convert_entity(
         .map_err(|e| format!("Failed to create runtime: {e}"))?;
 
     match rt.block_on(convert_entity_per_chrom(
-        cache_root, output_dir, &prefix, kind, partitions,
+        cache_root, output_dir, kind, partitions,
     )) {
         Ok(results) => Ok(results),
         Err(e) => {
@@ -499,7 +492,6 @@ pub fn convert_entity(
 async fn convert_entity_per_chrom(
     cache_root: &str,
     output_dir: &str,
-    prefix: &str,
     kind: EnsemblEntityKind,
     partitions: usize,
 ) -> datafusion::common::Result<Vec<(String, usize)>> {
@@ -523,7 +515,7 @@ async fn convert_entity_per_chrom(
 
     // Translation has special split handling
     if kind == EnsemblEntityKind::Translation {
-        return write_translation_split(cache_root, output_dir, prefix, partitions, &chroms).await;
+        return write_translation_split(cache_root, output_dir, partitions, &chroms).await;
     }
 
     let subdir = entity_subdir(kind);
@@ -549,7 +541,7 @@ async fn convert_entity_per_chrom(
     for chrom in &main_chroms {
         let ctx = make_ctx_and_register(cache_root, kind, table_name, partitions)?;
         let query = build_query(kind, table_name, Some(chrom));
-        let output_file = format!("{output_dir}/{subdir}/{prefix}_chr{chrom}.parquet");
+        let output_file = format!("{output_dir}/{subdir}/chr{chrom}.parquet");
 
         // Get schema from first batch
         let df = ctx.sql(&query).await?;
@@ -589,7 +581,7 @@ async fn convert_entity_per_chrom(
         let ctx = make_ctx_and_register(cache_root, kind, table_name, partitions)?;
         let other_refs: Vec<&str> = other_chroms.iter().map(|s| s.as_str()).collect();
         let query = build_query_multi_chrom(kind, table_name, &other_refs);
-        let output_file = format!("{output_dir}/{subdir}/{prefix}_other.parquet");
+        let output_file = format!("{output_dir}/{subdir}/other.parquet");
 
         let df = ctx.sql(&query).await?;
         let df = if needs_rn_drop {
