@@ -269,19 +269,39 @@ def annotate(
     vcf: str,
     cache_dir: str,
     *,
-    chrom: str | None = None,
-    backend: str = "parquet",
-    extended_probes: bool = False,
+    # Annotation feature flags
     everything: bool = False,
     hgvs: bool = False,
-    shift_hgvs: bool = False,
+    hgvsc: bool = False,
+    hgvsp: bool = False,
+    shift_hgvs: bool | None = None,
+    no_escape: bool = False,
+    remove_hgvsp_version: bool = False,
+    hgvsp_use_prediction: bool = False,
     reference_fasta: str | None = None,
+    # Co-located variant flags
+    check_existing: bool = False,
+    af: bool = False,
+    af_1kg: bool = False,
+    af_gnomade: bool = False,
+    af_gnomadg: bool = False,
+    max_af: bool = False,
+    pubmed: bool = False,
+    # Lookup tuning
+    extended_probes: bool = True,
+    distance: int | tuple[int, int] | None = None,
+    merged: bool = False,
+    failed: int = 0,
+    # Engine tuning
     cache_size_mb: int = 1024,
 ) -> object:
     """Annotate variants from a VCF file with VEP consequences.
 
-    Reads the VCF, runs ``annotate_vep()`` against the parquet cache
-    produced by :func:`build_cache`, and returns a polars ``LazyFrame``.
+    Reads the VCF, runs ``annotate_vep()`` against the partitioned parquet
+    cache produced by :func:`build_cache`, and returns a polars ``LazyFrame``.
+
+    The engine auto-discovers context tables (transcript, exon, translation,
+    regulatory, motif) from ``cache_dir`` subdirectories.
 
     Parameters
     ----------
@@ -290,20 +310,50 @@ def annotate(
     cache_dir : str
         Path to the parquet cache directory produced by :func:`build_cache`,
         e.g. ``"/data/vep/wgs/parquet/115_GRCh38_vep"``.
-    chrom : str or None
-        Chromosome to annotate (e.g. ``"22"``). If None, annotates all.
-    backend : str
-        Cache backend: ``"parquet"`` (default) or ``"fjall"``.
-    extended_probes : bool
-        Use interval-overlap fallback for shifted indels.
     everything : bool
-        Enable all annotation features (80-field CSQ).
+        Enable all annotation features (80-field CSQ). Implies ``hgvs``,
+        ``af``, ``check_existing``, ``pubmed``, etc. Requires
+        ``reference_fasta``.
     hgvs : bool
-        Add HGVS notation to output.
-    shift_hgvs : bool
-        3' shift HGVS notation.
+        Add HGVS notation. Implies ``hgvsc``, ``hgvsp``, ``shift_hgvs``.
+        Requires ``reference_fasta``.
+    hgvsc : bool
+        Enable HGVSc notation (implied by ``hgvs``/``everything``).
+    hgvsp : bool
+        Enable HGVSp notation (implied by ``hgvs``/``everything``).
+    shift_hgvs : bool or None
+        3' shift HGVS notation. ``None`` = auto (True when hgvs enabled).
+    no_escape : bool
+        Don't URI-escape HGVS strings.
+    remove_hgvsp_version : bool
+        Remove version from HGVSp transcript ID.
+    hgvsp_use_prediction : bool
+        Use predicted rather than observed protein sequence.
     reference_fasta : str or None
-        Path to reference FASTA (required for HGVS).
+        Path to reference FASTA (required for HGVS/everything).
+    check_existing : bool
+        Check for co-located known variants (implied by AF flags).
+    af : bool
+        Include allele frequencies.
+    af_1kg : bool
+        Include 1000 Genomes allele frequencies.
+    af_gnomade : bool
+        Include gnomAD exome allele frequencies.
+    af_gnomadg : bool
+        Include gnomAD genome allele frequencies.
+    max_af : bool
+        Include maximum AF across populations.
+    pubmed : bool
+        Include PubMed IDs for co-located variants.
+    extended_probes : bool
+        Use interval-overlap fallback for shifted indels (default: True).
+    distance : int or tuple[int, int] or None
+        Upstream/downstream distance for transcript overlap. Single int =
+        both directions; tuple = (upstream, downstream).
+    merged : bool
+        Use merged Ensembl+RefSeq cache.
+    failed : int
+        Maximum allowed ``failed`` flag value from cache (default: 0).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
 
@@ -318,9 +368,26 @@ def annotate(
     >>> import vepyr
     >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_vep")
     >>> lf.collect()
+
+    >>> # Full annotation with all features
+    >>> lf = vepyr.annotate(
+    ...     "input.vcf",
+    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     everything=True,
+    ...     reference_fasta="/ref/GRCh38.fa",
+    ... )
+
+    >>> # Selective: HGVS + allele frequencies
+    >>> lf = vepyr.annotate(
+    ...     "input.vcf",
+    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     hgvs=True,
+    ...     af=True,
+    ...     af_gnomadg=True,
+    ...     reference_fasta="/ref/GRCh38.fa",
+    ... )
     """
     import json
-    import os
 
     try:
         import polars_bio as pb
@@ -338,18 +405,20 @@ def annotate(
             "Ensure polars-bio >= 0.27 with register_extension() support."
         )
 
+    # Validate reference_fasta requirement
+    if (everything or hgvs) and not reference_fasta:
+        raise ValueError(
+            "reference_fasta is required when everything=True or hgvs=True"
+        )
+
     # Register VCF as a table
-    vcf_table = pb.read_vcf(vcf)
+    vcf_table = pb.scan_vcf(vcf)
     vcf_table_name = "_vepyr_vcf"
     pb.from_polars(vcf_table, vcf_table_name)
 
-    # Build variation cache source path
-    if chrom is not None:
-        variation_source = os.path.join(cache_dir, "variation", f"chr{chrom}.parquet")
-    else:
-        variation_source = os.path.join(cache_dir, "variation")
-
-    # Build options JSON
+    # Build options JSON — all flags pass through to the engine.
+    # The ContigAnnotationExec streaming engine auto-discovers context
+    # tables from cache_dir subdirectories (transcript/, exon/, etc.)
     opts: dict = {
         "extended_probes": extended_probes,
     }
@@ -358,40 +427,55 @@ def annotate(
         opts["everything"] = True
     if hgvs:
         opts["hgvs"] = True
-    if shift_hgvs:
-        opts["shift_hgvs"] = True
+    if hgvsc:
+        opts["hgvsc"] = True
+    if hgvsp:
+        opts["hgvsp"] = True
+    if shift_hgvs is not None:
+        opts["shift_hgvs"] = shift_hgvs
+    if no_escape:
+        opts["no_escape"] = True
+    if remove_hgvsp_version:
+        opts["remove_hgvsp_version"] = True
+    if hgvsp_use_prediction:
+        opts["hgvsp_use_prediction"] = True
     if reference_fasta:
         opts["reference_fasta_path"] = reference_fasta
-
-    # Discover and register context tables
-    context_tables = {
-        "transcripts_table": "transcript",
-        "exons_table": "exon",
-        "translations_table": "translation_core",
-        "translations_sift_table": "translation_sift",
-        "regulatory_table": "regulatory",
-        "motif_table": "motif",
-    }
-
-    for json_key, entity_dir in context_tables.items():
-        entity_path = os.path.join(cache_dir, entity_dir)
-        if os.path.isdir(entity_path):
-            # Register the directory as a parquet table
-            table_name = f"_vepyr_{entity_dir.replace('/', '_')}"
-            pb.register_view(
-                f"CREATE VIEW {table_name} AS "
-                f"SELECT * FROM read_parquet('{entity_path}/*.parquet')",
-            )
-            opts[json_key] = table_name
+    if check_existing:
+        opts["check_existing"] = True
+    if af:
+        opts["af"] = True
+    if af_1kg:
+        opts["af_1kg"] = True
+    if af_gnomade:
+        opts["af_gnomade"] = True
+    if af_gnomadg:
+        opts["af_gnomadg"] = True
+    if max_af:
+        opts["max_af"] = True
+    if pubmed:
+        opts["pubmed"] = True
+    if merged:
+        opts["merged"] = True
+    if failed != 0:
+        opts["failed"] = failed
+    if distance is not None:
+        if isinstance(distance, tuple):
+            opts["distance"] = f"{distance[0]},{distance[1]}"
+        else:
+            opts["distance"] = distance
+    if cache_size_mb != 1024:
+        opts["cache_size_mb"] = cache_size_mb
 
     options_json = json.dumps(opts)
 
-    # Run annotation SQL
+    # The cache_dir is passed as cache_source — the streaming engine
+    # auto-discovers variation/, transcript/, exon/, etc. subdirectories
     sql = (
         f"SELECT * FROM annotate_vep("
         f"'{vcf_table_name}', "
-        f"'{_sql_escape(variation_source)}', "
-        f"'{_sql_escape(backend)}', "
+        f"'{_sql_escape(cache_dir)}', "
+        f"'parquet', "
         f"'{_sql_escape(options_json)}')"
     )
 
