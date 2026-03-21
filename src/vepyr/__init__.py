@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
 
 from vepyr._core import convert_entity as _convert_entity
 from vepyr._core import _register_vep
@@ -294,7 +298,7 @@ def annotate(
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
-) -> object:
+) -> "pl.LazyFrame":
     """Annotate variants from a VCF file with VEP consequences.
 
     Reads the VCF, runs ``annotate_vep()`` against the partitioned parquet
