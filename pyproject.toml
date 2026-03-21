@@ -17,7 +17,10 @@ classifiers = [
 dependencies = ["pyarrow>=18.0", "tqdm>=4.60", "ipywidgets>=8.0"]
 
 [dependency-groups]
-dev = ["pytest>=8.0"]
+dev = [
+    "pytest>=8.0",
+    "polars-bio @ git+https://github.com/biodatageeks/polars-bio.git@feat/register-extension",
+]
 
 [tool.maturin]
 module-name = "vepyr._core"
