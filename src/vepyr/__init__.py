@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 
 from vepyr._core import convert_entity as _convert_entity
 from vepyr._core import create_annotator as _create_annotator
-from vepyr._core import _register_vep
 
 __all__ = ["build_cache", "annotate"]
 
@@ -250,24 +249,6 @@ def build_cache(
     return all_results
 
 
-def _ensure_vep_registered() -> None:
-    """Auto-register VEP functions into polars-bio's session (once)."""
-    global _vep_registered
-    if _vep_registered:
-        return
-    try:
-        import polars_bio
-
-        ctx = polars_bio.ctx
-        if hasattr(ctx, "register_extension"):
-            ctx.register_extension(_register_vep)
-            _vep_registered = True
-            log.info("VEP annotation functions registered into polars-bio session")
-    except ImportError:
-        pass  # polars-bio not installed, will error in annotate()
-
-
-_vep_registered = False
 
 
 def annotate(
