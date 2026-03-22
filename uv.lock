@@ -283,7 +283,7 @@ wheels = [
 [[package]]
 name = "polars-bio"
 version = "0.26.0"
-source = { git = "https://github.com/biodatageeks/polars-bio.git?rev=feat%2Fregister-extension#a2f73755b7556e36bbc3da74ee85150fa3eb6c57" }
+source = { git = "https://github.com/biodatageeks/polars-bio.git?rev=feat%2Fregister-extension#af52c4397ce7143b1187c28c81000cb1c65e4fe2" }
 dependencies = [
     { name = "datafusion" },
     { name = "polars" },
