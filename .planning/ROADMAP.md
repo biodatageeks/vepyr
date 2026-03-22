@@ -33,9 +33,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Audit current cache, FASTA, and release assumptions against the v1 supported workflow
-- [ ] 01-02: Add explicit runtime validation and user-facing errors for unsupported workflow combinations
-- [ ] 01-03: Document and persist supported-workflow metadata used by cache and annotation paths
+- [ ] 01-01: Create the executable supported-workflow contract and dedicated Phase 1 validation scaffold
+- [ ] 01-02: Wire strict Python-side validation for unsupported workflow, manifest, and FASTA combinations
+- [ ] 01-03: Persist workflow manifest metadata and expose the supported contract in runtime/docs artifacts
 
 ### Phase 2: Cache Pipeline Hardening
 **Goal**: Make cache build and cache reuse reliable inputs to parity work
