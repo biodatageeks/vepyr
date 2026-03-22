@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 from vepyr._core import convert_entity as _convert_entity
-from vepyr._core import run_annotate as _run_annotate
+from vepyr._core import create_annotator as _create_annotator
 from vepyr._core import _register_vep
 
 __all__ = ["build_cache", "annotate"]
@@ -453,13 +453,37 @@ def annotate(
 
     log.info("Running annotation on %s with cache %s", vcf, cache_dir)
 
-    # Run annotation in a standalone DataFusion session (no polars-bio needed).
-    # Returns a PyArrow Table which we convert to polars LazyFrame.
-    pa_table = _run_annotate(vcf, cache_dir, options_json)
+    # Create a streaming annotator (own DataFusion session).
+    # StreamingAnnotator is thread-safe (Mutex-wrapped) so polars can
+    # call __next__ from any thread via register_io_source.
+    annotator = _create_annotator(vcf, cache_dir, options_json)
 
     import polars as pl
+    import pyarrow as pa
 
-    return pl.from_arrow(pa_table).lazy()
+    # Convert PyArrow schema to polars schema
+    pa_schema = annotator.schema
+    empty = pa.table(
+        {field.name: pa.array([], type=field.type) for field in pa_schema}
+    )
+    polars_schema = dict(pl.from_arrow(empty).schema)
+
+    # Stream batches from Rust → polars via IO source plugin
+    def _batch_source(with_columns, predicate, n_rows, batch_size):
+        for py_batch in annotator:
+            batch_df = pl.from_arrow(py_batch)
+            if with_columns is not None:
+                batch_df = batch_df.select(with_columns)
+            if predicate is not None:
+                batch_df = batch_df.filter(predicate)
+            yield batch_df
+
+    from polars.io.plugins import register_io_source
+
+    return register_io_source(
+        io_source=_batch_source,
+        schema=polars_schema,
+    )
 
 
 def _sql_escape(s: str) -> str:
