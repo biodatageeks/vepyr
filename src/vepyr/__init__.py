@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 from vepyr._core import convert_entity as _convert_entity
+from vepyr._core import run_annotate as _run_annotate
 from vepyr._core import _register_vep
 
 __all__ = ["build_cache", "annotate"]
@@ -393,36 +394,13 @@ def annotate(
     """
     import json
 
-    try:
-        import polars_bio as pb
-    except ImportError:
-        raise ImportError(
-            "polars-bio is required for annotation. "
-            "Install with: pip install polars-bio"
-        ) from None
-
-    _ensure_vep_registered()
-
-    if not _vep_registered:
-        raise RuntimeError(
-            "Failed to register VEP functions. "
-            "Ensure polars-bio >= 0.27 with register_extension() support."
-        )
-
     # Validate reference_fasta requirement
     if (everything or hgvs) and not reference_fasta:
         raise ValueError(
             "reference_fasta is required when everything=True or hgvs=True"
         )
 
-    # Register VCF as a table
-    vcf_table = pb.scan_vcf(vcf)
-    vcf_table_name = "_vepyr_vcf"
-    pb.from_polars(vcf_table, vcf_table_name)
-
     # Build options JSON — all flags pass through to the engine.
-    # The ContigAnnotationExec streaming engine auto-discovers context
-    # tables from cache_dir subdirectories (transcript/, exon/, etc.)
     opts: dict = {
         "extended_probes": extended_probes,
     }
@@ -473,18 +451,15 @@ def annotate(
 
     options_json = json.dumps(opts)
 
-    # The cache_dir is passed as cache_source — the streaming engine
-    # auto-discovers variation/, transcript/, exon/, etc. subdirectories
-    sql = (
-        f"SELECT * FROM annotate_vep("
-        f"'{vcf_table_name}', "
-        f"'{_sql_escape(cache_dir)}', "
-        f"'parquet', "
-        f"'{_sql_escape(options_json)}')"
-    )
+    log.info("Running annotation on %s with cache %s", vcf, cache_dir)
 
-    log.info("Running annotation: %s", sql)
-    return pb.sql(sql)
+    # Run annotation in a standalone DataFusion session (no polars-bio needed).
+    # Returns a PyArrow Table which we convert to polars LazyFrame.
+    pa_table = _run_annotate(vcf, cache_dir, options_json)
+
+    import polars as pl
+
+    return pl.from_arrow(pa_table).lazy()
 
 
 def _sql_escape(s: str) -> str:

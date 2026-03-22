@@ -1,7 +1,9 @@
+use arrow::pyarrow::ToPyArrow;
 use datafusion::prelude::SessionContext;
 use datafusion_bio_function_vep::register_vep_functions;
 use pyo3::prelude::*;
 
+mod annotate;
 mod convert;
 
 /// DataFusion version for ABI compatibility check.
@@ -27,16 +29,46 @@ fn convert_entity(
     }
 }
 
+/// Run VEP annotation on a VCF file using a standalone DataFusion session.
+///
+/// This bypasses polars-bio's session entirely, creating its own DataFusion
+/// context with VEP functions registered. Returns a PyArrow Table.
+#[pyfunction]
+#[pyo3(signature = (vcf_path, cache_dir, options_json))]
+fn run_annotate(
+    py: Python<'_>,
+    vcf_path: &str,
+    cache_dir: &str,
+    options_json: &str,
+) -> PyResult<PyObject> {
+    let batches = annotate::run_annotate(vcf_path, cache_dir, options_json)
+        .map_err(pyo3::exceptions::PyRuntimeError::new_err)?;
+
+    // Convert RecordBatches to PyArrow Table
+    if batches.is_empty() {
+        return Err(pyo3::exceptions::PyRuntimeError::new_err(
+            "Annotation produced no results",
+        ));
+    }
+
+    let schema = batches[0].schema();
+    let py_batches: Vec<PyObject> = batches
+        .iter()
+        .map(|batch| batch.to_pyarrow(py))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let py_schema = schema.to_pyarrow(py)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let pa = py.import("pyarrow")?;
+    let table = pa
+        .getattr("Table")?
+        .call_method1("from_batches", (py_batches, py_schema))?;
+
+    Ok(table.into())
+}
+
 /// Register VEP annotation functions into a polars-bio SessionContext.
-///
-/// Called via `polars_bio.ctx.register_extension(vepyr._core._register_vep)`.
-///
-/// # Safety
-///
-/// The `ctx_ptr` is a raw pointer to a `datafusion::prelude::SessionContext`.
-/// Both polars-bio and vepyr MUST be built with the same DataFusion version
-/// and Rust compiler to ensure ABI compatibility. The version checks below
-/// verify this at runtime.
 #[pyfunction]
 fn _register_vep(ctx_ptr: usize, datafusion_version: &str) -> PyResult<()> {
     if datafusion_version != DATAFUSION_VERSION {
@@ -45,9 +77,6 @@ fn _register_vep(ctx_ptr: usize, datafusion_version: &str) -> PyResult<()> {
              vepyr={DATAFUSION_VERSION}. Both must be built with the same version."
         )));
     }
-    // SAFETY: caller (polars-bio register_extension) guarantees the pointer
-    // is valid for the duration of this call, and we verified the DataFusion
-    // version matches. Both crates must be built from the same CI/toolchain.
     let ctx = unsafe { &*(ctx_ptr as *const SessionContext) };
     register_vep_functions(ctx);
     Ok(())
@@ -62,6 +91,7 @@ fn _version_info() -> (String, String) {
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(convert_entity, m)?)?;
+    m.add_function(wrap_pyfunction!(run_annotate, m)?)?;
     m.add_function(wrap_pyfunction!(_register_vep, m)?)?;
     m.add_function(wrap_pyfunction!(_version_info, m)?)?;
     Ok(())
