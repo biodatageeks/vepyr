@@ -439,24 +439,24 @@ def annotate(
 
     log.info("Running annotation on %s with cache %s", vcf, cache_dir)
 
-    # Create a streaming annotator (own DataFusion session).
-    # StreamingAnnotator is thread-safe (Mutex-wrapped) so polars can
-    # call __next__ from any thread via register_io_source.
-    annotator = _create_annotator(vcf, cache_dir, options_json, skip_csq)
-
     import polars as pl
     import pyarrow as pa
 
-    # Convert PyArrow schema to polars schema
-    pa_schema = annotator.schema
+    # Get schema from a probe annotator (doesn't consume data)
+    probe = _create_annotator(vcf, cache_dir, options_json, skip_csq)
+    pa_schema = probe.schema
     empty = pa.table(
         {field.name: pa.array([], type=field.type) for field in pa_schema}
     )
     polars_schema = dict(pl.from_arrow(empty).schema)
+    del probe
 
-    # Stream batches from Rust → polars via IO source plugin.
-    # Applies projection, predicate, and limit pushdown client-side per batch.
+    # Each collect() creates a fresh streaming annotator so the LazyFrame
+    # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
+    _vcf, _cache_dir, _opts, _skip = vcf, cache_dir, options_json, skip_csq
+
     def _batch_source(with_columns, predicate, n_rows, batch_size):
+        annotator = _create_annotator(_vcf, _cache_dir, _opts, _skip)
         remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)
