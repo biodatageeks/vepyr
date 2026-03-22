@@ -69,31 +69,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCOPE-01 | TBD | Pending |
-| SCOPE-02 | TBD | Pending |
-| CACHE-01 | TBD | Pending |
-| CACHE-02 | TBD | Pending |
-| CACHE-03 | TBD | Pending |
-| ANNO-01 | TBD | Pending |
-| ANNO-02 | TBD | Pending |
-| ANNO-03 | TBD | Pending |
-| ANNO-04 | TBD | Pending |
-| ANNO-05 | TBD | Pending |
-| ANNO-06 | TBD | Pending |
-| OUT-01 | TBD | Pending |
-| OUT-02 | TBD | Pending |
-| OUT-03 | TBD | Pending |
-| API-01 | TBD | Pending |
-| API-02 | TBD | Pending |
-| API-03 | TBD | Pending |
-| PERF-01 | TBD | Pending |
-| PERF-02 | TBD | Pending |
-| PERF-03 | TBD | Pending |
+| SCOPE-01 | Phase 1 | Pending |
+| SCOPE-02 | Phase 1 | Pending |
+| CACHE-01 | Phase 2 | Pending |
+| CACHE-02 | Phase 2 | Pending |
+| CACHE-03 | Phase 1 | Pending |
+| ANNO-01 | Phase 3 | Pending |
+| ANNO-02 | Phase 3 | Pending |
+| ANNO-03 | Phase 5 | Pending |
+| ANNO-04 | Phase 3 | Pending |
+| ANNO-05 | Phase 3 | Pending |
+| ANNO-06 | Phase 3 | Pending |
+| OUT-01 | Phase 4 | Pending |
+| OUT-02 | Phase 4 | Pending |
+| OUT-03 | Phase 4 | Pending |
+| API-01 | Phase 4 | Pending |
+| API-02 | Phase 1 | Pending |
+| API-03 | Phase 4 | Pending |
+| PERF-01 | Phase 5 | Pending |
+| PERF-02 | Phase 5 | Pending |
+| PERF-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-22*
