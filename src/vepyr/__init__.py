@@ -453,15 +453,23 @@ def annotate(
     )
     polars_schema = dict(pl.from_arrow(empty).schema)
 
-    # Stream batches from Rust → polars via IO source plugin
+    # Stream batches from Rust → polars via IO source plugin.
+    # Applies projection, predicate, and limit pushdown client-side per batch.
     def _batch_source(with_columns, predicate, n_rows, batch_size):
+        remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)
-            if with_columns is not None:
-                batch_df = batch_df.select(with_columns)
             if predicate is not None:
                 batch_df = batch_df.filter(predicate)
-            yield batch_df
+            if with_columns is not None:
+                batch_df = batch_df.select(with_columns)
+            if remaining is not None:
+                batch_df = batch_df.head(remaining)
+                remaining -= batch_df.height
+            if batch_df.height > 0:
+                yield batch_df
+            if remaining is not None and remaining <= 0:
+                break
 
     from polars.io.plugins import register_io_source
 
