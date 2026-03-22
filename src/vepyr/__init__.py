@@ -274,6 +274,7 @@ def annotate(
     max_af: bool = False,
     pubmed: bool = False,
     # Lookup tuning
+    use_fjall: bool = False,
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     merged: bool = False,
@@ -385,6 +386,9 @@ def annotate(
     opts: dict = {
         "extended_probes": extended_probes,
     }
+
+    if use_fjall:
+        opts["use_fjall"] = True
 
     if everything:
         opts["everything"] = True
