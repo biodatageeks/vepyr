@@ -283,7 +283,7 @@ wheels = [
 [[package]]
 name = "polars-bio"
 version = "0.26.0"
-source = { git = "https://github.com/biodatageeks/polars-bio.git?rev=feat%2Fregister-extension#5378fd860be10905260059513b373c0f7d59fb27" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datafusion" },
     { name = "polars" },
@@ -291,6 +291,14 @@ dependencies = [
     { name = "pyarrow" },
     { name = "tqdm" },
     { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/26/3cb8f9776d317626f65c34516c3dfe8b2743e67d4e5a627e5581eafd129c/polars_bio-0.26.0.tar.gz", hash = "sha256:50d3e5fcac48c300047bf75574dfff6490e9861325bdd0249b466668fde2ec72", size = 39943877, upload-time = "2026-03-07T19:04:25.07Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/54/9156ee8e191c9753637c1ea75c131f50414bb8bb9af89e7c2a73a646fbff/polars_bio-0.26.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:811a0e98224ccb1070f69455a99d53e84e3c645535ae8dd918f8ceca9411cfff", size = 66728892, upload-time = "2026-03-07T19:04:10.348Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/60/664d3fe30027e2b092c325489bcbe28525ab28237b3890c3d9d0c6bd0834/polars_bio-0.26.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:95aa932281d3de5be08962736d49ad6a3755f0e3a80ea5efaaf95a006bfc682d", size = 63492004, upload-time = "2026-03-07T19:04:05.297Z" },
+    { url = "https://files.pythonhosted.org/packages/db/00/dd17135efc55b21f4f28ac86d0ac2b40601adda474b9611063f3f1ba8529/polars_bio-0.26.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:92dd12a05a52775db355ddc058e36774cbd7cab227073f205e568dc1e783e698", size = 71883448, upload-time = "2026-03-07T19:04:15.308Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/91/7800317f7d124aec89ec85f930f02e7619d6a846450309260c54b8c5ebb4/polars_bio-0.26.0-cp39-abi3-win_amd64.whl", hash = "sha256:8ffb7bb624727482d873e94fa4c64283439a84c44c81d4bd2e18cfef5bba70d1", size = 63140964, upload-time = "2026-03-07T19:04:30.066Z" },
+    { url = "https://files.pythonhosted.org/packages/48/6e/9d767f3f8e52afb9fe6e68067261aef03dcefe319fb22607f56055ece35b/polars_bio-0.26.0-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2148d0057f7ebd84aba40af0bfcd1c07c75055df443c82f4045dd4b5ebb2b2e4", size = 71862099, upload-time = "2026-03-07T19:04:20.811Z" },
 ]
 
 [[package]]
@@ -555,7 +563,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "polars-bio", git = "https://github.com/biodatageeks/polars-bio.git?rev=feat%2Fregister-extension" },
+    { name = "polars-bio", specifier = ">=0.26.0" },
     { name = "pytest", specifier = ">=8.0" },
 ]
 
