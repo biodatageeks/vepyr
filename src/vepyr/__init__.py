@@ -456,7 +456,8 @@ def annotate(
     _vcf, _cache_dir, _opts, _skip = vcf, cache_dir, options_json, skip_csq
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
-        annotator = _create_annotator(_vcf, _cache_dir, _opts, _skip)
+        # Pass n_rows as LIMIT to the DataFusion query for engine-level pushdown
+        annotator = _create_annotator(_vcf, _cache_dir, _opts, _skip, n_rows)
         remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)

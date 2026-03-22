@@ -22,15 +22,16 @@ fn convert_entity(
 
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true))]
+#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None))]
 fn create_annotator(
     py: Python<'_>,
     vcf_path: &str,
     cache_dir: &str,
     options_json: &str,
     skip_csq: bool,
+    limit: Option<usize>,
 ) -> PyResult<annotate::StreamingAnnotator> {
-    annotate::create_streaming_annotator(py, vcf_path, cache_dir, options_json, skip_csq)
+    annotate::create_streaming_annotator(py, vcf_path, cache_dir, options_json, skip_csq, limit)
 }
 
 #[pymodule]

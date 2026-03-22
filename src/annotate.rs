@@ -69,6 +69,7 @@ pub fn create_streaming_annotator(
     cache_dir: &str,
     options_json: &str,
     skip_csq: bool,
+    limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
     let rt = Runtime::new()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
@@ -102,8 +103,11 @@ pub fn create_streaming_annotator(
             } else {
                 "SELECT *"
             };
+            let limit_clause = limit
+                .map(|n| format!(" LIMIT {n}"))
+                .unwrap_or_default();
             let sql = format!(
-                "{select} FROM annotate_vep('vcf', '{}', 'parquet', '{}')",
+                "{select} FROM annotate_vep('vcf', '{}', 'parquet', '{}'){limit_clause}",
                 cache_dir.replace('\'', "''"),
                 options_json.replace('\'', "''"),
             );
