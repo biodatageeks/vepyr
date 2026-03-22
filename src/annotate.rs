@@ -68,6 +68,7 @@ pub fn create_streaming_annotator(
     vcf_path: &str,
     cache_dir: &str,
     options_json: &str,
+    skip_csq: bool,
 ) -> PyResult<StreamingAnnotator> {
     let rt = Runtime::new()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
@@ -96,8 +97,13 @@ pub fn create_streaming_annotator(
                     ))
                 })?;
 
+            let select = if skip_csq {
+                "SELECT * EXCLUDE (csq)"
+            } else {
+                "SELECT *"
+            };
             let sql = format!(
-                "SELECT * FROM annotate_vep('vcf', '{}', 'parquet', '{}')",
+                "{select} FROM annotate_vep('vcf', '{}', 'parquet', '{}')",
                 cache_dir.replace('\'', "''"),
                 options_json.replace('\'', "''"),
             );

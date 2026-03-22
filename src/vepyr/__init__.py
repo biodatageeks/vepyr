@@ -281,6 +281,7 @@ def annotate(
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
+    skip_csq: bool = True,
 ) -> "pl.LazyFrame":
     """Annotate variants from a VCF file with VEP consequences.
 
@@ -441,7 +442,7 @@ def annotate(
     # Create a streaming annotator (own DataFusion session).
     # StreamingAnnotator is thread-safe (Mutex-wrapped) so polars can
     # call __next__ from any thread via register_io_source.
-    annotator = _create_annotator(vcf, cache_dir, options_json)
+    annotator = _create_annotator(vcf, cache_dir, options_json, skip_csq)
 
     import polars as pl
     import pyarrow as pa
