@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "VEP Yielding Performant Results — Python interface for Ensembl VEP annotation in Rust"
 readme = "README.md"
 authors = [
-    { name = "Marek Wieiwórka", email = "marek.wiewiorka@gmail.com" }
+    { name = "Marek Wiewiórka", email = "marek.wiewiorka@gmail.com" }
 ]
 requires-python = ">=3.10"
 classifiers = [
