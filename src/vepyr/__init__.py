@@ -48,9 +48,7 @@ def _download_with_progress(url: str, dest: str) -> None:
         conn.close()
         import urllib.error
 
-        raise urllib.error.HTTPError(
-            url, resp.status, resp.reason, resp.headers, None
-        )
+        raise urllib.error.HTTPError(url, resp.status, resp.reason, resp.headers, None)
 
     total = int(resp.getheader("Content-Length", 0)) or None
     with (
@@ -160,17 +158,16 @@ def build_cache(
     if local_cache is not None:
         cache_root = local_cache
         if not os.path.isdir(cache_root):
-            raise FileNotFoundError(
-                f"Local cache directory not found: {cache_root}"
-            )
+            raise FileNotFoundError(f"Local cache directory not found: {cache_root}")
         log.info("Using local cache: %s", cache_root)
     else:
         method_infix = "" if method == "vep" else f"_{method}"
-        tarball_name = (
-            f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
-        )
+        tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
         tarball_path = os.path.join(cache_dir, tarball_name)
-        cache_root = os.path.join(cache_dir, species, f"{release}_{assembly}")
+        method_suffix = "" if method == "vep" else f"_{method}"
+        cache_root = os.path.join(
+            cache_dir, species, f"{release}_{assembly}{method_suffix}"
+        )
 
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -179,9 +176,7 @@ def build_cache(
                 _download_cache(release, species, assembly, method, tarball_path)
 
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
-            log.info(
-                "Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb
-            )
+            log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
             with tarfile.open(tarball_path) as tar:
                 tar.extractall(path=cache_dir)
             log.info("Extracted to %s", cache_root)
@@ -196,12 +191,15 @@ def build_cache(
     # Output: parquet/<version_dir>/<entity>/chr1.parquet
     output_dir = os.path.join(cache_dir, "parquet", version_dir)
 
-    import sys
     import time
 
     entities = [
-        "variation", "transcript", "exon",
-        "translation", "regulatory", "motif",
+        "variation",
+        "transcript",
+        "exon",
+        "translation",
+        "regulatory",
+        "motif",
     ]
 
     _in_notebook = False
@@ -224,7 +222,7 @@ def build_cache(
 
     all_results: list[tuple[str, int]] = []
     for i, entity in enumerate(entities):
-        _show_status(f"[{i+1}/{len(entities)}] Converting {entity} ...")
+        _show_status(f"[{i + 1}/{len(entities)}] Converting {entity} ...")
         t0 = time.time()
         result = _convert_entity(
             cache_root, output_dir, entity, partitions, memory_limit_gb
@@ -233,7 +231,7 @@ def build_cache(
 
         if result is None:
             _show_status(
-                f"[{i+1}/{len(entities)}] {entity}: skipped (no source files)"
+                f"[{i + 1}/{len(entities)}] {entity}: skipped (no source files)"
             )
             continue
 
@@ -241,15 +239,13 @@ def build_cache(
             rate = f"{rows / elapsed:,.0f}" if elapsed > 0 else "?"
             rel_path = os.path.relpath(path, output_dir)
             _show_status(
-                f"[{i+1}/{len(entities)}] {entity}: {rows:,} rows "
+                f"[{i + 1}/{len(entities)}] {entity}: {rows:,} rows "
                 f"in {elapsed:.1f}s ({rate} rows/s) -> {rel_path}"
             )
         all_results.extend(result)
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results
-
-
 
 
 def annotate(
@@ -348,8 +344,14 @@ def annotate(
         Use merged Ensembl+RefSeq cache.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
+    use_fjall : bool
+        Use fjall (embedded KV store) backend instead of parquet
+        (default: False).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
+    skip_csq : bool
+        Exclude the raw CSQ column from the output (default: True).
+        When True, only the parsed annotation columns are returned.
     output_vcf : str or None
         Path to write annotated VCF output. When set, annotation results are
         written directly to a VCF file and the output path is returned.
@@ -510,8 +512,13 @@ def annotate(
 
         try:
             rows = _annotate_vcf(
-                vcf, cache_dir, output_vcf, options_json,
-                False, comp, callback,
+                vcf,
+                cache_dir,
+                output_vcf,
+                options_json,
+                False,
+                comp,
+                callback,
             )
         finally:
             if _pbar is not None:
@@ -526,9 +533,7 @@ def annotate(
     # Get schema from a probe annotator (doesn't consume data)
     probe = _create_annotator(vcf, cache_dir, options_json, skip_csq)
     pa_schema = probe.schema
-    empty = pa.table(
-        {field.name: pa.array([], type=field.type) for field in pa_schema}
-    )
+    empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
     del probe
 

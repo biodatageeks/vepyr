@@ -200,9 +200,22 @@ pub fn create_streaming_annotator(
         } else {
             "SELECT *"
         };
+        let opts: Value = serde_json::from_str(options_json).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+        })?;
+        let backend = if opts
+            .get("use_fjall")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
+            "fjall"
+        } else {
+            "parquet"
+        };
+
         let limit_clause = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();
         let sql = format!(
-            "{select} FROM annotate_vep('vcf', '{}', 'parquet', '{}'){limit_clause}",
+            "{select} FROM annotate_vep('vcf', '{}', '{backend}', '{}'){limit_clause}",
             cache_dir.replace('\'', "''"),
             options_json.replace('\'', "''"),
         );
