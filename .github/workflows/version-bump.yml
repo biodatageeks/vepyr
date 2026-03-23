@@ -1,0 +1,76 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: "Dry run (no tag push)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cargo-edit
+        run: cargo install cargo-set-version
+
+      - name: Get current version
+        id: current
+        run: |
+          version=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Compute next version
+        id: next
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
+
+      - name: Update versions
+        run: |
+          NEXT="${{ steps.next.outputs.version }}"
+          # Update Cargo.toml
+          cargo set-version "$NEXT"
+          # Update pyproject.toml
+          sed -i "s/^version = \".*\"/version = \"$NEXT\"/" pyproject.toml
+
+      - name: Commit and tag
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          NEXT="${{ steps.next.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock pyproject.toml
+          git commit -m "Bump version to ${NEXT}"
+          git tag "${NEXT}"
+          git push origin HEAD:master --tags
+
+      - name: Summary
+        run: |
+          echo "### Version Bump" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **From:** ${{ steps.current.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **To:** ${{ steps.next.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Dry run:** ${{ inputs.dry_run }}" >> "$GITHUB_STEP_SUMMARY"
