@@ -200,7 +200,7 @@ pub fn create_streaming_annotator(
             })?;
 
         let select = if skip_csq {
-            "SELECT * EXCLUDE (csq)"
+            "SELECT * EXCLUDE (\"CSQ\")"
         } else {
             "SELECT *"
         };
