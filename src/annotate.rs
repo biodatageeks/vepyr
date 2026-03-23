@@ -9,7 +9,12 @@ use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, 
 use futures::StreamExt;
 use pyo3::prelude::*;
 use serde_json::Value;
+use std::sync::LazyLock;
 use tokio::runtime::Runtime;
+
+/// Module-level Tokio runtime shared across all annotation calls.
+static RUNTIME: LazyLock<Arc<Runtime>> =
+    LazyLock::new(|| Arc::new(Runtime::new().expect("failed to create Tokio runtime")));
 
 /// A streaming annotator that yields PyArrow RecordBatches.
 /// Thread-safe: wraps the stream in a Mutex so polars can call from any thread.
@@ -81,8 +86,7 @@ pub fn annotate_to_vcf_file(
     compression: &str,
     on_batch_written: Option<PyObject>,
 ) -> PyResult<usize> {
-    let rt =
-        Runtime::new().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let rt = &*RUNTIME;
 
     let opts: Value = serde_json::from_str(options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
@@ -172,10 +176,10 @@ pub fn create_streaming_annotator(
     skip_csq: bool,
     limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
-    let rt =
-        Runtime::new().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let rt = &*RUNTIME;
 
     let (stream, schema) = rt.block_on(async {
+        // Single partition ensures deterministic row ordering for streaming.
         let config = SessionConfig::new().with_target_partitions(1);
         let ctx = SessionContext::new_with_config(config);
         register_vep_functions(&ctx);
@@ -239,7 +243,7 @@ pub fn create_streaming_annotator(
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(StreamingAnnotator {
-        rt: std::sync::Arc::new(rt),
+        rt: Arc::clone(&RUNTIME),
         stream: std::sync::Mutex::new(Some(stream)),
         schema: py_schema,
     })

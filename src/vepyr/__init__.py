@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -23,7 +24,10 @@ _ENSEMBL_FTP_PATHS = [
 ]
 
 
-def _download_with_progress(url: str, dest: str) -> None:
+_MAX_REDIRECTS = 5
+
+
+def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
     """Download a file with a tqdm progress bar."""
     import http.client
     import urllib.parse
@@ -42,7 +46,11 @@ def _download_with_progress(url: str, dest: str) -> None:
         location = resp.getheader("Location")
         conn.close()
         if location:
-            return _download_with_progress(location, dest)
+            if _redirects >= _MAX_REDIRECTS:
+                raise RuntimeError(
+                    f"Too many redirects ({_MAX_REDIRECTS}) fetching {url}"
+                )
+            return _download_with_progress(location, dest, _redirects + 1)
 
     if resp.status != 200:
         conn.close()
@@ -283,7 +291,7 @@ def annotate(
     output_vcf: str | None = None,
     show_progress: bool = True,
     compression: str | None = None,
-    on_batch_written: "callable | None" = None,
+    on_batch_written: "Callable[[int, int, int], None] | None" = None,
 ) -> "pl.LazyFrame | str":
     """Annotate variants from a VCF file with VEP consequences.
 
@@ -565,8 +573,3 @@ def annotate(
         io_source=_batch_source,
         schema=polars_schema,
     )
-
-
-def _sql_escape(s: str) -> str:
-    """Escape single quotes in SQL string literals."""
-    return s.replace("'", "''")

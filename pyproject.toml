@@ -14,7 +14,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-dependencies = ["pyarrow>=18.0", "tqdm>=4.60", "ipywidgets>=8.0"]
+dependencies = ["pyarrow>=18.0", "polars>=1.37.1", "tqdm>=4.60"]
+
+[project.optional-dependencies]
+notebook = ["ipywidgets>=8.0"]
 
 [dependency-groups]
 dev = [
