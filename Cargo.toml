@@ -23,6 +23,6 @@ log = "0.4"
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7975aed" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "444c470d7cc2ba57fe2234deb1f9185e7e1441cf" }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e92ff6fa169d611d67e280551cd3e1a037254093" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e92ff6fa169d611d67e280551cd3e1a037254093" }
