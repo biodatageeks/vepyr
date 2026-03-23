@@ -46,9 +46,7 @@ impl StreamingAnnotator {
                     }
                     let py_batch = batch
                         .to_pyarrow(py)
-                        .map_err(|e| {
-                            pyo3::exceptions::PyRuntimeError::new_err(format!("{e}"))
-                        })?;
+                        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
                     return Ok(Some(py_batch));
                 }
                 Some(Err(e)) => {
@@ -83,14 +81,18 @@ pub fn annotate_to_vcf_file(
     compression: &str,
     on_batch_written: Option<PyObject>,
 ) -> PyResult<usize> {
-    let rt = Runtime::new()
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let rt =
+        Runtime::new().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     let opts: Value = serde_json::from_str(options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
 
-    let backend = if opts.get("use_fjall").and_then(|v| v.as_bool()).unwrap_or(false) {
+    let backend = if opts
+        .get("use_fjall")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+    {
         "fjall"
     } else {
         "parquet"
@@ -105,19 +107,23 @@ pub fn annotate_to_vcf_file(
 
     // Wrap Python callback in a Send+Sync closure for the Rust async world.
     // Callback signature: (batch_rows, total_rows_written, total_input_rows)
-    let callback: Option<OnBatchWritten> =
-        on_batch_written.map(|cb| -> OnBatchWritten {
-            Box::new(move |batch_rows: usize, total_rows: usize, total_input: usize| {
+    let callback: Option<OnBatchWritten> = on_batch_written.map(|cb| -> OnBatchWritten {
+        Box::new(
+            move |batch_rows: usize, total_rows: usize, total_input: usize| {
                 Python::with_gil(|py| {
                     if let Err(e) = cb.call1(py, (batch_rows, total_rows, total_input)) {
                         log::warn!("on_batch_written callback error: {e}");
                     }
                 });
-            })
-        });
+            },
+        )
+    });
 
     let config = AnnotateVcfConfig {
-        everything: opts.get("everything").and_then(|v| v.as_bool()).unwrap_or(false),
+        everything: opts
+            .get("everything")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         extended_probes: opts
             .get("extended_probes")
             .and_then(|v| v.as_bool())
@@ -126,13 +132,21 @@ pub fn annotate_to_vcf_file(
             .get("reference_fasta_path")
             .and_then(|v| v.as_str())
             .map(String::from),
-        use_fjall: opts.get("use_fjall").and_then(|v| v.as_bool()).unwrap_or(false),
+        use_fjall: opts
+            .get("use_fjall")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
-        merged: opts.get("merged").and_then(|v| v.as_bool()).unwrap_or(false),
+        merged: opts
+            .get("merged")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         failed: opts.get("failed").and_then(|v| v.as_i64()),
-        distance: opts
-            .get("distance")
-            .and_then(|v| v.as_str().map(String::from).or_else(|| v.as_i64().map(|n| n.to_string()))),
+        distance: opts.get("distance").and_then(|v| {
+            v.as_str()
+                .map(String::from)
+                .or_else(|| v.as_i64().map(|n| n.to_string()))
+        }),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -142,9 +156,7 @@ pub fn annotate_to_vcf_file(
         let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
             .await
             .map_err(|e| {
-                pyo3::exceptions::PyRuntimeError::new_err(format!(
-                    "VCF annotation failed: {e}"
-                ))
+                pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
             })?;
 
         Ok(rows)
@@ -160,59 +172,54 @@ pub fn create_streaming_annotator(
     skip_csq: bool,
     limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
-    let rt = Runtime::new()
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let rt =
+        Runtime::new().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
-    let (stream, schema) = rt
-        .block_on(async {
-            let config = SessionConfig::new().with_target_partitions(1);
-            let ctx = SessionContext::new_with_config(config);
-            register_vep_functions(&ctx);
+    let (stream, schema) = rt.block_on(async {
+        let config = SessionConfig::new().with_target_partitions(1);
+        let ctx = SessionContext::new_with_config(config);
+        register_vep_functions(&ctx);
 
-            let vcf_provider =
-                datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
-                    vcf_path.to_string(),
-                    Some(vec![]),
-                    Some(vec![]),
-                    None,
-                    false,
-                )
-                .map_err(|e| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
-                })?;
-            ctx.register_table("vcf", Arc::new(vcf_provider))
-                .map_err(|e| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!(
-                        "Failed to register VCF: {e}"
-                    ))
-                })?;
-
-            let select = if skip_csq {
-                "SELECT * EXCLUDE (csq)"
-            } else {
-                "SELECT *"
-            };
-            let limit_clause = limit
-                .map(|n| format!(" LIMIT {n}"))
-                .unwrap_or_default();
-            let sql = format!(
-                "{select} FROM annotate_vep('vcf', '{}', 'parquet', '{}'){limit_clause}",
-                cache_dir.replace('\'', "''"),
-                options_json.replace('\'', "''"),
-            );
-
-            let df = ctx
-                .sql(&sql)
-                .await
-                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("SQL: {e}")))?;
-
-            let schema = df.schema().inner().clone();
-            let stream = df.execute_stream().await.map_err(|e| {
-                pyo3::exceptions::PyRuntimeError::new_err(format!("Stream: {e}"))
+        let vcf_provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+            vcf_path.to_string(),
+            Some(vec![]),
+            Some(vec![]),
+            None,
+            false,
+        )
+        .map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
+        })?;
+        ctx.register_table("vcf", Arc::new(vcf_provider))
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to register VCF: {e}"))
             })?;
 
-            Ok::<_, PyErr>((stream, schema))
-        })?;
+        let select = if skip_csq {
+            "SELECT * EXCLUDE (csq)"
+        } else {
+            "SELECT *"
+        };
+        let limit_clause = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();
+        let sql = format!(
+            "{select} FROM annotate_vep('vcf', '{}', 'parquet', '{}'){limit_clause}",
+            cache_dir.replace('\'', "''"),
+            options_json.replace('\'', "''"),
+        );
+
+        let df = ctx
+            .sql(&sql)
+            .await
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("SQL: {e}")))?;
+
+        let schema = df.schema().inner().clone();
+        let stream = df
+            .execute_stream()
+            .await
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Stream: {e}")))?;
+
+        Ok::<_, PyErr>((stream, schema))
+    })?;
 
     let py_schema = schema
         .to_pyarrow(py)
