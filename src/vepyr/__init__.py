@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import polars as pl
 
+from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import convert_entity as _convert_entity
 from vepyr._core import create_annotator as _create_annotator
 
@@ -282,7 +283,12 @@ def annotate(
     # Engine tuning
     cache_size_mb: int = 1024,
     skip_csq: bool = True,
-) -> "pl.LazyFrame":
+    # Output mode
+    output_vcf: str | None = None,
+    show_progress: bool = True,
+    compression: str | None = None,
+    on_batch_written: "callable | None" = None,
+) -> "pl.LazyFrame | str":
     """Annotate variants from a VCF file with VEP consequences.
 
     Reads the VCF, runs ``annotate_vep()`` against the partitioned parquet
@@ -344,12 +350,34 @@ def annotate(
         Maximum allowed ``failed`` flag value from cache (default: 0).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
+    output_vcf : str or None
+        Path to write annotated VCF output. When set, annotation results are
+        written directly to a VCF file and the output path is returned.
+        When ``None`` (default), returns a polars ``LazyFrame``.
+        Compression is auto-detected from the file extension: ``.vcf`` for
+        plain text, ``.vcf.gz`` or ``.vcf.bgz`` for block-gzipped (bgzf).
+        Override with the ``compression`` parameter.
+    show_progress : bool
+        Show a progress bar on stderr during VCF output (default: True).
+        Only used when ``output_vcf`` is set.
+    compression : str or None
+        VCF output compression. ``"bgzf"`` (block-gzip, tabix-compatible),
+        ``"gzip"``, ``"plain"``, or ``None`` (auto-detect from extension).
+        Only used when ``output_vcf`` is set.
+    on_batch_written : callable or None
+        Callback invoked after each batch is written to VCF, with signature
+        ``(batch_rows: int, total_rows: int, total_input: int)``.
+        ``total_rows`` is the cumulative number of VCF records written so far.
+        ``total_input`` is the total number of input variants when known.
+        Useful for driving tqdm progress bars in notebooks. Only used when
+        ``output_vcf`` is set.
 
     Returns
     -------
-    polars.LazyFrame
-        Annotated variants with ``csq`` and ``most_severe_consequence``
-        columns, plus original VCF fields.
+    polars.LazyFrame or str
+        When ``output_vcf`` is ``None``: annotated variants as a polars
+        ``LazyFrame`` with typed annotation columns plus original VCF fields.
+        When ``output_vcf`` is set: the output VCF file path.
 
     Examples
     --------
@@ -373,6 +401,15 @@ def annotate(
     ...     af=True,
     ...     af_gnomadg=True,
     ...     reference_fasta="/ref/GRCh38.fa",
+    ... )
+
+    >>> # Write annotated VCF directly
+    >>> path = vepyr.annotate(
+    ...     "input.vcf",
+    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     everything=True,
+    ...     reference_fasta="/ref/GRCh38.fa",
+    ...     output_vcf="annotated.vcf",
     ... )
     """
     import json
@@ -438,6 +475,50 @@ def annotate(
     options_json = json.dumps(opts)
 
     log.info("Running annotation on %s with cache %s", vcf, cache_dir)
+
+    # VCF output path: write directly and return the path.
+    if output_vcf is not None:
+        if compression is not None:
+            comp = compression
+        elif output_vcf.endswith((".gz", ".bgz", ".bgzf")):
+            comp = "bgzf"
+        else:
+            comp = "plain"
+
+        # Build progress callback: explicit callback wins, then auto-tqdm
+        # when show_progress=True, otherwise no callback.
+        callback = on_batch_written
+        _pbar = None
+        if callback is None and show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                _pbar = tqdm(
+                    unit=" variants",
+                    desc=f"Annotating → {output_vcf.rsplit('/', 1)[-1]}",
+                    miniters=1,
+                    mininterval=0,
+                )
+
+                def callback(batch_rows, total_rows, total_input):
+                    if total_input > 0 and _pbar.total != total_input:
+                        _pbar.total = total_input
+                    _pbar.update(batch_rows)
+                    _pbar.refresh()
+            except ImportError:
+                pass
+
+        try:
+            rows = _annotate_vcf(
+                vcf, cache_dir, output_vcf, options_json,
+                False, comp, callback,
+            )
+        finally:
+            if _pbar is not None:
+                _pbar.close()
+
+        log.info("Wrote %d rows to %s", rows, output_vcf)
+        return output_vcf
 
     import polars as pl
     import pyarrow as pa

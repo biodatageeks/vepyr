@@ -20,6 +20,33 @@ fn convert_entity(
     }
 }
 
+/// Annotate a VCF and write results directly to a VCF file.
+/// Returns the number of rows written.
+#[pyfunction]
+#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None))]
+#[allow(clippy::too_many_arguments)]
+fn annotate_vcf(
+    py: Python<'_>,
+    vcf_path: &str,
+    cache_dir: &str,
+    output_path: &str,
+    options_json: &str,
+    show_progress: bool,
+    compression: &str,
+    on_batch_written: Option<PyObject>,
+) -> PyResult<usize> {
+    annotate::annotate_to_vcf_file(
+        py,
+        vcf_path,
+        cache_dir,
+        output_path,
+        options_json,
+        show_progress,
+        compression,
+        on_batch_written,
+    )
+}
+
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
 #[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None))]
@@ -39,5 +66,6 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(convert_entity, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
+    m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     Ok(())
 }

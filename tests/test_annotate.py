@@ -146,3 +146,64 @@ class TestAnnotate:
 
         with pytest.raises(ValueError, match="reference_fasta"):
             vepyr.annotate(INPUT_VCF, CACHE_DIR, hgvs=True)
+
+    def test_annotate_to_vcf_output(self, skip_if_no_cache):
+        """Writing to VCF via output_vcf should produce a non-empty file."""
+        import vepyr
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                everything=True,
+                reference_fasta=REFERENCE_FASTA,
+                output_vcf=out_path,
+            )
+            assert result == out_path
+            assert os.path.getsize(out_path) > 0
+        finally:
+            os.unlink(out_path)
+
+    def test_annotate_vcf_returns_path(self, skip_if_no_cache):
+        """output_vcf should return the output path as a string."""
+        import vepyr
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                everything=True,
+                reference_fasta=REFERENCE_FASTA,
+                output_vcf=out_path,
+            )
+            assert isinstance(result, str)
+            assert result == out_path
+        finally:
+            os.unlink(out_path)
+
+    def test_annotate_vcf_has_csq_header(self, skip_if_no_cache):
+        """VCF output should contain CSQ in the INFO header."""
+        import vepyr
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                everything=True,
+                reference_fasta=REFERENCE_FASTA,
+                output_vcf=out_path,
+            )
+            with open(out_path) as f:
+                header_lines = [l for l in f if l.startswith("#")]
+            assert any("CSQ" in line for line in header_lines)
+        finally:
+            os.unlink(out_path)

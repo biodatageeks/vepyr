@@ -3,9 +3,12 @@ use std::sync::Arc;
 use arrow::pyarrow::ToPyArrow;
 use datafusion::execution::SendableRecordBatchStream;
 use datafusion::prelude::{SessionConfig, SessionContext};
+use datafusion_bio_format_vcf::VcfCompressionType;
 use datafusion_bio_function_vep::register_vep_functions;
+use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, OnBatchWritten};
 use futures::StreamExt;
 use pyo3::prelude::*;
+use serde_json::Value;
 use tokio::runtime::Runtime;
 
 /// A streaming annotator that yields PyArrow RecordBatches.
@@ -60,6 +63,92 @@ impl StreamingAnnotator {
             }
         }
     }
+}
+
+/// Annotate a VCF and write results directly to a VCF file.
+/// Returns the number of rows written.
+///
+/// `compression` is one of "bgzf", "gzip", "plain", or empty string for auto-detect from path.
+/// `on_batch_written` is an optional Python callable invoked with
+/// `(batch_rows, total_rows_written, total_input_rows)` after each batch is
+/// written — designed for tqdm/Jupyter progress bars.
+#[allow(clippy::too_many_arguments)]
+pub fn annotate_to_vcf_file(
+    _py: Python<'_>,
+    vcf_path: &str,
+    cache_dir: &str,
+    output_path: &str,
+    options_json: &str,
+    show_progress: bool,
+    compression: &str,
+    on_batch_written: Option<PyObject>,
+) -> PyResult<usize> {
+    let rt = Runtime::new()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let opts: Value = serde_json::from_str(options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+
+    let backend = if opts.get("use_fjall").and_then(|v| v.as_bool()).unwrap_or(false) {
+        "fjall"
+    } else {
+        "parquet"
+    };
+
+    let vcf_compression = match compression {
+        "bgzf" => VcfCompressionType::Bgzf,
+        "gzip" => VcfCompressionType::Gzip,
+        "plain" => VcfCompressionType::Plain,
+        _ => VcfCompressionType::from_path(output_path),
+    };
+
+    // Wrap Python callback in a Send+Sync closure for the Rust async world.
+    // Callback signature: (batch_rows, total_rows_written, total_input_rows)
+    let callback: Option<OnBatchWritten> =
+        on_batch_written.map(|cb| -> OnBatchWritten {
+            Box::new(move |batch_rows: usize, total_rows: usize, total_input: usize| {
+                Python::with_gil(|py| {
+                    if let Err(e) = cb.call1(py, (batch_rows, total_rows, total_input)) {
+                        log::warn!("on_batch_written callback error: {e}");
+                    }
+                });
+            })
+        });
+
+    let config = AnnotateVcfConfig {
+        everything: opts.get("everything").and_then(|v| v.as_bool()).unwrap_or(false),
+        extended_probes: opts
+            .get("extended_probes")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true),
+        reference_fasta_path: opts
+            .get("reference_fasta_path")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        use_fjall: opts.get("use_fjall").and_then(|v| v.as_bool()).unwrap_or(false),
+        hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
+        merged: opts.get("merged").and_then(|v| v.as_bool()).unwrap_or(false),
+        failed: opts.get("failed").and_then(|v| v.as_i64()),
+        distance: opts
+            .get("distance")
+            .and_then(|v| v.as_str().map(String::from).or_else(|| v.as_i64().map(|n| n.to_string()))),
+        compression: vcf_compression,
+        show_progress,
+        on_batch_written: callback,
+    };
+
+    rt.block_on(async {
+        let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
+            .await
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "VCF annotation failed: {e}"
+                ))
+            })?;
+
+        Ok(rows)
+    })
 }
 
 /// Create a streaming annotator that yields PyArrow RecordBatches.

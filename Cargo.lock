@@ -724,6 +724,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea0095f6103c2a8b44acd6fd15960c801dafebf02e21940360833e0673f48ba7"
 
 [[package]]
+name = "console"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d64e8af5551369d19cf50138de61f1c42074ab970f74e99be916646777f8fc87"
+dependencies = [
+ "encode_unicode",
+ "libc",
+ "unicode-width",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -931,7 +943,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-format-core"
 version = "0.6.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=7cbc049902196fa5f484101f40d6e78ace6541ec#7cbc049902196fa5f484101f40d6e78ace6541ec"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=e92ff6fa169d611d67e280551cd3e1a037254093#e92ff6fa169d611d67e280551cd3e1a037254093"
 dependencies = [
  "async-compression",
  "bytes",
@@ -953,7 +965,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-format-ensembl-cache"
 version = "0.1.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=7cbc049902196fa5f484101f40d6e78ace6541ec#7cbc049902196fa5f484101f40d6e78ace6541ec"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=e92ff6fa169d611d67e280551cd3e1a037254093#e92ff6fa169d611d67e280551cd3e1a037254093"
 dependencies = [
  "async-trait",
  "datafusion",
@@ -968,7 +980,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-format-vcf"
 version = "0.6.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=7cbc049902196fa5f484101f40d6e78ace6541ec#7cbc049902196fa5f484101f40d6e78ace6541ec"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=e92ff6fa169d611d67e280551cd3e1a037254093#e92ff6fa169d611d67e280551cd3e1a037254093"
 dependencies = [
  "async-compression",
  "async-stream",
@@ -997,16 +1009,18 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.1.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=5baf66943b54b3cc3528a015444d6f0ba2c4097f#5baf66943b54b3cc3528a015444d6f0ba2c4097f"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=e36a6ff5454d9194a076e9ddc012db51467da016#e36a6ff5454d9194a076e9ddc012db51467da016"
 dependencies = [
  "ahash",
  "arrow-ipc",
  "async-trait",
  "coitrees",
  "datafusion",
+ "datafusion-bio-format-vcf",
  "fjall",
  "flate2",
  "futures",
+ "indicatif",
  "log",
  "lz4_flex 0.12.1",
  "noodles-core 0.16.0",
@@ -1664,6 +1678,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "encode_unicode"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
+
+[[package]]
 name = "enum_dispatch"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2265,6 +2285,19 @@ dependencies = [
  "hashbrown 0.16.1",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "indicatif"
+version = "0.18.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25470f23803092da7d239834776d653104d551bc4d7eacaf31e6837854b8e9eb"
+dependencies = [
+ "console",
+ "portable-atomic",
+ "unicode-width",
+ "unit-prefix",
+ "web-time",
 ]
 
 [[package]]
@@ -4507,6 +4540,12 @@ name = "unindent"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
+
+[[package]]
+name = "unit-prefix"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81e544489bf3d8ef66c953931f56617f423cd4b5494be343d9b9d3dda037b9a3"
 
 [[package]]
 name = "untrusted"
