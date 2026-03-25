@@ -10,6 +10,8 @@ Test data:
 from __future__ import annotations
 
 import os
+import re
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -21,16 +23,109 @@ INPUT_VCF = GOLDEN_DIR / "input.vcf.gz"
 GOLDEN_VCF = GOLDEN_DIR / "golden.vcf"
 REFERENCE_FASTA = GOLDEN_DIR / "reference.fa"
 
+# CSQ field order from Ensembl VEP 115 --everything output.
+# Both golden VCF and vepyr VCF use this same pipe-delimited order.
+CSQ_FIELDS = [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS",
+]
 
-def _parse_golden_vcf(path: Path) -> dict[tuple[str, int, str, str], list[str]]:
-    """Parse golden VCF into {(chrom, pos, ref, alt): [csq1, csq2, ...]}."""
+CSQ_INDEX = {name: i for i, name in enumerate(CSQ_FIELDS)}
+
+
+def _parse_vcf_csq(path: Path) -> dict[tuple[str, int, str, str], list[str]]:
+    """Parse VCF into {(chrom, pos, ref, alt): [csq1, csq2, ...]}."""
     results = {}
     with open(path) as f:
         for line in f:
             if line.startswith("#"):
                 continue
             fields = line.strip().split("\t")
-            chrom, pos, _, ref, alt = fields[0], int(fields[1]), fields[2], fields[3], fields[4]
+            chrom, pos, _, ref, alt = (
+                fields[0],
+                int(fields[1]),
+                fields[2],
+                fields[3],
+                fields[4],
+            )
             info = fields[7]
             csq_entries = []
             for part in info.split(";"):
@@ -42,91 +137,873 @@ def _parse_golden_vcf(path: Path) -> dict[tuple[str, int, str, str], list[str]]:
     return results
 
 
-def _extract_csq_field(csq: str, field_index: int) -> str:
+def _parse_vcf_csq_field_order(path: Path) -> list[str] | None:
+    """Extract CSQ field order from VCF header, if present."""
+    with open(path) as f:
+        for line in f:
+            if not line.startswith("#"):
+                break
+            m = re.search(r'Format: ([^"]+)', line)
+            if m:
+                return m.group(1).split("|")
+    return None
+
+
+def _csq_field(csq: str, field: str) -> str:
+    """Extract a named field from a pipe-delimited CSQ entry."""
+    idx = CSQ_INDEX.get(field)
+    if idx is None:
+        return ""
     parts = csq.split("|")
-    return parts[field_index] if field_index < len(parts) else ""
+    return parts[idx] if idx < len(parts) else ""
 
 
-CSQ_CONSEQUENCE = 1
-CSQ_IMPACT = 2
-CSQ_SYMBOL = 3
+def _csq_to_dict(csq: str) -> dict[str, str]:
+    """Convert a pipe-delimited CSQ entry to {field_name: value}."""
+    parts = csq.split("|")
+    return {
+        name: (parts[i] if i < len(parts) else "") for i, name in enumerate(CSQ_FIELDS)
+    }
 
 
 def _normalize_chrom(chrom: str) -> str:
     return chrom.replace("chr", "")
 
 
+def _lookup(key, mapping):
+    """Look up a variant, trying both chr-prefixed and bare."""
+    norm_key = (_normalize_chrom(key[0]), key[1], key[2], key[3])
+    return mapping.get(key) or mapping.get(norm_key)
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
 @pytest.fixture(scope="module")
 def golden_annotations():
-    return _parse_golden_vcf(GOLDEN_VCF)
+    return _parse_vcf_csq(GOLDEN_VCF)
 
 
 @pytest.fixture(scope="module")
-def vepyr_df():
+def golden_field_order():
+    return _parse_vcf_csq_field_order(GOLDEN_VCF)
+
+
+@pytest.fixture(scope="module")
+def _skip_if_no_cache():
     if not os.path.isdir(CACHE_DIR):
         pytest.skip("Golden test cache not available")
+
+
+@pytest.fixture(scope="module")
+def vepyr_df(_skip_if_no_cache):
     import vepyr
+
     return vepyr.annotate(
-        str(INPUT_VCF), CACHE_DIR,
-        everything=True, reference_fasta=str(REFERENCE_FASTA),
+        str(INPUT_VCF),
+        CACHE_DIR,
+        everything=True,
+        reference_fasta=str(REFERENCE_FASTA),
     ).collect()
 
 
-class TestGoldenComparison:
+@pytest.fixture(scope="module")
+def vepyr_vcf_path(_skip_if_no_cache):
+    import vepyr
+
+    with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+        vcf_path = f.name
+    vepyr.annotate(
+        str(INPUT_VCF),
+        CACHE_DIR,
+        everything=True,
+        reference_fasta=str(REFERENCE_FASTA),
+        output_vcf=vcf_path,
+    )
+    yield Path(vcf_path)
+    os.unlink(vcf_path)
+
+
+@pytest.fixture(scope="module")
+def vepyr_vcf_annotations(vepyr_vcf_path):
+    return _parse_vcf_csq(vepyr_vcf_path)
+
+
+# ---------------------------------------------------------------------------
+# VCF output — full multi-transcript comparison (100% correctness bar)
+# ---------------------------------------------------------------------------
+
+
+class TestGoldenVcfComparison:
+    """Compare vepyr VCF output against golden VEP VCF.
+
+    Both outputs contain all transcript-level CSQ entries, so this is
+    an apples-to-apples comparison at 100% correctness.
+    """
+
+    def test_variant_count(self, vepyr_vcf_annotations, golden_annotations):
+        assert len(vepyr_vcf_annotations) >= len(golden_annotations), (
+            f"Too few: vepyr={len(vepyr_vcf_annotations)}, golden={len(golden_annotations)}"
+        )
+
+    def test_csq_entry_count(self, vepyr_vcf_annotations, golden_annotations):
+        """Every variant must have at least as many CSQ entries as the golden."""
+        fewer = []
+        for key, golden_csqs in golden_annotations.items():
+            vepyr_csqs = _lookup(key, vepyr_vcf_annotations)
+            if vepyr_csqs is None:
+                fewer.append((key, len(golden_csqs), 0))
+            elif len(vepyr_csqs) < len(golden_csqs):
+                fewer.append((key, len(golden_csqs), len(vepyr_csqs)))
+        assert not fewer, f"Variants with fewer CSQ entries than golden: {fewer}"
+
+    def test_csq_field_order(self, golden_field_order, vepyr_vcf_path):
+        """CSQ field order in vepyr VCF header must match golden."""
+        vepyr_order = _parse_vcf_csq_field_order(vepyr_vcf_path)
+        if vepyr_order is None:
+            pytest.skip("vepyr VCF header does not include CSQ Format line")
+        assert vepyr_order == golden_field_order, (
+            f"Field order mismatch:\n  golden: {golden_field_order}\n  vepyr:  {vepyr_order}"
+        )
+
+    # -- Per-field VCF tests for every CSQ column --
+
+    def _compare_vcf_field(self, field, vepyr_vcf_annotations, golden_annotations):
+        """Generic helper: for each variant, check that all golden values for
+        *field* appear in the vepyr CSQ entries (set equality per variant)."""
+        mismatches = []
+        for key, golden_csqs in golden_annotations.items():
+            vepyr_csqs = _lookup(key, vepyr_vcf_annotations)
+            if vepyr_csqs is None:
+                continue
+            golden_vals = {_csq_field(csq, field) for csq in golden_csqs} - {""}
+            if not golden_vals:
+                continue
+            vepyr_vals = {_csq_field(csq, field) for csq in vepyr_csqs} - {""}
+            missing = golden_vals - vepyr_vals
+            if missing:
+                mismatches.append((key, missing, vepyr_vals))
+        return mismatches
+
+    def test_consequence_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Consequence", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Consequence mismatches: {mismatches}"
+
+    def test_impact_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "IMPACT", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"IMPACT mismatches: {mismatches}"
+
+    def test_symbol_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "SYMBOL", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"SYMBOL mismatches: {mismatches}"
+
+    def test_gene_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Gene", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Gene mismatches: {mismatches}"
+
+    def test_feature_type_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Feature_type", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Feature_type mismatches: {mismatches}"
+
+    def test_feature_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Feature", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Feature mismatches: {mismatches}"
+
+    def test_biotype_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "BIOTYPE", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"BIOTYPE mismatches: {mismatches}"
+
+    def test_exon_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "EXON", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"EXON mismatches: {mismatches}"
+
+    def test_intron_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "INTRON", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"INTRON mismatches: {mismatches}"
+
+    def test_hgvsc_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "HGVSc", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"HGVSc mismatches: {mismatches}"
+
+    def test_hgvsp_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "HGVSp", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"HGVSp mismatches: {mismatches}"
+
+    def test_cdna_position_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "cDNA_position", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"cDNA_position mismatches: {mismatches}"
+
+    def test_cds_position_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "CDS_position", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"CDS_position mismatches: {mismatches}"
+
+    def test_protein_position_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Protein_position", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Protein_position mismatches: {mismatches}"
+
+    def test_amino_acids_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Amino_acids", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Amino_acids mismatches: {mismatches}"
+
+    def test_codons_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Codons", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Codons mismatches: {mismatches}"
+
+    def test_existing_variation_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "Existing_variation", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"Existing_variation mismatches: {mismatches}"
+
+    def test_distance_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "DISTANCE", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"DISTANCE mismatches: {mismatches}"
+
+    def test_strand_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "STRAND", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"STRAND mismatches: {mismatches}"
+
+    def test_flags_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "FLAGS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"FLAGS mismatches: {mismatches}"
+
+    def test_variant_class_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "VARIANT_CLASS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"VARIANT_CLASS mismatches: {mismatches}"
+
+    def test_symbol_source_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "SYMBOL_SOURCE", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"SYMBOL_SOURCE mismatches: {mismatches}"
+
+    def test_hgnc_id_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "HGNC_ID", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"HGNC_ID mismatches: {mismatches}"
+
+    def test_canonical_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "CANONICAL", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"CANONICAL mismatches: {mismatches}"
+
+    def test_mane_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MANE", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MANE mismatches: {mismatches}"
+
+    def test_mane_select_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MANE_SELECT", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MANE_SELECT mismatches: {mismatches}"
+
+    def test_mane_plus_clinical_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MANE_PLUS_CLINICAL", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MANE_PLUS_CLINICAL mismatches: {mismatches}"
+
+    def test_tsl_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "TSL", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"TSL mismatches: {mismatches}"
+
+    def test_appris_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "APPRIS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"APPRIS mismatches: {mismatches}"
+
+    def test_ccds_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "CCDS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"CCDS mismatches: {mismatches}"
+
+    def test_ensp_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "ENSP", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"ENSP mismatches: {mismatches}"
+
+    def test_swissprot_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "SWISSPROT", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"SWISSPROT mismatches: {mismatches}"
+
+    def test_trembl_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "TREMBL", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"TREMBL mismatches: {mismatches}"
+
+    def test_uniparc_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "UNIPARC", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"UNIPARC mismatches: {mismatches}"
+
+    def test_uniprot_isoform_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "UNIPROT_ISOFORM", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"UNIPROT_ISOFORM mismatches: {mismatches}"
+
+    def test_gene_pheno_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "GENE_PHENO", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"GENE_PHENO mismatches: {mismatches}"
+
+    def test_sift_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "SIFT", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"SIFT mismatches: {mismatches}"
+
+    def test_polyphen_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "PolyPhen", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"PolyPhen mismatches: {mismatches}"
+
+    def test_domains_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "DOMAINS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"DOMAINS mismatches: {mismatches}"
+
+    def test_mirna_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "miRNA", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"miRNA mismatches: {mismatches}"
+
+    def test_hgvs_offset_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "HGVS_OFFSET", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"HGVS_OFFSET mismatches: {mismatches}"
+
+    def test_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"AF mismatches: {mismatches}"
+
+    def test_afr_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "AFR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"AFR_AF mismatches: {mismatches}"
+
+    def test_amr_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "AMR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"AMR_AF mismatches: {mismatches}"
+
+    def test_eas_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "EAS_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"EAS_AF mismatches: {mismatches}"
+
+    def test_eur_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "EUR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"EUR_AF mismatches: {mismatches}"
+
+    def test_sas_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "SAS_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"SAS_AF mismatches: {mismatches}"
+
+    def test_gnomade_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_AF mismatches: {mismatches}"
+
+    def test_gnomade_afr_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_AFR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_AFR_AF mismatches: {mismatches}"
+
+    def test_gnomade_amr_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_AMR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_AMR_AF mismatches: {mismatches}"
+
+    def test_gnomade_asj_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_ASJ_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_ASJ_AF mismatches: {mismatches}"
+
+    def test_gnomade_eas_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_EAS_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_EAS_AF mismatches: {mismatches}"
+
+    def test_gnomade_fin_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_FIN_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_FIN_AF mismatches: {mismatches}"
+
+    def test_gnomade_mid_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_MID_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_MID_AF mismatches: {mismatches}"
+
+    def test_gnomade_nfe_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_NFE_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_NFE_AF mismatches: {mismatches}"
+
+    def test_gnomade_remaining_af_match(
+        self, vepyr_vcf_annotations, golden_annotations
+    ):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_REMAINING_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_REMAINING_AF mismatches: {mismatches}"
+
+    def test_gnomade_sas_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADe_SAS_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADe_SAS_AF mismatches: {mismatches}"
+
+    def test_gnomadg_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_AF mismatches: {mismatches}"
+
+    def test_gnomadg_afr_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_AFR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_AFR_AF mismatches: {mismatches}"
+
+    def test_gnomadg_ami_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_AMI_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_AMI_AF mismatches: {mismatches}"
+
+    def test_gnomadg_amr_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_AMR_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_AMR_AF mismatches: {mismatches}"
+
+    def test_gnomadg_asj_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_ASJ_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_ASJ_AF mismatches: {mismatches}"
+
+    def test_gnomadg_eas_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_EAS_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_EAS_AF mismatches: {mismatches}"
+
+    def test_gnomadg_fin_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_FIN_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_FIN_AF mismatches: {mismatches}"
+
+    def test_gnomadg_mid_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_MID_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_MID_AF mismatches: {mismatches}"
+
+    def test_gnomadg_nfe_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_NFE_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_NFE_AF mismatches: {mismatches}"
+
+    def test_gnomadg_remaining_af_match(
+        self, vepyr_vcf_annotations, golden_annotations
+    ):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_REMAINING_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_REMAINING_AF mismatches: {mismatches}"
+
+    def test_gnomadg_sas_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "gnomADg_SAS_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"gnomADg_SAS_AF mismatches: {mismatches}"
+
+    def test_max_af_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MAX_AF", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MAX_AF mismatches: {mismatches}"
+
+    def test_max_af_pops_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MAX_AF_POPS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MAX_AF_POPS mismatches: {mismatches}"
+
+    def test_clin_sig_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "CLIN_SIG", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"CLIN_SIG mismatches: {mismatches}"
+
+    def test_somatic_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "SOMATIC", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"SOMATIC mismatches: {mismatches}"
+
+    def test_pheno_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "PHENO", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"PHENO mismatches: {mismatches}"
+
+    def test_pubmed_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "PUBMED", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"PUBMED mismatches: {mismatches}"
+
+    def test_motif_name_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MOTIF_NAME", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MOTIF_NAME mismatches: {mismatches}"
+
+    def test_motif_pos_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MOTIF_POS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MOTIF_POS mismatches: {mismatches}"
+
+    def test_high_inf_pos_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "HIGH_INF_POS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"HIGH_INF_POS mismatches: {mismatches}"
+
+    def test_motif_score_change_match(self, vepyr_vcf_annotations, golden_annotations):
+        mismatches = self._compare_vcf_field(
+            "MOTIF_SCORE_CHANGE", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"MOTIF_SCORE_CHANGE mismatches: {mismatches}"
+
+    def test_transcription_factors_match(
+        self, vepyr_vcf_annotations, golden_annotations
+    ):
+        mismatches = self._compare_vcf_field(
+            "TRANSCRIPTION_FACTORS", vepyr_vcf_annotations, golden_annotations
+        )
+        assert not mismatches, f"TRANSCRIPTION_FACTORS mismatches: {mismatches}"
+
+
+# ---------------------------------------------------------------------------
+# DataFrame output — single-row-per-variant (most severe pick)
+# ---------------------------------------------------------------------------
+
+
+class TestGoldenDataFrameComparison:
+    """Compare vepyr DataFrame output against golden VEP VCF.
+
+    The DataFrame returns one row per variant (most severe consequence pick),
+    so comparisons check that the picked values are present among the golden
+    multi-transcript entries.
+    """
 
     def test_variant_count(self, vepyr_df, golden_annotations):
         ratio = vepyr_df.height / len(golden_annotations)
-        assert ratio >= 0.9, f"Too few: vepyr={vepyr_df.height}, golden={len(golden_annotations)}"
+        assert ratio >= 1.0, (
+            f"Too few: vepyr={vepyr_df.height}, golden={len(golden_annotations)}"
+        )
 
     def test_most_severe_consequence_match(self, vepyr_df, golden_annotations):
         matched = 0
         total = 0
         for row in vepyr_df.iter_rows(named=True):
             key = (row["chrom"], row["start"], row["ref"], row["alt"])
-            norm_key = (_normalize_chrom(key[0]), key[1], key[2], key[3])
-            golden_csqs = golden_annotations.get(key) or golden_annotations.get(norm_key)
+            golden_csqs = _lookup(key, golden_annotations)
             if golden_csqs is None:
                 continue
             total += 1
-            golden_consequences = {c for csq in golden_csqs for c in _extract_csq_field(csq, CSQ_CONSEQUENCE).split("&") if c}
+            golden_consequences = {
+                c
+                for csq in golden_csqs
+                for c in _csq_field(csq, "Consequence").split("&")
+                if c
+            }
             if row.get("most_severe_consequence") in golden_consequences:
                 matched += 1
         assert total > 0
-        assert matched / total >= 0.85, f"Match rate {matched/total:.1%} < 85%"
+        assert matched / total >= 1.0, f"Match rate {matched / total:.1%} < 100%"
 
     def test_gene_symbol_match(self, vepyr_df, golden_annotations):
-        matched = 0
-        total = 0
+        mismatches = self._compare_df_field("SYMBOL", vepyr_df, golden_annotations)
+        assert not mismatches, f"SYMBOL mismatches: {mismatches}"
+
+    @staticmethod
+    def _normalize_df_value(val):
+        """Normalize a DataFrame value for comparison against golden CSQ strings.
+
+        Handles:
+        - list columns → set of individual strings
+        - float columns → multiple string representations to match VEP's text
+          formatting (which uses varying precision and trailing zeros)
+        - None/empty → empty set
+        """
+        if val is None or val == "" or val == []:
+            return set()
+        if isinstance(val, list):
+            return {str(v) for v in val if v is not None and v != ""}
+        if isinstance(val, float):
+            candidates = {str(val)}
+            if val == int(val):
+                candidates.add(str(int(val)))
+            # VEP uses varying precision — generate candidates at 1-6 decimals,
+            # both with and without trailing zeros stripped.
+            for prec in range(1, 7):
+                formatted = f"{val:.{prec}f}"
+                candidates.add(formatted)  # e.g. "0.6400"
+                candidates.add(formatted.rstrip("0").rstrip("."))  # e.g. "0.64"
+            return candidates
+        return {str(val)}
+
+    def _compare_df_field(self, field, vepyr_df, golden_annotations):
+        """Check that the DataFrame single-pick value for *field* is present
+        among the golden CSQ entries for that variant."""
+        mismatches = []
         for row in vepyr_df.iter_rows(named=True):
             key = (row["chrom"], row["start"], row["ref"], row["alt"])
-            norm_key = (_normalize_chrom(key[0]), key[1], key[2], key[3])
-            golden_csqs = golden_annotations.get(key) or golden_annotations.get(norm_key)
+            golden_csqs = _lookup(key, golden_annotations)
             if golden_csqs is None:
                 continue
-            golden_symbols = {_extract_csq_field(csq, CSQ_SYMBOL) for csq in golden_csqs if _extract_csq_field(csq, CSQ_SYMBOL)}
-            vepyr_symbol = row.get("SYMBOL", "")
-            if not golden_symbols:
+            vepyr_strs = self._normalize_df_value(row.get(field))
+            if not vepyr_strs:
                 continue
-            total += 1
-            if vepyr_symbol in golden_symbols:
-                matched += 1
-        assert total > 0
-        assert matched / total >= 0.85, f"Gene symbol match {matched/total:.1%} < 85%"
+            # Golden CSQ consequences are &-joined; split for comparison
+            # when the DataFrame stores them as separate list elements.
+            golden_vals = set()
+            for csq in golden_csqs:
+                v = _csq_field(csq, field)
+                if v:
+                    golden_vals.add(v)
+                    # Also add individual terms for &-joined fields
+                    if "&" in v:
+                        golden_vals.update(v.split("&"))
+            if not golden_vals:
+                continue
+            if not vepyr_strs & golden_vals:
+                mismatches.append((key, vepyr_strs, golden_vals))
+        return mismatches
+
+    def test_df_impact_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("IMPACT", vepyr_df, golden_annotations)
+        assert not mismatches, f"IMPACT mismatches: {mismatches}"
+
+    def test_df_gene_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("Gene", vepyr_df, golden_annotations)
+        assert not mismatches, f"Gene mismatches: {mismatches}"
+
+    def test_df_feature_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("Feature", vepyr_df, golden_annotations)
+        assert not mismatches, f"Feature mismatches: {mismatches}"
+
+    def test_df_feature_type_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field(
+            "Feature_type", vepyr_df, golden_annotations
+        )
+        assert not mismatches, f"Feature_type mismatches: {mismatches}"
+
+    def test_df_biotype_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("BIOTYPE", vepyr_df, golden_annotations)
+        assert not mismatches, f"BIOTYPE mismatches: {mismatches}"
+
+    def test_df_hgvsc_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("HGVSc", vepyr_df, golden_annotations)
+        assert not mismatches, f"HGVSc mismatches: {mismatches}"
+
+    def test_df_hgvsp_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("HGVSp", vepyr_df, golden_annotations)
+        assert not mismatches, f"HGVSp mismatches: {mismatches}"
+
+    def test_df_existing_variation_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field(
+            "Existing_variation", vepyr_df, golden_annotations
+        )
+        assert not mismatches, f"Existing_variation mismatches: {mismatches}"
+
+    def test_df_variant_class_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field(
+            "VARIANT_CLASS", vepyr_df, golden_annotations
+        )
+        assert not mismatches, f"VARIANT_CLASS mismatches: {mismatches}"
+
+    def test_df_canonical_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("CANONICAL", vepyr_df, golden_annotations)
+        assert not mismatches, f"CANONICAL mismatches: {mismatches}"
+
+    def test_df_sift_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("SIFT", vepyr_df, golden_annotations)
+        assert not mismatches, f"SIFT mismatches: {mismatches}"
+
+    def test_df_polyphen_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("PolyPhen", vepyr_df, golden_annotations)
+        assert not mismatches, f"PolyPhen mismatches: {mismatches}"
+
+    def test_df_ensp_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("ENSP", vepyr_df, golden_annotations)
+        assert not mismatches, f"ENSP mismatches: {mismatches}"
+
+    def test_df_consequence_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("Consequence", vepyr_df, golden_annotations)
+        assert not mismatches, f"Consequence mismatches: {mismatches}"
+
+    def test_df_strand_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("STRAND", vepyr_df, golden_annotations)
+        assert not mismatches, f"STRAND mismatches: {mismatches}"
+
+    def test_df_distance_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("DISTANCE", vepyr_df, golden_annotations)
+        assert not mismatches, f"DISTANCE mismatches: {mismatches}"
+
+    def test_df_exon_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("EXON", vepyr_df, golden_annotations)
+        assert not mismatches, f"EXON mismatches: {mismatches}"
+
+    def test_df_intron_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("INTRON", vepyr_df, golden_annotations)
+        assert not mismatches, f"INTRON mismatches: {mismatches}"
+
+    def test_df_af_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("AF", vepyr_df, golden_annotations)
+        assert not mismatches, f"AF mismatches: {mismatches}"
+
+    def test_df_afr_af_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("AFR_AF", vepyr_df, golden_annotations)
+        assert not mismatches, f"AFR_AF mismatches: {mismatches}"
+
+    def test_df_gnomade_af_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("gnomADe_AF", vepyr_df, golden_annotations)
+        assert not mismatches, f"gnomADe_AF mismatches: {mismatches}"
+
+    def test_df_gnomadg_af_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("gnomADg_AF", vepyr_df, golden_annotations)
+        assert not mismatches, f"gnomADg_AF mismatches: {mismatches}"
+
+    def test_df_max_af_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("MAX_AF", vepyr_df, golden_annotations)
+        assert not mismatches, f"MAX_AF mismatches: {mismatches}"
+
+    def test_df_clin_sig_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("CLIN_SIG", vepyr_df, golden_annotations)
+        assert not mismatches, f"CLIN_SIG mismatches: {mismatches}"
+
+    def test_df_symbol_source_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field(
+            "SYMBOL_SOURCE", vepyr_df, golden_annotations
+        )
+        assert not mismatches, f"SYMBOL_SOURCE mismatches: {mismatches}"
+
+    def test_df_domains_match(self, vepyr_df, golden_annotations):
+        mismatches = self._compare_df_field("DOMAINS", vepyr_df, golden_annotations)
+        assert not mismatches, f"DOMAINS mismatches: {mismatches}"
 
     def test_impact_levels_present(self, vepyr_df):
-        impacts = set(vepyr_df["IMPACT"].drop_nulls().to_list())
+        impacts = set()
+        for val in vepyr_df["IMPACT"].drop_nulls().to_list():
+            if isinstance(val, list):
+                impacts.update(v for v in val if v)
+            elif val:
+                impacts.add(val)
         expected = {"HIGH", "MODERATE", "LOW", "MODIFIER"}
-        assert len(impacts & expected) >= 2, f"Expected >=2 IMPACT levels, got {impacts}"
+        assert len(impacts & expected) >= 2, (
+            f"Expected >=2 IMPACT levels, got {impacts}"
+        )
 
     def test_hgvs_annotations_present(self, vepyr_df):
         hgvsc_count = vepyr_df["HGVSc"].drop_nulls().len()
         assert hgvsc_count > 0, "No HGVSc annotations with everything=True"
 
-    def test_has_typed_columns(self, vepyr_df):
-        expected = ["Consequence", "IMPACT", "SYMBOL", "Gene", "HGVSc", "HGVSp",
-                     "SIFT", "PolyPhen", "AF", "gnomADe_AF", "gnomADg_AF"]
-        for col in expected:
-            assert col in vepyr_df.columns, f"Missing column: {col}"
+    def test_has_all_csq_columns(self, vepyr_df):
+        """DataFrame must contain all 80 CSQ fields as columns."""
+        missing = [f for f in CSQ_FIELDS if f not in vepyr_df.columns]
+        assert not missing, f"Missing CSQ columns in DataFrame: {missing}"
+
+    def test_has_vcf_core_columns(self, vepyr_df):
+        """DataFrame must contain VCF core fields."""
+        expected = ["chrom", "start", "ref", "alt", "id", "qual", "filter"]
+        missing = [c for c in expected if c not in vepyr_df.columns]
+        assert not missing, f"Missing VCF core columns: {missing}"
 
     def test_column_count(self, vepyr_df):
         assert vepyr_df.width >= 90, f"Expected >=90 columns, got {vepyr_df.width}"
