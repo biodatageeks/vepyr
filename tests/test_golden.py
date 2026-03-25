@@ -808,22 +808,8 @@ class TestGoldenDataFrameComparison:
         assert matched / total >= 1.0, f"Match rate {matched / total:.1%} < 100%"
 
     def test_gene_symbol_match(self, vepyr_df, golden_annotations):
-        matched = 0
-        total = 0
-        for row in vepyr_df.iter_rows(named=True):
-            key = (row["chrom"], row["start"], row["ref"], row["alt"])
-            golden_csqs = _lookup(key, golden_annotations)
-            if golden_csqs is None:
-                continue
-            golden_symbols = {_csq_field(csq, "SYMBOL") for csq in golden_csqs} - {""}
-            if not golden_symbols:
-                continue
-            total += 1
-            vepyr_symbol = row.get("SYMBOL") or ""
-            if vepyr_symbol in golden_symbols:
-                matched += 1
-        assert total > 0
-        assert matched / total >= 1.0, f"Gene symbol match {matched / total:.1%} < 100%"
+        mismatches = self._compare_df_field("SYMBOL", vepyr_df, golden_annotations)
+        assert not mismatches, f"SYMBOL mismatches: {mismatches}"
 
     @staticmethod
     def _normalize_df_value(val):
@@ -993,7 +979,12 @@ class TestGoldenDataFrameComparison:
         assert not mismatches, f"DOMAINS mismatches: {mismatches}"
 
     def test_impact_levels_present(self, vepyr_df):
-        impacts = set(vepyr_df["IMPACT"].drop_nulls().to_list())
+        impacts = set()
+        for val in vepyr_df["IMPACT"].drop_nulls().to_list():
+            if isinstance(val, list):
+                impacts.update(v for v in val if v)
+            elif val:
+                impacts.add(val)
         expected = {"HIGH", "MODERATE", "LOW", "MODIFIER"}
         assert len(impacts & expected) >= 2, (
             f"Expected >=2 IMPACT levels, got {impacts}"
