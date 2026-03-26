@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 from vepyr._core import annotate_vcf as _annotate_vcf
-from vepyr._core import convert_entity as _convert_entity
+from vepyr._core import build_cache as _build_cache
 from vepyr._core import create_annotator as _create_annotator
 
 __all__ = ["build_cache", "annotate"]
@@ -121,10 +121,14 @@ def build_cache(
     assembly: str = "GRCh38",
     method: str = "vep",
     partitions: int = 8,
-    memory_limit_gb: int = 32,
+    build_fjall: bool = True,
+    fjall_zstd_level: int = 3,
+    fjall_dict_size_kb: int = 112,
     local_cache: str | None = None,
+    show_progress: bool = True,
+    on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
 ) -> list[tuple[str, int]]:
-    """Download an Ensembl VEP cache and convert it to optimized Parquet files.
+    """Download an Ensembl VEP cache and convert it to optimized Parquet + fjall.
 
     Parameters
     ----------
@@ -140,12 +144,22 @@ def build_cache(
         Cache type: ``"vep"`` (default), ``"merged"``, or ``"refseq"``.
     partitions : int
         Number of DataFusion partitions for parallelism (default: 8).
-    memory_limit_gb : int
-        Memory limit in GB for DataFusion (default: 32).
+    build_fjall : bool
+        Build fjall KV stores for variation and sift lookups (default: True).
+    fjall_zstd_level : int
+        Zstd compression level for fjall stores (default: 3).
+    fjall_dict_size_kb : int
+        Zstd dictionary size in KB for fjall stores (default: 112).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
         are skipped entirely.
+    show_progress : bool
+        Show tqdm progress bars during conversion (default: True).
+    on_progress : callable or None
+        Custom progress callback with signature
+        ``(entity, format, batch_rows, total_rows, total_expected)``.
+        Overrides the default tqdm bars when provided.
 
     Returns
     -------
@@ -199,58 +213,65 @@ def build_cache(
     # Output: parquet/<version_dir>/<entity>/chr1.parquet
     output_dir = os.path.join(cache_dir, "parquet", version_dir)
 
-    import time
+    # Build progress callback: explicit wins, then auto-tqdm, then None.
+    progress_cb = on_progress
+    _bars: dict[tuple[str, str], object] | None = None
 
-    entities = [
-        "variation",
-        "transcript",
-        "exon",
-        "translation",
-        "regulatory",
-        "motif",
-    ]
+    if progress_cb is None and show_progress:
+        try:
+            from tqdm.auto import tqdm
 
-    _in_notebook = False
+            _bars = {}
+
+            def progress_cb(
+                entity: str,
+                fmt: str,
+                batch_rows: int,
+                total_rows: int,
+                total_expected: int,
+            ) -> None:
+                key = (entity, fmt)
+                if key not in _bars:
+                    _bars[key] = tqdm(
+                        total=total_expected or None,
+                        unit=" rows",
+                        desc=f"{entity} ({fmt})",
+                    )
+                bar = _bars[key]
+                bar.update(batch_rows)
+        except ImportError:
+            pass
+
     try:
-        from IPython import get_ipython
-
-        shell = get_ipython()
-        if shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell":
-            from IPython.display import display, HTML
-
-            _in_notebook = True
-    except ImportError:
-        pass
-
-    def _show_status(msg: str) -> None:
-        if _in_notebook:
-            display(HTML(f"<pre>{msg}</pre>"))
-        else:
-            log.info(msg)
-
-    all_results: list[tuple[str, int]] = []
-    for i, entity in enumerate(entities):
-        _show_status(f"[{i + 1}/{len(entities)}] Converting {entity} ...")
-        t0 = time.time()
-        result = _convert_entity(
-            cache_root, output_dir, entity, partitions, memory_limit_gb
+        entity_stats = _build_cache(
+            cache_root,
+            output_dir,
+            partitions,
+            build_fjall,
+            fjall_zstd_level,
+            fjall_dict_size_kb,
+            progress_cb,
         )
-        elapsed = time.time() - t0
+    finally:
+        if _bars is not None:
+            for bar in _bars.values():
+                bar.close()
 
-        if result is None:
-            _show_status(
-                f"[{i + 1}/{len(entities)}] {entity}: skipped (no source files)"
+    # Flatten entity stats into the simple (path, rows) list for backward compat
+    all_results: list[tuple[str, int]] = []
+    for entity_name, parquet_files, fjall_stats in entity_stats:
+        for path, rows in parquet_files:
+            all_results.append((path, rows))
+        if fjall_stats is not None:
+            variants, positions, total_bytes, secs = fjall_stats
+            log.info(
+                "%s fjall: %d variants, %d positions, %.1f MB in %.1fs",
+                entity_name,
+                variants,
+                positions,
+                total_bytes / (1024 * 1024),
+                secs,
             )
-            continue
-
-        for path, rows in result:
-            rate = f"{rows / elapsed:,.0f}" if elapsed > 0 else "?"
-            rel_path = os.path.relpath(path, output_dir)
-            _show_status(
-                f"[{i + 1}/{len(entities)}] {entity}: {rows:,} rows "
-                f"in {elapsed:.1f}s ({rate} rows/s) -> {rel_path}"
-            )
-        all_results.extend(result)
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results

@@ -1,23 +1,67 @@
+use datafusion_bio_function_vep::cache_builder::{CacheBuilder, OnProgress};
 use pyo3::prelude::*;
 
 mod annotate;
-mod convert;
 
-/// Convert a single entity type from an Ensembl VEP cache to Parquet.
+/// Build all entities from an Ensembl VEP cache to parquet + optional fjall.
+///
+/// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, entity, partitions=8, memory_limit_gb=32))]
-fn convert_entity(
+#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None))]
+#[allow(clippy::type_complexity)]
+fn build_cache(
     cache_root: &str,
     output_dir: &str,
-    entity: &str,
     partitions: usize,
-    memory_limit_gb: usize,
-) -> PyResult<Option<Vec<(String, usize)>>> {
-    match convert::convert_entity(cache_root, output_dir, entity, partitions, memory_limit_gb) {
-        Ok(results) => Ok(Some(results)),
-        Err(e) if e == "skipped" => Ok(None),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
+    build_fjall: bool,
+    zstd_level: i32,
+    dict_size_kb: u32,
+    on_progress: Option<PyObject>,
+) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
+    let cb: Option<OnProgress> = on_progress.map(|py_cb| {
+        Box::new(
+            move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
+                Python::with_gil(|py| {
+                    let _ = py_cb.call1(py, (entity, fmt, batch, total, expected));
+                });
+            },
+        ) as OnProgress
+    });
+
+    let mut builder = CacheBuilder::new(cache_root, output_dir)
+        .with_partitions(partitions)
+        .with_build_fjall(build_fjall)
+        .with_zstd_level(zstd_level)
+        .with_dict_size_kb(dict_size_kb);
+
+    if let Some(progress) = cb {
+        builder = builder.with_on_progress(progress);
     }
+
+    let rt = tokio::runtime::Runtime::new()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let stats = rt.block_on(builder.build_all()).map_err(|e| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+    })?;
+
+    // Convert EntityStats to Python-friendly tuples
+    let result: Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)> = stats
+        .into_iter()
+        .map(|s| {
+            let fjall = s.fjall_stats.map(|f| {
+                (
+                    f.total_variants,
+                    f.total_positions,
+                    f.total_bytes,
+                    f.elapsed_secs,
+                )
+            });
+            (s.entity, s.parquet_files, fjall)
+        })
+        .collect();
+
+    Ok(result)
 }
 
 /// Annotate a VCF and write results directly to a VCF file.
@@ -64,7 +108,7 @@ fn create_annotator(
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<annotate::StreamingAnnotator>()?;
-    m.add_function(wrap_pyfunction!(convert_entity, m)?)?;
+    m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     Ok(())
