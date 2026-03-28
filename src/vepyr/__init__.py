@@ -27,9 +27,23 @@ _ENSEMBL_FTP_PATHS = [
 _MAX_REDIRECTS = 5
 
 
-def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
-    """Download a file with a tqdm progress bar."""
+_DOWNLOAD_TIMEOUT = 300
+_DOWNLOAD_MAX_RETRIES = 10
+_DOWNLOAD_RETRY_BACKOFF = 5  # seconds, doubled each retry
+
+
+def _download_with_progress(
+    url: str, dest: str, _redirects: int = 0, max_retries: int = _DOWNLOAD_MAX_RETRIES
+) -> None:
+    """Download a file with a tqdm progress bar and resume-on-failure.
+
+    On timeout or connection errors the download resumes from the last byte
+    written using an HTTP Range header. Retries up to ``_DOWNLOAD_MAX_RETRIES``
+    times with exponential backoff.
+    """
     import http.client
+    import os
+    import time
     import urllib.parse
 
     from tqdm import tqdm
@@ -37,8 +51,9 @@ def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
     filename = dest.rsplit("/", 1)[-1]
     log.info("Downloading %s", url)
 
+    # --- Resolve redirects first so retries hit the final URL. ---
     parsed = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(parsed.hostname, timeout=60)
+    conn = http.client.HTTPSConnection(parsed.hostname, timeout=_DOWNLOAD_TIMEOUT)
     conn.request("GET", parsed.path, headers={"Accept-Encoding": "identity"})
     resp = conn.getresponse()
 
@@ -50,7 +65,7 @@ def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
                 raise RuntimeError(
                     f"Too many redirects ({_MAX_REDIRECTS}) fetching {url}"
                 )
-            return _download_with_progress(location, dest, _redirects + 1)
+            return _download_with_progress(location, dest, _redirects + 1, max_retries)
 
     if resp.status != 200:
         conn.close()
@@ -59,24 +74,115 @@ def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
         raise urllib.error.HTTPError(url, resp.status, resp.reason, resp.headers, None)
 
     total = int(resp.getheader("Content-Length", 0)) or None
-    with (
-        tqdm(
-            total=total,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-            desc=f"Downloading {filename}",
-            miniters=1,
-        ) as pbar,
-        open(dest, "wb") as f,
-    ):
-        while True:
-            buf = resp.read(8 * 1024 * 1024)
-            if not buf:
-                break
-            f.write(buf)
-            pbar.update(len(buf))
-    conn.close()
+
+    # --- Download with retry + resume ---
+    downloaded = 0
+    retries = 0
+    backoff = _DOWNLOAD_RETRY_BACKOFF
+
+    pbar = tqdm(
+        total=total,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        desc=f"Downloading {filename}",
+        miniters=1,
+    )
+
+    try:
+        # First pass: use the already-open response.
+        try:
+            with open(dest, "wb") as f:
+                while True:
+                    buf = resp.read(8 * 1024 * 1024)
+                    if not buf:
+                        break
+                    f.write(buf)
+                    downloaded += len(buf)
+                    pbar.update(len(buf))
+            conn.close()
+        except (TimeoutError, OSError, http.client.HTTPException):
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+        # If we got everything, we're done.
+        if total is not None and downloaded >= total:
+            return
+
+        # No Content-Length but stream ended — assume complete.
+        if total is None:
+            return
+
+        # --- Resume loop for incomplete downloads ---
+        while downloaded < total:
+            retries += 1
+            if retries > max_retries:
+                raise RuntimeError(
+                    f"Download failed after {max_retries} retries "
+                    f"({downloaded:,}/{total:,} bytes): {url}"
+                )
+
+            log.warning(
+                "Download interrupted at %s/%s bytes, retrying in %ds (attempt %d/%d)",
+                f"{downloaded:,}",
+                f"{total:,}",
+                backoff,
+                retries,
+                max_retries,
+            )
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 120)
+
+            try:
+                parsed = urllib.parse.urlparse(url)
+                conn = http.client.HTTPSConnection(
+                    parsed.hostname, timeout=_DOWNLOAD_TIMEOUT
+                )
+                conn.request(
+                    "GET",
+                    parsed.path,
+                    headers={
+                        "Accept-Encoding": "identity",
+                        "Range": f"bytes={downloaded}-",
+                    },
+                )
+                resp = conn.getresponse()
+
+                if resp.status not in (200, 206):
+                    conn.close()
+                    continue
+
+                # If server ignores Range and sends 200, restart from scratch.
+                if resp.status == 200:
+                    downloaded = 0
+                    pbar.reset()
+                    mode = "wb"
+                else:
+                    mode = "ab"
+
+                with open(dest, mode) as f:
+                    while True:
+                        buf = resp.read(8 * 1024 * 1024)
+                        if not buf:
+                            break
+                        f.write(buf)
+                        downloaded += len(buf)
+                        pbar.update(len(buf))
+                conn.close()
+            except (TimeoutError, OSError, http.client.HTTPException) as exc:
+                log.debug("Retry %d failed: %s", retries, exc)
+                continue
+    finally:
+        pbar.close()
+
+    # Verify final size.
+    actual = os.path.getsize(dest)
+    if total is not None and actual != total:
+        raise RuntimeError(
+            f"Download size mismatch: expected {total:,} bytes, got {actual:,}"
+        )
 
 
 def _download_cache(
@@ -85,6 +191,7 @@ def _download_cache(
     assembly: str,
     cache_type: str,
     dest: str,
+    max_retries: int = _DOWNLOAD_MAX_RETRIES,
 ) -> None:
     """Try FTP URL patterns and download the cache tarball."""
     import urllib.error
@@ -99,7 +206,7 @@ def _download_cache(
             method_infix=method_infix,
         )
         try:
-            _download_with_progress(url, dest)
+            _download_with_progress(url, dest, max_retries=max_retries)
             return
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -125,6 +232,7 @@ def build_cache(
     fjall_zstd_level: int = 3,
     fjall_dict_size_kb: int = 112,
     local_cache: str | None = None,
+    download_retries: int = 10,
     show_progress: bool = True,
     on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
 ) -> list[tuple[str, int]]:
@@ -154,6 +262,9 @@ def build_cache(
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
         are skipped entirely.
+    download_retries : int
+        Maximum number of resume-retries for the cache download (default: 10).
+        Each retry resumes from the last byte received.
     show_progress : bool
         Show tqdm progress bars during conversion (default: True).
     on_progress : callable or None
@@ -195,7 +306,14 @@ def build_cache(
 
         if not os.path.isdir(cache_root):
             if not os.path.isfile(tarball_path):
-                _download_cache(release, species, assembly, cache_type, tarball_path)
+                _download_cache(
+                    release,
+                    species,
+                    assembly,
+                    cache_type,
+                    tarball_path,
+                    max_retries=download_retries,
+                )
 
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
             log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
