@@ -83,13 +83,13 @@ def _download_cache(
     release: int,
     species: str,
     assembly: str,
-    method: str,
+    cache_type: str,
     dest: str,
 ) -> None:
     """Try FTP URL patterns and download the cache tarball."""
     import urllib.error
 
-    method_infix = "" if method == "vep" else f"_{method}"
+    method_infix = "" if cache_type == "vep" else f"_{cache_type}"
 
     for pattern in _ENSEMBL_FTP_PATHS:
         url = pattern.format(
@@ -107,7 +107,7 @@ def _download_cache(
                 continue
             raise
     raise FileNotFoundError(
-        f"VEP cache not found for {species} {method} release {release} "
+        f"VEP cache not found for {species} {cache_type} release {release} "
         f"assembly {assembly}. Browse available caches at "
         f"https://ftp.ensembl.org/pub/release-{release}/variation/"
     )
@@ -119,8 +119,8 @@ def build_cache(
     *,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    method: str = "vep",
-    partitions: int = 8,
+    cache_type: str = "vep",
+    partitions: int = 1,
     build_fjall: bool = True,
     fjall_zstd_level: int = 3,
     fjall_dict_size_kb: int = 112,
@@ -140,10 +140,10 @@ def build_cache(
         Species name (default: ``"homo_sapiens"``).
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
-    method : str
+    cache_type : str
         Cache type: ``"vep"`` (default), ``"merged"``, or ``"refseq"``.
     partitions : int
-        Number of DataFusion partitions for parallelism (default: 8).
+        Number of DataFusion partitions for parallelism (default: 1).
     build_fjall : bool
         Build fjall KV stores for variation and sift lookups (default: True).
     fjall_zstd_level : int
@@ -169,13 +169,13 @@ def build_cache(
     import os
     import tarfile
 
-    if method not in ("vep", "merged", "refseq"):
+    if cache_type not in ("vep", "merged", "refseq"):
         raise ValueError(
-            f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'."
+            f"Invalid cache_type '{cache_type}'. Must be 'vep', 'merged', or 'refseq'."
         )
 
     # Version directory name: e.g. "115_GRCh38_vep"
-    version_dir = f"{release}_{assembly}_{method}"
+    version_dir = f"{release}_{assembly}_{cache_type}"
 
     if local_cache is not None:
         cache_root = local_cache
@@ -183,10 +183,10 @@ def build_cache(
             raise FileNotFoundError(f"Local cache directory not found: {cache_root}")
         log.info("Using local cache: %s", cache_root)
     else:
-        method_infix = "" if method == "vep" else f"_{method}"
+        method_infix = "" if cache_type == "vep" else f"_{cache_type}"
         tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
         tarball_path = os.path.join(cache_dir, tarball_name)
-        method_suffix = "" if method == "vep" else f"_{method}"
+        method_suffix = "" if cache_type == "vep" else f"_{cache_type}"
         cache_root = os.path.join(
             cache_dir, species, f"{release}_{assembly}{method_suffix}"
         )
@@ -195,7 +195,7 @@ def build_cache(
 
         if not os.path.isdir(cache_root):
             if not os.path.isfile(tarball_path):
-                _download_cache(release, species, assembly, method, tarball_path)
+                _download_cache(release, species, assembly, cache_type, tarball_path)
 
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
             log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)

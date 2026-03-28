@@ -66,7 +66,7 @@ class TestBuildCacheSignature:
     def test_has_partitions_param(self):
         sig = inspect.signature(vepyr.build_cache)
         p = sig.parameters["partitions"]
-        assert p.default == 8
+        assert p.default == 1
 
     def test_no_memory_limit_gb_param(self):
         """memory_limit_gb was removed in the upstream migration."""
@@ -89,21 +89,21 @@ class TestNativeBuildCacheSignature:
 class TestBuildCacheValidation:
     """Test input validation in the Python build_cache() wrapper."""
 
-    def test_invalid_method_raises(self):
-        with pytest.raises(ValueError, match="Invalid method"):
-            vepyr.build_cache(115, "/tmp/fake", method="invalid")
+    def test_invalid_cache_type_raises(self):
+        with pytest.raises(ValueError, match="Invalid cache_type"):
+            vepyr.build_cache(115, "/tmp/fake", cache_type="invalid")
 
     def test_local_cache_not_found_raises(self):
         with pytest.raises(FileNotFoundError, match="Local cache directory not found"):
             vepyr.build_cache(115, "/tmp/fake", local_cache="/nonexistent/path")
 
-    def test_valid_methods_accepted(self):
+    def test_valid_cache_types_accepted(self):
         """vep, merged, refseq should not raise ValueError."""
-        for method in ("vep", "merged", "refseq"):
-            # Will fail at a later stage (no cache dir), not at method validation
+        for cache_type in ("vep", "merged", "refseq"):
+            # Will fail at a later stage (no cache dir), not at cache_type validation
             with pytest.raises((FileNotFoundError, RuntimeError)):
                 vepyr.build_cache(
-                    115, "/tmp/fake", method=method, local_cache="/nonexistent"
+                    115, "/tmp/fake", cache_type=cache_type, local_cache="/nonexistent"
                 )
 
 
