@@ -75,36 +75,53 @@ for backend in backends:
     print(f"Step 2: Annotating with vepyr ({backend} backend)")
     print("=" * 60)
 
-    t0 = time.time()
-    vepyr.annotate(
-        vcf_gz,
-        CACHE_DIR,
-        everything=True,
-        reference_fasta=REFERENCE_FASTA,
-        use_fjall=(backend == "fjall"),
-        output_vcf=output_vcf,
-    )
-    elapsed = time.time() - t0
+    if os.path.exists(output_vcf) and os.path.getsize(output_vcf) > 1_000_000:
+        print(f"  Skipping annotation — {output_vcf} already exists")
+        size_mb = os.path.getsize(output_vcf) / (1024 * 1024)
+        n_out = int(
+            subprocess.check_output(
+                f"grep -cv '^#' '{output_vcf}'", shell=True
+            ).strip()
+        )
+        timings[backend] = {
+            "time_s": None,
+            "time_min": None,
+            "variants": n_out,
+            "rate_per_s": None,
+            "output_mb": round(size_mb),
+        }
+        print(f"  Existing: {n_out:,} variants, {size_mb:.0f} MB")
+    else:
+        t0 = time.time()
+        vepyr.annotate(
+            vcf_gz,
+            CACHE_DIR,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+            use_fjall=(backend == "fjall"),
+            output_vcf=output_vcf,
+        )
+        elapsed = time.time() - t0
 
-    size_mb = os.path.getsize(output_vcf) / (1024 * 1024)
-    n_out = int(
-        subprocess.check_output(
-            f"grep -cv '^#' '{output_vcf}'", shell=True
-        ).strip()
-    )
-    rate = n_out / elapsed if elapsed > 0 else 0
+        size_mb = os.path.getsize(output_vcf) / (1024 * 1024)
+        n_out = int(
+            subprocess.check_output(
+                f"grep -cv '^#' '{output_vcf}'", shell=True
+            ).strip()
+        )
+        rate = n_out / elapsed if elapsed > 0 else 0
 
-    timings[backend] = {
-        "time_s": round(elapsed, 1),
-        "time_min": round(elapsed / 60, 1),
-        "variants": n_out,
-        "rate_per_s": round(rate),
-        "output_mb": round(size_mb),
-    }
-    print(
-        f"  Done: {n_out:,} variants in {elapsed:.1f}s "
-        f"({rate:,.0f} variants/s), {size_mb:.0f} MB"
-    )
+        timings[backend] = {
+            "time_s": round(elapsed, 1),
+            "time_min": round(elapsed / 60, 1),
+            "variants": n_out,
+            "rate_per_s": round(rate),
+            "output_mb": round(size_mb),
+        }
+        print(
+            f"  Done: {n_out:,} variants in {elapsed:.1f}s "
+            f"({rate:,.0f} variants/s), {size_mb:.0f} MB"
+        )
 
 # ── Step 3: Compare parquet vs fjall ───────────────────────────────────────
 print()
@@ -178,78 +195,113 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
     if fields_only_vep:
         print(f"  Fields only in VEP:   {fields_only_vep}")
 
-    # Build full lookup from VEP (all variants)
-    print(f"\n  Loading VEP output ({n_vep:,} variants)...")
-    vep_data = {}
-    with open(vep_vcf_path) as f:
-        for line in f:
-            if line.startswith("#"):
-                continue
-            cols = line.strip().split("\t")
-            key = f"{cols[0]}\t{cols[1]}\t{cols[3]}\t{cols[4]}"
-            vep_data[key] = cols
+    # Extract lightweight key+CSQ files (avoid sorting full 16G VCFs)
+    print(f"\n  Extracting key+CSQ from both VCFs...")
+    vepyr_kc = vepyr_vcf_path + ".keyscsq.tmp"
+    vep_kc = vep_vcf_path + ".keyscsq.tmp"
+    # Extract: chrom\tpos\tref\talt\tCSQ_value
+    csq_re = re.compile(r"CSQ=([^;\t]+)")
+    for src, dst in [(vepyr_vcf_path, vepyr_kc), (vep_vcf_path, vep_kc)]:
+        # Extract key+CSQ in Python (streaming, low memory)
+        with open(src) as fin, open(dst + ".unsorted", "w") as fout:
+            for line in fin:
+                if line.startswith("#"):
+                    continue
+                cols = line.split("\t", 9)  # only split enough
+                m = csq_re.search(cols[7])
+                csq = m.group(1) if m else ""
+                fout.write(f"{cols[0]}\t{cols[1]}\t{cols[3]}\t{cols[4]}\t{csq}\n")
+        # Sort the lightweight file
+        subprocess.run(
+            f"sort -S 4G -T /tmp -k1,1V -k2,2n -k3,3 -k4,4 '{dst}.unsorted' > '{dst}'",
+            shell=True, check=True,
+        )
+        os.remove(dst + ".unsorted")
+        sz = os.path.getsize(dst) / (1024 * 1024)
+        print(f"    {os.path.basename(dst)}: {sz:.0f} MB")
 
-    # Compare all vepyr variants against VEP
+    # Stream merge-join on sorted lightweight files
     print(f"  Comparing vepyr ({backend_name}) against VEP on ALL variants...")
     shared_fields = [f for f in vepyr_fields if f in vep_fields]
     field_matches = {f: 0 for f in shared_fields}
     field_mismatches = {f: 0 for f in shared_fields}
     field_total = {f: 0 for f in shared_fields}
-    # Store first 5 mismatch examples per field
     field_mismatch_examples = {f: [] for f in shared_fields}
 
     n_compared = 0
     n_missing_in_vep = 0
+    n_missing_in_vepyr = 0
     n_csq_entry_count_match = 0
     n_csq_entry_count_mismatch = 0
 
-    with open(vepyr_vcf_path) as f:
-        for line in f:
-            if line.startswith("#"):
-                continue
-            cols = line.strip().split("\t")
-            key = f"{cols[0]}\t{cols[1]}\t{cols[3]}\t{cols[4]}"
+    def parse_kc_line(line):
+        parts = line.rstrip("\n").split("\t", 4)
+        key = (parts[0], int(parts[1]), parts[2], parts[3])
+        csq = parts[4] if len(parts) > 4 else ""
+        return key, csq
 
-            if key not in vep_data:
+    with open(vepyr_kc) as fv, open(vep_kc) as fg:
+        vepyr_line = fv.readline()
+        vep_line = fg.readline()
+
+        while vepyr_line and vep_line:
+            vk, vepyr_csq = parse_kc_line(vepyr_line)
+            gk, vep_csq = parse_kc_line(vep_line)
+
+            if vk < gk:
                 n_missing_in_vep += 1
+                vepyr_line = fv.readline()
+                continue
+            elif vk > gk:
+                n_missing_in_vepyr += 1
+                vep_line = fg.readline()
                 continue
 
+            # Keys match
             n_compared += 1
-            vep_cols = vep_data[key]
+            key = f"{vk[0]}\t{vk[1]}\t{vk[2]}\t{vk[3]}"
 
-            # Extract CSQ
-            vepyr_csq_match = re.search(r"CSQ=([^;\t]+)", cols[7])
-            vep_csq_match = re.search(r"CSQ=([^;\t]+)", vep_cols[7])
-            if not vepyr_csq_match or not vep_csq_match:
-                continue
+            if vepyr_csq and vep_csq:
+                vepyr_entries = sorted(vepyr_csq.split(","))
+                vep_entries = sorted(vep_csq.split(","))
 
-            vepyr_entries = sorted(vepyr_csq_match.group(1).split(","))
-            vep_entries = sorted(vep_csq_match.group(1).split(","))
+                if len(vepyr_entries) == len(vep_entries):
+                    n_csq_entry_count_match += 1
+                else:
+                    n_csq_entry_count_mismatch += 1
 
-            if len(vepyr_entries) == len(vep_entries):
-                n_csq_entry_count_match += 1
-            else:
-                n_csq_entry_count_mismatch += 1
+                for i in range(min(len(vepyr_entries), len(vep_entries))):
+                    vepyr_vals = dict(zip(vepyr_fields, vepyr_entries[i].split("|")))
+                    vep_vals = dict(zip(vep_fields, vep_entries[i].split("|")))
 
-            # Compare ALL CSQ entries pairwise (sorted by transcript)
-            for i in range(min(len(vepyr_entries), len(vep_entries))):
-                vepyr_vals = dict(zip(vepyr_fields, vepyr_entries[i].split("|")))
-                vep_vals = dict(zip(vep_fields, vep_entries[i].split("|")))
+                    for f in shared_fields:
+                        field_total[f] += 1
+                        vepyr_v = vepyr_vals.get(f, "")
+                        vep_v = vep_vals.get(f, "")
+                        if vepyr_v == vep_v:
+                            field_matches[f] += 1
+                        else:
+                            field_mismatches[f] += 1
+                            if len(field_mismatch_examples[f]) < 5:
+                                field_mismatch_examples[f].append({
+                                    "variant": key,
+                                    "vepyr": vepyr_v,
+                                    "vep": vep_v,
+                                })
 
-                for f in shared_fields:
-                    field_total[f] += 1
-                    vepyr_v = vepyr_vals.get(f, "")
-                    vep_v = vep_vals.get(f, "")
-                    if vepyr_v == vep_v:
-                        field_matches[f] += 1
-                    else:
-                        field_mismatches[f] += 1
-                        if len(field_mismatch_examples[f]) < 5:
-                            field_mismatch_examples[f].append({
-                                "variant": key,
-                                "vepyr": vepyr_v,
-                                "vep": vep_v,
-                            })
+            vepyr_line = fv.readline()
+            vep_line = fg.readline()
+
+        while vepyr_line:
+            n_missing_in_vep += 1
+            vepyr_line = fv.readline()
+        while vep_line:
+            n_missing_in_vepyr += 1
+            vep_line = fg.readline()
+
+    # Cleanup temp files
+    os.remove(vepyr_kc)
+    os.remove(vep_kc)
 
     print(f"\n  Results for vepyr ({backend_name}) vs VEP:")
     print(f"    Variants compared:           {n_compared:,}")
