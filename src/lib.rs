@@ -39,7 +39,10 @@ fn build_cache(
         builder = builder.with_on_progress(progress);
     }
 
-    let rt = tokio::runtime::Runtime::new()
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(partitions)
+        .enable_all()
+        .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     // Release the GIL so tokio worker threads can run in parallel.
