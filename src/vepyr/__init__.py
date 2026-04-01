@@ -284,6 +284,14 @@ def build_cache(
         raise ValueError(
             f"Invalid cache_type '{cache_type}'. Must be 'vep', 'merged', or 'refseq'."
         )
+    if not 1 <= fjall_zstd_level <= 22:
+        raise ValueError(
+            f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
+        )
+    if fjall_dict_size_kb < 0:
+        raise ValueError(
+            f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
+        )
 
     # Version directory name: e.g. "115_GRCh38_vep"
     version_dir = f"{release}_{assembly}_{cache_type}"
@@ -297,9 +305,8 @@ def build_cache(
         method_infix = "" if cache_type == "vep" else f"_{cache_type}"
         tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
         tarball_path = os.path.join(cache_dir, tarball_name)
-        method_suffix = "" if cache_type == "vep" else f"_{cache_type}"
         cache_root = os.path.join(
-            cache_dir, species, f"{release}_{assembly}{method_suffix}"
+            cache_dir, species, f"{release}_{assembly}{method_infix}"
         )
 
         os.makedirs(cache_dir, exist_ok=True)
@@ -318,7 +325,7 @@ def build_cache(
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
             log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
             with tarfile.open(tarball_path) as tar:
-                tar.extractall(path=cache_dir)
+                tar.extractall(path=cache_dir, filter="data")
             log.info("Extracted to %s", cache_root)
 
             os.remove(tarball_path)
@@ -363,6 +370,13 @@ def build_cache(
     # When using multiple partitions, skip the Python progress callback to avoid
     # GIL contention — each tokio worker would re-acquire the GIL per batch,
     # serializing the parallel work.
+    if progress_cb is not None and partitions > 1:
+        import warnings
+
+        warnings.warn(
+            "on_progress callback is disabled when partitions > 1 to avoid GIL contention.",
+            stacklevel=2,
+        )
     native_cb = progress_cb if partitions <= 1 else None
 
     try:

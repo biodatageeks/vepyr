@@ -220,10 +220,12 @@ def built_cache(skip_if_no_ensembl_cache):
         flat_result.extend(files)
 
     # Pre-read all parquet tables keyed by entity name
+    import pyarrow as pa
+
     tables: dict = {}
     for entity, files, _ in native_result:
-        for path, _ in files:
-            tables[entity] = pq.read_table(path)
+        entity_tables = [pq.read_table(path) for path, _ in files]
+        tables[entity] = pa.concat_tables(entity_tables) if entity_tables else None
 
     yield _tmpdir, flat_result, native_result, tables
 
@@ -708,6 +710,44 @@ class TestBuildCacheIntegration:
             assert isinstance(e[0], str)
             assert e[1] in ("parquet", "fjall")
             assert all(isinstance(v, int) for v in e[2:])
+
+    def test_progress_callback_suppressed_for_multi_partition(
+        self, skip_if_no_ensembl_cache
+    ):
+        """on_progress callback should be suppressed when partitions > 1."""
+        events: list[tuple] = []
+
+        def cb(entity, fmt, batch_rows, total_rows, total_expected):
+            events.append((entity, fmt, batch_rows, total_rows, total_expected))
+
+        with tempfile.TemporaryDirectory() as out:
+            with pytest.warns(UserWarning, match="on_progress callback is disabled"):
+                vepyr.build_cache(
+                    115,
+                    out,
+                    local_cache=str(ENSEMBL_CACHE_DIR),
+                    partitions=2,
+                    build_fjall=False,
+                    show_progress=False,
+                    on_progress=cb,
+                )
+
+        # Callback should not have been invoked — it was suppressed
+        assert len(events) == 0
+
+    # ── Parameter validation ───────────────────────────────────────
+
+    def test_invalid_zstd_level_raises(self):
+        with pytest.raises(ValueError, match="fjall_zstd_level must be between"):
+            vepyr.build_cache(
+                115, "/tmp/unused", local_cache="/nonexistent", fjall_zstd_level=99
+            )
+
+    def test_invalid_dict_size_raises(self):
+        with pytest.raises(ValueError, match="fjall_dict_size_kb must be non-negative"):
+            vepyr.build_cache(
+                115, "/tmp/unused", local_cache="/nonexistent", fjall_dict_size_kb=-1
+            )
 
     # ── Python wrapper end-to-end ───────────────────────────────────
 

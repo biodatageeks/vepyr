@@ -23,7 +23,9 @@ fn build_cache(
         Box::new(
             move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
                 Python::with_gil(|py| {
-                    let _ = py_cb.call1(py, (entity, fmt, batch, total, expected));
+                    if let Err(e) = py_cb.call1(py, (entity, fmt, batch, total, expected)) {
+                        log::warn!("on_progress callback error: {e}");
+                    }
                 });
             },
         ) as OnProgress
@@ -41,6 +43,7 @@ fn build_cache(
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(partitions)
+        .max_blocking_threads(partitions)
         .enable_all()
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
