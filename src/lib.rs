@@ -8,8 +8,9 @@ mod annotate;
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
 #[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None))]
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
+    py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     partitions: usize,
@@ -41,8 +42,12 @@ fn build_cache(
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
-    let stats = rt.block_on(builder.build_all()).map_err(|e| {
-        pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+    // Release the GIL so tokio worker threads can run in parallel.
+    // The progress callback re-acquires it via Python::with_gil() when needed.
+    let stats = py.allow_threads(|| {
+        rt.block_on(builder.build_all()).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+        })
     })?;
 
     // Convert EntityStats to Python-friendly tuples
@@ -107,6 +112,7 @@ fn create_annotator(
 
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    pyo3_log::init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;

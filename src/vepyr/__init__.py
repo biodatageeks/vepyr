@@ -360,6 +360,11 @@ def build_cache(
         except ImportError:
             pass
 
+    # When using multiple partitions, skip the Python progress callback to avoid
+    # GIL contention — each tokio worker would re-acquire the GIL per batch,
+    # serializing the parallel work.
+    native_cb = progress_cb if partitions <= 1 else None
+
     try:
         entity_stats = _build_cache(
             cache_root,
@@ -368,7 +373,7 @@ def build_cache(
             build_fjall,
             fjall_zstd_level,
             fjall_dict_size_kb,
-            progress_cb,
+            native_cb,
         )
     finally:
         if _bars is not None:

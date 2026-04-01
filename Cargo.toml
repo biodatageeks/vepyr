@@ -20,8 +20,9 @@ datafusion = "50.3.0"
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
 futures = "0.3"
 log = "0.4"
+pyo3-log = "0.12"
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "f8e7163098216a1d647c92b91a2f5e71ce43ce7e", features = ["cache-builder"] }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e92ff6fa169d611d67e280551cd3e1a037254093" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d5b58d39bc0115def4969396a94370454c7f808a", features = ["cache-builder"] }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "7ccaa58" }

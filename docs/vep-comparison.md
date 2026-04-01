@@ -84,6 +84,25 @@ vep \
 --hgvs \
 --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
 
+
+
+time docker run --rm \
+-v /Users/mwiewior/research/data/vep/homo_sapiens/115_GRCh38:/opt/vep/.vep/homo_sapiens/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/research/data/vep:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+
 Notes
 
 - No plugins are used in the benchmark — everything comes from the offline cache.
