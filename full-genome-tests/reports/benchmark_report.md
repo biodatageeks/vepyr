@@ -153,16 +153,182 @@ All 80 CSQ fields compared across **all** 4,096,123 variants and **all** CSQ tra
 | miRNA | 100.0000% | 1 | miRNA annotation |
 | cDNA_position | 99.9998% | 91 | cDNA position |
 
-### Mismatch Analysis
+### Mismatch Root-Cause Analysis
 
-The vast majority of mismatches (~260) stem from **transcript ordering differences** when multiple transcripts have the same sorted key. This cascades to linked fields (HGVSc, HGVSp, ENSP, etc.).
+All 2,864 field-level mismatches (parquet) across 157 unique variants were classified into 12 root-cause clusters.
+Full mismatch listings with cluster IDs: `reports/mismatches_parquet_vs_vep_classified.tsv` and `reports/mismatches_fjall_vs_vep_classified.tsv`.
 
-Example mismatches:
+#### Cluster Summary
 
-| Variant | Field | vepyr | VEP |
-|---------|-------|-------|-----|
-| chr2:12737375 G>GA | Consequence | `mature_miRNA_variant` | `non_coding_transcript_exon_variant` |
-| chr2:26254257 G>GACT | Consequence | `inframe_insertion&start_retained_variant` | `inframe_insertion` |
+| Cluster | Description | Mismatches | Variants | % of total |
+|---------|-------------|-----------|----------|-----------|
+| **C1** | Transcript ordering | 2,413 | 15 | 84.3% |
+| **C4** | HGVSp dup 3' shifting | 105 | 24 | 3.7% |
+| **C5** | Consequence/IMPACT logic | 101 | 24 | 3.5% |
+| **C3** | HGVSc/HGVSp missing | 79 | 45 | 2.8% |
+| **C6** | HGNC_ID extra | 63 | 37 | 2.2% |
+| **C2** | start_retained_variant extra | 60 | 5 | 2.1% |
+| **C7** | gnomAD/AF lookup missing | 15 | 1 | 0.5% |
+| **C8** | SIFT/PolyPhen missing | 12 | 3 | 0.4% |
+| **C12** | incomplete_terminal_codon | 9 | 9 | 0.3% |
+| **C9** | DISTANCE off-by-one | 3 | 2 | 0.1% |
+| **C10** | HGVS_OFFSET calculation | 3 | 3 | 0.1% |
+| **C11** | miRNA dedup | 1 | 1 | <0.1% |
+
+---
+
+#### C1 — Transcript ordering (2,413 mismatches, 15 variants)
+
+**Description:** When a variant overlaps multiple transcripts from the same gene, vepyr and VEP sort the CSQ entries differently. Because the comparison is positional (entry 0 vs entry 0, etc.), a different sort order cascades into mismatches across **all** transcript-dependent fields: Feature, HGVSc, HGVSp, ENSP, BIOTYPE, EXON, INTRON, cDNA_position, CDS_position, Protein_position, Amino_acids, Codons, CANONICAL, MANE, TSL, APPRIS, CCDS, FLAGS, DOMAINS, SWISSPROT, TREMBL, UNIPARC, UNIPROT_ISOFORM, STRAND, SYMBOL, Gene, HGNC_ID, SYMBOL_SOURCE, DISTANCE.
+
+**Example:** `chr2:119437075 A>AGTGTGC` — 5 transcripts of the same gene appear in different order. vepyr: `ENST00000306406, ENST00000409826, ...` vs VEP: `ENST00000465296, ENST00000306406, ...`
+
+**Root cause:** CSQ entry sort key differs. VEP sorts by `(Consequence severity, Feature_type, Feature)`. vepyr may use a different tiebreaker when severity is equal.
+
+**Proposed fix:** Match VEP's exact CSQ entry sort order: primary by consequence severity rank, then by Feature_type, then by transcript ID alphabetically. This is a formatting-layer change in the Rust annotation output, not a logic change.
+
+---
+
+#### C2 — start_retained_variant extra (60 mismatches, 5 variants)
+
+**Description:** vepyr adds `start_retained_variant` as an additional consequence term where VEP does not. Affects `inframe_insertion&start_retained_variant` (should be `inframe_insertion`) and similar.
+
+**Example:** `chr2:26254257 G>GACT` — all 49 transcripts show `inframe_insertion&start_retained_variant` in vepyr vs `inframe_insertion` in VEP.
+
+**Root cause:** vepyr's consequence engine applies the start_retained check too broadly. Per VEP logic, `start_retained_variant` should only be added when the variant overlaps the initiator codon AND preserves the start methionine, but vepyr appears to apply it to any inframe insertion near the start codon regardless of the actual amino acid change at position 1.
+
+**Proposed fix:** Tighten the `start_retained_variant` check in `datafusion-bio-function-vep` to verify that (1) the variant actually overlaps codon 1 AND (2) the resulting amino acid at position 1 is still Met. Upstream fix.
+
+---
+
+#### C3 — HGVSc/HGVSp missing (79 mismatches, 45 variants)
+
+**Description:** vepyr returns empty HGVSc (and consequently empty HGVSp) where VEP produces a value. All 39 variants with missing HGVSc are **insertions** (REF is a single base, ALT is longer). The missing HGVSc annotations are for transcripts where the insertion falls in UTR or non-coding regions.
+
+**Example:** `chr2:1842866 A>AGCTTCCGCTTCCAGGC...` — vepyr: `""`, VEP: `ENST00000407844.6:c.-337_-336insGCCTGGAAGCGGAAGC...`
+
+**Root cause:** The HGVS notation engine in vepyr skips HGVSc generation for certain insertion types in UTR/non-coding contexts, likely because the cDNA mapping for the insertion boundaries is not computed when the variant falls outside the coding region.
+
+**Proposed fix:** Ensure the HGVSc formatter handles insertions in 5' UTR (negative cDNA positions like `c.-337_-336ins...`) and non-coding transcript coordinates (`n.8_9ins...`). Upstream fix in `datafusion-bio-function-vep`.
+
+---
+
+#### C4 — HGVSp dup 3' shifting (105 mismatches, 24 variants)
+
+**Description:** For in-frame duplications at the protein level, vepyr and VEP report different positions. VEP applies 3' shifting (rightmost position) per HGVS nomenclature guidelines, while vepyr reports the leftmost position.
+
+**Example:** `chr2:73385903 T>TGGA` — vepyr: `p.Glu25dup`, VEP: `p.Glu28dup` (3 positions apart, matching the repeat count of Glu residues).
+
+**Sub-patterns:**
+- Simple dup position shift: `p.Glu25dup` vs `p.Glu28dup` (16 variants)
+- dup vs ins notation: `p.Gln38_Pro40dup` vs `p.Gln39_Pro40insGlnGlnPro` (5 variants)
+- Multi-residue dup range shift: `p.Pro159_Ala164dup` vs `p.Pro160_Pro165dup` (3 variants)
+
+**Root cause:** HGVS nomenclature requires duplications to be described at the most 3' position. vepyr's protein HGVS formatter does not perform this rightward shifting for dup annotations.
+
+**Proposed fix:** Implement 3' shifting in the protein-level HGVS dup formatter: when the inserted sequence matches the preceding sequence, slide the dup window to the rightmost possible position. Upstream fix in `datafusion-bio-function-vep`.
+
+---
+
+#### C5 — Consequence/IMPACT logic (101 mismatches, 24 variants)
+
+**Description:** Differences in consequence term assignment beyond the start_retained issue. Multiple distinct sub-patterns:
+
+| Pattern | Count | Example |
+|---------|-------|---------|
+| `stop_lost&3_prime_UTR_variant` vs `stop_retained_variant&3_prime_UTR_variant` | 17 | Stop codon classification |
+| `frameshift_variant` vs `inframe_insertion&stop_retained_variant` | 16+4 | Frame detection near stop |
+| `mature_miRNA_variant` vs `non_coding_transcript_exon_variant` | 1 | miRNA biotype handling |
+| `regulatory_region_variant` vs `regulatory_region_ablation` | 1 | Regulatory deletion |
+| Various ordering/cascade from C1 | ~20 | Consequence swapped between entries |
+| `frameshift_variant` vs `frameshift_variant&stop_lost` | 3 | Missing stop_lost addition |
+
+**Root cause (major):** The `stop_retained_variant` vs `stop_lost` classification differs. VEP classifies a variant as `stop_retained` when the stop codon is preserved despite a nearby change, while vepyr classifies it as `stop_lost`. This affects 33 mismatches. The `frameshift_variant` vs `inframe_insertion` difference (20 mismatches) suggests the frame-shift detection logic disagrees near stop codons where the reading frame could be considered restored.
+
+**Proposed fix:** Review the stop codon consequence logic in `datafusion-bio-function-vep`:
+1. `stop_retained_variant` should be assigned when the variant does not change the stop codon amino acid (*)
+2. `inframe_insertion` near stop should be preferred over `frameshift_variant` when the insertion length is a multiple of 3 and the stop codon is maintained
+3. Add `stop_lost` when a frameshift extends past the original stop codon
+
+---
+
+#### C6 — HGNC_ID extra (63 mismatches, 37 variants)
+
+**Description:** vepyr emits an HGNC_ID for certain transcripts where VEP leaves the field empty. The extra HGNC_IDs are real and valid — they belong to genes that VEP apparently does not annotate with HGNC_ID for specific transcript types.
+
+**Affected genes:** HGNC:32661 (FSIP2, 14 variants), HGNC:10234 (RNF139, 8 variants), HGNC:56158 (1 variant), plus ~14 variants with swapped HGNC_IDs between entries.
+
+**Root cause:** VEP conditionally omits HGNC_ID for certain transcript biotypes (e.g., lncRNA, processed_pseudogene) even when the gene has a valid HGNC entry. vepyr always emits the HGNC_ID when available in the cache.
+
+**Proposed fix:** This is arguably a vepyr improvement, not a bug. For strict VEP parity, mirror VEP's biotype-conditional HGNC_ID emission logic. For correctness, vepyr's behavior (always emitting valid HGNC_IDs) is more informative. **Decision: keep as known difference unless strict parity is required.**
+
+---
+
+#### C7 — gnomAD/AF lookup missing (15 mismatches, 1 variant)
+
+**Description:** Single variant `chr7:142353982 G>A` — all 13 gnomAD frequency fields + MAX_AF + MAX_AF_POPS are empty in vepyr but populated in VEP.
+
+**Root cause:** The variant's existing_variation lookup for population frequencies fails for this specific rsID or allele combination. Likely an allele matching issue in the co-located variants lookup.
+
+**Proposed fix:** Debug this specific variant's frequency lookup path. Check if the allele representation in the cache matches what vepyr queries. Single-variant fix.
+
+---
+
+#### C8 — SIFT/PolyPhen missing (12 mismatches, 3 variants) — parquet only
+
+**Description:** vepyr (parquet backend) returns empty SIFT/PolyPhen where VEP has predictions. Fjall backend has only 4 mismatches (ordering, not missing). Affected variants: `chr7:95316772`, `chr8:143860812`, `chr8:143864555`.
+
+**Root cause:** Parquet-based SIFT/PolyPhen matrix lookup fails for certain protein positions. The fjall backend uses a different lookup path and succeeds, suggesting the issue is in the parquet data layout or query, not in the prediction logic.
+
+**Proposed fix:** Compare the SIFT/PolyPhen parquet files for these protein IDs against the fjall store. The parquet variant likely has a row group boundary or sort key issue that causes the lookup to miss. Fix in `datafusion-bio-format-ensembl-cache`.
+
+---
+
+#### C9 — DISTANCE off-by-one (3 mismatches, 2 variants)
+
+**Description:** Distance to nearest transcript boundary differs by exactly 1 between vepyr and VEP.
+
+**Example:** `chr5:1076407 G>TCCTGTGACCACCTG` — vepyr: 973, VEP: 972. `chr14:41106449 T>AGTAAATTTTTTTTCT` — vepyr: 1/3, VEP: 0/2.
+
+**Root cause:** Off-by-one in the distance calculation for complex indels. The insertion/deletion anchor position may be counted differently (0-based vs 1-based boundary).
+
+**Proposed fix:** Review the distance calculation for indels where the variant spans a transcript boundary. Ensure the distance is measured from the last affected base, not the VCF POS. Upstream fix.
+
+---
+
+#### C10 — HGVS_OFFSET calculation (3 mismatches, 3 variants)
+
+**Description:** For very large deletions (>800bp, all in HLA region chr6:31-32 Mb), vepyr reports `HGVS_OFFSET=1` while VEP reports 5-19.
+
+**Example:** `chr6:31026229` (1167bp deletion) — vepyr: 1, VEP: 17. `chr6:31324398` (1380bp deletion) — vepyr: 1, VEP: 19.
+
+**Root cause:** HGVS_OFFSET represents how far the HGVS position was shifted to comply with 3' alignment rules. vepyr applies minimal shifting (1) while VEP shifts further. Related to the same 3' normalization issue as C4 but at the genomic/cDNA level.
+
+**Proposed fix:** Fix the 3' alignment/normalization in the HGVS formatter for large deletions. Same underlying algorithm as C4. Upstream fix.
+
+---
+
+#### C11 — miRNA dedup (1 mismatch, 1 variant)
+
+**Description:** `chr8:104484407 CATTGAAAGTA>C` — vepyr: `miRNA_loop&miRNA_stem`, VEP: `miRNA_loop&miRNA_stem&miRNA_stem`. VEP has a duplicated `miRNA_stem` entry.
+
+**Root cause:** VEP emits duplicate miRNA structure annotations when a deletion spans multiple stem regions. vepyr deduplicates them.
+
+**Proposed fix:** This is arguably a VEP quirk (duplicate entry). For strict parity, allow duplicate miRNA structure terms. **Decision: keep as known difference — vepyr's dedup is more correct.**
+
+---
+
+#### C12 — incomplete_terminal_codon (9 mismatches, 9 variants)
+
+**Description:** Disagreement in how `incomplete_terminal_codon_variant` interacts with other consequence terms. vepyr adds `coding_sequence_variant` where VEP has `synonymous_variant`, or vice versa.
+
+**Example:** `incomplete_terminal_codon_variant&synonymous_variant` vs `incomplete_terminal_codon_variant&coding_sequence_variant`
+
+**Root cause:** When the variant is in an incomplete terminal codon (last codon of a transcript with < 3 bases), VEP and vepyr disagree on whether the base change is synonymous (same amino acid) or just a generic coding_sequence_variant. The incomplete codon makes standard codon table lookup ambiguous.
+
+**Proposed fix:** Align the incomplete terminal codon handling with VEP's logic: when the codon is incomplete, check if the changed bases still translate to the same partial amino acid. Low priority — edge case.
+
+---
 
 ### Fjall vs Parquet vs VEP
 
@@ -170,11 +336,23 @@ Fjall and parquet produce nearly identical mismatch profiles against VEP:
 
 | Metric | Parquet | Fjall |
 |--------|---------|-------|
-| SIFT mismatches | 8 | 2 |
-| PolyPhen mismatches | 8 | 2 |
-| All other fields | identical | identical |
+| Total mismatches | 2,864 | 2,852 |
+| C8 (SIFT/PolyPhen) | 12 (3 variants) | 0 |
+| All other clusters | identical | identical |
 
-The only difference between backends is in SIFT/PolyPhen lookups (fjall has **fewer** mismatches).
+The only difference between backends is C8: the parquet backend misses SIFT/PolyPhen predictions for 3 variants that the fjall backend handles correctly.
+
+### Fix Priority
+
+| Priority | Clusters | Mismatches | Effort | Impact |
+|----------|----------|-----------|--------|--------|
+| **P1** | C1 (ordering) | 2,413 | Low | Eliminates 84% of all mismatches |
+| **P2** | C4+C10 (3' shifting) | 108 | Medium | HGVS compliance |
+| **P3** | C3 (HGVSc missing) | 79 | Medium | UTR insertion coverage |
+| **P4** | C5 (consequence logic) | 101 | High | Multiple sub-issues |
+| **P5** | C2 (start_retained) | 60 | Low | Single condition fix |
+| **Keep** | C6, C11 | 64 | — | vepyr is arguably more correct |
+| **Low** | C7, C8, C9, C12 | 27 | Low | Edge cases, few variants |
 
 ## Summary
 
