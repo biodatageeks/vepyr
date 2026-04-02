@@ -179,13 +179,38 @@ Full mismatch listings with cluster IDs: `reports/mismatches_parquet_vs_vep_clas
 
 #### C1 — Transcript ordering (2,413 mismatches, 15 variants)
 
-**Description:** When a variant overlaps multiple transcripts from the same gene, vepyr and VEP sort the CSQ entries differently. Because the comparison is positional (entry 0 vs entry 0, etc.), a different sort order cascades into mismatches across **all** transcript-dependent fields: Feature, HGVSc, HGVSp, ENSP, BIOTYPE, EXON, INTRON, cDNA_position, CDS_position, Protein_position, Amino_acids, Codons, CANONICAL, MANE, TSL, APPRIS, CCDS, FLAGS, DOMAINS, SWISSPROT, TREMBL, UNIPARC, UNIPROT_ISOFORM, STRAND, SYMBOL, Gene, HGNC_ID, SYMBOL_SOURCE, DISTANCE.
+**Description:** When a variant overlaps multiple transcripts, vepyr and VEP output the CSQ entries in different order. Because the comparison is positional (entry 0 vs entry 0, etc.), a different sort order cascades into mismatches across **all** transcript-dependent fields (30 fields affected).
 
-**Example:** `chr2:119437075 A>AGTGTGC` — 5 transcripts of the same gene appear in different order. vepyr: `ENST00000306406, ENST00000409826, ...` vs VEP: `ENST00000465296, ENST00000306406, ...`
+**Example:** `chr2:119437075 A>AGTGTGC` — 16 transcripts appear in different order:
+- **VEP:**   `ENST00000019103, ENST00000306406, ENST00000409826, ENST00000417645, ENST00000465296, ...` (lexicographic)
+- **vepyr:** `ENST00000409826, ENST00000417645, ENST00000933286, ENST00000306406, ENST00000911072, ...` (COITree traversal)
 
-**Root cause:** CSQ entry sort key differs. VEP sorts by `(Consequence severity, Feature_type, Feature)`. vepyr may use a different tiebreaker when severity is equal.
+Verified on all 15 C1 variants: VEP order is **always** lexicographically sorted by Feature ID within each Feature_type group.
 
-**Proposed fix:** Match VEP's exact CSQ entry sort order: primary by consequence severity rank, then by Feature_type, then by transcript ID alphabetically. This is a formatting-layer change in the Rust annotation output, not a logic change.
+**Root cause — exact code analysis:**
+
+**VEP (Perl)** — CSQ entry order is determined by two mechanisms:
+1. **Feature type grouping** (`ensembl-variation/modules/Bio/EnsEMBL/Variation/VariationFeature.pm:855-866`): TranscriptVariations first, then RegulatoryFeatureVariations, then MotifFeatureVariations, then IntergenicVariation — hard-coded concatenation order.
+2. **Within each Feature type** (`VariationFeature.pm:666`): `sort keys %{$self->{transcript_variations}}` — Perl's default lexicographic sort on the hash key, which is the transcript stable_id (e.g. `ENST00000306406`). Same pattern for regulatory (line 710) and motif (line 750) features.
+3. **No further sorting** in the VCF output formatter (`OutputFactory/VCF.pm:342-349`): `join(",", @chunks)` — output preserves the order from steps 1-2.
+
+Effective VEP CSQ order: **Feature_type group → lexicographic sort by Feature stable_id → VCF ALT allele order**.
+
+**vepyr (Rust)** — CSQ entry order is determined by:
+1. **Transcript hits** (`transcript_consequence.rs:744-882`): COITree `query()` callback fires in van Emde Boas layout traversal order (internal tree structure), **NOT** sorted by any key. Results are `push()`ed to `out` Vec in callback order.
+2. **Regulatory/TFBS/miRNA features** (`transcript_consequence.rs:888-903`): `PreparedFeatureIndex::collect_overlapping_indices` does sort by source index (`sort_unstable()`), preserving cache encounter order.
+3. **No sorting** of the final `out` Vec before return (line 913).
+4. **No sorting** in the CSQ string builder (`annotate_provider.rs:3733`): `for tc in &row_assignments` iterates in the unsorted `out` order.
+
+Effective vepyr CSQ order: **COITree traversal order (non-deterministic w.r.t. transcript ID)**.
+
+**Proposed fix:** After `evaluate_variant_prepared()` returns in `annotate_provider.rs:3727`, sort `row_assignments` by:
+1. Feature_type: Transcript < RegulatoryFeature < MotifFeature < Intergenic
+2. Feature ID (stable_id): lexicographic ascending
+
+This is a ~5-line change in `annotate_provider.rs`. The `TranscriptConsequence` struct already has `feature` (String) and `feature_type` fields. Alternatively, sort inside `evaluate_variant_prepared()` before returning `out` in `transcript_consequence.rs:913`.
+
+**Impact:** Eliminates 2,413 mismatches (84% of all) with zero logic changes — purely cosmetic reordering.
 
 ---
 
