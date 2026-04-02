@@ -77,7 +77,7 @@ impl StreamingAnnotator {
 /// written — designed for tqdm/Jupyter progress bars.
 #[allow(clippy::too_many_arguments)]
 pub fn annotate_to_vcf_file(
-    _py: Python<'_>,
+    py: Python<'_>,
     vcf_path: &str,
     cache_dir: &str,
     output_path: &str,
@@ -87,6 +87,13 @@ pub fn annotate_to_vcf_file(
     on_batch_written: Option<PyObject>,
 ) -> PyResult<usize> {
     let rt = &*RUNTIME;
+    log::info!(
+        "annotate_to_vcf_file start: input={}, output={}, show_progress={}, compression={}",
+        vcf_path,
+        output_path,
+        show_progress,
+        compression
+    );
 
     let opts: Value = serde_json::from_str(options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
@@ -114,6 +121,12 @@ pub fn annotate_to_vcf_file(
     let callback: Option<OnBatchWritten> = on_batch_written.map(|cb| -> OnBatchWritten {
         Box::new(
             move |batch_rows: usize, total_rows: usize, total_input: usize| {
+                log::debug!(
+                    "on_batch_written: batch_rows={}, total_rows={}, total_input={}",
+                    batch_rows,
+                    total_rows,
+                    total_input
+                );
                 Python::with_gil(|py| {
                     if let Err(e) = cb.call1(py, (batch_rows, total_rows, total_input)) {
                         log::warn!("on_batch_written callback error: {e}");
@@ -156,14 +169,24 @@ pub fn annotate_to_vcf_file(
         on_batch_written: callback,
     };
 
-    rt.block_on(async {
-        let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
-            .await
-            .map_err(|e| {
-                pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
-            })?;
+    // Release the GIL so the Python background thread (in __init__.py) can
+    // let Jupyter's main thread pump display updates for tqdm progress bars.
+    // The on_batch_written callback re-acquires the GIL via Python::with_gil().
+    py.allow_threads(|| {
+        rt.block_on(async {
+            let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
+                .await
+                .map_err(|e| {
+                    pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
+                })?;
+            log::info!(
+                "annotate_to_vcf_file complete: output={}, rows={}",
+                output_path,
+                rows
+            );
 
-        Ok(rows)
+            Ok(rows)
+        })
     })
 }
 

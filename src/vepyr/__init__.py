@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 from vepyr._core import annotate_vcf as _annotate_vcf
-from vepyr._core import convert_entity as _convert_entity
+from vepyr._core import build_cache as _build_cache
 from vepyr._core import create_annotator as _create_annotator
 
 __all__ = ["build_cache", "annotate"]
@@ -27,9 +27,23 @@ _ENSEMBL_FTP_PATHS = [
 _MAX_REDIRECTS = 5
 
 
-def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
-    """Download a file with a tqdm progress bar."""
+_DOWNLOAD_TIMEOUT = 300
+_DOWNLOAD_MAX_RETRIES = 10
+_DOWNLOAD_RETRY_BACKOFF = 5  # seconds, doubled each retry
+
+
+def _download_with_progress(
+    url: str, dest: str, _redirects: int = 0, max_retries: int = _DOWNLOAD_MAX_RETRIES
+) -> None:
+    """Download a file with a tqdm progress bar and resume-on-failure.
+
+    On timeout or connection errors the download resumes from the last byte
+    written using an HTTP Range header. Retries up to ``_DOWNLOAD_MAX_RETRIES``
+    times with exponential backoff.
+    """
     import http.client
+    import os
+    import time
     import urllib.parse
 
     from tqdm import tqdm
@@ -37,8 +51,9 @@ def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
     filename = dest.rsplit("/", 1)[-1]
     log.info("Downloading %s", url)
 
+    # --- Resolve redirects first so retries hit the final URL. ---
     parsed = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(parsed.hostname, timeout=60)
+    conn = http.client.HTTPSConnection(parsed.hostname, timeout=_DOWNLOAD_TIMEOUT)
     conn.request("GET", parsed.path, headers={"Accept-Encoding": "identity"})
     resp = conn.getresponse()
 
@@ -50,7 +65,7 @@ def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
                 raise RuntimeError(
                     f"Too many redirects ({_MAX_REDIRECTS}) fetching {url}"
                 )
-            return _download_with_progress(location, dest, _redirects + 1)
+            return _download_with_progress(location, dest, _redirects + 1, max_retries)
 
     if resp.status != 200:
         conn.close()
@@ -59,37 +74,129 @@ def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
         raise urllib.error.HTTPError(url, resp.status, resp.reason, resp.headers, None)
 
     total = int(resp.getheader("Content-Length", 0)) or None
-    with (
-        tqdm(
-            total=total,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-            desc=f"Downloading {filename}",
-            miniters=1,
-        ) as pbar,
-        open(dest, "wb") as f,
-    ):
-        while True:
-            buf = resp.read(8 * 1024 * 1024)
-            if not buf:
-                break
-            f.write(buf)
-            pbar.update(len(buf))
-    conn.close()
+
+    # --- Download with retry + resume ---
+    downloaded = 0
+    retries = 0
+    backoff = _DOWNLOAD_RETRY_BACKOFF
+
+    pbar = tqdm(
+        total=total,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        desc=f"Downloading {filename}",
+        miniters=1,
+    )
+
+    try:
+        # First pass: use the already-open response.
+        try:
+            with open(dest, "wb") as f:
+                while True:
+                    buf = resp.read(8 * 1024 * 1024)
+                    if not buf:
+                        break
+                    f.write(buf)
+                    downloaded += len(buf)
+                    pbar.update(len(buf))
+            conn.close()
+        except (TimeoutError, OSError, http.client.HTTPException):
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+        # If we got everything, we're done.
+        if total is not None and downloaded >= total:
+            return
+
+        # No Content-Length but stream ended — assume complete.
+        if total is None:
+            return
+
+        # --- Resume loop for incomplete downloads ---
+        while downloaded < total:
+            retries += 1
+            if retries > max_retries:
+                raise RuntimeError(
+                    f"Download failed after {max_retries} retries "
+                    f"({downloaded:,}/{total:,} bytes): {url}"
+                )
+
+            log.warning(
+                "Download interrupted at %s/%s bytes, retrying in %ds (attempt %d/%d)",
+                f"{downloaded:,}",
+                f"{total:,}",
+                backoff,
+                retries,
+                max_retries,
+            )
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 120)
+
+            try:
+                parsed = urllib.parse.urlparse(url)
+                conn = http.client.HTTPSConnection(
+                    parsed.hostname, timeout=_DOWNLOAD_TIMEOUT
+                )
+                conn.request(
+                    "GET",
+                    parsed.path,
+                    headers={
+                        "Accept-Encoding": "identity",
+                        "Range": f"bytes={downloaded}-",
+                    },
+                )
+                resp = conn.getresponse()
+
+                if resp.status not in (200, 206):
+                    conn.close()
+                    continue
+
+                # If server ignores Range and sends 200, restart from scratch.
+                if resp.status == 200:
+                    downloaded = 0
+                    pbar.reset()
+                    mode = "wb"
+                else:
+                    mode = "ab"
+
+                with open(dest, mode) as f:
+                    while True:
+                        buf = resp.read(8 * 1024 * 1024)
+                        if not buf:
+                            break
+                        f.write(buf)
+                        downloaded += len(buf)
+                        pbar.update(len(buf))
+                conn.close()
+            except (TimeoutError, OSError, http.client.HTTPException) as exc:
+                log.debug("Retry %d failed: %s", retries, exc)
+                continue
+    finally:
+        pbar.close()
+
+    # Verify final size.
+    actual = os.path.getsize(dest)
+    if total is not None and actual != total:
+        raise RuntimeError(
+            f"Download size mismatch: expected {total:,} bytes, got {actual:,}"
+        )
 
 
 def _download_cache(
     release: int,
     species: str,
     assembly: str,
-    method: str,
+    cache_type: str,
     dest: str,
+    max_retries: int = _DOWNLOAD_MAX_RETRIES,
 ) -> None:
     """Try FTP URL patterns and download the cache tarball."""
     import urllib.error
 
-    method_infix = "" if method == "vep" else f"_{method}"
+    method_infix = "" if cache_type == "vep" else f"_{cache_type}"
 
     for pattern in _ENSEMBL_FTP_PATHS:
         url = pattern.format(
@@ -99,7 +206,7 @@ def _download_cache(
             method_infix=method_infix,
         )
         try:
-            _download_with_progress(url, dest)
+            _download_with_progress(url, dest, max_retries=max_retries)
             return
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -107,7 +214,7 @@ def _download_cache(
                 continue
             raise
     raise FileNotFoundError(
-        f"VEP cache not found for {species} {method} release {release} "
+        f"VEP cache not found for {species} {cache_type} release {release} "
         f"assembly {assembly}. Browse available caches at "
         f"https://ftp.ensembl.org/pub/release-{release}/variation/"
     )
@@ -119,12 +226,17 @@ def build_cache(
     *,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    method: str = "vep",
-    partitions: int = 8,
-    memory_limit_gb: int = 32,
+    cache_type: str = "vep",
+    partitions: int = 1,
+    build_fjall: bool = True,
+    fjall_zstd_level: int = 3,
+    fjall_dict_size_kb: int = 112,
     local_cache: str | None = None,
+    download_retries: int = 10,
+    show_progress: bool = True,
+    on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
 ) -> list[tuple[str, int]]:
-    """Download an Ensembl VEP cache and convert it to optimized Parquet files.
+    """Download an Ensembl VEP cache and convert it to optimized Parquet + fjall.
 
     Parameters
     ----------
@@ -136,16 +248,29 @@ def build_cache(
         Species name (default: ``"homo_sapiens"``).
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
-    method : str
+    cache_type : str
         Cache type: ``"vep"`` (default), ``"merged"``, or ``"refseq"``.
     partitions : int
-        Number of DataFusion partitions for parallelism (default: 8).
-    memory_limit_gb : int
-        Memory limit in GB for DataFusion (default: 32).
+        Number of DataFusion partitions for parallelism (default: 1).
+    build_fjall : bool
+        Build fjall KV stores for variation and sift lookups (default: True).
+    fjall_zstd_level : int
+        Zstd compression level for fjall stores (default: 3).
+    fjall_dict_size_kb : int
+        Zstd dictionary size in KB for fjall stores (default: 112).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
         are skipped entirely.
+    download_retries : int
+        Maximum number of resume-retries for the cache download (default: 10).
+        Each retry resumes from the last byte received.
+    show_progress : bool
+        Show tqdm progress bars during conversion (default: True).
+    on_progress : callable or None
+        Custom progress callback with signature
+        ``(entity, format, batch_rows, total_rows, total_expected)``.
+        Overrides the default tqdm bars when provided.
 
     Returns
     -------
@@ -155,13 +280,21 @@ def build_cache(
     import os
     import tarfile
 
-    if method not in ("vep", "merged", "refseq"):
+    if cache_type not in ("vep", "merged", "refseq"):
         raise ValueError(
-            f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'."
+            f"Invalid cache_type '{cache_type}'. Must be 'vep', 'merged', or 'refseq'."
+        )
+    if not 1 <= fjall_zstd_level <= 22:
+        raise ValueError(
+            f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
+        )
+    if fjall_dict_size_kb < 0:
+        raise ValueError(
+            f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
         )
 
     # Version directory name: e.g. "115_GRCh38_vep"
-    version_dir = f"{release}_{assembly}_{method}"
+    version_dir = f"{release}_{assembly}_{cache_type}"
 
     if local_cache is not None:
         cache_root = local_cache
@@ -169,24 +302,30 @@ def build_cache(
             raise FileNotFoundError(f"Local cache directory not found: {cache_root}")
         log.info("Using local cache: %s", cache_root)
     else:
-        method_infix = "" if method == "vep" else f"_{method}"
+        method_infix = "" if cache_type == "vep" else f"_{cache_type}"
         tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
         tarball_path = os.path.join(cache_dir, tarball_name)
-        method_suffix = "" if method == "vep" else f"_{method}"
         cache_root = os.path.join(
-            cache_dir, species, f"{release}_{assembly}{method_suffix}"
+            cache_dir, species, f"{release}_{assembly}{method_infix}"
         )
 
         os.makedirs(cache_dir, exist_ok=True)
 
         if not os.path.isdir(cache_root):
             if not os.path.isfile(tarball_path):
-                _download_cache(release, species, assembly, method, tarball_path)
+                _download_cache(
+                    release,
+                    species,
+                    assembly,
+                    cache_type,
+                    tarball_path,
+                    max_retries=download_retries,
+                )
 
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
             log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
             with tarfile.open(tarball_path) as tar:
-                tar.extractall(path=cache_dir)
+                tar.extractall(path=cache_dir, filter="data")
             log.info("Extracted to %s", cache_root)
 
             os.remove(tarball_path)
@@ -199,58 +338,77 @@ def build_cache(
     # Output: parquet/<version_dir>/<entity>/chr1.parquet
     output_dir = os.path.join(cache_dir, "parquet", version_dir)
 
-    import time
+    # Build progress callback: explicit wins, then auto-tqdm, then None.
+    progress_cb = on_progress
+    _bars: dict[tuple[str, str], object] | None = None
 
-    entities = [
-        "variation",
-        "transcript",
-        "exon",
-        "translation",
-        "regulatory",
-        "motif",
-    ]
+    if progress_cb is None and show_progress:
+        try:
+            from tqdm.auto import tqdm
 
-    _in_notebook = False
-    try:
-        from IPython import get_ipython
+            _bars = {}
 
-        shell = get_ipython()
-        if shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell":
-            from IPython.display import display, HTML
+            def progress_cb(
+                entity: str,
+                fmt: str,
+                batch_rows: int,
+                total_rows: int,
+                total_expected: int,
+            ) -> None:
+                key = (entity, fmt)
+                if key not in _bars:
+                    _bars[key] = tqdm(
+                        total=total_expected or None,
+                        unit=" rows",
+                        desc=f"{entity} ({fmt})",
+                    )
+                bar = _bars[key]
+                bar.update(batch_rows)
+        except ImportError:
+            pass
 
-            _in_notebook = True
-    except ImportError:
-        pass
+    # When using multiple partitions, skip the Python progress callback to avoid
+    # GIL contention — each tokio worker would re-acquire the GIL per batch,
+    # serializing the parallel work.
+    if on_progress is not None and partitions > 1:
+        import warnings
 
-    def _show_status(msg: str) -> None:
-        if _in_notebook:
-            display(HTML(f"<pre>{msg}</pre>"))
-        else:
-            log.info(msg)
-
-    all_results: list[tuple[str, int]] = []
-    for i, entity in enumerate(entities):
-        _show_status(f"[{i + 1}/{len(entities)}] Converting {entity} ...")
-        t0 = time.time()
-        result = _convert_entity(
-            cache_root, output_dir, entity, partitions, memory_limit_gb
+        warnings.warn(
+            "on_progress callback is disabled when partitions > 1 to avoid GIL contention.",
+            stacklevel=2,
         )
-        elapsed = time.time() - t0
+    native_cb = progress_cb if partitions <= 1 else None
 
-        if result is None:
-            _show_status(
-                f"[{i + 1}/{len(entities)}] {entity}: skipped (no source files)"
-            )
-            continue
+    try:
+        entity_stats = _build_cache(
+            cache_root,
+            output_dir,
+            partitions,
+            build_fjall,
+            fjall_zstd_level,
+            fjall_dict_size_kb,
+            native_cb,
+        )
+    finally:
+        if _bars is not None:
+            for bar in _bars.values():
+                bar.close()
 
-        for path, rows in result:
-            rate = f"{rows / elapsed:,.0f}" if elapsed > 0 else "?"
-            rel_path = os.path.relpath(path, output_dir)
-            _show_status(
-                f"[{i + 1}/{len(entities)}] {entity}: {rows:,} rows "
-                f"in {elapsed:.1f}s ({rate} rows/s) -> {rel_path}"
+    # Flatten entity stats into the simple (path, rows) list for backward compat
+    all_results: list[tuple[str, int]] = []
+    for entity_name, parquet_files, fjall_stats in entity_stats:
+        for path, rows in parquet_files:
+            all_results.append((path, rows))
+        if fjall_stats is not None:
+            variants, positions, total_bytes, secs = fjall_stats
+            log.info(
+                "%s fjall: %d variants, %d positions, %.1f MB in %.1fs",
+                entity_name,
+                variants,
+                positions,
+                total_bytes / (1024 * 1024),
+                secs,
             )
-        all_results.extend(result)
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results
@@ -499,8 +657,11 @@ def annotate(
         # when show_progress=True, otherwise no callback.
         callback = on_batch_written
         _pbar = None
+        _pending_updates = None
         if callback is None and show_progress:
             try:
+                import queue
+
                 from tqdm.auto import tqdm
 
                 _pbar = tqdm(
@@ -509,25 +670,61 @@ def annotate(
                     miniters=1,
                     mininterval=0,
                 )
+                _pending_updates = queue.SimpleQueue()
 
                 def callback(batch_rows, total_rows, total_input):
-                    if total_input > 0 and _pbar.total != total_input:
-                        _pbar.total = total_input
-                    _pbar.update(batch_rows)
-                    _pbar.refresh()
+                    _pending_updates.put((batch_rows, total_rows, total_input))
             except ImportError:
                 pass
 
         try:
-            rows = _annotate_vcf(
-                vcf,
-                cache_dir,
-                output_vcf,
-                options_json,
-                False,
-                comp,
-                callback,
-            )
+            # Run the native call in a background thread so Jupyter's event
+            # loop can pump display updates (tqdm progress) while the Rust
+            # side streams batches.  The native code releases the GIL via
+            # py.allow_threads(), so the main thread stays responsive.
+            import threading
+
+            _result: list = [None]
+            _error: list = [None]
+
+            def _run() -> None:
+                try:
+                    _result[0] = _annotate_vcf(
+                        vcf,
+                        cache_dir,
+                        output_vcf,
+                        options_json,
+                        False,
+                        comp,
+                        callback,
+                    )
+                except Exception as exc:
+                    _error[0] = exc
+
+            def _drain_progress_updates() -> None:
+                if _pbar is None or _pending_updates is None:
+                    return
+                while True:
+                    try:
+                        batch_rows, _total_rows, total_input = (
+                            _pending_updates.get_nowait()
+                        )
+                    except queue.Empty:
+                        break
+                    if total_input > 0 and _pbar.total != total_input:
+                        _pbar.total = total_input
+                    _pbar.update(batch_rows)
+                    _pbar.refresh()
+
+            t = threading.Thread(target=_run, daemon=True)
+            t.start()
+            while t.is_alive():
+                t.join(timeout=0.3)
+                _drain_progress_updates()
+            _drain_progress_updates()
+            if _error[0] is not None:
+                raise _error[0]
+            rows = _result[0]
         finally:
             if _pbar is not None:
                 _pbar.close()
