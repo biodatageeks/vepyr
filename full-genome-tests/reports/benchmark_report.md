@@ -216,15 +216,53 @@ This is a ~5-line change in `annotate_provider.rs`. The `TranscriptConsequence` 
 
 ---
 
-#### C2 — start_retained_variant extra (60 mismatches, 5 variants)
+#### C2 — start_retained/start_lost logic (60 mismatches, 5 variants)
 
-**Description:** vepyr adds `start_retained_variant` as an additional consequence term where VEP does not. Affects `inframe_insertion&start_retained_variant` (should be `inframe_insertion`) and similar.
+**Description:** Two sub-patterns involving the start codon consequence terms:
 
-**Example:** `chr2:26254257 G>GACT` — all 49 transcripts show `inframe_insertion&start_retained_variant` in vepyr vs `inframe_insertion` in VEP.
+| Sub-pattern | Variants | Mismatches | vepyr | VEP |
+|-------------|----------|-----------|-------|-----|
+| **C2a:** Extra start_retained | 3 | 51 | `inframe_insertion&start_retained_variant` | `inframe_insertion` |
+| **C2b:** Missing start_lost | 2 | 9 | `missense_variant` | `start_lost&start_retained_variant` |
 
-**Root cause:** vepyr's consequence engine applies the start_retained check too broadly. Per VEP logic, `start_retained_variant` should only be added when the variant overlaps the initiator codon AND preserves the start methionine, but vepyr appears to apply it to any inframe insertion near the start codon regardless of the actual amino acid change at position 1.
+**C2a examples:**
+- `chr2:26254257 G>GACT` — 49 transcripts, `CDS_pos=3-4`, `AA=-/T` (Thr2dup). vepyr adds `start_retained_variant`, VEP does not.
+- `chr12:56686880 CAT>C` — 1 transcript, `CDS_pos=1-2`, `AA=M/X`. vepyr: `frameshift_variant&start_lost&start_retained_variant`, VEP: `frameshift_variant&start_lost`.
+- `chr14:94115784 TGGCCATGGC>T` — 1 transcript, boundary deletion spanning UTR+CDS. vepyr adds extra `start_retained_variant`.
 
-**Proposed fix:** Tighten the `start_retained_variant` check in `datafusion-bio-function-vep` to verify that (1) the variant actually overlaps codon 1 AND (2) the resulting amino acid at position 1 is still Met. Upstream fix.
+**C2b examples:**
+- `chr11:124214755 G>A` — `Protein_pos=1`, `AA=V/M` (Val→Met). vepyr: `missense_variant`, VEP: `start_lost&start_retained_variant`.
+- `chr14:94366696 T>C` — `Protein_pos=1`, `AA=I/M` (Ile→Met). vepyr: `missense_variant`, VEP: `start_lost&start_retained_variant`.
+
+**Root cause — exact code analysis:**
+
+**C2a (extra start_retained):** In `classify_coding_change_insertion` (`transcript_consequence.rs:3250-3257`), the check is:
+```rust
+if cds_idx < 3 && old_aas.first() == Some(&'M') {
+    if new_aas.first() == Some(&'M') {
+        class.start_retained = true;
+    }
+}
+```
+For `chr2:26254257`: `CDS_pos=3-4` → `cds_idx=2`, so `2 < 3` is **true**. The protein still starts with Met → `start_retained = true`. This fires **inside `classify_coding_change`** (Path 3), which is called before the heuristic.
+
+But VEP's equivalent check (`start_retained_variant` predicate in `VariationEffect.pm:947`) first gates on `_overlaps_start_codon`, which checks whether the variant's **cDNA coordinates** overlap `[cdna_coding_start, cdna_coding_start+2]`. An insertion at CDS_pos=3 (after the last nucleotide of codon 1) does NOT overlap this range in VEP — so the predicate never fires.
+
+The vepyr code **lacks this overlap gate** in `classify_coding_change_insertion` — it uses the more permissive `cds_idx < 3` check (which includes position 2, the boundary).
+
+**C2b (missing start_lost):** These are SNVs at protein position 1 where the annotated first amino acid is NOT Met (Val, Ile) — indicating transcripts with `cds_start_NF` (CDS start not found). The variant changes the amino acid TO Met. VEP assigns `start_lost&start_retained_variant` because:
+1. `_overlaps_start_codon` is true (SNV overlaps the first 3 CDS bases)
+2. The SNV allele check: ref is NOT "ATG", alt IS "ATG" → for SNVs, when neither ref nor alt is checked via `_snp_start_altered`, VEP falls through to the peptide-based `start_lost` check at translation_start==1
+
+In vepyr, `classify_coding_change` (Path 2) for SNVs checks `start_idx < 3 && old_aas.first() == Some(&'M')`. Since `old_aas.first()` is Val/Ile (NOT Met), the condition is **false** and neither start_lost nor start_retained is emitted. The code then assigns `missense_variant` based on the amino acid change.
+
+The mismatch: vepyr requires the original amino acid to be Met to trigger start codon logic, while VEP triggers based on **position overlap** with the start codon region regardless of the actual amino acid.
+
+**Proposed fix:**
+- **C2a:** Add an overlap-with-start-codon gate before the `cds_idx < 3` check in `classify_coding_change_insertion`, or tighten to `cds_idx < 2` (exclude the boundary). Alternatively, after `apply_codon_classification`, check if the heuristic `overlaps_start_codon` is false and remove start_retained.
+- **C2b:** In `classify_coding_change` for SNVs (Path 2), also check start codon logic when `start_idx < 3` even if `old_aas.first() != 'M'` — use position-based overlap like VEP instead of requiring Met. For transcripts with `cds_start_NF`, VEP still evaluates start codon consequences based on codon position, not amino acid identity.
+
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#84](https://github.com/biodatageeks/datafusion-bio-functions/issues/84)
 
 ---
 
