@@ -212,6 +212,8 @@ This is a ~5-line change in `annotate_provider.rs`. The `TranscriptConsequence` 
 
 **Impact:** Eliminates 2,413 mismatches (84% of all) with zero logic changes — purely cosmetic reordering.
 
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#83](https://github.com/biodatageeks/datafusion-bio-functions/issues/83)
+
 ---
 
 #### C2 — start_retained_variant extra (60 mismatches, 5 variants)
