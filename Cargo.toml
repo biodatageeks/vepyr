@@ -24,5 +24,5 @@ pyo3-log = "0.12"
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "216e974c8af7dc595e9458ccadc1d40296e72b95", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1e1bb23", features = ["cache-builder"] }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "7ccaa58" }

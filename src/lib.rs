@@ -43,7 +43,6 @@ fn build_cache(
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(partitions)
-        .max_blocking_threads(partitions)
         .enable_all()
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
@@ -118,7 +117,7 @@ fn create_annotator(
 
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    pyo3_log::init();
+    let _ = pyo3_log::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;

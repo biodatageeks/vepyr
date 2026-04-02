@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import os
+import sys
+import threading
 import tempfile
+import types
 from pathlib import Path
 
 import polars as pl
@@ -100,8 +103,7 @@ class TestAnnotate:
         # May have 0 rows if no missense in the 100 test variants
         if df.height > 0:
             assert all(
-                v == "missense_variant"
-                for v in df["most_severe_consequence"].to_list()
+                v == "missense_variant" for v in df["most_severe_consequence"].to_list()
             )
 
     def test_sink_vcf(self, skip_if_no_cache):
@@ -203,7 +205,69 @@ class TestAnnotate:
                 output_vcf=out_path,
             )
             with open(out_path) as f:
-                header_lines = [l for l in f if l.startswith("#")]
+                header_lines = [line for line in f if line.startswith("#")]
             assert any("CSQ" in line for line in header_lines)
+        finally:
+            os.unlink(out_path)
+
+    def test_notebook_progress_updates_on_main_thread(self, monkeypatch):
+        """Default tqdm notebook updates should be applied from the main thread."""
+        import vepyr
+
+        bars = []
+
+        class FakeTqdm:
+            def __init__(self, **kwargs):
+                self.total = kwargs.get("total")
+                self.updates = []
+                self.closed = False
+                bars.append(self)
+
+            def update(self, value):
+                self.updates.append((value, threading.current_thread().name))
+
+            def refresh(self):
+                pass
+
+            def close(self):
+                self.closed = True
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            assert show_progress is False
+            assert on_batch_written is not None
+            on_batch_written(10, 10, 30)
+            on_batch_written(20, 30, 30)
+            return 30
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+        monkeypatch.setitem(
+            sys.modules,
+            "tqdm.auto",
+            types.SimpleNamespace(tqdm=FakeTqdm),
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=True,
+            )
+            assert result == out_path
+            assert len(bars) == 1
+            assert bars[0].updates == [(10, "MainThread"), (20, "MainThread")]
+            assert bars[0].total == 30
+            assert bars[0].closed is True
         finally:
             os.unlink(out_path)

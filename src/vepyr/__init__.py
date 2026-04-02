@@ -370,7 +370,7 @@ def build_cache(
     # When using multiple partitions, skip the Python progress callback to avoid
     # GIL contention — each tokio worker would re-acquire the GIL per batch,
     # serializing the parallel work.
-    if progress_cb is not None and partitions > 1:
+    if on_progress is not None and partitions > 1:
         import warnings
 
         warnings.warn(
@@ -657,8 +657,11 @@ def annotate(
         # when show_progress=True, otherwise no callback.
         callback = on_batch_written
         _pbar = None
+        _pending_updates = None
         if callback is None and show_progress:
             try:
+                import queue
+
                 from tqdm.auto import tqdm
 
                 _pbar = tqdm(
@@ -667,25 +670,61 @@ def annotate(
                     miniters=1,
                     mininterval=0,
                 )
+                _pending_updates = queue.SimpleQueue()
 
                 def callback(batch_rows, total_rows, total_input):
-                    if total_input > 0 and _pbar.total != total_input:
-                        _pbar.total = total_input
-                    _pbar.update(batch_rows)
-                    _pbar.refresh()
+                    _pending_updates.put((batch_rows, total_rows, total_input))
             except ImportError:
                 pass
 
         try:
-            rows = _annotate_vcf(
-                vcf,
-                cache_dir,
-                output_vcf,
-                options_json,
-                False,
-                comp,
-                callback,
-            )
+            # Run the native call in a background thread so Jupyter's event
+            # loop can pump display updates (tqdm progress) while the Rust
+            # side streams batches.  The native code releases the GIL via
+            # py.allow_threads(), so the main thread stays responsive.
+            import threading
+
+            _result: list = [None]
+            _error: list = [None]
+
+            def _run() -> None:
+                try:
+                    _result[0] = _annotate_vcf(
+                        vcf,
+                        cache_dir,
+                        output_vcf,
+                        options_json,
+                        False,
+                        comp,
+                        callback,
+                    )
+                except Exception as exc:
+                    _error[0] = exc
+
+            def _drain_progress_updates() -> None:
+                if _pbar is None or _pending_updates is None:
+                    return
+                while True:
+                    try:
+                        batch_rows, _total_rows, total_input = (
+                            _pending_updates.get_nowait()
+                        )
+                    except queue.Empty:
+                        break
+                    if total_input > 0 and _pbar.total != total_input:
+                        _pbar.total = total_input
+                    _pbar.update(batch_rows)
+                    _pbar.refresh()
+
+            t = threading.Thread(target=_run, daemon=True)
+            t.start()
+            while t.is_alive():
+                t.join(timeout=0.3)
+                _drain_progress_updates()
+            _drain_progress_updates()
+            if _error[0] is not None:
+                raise _error[0]
+            rows = _result[0]
         finally:
             if _pbar is not None:
                 _pbar.close()
