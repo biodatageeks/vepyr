@@ -261,22 +261,37 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
             key = f"{vk[0]}\t{vk[1]}\t{vk[2]}\t{vk[3]}"
 
             if vepyr_csq and vep_csq:
-                vepyr_entries = sorted(vepyr_csq.split(","))
-                vep_entries = sorted(vep_csq.split(","))
+                # Parse entries into dicts, sort by Feature (transcript ID) for stable pairing
+                def parse_and_sort(raw, fields):
+                    entries = []
+                    for e in raw.split(","):
+                        vals = dict(zip(fields, e.split("|")))
+                        entries.append(vals)
+                    entries.sort(
+                        key=lambda d: (d.get("Feature", ""), d.get("Consequence", ""))
+                    )
+                    return entries
 
-                if len(vepyr_entries) == len(vep_entries):
+                vepyr_parsed = parse_and_sort(vepyr_csq, vepyr_fields)
+                vep_parsed = parse_and_sort(vep_csq, vep_fields)
+
+                if len(vepyr_parsed) == len(vep_parsed):
                     n_csq_entry_count_match += 1
                 else:
                     n_csq_entry_count_mismatch += 1
 
-                for i in range(min(len(vepyr_entries), len(vep_entries))):
-                    vepyr_vals = dict(zip(vepyr_fields, vepyr_entries[i].split("|")))
-                    vep_vals = dict(zip(vep_fields, vep_entries[i].split("|")))
+                for i in range(min(len(vepyr_parsed), len(vep_parsed))):
+                    vepyr_vals = vepyr_parsed[i]
+                    vep_vals = vep_parsed[i]
 
                     for f in shared_fields:
                         field_total[f] += 1
                         vepyr_v = vepyr_vals.get(f, "")
                         vep_v = vep_vals.get(f, "")
+                        # Normalize &-separated sub-values (order may differ)
+                        if "&" in vepyr_v or "&" in vep_v:
+                            vepyr_v = "&".join(sorted(vepyr_v.split("&")))
+                            vep_v = "&".join(sorted(vep_v.split("&")))
                         if vepyr_v == vep_v:
                             field_matches[f] += 1
                         else:
