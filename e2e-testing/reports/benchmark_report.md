@@ -362,13 +362,27 @@ VEP's Perl `_check_for_peptide_duplication` also runs before `_shift_3prime()`, 
 
 #### C6 — HGNC_ID extra (63 mismatches, 37 variants)
 
-**Description:** vepyr emits an HGNC_ID for certain transcripts where VEP leaves the field empty. The extra HGNC_IDs are real and valid — they belong to genes that VEP apparently does not annotate with HGNC_ID for specific transcript types.
+**Description:** vepyr emits an HGNC_ID for snoRNA and lncRNA transcripts where VEP leaves the field empty. The HGNC_IDs are valid — they belong to genes that VEP does not annotate with HGNC_ID because the gene's SYMBOL_SOURCE is not "HGNC".
 
-**Affected genes:** HGNC:32661 (FSIP2, 14 variants), HGNC:10234 (RNF139, 8 variants), HGNC:56158 (1 variant), plus ~14 variants with swapped HGNC_IDs between entries.
+**Affected genes:**
 
-**Root cause:** VEP conditionally omits HGNC_ID for certain transcript biotypes (e.g., lncRNA, processed_pseudogene) even when the gene has a valid HGNC entry. vepyr always emits the HGNC_ID when available in the cache.
+| Gene symbol | Biotype | HGNC_ID (vepyr) | VEP SYMBOL_SOURCE | Variants |
+|-------------|---------|-----------------|-------------------|----------|
+| SNORA75 | snoRNA | HGNC:32661 | RFAM | 14 |
+| SNORA72 | snoRNA | HGNC:10234 | RFAM | 10 |
+| LINC03025 | lncRNA | HGNC:56158 | (empty) | 13 |
 
-**Proposed fix:** This is arguably a vepyr improvement, not a bug. For strict VEP parity, mirror VEP's biotype-conditional HGNC_ID emission logic. For correctness, vepyr's behavior (always emitting valid HGNC_IDs) is more informative. **Decision: keep as known difference unless strict parity is required.**
+**Example:** `chr2:49883979 G>A`, transcript ENST00000391278 (SNORA75): VEP: SYMBOL_SOURCE=RFAM, HGNC_ID=*(empty)*. vepyr: SYMBOL_SOURCE=RFAM, HGNC_ID=**HGNC:32661**.
+
+**Root cause — exact code analysis:**
+
+`backfill_missing_hgnc_ids()` (`annotate_provider.rs:4784-4833`) runs after transcript loading. It builds a `symbol → HGNC_ID` mapping from transcripts that already have an HGNC_ID, then for transcripts without one, copies the HGNC_ID if the same gene symbol has a unique mapping on another transcript. This backfills HGNC_IDs for snoRNA (SYMBOL_SOURCE=RFAM) and lncRNA (no SYMBOL_SOURCE) transcripts.
+
+VEP does not backfill. VEP's HGNC_ID comes from the gene's `display_xref`, which is only set when SYMBOL_SOURCE=HGNC. Genes with RFAM or no primary symbol source get no HGNC_ID in VEP output, even if they have a valid HGNC entry.
+
+**Decision:** This is a vepyr improvement, not a bug. For strict parity, skip backfill when SYMBOL_SOURCE != "HGNC".
+
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#92](https://github.com/biodatageeks/datafusion-bio-functions/issues/92)
 
 ---
 
