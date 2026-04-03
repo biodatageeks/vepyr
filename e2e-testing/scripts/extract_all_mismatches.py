@@ -11,7 +11,6 @@ Each line: variant_key \t csq_entry_idx \t field \t vepyr_value \t vep_value
 import os
 import re
 import subprocess
-import sys
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 DATA_DIR = "/home/tgambin/workspace/data_vepyr"
@@ -29,9 +28,11 @@ csq_re = re.compile(r"CSQ=([^;\t]+)")
 
 
 def get_csq_fields(vcf_path):
-    header = subprocess.check_output(
-        f"grep '^##INFO=<ID=CSQ' '{vcf_path}'", shell=True
-    ).decode().strip()
+    header = (
+        subprocess.check_output(f"grep '^##INFO=<ID=CSQ' '{vcf_path}'", shell=True)
+        .decode()
+        .strip()
+    )
     return re.search(r"Format: ([^\"]+)", header).group(1).split("|")
 
 
@@ -50,10 +51,11 @@ def extract_keyscsq(vcf_path, out_path):
             m = csq_re.search(cols[7])
             csq = m.group(1) if m else ""
             fout.write(f"{cols[0]}\t{cols[1]}\t{cols[3]}\t{cols[4]}\t{csq}\n")
-    print(f"  Sorting...")
+    print("  Sorting...")
     subprocess.run(
         f"sort -S 4G -T /tmp -k1,1V -k2,2n -k3,3 -k4,4 '{unsorted}' > '{out_path}'",
-        shell=True, check=True,
+        shell=True,
+        check=True,
     )
     os.remove(unsorted)
     sz = os.path.getsize(out_path) / (1024 * 1024)
@@ -126,9 +128,9 @@ def main():
     extract_keyscsq(VEP_VCF, vep_kc)
 
     for backend, vcf_path in BACKENDS.items():
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Extracting ALL mismatches: {backend} vs VEP")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         vepyr_fields = get_csq_fields(vcf_path)
         vepyr_kc = os.path.join(WORK_DIR, f"vepyr_{backend}.keyscsq")

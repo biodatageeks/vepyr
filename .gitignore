@@ -211,3 +211,4 @@ __marimo__/
 tests/data/golden/cache/
 
 sandbox
+.DS_Store

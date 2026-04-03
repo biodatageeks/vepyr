@@ -7,11 +7,12 @@ parquet and fjall backends, and compares results against original VEP output.
 
 import json
 import os
+import re
 import subprocess
-import sys
 import time
 
-import polars as pl
+import vepyr
+
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 DATA_DIR = "/home/tgambin/workspace/data_vepyr"
@@ -55,14 +56,11 @@ if not os.path.exists(vcf_gz):
     subprocess.run(["tabix", "-p", "vcf", vcf_gz], check=True)
 
 n_variants = int(
-    subprocess.check_output(
-        f"gunzip -c '{vcf_gz}' | grep -cv '^#'", shell=True
-    ).strip()
+    subprocess.check_output(f"gunzip -c '{vcf_gz}' | grep -cv '^#'", shell=True).strip()
 )
 print(f"Input: {n_variants:,} biallelic variants in {vcf_gz}")
 
 # ── Step 2: Annotate with vepyr ────────────────────────────────────────────
-import vepyr
 
 backends = ["parquet", "fjall"]
 timings = {}
@@ -79,9 +77,7 @@ for backend in backends:
         print(f"  Skipping annotation — {output_vcf} already exists")
         size_mb = os.path.getsize(output_vcf) / (1024 * 1024)
         n_out = int(
-            subprocess.check_output(
-                f"grep -cv '^#' '{output_vcf}'", shell=True
-            ).strip()
+            subprocess.check_output(f"grep -cv '^#' '{output_vcf}'", shell=True).strip()
         )
         timings[backend] = {
             "time_s": None,
@@ -105,9 +101,7 @@ for backend in backends:
 
         size_mb = os.path.getsize(output_vcf) / (1024 * 1024)
         n_out = int(
-            subprocess.check_output(
-                f"grep -cv '^#' '{output_vcf}'", shell=True
-            ).strip()
+            subprocess.check_output(f"grep -cv '^#' '{output_vcf}'", shell=True).strip()
         )
         rate = n_out / elapsed if elapsed > 0 else 0
 
@@ -151,8 +145,6 @@ print(f"  Differing lines (parquet vs fjall): {n_diff_pf}")
 
 # ── Step 4 & 5: Compare BOTH vepyr backends vs original VEP ────────────────
 
-import re
-
 
 def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
     """Full CSQ field-by-field comparison of vepyr output vs original VEP.
@@ -166,22 +158,28 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
     print("=" * 60)
 
     # Line counts
-    n_vepyr = int(subprocess.check_output(
-        f"grep -cv '^#' '{vepyr_vcf_path}'", shell=True
-    ).strip())
-    n_vep = int(subprocess.check_output(
-        f"grep -cv '^#' '{vep_vcf_path}'", shell=True
-    ).strip())
+    n_vepyr = int(
+        subprocess.check_output(f"grep -cv '^#' '{vepyr_vcf_path}'", shell=True).strip()
+    )
+    n_vep = int(
+        subprocess.check_output(f"grep -cv '^#' '{vep_vcf_path}'", shell=True).strip()
+    )
     print(f"  vepyr ({backend_name}): {n_vepyr:,} data lines")
     print(f"  VEP (original):        {n_vep:,} data lines")
 
     # Get CSQ format from both
-    vepyr_csq_header = subprocess.check_output(
-        f"grep '^##INFO=<ID=CSQ' '{vepyr_vcf_path}'", shell=True
-    ).decode().strip()
-    vep_csq_header = subprocess.check_output(
-        f"grep '^##INFO=<ID=CSQ' '{vep_vcf_path}'", shell=True
-    ).decode().strip()
+    vepyr_csq_header = (
+        subprocess.check_output(
+            f"grep '^##INFO=<ID=CSQ' '{vepyr_vcf_path}'", shell=True
+        )
+        .decode()
+        .strip()
+    )
+    vep_csq_header = (
+        subprocess.check_output(f"grep '^##INFO=<ID=CSQ' '{vep_vcf_path}'", shell=True)
+        .decode()
+        .strip()
+    )
 
     vepyr_fields = re.search(r"Format: ([^\"]+)", vepyr_csq_header).group(1).split("|")
     vep_fields = re.search(r"Format: ([^\"]+)", vep_csq_header).group(1).split("|")
@@ -196,7 +194,7 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
         print(f"  Fields only in VEP:   {fields_only_vep}")
 
     # Extract lightweight key+CSQ files (avoid sorting full 16G VCFs)
-    print(f"\n  Extracting key+CSQ from both VCFs...")
+    print("\n  Extracting key+CSQ from both VCFs...")
     vepyr_kc = vepyr_vcf_path + ".keyscsq.tmp"
     vep_kc = vep_vcf_path + ".keyscsq.tmp"
     # Extract: chrom\tpos\tref\talt\tCSQ_value
@@ -214,7 +212,8 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
         # Sort the lightweight file
         subprocess.run(
             f"sort -S 4G -T /tmp -k1,1V -k2,2n -k3,3 -k4,4 '{dst}.unsorted' > '{dst}'",
-            shell=True, check=True,
+            shell=True,
+            check=True,
         )
         os.remove(dst + ".unsorted")
         sz = os.path.getsize(dst) / (1024 * 1024)
@@ -283,11 +282,13 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
                         else:
                             field_mismatches[f] += 1
                             if len(field_mismatch_examples[f]) < 5:
-                                field_mismatch_examples[f].append({
-                                    "variant": key,
-                                    "vepyr": vepyr_v,
-                                    "vep": vep_v,
-                                })
+                                field_mismatch_examples[f].append(
+                                    {
+                                        "variant": key,
+                                        "vepyr": vepyr_v,
+                                        "vep": vep_v,
+                                    }
+                                )
 
             vepyr_line = fv.readline()
             vep_line = fg.readline()
@@ -310,20 +311,24 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
     print(f"    CSQ entry count mismatch:    {n_csq_entry_count_mismatch:,}")
 
     print(f"\n  Per-field match rates (ALL {n_compared:,} variants, ALL CSQ entries):")
-    print(f"  {'Field':<30} {'Match%':>8} {'Matches':>10} {'Mismatches':>10} {'Total':>10}")
-    print(f"  {'-'*30} {'-'*8} {'-'*10} {'-'*10} {'-'*10}")
+    print(
+        f"  {'Field':<30} {'Match%':>8} {'Matches':>10} {'Mismatches':>10} {'Total':>10}"
+    )
+    print(f"  {'-' * 30} {'-' * 8} {'-' * 10} {'-' * 10} {'-' * 10}")
     for f in shared_fields:
         total = field_total[f]
         matches = field_matches[f]
         mismatches = field_mismatches[f]
         rate = (matches / total * 100) if total > 0 else 0
         flag = "" if rate == 100 else " <--"
-        print(f"  {f:<30} {rate:>7.2f}% {matches:>10,} {mismatches:>10,} {total:>10,}{flag}")
+        print(
+            f"  {f:<30} {rate:>7.2f}% {matches:>10,} {mismatches:>10,} {total:>10,}{flag}"
+        )
 
     # Show mismatch examples
     fields_with_mismatches = [f for f in shared_fields if field_mismatches[f] > 0]
     if fields_with_mismatches:
-        print(f"\n  Mismatch examples:")
+        print("\n  Mismatch examples:")
         for f in fields_with_mismatches:
             print(f"\n    {f} ({field_mismatches[f]:,} mismatches):")
             for ex in field_mismatch_examples[f]:
@@ -347,9 +352,7 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
             if field_total[f] > 0
         },
         "field_mismatch_counts": {
-            f: field_mismatches[f]
-            for f in shared_fields
-            if field_mismatches[f] > 0
+            f: field_mismatches[f] for f in shared_fields if field_mismatches[f] > 0
         },
         "field_mismatch_examples": {
             f: field_mismatch_examples[f]

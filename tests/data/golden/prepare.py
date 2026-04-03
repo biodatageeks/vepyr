@@ -96,12 +96,12 @@ def main():
         for line in f:
             if not line.startswith("#"):
                 positions.append(int(line.split("\t")[1]))
-    start, end = min(positions), max(positions) + REGION_BUFFER
+    _start, end = min(positions), max(positions) + REGION_BUFFER
     print(f"   Position range: chr1:{min(positions)}-{max(positions)}")
 
     # 4. Extract golden subset
     golden = SCRIPT_DIR / "golden.vcf"
-    print(f"4. Extracting golden subset for range...")
+    print("4. Extracting golden subset for range...")
     with open(GOLDEN_SRC) as src, open(golden, "w") as dst:
         for line in src:
             if line.startswith("#"):
@@ -110,7 +110,7 @@ def main():
                 pos = int(line.split("\t")[1])
                 if min(positions) <= pos <= max(positions):
                     dst.write(line)
-    n_golden = sum(1 for l in open(golden) if not l.startswith("#"))
+    n_golden = sum(1 for line in open(golden) if not line.startswith("#"))
     print(f"   -> {n_golden} golden variants")
 
     # 5. Trim reference FASTA
@@ -130,7 +130,7 @@ def main():
 
     # 6. Create trimmed parquet cache
     cache_dir = SCRIPT_DIR / "cache"
-    print(f"6. Creating trimmed parquet cache...")
+    print("6. Creating trimmed parquet cache...")
 
     entities = {
         "variation": ("start", 0, end),
@@ -166,9 +166,13 @@ def main():
     mask = pc.is_in(table["transcript_id"], value_set=tx_ids)
     table = table.filter(mask)
     pq.write_table(table, str(dst))
-    print(f"   translation_core: {table.num_rows} rows ({dst.stat().st_size // 1024} KB)")
+    print(
+        f"   translation_core: {table.num_rows} rows ({dst.stat().st_size // 1024} KB)"
+    )
 
-    print(f"\nDone. Total test data: {sum(f.stat().st_size for f in SCRIPT_DIR.rglob('*') if f.is_file()) // 1024} KB")
+    print(
+        f"\nDone. Total test data: {sum(f.stat().st_size for f in SCRIPT_DIR.rglob('*') if f.is_file()) // 1024} KB"
+    )
 
 
 if __name__ == "__main__":

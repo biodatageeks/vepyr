@@ -18,24 +18,36 @@ Cluster definitions:
 
 import csv
 import os
-import sys
 from collections import Counter, defaultdict
 
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "reports")
 
 # Variants with Feature ordering mismatches (transcript ordering)
 ORDERING_VARIANTS = {
-    ("chr10", 69343841), ("chr11", 5727045), ("chr13", 113074467),
-    ("chr16", 57058065), ("chr16", 89224802), ("chr18", 36730705),
-    ("chr19", 48715345), ("chr20", 37179387), ("chr2", 119437075),
-    ("chr2", 230449378), ("chr3", 12606048), ("chr4", 865481),
-    ("chr5", 151259799), ("chr6", 32642980), ("chr7", 891052),
+    ("chr10", 69343841),
+    ("chr11", 5727045),
+    ("chr13", 113074467),
+    ("chr16", 57058065),
+    ("chr16", 89224802),
+    ("chr18", 36730705),
+    ("chr19", 48715345),
+    ("chr20", 37179387),
+    ("chr2", 119437075),
+    ("chr2", 230449378),
+    ("chr3", 12606048),
+    ("chr4", 865481),
+    ("chr5", 151259799),
+    ("chr6", 32642980),
+    ("chr7", 891052),
 }
 
 # Variants with start_retained_variant extra term
 START_RETAINED_VARIANTS = {
-    ("chr11", 124214755), ("chr12", 56686880), ("chr14", 94115784),
-    ("chr14", 94366696), ("chr2", 26254257),
+    ("chr11", 124214755),
+    ("chr12", 56686880),
+    ("chr14", 94115784),
+    ("chr14", 94366696),
+    ("chr2", 26254257),
 }
 
 # Variants with HGNC_ID extra (vepyr has, VEP doesn't) — lncRNA/regulatory
@@ -59,7 +71,11 @@ def classify_row(row):
         return "C1"
 
     # C2: start_retained_variant
-    if field == "Consequence" and "start_retained_variant" in vepyr_val and "start_retained_variant" not in vep_val:
+    if (
+        field == "Consequence"
+        and "start_retained_variant" in vepyr_val
+        and "start_retained_variant" not in vep_val
+    ):
         return "C2"
     if vk in START_RETAINED_VARIANTS:
         # Impact and other fields cascading from start_retained_variant
@@ -104,7 +120,10 @@ def classify_row(row):
     # C4: HGVSp dup position shifting
     if field == "HGVSp" and "dup" in vepyr_val and "dup" in vep_val:
         return "C4"
-    if field == "HGVSp" and (("dup" in vepyr_val and "ins" in vep_val) or ("ins" in vepyr_val and "dup" in vep_val)):
+    if field == "HGVSp" and (
+        ("dup" in vepyr_val and "ins" in vep_val)
+        or ("ins" in vepyr_val and "dup" in vep_val)
+    ):
         return "C4"
 
     # C6: HGNC_ID extra
@@ -154,7 +173,17 @@ def process_file(input_tsv, output_tsv):
             cluster_variant_sets[cluster].add(vk)
 
     # Write output
-    fieldnames = ["cluster_id", "chrom", "pos", "ref", "alt", "csq_entry_idx", "field", "vepyr", "vep"]
+    fieldnames = [
+        "cluster_id",
+        "chrom",
+        "pos",
+        "ref",
+        "alt",
+        "csq_entry_idx",
+        "field",
+        "vepyr",
+        "vep",
+    ]
     with open(output_tsv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
@@ -183,23 +212,26 @@ CLUSTER_DESCRIPTIONS = {
 def main():
     for backend in ["parquet", "fjall"]:
         input_tsv = os.path.join(REPORT_DIR, f"mismatches_{backend}_vs_vep.tsv")
-        output_tsv = os.path.join(REPORT_DIR, f"mismatches_{backend}_vs_vep_classified.tsv")
+        output_tsv = os.path.join(
+            REPORT_DIR, f"mismatches_{backend}_vs_vep_classified.tsv"
+        )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Classifying: {backend}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         counts, variant_counts = process_file(input_tsv, output_tsv)
 
         total_mismatches = sum(counts.values())
-        total_variants = sum(variant_counts.values())
 
-        print(f"\n{'Cluster':<8} {'Description':<35} {'Mismatches':>12} {'Variants':>10}")
-        print(f"{'-'*8} {'-'*35} {'-'*12} {'-'*10}")
+        print(
+            f"\n{'Cluster':<8} {'Description':<35} {'Mismatches':>12} {'Variants':>10}"
+        )
+        print(f"{'-' * 8} {'-' * 35} {'-' * 12} {'-' * 10}")
         for cid in sorted(counts.keys()):
             desc = CLUSTER_DESCRIPTIONS.get(cid, "Unknown")
             print(f"{cid:<8} {desc:<35} {counts[cid]:>12,} {variant_counts[cid]:>10,}")
-        print(f"{'-'*8} {'-'*35} {'-'*12} {'-'*10}")
+        print(f"{'-' * 8} {'-' * 35} {'-' * 12} {'-' * 10}")
         print(f"{'TOTAL':<8} {'':<35} {total_mismatches:>12,} {''}")
 
         print(f"\nOutput: {output_tsv}")
