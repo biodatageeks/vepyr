@@ -232,6 +232,10 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
     n_missing_in_vepyr = 0
     n_csq_entry_count_match = 0
     n_csq_entry_count_mismatch = 0
+    n_csq_order_mismatch = 0
+    csq_order_mismatch_examples = []
+    field_order_mismatches = {f: 0 for f in shared_fields}
+    field_order_mismatch_examples = {f: [] for f in shared_fields}
 
     def parse_kc_line(line):
         parts = line.rstrip("\n").split("\t", 4)
@@ -261,19 +265,39 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
             key = f"{vk[0]}\t{vk[1]}\t{vk[2]}\t{vk[3]}"
 
             if vepyr_csq and vep_csq:
-                # Parse entries into dicts, sort by Feature (transcript ID) for stable pairing
-                def parse_and_sort(raw, fields):
+
+                def parse_entries(raw, fields):
                     entries = []
                     for e in raw.split(","):
                         vals = dict(zip(fields, e.split("|")))
                         entries.append(vals)
-                    entries.sort(
-                        key=lambda d: (d.get("Feature", ""), d.get("Consequence", ""))
-                    )
                     return entries
 
-                vepyr_parsed = parse_and_sort(vepyr_csq, vepyr_fields)
-                vep_parsed = parse_and_sort(vep_csq, vep_fields)
+                def sort_key(d):
+                    return (d.get("Feature", ""), d.get("Consequence", ""))
+
+                vepyr_parsed = parse_entries(vepyr_csq, vepyr_fields)
+                vep_parsed = parse_entries(vep_csq, vep_fields)
+
+                # Detect CSQ entry ordering mismatch before sorting
+                vepyr_order = [d.get("Feature", "") for d in vepyr_parsed]
+                vep_order = [d.get("Feature", "") for d in vep_parsed]
+                if vepyr_order != vep_order and sorted(vepyr_order) == sorted(
+                    vep_order
+                ):
+                    n_csq_order_mismatch += 1
+                    if len(csq_order_mismatch_examples) < 5:
+                        csq_order_mismatch_examples.append(
+                            {
+                                "variant": key,
+                                "vepyr_order": vepyr_order,
+                                "vep_order": vep_order,
+                            }
+                        )
+
+                # Sort by Feature for stable pairing (so field comparison is meaningful)
+                vepyr_parsed.sort(key=sort_key)
+                vep_parsed.sort(key=sort_key)
 
                 if len(vepyr_parsed) == len(vep_parsed):
                     n_csq_entry_count_match += 1
@@ -288,13 +312,25 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
                         field_total[f] += 1
                         vepyr_v = vepyr_vals.get(f, "")
                         vep_v = vep_vals.get(f, "")
-                        # Normalize &-separated sub-values (order may differ)
-                        if "&" in vepyr_v or "&" in vep_v:
-                            vepyr_v = "&".join(sorted(vepyr_v.split("&")))
-                            vep_v = "&".join(sorted(vep_v.split("&")))
                         if vepyr_v == vep_v:
                             field_matches[f] += 1
                         else:
+                            # Check if it's just an &-ordering difference
+                            if "&" in vepyr_v or "&" in vep_v:
+                                vepyr_norm = "&".join(sorted(vepyr_v.split("&")))
+                                vep_norm = "&".join(sorted(vep_v.split("&")))
+                                if vepyr_norm == vep_norm:
+                                    field_matches[f] += 1
+                                    field_order_mismatches[f] += 1
+                                    if len(field_order_mismatch_examples[f]) < 5:
+                                        field_order_mismatch_examples[f].append(
+                                            {
+                                                "variant": key,
+                                                "vepyr": vepyr_v,
+                                                "vep": vep_v,
+                                            }
+                                        )
+                                    continue
                             field_mismatches[f] += 1
                             if len(field_mismatch_examples[f]) < 5:
                                 field_mismatch_examples[f].append(
@@ -324,21 +360,48 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
     print(f"    Variants only in vepyr:      {n_missing_in_vep:,}")
     print(f"    CSQ entry count match:       {n_csq_entry_count_match:,}")
     print(f"    CSQ entry count mismatch:    {n_csq_entry_count_mismatch:,}")
+    print(
+        f"    CSQ order mismatch:          {n_csq_order_mismatch:,}  (same entries, wrong order — issue #83)"
+    )
+
+    if csq_order_mismatch_examples:
+        print("\n  CSQ order mismatch examples:")
+        for ex in csq_order_mismatch_examples:
+            print(f"    {ex['variant']}")
+            print(f"      vepyr: {', '.join(ex['vepyr_order'])}")
+            print(f"      VEP:   {', '.join(ex['vep_order'])}")
 
     print(f"\n  Per-field match rates (ALL {n_compared:,} variants, ALL CSQ entries):")
     print(
-        f"  {'Field':<30} {'Match%':>8} {'Matches':>10} {'Mismatches':>10} {'Total':>10}"
+        f"  {'Field':<30} {'Match%':>8} {'Matches':>10} {'Mismatches':>10} {'OrderOnly':>10} {'Total':>10}"
     )
-    print(f"  {'-' * 30} {'-' * 8} {'-' * 10} {'-' * 10} {'-' * 10}")
+    print(f"  {'-' * 30} {'-' * 8} {'-' * 10} {'-' * 10} {'-' * 10} {'-' * 10}")
     for f in shared_fields:
         total = field_total[f]
         matches = field_matches[f]
         mismatches = field_mismatches[f]
+        order_only = field_order_mismatches[f]
         rate = (matches / total * 100) if total > 0 else 0
-        flag = "" if rate == 100 else " <--"
+        flag = ""
+        if mismatches > 0:
+            flag = " <--"
+        elif order_only > 0:
+            flag = " (order)"
         print(
-            f"  {f:<30} {rate:>7.2f}% {matches:>10,} {mismatches:>10,} {total:>10,}{flag}"
+            f"  {f:<30} {rate:>7.2f}% {matches:>10,} {mismatches:>10,} {order_only:>10,} {total:>10,}{flag}"
         )
+
+    fields_with_order_issues = [
+        f for f in shared_fields if field_order_mismatches[f] > 0
+    ]
+    if fields_with_order_issues:
+        print("\n  &-order mismatch examples (same values, different order):")
+        for f in fields_with_order_issues:
+            print(f"\n    {f} ({field_order_mismatches[f]:,} &-order mismatches):")
+            for ex in field_order_mismatch_examples[f]:
+                print(f"      {ex['variant']}")
+                print(f"        vepyr: {ex['vepyr']!r}")
+                print(f"        VEP:   {ex['vep']!r}")
 
     # Show mismatch examples
     fields_with_mismatches = [f for f in shared_fields if field_mismatches[f] > 0]
@@ -359,6 +422,8 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
         "variants_only_in_vepyr": n_missing_in_vep,
         "csq_entry_count_match": n_csq_entry_count_match,
         "csq_entry_count_mismatch": n_csq_entry_count_mismatch,
+        "csq_order_mismatch": n_csq_order_mismatch,
+        "csq_order_mismatch_examples": csq_order_mismatch_examples,
         "csq_fields_only_vepyr": fields_only_vepyr,
         "csq_fields_only_vep": fields_only_vep,
         "field_match_rates": {
@@ -368,6 +433,16 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
         },
         "field_mismatch_counts": {
             f: field_mismatches[f] for f in shared_fields if field_mismatches[f] > 0
+        },
+        "field_order_mismatch_counts": {
+            f: field_order_mismatches[f]
+            for f in shared_fields
+            if field_order_mismatches[f] > 0
+        },
+        "field_order_mismatch_examples": {
+            f: field_order_mismatch_examples[f]
+            for f in shared_fields
+            if field_order_mismatch_examples[f]
         },
         "field_mismatch_examples": {
             f: field_mismatch_examples[f]
