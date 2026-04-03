@@ -307,18 +307,34 @@ The failure chain involves three code locations:
 
 #### C4 — HGVSp dup 3' shifting (105 mismatches, 24 variants)
 
-**Description:** For in-frame duplications at the protein level, vepyr and VEP report different positions. VEP applies 3' shifting (rightmost position) per HGVS nomenclature guidelines, while vepyr reports the leftmost position.
-
-**Example:** `chr2:73385903 T>TGGA` — vepyr: `p.Glu25dup`, VEP: `p.Glu28dup` (3 positions apart, matching the repeat count of Glu residues).
+**Description:** For in-frame duplications at the protein level, vepyr reports the **leftmost (5')** position while HGVS nomenclature requires the **rightmost (3')** position. This is NOT related to VCF left-normalization (`bcftools norm`) — it's a separate **protein-level HGVS 3' shift** that slides a dup window rightward through identical residues in the protein sequence.
 
 **Sub-patterns:**
-- Simple dup position shift: `p.Glu25dup` vs `p.Glu28dup` (16 variants)
-- dup vs ins notation: `p.Gln38_Pro40dup` vs `p.Gln39_Pro40insGlnGlnPro` (5 variants)
-- Multi-residue dup range shift: `p.Pro159_Ala164dup` vs `p.Pro160_Pro165dup` (3 variants)
+- Dup position shift (98 mismatches): `p.Glu25dup` vs `p.Glu28dup` — shifts range from +1 to +52 positions
+- Dup vs ins notation (7 mismatches): `p.Gln38_Pro40dup` vs `p.Gln39_Pro40insGlnGlnPro`
 
-**Root cause:** HGVS nomenclature requires duplications to be described at the most 3' position. vepyr's protein HGVS formatter does not perform this rightward shifting for dup annotations.
+**Example:** `chr2:73385903 T>TGGA` — protein has `...GluGluGluGlu...` run. vepyr places dup at first Glu (`p.Glu25dup`), VEP at last (`p.Glu28dup`).
 
-**Proposed fix:** Implement 3' shifting in the protein-level HGVS dup formatter: when the inserted sequence matches the preceding sequence, slide the dup window to the rightmost possible position. Upstream fix in `datafusion-bio-function-vep`.
+**Root cause — exact code analysis:**
+
+In `hgvs.rs:1137-1157`, when `check_for_peptide_duplication` detects a dup, the code:
+1. Converts `"ins"` → `"dup"` notation kind
+2. **Skips `shift_peptides_post_var` entirely** (the function that implements VEP's `_shift_3prime()` for peptides)
+
+The dup coordinates are set by `try_peptide_dup_at` (`hgvs.rs:1386-1417`) which does a one-shot upstream match — no rightward walking through identical residues:
+```rust
+notation.kind = "dup".to_string();
+notation.end = check_start.saturating_sub(1);     // leftmost position
+notation.start = check_start.saturating_sub(alt_len);
+```
+
+The protein-level 3' shift function `shift_peptides_post_var` (`hgvs.rs:1316-1352`) exists and works correctly — but is never called for dups because the kind is already `"dup"` when the shift branch runs.
+
+VEP's Perl `_check_for_peptide_duplication` also runs before `_shift_3prime()`, but VEP's dup detection function itself performs an internal 3' walk to find the rightmost position. vepyr's `try_peptide_dup_at` does not.
+
+**Proposed fix:** After `check_for_peptide_duplication` sets dup coordinates, add a 3' walk that slides `notation.start`/`notation.end` rightward through identical residues in `ref_translation`. ~10 lines of code.
+
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#89](https://github.com/biodatageeks/datafusion-bio-functions/issues/89)
 
 ---
 
