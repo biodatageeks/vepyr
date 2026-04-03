@@ -340,23 +340,39 @@ VEP's Perl `_check_for_peptide_duplication` also runs before `_shift_3prime()`, 
 
 #### C5 — Consequence/IMPACT logic (101 mismatches, 24 variants)
 
-**Description:** Differences in consequence term assignment beyond the start_retained issue. Multiple distinct sub-patterns:
+**Description:** Multiple consequence classification sub-patterns, mostly related to **stop codon handling**:
 
-| Pattern | Count | Example |
-|---------|-------|---------|
-| `stop_lost&3_prime_UTR_variant` vs `stop_retained_variant&3_prime_UTR_variant` | 17 | Stop codon classification |
-| `frameshift_variant` vs `inframe_insertion&stop_retained_variant` | 16+4 | Frame detection near stop |
-| `mature_miRNA_variant` vs `non_coding_transcript_exon_variant` | 1 | miRNA biotype handling |
-| `regulatory_region_variant` vs `regulatory_region_ablation` | 1 | Regulatory deletion |
-| Various ordering/cascade from C1 | ~20 | Consequence swapped between entries |
-| `frameshift_variant` vs `frameshift_variant&stop_lost` | 3 | Missing stop_lost addition |
+| Sub-pattern | Mismatches | vepyr | VEP |
+|-------------|-----------|-------|-----|
+| A: stop_lost vs stop_retained | 17 | `stop_lost&3_prime_UTR_variant` | `stop_retained_variant&3_prime_UTR_variant` |
+| B: frameshift vs inframe+stop_retained | 20 | `frameshift_variant` | `inframe_insertion&stop_retained_variant` |
+| C: frameshift missing stop_lost | 3 | `frameshift_variant` | `frameshift_variant&stop_lost` |
+| D: synonymous vs stop_retained | 2 | `synonymous_variant` | `stop_retained_variant` |
+| E: mature_miRNA vs non_coding_exon | 1 | `mature_miRNA_variant` | `non_coding_transcript_exon_variant` |
+| F: regulatory ablation missing | 1 | `regulatory_region_variant` | `regulatory_region_ablation&...` |
+| Cascading IMPACT/position diffs | 57 | — | — |
 
-**Root cause (major):** The `stop_retained_variant` vs `stop_lost` classification differs. VEP classifies a variant as `stop_retained` when the stop codon is preserved despite a nearby change, while vepyr classifies it as `stop_lost`. This affects 33 mismatches. The `frameshift_variant` vs `inframe_insertion` difference (20 mismatches) suggests the frame-shift detection logic disagrees near stop codons where the reading frame could be considered restored.
+**Root cause — exact code analysis:**
 
-**Proposed fix:** Review the stop codon consequence logic in `datafusion-bio-function-vep`:
-1. `stop_retained_variant` should be assigned when the variant does not change the stop codon amino acid (*)
-2. `inframe_insertion` near stop should be preferred over `frameshift_variant` when the insertion length is a multiple of 3 and the stop codon is maintained
-3. Add `stop_lost` when a frameshift extends past the original stop codon
+**Sub-patterns A+B (shared root cause, 37 mismatches):** In `classify_coding_change` (`transcript_consequence.rs:2901-2910`), `stop_retained` requires `old_stop_idx == new_stop_idx` — the stop codon at the **same amino acid index** in the translated CDS. For deletions/insertions near the stop codon, the CDS length changes, shifting all downstream AA indices. The stop codon may be preserved at the **same genomic position** but appears at a different AA index → `stop_retained` check fails → `stop_lost` fires instead. For sub-pattern B, the same failure prevents the frameshift→inframe override (lines 1617-1626) from firing.
+
+VEP checks stop codon preservation at the **codon/genomic level**, not the translated AA index level.
+
+**Sub-pattern C (3 mismatches):** Lines 1630-1635 suppress `stop_lost` alongside `frameshift_variant`:
+```rust
+if terms.contains(&SoTerm::FrameshiftVariant) || ... {
+    classification.stop_lost = false;
+}
+```
+VEP preserves `stop_lost` alongside `frameshift_variant` when the frameshift extends past the original stop codon. vepyr blankets all frameshifts.
+
+**Sub-pattern D (2 mismatches):** SNV in stop codon (TGA→TAA, both stop codons). The `stop_retained` overlap check may target an internal stop codon (in NMD transcripts) rather than the terminal one, causing the check to fail. Falls through to `synonymous_variant`.
+
+**Sub-pattern E (1 mismatch):** `mature_mirna_regions` data in cache may have incorrect coordinate boundaries, causing false overlap with the insertion.
+
+**Proposed fix:** The core issue (A+B+D) requires comparing stop codon preservation at the **genomic/codon level** rather than relying on AA index equality after translation. Sub-pattern C requires conditional preservation of `stop_lost` alongside `frameshift_variant`.
+
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#90](https://github.com/biodatageeks/datafusion-bio-functions/issues/90)
 
 ---
 
