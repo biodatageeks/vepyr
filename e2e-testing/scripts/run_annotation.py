@@ -15,7 +15,7 @@ import vepyr
 
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-DATA_DIR = "/home/tgambin/workspace/data_vepyr"
+DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
 CACHE_DIR = os.path.join(DATA_DIR, "115_GRCh38_vep")
 REFERENCE_FASTA = os.path.join(DATA_DIR, "Homo_sapiens.GRCh38.dna.primary_assembly.fa")
 VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")

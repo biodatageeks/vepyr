@@ -1034,7 +1034,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.4.1"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.6.1#605ead8f097628d7e88d68f81968808d6d84ff98"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=e9c02376cb7da191770b2d6795dc547cd8a2cbfd#e9c02376cb7da191770b2d6795dc547cd8a2cbfd"
 dependencies = [
  "ahash",
  "arrow-ipc",
