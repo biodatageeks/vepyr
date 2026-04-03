@@ -268,13 +268,40 @@ The mismatch: vepyr requires the original amino acid to be Met to trigger start 
 
 #### C3 — HGVSc/HGVSp missing (79 mismatches, 45 variants)
 
-**Description:** vepyr returns empty HGVSc (and consequently empty HGVSp) where VEP produces a value. All 39 variants with missing HGVSc are **insertions** (REF is a single base, ALT is longer). The missing HGVSc annotations are for transcripts where the insertion falls in UTR or non-coding regions.
+**Description:** vepyr returns empty HGVSc (and consequently empty HGVSp) for **54 insertions** in UTR or non-coding transcript regions where VEP produces valid HGVS notation. Plus 7 HGVSp mismatches for `incomplete_terminal_codon` stop-retained cases (linked to C12).
 
-**Example:** `chr2:1842866 A>AGCTTCCGCTTCCAGGC...` — vepyr: `""`, VEP: `ENST00000407844.6:c.-337_-336insGCCTGGAAGCGGAAGC...`
+**Example:** `chr2:1842866 A>AGCTTCCGCTTCCAGGC...` — vepyr: `""`, VEP: `ENST00000407844.6:c.-337_-336insGCCTGGAAGCGGAAGCGCCTGGAAGCGGAAGC`
 
-**Root cause:** The HGVS notation engine in vepyr skips HGVSc generation for certain insertion types in UTR/non-coding contexts, likely because the cDNA mapping for the insertion boundaries is not computed when the variant falls outside the coding region.
+All 54 HGVSc mismatches are **insertions** (100%). VEP HGVSc patterns:
+- `c.-NNN_-NNNins...` — 5' UTR (negative cDNA positions)
+- `n.N_Nins...` — non-coding transcripts
 
-**Proposed fix:** Ensure the HGVSc formatter handles insertions in 5' UTR (negative cDNA positions like `c.-337_-336ins...`) and non-coding transcript coordinates (`n.8_9ins...`). Upstream fix in `datafusion-bio-function-vep`.
+**Root cause — exact code analysis:**
+
+The failure chain involves three code locations:
+
+1. **HGVS 3' shift** (`hgvs.rs:59-65`): For insertions in repetitive regions near transcript boundaries, the HGVS 3' normalization shift pushes the insertion position through the repeat. When the repeat extends past an exon boundary, the shifted position falls outside the transcript's exon range.
+
+2. **cDNA position mapper** (`transcript_consequence.rs:3807-3850`, `raw_cdna_position_from_genomic`): This function maps genomic positions to cDNA positions by searching exon segments. It returns `None` when the position is outside all exon boundaries:
+   - **Line 3830:** `coords.get(i.checked_sub(1)?)` — when `i == 0` (position before first exon), `checked_sub(1)` returns `None`
+   - **Lines 3815-3847:** When position is after last exon, loop completes without match → returns `None`
+
+3. **HGVSc coordinate builder** (`hgvs.rs:718-732`, `notation_to_hgvsc_coords`): For insertions, computes two flanking positions:
+   ```rust
+   let start = hgvs_cdna_position_from_genomic(tx, tx_exons, notation.start - 1)?;
+   let end = hgvs_cdna_position_from_genomic(tx, tx_exons, notation.start)?;
+   ```
+   Either call returns `None` → `?` propagates → `format_hgvsc` returns `None` → empty HGVSc.
+
+**Two failure scenarios:**
+- **Reverse-strand:** shift decreases `display_start`, pushing `notation.start - 1` below first exon start
+- **Forward-strand:** shift increases `display_start`, pushing `notation.start` above last exon end
+
+**Contrast with VEP:** VEP's `TranscriptMapper::map_coordinates()` handles out-of-bounds positions by extrapolating from the nearest exon boundary with a gap offset, producing valid `c.-337_-336ins...` notation.
+
+**Proposed fix:** Extend `raw_cdna_position_from_genomic` to handle out-of-bounds positions by extrapolating from the nearest exon endpoint (first or last base), mirroring VEP's `TranscriptMapper` behavior.
+
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#88](https://github.com/biodatageeks/datafusion-bio-functions/issues/88)
 
 ---
 
