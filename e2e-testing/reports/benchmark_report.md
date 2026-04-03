@@ -388,11 +388,24 @@ VEP does not backfill. VEP's HGNC_ID comes from the gene's `display_xref`, which
 
 #### C7 — gnomAD/AF lookup missing (15 mismatches, 1 variant)
 
-**Description:** Single variant `chr7:142353982 G>A` — all 13 gnomAD frequency fields + MAX_AF + MAX_AF_POPS are empty in vepyr but populated in VEP.
+**Description:** Single variant `chr7:142353982 G>A` — 15 field mismatches: all gnomAD frequencies, MAX_AF, MAX_AF_POPS, SWISSPROT, UNIPARC appear empty/wrong in vepyr.
 
-**Root cause:** The variant's existing_variation lookup for population frequencies fails for this specific rsID or allele combination. Likely an allele matching issue in the co-located variants lookup.
+**Root cause — exact code analysis:**
 
-**Proposed fix:** Debug this specific variant's frequency lookup path. Check if the allele representation in the cache matches what vepyr queries. Single-variant fix.
+The root cause is **NOT** a frequency lookup issue. It's a **CSQ entry splitting bug**: the SWISSPROT field contains `A0A0J9YXY3.52,P0DPF7.28` (comma-separated multiple accessions). The comma is interpreted as a **CSQ entry separator**, splitting one transcript's annotation into two broken entries:
+
+- Entry 1: 33 pipe-delimited fields (truncated at SWISSPROT comma)
+- Entry 2: 48 pipe-delimited fields (the remainder, starting with `P0DPF7.28`)
+
+This misaligns all downstream fields (UNIPARC, gnomAD frequencies, MAX_AF).
+
+The SWISSPROT field (`annotate_provider.rs:3820`) is **not passed through `csq_escape()`**, unlike TREMBL (line 3822) which is escaped. `csq_escape()` replaces `,` → `&` and `|` → `&`, matching VEP's multi-value convention.
+
+VEP output uses `&` as separator: `A0A0J9YXY3.52&P0DPF7.28`.
+
+**Proposed fix:** Apply `csq_escape()` to the `swissprot` field. One-line fix. Also audit all other CSQ fields for missing escaping.
+
+**Upstream issue:** [biodatageeks/datafusion-bio-functions#93](https://github.com/biodatageeks/datafusion-bio-functions/issues/93)
 
 ---
 
