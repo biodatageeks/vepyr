@@ -286,7 +286,7 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
                     vep_order
                 ):
                     n_csq_order_mismatch += 1
-                    if len(csq_order_mismatch_examples) < 5:
+                    if len(csq_order_mismatch_examples) < 10:
                         csq_order_mismatch_examples.append(
                             {
                                 "variant": key,
@@ -322,7 +322,7 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
                                 if vepyr_norm == vep_norm:
                                     field_matches[f] += 1
                                     field_order_mismatches[f] += 1
-                                    if len(field_order_mismatch_examples[f]) < 5:
+                                    if len(field_order_mismatch_examples[f]) < 10:
                                         field_order_mismatch_examples[f].append(
                                             {
                                                 "variant": key,
@@ -332,7 +332,7 @@ def compare_vepyr_vs_vep(vepyr_vcf_path, vep_vcf_path, backend_name):
                                         )
                                     continue
                             field_mismatches[f] += 1
-                            if len(field_mismatch_examples[f]) < 5:
+                            if len(field_mismatch_examples[f]) < 10:
                                 field_mismatch_examples[f].append(
                                     {
                                         "variant": key,

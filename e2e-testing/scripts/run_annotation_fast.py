@@ -291,7 +291,7 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label):
             vep_order = [d.get("Feature", "") for d in vep_parsed]
             if vepyr_order != vep_order and sorted(vepyr_order) == sorted(vep_order):
                 n_csq_order_mismatch += 1
-                if len(csq_order_mismatch_examples) < 5:
+                if len(csq_order_mismatch_examples) < 10:
                     csq_order_mismatch_examples.append(
                         {
                             "variant": key_str,
@@ -328,13 +328,13 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label):
                                 # Same values, different order
                                 field_matches[f] += 1
                                 field_order_mismatches[f] += 1
-                                if len(field_order_mismatch_examples[f]) < 5:
+                                if len(field_order_mismatch_examples[f]) < 10:
                                     field_order_mismatch_examples[f].append(
                                         {"variant": key_str, "vepyr": vv, "vep": gv}
                                     )
                                 continue
                         field_mismatches[f] += 1
-                        if len(field_mismatch_examples[f]) < 5:
+                        if len(field_mismatch_examples[f]) < 10:
                             field_mismatch_examples[f].append(
                                 {"variant": key_str, "vepyr": vv, "vep": gv}
                             )
