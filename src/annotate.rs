@@ -199,6 +199,20 @@ pub fn annotate_to_vcf_file(
                 .map(String::from)
                 .or_else(|| v.as_i64().map(|n| n.to_string()))
         }),
+        plugins_dir: opts
+            .get("plugins_dir")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        plugins: opts
+            .get("plugins")
+            .and_then(|v| v.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
