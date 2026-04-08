@@ -162,7 +162,7 @@ uv run pytest
 
 # 3. Run full e2e benchmark
 cd e2e-testing/scripts
-uv run python run_annotation_fast_all.py --force
+uv run python run_annotation_fast_all.py
 
 # 4. Compare the new report against the previous one
 #    Reports are timestamped so you can diff them:

@@ -40,7 +40,7 @@ ISSUES = {
         "prs": [],
     },
     "stop_lost_extra": {
-        "title": "`stop_lost` extra on frameshift",
+        "title": "`stop_lost` missing on frameshift past stop codon",
         "issues": [115],
         "prs": [],
     },
@@ -49,8 +49,13 @@ ISSUES = {
         "issues": [117],
         "prs": [],
     },
+    "incomplete_terminal_impact_hgvsp": {
+        "title": "Incomplete terminal codon: IMPACT/HGVSp residual (Xaa vs Ter, missing p.Ter=)",
+        "issues": [130],
+        "prs": [],
+    },
     "stop_gained_missing": {
-        "title": "`stop_gained` missing on inframe_deletion",
+        "title": "`stop_gained` missing on frameshift/inframe_deletion",
         "issues": [116],
         "prs": [],
     },
@@ -77,6 +82,16 @@ ISSUES = {
     "mirna_dedup": {
         "title": "miRNA dedup (stem repeated in VEP)",
         "issues": [100],
+        "prs": [],
+    },
+    "protein_altering": {
+        "title": "`protein_altering_variant` not emitted for complex inframe changes",
+        "issues": [124],
+        "prs": [],
+    },
+    "start_retained_missing": {
+        "title": "`start_retained_variant` missing alongside `start_lost`",
+        "issues": [125],
         "prs": [],
     },
 }
@@ -214,12 +229,27 @@ def classify_consequence_mismatches(examples):
             classes["stop_gained_missing"].append(ex)
         elif "stop_lost" in vepyr and "stop_lost" not in vep:
             classes["stop_lost_extra"].append(ex)
+        elif "stop_lost" not in vepyr and "stop_lost" in vep:
+            classes["stop_lost_extra"].append(ex)
+        elif "start_retained_variant" in vep and "start_retained_variant" not in vepyr:
+            classes["start_retained_missing"].append(ex)
+        elif (
+            "protein_altering_variant" in vep
+            and "protein_altering_variant" not in vepyr
+        ):
+            classes["protein_altering"].append(ex)
         elif "incomplete_terminal_codon" in vepyr:
             classes["incomplete_terminal"].append(ex)
         elif "mature_miRNA_variant" in vepyr and "mature_miRNA_variant" not in vep:
             classes["mirna_overlap"].append(ex)
         elif "synonymous_variant" in vepyr and "coding_sequence_variant" in vep:
             classes["incomplete_terminal"].append(ex)
+        elif (
+            "inframe_insertion" in vep
+            and "stop_retained" in vep
+            and "frameshift" in vepyr
+        ):
+            classes["inframe_vs_frameshift"].append(ex)
         elif "frameshift_variant" in vep and "frameshift_variant" not in vepyr:
             classes["frameshift_missing"].append(ex)
         else:
@@ -401,11 +431,11 @@ def generate_report(reports, agg, csq_classes, old_mm, build_info=None):
             count = str(field_mm.get("miRNA", 0))
             fields = "miRNA"
         elif key == "inframe_vs_frameshift":
-            count = (
-                f"~{csq_count} Csq + {field_mm.get('IMPACT', 0)} IMPACT "
-                f"+ {field_mm.get('HGVSp', 0)} HGVSp"
-            )
-            fields = "Consequence, IMPACT, HGVSp"
+            count = f"~{csq_count}" if csq_count else "0"
+            fields = "Consequence"
+        elif key == "incomplete_terminal_impact_hgvsp":
+            count = f"~{field_mm.get('IMPACT', 0)} IMPACT + {field_mm.get('HGVSp', 0)} HGVSp"
+            fields = "IMPACT, HGVSp"
         else:
             count = f"~{csq_count}" if csq_count else "0"
             fields = "Consequence"
@@ -413,7 +443,25 @@ def generate_report(reports, agg, csq_classes, old_mm, build_info=None):
         links = ", ".join(
             [issue_link(n) for n in info["issues"]] + [pr_link(n) for n in info["prs"]]
         )
-        status = "OPEN"
+
+        # Derive status from mismatch count
+        # Parse the numeric part of count to check if zero
+        count_str = count.replace("~", "").strip()
+        is_zero = False
+        if count_str == "0":
+            is_zero = True
+        elif " + " in count_str:
+            # e.g. "549 + 549" or "0 + 0"
+            parts = count_str.split(" + ")
+            is_zero = all(p.strip() == "0" for p in parts)
+        elif "Csq" in count_str:
+            # e.g. "0 Csq + 30 IMPACT + 29 HGVSp"
+            import re as _re
+
+            nums = [int(x) for x in _re.findall(r"\d+", count_str)]
+            is_zero = all(n == 0 for n in nums)
+
+        status = "FIXED" if is_zero else "OPEN"
         lines.append(
             f"| {row_num} | {info['title']} | {count} | {fields} | {links} | {status} |"
         )
