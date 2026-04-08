@@ -1,0 +1,2364 @@
+{
+  "input": {
+    "vcf": "/home/tgambin/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+    "normalized_vcf": "/home/tgambin/workspace/vepyr/full-genome-tests/scripts/../results/normalized.vcf.gz",
+    "n_variants_input": 4096123,
+    "cache": "/home/tgambin/workspace/data_vepyr/115_GRCh38_vep",
+    "reference": "/home/tgambin/workspace/data_vepyr/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+  },
+  "timings": {
+    "parquet": {
+      "time_s": null,
+      "time_min": null,
+      "variants": 4096123,
+      "rate_per_s": null,
+      "output_mb": 15900
+    },
+    "fjall": {
+      "time_s": null,
+      "time_min": null,
+      "variants": 4096123,
+      "rate_per_s": null,
+      "output_mb": 15900
+    }
+  },
+  "parquet_vs_fjall": {
+    "differing_lines": 6
+  },
+  "vepyr_vs_vep": {
+    "parquet": {
+      "backend": "parquet",
+      "variants_compared": 4096123,
+      "variants_only_in_vepyr": 0,
+      "csq_entry_count_match": 4095610,
+      "csq_entry_count_mismatch": 1,
+      "csq_fields_only_vepyr": [],
+      "csq_fields_only_vep": [],
+      "field_match_rates": {
+        "Allele": 100.0,
+        "Consequence": 99.9995,
+        "IMPACT": 99.9998,
+        "SYMBOL": 100.0,
+        "Gene": 100.0,
+        "Feature_type": 100.0,
+        "Feature": 99.9993,
+        "BIOTYPE": 99.9999,
+        "EXON": 99.9998,
+        "INTRON": 99.9995,
+        "HGVSc": 99.9991,
+        "HGVSp": 99.9995,
+        "cDNA_position": 99.9998,
+        "CDS_position": 99.9998,
+        "Protein_position": 99.9998,
+        "Amino_acids": 99.9999,
+        "Codons": 99.9999,
+        "Existing_variation": 100.0,
+        "DISTANCE": 100.0,
+        "STRAND": 100.0,
+        "FLAGS": 99.9999,
+        "VARIANT_CLASS": 100.0,
+        "SYMBOL_SOURCE": 100.0,
+        "HGNC_ID": 99.9998,
+        "CANONICAL": 99.9999,
+        "MANE": 99.9999,
+        "MANE_SELECT": 99.9999,
+        "MANE_PLUS_CLINICAL": 100.0,
+        "TSL": 99.9998,
+        "APPRIS": 99.9998,
+        "CCDS": 99.9998,
+        "ENSP": 99.9993,
+        "SWISSPROT": 99.9999,
+        "TREMBL": 99.9997,
+        "UNIPARC": 99.9995,
+        "UNIPROT_ISOFORM": 99.9999,
+        "GENE_PHENO": 100.0,
+        "SIFT": 100.0,
+        "PolyPhen": 100.0,
+        "DOMAINS": 99.9998,
+        "miRNA": 100.0,
+        "HGVS_OFFSET": 100.0,
+        "AF": 100.0,
+        "AFR_AF": 100.0,
+        "AMR_AF": 100.0,
+        "EAS_AF": 100.0,
+        "EUR_AF": 100.0,
+        "SAS_AF": 100.0,
+        "gnomADe_AF": 100.0,
+        "gnomADe_AFR_AF": 100.0,
+        "gnomADe_AMR_AF": 100.0,
+        "gnomADe_ASJ_AF": 100.0,
+        "gnomADe_EAS_AF": 100.0,
+        "gnomADe_FIN_AF": 100.0,
+        "gnomADe_MID_AF": 100.0,
+        "gnomADe_NFE_AF": 100.0,
+        "gnomADe_REMAINING_AF": 100.0,
+        "gnomADe_SAS_AF": 100.0,
+        "gnomADg_AF": 100.0,
+        "gnomADg_AFR_AF": 100.0,
+        "gnomADg_AMI_AF": 100.0,
+        "gnomADg_AMR_AF": 100.0,
+        "gnomADg_ASJ_AF": 100.0,
+        "gnomADg_EAS_AF": 100.0,
+        "gnomADg_FIN_AF": 100.0,
+        "gnomADg_MID_AF": 100.0,
+        "gnomADg_NFE_AF": 100.0,
+        "gnomADg_REMAINING_AF": 100.0,
+        "gnomADg_SAS_AF": 100.0,
+        "MAX_AF": 100.0,
+        "MAX_AF_POPS": 100.0,
+        "CLIN_SIG": 100.0,
+        "SOMATIC": 100.0,
+        "PHENO": 100.0,
+        "PUBMED": 100.0,
+        "MOTIF_NAME": 100.0,
+        "MOTIF_POS": 100.0,
+        "HIGH_INF_POS": 100.0,
+        "MOTIF_SCORE_CHANGE": 100.0,
+        "TRANSCRIPTION_FACTORS": 100.0
+      },
+      "field_mismatch_counts": {
+        "Consequence": 175,
+        "IMPACT": 83,
+        "SYMBOL": 15,
+        "Gene": 15,
+        "Feature": 260,
+        "BIOTYPE": 44,
+        "EXON": 65,
+        "INTRON": 178,
+        "HGVSc": 317,
+        "HGVSp": 200,
+        "cDNA_position": 91,
+        "CDS_position": 64,
+        "Protein_position": 64,
+        "Amino_acids": 44,
+        "Codons": 44,
+        "DISTANCE": 7,
+        "STRAND": 14,
+        "FLAGS": 45,
+        "SYMBOL_SOURCE": 4,
+        "HGNC_ID": 78,
+        "CANONICAL": 30,
+        "MANE": 22,
+        "MANE_SELECT": 22,
+        "TSL": 83,
+        "APPRIS": 88,
+        "CCDS": 84,
+        "ENSP": 242,
+        "SWISSPROT": 43,
+        "TREMBL": 117,
+        "UNIPARC": 173,
+        "UNIPROT_ISOFORM": 51,
+        "SIFT": 8,
+        "PolyPhen": 8,
+        "DOMAINS": 61,
+        "miRNA": 1,
+        "HGVS_OFFSET": 11,
+        "gnomADg_AF": 1,
+        "gnomADg_AFR_AF": 1,
+        "gnomADg_AMI_AF": 1,
+        "gnomADg_AMR_AF": 1,
+        "gnomADg_ASJ_AF": 1,
+        "gnomADg_EAS_AF": 1,
+        "gnomADg_FIN_AF": 1,
+        "gnomADg_MID_AF": 1,
+        "gnomADg_NFE_AF": 1,
+        "gnomADg_REMAINING_AF": 1,
+        "gnomADg_SAS_AF": 1,
+        "MAX_AF": 1,
+        "MAX_AF_POPS": 1
+      },
+      "field_mismatch_examples": {
+        "Consequence": [
+          {
+            "variant": "chr2\t12737375\tG\tGA",
+            "vepyr": "mature_miRNA_variant",
+            "vep": "non_coding_transcript_exon_variant"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          }
+        ],
+        "IMPACT": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "MODERATE",
+            "vep": "MODIFIER"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "MODIFIER",
+            "vep": "MODERATE"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "LOW",
+            "vep": "MODIFIER"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "MODIFIER",
+            "vep": "LOW"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "MODIFIER",
+            "vep": "HIGH"
+          }
+        ],
+        "SYMBOL": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "SP100",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "SP100"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "OR52P1",
+            "vep": "TRIM22"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "TRIM22",
+            "vep": "TRIM5"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "TRIM5",
+            "vep": "OR52P1"
+          }
+        ],
+        "Gene": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "ENSG00000067066",
+            "vep": "ENSG00000308860"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "ENSG00000308860",
+            "vep": "ENSG00000067066"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "ENSG00000181109",
+            "vep": "ENSG00000132274"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "ENSG00000132274",
+            "vep": "ENSG00000132256"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "ENSG00000132256",
+            "vep": "ENSG00000181109"
+          }
+        ],
+        "Feature": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000306406",
+            "vep": "ENST00000465296"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000409826",
+            "vep": "ENST00000306406"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000911072",
+            "vep": "ENST00000409826"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000933286",
+            "vep": "ENST00000911072"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000465296",
+            "vep": "ENST00000933286"
+          }
+        ],
+        "BIOTYPE": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "protein_coding",
+            "vep": "protein_coding_CDS_not_defined"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "protein_coding_CDS_not_defined",
+            "vep": "protein_coding"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "protein_coding",
+            "vep": "lncRNA"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "lncRNA",
+            "vep": "protein_coding"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "protein_coding",
+            "vep": "retained_intron"
+          }
+        ],
+        "EXON": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "3/3",
+            "vep": "2/2"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "2/2",
+            "vep": "3/3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/6",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "1/3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "1/3",
+            "vep": "6/6"
+          }
+        ],
+        "INTRON": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "1/1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "1/1",
+            "vep": "6/24"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/24",
+            "vep": "6/28"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/28",
+            "vep": "6/22"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/22",
+            "vep": "6/14"
+          }
+        ],
+        "HGVSc": [
+          {
+            "variant": "chr2\t1842866\tA\tAGCTTCCGCTTCCAGGCGCTTCCGCTTCCAGGC",
+            "vepyr": "",
+            "vep": "ENST00000407844.6:c.-337_-336insGCCTGGAAGCGGAAGCGCCTGGAAGCGGAAGC"
+          },
+          {
+            "variant": "chr2\t1842866\tA\tAGCTTCCGCTTCCAGGCGCTTCCGCTTCCAGGC",
+            "vepyr": "",
+            "vep": "ENST00000648366.1:c.-463_-462insGCCTGGAAGCGGAAGCGCCTGGAAGCGGAAGC"
+          },
+          {
+            "variant": "chr2\t10043427\tC\tCGGCCGGGCACG",
+            "vepyr": "",
+            "vep": "ENST00000837821.1:n.8_9insCGTGCCCGGCC"
+          },
+          {
+            "variant": "chr2\t99141557\tG\tGCGCAGGCGCACGCCCA",
+            "vepyr": "",
+            "vep": "ENST00000355053.8:c.-615_-614insTGGGCGTGCGCCTGCG"
+          },
+          {
+            "variant": "chr2\t99141557\tG\tGCGCAGGCGCACGCCCA",
+            "vepyr": "",
+            "vep": "ENST00000851775.1:c.-486_-485insTGGGCGTGCGCCTGCG"
+          }
+        ],
+        "HGVSp": [
+          {
+            "variant": "chr2\t73385903\tT\tTGGA",
+            "vepyr": "ENSP00000478155.1:p.Glu25dup",
+            "vep": "ENSP00000478155.1:p.Glu28dup"
+          },
+          {
+            "variant": "chr2\t73385903\tT\tTGGA",
+            "vepyr": "ENSP00000482968.1:p.Glu25dup",
+            "vep": "ENSP00000482968.1:p.Glu28dup"
+          },
+          {
+            "variant": "chr2\t73385903\tT\tTGGA",
+            "vepyr": "ENSP00000479094.1:p.Glu25dup",
+            "vep": "ENSP00000479094.1:p.Glu28dup"
+          },
+          {
+            "variant": "chr2\t85754659\tG\tGCGCACCGCCCGCGCGCCC",
+            "vepyr": "ENSP00000304676.3:p.Pro159_Ala164dup",
+            "vep": "ENSP00000304676.3:p.Pro160_Pro165dup"
+          },
+          {
+            "variant": "chr2\t85754659\tG\tGCGCACCGCCCGCGCGCCC",
+            "vepyr": "ENSP00000520563.1:p.Pro159_Ala164dup",
+            "vep": "ENSP00000520563.1:p.Pro160_Pro165dup"
+          }
+        ],
+        "cDNA_position": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "258-259",
+            "vep": "348-349"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "270-271",
+            "vep": "258-259"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "321-322",
+            "vep": "270-271"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "277-278",
+            "vep": "321-322"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "348-349",
+            "vep": "277-278"
+          }
+        ],
+        "CDS_position": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "208-209",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "244-245",
+            "vep": "208-209"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "274-275",
+            "vep": "244-245"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "202-203",
+            "vep": "274-275"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "202-203"
+          }
+        ],
+        "Protein_position": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "70",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "82",
+            "vep": "70"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "92",
+            "vep": "82"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "68",
+            "vep": "92"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "68"
+          }
+        ],
+        "Amino_acids": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "T/SVP",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "T/SVP"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "",
+            "vep": "R/SX"
+          }
+        ],
+        "Codons": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "acg/aGTGTGCcg",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "acg/aGTGTGCcg"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "ccG/ccA",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "ccG/ccA"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "",
+            "vep": "aga/agCa"
+          }
+        ],
+        "DISTANCE": [
+          {
+            "variant": "chr5\t1076407\tG\tTCCTGTGACCACCTG",
+            "vepyr": "973",
+            "vep": "972"
+          },
+          {
+            "variant": "chr13\t113074467\tG\tA",
+            "vepyr": "4073",
+            "vep": ""
+          },
+          {
+            "variant": "chr13\t113074467\tG\tA",
+            "vepyr": "",
+            "vep": "4073"
+          },
+          {
+            "variant": "chr14\t41106449\tT\tAGTAAATTTTTTTTCT",
+            "vepyr": "1",
+            "vep": "0"
+          },
+          {
+            "variant": "chr14\t41106449\tT\tAGTAAATTTTTTTTCT",
+            "vepyr": "3",
+            "vep": "2"
+          }
+        ],
+        "STRAND": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "1",
+            "vep": "-1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "-1",
+            "vep": "1"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "1",
+            "vep": "-1"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "-1",
+            "vep": "1"
+          },
+          {
+            "variant": "chr16\t57058065\tT\tC",
+            "vepyr": "-1",
+            "vep": "1"
+          }
+        ],
+        "FLAGS": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "cds_end_NF",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "cds_end_NF"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "cds_start_NF",
+            "vep": ""
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "",
+            "vep": "cds_start_NF"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "cds_end_NF",
+            "vep": ""
+          }
+        ],
+        "SYMBOL_SOURCE": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "HGNC",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "HGNC"
+          },
+          {
+            "variant": "chr16\t57058065\tT\tC",
+            "vepyr": "",
+            "vep": "HGNC"
+          },
+          {
+            "variant": "chr16\t57058065\tT\tC",
+            "vepyr": "HGNC",
+            "vep": ""
+          }
+        ],
+        "HGNC_ID": [
+          {
+            "variant": "chr2\t49883979\tG\tA",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49884503\tC\tCA",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49884597\tT\tC",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49884897\tA\tG",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49885149\tC\tT",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          }
+        ],
+        "CANONICAL": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "YES",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "YES"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "YES"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "YES",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "YES"
+          }
+        ],
+        "MANE": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "MANE_Select",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "MANE_Select"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "MANE_Select"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "MANE_Select",
+            "vep": ""
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "MANE_Select",
+            "vep": ""
+          }
+        ],
+        "MANE_SELECT": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "NM_183240.3",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "NM_183240.3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "NM_001080391.2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "NM_001080391.2",
+            "vep": ""
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "NM_002880.4",
+            "vep": ""
+          }
+        ],
+        "TSL": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "1",
+            "vep": "3"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "3",
+            "vep": "1"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "3"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "3",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "3",
+            "vep": ""
+          }
+        ],
+        "APPRIS": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "P2",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "A2",
+            "vep": "P2"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "A2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P2",
+            "vep": ""
+          }
+        ],
+        "CCDS": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "CCDS33281.1",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "CCDS33281.1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "CCDS2477.1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "CCDS2477.1",
+            "vep": "CCDS42832.1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "CCDS42832.1",
+            "vep": "CCDS56170.1"
+          }
+        ],
+        "ENSP": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000303148",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000387015",
+            "vep": "ENSP00000303148"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000581131",
+            "vep": "ENSP00000387015"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000603345",
+            "vep": "ENSP00000581131"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "ENSP00000603345"
+          }
+        ],
+        "SWISSPROT": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "Q8WXS4.118",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "Q8WXS4.118"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P23497.250"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497.250",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P23497.250"
+          }
+        ],
+        "TREMBL": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "E7EMC0.78",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "E7EMC0.78"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "C9JBL0.93",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "E9PHV6.83"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "E9PHV6.83",
+            "vep": ""
+          }
+        ],
+        "UNIPARC": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "UPI00001BE8EA",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "UPI00018816C8",
+            "vep": "UPI00001BE8EA"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "UPI00018816C8"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "UPI0003F47F98",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "UPI000004F0A8"
+          }
+        ],
+        "UNIPROT_ISOFORM": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P23497-1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-1",
+            "vep": "P23497-4"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-4",
+            "vep": "P23497-3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-3",
+            "vep": "P23497-2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-2",
+            "vep": ""
+          }
+        ],
+        "SIFT": [
+          {
+            "variant": "chr7\t95316772\tA\tT",
+            "vepyr": "",
+            "vep": "deleterious(0.01)"
+          },
+          {
+            "variant": "chr7\t95316772\tA\tT",
+            "vepyr": "",
+            "vep": "deleterious(0)"
+          },
+          {
+            "variant": "chr8\t143860812\tT\tC",
+            "vepyr": "",
+            "vep": "tolerated(0.34)"
+          },
+          {
+            "variant": "chr8\t143860812\tT\tC",
+            "vepyr": "",
+            "vep": "tolerated(0.32)"
+          },
+          {
+            "variant": "chr8\t143864555\tT\tC",
+            "vepyr": "",
+            "vep": "tolerated(0.47)"
+          }
+        ],
+        "PolyPhen": [
+          {
+            "variant": "chr7\t95316772\tA\tT",
+            "vepyr": "",
+            "vep": "probably_damaging(0.947)"
+          },
+          {
+            "variant": "chr7\t95316772\tA\tT",
+            "vepyr": "",
+            "vep": "benign(0.226)"
+          },
+          {
+            "variant": "chr8\t143860812\tT\tC",
+            "vepyr": "",
+            "vep": "benign(0)"
+          },
+          {
+            "variant": "chr8\t143860812\tT\tC",
+            "vepyr": "",
+            "vep": "benign(0)"
+          },
+          {
+            "variant": "chr8\t143864555\tT\tC",
+            "vepyr": "",
+            "vep": "unknown(0)"
+          }
+        ],
+        "DOMAINS": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "AFDB-ENSP_mappings:AF-Q8WXS4-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "AFDB-ENSP_mappings:AF-E7EMC0-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767",
+            "vep": "AFDB-ENSP_mappings:AF-Q8WXS4-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767",
+            "vep": "AFDB-ENSP_mappings:AF-E7EMC0-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "AFDB-ENSP_mappings:AF-C9JBL0-F1",
+            "vep": ""
+          }
+        ],
+        "miRNA": [
+          {
+            "variant": "chr8\t104484407\tCATTGAAAGTA\tC",
+            "vepyr": "miRNA_loop&miRNA_stem",
+            "vep": "miRNA_loop&miRNA_stem&miRNA_stem"
+          }
+        ],
+        "HGVS_OFFSET": [
+          {
+            "variant": "chr6\t31026229\tCACCACCACAGCCTCTACCACAGGCTCTGAGACCACTACAATCCTGATTAAAGCCTCTGAGACCACCACAGCCTCTACAGCAGGTTCTGAGACCACCACCCCCTCCCCCACAGGCTCTCAGACCACCATAGTCTCTATTTCAGGTTCTGAGATCACCACCACCTCTACGGCAGGATCCGAGAACACCACAGTCTCTAGTGCAGGCTCTGGGACCACCACAGCTTCTATGGCAGGCTCTGAGACCACCGTCTCCACTGCAGGCTCTGAGACCACTACAGTCTCTATCACAGGCACTGAGACCACCATGGTCTCTGCCATGGGCTCAGAGACCACCACAAACTCTACTACAAGCTCTGAGACCACCGTCACCTCTACTGCAGGCTCTGAGACCACCACAGTCTCCACCGTGGGCTCTGAGACCACCACAGCCTATACTGCAGATTCTGAGACCACTGCAGCCTCTACCACAGGCTCTGAGATGACCACAGTCTTCACTGCAGGCTCGGAAACCATCACACCCTCTACTGCAGGCTCAGAGACCACCACAGTCTCTACTGCAGGCTCTGAGACCACTACAGTCTCCACCACAGGCTCTGAGACCACAACAGCCTCTACTGCACATTCTGAGACGACTGCAGCCTCCACCATGGGCTCTGAGACCACCAAAGTCTCAACTGCAGGCTCTGAGACCACAGTCTCCACTGCAGGCTCTGAGACCACTGCAGCCTCTACTGAAGATTCTGAAACCAACACAGCATTTACTGAAGATTCTAAGACTACCACAGCCTCTACTACAGGGTTTGAGACAACCGCAGCCTCTACTACAGGCTCTGAGCCTACCATGGCATCCACCATGGGCTCTGAGACCACTATGGCCTCTACCATAGGCCCTGAGACCACCAAGGTCTCCACTGCAAGCTCTGAGGTGACCACAGTCTTTGCTGCAGGCTCTGAGACAATCAGAGCCTCTACCGTAGGCTCTGAGACCACCACAGTCTCTACCACAGGCTCTGAGACCACCACAGCCTCCATCATGGGCTCTGAGACCAGCACAGATTCTACCACAGGCTCTGAG\tC",
+            "vepyr": "1",
+            "vep": "17"
+          },
+          {
+            "variant": "chr6\t31324398\tGATTCTCCTGCCTCAGCCTCTCGAGTAGCTTGGATTATAGGCATGTGTCACCATGCCCGGTTAATTTTTTTGTATTTTTAATAGAGATGAGGTTTCTCCATGTTGGTCAGGCTGGTCTTGAACTCCTGACCTCAGGTGATCTGCCTGCTTCAGCCTCCCAAATTGCTGGGATTATAGGCGTGAGGCCACCGCTCCTCGCCTAGGTTTTTTTTAAATTAATAAAATCAATAGACCCCTAGCTAGGCTAGTAAAGAAGAAAAGAGAGAAGATTCCAGTAAACACAATTAGAAACAATAAGAGGGACATTACCATTGACCCCACAGAAATTCAAGCAACCACCAGAAAATATTATGAACACCTCTATGCAAATAAACTAGAAAATCTAGAAGACAAGGATCAATTCCTGGATACATACACCTGCCCCCTCCATGACTGAACCAGGAAGAAATTGAATCACTGAACAGACTAATAATGAGTTCTGAAATTAAGGCAGTAATAAACAGCCTACCAACCAAAAAAAACCCAGAACCAGATGATTGACAGGCAAATTCTATTAGATGTACAAAGAAGAGCTGGTACCATTGCTACTGAAACTATTCCAAAAAAAAAAAAAAATGAGGAGGAGAGACTTCTCCCTAACTCATTCTATTAGGCCAGCAACATCCTGATACCAAAATGTGGCAGAGATACCACAACAACAAAAAAGAAAACCTCAAGCCAATATTCTTGATGAACATCGATGCAAAAATCTTTGACAAAATGCCGGCAAGCCGAATCCAGCAGCACATCAAAAAGCTTATCCACTACAATCAAGTAGACTTCACCCCCAGTATGCAAGGTTTGTTCAACAAGTGTAAATTTAAAAATGTGCCTCGTTATACAAACAGAACTAAAGACCAAAACCACATGATTATCTCAGTAGATGCAGAAAGGGCTTTTGATAAAATGCAACATCTATTCATGTTTTAAAAAACTCTCAATAACCTAGATAGTGAAGGAACACACTTCAAAATAATAAAAGCCAATTATGACAAACCCACAGCGAGCATCATACTGATGGGCAAAGGCTGGAAGCATTTCCCTTGAAAACTGACACAAGACAAGGATGCCTTCTCTCACTACTGGTATTCAACATAGTATTGGAAGTTCTGGTCAGGACAATCAGGCAAGAGAAATAAATGAAGGTATTCAAATAGGAAGATAGGAAGTCAAACTATTCCTGTTTGCAGATTACATGATTCTATAACTAGAAAAACCCAGTCTCAGCCCAAAAGCTTTTAAAGCTGATAAACAACTTCAGCAAAGTCTCAGGATACAAAATCAATGTGAGAAAATTACTAGCATTTCTACACACCAACAACAGGCAAACTGAGAGCCAAATCAGGAAAGAACTCCCATTCACAAATGCCACAAAAAGAATACAATACCTAGGAACACAGCTAACTTGGGAGGTAAAAGGTCTCTATAAGAAGAACTATAAACCACTGTTCAAAGAAATCAGAGATGATGCAAACAAATGGAAAAACTTCCTATGCCCATGGATAGGAAGAATCTATATTGTGAAAAAGGCCATACTGCCCAAAGCAATGTATAGATTCAATGCTATTCCTGTCAAACTGCCACTGACATTCTTTTTTTTTTTTTTTTGAGATAGAGTCTTGCTCTGTCGCCCAGGCTGGAGGGCAGTGGCGCGATCTCGGCTCACTGCAAGCTCTGCCTCCTGGGTTCACGGC\tG",
+            "vepyr": "1",
+            "vep": "19"
+          },
+          {
+            "variant": "chr6\t32645665\tA\tATTTTTTTTATTATACTTTAAGTTTTCGGGTACATGTGCACAACGTGCAGGTTTGTTACACATGTATACATGTGCCATGTTGGTGTGCTGCACCCATTAACTCGTCATTTACATTAGGTATATCTCCTAATGCTATCCCTCTCCCCTCCCCCCACCCCACAACAGGCCCCGGTGTGTGATGTTCCCCTTCCTGTGTCCACGTGTTCTCATTGTTCAATTCCCACCTATGAATGAGAACATGTGGTGTTTGGTTTTTTGTCCTTGGGATAGTTTGCTGTGAATGATGGTTTCCAGCTTCATCCATGTCCCTACAAAGGACATGAACTCATCATTTTTTATGGCTGCATAGTATTCCATGGTGTGTATGTGCCACATTTTCTTCATCCAGTCTATCATTGTTGGACATTTGGGTTGGTTCCAAGTCTTTGCATTTGTGAATAGTGCCAAAATAAACATACATGTGCATGTGTCTTTATAGCAGCATGATTTATAATCCTTTGGGTATATACCCAGTAATGGGATGGCTGGGTCAAATGGTATTTCTAGTTCTAGATCCCTGAGGAATCGCCACACTGACTTCCACAATGGTTGAACTAGTTTACAGTCCAATCAACAGTGTAAAAGTATTCCTATTTCTCCACATCCTCTCCAGCACCTGTTGTTTCCTGACTTTTTAATGATTGCCATTCTAACTGGTGTGAGATGGTATCTCATTGTGCTTTTGATTTGCATTTCTCTGATGGCCAGTGGTGATGAGCATTTTTTCATGTGTTTTTTGGCTGCATAAATGTCTTCTTTTGAGAAGTGTCTGTTCATATCCTTTGCCCAGTTTTTGATGGGGTTGTTTGCTTTTTTCTTGTAAATTTGTTTGAGTTCATTGTAGATTCTGGATATCAGCCCTTTGTCAGATGAGTAGATTGCAAAAATTTTCTCCCATTCTGTAGGTTGTCTGTTCACTTTGATGGTAGTTTCTTTTGCTGTGCAGAAGCTCTTTAGTTTAATTAGATCCCATTTGTCAATTTTGGCTTTTGTTGCCATTGCTTTTGGTGTTTTAGACATGAAGTCCTTGCCCATGCCTATGTCCTGAATGGTATTGCCTAGGTTTTCTTCTAGGGTTTTTATGGTTTTAGGTCTAACATTTAAGTCTTTAATCCATCTTGAATTAATTTTTGTATAAGGTGTAAGGAAGGGATCCAGTTTCAGCTTTCTACATATGGCTAGCCAGTTTTCCCAGCACCATTTATTAAATAGGGAATCCTTTCCCCATTTCGTGTTTTTGTCAGGTTTGTCAAAGATCAGATAGTTGTAGATATGCAGCATTATTTCTGAGGGCTCTGTTCTGTTCCATTGGTCTATATCTCTGTTTTGGTACCAGTACCATGCTGTTTTGGTTACTGTAGCCTTGTAGTATAGTTTGAAGTCAGGTAGCATGATGCCTCCAGCTTTGTTCTTTTGGCTTAGGACTGACTTGGCAATGCAGGCTCTATTTTGGTTCCATATGAACTTTAAAGTAGTTTTTTCCAATTTTGTGAAGAAAGTCATTGGTAGCTTGCTGATAAGCAACTTCAGCAAAGTCTCAGGATACAAAATCAATGTACAAAAATCACAAGCATTCTTATACACCAATAACAGACAAACAGAGAGCCAAATCATGAGTGAACTCCCATTCACAATTGCTTCAAAGAGAATAAAATACCTAGGAATCCAACTTACAAGGGATGTGAAGGACCTCTTCAAGGAAAACTACAAACCACTCCTCAATGAAATAAAAGAGGATACAAACCAATGGAAGAACATTCCATGCTCATGGGTAGGAAGAATCAATATCGTGAAAATGGCCATACTGCCCAAGGTAATTTATAGATTCAATAAAGTCTG",
+            "vepyr": "1",
+            "vep": "5"
+          },
+          {
+            "variant": "chr20\t37179387\tG\tGCTTATAGACAGGGCCCCGCGGCCGGCACT",
+            "vepyr": "",
+            "vep": "3"
+          },
+          {
+            "variant": "chr20\t37179387\tG\tGCTTATAGACAGGGCCCCGCGGCCGGCACT",
+            "vepyr": "",
+            "vep": "3"
+          }
+        ],
+        "gnomADg_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8404"
+          }
+        ],
+        "gnomADg_AFR_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8116"
+          }
+        ],
+        "gnomADg_AMI_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.7912"
+          }
+        ],
+        "gnomADg_AMR_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9142"
+          }
+        ],
+        "gnomADg_ASJ_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9029"
+          }
+        ],
+        "gnomADg_EAS_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9247"
+          }
+        ],
+        "gnomADg_FIN_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.7141"
+          }
+        ],
+        "gnomADg_MID_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9014"
+          }
+        ],
+        "gnomADg_NFE_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8489"
+          }
+        ],
+        "gnomADg_REMAINING_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.863"
+          }
+        ],
+        "gnomADg_SAS_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8725"
+          }
+        ],
+        "MAX_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9247"
+          }
+        ],
+        "MAX_AF_POPS": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "gnomADg_EAS"
+          }
+        ]
+      }
+    },
+    "fjall": {
+      "backend": "fjall",
+      "variants_compared": 4096123,
+      "variants_only_in_vepyr": 0,
+      "csq_entry_count_match": 4095610,
+      "csq_entry_count_mismatch": 1,
+      "csq_fields_only_vepyr": [],
+      "csq_fields_only_vep": [],
+      "field_match_rates": {
+        "Allele": 100.0,
+        "Consequence": 99.9995,
+        "IMPACT": 99.9998,
+        "SYMBOL": 100.0,
+        "Gene": 100.0,
+        "Feature_type": 100.0,
+        "Feature": 99.9993,
+        "BIOTYPE": 99.9999,
+        "EXON": 99.9998,
+        "INTRON": 99.9995,
+        "HGVSc": 99.9991,
+        "HGVSp": 99.9995,
+        "cDNA_position": 99.9998,
+        "CDS_position": 99.9998,
+        "Protein_position": 99.9998,
+        "Amino_acids": 99.9999,
+        "Codons": 99.9999,
+        "Existing_variation": 100.0,
+        "DISTANCE": 100.0,
+        "STRAND": 100.0,
+        "FLAGS": 99.9999,
+        "VARIANT_CLASS": 100.0,
+        "SYMBOL_SOURCE": 100.0,
+        "HGNC_ID": 99.9998,
+        "CANONICAL": 99.9999,
+        "MANE": 99.9999,
+        "MANE_SELECT": 99.9999,
+        "MANE_PLUS_CLINICAL": 100.0,
+        "TSL": 99.9998,
+        "APPRIS": 99.9998,
+        "CCDS": 99.9998,
+        "ENSP": 99.9993,
+        "SWISSPROT": 99.9999,
+        "TREMBL": 99.9997,
+        "UNIPARC": 99.9995,
+        "UNIPROT_ISOFORM": 99.9999,
+        "GENE_PHENO": 100.0,
+        "SIFT": 100.0,
+        "PolyPhen": 100.0,
+        "DOMAINS": 99.9998,
+        "miRNA": 100.0,
+        "HGVS_OFFSET": 100.0,
+        "AF": 100.0,
+        "AFR_AF": 100.0,
+        "AMR_AF": 100.0,
+        "EAS_AF": 100.0,
+        "EUR_AF": 100.0,
+        "SAS_AF": 100.0,
+        "gnomADe_AF": 100.0,
+        "gnomADe_AFR_AF": 100.0,
+        "gnomADe_AMR_AF": 100.0,
+        "gnomADe_ASJ_AF": 100.0,
+        "gnomADe_EAS_AF": 100.0,
+        "gnomADe_FIN_AF": 100.0,
+        "gnomADe_MID_AF": 100.0,
+        "gnomADe_NFE_AF": 100.0,
+        "gnomADe_REMAINING_AF": 100.0,
+        "gnomADe_SAS_AF": 100.0,
+        "gnomADg_AF": 100.0,
+        "gnomADg_AFR_AF": 100.0,
+        "gnomADg_AMI_AF": 100.0,
+        "gnomADg_AMR_AF": 100.0,
+        "gnomADg_ASJ_AF": 100.0,
+        "gnomADg_EAS_AF": 100.0,
+        "gnomADg_FIN_AF": 100.0,
+        "gnomADg_MID_AF": 100.0,
+        "gnomADg_NFE_AF": 100.0,
+        "gnomADg_REMAINING_AF": 100.0,
+        "gnomADg_SAS_AF": 100.0,
+        "MAX_AF": 100.0,
+        "MAX_AF_POPS": 100.0,
+        "CLIN_SIG": 100.0,
+        "SOMATIC": 100.0,
+        "PHENO": 100.0,
+        "PUBMED": 100.0,
+        "MOTIF_NAME": 100.0,
+        "MOTIF_POS": 100.0,
+        "HIGH_INF_POS": 100.0,
+        "MOTIF_SCORE_CHANGE": 100.0,
+        "TRANSCRIPTION_FACTORS": 100.0
+      },
+      "field_mismatch_counts": {
+        "Consequence": 175,
+        "IMPACT": 83,
+        "SYMBOL": 15,
+        "Gene": 15,
+        "Feature": 260,
+        "BIOTYPE": 44,
+        "EXON": 65,
+        "INTRON": 178,
+        "HGVSc": 317,
+        "HGVSp": 200,
+        "cDNA_position": 91,
+        "CDS_position": 64,
+        "Protein_position": 64,
+        "Amino_acids": 44,
+        "Codons": 44,
+        "DISTANCE": 7,
+        "STRAND": 14,
+        "FLAGS": 45,
+        "SYMBOL_SOURCE": 4,
+        "HGNC_ID": 78,
+        "CANONICAL": 30,
+        "MANE": 22,
+        "MANE_SELECT": 22,
+        "TSL": 83,
+        "APPRIS": 88,
+        "CCDS": 84,
+        "ENSP": 242,
+        "SWISSPROT": 43,
+        "TREMBL": 117,
+        "UNIPARC": 173,
+        "UNIPROT_ISOFORM": 51,
+        "SIFT": 2,
+        "PolyPhen": 2,
+        "DOMAINS": 61,
+        "miRNA": 1,
+        "HGVS_OFFSET": 11,
+        "gnomADg_AF": 1,
+        "gnomADg_AFR_AF": 1,
+        "gnomADg_AMI_AF": 1,
+        "gnomADg_AMR_AF": 1,
+        "gnomADg_ASJ_AF": 1,
+        "gnomADg_EAS_AF": 1,
+        "gnomADg_FIN_AF": 1,
+        "gnomADg_MID_AF": 1,
+        "gnomADg_NFE_AF": 1,
+        "gnomADg_REMAINING_AF": 1,
+        "gnomADg_SAS_AF": 1,
+        "MAX_AF": 1,
+        "MAX_AF_POPS": 1
+      },
+      "field_mismatch_examples": {
+        "Consequence": [
+          {
+            "variant": "chr2\t12737375\tG\tGA",
+            "vepyr": "mature_miRNA_variant",
+            "vep": "non_coding_transcript_exon_variant"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          },
+          {
+            "variant": "chr2\t26254257\tG\tGACT",
+            "vepyr": "inframe_insertion&start_retained_variant",
+            "vep": "inframe_insertion"
+          }
+        ],
+        "IMPACT": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "MODERATE",
+            "vep": "MODIFIER"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "MODIFIER",
+            "vep": "MODERATE"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "LOW",
+            "vep": "MODIFIER"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "MODIFIER",
+            "vep": "LOW"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "MODIFIER",
+            "vep": "HIGH"
+          }
+        ],
+        "SYMBOL": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "SP100",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "SP100"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "OR52P1",
+            "vep": "TRIM22"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "TRIM22",
+            "vep": "TRIM5"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "TRIM5",
+            "vep": "OR52P1"
+          }
+        ],
+        "Gene": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "ENSG00000067066",
+            "vep": "ENSG00000308860"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "ENSG00000308860",
+            "vep": "ENSG00000067066"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "ENSG00000181109",
+            "vep": "ENSG00000132274"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "ENSG00000132274",
+            "vep": "ENSG00000132256"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "ENSG00000132256",
+            "vep": "ENSG00000181109"
+          }
+        ],
+        "Feature": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000306406",
+            "vep": "ENST00000465296"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000409826",
+            "vep": "ENST00000306406"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000911072",
+            "vep": "ENST00000409826"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000933286",
+            "vep": "ENST00000911072"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENST00000465296",
+            "vep": "ENST00000933286"
+          }
+        ],
+        "BIOTYPE": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "protein_coding",
+            "vep": "protein_coding_CDS_not_defined"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "protein_coding_CDS_not_defined",
+            "vep": "protein_coding"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "protein_coding",
+            "vep": "lncRNA"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "lncRNA",
+            "vep": "protein_coding"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "protein_coding",
+            "vep": "retained_intron"
+          }
+        ],
+        "EXON": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "3/3",
+            "vep": "2/2"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "2/2",
+            "vep": "3/3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/6",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "1/3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "1/3",
+            "vep": "6/6"
+          }
+        ],
+        "INTRON": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "1/1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "1/1",
+            "vep": "6/24"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/24",
+            "vep": "6/28"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/28",
+            "vep": "6/22"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "6/22",
+            "vep": "6/14"
+          }
+        ],
+        "HGVSc": [
+          {
+            "variant": "chr2\t1842866\tA\tAGCTTCCGCTTCCAGGCGCTTCCGCTTCCAGGC",
+            "vepyr": "",
+            "vep": "ENST00000407844.6:c.-337_-336insGCCTGGAAGCGGAAGCGCCTGGAAGCGGAAGC"
+          },
+          {
+            "variant": "chr2\t1842866\tA\tAGCTTCCGCTTCCAGGCGCTTCCGCTTCCAGGC",
+            "vepyr": "",
+            "vep": "ENST00000648366.1:c.-463_-462insGCCTGGAAGCGGAAGCGCCTGGAAGCGGAAGC"
+          },
+          {
+            "variant": "chr2\t10043427\tC\tCGGCCGGGCACG",
+            "vepyr": "",
+            "vep": "ENST00000837821.1:n.8_9insCGTGCCCGGCC"
+          },
+          {
+            "variant": "chr2\t99141557\tG\tGCGCAGGCGCACGCCCA",
+            "vepyr": "",
+            "vep": "ENST00000355053.8:c.-615_-614insTGGGCGTGCGCCTGCG"
+          },
+          {
+            "variant": "chr2\t99141557\tG\tGCGCAGGCGCACGCCCA",
+            "vepyr": "",
+            "vep": "ENST00000851775.1:c.-486_-485insTGGGCGTGCGCCTGCG"
+          }
+        ],
+        "HGVSp": [
+          {
+            "variant": "chr2\t73385903\tT\tTGGA",
+            "vepyr": "ENSP00000478155.1:p.Glu25dup",
+            "vep": "ENSP00000478155.1:p.Glu28dup"
+          },
+          {
+            "variant": "chr2\t73385903\tT\tTGGA",
+            "vepyr": "ENSP00000482968.1:p.Glu25dup",
+            "vep": "ENSP00000482968.1:p.Glu28dup"
+          },
+          {
+            "variant": "chr2\t73385903\tT\tTGGA",
+            "vepyr": "ENSP00000479094.1:p.Glu25dup",
+            "vep": "ENSP00000479094.1:p.Glu28dup"
+          },
+          {
+            "variant": "chr2\t85754659\tG\tGCGCACCGCCCGCGCGCCC",
+            "vepyr": "ENSP00000304676.3:p.Pro159_Ala164dup",
+            "vep": "ENSP00000304676.3:p.Pro160_Pro165dup"
+          },
+          {
+            "variant": "chr2\t85754659\tG\tGCGCACCGCCCGCGCGCCC",
+            "vepyr": "ENSP00000520563.1:p.Pro159_Ala164dup",
+            "vep": "ENSP00000520563.1:p.Pro160_Pro165dup"
+          }
+        ],
+        "cDNA_position": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "258-259",
+            "vep": "348-349"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "270-271",
+            "vep": "258-259"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "321-322",
+            "vep": "270-271"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "277-278",
+            "vep": "321-322"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "348-349",
+            "vep": "277-278"
+          }
+        ],
+        "CDS_position": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "208-209",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "244-245",
+            "vep": "208-209"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "274-275",
+            "vep": "244-245"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "202-203",
+            "vep": "274-275"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "202-203"
+          }
+        ],
+        "Protein_position": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "70",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "82",
+            "vep": "70"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "92",
+            "vep": "82"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "68",
+            "vep": "92"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "68"
+          }
+        ],
+        "Amino_acids": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "T/SVP",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "T/SVP"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "",
+            "vep": "R/SX"
+          }
+        ],
+        "Codons": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "acg/aGTGTGCcg",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "acg/aGTGTGCcg"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "ccG/ccA",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "ccG/ccA"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "",
+            "vep": "aga/agCa"
+          }
+        ],
+        "DISTANCE": [
+          {
+            "variant": "chr5\t1076407\tG\tTCCTGTGACCACCTG",
+            "vepyr": "973",
+            "vep": "972"
+          },
+          {
+            "variant": "chr13\t113074467\tG\tA",
+            "vepyr": "4073",
+            "vep": ""
+          },
+          {
+            "variant": "chr13\t113074467\tG\tA",
+            "vepyr": "",
+            "vep": "4073"
+          },
+          {
+            "variant": "chr14\t41106449\tT\tAGTAAATTTTTTTTCT",
+            "vepyr": "1",
+            "vep": "0"
+          },
+          {
+            "variant": "chr14\t41106449\tT\tAGTAAATTTTTTTTCT",
+            "vepyr": "3",
+            "vep": "2"
+          }
+        ],
+        "STRAND": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "1",
+            "vep": "-1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "-1",
+            "vep": "1"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "1",
+            "vep": "-1"
+          },
+          {
+            "variant": "chr11\t5727045\tT\tTGAGC",
+            "vepyr": "-1",
+            "vep": "1"
+          },
+          {
+            "variant": "chr16\t57058065\tT\tC",
+            "vepyr": "-1",
+            "vep": "1"
+          }
+        ],
+        "FLAGS": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "cds_end_NF",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "cds_end_NF"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "cds_start_NF",
+            "vep": ""
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "",
+            "vep": "cds_start_NF"
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "cds_end_NF",
+            "vep": ""
+          }
+        ],
+        "SYMBOL_SOURCE": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "HGNC",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "HGNC"
+          },
+          {
+            "variant": "chr16\t57058065\tT\tC",
+            "vepyr": "",
+            "vep": "HGNC"
+          },
+          {
+            "variant": "chr16\t57058065\tT\tC",
+            "vepyr": "HGNC",
+            "vep": ""
+          }
+        ],
+        "HGNC_ID": [
+          {
+            "variant": "chr2\t49883979\tG\tA",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49884503\tC\tCA",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49884597\tT\tC",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49884897\tA\tG",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t49885149\tC\tT",
+            "vepyr": "HGNC:32661",
+            "vep": ""
+          }
+        ],
+        "CANONICAL": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "YES",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "YES"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "YES"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "YES",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "YES"
+          }
+        ],
+        "MANE": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "MANE_Select",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "MANE_Select"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "MANE_Select"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "MANE_Select",
+            "vep": ""
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "MANE_Select",
+            "vep": ""
+          }
+        ],
+        "MANE_SELECT": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "NM_183240.3",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "NM_183240.3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "NM_001080391.2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "NM_001080391.2",
+            "vep": ""
+          },
+          {
+            "variant": "chr3\t12606048\tT\tTG",
+            "vepyr": "NM_002880.4",
+            "vep": ""
+          }
+        ],
+        "TSL": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "1",
+            "vep": "3"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "3",
+            "vep": "1"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "3"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "3",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "3",
+            "vep": ""
+          }
+        ],
+        "APPRIS": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "P2",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "A2",
+            "vep": "P2"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "A2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P2",
+            "vep": ""
+          }
+        ],
+        "CCDS": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "CCDS33281.1",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "CCDS33281.1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "CCDS2477.1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "CCDS2477.1",
+            "vep": "CCDS42832.1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "CCDS42832.1",
+            "vep": "CCDS56170.1"
+          }
+        ],
+        "ENSP": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000303148",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000387015",
+            "vep": "ENSP00000303148"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000581131",
+            "vep": "ENSP00000387015"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "ENSP00000603345",
+            "vep": "ENSP00000581131"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "ENSP00000603345"
+          }
+        ],
+        "SWISSPROT": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "Q8WXS4.118",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "Q8WXS4.118"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P23497.250"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497.250",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P23497.250"
+          }
+        ],
+        "TREMBL": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "E7EMC0.78",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "E7EMC0.78"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "C9JBL0.93",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "E9PHV6.83"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "E9PHV6.83",
+            "vep": ""
+          }
+        ],
+        "UNIPARC": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "UPI00001BE8EA",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "UPI00018816C8",
+            "vep": "UPI00001BE8EA"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "UPI00018816C8"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "UPI0003F47F98",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "UPI000004F0A8"
+          }
+        ],
+        "UNIPROT_ISOFORM": [
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "",
+            "vep": "P23497-1"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-1",
+            "vep": "P23497-4"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-4",
+            "vep": "P23497-3"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-3",
+            "vep": "P23497-2"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "P23497-2",
+            "vep": ""
+          }
+        ],
+        "SIFT": [
+          {
+            "variant": "chr10\t69343841\tC\tG",
+            "vepyr": "",
+            "vep": "tolerated_low_confidence(0.07)"
+          },
+          {
+            "variant": "chr10\t69343841\tC\tG",
+            "vepyr": "tolerated_low_confidence(0.07)",
+            "vep": ""
+          }
+        ],
+        "PolyPhen": [
+          {
+            "variant": "chr10\t69343841\tC\tG",
+            "vepyr": "",
+            "vep": "unknown(0)"
+          },
+          {
+            "variant": "chr10\t69343841\tC\tG",
+            "vepyr": "unknown(0)",
+            "vep": ""
+          }
+        ],
+        "DOMAINS": [
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "AFDB-ENSP_mappings:AF-Q8WXS4-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767",
+            "vep": ""
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "AFDB-ENSP_mappings:AF-E7EMC0-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767",
+            "vep": "AFDB-ENSP_mappings:AF-Q8WXS4-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767",
+            "vep": "AFDB-ENSP_mappings:AF-E7EMC0-F1&Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767"
+          },
+          {
+            "variant": "chr2\t119437075\tA\tAGTGTGC",
+            "vepyr": "",
+            "vep": "Phobius:NON_CYTOPLASMIC_DOMAIN&Pfam:PF15108&PANTHER:PTHR31767"
+          },
+          {
+            "variant": "chr2\t230449378\tG\tA",
+            "vepyr": "AFDB-ENSP_mappings:AF-C9JBL0-F1",
+            "vep": ""
+          }
+        ],
+        "miRNA": [
+          {
+            "variant": "chr8\t104484407\tCATTGAAAGTA\tC",
+            "vepyr": "miRNA_loop&miRNA_stem",
+            "vep": "miRNA_loop&miRNA_stem&miRNA_stem"
+          }
+        ],
+        "HGVS_OFFSET": [
+          {
+            "variant": "chr6\t31026229\tCACCACCACAGCCTCTACCACAGGCTCTGAGACCACTACAATCCTGATTAAAGCCTCTGAGACCACCACAGCCTCTACAGCAGGTTCTGAGACCACCACCCCCTCCCCCACAGGCTCTCAGACCACCATAGTCTCTATTTCAGGTTCTGAGATCACCACCACCTCTACGGCAGGATCCGAGAACACCACAGTCTCTAGTGCAGGCTCTGGGACCACCACAGCTTCTATGGCAGGCTCTGAGACCACCGTCTCCACTGCAGGCTCTGAGACCACTACAGTCTCTATCACAGGCACTGAGACCACCATGGTCTCTGCCATGGGCTCAGAGACCACCACAAACTCTACTACAAGCTCTGAGACCACCGTCACCTCTACTGCAGGCTCTGAGACCACCACAGTCTCCACCGTGGGCTCTGAGACCACCACAGCCTATACTGCAGATTCTGAGACCACTGCAGCCTCTACCACAGGCTCTGAGATGACCACAGTCTTCACTGCAGGCTCGGAAACCATCACACCCTCTACTGCAGGCTCAGAGACCACCACAGTCTCTACTGCAGGCTCTGAGACCACTACAGTCTCCACCACAGGCTCTGAGACCACAACAGCCTCTACTGCACATTCTGAGACGACTGCAGCCTCCACCATGGGCTCTGAGACCACCAAAGTCTCAACTGCAGGCTCTGAGACCACAGTCTCCACTGCAGGCTCTGAGACCACTGCAGCCTCTACTGAAGATTCTGAAACCAACACAGCATTTACTGAAGATTCTAAGACTACCACAGCCTCTACTACAGGGTTTGAGACAACCGCAGCCTCTACTACAGGCTCTGAGCCTACCATGGCATCCACCATGGGCTCTGAGACCACTATGGCCTCTACCATAGGCCCTGAGACCACCAAGGTCTCCACTGCAAGCTCTGAGGTGACCACAGTCTTTGCTGCAGGCTCTGAGACAATCAGAGCCTCTACCGTAGGCTCTGAGACCACCACAGTCTCTACCACAGGCTCTGAGACCACCACAGCCTCCATCATGGGCTCTGAGACCAGCACAGATTCTACCACAGGCTCTGAG\tC",
+            "vepyr": "1",
+            "vep": "17"
+          },
+          {
+            "variant": "chr6\t31324398\tGATTCTCCTGCCTCAGCCTCTCGAGTAGCTTGGATTATAGGCATGTGTCACCATGCCCGGTTAATTTTTTTGTATTTTTAATAGAGATGAGGTTTCTCCATGTTGGTCAGGCTGGTCTTGAACTCCTGACCTCAGGTGATCTGCCTGCTTCAGCCTCCCAAATTGCTGGGATTATAGGCGTGAGGCCACCGCTCCTCGCCTAGGTTTTTTTTAAATTAATAAAATCAATAGACCCCTAGCTAGGCTAGTAAAGAAGAAAAGAGAGAAGATTCCAGTAAACACAATTAGAAACAATAAGAGGGACATTACCATTGACCCCACAGAAATTCAAGCAACCACCAGAAAATATTATGAACACCTCTATGCAAATAAACTAGAAAATCTAGAAGACAAGGATCAATTCCTGGATACATACACCTGCCCCCTCCATGACTGAACCAGGAAGAAATTGAATCACTGAACAGACTAATAATGAGTTCTGAAATTAAGGCAGTAATAAACAGCCTACCAACCAAAAAAAACCCAGAACCAGATGATTGACAGGCAAATTCTATTAGATGTACAAAGAAGAGCTGGTACCATTGCTACTGAAACTATTCCAAAAAAAAAAAAAAATGAGGAGGAGAGACTTCTCCCTAACTCATTCTATTAGGCCAGCAACATCCTGATACCAAAATGTGGCAGAGATACCACAACAACAAAAAAGAAAACCTCAAGCCAATATTCTTGATGAACATCGATGCAAAAATCTTTGACAAAATGCCGGCAAGCCGAATCCAGCAGCACATCAAAAAGCTTATCCACTACAATCAAGTAGACTTCACCCCCAGTATGCAAGGTTTGTTCAACAAGTGTAAATTTAAAAATGTGCCTCGTTATACAAACAGAACTAAAGACCAAAACCACATGATTATCTCAGTAGATGCAGAAAGGGCTTTTGATAAAATGCAACATCTATTCATGTTTTAAAAAACTCTCAATAACCTAGATAGTGAAGGAACACACTTCAAAATAATAAAAGCCAATTATGACAAACCCACAGCGAGCATCATACTGATGGGCAAAGGCTGGAAGCATTTCCCTTGAAAACTGACACAAGACAAGGATGCCTTCTCTCACTACTGGTATTCAACATAGTATTGGAAGTTCTGGTCAGGACAATCAGGCAAGAGAAATAAATGAAGGTATTCAAATAGGAAGATAGGAAGTCAAACTATTCCTGTTTGCAGATTACATGATTCTATAACTAGAAAAACCCAGTCTCAGCCCAAAAGCTTTTAAAGCTGATAAACAACTTCAGCAAAGTCTCAGGATACAAAATCAATGTGAGAAAATTACTAGCATTTCTACACACCAACAACAGGCAAACTGAGAGCCAAATCAGGAAAGAACTCCCATTCACAAATGCCACAAAAAGAATACAATACCTAGGAACACAGCTAACTTGGGAGGTAAAAGGTCTCTATAAGAAGAACTATAAACCACTGTTCAAAGAAATCAGAGATGATGCAAACAAATGGAAAAACTTCCTATGCCCATGGATAGGAAGAATCTATATTGTGAAAAAGGCCATACTGCCCAAAGCAATGTATAGATTCAATGCTATTCCTGTCAAACTGCCACTGACATTCTTTTTTTTTTTTTTTTGAGATAGAGTCTTGCTCTGTCGCCCAGGCTGGAGGGCAGTGGCGCGATCTCGGCTCACTGCAAGCTCTGCCTCCTGGGTTCACGGC\tG",
+            "vepyr": "1",
+            "vep": "19"
+          },
+          {
+            "variant": "chr6\t32645665\tA\tATTTTTTTTATTATACTTTAAGTTTTCGGGTACATGTGCACAACGTGCAGGTTTGTTACACATGTATACATGTGCCATGTTGGTGTGCTGCACCCATTAACTCGTCATTTACATTAGGTATATCTCCTAATGCTATCCCTCTCCCCTCCCCCCACCCCACAACAGGCCCCGGTGTGTGATGTTCCCCTTCCTGTGTCCACGTGTTCTCATTGTTCAATTCCCACCTATGAATGAGAACATGTGGTGTTTGGTTTTTTGTCCTTGGGATAGTTTGCTGTGAATGATGGTTTCCAGCTTCATCCATGTCCCTACAAAGGACATGAACTCATCATTTTTTATGGCTGCATAGTATTCCATGGTGTGTATGTGCCACATTTTCTTCATCCAGTCTATCATTGTTGGACATTTGGGTTGGTTCCAAGTCTTTGCATTTGTGAATAGTGCCAAAATAAACATACATGTGCATGTGTCTTTATAGCAGCATGATTTATAATCCTTTGGGTATATACCCAGTAATGGGATGGCTGGGTCAAATGGTATTTCTAGTTCTAGATCCCTGAGGAATCGCCACACTGACTTCCACAATGGTTGAACTAGTTTACAGTCCAATCAACAGTGTAAAAGTATTCCTATTTCTCCACATCCTCTCCAGCACCTGTTGTTTCCTGACTTTTTAATGATTGCCATTCTAACTGGTGTGAGATGGTATCTCATTGTGCTTTTGATTTGCATTTCTCTGATGGCCAGTGGTGATGAGCATTTTTTCATGTGTTTTTTGGCTGCATAAATGTCTTCTTTTGAGAAGTGTCTGTTCATATCCTTTGCCCAGTTTTTGATGGGGTTGTTTGCTTTTTTCTTGTAAATTTGTTTGAGTTCATTGTAGATTCTGGATATCAGCCCTTTGTCAGATGAGTAGATTGCAAAAATTTTCTCCCATTCTGTAGGTTGTCTGTTCACTTTGATGGTAGTTTCTTTTGCTGTGCAGAAGCTCTTTAGTTTAATTAGATCCCATTTGTCAATTTTGGCTTTTGTTGCCATTGCTTTTGGTGTTTTAGACATGAAGTCCTTGCCCATGCCTATGTCCTGAATGGTATTGCCTAGGTTTTCTTCTAGGGTTTTTATGGTTTTAGGTCTAACATTTAAGTCTTTAATCCATCTTGAATTAATTTTTGTATAAGGTGTAAGGAAGGGATCCAGTTTCAGCTTTCTACATATGGCTAGCCAGTTTTCCCAGCACCATTTATTAAATAGGGAATCCTTTCCCCATTTCGTGTTTTTGTCAGGTTTGTCAAAGATCAGATAGTTGTAGATATGCAGCATTATTTCTGAGGGCTCTGTTCTGTTCCATTGGTCTATATCTCTGTTTTGGTACCAGTACCATGCTGTTTTGGTTACTGTAGCCTTGTAGTATAGTTTGAAGTCAGGTAGCATGATGCCTCCAGCTTTGTTCTTTTGGCTTAGGACTGACTTGGCAATGCAGGCTCTATTTTGGTTCCATATGAACTTTAAAGTAGTTTTTTCCAATTTTGTGAAGAAAGTCATTGGTAGCTTGCTGATAAGCAACTTCAGCAAAGTCTCAGGATACAAAATCAATGTACAAAAATCACAAGCATTCTTATACACCAATAACAGACAAACAGAGAGCCAAATCATGAGTGAACTCCCATTCACAATTGCTTCAAAGAGAATAAAATACCTAGGAATCCAACTTACAAGGGATGTGAAGGACCTCTTCAAGGAAAACTACAAACCACTCCTCAATGAAATAAAAGAGGATACAAACCAATGGAAGAACATTCCATGCTCATGGGTAGGAAGAATCAATATCGTGAAAATGGCCATACTGCCCAAGGTAATTTATAGATTCAATAAAGTCTG",
+            "vepyr": "1",
+            "vep": "5"
+          },
+          {
+            "variant": "chr20\t37179387\tG\tGCTTATAGACAGGGCCCCGCGGCCGGCACT",
+            "vepyr": "",
+            "vep": "3"
+          },
+          {
+            "variant": "chr20\t37179387\tG\tGCTTATAGACAGGGCCCCGCGGCCGGCACT",
+            "vepyr": "",
+            "vep": "3"
+          }
+        ],
+        "gnomADg_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8404"
+          }
+        ],
+        "gnomADg_AFR_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8116"
+          }
+        ],
+        "gnomADg_AMI_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.7912"
+          }
+        ],
+        "gnomADg_AMR_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9142"
+          }
+        ],
+        "gnomADg_ASJ_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9029"
+          }
+        ],
+        "gnomADg_EAS_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9247"
+          }
+        ],
+        "gnomADg_FIN_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.7141"
+          }
+        ],
+        "gnomADg_MID_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9014"
+          }
+        ],
+        "gnomADg_NFE_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8489"
+          }
+        ],
+        "gnomADg_REMAINING_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.863"
+          }
+        ],
+        "gnomADg_SAS_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.8725"
+          }
+        ],
+        "MAX_AF": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "0.9247"
+          }
+        ],
+        "MAX_AF_POPS": [
+          {
+            "variant": "chr7\t142353982\tG\tA",
+            "vepyr": "",
+            "vep": "gnomADg_EAS"
+          }
+        ]
+      }
+    }
+  }
+}

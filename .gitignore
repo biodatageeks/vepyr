@@ -211,3 +211,10 @@ __marimo__/
 tests/data/golden/cache/
 
 sandbox
+.DS_Store
+
+e2e-testing/results/normalized.vcf.gz*
+e2e-testing/results/vepyr_parquet.vcf*
+e2e-testing/results/vepyr_fjall.vcf*
+e2e-testing/results/
+e2e-testing/reports/

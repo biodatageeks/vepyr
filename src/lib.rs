@@ -117,7 +117,7 @@ fn create_annotator(
 
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    let _ = pyo3_log::try_init();
+    let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;

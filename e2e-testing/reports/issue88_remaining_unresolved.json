@@ -1,0 +1,96 @@
+{
+  "generated": "2026-04-04",
+  "context": "Updated after PR #96 (issue #88) and PR #102 (issue #89) fixes",
+  "summary": {
+    "issue_88_hgvsc": {
+      "total": 1264,
+      "exact_match": 1264,
+      "differs": 0,
+      "empty": 0,
+      "rate": "100.0%"
+    },
+    "issue_88_hgvsp": {
+      "total": 1264,
+      "exact_match": 1257,
+      "differs": 0,
+      "empty": 7,
+      "rate": "99.4%"
+    },
+    "issue_89_hgvsp": {
+      "total": 259,
+      "exact_match": 259,
+      "differs": 0,
+      "empty": 0,
+      "rate": "100.0%"
+    },
+    "issue_89_hgvsc": {
+      "total": 259,
+      "exact_match": 259,
+      "differs": 0,
+      "empty": 0,
+      "rate": "100.0%"
+    },
+    "resolved": {
+      "dup_vs_ins_mismatches": "36 \u2192 0 (all fixed by PR #102)",
+      "transcripts_missing_from_vepyr": "402 entries across 12 variants \u2014 NOT related to #88/#89, likely transcript overlap detection"
+    }
+  },
+  "remaining_hgvsp_empties": [
+    {
+      "chrom": "chr5",
+      "pos": 77438259,
+      "feature": "ENST00000511791",
+      "vep_hgvsp": "ENSP00000423540.1:p.Ter121%3D",
+      "tracked_in": "#101",
+      "category": "incomplete_terminal_codon_variant"
+    },
+    {
+      "chrom": "chr6",
+      "pos": 31270214,
+      "feature": "ENST00000415537",
+      "vep_hgvsp": "ENSP00000400410.1:p.Ter262%3D",
+      "tracked_in": "#101",
+      "category": "incomplete_terminal_codon_variant"
+    },
+    {
+      "chrom": "chr7",
+      "pos": 56081717,
+      "feature": "ENST00000446428",
+      "vep_hgvsp": "ENSP00000389721.1:p.Ter118%3D",
+      "tracked_in": "#101",
+      "category": "incomplete_terminal_codon_variant"
+    },
+    {
+      "chrom": "chr9",
+      "pos": 76321576,
+      "feature": "ENST00000673745",
+      "vep_hgvsp": "ENSP00000501224.1:p.Ter185%3D",
+      "tracked_in": "#101",
+      "category": "incomplete_terminal_codon_variant"
+    },
+    {
+      "chrom": "chr12",
+      "pos": 121626865,
+      "feature": "ENST00000617316",
+      "vep_hgvsp": "ENSP00000482568.2:p.Pro43ThrfsTer43",
+      "tracked_in": "#90",
+      "category": "frameshift"
+    },
+    {
+      "chrom": "chr19",
+      "pos": 52801310,
+      "feature": "ENST00000596559",
+      "vep_hgvsp": "ENSP00000471448.1:p.Ter176%3D",
+      "tracked_in": "#101",
+      "category": "incomplete_terminal_codon_variant"
+    },
+    {
+      "chrom": "chr20",
+      "pos": 13072370,
+      "feature": "ENST00000434210",
+      "vep_hgvsp": "ENSP00000389749.1:p.Ter140%3D",
+      "tracked_in": "#101",
+      "category": "incomplete_terminal_codon_variant"
+    }
+  ]
+}
