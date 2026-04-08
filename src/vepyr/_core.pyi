@@ -8,8 +8,51 @@ def convert_entity(
     entity: str,
     partitions: int = 8,
     memory_limit_gb: int = 32,
+    chromosomes: list[str] | None = None,
 ) -> list[tuple[str, int]] | None:
     """Convert a single entity type from an Ensembl VEP cache to Parquet."""
+    ...
+
+def convert_plugin(
+    plugin_name: str,
+    source_path: str,
+    output_dir: str,
+    partitions: int = 8,
+    memory_limit_gb: int = 32,
+    chromosomes: list[str] | None = None,
+) -> list[tuple[str, int]]:
+    """Convert a single plugin source file to Parquet."""
+    ...
+
+def convert_cadd_plugin(
+    snv_source_path: str,
+    indel_source_path: str,
+    output_dir: str,
+    partitions: int = 8,
+    memory_limit_gb: int = 32,
+    chromosomes: list[str] | None = None,
+) -> list[tuple[str, int]]:
+    """Convert CADD SNV and indel source files into one Parquet plugin cache."""
+    ...
+
+def build_entity_fjall(
+    cache_root: str,
+    output_dir: str,
+    entity: str,
+    partitions: int = 8,
+    chromosomes: list[str] | None = None,
+) -> list[tuple[str, int]]:
+    """Build a core fjall cache from existing parquet files for one entity."""
+    ...
+
+def build_plugin_fjall(
+    plugin_name: str,
+    parquet_dir: str,
+    output_path: str,
+    partitions: int = 8,
+    chromosomes: list[str] | None = None,
+) -> tuple[str, int]:
+    """Convert plugin Parquet files to a fjall point-lookup cache."""
     ...
 
 def annotate_vcf(

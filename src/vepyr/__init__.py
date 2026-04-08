@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import shutil
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -8,10 +10,15 @@ if TYPE_CHECKING:
     import polars as pl
 
 from vepyr._core import annotate_vcf as _annotate_vcf
-from vepyr._core import build_cache as _build_cache
+from vepyr._core import convert_cadd_plugin as _convert_cadd_plugin
+from vepyr._core import build_entity_fjall as _build_entity_fjall
+from vepyr._core import build_plugin_fjall as _build_plugin_fjall
+from vepyr._core import convert_entity as _convert_entity
+from vepyr._core import convert_plugin as _convert_plugin
 from vepyr._core import create_annotator as _create_annotator
+from vepyr.plugin_sources import fetch_plugin_source
 
-__all__ = ["build_cache", "annotate"]
+__all__ = ["build_cache", "build_cache_fjall", "fetch_plugin_source", "build_plugin", "annotate"]
 
 log = logging.getLogger(__name__)
 
@@ -27,23 +34,9 @@ _ENSEMBL_FTP_PATHS = [
 _MAX_REDIRECTS = 5
 
 
-_DOWNLOAD_TIMEOUT = 300
-_DOWNLOAD_MAX_RETRIES = 10
-_DOWNLOAD_RETRY_BACKOFF = 5  # seconds, doubled each retry
-
-
-def _download_with_progress(
-    url: str, dest: str, _redirects: int = 0, max_retries: int = _DOWNLOAD_MAX_RETRIES
-) -> None:
-    """Download a file with a tqdm progress bar and resume-on-failure.
-
-    On timeout or connection errors the download resumes from the last byte
-    written using an HTTP Range header. Retries up to ``_DOWNLOAD_MAX_RETRIES``
-    times with exponential backoff.
-    """
+def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
+    """Download a file with a tqdm progress bar."""
     import http.client
-    import os
-    import time
     import urllib.parse
 
     from tqdm import tqdm
@@ -51,9 +44,8 @@ def _download_with_progress(
     filename = dest.rsplit("/", 1)[-1]
     log.info("Downloading %s", url)
 
-    # --- Resolve redirects first so retries hit the final URL. ---
     parsed = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(parsed.hostname, timeout=_DOWNLOAD_TIMEOUT)
+    conn = http.client.HTTPSConnection(parsed.hostname, timeout=60)
     conn.request("GET", parsed.path, headers={"Accept-Encoding": "identity"})
     resp = conn.getresponse()
 
@@ -62,10 +54,8 @@ def _download_with_progress(
         conn.close()
         if location:
             if _redirects >= _MAX_REDIRECTS:
-                raise RuntimeError(
-                    f"Too many redirects ({_MAX_REDIRECTS}) fetching {url}"
-                )
-            return _download_with_progress(location, dest, _redirects + 1, max_retries)
+                raise RuntimeError(f"Too many redirects ({_MAX_REDIRECTS}) fetching {url}")
+            return _download_with_progress(location, dest, _redirects + 1)
 
     if resp.status != 200:
         conn.close()
@@ -74,129 +64,37 @@ def _download_with_progress(
         raise urllib.error.HTTPError(url, resp.status, resp.reason, resp.headers, None)
 
     total = int(resp.getheader("Content-Length", 0)) or None
-
-    # --- Download with retry + resume ---
-    downloaded = 0
-    retries = 0
-    backoff = _DOWNLOAD_RETRY_BACKOFF
-
-    pbar = tqdm(
-        total=total,
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        desc=f"Downloading {filename}",
-        miniters=1,
-    )
-
-    try:
-        # First pass: use the already-open response.
-        try:
-            with open(dest, "wb") as f:
-                while True:
-                    buf = resp.read(8 * 1024 * 1024)
-                    if not buf:
-                        break
-                    f.write(buf)
-                    downloaded += len(buf)
-                    pbar.update(len(buf))
-            conn.close()
-        except (TimeoutError, OSError, http.client.HTTPException):
-            try:
-                conn.close()
-            except Exception:
-                pass
-
-        # If we got everything, we're done.
-        if total is not None and downloaded >= total:
-            return
-
-        # No Content-Length but stream ended — assume complete.
-        if total is None:
-            return
-
-        # --- Resume loop for incomplete downloads ---
-        while downloaded < total:
-            retries += 1
-            if retries > max_retries:
-                raise RuntimeError(
-                    f"Download failed after {max_retries} retries "
-                    f"({downloaded:,}/{total:,} bytes): {url}"
-                )
-
-            log.warning(
-                "Download interrupted at %s/%s bytes, retrying in %ds (attempt %d/%d)",
-                f"{downloaded:,}",
-                f"{total:,}",
-                backoff,
-                retries,
-                max_retries,
-            )
-            time.sleep(backoff)
-            backoff = min(backoff * 2, 120)
-
-            try:
-                parsed = urllib.parse.urlparse(url)
-                conn = http.client.HTTPSConnection(
-                    parsed.hostname, timeout=_DOWNLOAD_TIMEOUT
-                )
-                conn.request(
-                    "GET",
-                    parsed.path,
-                    headers={
-                        "Accept-Encoding": "identity",
-                        "Range": f"bytes={downloaded}-",
-                    },
-                )
-                resp = conn.getresponse()
-
-                if resp.status not in (200, 206):
-                    conn.close()
-                    continue
-
-                # If server ignores Range and sends 200, restart from scratch.
-                if resp.status == 200:
-                    downloaded = 0
-                    pbar.reset()
-                    mode = "wb"
-                else:
-                    mode = "ab"
-
-                with open(dest, mode) as f:
-                    while True:
-                        buf = resp.read(8 * 1024 * 1024)
-                        if not buf:
-                            break
-                        f.write(buf)
-                        downloaded += len(buf)
-                        pbar.update(len(buf))
-                conn.close()
-            except (TimeoutError, OSError, http.client.HTTPException) as exc:
-                log.debug("Retry %d failed: %s", retries, exc)
-                continue
-    finally:
-        pbar.close()
-
-    # Verify final size.
-    actual = os.path.getsize(dest)
-    if total is not None and actual != total:
-        raise RuntimeError(
-            f"Download size mismatch: expected {total:,} bytes, got {actual:,}"
-        )
+    with (
+        tqdm(
+            total=total,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            desc=f"Downloading {filename}",
+            miniters=1,
+        ) as pbar,
+        open(dest, "wb") as f,
+    ):
+        while True:
+            buf = resp.read(8 * 1024 * 1024)
+            if not buf:
+                break
+            f.write(buf)
+            pbar.update(len(buf))
+    conn.close()
 
 
 def _download_cache(
     release: int,
     species: str,
     assembly: str,
-    cache_type: str,
+    method: str,
     dest: str,
-    max_retries: int = _DOWNLOAD_MAX_RETRIES,
 ) -> None:
     """Try FTP URL patterns and download the cache tarball."""
     import urllib.error
 
-    method_infix = "" if cache_type == "vep" else f"_{cache_type}"
+    method_infix = "" if method == "vep" else f"_{method}"
 
     for pattern in _ENSEMBL_FTP_PATHS:
         url = pattern.format(
@@ -206,7 +104,7 @@ def _download_cache(
             method_infix=method_infix,
         )
         try:
-            _download_with_progress(url, dest, max_retries=max_retries)
+            _download_with_progress(url, dest)
             return
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -214,7 +112,7 @@ def _download_cache(
                 continue
             raise
     raise FileNotFoundError(
-        f"VEP cache not found for {species} {cache_type} release {release} "
+        f"VEP cache not found for {species} {method} release {release} "
         f"assembly {assembly}. Browse available caches at "
         f"https://ftp.ensembl.org/pub/release-{release}/variation/"
     )
@@ -226,17 +124,14 @@ def build_cache(
     *,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    cache_type: str = "vep",
-    partitions: int = 1,
-    build_fjall: bool = True,
-    fjall_zstd_level: int = 3,
-    fjall_dict_size_kb: int = 112,
+    method: str = "vep",
+    partitions: int = 8,
+    memory_limit_gb: int = 32,
     local_cache: str | None = None,
-    download_retries: int = 10,
-    show_progress: bool = True,
-    on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
+    chromosomes: list[str] | None = None,
+    plugins: list[str] | dict[str, object] | None = None,
 ) -> list[tuple[str, int]]:
-    """Download an Ensembl VEP cache and convert it to optimized Parquet + fjall.
+    """Download an Ensembl VEP cache and convert it to optimized Parquet files.
 
     Parameters
     ----------
@@ -248,29 +143,26 @@ def build_cache(
         Species name (default: ``"homo_sapiens"``).
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
-    cache_type : str
+    method : str
         Cache type: ``"vep"`` (default), ``"merged"``, or ``"refseq"``.
     partitions : int
-        Number of DataFusion partitions for parallelism (default: 1).
-    build_fjall : bool
-        Build fjall KV stores for variation and sift lookups (default: True).
-    fjall_zstd_level : int
-        Zstd compression level for fjall stores (default: 3).
-    fjall_dict_size_kb : int
-        Zstd dictionary size in KB for fjall stores (default: 112).
+        Number of DataFusion partitions for parallelism (default: 8).
+    memory_limit_gb : int
+        Memory limit in GB for DataFusion (default: 32).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
         are skipped entirely.
-    download_retries : int
-        Maximum number of resume-retries for the cache download (default: 10).
-        Each retry resumes from the last byte received.
-    show_progress : bool
-        Show tqdm progress bars during conversion (default: True).
-    on_progress : callable or None
-        Custom progress callback with signature
-        ``(entity, format, batch_rows, total_rows, total_expected)``.
-        Overrides the default tqdm bars when provided.
+    chromosomes : list[str] or None
+        Optional chromosome subset to materialize, e.g. ``["1"]`` or
+        ``["1", "X"]``. When omitted, all chromosomes present in the
+        source cache are converted.
+    plugins : list[str] or dict[str, object] or None
+        Optional plugin build configuration. A list enables auto-download
+        via :func:`fetch_plugin_source`. A dict maps plugin names to local
+        source paths. For logical ``"cadd"``, provide the SNV file path
+        ``whole_genome_SNVs.tsv.gz``; the builder resolves the sibling
+        indel file ``gnomad.genomes.r4.0.indel.tsv.gz`` automatically.
 
     Returns
     -------
@@ -280,21 +172,11 @@ def build_cache(
     import os
     import tarfile
 
-    if cache_type not in ("vep", "merged", "refseq"):
-        raise ValueError(
-            f"Invalid cache_type '{cache_type}'. Must be 'vep', 'merged', or 'refseq'."
-        )
-    if not 1 <= fjall_zstd_level <= 22:
-        raise ValueError(
-            f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
-        )
-    if fjall_dict_size_kb < 0:
-        raise ValueError(
-            f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
-        )
+    if method not in ("vep", "merged", "refseq"):
+        raise ValueError(f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'.")
 
     # Version directory name: e.g. "115_GRCh38_vep"
-    version_dir = f"{release}_{assembly}_{cache_type}"
+    version_dir = f"{release}_{assembly}_{method}"
 
     if local_cache is not None:
         cache_root = local_cache
@@ -302,116 +184,391 @@ def build_cache(
             raise FileNotFoundError(f"Local cache directory not found: {cache_root}")
         log.info("Using local cache: %s", cache_root)
     else:
-        method_infix = "" if cache_type == "vep" else f"_{cache_type}"
+        method_infix = "" if method == "vep" else f"_{method}"
         tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
         tarball_path = os.path.join(cache_dir, tarball_name)
-        cache_root = os.path.join(
-            cache_dir, species, f"{release}_{assembly}{method_infix}"
-        )
+        method_suffix = "" if method == "vep" else f"_{method}"
+        cache_root = os.path.join(cache_dir, species, f"{release}_{assembly}{method_suffix}")
 
         os.makedirs(cache_dir, exist_ok=True)
 
         if not os.path.isdir(cache_root):
             if not os.path.isfile(tarball_path):
-                _download_cache(
-                    release,
-                    species,
-                    assembly,
-                    cache_type,
-                    tarball_path,
-                    max_retries=download_retries,
-                )
+                _download_cache(release, species, assembly, method, tarball_path)
 
             tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
             log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
             with tarfile.open(tarball_path) as tar:
-                tar.extractall(path=cache_dir, filter="data")
+                tar.extractall(path=cache_dir)
             log.info("Extracted to %s", cache_root)
 
             os.remove(tarball_path)
 
         if not os.path.isdir(cache_root):
-            raise FileNotFoundError(
-                f"Cache directory not found after extraction: {cache_root}"
-            )
+            raise FileNotFoundError(f"Cache directory not found after extraction: {cache_root}")
 
     # Output: parquet/<version_dir>/<entity>/chr1.parquet
     output_dir = os.path.join(cache_dir, "parquet", version_dir)
 
-    # Build progress callback: explicit wins, then auto-tqdm, then None.
-    progress_cb = on_progress
-    _bars: dict[tuple[str, str], object] | None = None
+    import time
 
-    if progress_cb is None and show_progress:
-        try:
-            from tqdm.auto import tqdm
+    entities = [
+        "variation",
+        "transcript",
+        "exon",
+        "translation",
+        "regulatory",
+        "motif",
+    ]
 
-            _bars = {}
-
-            def progress_cb(
-                entity: str,
-                fmt: str,
-                batch_rows: int,
-                total_rows: int,
-                total_expected: int,
-            ) -> None:
-                key = (entity, fmt)
-                if key not in _bars:
-                    _bars[key] = tqdm(
-                        total=total_expected or None,
-                        unit=" rows",
-                        desc=f"{entity} ({fmt})",
-                    )
-                bar = _bars[key]
-                bar.update(batch_rows)
-        except ImportError:
-            pass
-
-    # When using multiple partitions, skip the Python progress callback to avoid
-    # GIL contention — each tokio worker would re-acquire the GIL per batch,
-    # serializing the parallel work.
-    if on_progress is not None and partitions > 1:
-        import warnings
-
-        warnings.warn(
-            "on_progress callback is disabled when partitions > 1 to avoid GIL contention.",
-            stacklevel=2,
-        )
-    native_cb = progress_cb if partitions <= 1 else None
-
+    _in_notebook = False
     try:
-        entity_stats = _build_cache(
+        from IPython import get_ipython
+
+        shell = get_ipython()
+        if shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell":
+            from IPython.display import display, HTML
+
+            _in_notebook = True
+    except ImportError:
+        pass
+
+    def _show_status(msg: str) -> None:
+        if _in_notebook:
+            display(HTML(f"<pre>{msg}</pre>"))
+        else:
+            log.info(msg)
+
+    all_results: list[tuple[str, int]] = []
+    for i, entity in enumerate(entities):
+        _show_status(f"[{i + 1}/{len(entities)}] Converting {entity} ...")
+        t0 = time.time()
+        result = _convert_entity(
             cache_root,
             output_dir,
+            entity,
             partitions,
-            build_fjall,
-            fjall_zstd_level,
-            fjall_dict_size_kb,
-            native_cb,
+            memory_limit_gb,
+            chromosomes,
         )
-    finally:
-        if _bars is not None:
-            for bar in _bars.values():
-                bar.close()
+        elapsed = time.time() - t0
 
-    # Flatten entity stats into the simple (path, rows) list for backward compat
-    all_results: list[tuple[str, int]] = []
-    for entity_name, parquet_files, fjall_stats in entity_stats:
-        for path, rows in parquet_files:
-            all_results.append((path, rows))
-        if fjall_stats is not None:
-            variants, positions, total_bytes, secs = fjall_stats
-            log.info(
-                "%s fjall: %d variants, %d positions, %.1f MB in %.1fs",
-                entity_name,
-                variants,
-                positions,
-                total_bytes / (1024 * 1024),
-                secs,
+        if result is None:
+            _show_status(f"[{i + 1}/{len(entities)}] {entity}: skipped (no source files)")
+            continue
+
+        for path, rows in result:
+            rate = f"{rows / elapsed:,.0f}" if elapsed > 0 else "?"
+            rel_path = os.path.relpath(path, output_dir)
+            _show_status(
+                f"[{i + 1}/{len(entities)}] {entity}: {rows:,} rows "
+                f"in {elapsed:.1f}s ({rate} rows/s) -> {rel_path}"
             )
+        all_results.extend(result)
+
+    plugin_sources = _resolve_build_cache_plugin_sources(
+        plugins,
+        cache_dir=cache_dir,
+        assembly=assembly,
+        release=release,
+        chromosomes=chromosomes,
+    )
+    for plugin_name, source_path in plugin_sources.items():
+        all_results.extend(
+            build_plugin(
+                plugin_name,
+                source_path,
+                cache_dir,
+                partitions=partitions,
+                chromosomes=chromosomes,
+                build_fjall=True,
+                memory_limit_gb=memory_limit_gb,
+            )
+        )
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results
+
+
+def build_cache_fjall(
+    cache_root: str,
+    cache_dir: str,
+    *,
+    release: int,
+    assembly: str = "GRCh38",
+    method: str = "vep",
+    partitions: int = 8,
+    chromosomes: list[str] | None = None,
+    entities: list[str] | None = None,
+) -> list[tuple[str, int]]:
+    """Build core fjall stores from already materialized parquet cache files."""
+    if method not in ("vep", "merged", "refseq"):
+        raise ValueError(f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'.")
+
+    version_dir = f"{release}_{assembly}_{method}"
+    output_dir = os.path.join(cache_dir, "parquet", version_dir)
+    targets = entities or ["variation", "translation"]
+
+    outputs: list[tuple[str, int]] = []
+    for entity in targets:
+        outputs.extend(_build_entity_fjall(cache_root, output_dir, entity, partitions, chromosomes))
+
+    relocation_targets = {
+        "variation.fjall": os.path.join(cache_dir, "variation.fjall"),
+        "translation_sift.fjall": os.path.join(cache_dir, "translation_sift.fjall"),
+    }
+    for name, final_path in relocation_targets.items():
+        built_path = os.path.join(output_dir, name)
+        if not os.path.isdir(built_path):
+            continue
+        if os.path.isdir(final_path):
+            shutil.rmtree(final_path)
+        shutil.move(built_path, final_path)
+
+    outputs = [
+        (
+            os.path.join(cache_dir, os.path.basename(path))
+            if os.path.basename(path) in relocation_targets
+            else path,
+            count,
+        )
+        for path, count in outputs
+    ]
+    return outputs
+
+
+_VALID_PLUGIN_NAMES = frozenset(["clinvar", "cadd", "spliceai", "alphamissense", "dbnsfp"])
+_VALID_PLUGIN_BUILD_NAMES = frozenset(["clinvar", "cadd", "spliceai", "alphamissense", "dbnsfp"])
+
+
+def _resolve_build_cache_plugin_sources(
+    plugins: list[str] | dict[str, object] | None,
+    *,
+    cache_dir: str,
+    assembly: str,
+    release: int,
+    chromosomes: list[str] | None,
+) -> dict[str, object]:
+    if not plugins:
+        return {}
+
+    def _normalize_local_source(plugin_name: str, value: object) -> dict[str, object]:
+        if plugin_name == "cadd":
+            if isinstance(value, str):
+                return {"cadd": value}
+            if isinstance(value, dict):
+                snv = value.get("snv")
+                indel = value.get("indel")
+            elif isinstance(value, (tuple, list)) and len(value) == 2:
+                snv, indel = value
+            else:
+                raise ValueError(
+                    "Plugin 'cadd' requires either the SNV source path string "
+                    "(whole_genome_SNVs.tsv.gz), {'snv': path, 'indel': path}, or a 2-item tuple/list."
+                )
+            if not isinstance(snv, str) or not isinstance(indel, str):
+                raise ValueError("Plugin 'cadd' local sources must be filesystem paths.")
+            return {"cadd": snv}
+
+        if not isinstance(value, str):
+            raise ValueError(f"Plugin '{plugin_name}' local source must be a filesystem path.")
+        return {plugin_name: value}
+
+    if isinstance(plugins, dict):
+        resolved: dict[str, object] = {}
+        for plugin_name, value in plugins.items():
+            normalized_name = plugin_name.lower().strip()
+            if normalized_name not in _VALID_PLUGIN_NAMES:
+                raise ValueError(
+                    f"Unknown plugin '{plugin_name}'. Supported: {', '.join(sorted(_VALID_PLUGIN_NAMES))}"
+                )
+            resolved.update(_normalize_local_source(normalized_name, value))
+        return resolved
+
+    resolved: dict[str, object] = {}
+    for plugin_name in plugins:
+        normalized_name = plugin_name.lower().strip()
+        if normalized_name not in _VALID_PLUGIN_NAMES:
+            raise ValueError(
+                f"Unknown plugin '{plugin_name}'. Supported: {', '.join(sorted(_VALID_PLUGIN_NAMES))}"
+            )
+        if normalized_name == "cadd":
+            resolved["cadd"] = {
+                "snv": fetch_plugin_source(
+                    "cadd_snv",
+                    cache_dir,
+                    assembly=assembly,
+                    release=release,
+                    chromosomes=chromosomes,
+                ),
+                "indel": fetch_plugin_source(
+                    "cadd_indel",
+                    cache_dir,
+                    assembly=assembly,
+                    release=release,
+                    chromosomes=chromosomes,
+                ),
+            }
+            continue
+        resolved[normalized_name] = fetch_plugin_source(
+            normalized_name,
+            cache_dir,
+            assembly=assembly,
+            release=release,
+            chromosomes=chromosomes,
+        )
+    return resolved
+
+
+def build_plugin(
+    plugin_name: str,
+    source_path: str | dict[str, str] | tuple[str, str] | list[str],
+    cache_dir: str,
+    *,
+    partitions: int = 8,
+    chromosomes: list[str] | None = None,
+    build_fjall: bool = True,
+    memory_limit_gb: int = 32,
+) -> list[tuple[str, int]]:
+    """Convert a VEP plugin source file to optimized per-chromosome Parquet.
+
+    Parameters
+    ----------
+    plugin_name : str
+        One of ``"clinvar"``, ``"cadd"``, ``"spliceai"``,
+        ``"alphamissense"``, ``"dbnsfp"``.
+    source_path : str
+        Path to the raw plugin data file (VCF.gz or TSV.gz). Logical ``"cadd"``
+        accepts the SNV source file path ``whole_genome_SNVs.tsv.gz`` and
+        resolves the sibling indel file automatically. Dict and tuple/list
+        forms remain accepted for compatibility and are normalized to the
+        SNV source path.
+    cache_dir : str
+        Same cache directory used in :func:`build_cache`. Plugin output
+        goes to ``<cache_dir>/<plugin_name>/``.
+    partitions : int
+        Number of DataFusion partitions for parallelism (default: 8).
+    chromosomes : list[str] or None
+        Optional chromosome subset to materialize, e.g. ``["1"]`` or
+        ``["1", "X"]``. When omitted, all chromosomes present in the
+        source are converted.
+    build_fjall : bool
+        When true, also materialize ``<plugin>.fjall`` next to the plugin
+        parquet directory for point-lookups at annotation time.
+    memory_limit_gb : int
+        Memory limit in GB reserved for the plugin conversion path.
+
+    Returns
+    -------
+    list[tuple[str, int]]
+        List of ``(parquet_file_path, row_count)`` for each written file.
+    """
+    import os
+
+    name = plugin_name.lower()
+    if name not in _VALID_PLUGIN_BUILD_NAMES:
+        raise ValueError(
+            f"Unknown plugin '{plugin_name}'. Supported: {', '.join(sorted(_VALID_PLUGIN_BUILD_NAMES))}"
+        )
+
+    output_dir = os.path.join(cache_dir, name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    if name == "cadd":
+        if isinstance(source_path, str):
+            if not os.path.exists(source_path):
+                raise FileNotFoundError(f"CADD source path not found: {source_path}")
+            log.info("Converting plugin '%s' from %s to %s", name, source_path, output_dir)
+            results = _convert_plugin(
+                name,
+                source_path,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+            )
+        elif isinstance(source_path, dict):
+            snv_source = source_path.get("snv")
+            indel_source = source_path.get("indel")
+            if not isinstance(snv_source, str) or not isinstance(indel_source, str):
+                raise ValueError("Plugin 'cadd' local sources must be filesystem paths.")
+            for label, path in (("snv", snv_source), ("indel", indel_source)):
+                if not os.path.isfile(path):
+                    raise FileNotFoundError(f"CADD {label} source not found: {path}")
+            log.info(
+                "Converting plugin '%s' from %s and %s to %s",
+                name,
+                snv_source,
+                indel_source,
+                output_dir,
+            )
+            results = _convert_cadd_plugin(
+                snv_source,
+                indel_source,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+            )
+        elif isinstance(source_path, (tuple, list)) and len(source_path) == 2:
+            snv_source, indel_source = source_path
+            if not isinstance(snv_source, str) or not isinstance(indel_source, str):
+                raise ValueError("Plugin 'cadd' local sources must be filesystem paths.")
+            for label, path in (("snv", snv_source), ("indel", indel_source)):
+                if not os.path.isfile(path):
+                    raise FileNotFoundError(f"CADD {label} source not found: {path}")
+            log.info(
+                "Converting plugin '%s' from %s and %s to %s",
+                name,
+                snv_source,
+                indel_source,
+                output_dir,
+            )
+            results = _convert_cadd_plugin(
+                snv_source,
+                indel_source,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+            )
+        else:
+            raise ValueError(
+                "Plugin 'cadd' requires the SNV source path string "
+                "(whole_genome_SNVs.tsv.gz), {'snv': path, 'indel': path}, or a 2-item tuple/list."
+            )
+    else:
+        if not isinstance(source_path, str):
+            raise ValueError(f"Plugin '{plugin_name}' source must be a filesystem path.")
+        if not os.path.isfile(source_path):
+            raise FileNotFoundError(f"Plugin source not found: {source_path}")
+        log.info("Converting plugin '%s' from %s to %s", name, source_path, output_dir)
+        results = _convert_plugin(
+            name,
+            source_path,
+            output_dir,
+            partitions,
+            memory_limit_gb,
+            chromosomes,
+        )
+    if build_fjall:
+        fjall_path = os.path.join(cache_dir, f"{name}.fjall")
+        fjall_result = _build_plugin_fjall(name, output_dir, fjall_path, partitions, chromosomes)
+        log.info(
+            "Plugin '%s': built fjall store with %d rows at %s",
+            name,
+            fjall_result[1],
+            fjall_result[0],
+        )
+    total = sum(r[1] for r in results)
+    log.info(
+        "Plugin '%s': wrote %d files, %d total rows to %s",
+        name,
+        len(results),
+        total,
+        output_dir,
+    )
+    return results
 
 
 def annotate(
@@ -441,12 +598,8 @@ def annotate(
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     merged: bool = False,
-    refseq: bool = False,
-    gencode_basic: bool = False,
-    gencode_primary: bool = False,
-    all_refseq: bool = False,
-    exclude_predicted: bool = False,
     failed: int = 0,
+    plugins: list[str] | None = None,
     # Engine tuning
     cache_size_mb: int = 1024,
     skip_csq: bool = True,
@@ -512,26 +665,11 @@ def annotate(
         Upstream/downstream distance for transcript overlap. Single int =
         both directions; tuple = (upstream, downstream).
     merged : bool
-        Use merged Ensembl+RefSeq cache. Adds ``SOURCE``, ``REFSEQ_MATCH``,
-        ``REFSEQ_OFFSET``, ``GIVEN_REF``, ``USED_REF``, ``BAM_EDIT`` CSQ
-        fields. Mutually exclusive with ``refseq``.
-    refseq : bool
-        Use RefSeq cache/transcripts instead of Ensembl. Adds
-        ``REFSEQ_MATCH``, ``REFSEQ_OFFSET``, ``GIVEN_REF``, ``USED_REF``,
-        ``BAM_EDIT`` CSQ fields. Mutually exclusive with ``merged``,
-        ``gencode_basic``, and ``gencode_primary``.
-    gencode_basic : bool
-        Restrict to transcripts in the GENCODE basic set. Mutually exclusive
-        with ``gencode_primary`` and ``refseq``.
-    gencode_primary : bool
-        Restrict to transcripts in the GENCODE primary set (GRCh38 only).
-        Mutually exclusive with ``gencode_basic`` and ``refseq``.
-    all_refseq : bool
-        Keep all RefSeq transcripts including CCDS/EST-style rows.
-    exclude_predicted : bool
-        Exclude predicted RefSeq transcripts (``XM_`` / ``XR_`` prefixes).
+        Use merged Ensembl+RefSeq cache.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
+    plugins : list[str] or None
+        Optional list of plugin names to enable from ``<cache_dir>/plugins``.
     use_fjall : bool
         Use fjall (embedded KV store) backend instead of parquet
         (default: False).
@@ -605,20 +743,8 @@ def annotate(
     import json
 
     # Validate reference_fasta requirement
-    if (everything or hgvs or hgvsc or hgvsp) and not reference_fasta:
-        raise ValueError(
-            "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
-        )
-
-    # Validate mutual exclusivity of cache/transcript flags
-    if refseq and merged:
-        raise ValueError("refseq and merged are mutually exclusive")
-    if refseq and (gencode_basic or gencode_primary):
-        raise ValueError(
-            "refseq is mutually exclusive with gencode_basic and gencode_primary"
-        )
-    if gencode_basic and gencode_primary:
-        raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
+    if (everything or hgvs) and not reference_fasta:
+        raise ValueError("reference_fasta is required when everything=True or hgvs=True")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
@@ -662,16 +788,6 @@ def annotate(
         opts["pubmed"] = True
     if merged:
         opts["merged"] = True
-    if refseq:
-        opts["refseq"] = True
-    if gencode_basic:
-        opts["gencode_basic"] = True
-    if gencode_primary:
-        opts["gencode_primary"] = True
-    if all_refseq:
-        opts["all_refseq"] = True
-    if exclude_predicted:
-        opts["exclude_predicted"] = True
     if failed != 0:
         opts["failed"] = failed
     if distance is not None:
@@ -681,6 +797,23 @@ def annotate(
             opts["distance"] = distance
     if cache_size_mb != 1024:
         opts["cache_size_mb"] = cache_size_mb
+    if plugins:
+        normalized_plugins = [name.lower() for name in plugins]
+        invalid_plugins = sorted(set(normalized_plugins) - _VALID_PLUGIN_NAMES)
+        if invalid_plugins:
+            raise ValueError(
+                f"Unknown plugins: {', '.join(invalid_plugins)}. "
+                f"Supported: {', '.join(sorted(_VALID_PLUGIN_NAMES))}"
+            )
+        if "cadd" in normalized_plugins:
+            cadd_dir = os.path.join(cache_dir, "cadd")
+            if not os.path.isdir(cadd_dir):
+                raise ValueError(
+                    "Plugin 'cadd' requires cache directory to exist at "
+                    f"{cadd_dir}"
+                )
+        opts["plugins_dir"] = cache_dir
+        opts["plugins"] = normalized_plugins
 
     options_json = json.dumps(opts)
 
@@ -699,11 +832,8 @@ def annotate(
         # when show_progress=True, otherwise no callback.
         callback = on_batch_written
         _pbar = None
-        _pending_updates = None
         if callback is None and show_progress:
             try:
-                import queue
-
                 from tqdm.auto import tqdm
 
                 _pbar = tqdm(
@@ -712,61 +842,25 @@ def annotate(
                     miniters=1,
                     mininterval=0,
                 )
-                _pending_updates = queue.SimpleQueue()
 
                 def callback(batch_rows, total_rows, total_input):
-                    _pending_updates.put((batch_rows, total_rows, total_input))
-            except ImportError:
-                pass
-
-        try:
-            # Run the native call in a background thread so Jupyter's event
-            # loop can pump display updates (tqdm progress) while the Rust
-            # side streams batches.  The native code releases the GIL via
-            # py.allow_threads(), so the main thread stays responsive.
-            import threading
-
-            _result: list = [None]
-            _error: list = [None]
-
-            def _run() -> None:
-                try:
-                    _result[0] = _annotate_vcf(
-                        vcf,
-                        cache_dir,
-                        output_vcf,
-                        options_json,
-                        False,
-                        comp,
-                        callback,
-                    )
-                except Exception as exc:
-                    _error[0] = exc
-
-            def _drain_progress_updates() -> None:
-                if _pbar is None or _pending_updates is None:
-                    return
-                while True:
-                    try:
-                        batch_rows, _total_rows, total_input = (
-                            _pending_updates.get_nowait()
-                        )
-                    except queue.Empty:
-                        break
                     if total_input > 0 and _pbar.total != total_input:
                         _pbar.total = total_input
                     _pbar.update(batch_rows)
                     _pbar.refresh()
+            except ImportError:
+                pass
 
-            t = threading.Thread(target=_run, daemon=True)
-            t.start()
-            while t.is_alive():
-                t.join(timeout=0.3)
-                _drain_progress_updates()
-            _drain_progress_updates()
-            if _error[0] is not None:
-                raise _error[0]
-            rows = _result[0]
+        try:
+            rows = _annotate_vcf(
+                vcf,
+                cache_dir,
+                output_vcf,
+                options_json,
+                False,
+                comp,
+                callback,
+            )
         finally:
             if _pbar is not None:
                 _pbar.close()
