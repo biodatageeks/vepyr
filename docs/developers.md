@@ -50,13 +50,13 @@ uv run ruff check .
 
 ```bash
 # Install docs dependencies
-uv pip install mkdocs mkdocs-material mkdocstrings mkdocstrings-python
+uv sync --extra docs
 
 # Serve locally with hot reload
-mkdocs serve
+uv run mkdocs serve
 
 # Build static site
-mkdocs build
+uv run mkdocs build
 ```
 
 ## Release wheels

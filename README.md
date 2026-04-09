@@ -148,8 +148,8 @@ print(df.select("chrom", "start", "ref", "alt",
 Build and serve the docs locally:
 
 ```bash
-pip install "vepyr[docs]"
-mkdocs serve
+uv sync --extra docs
+uv run mkdocs serve
 ```
 
 Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Docs are auto-deployed to GitHub Pages on each tag push.
