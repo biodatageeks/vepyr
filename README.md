@@ -143,6 +143,17 @@ print(df.select("chrom", "start", "ref", "alt",
                 "most_severe_consequence", "SYMBOL", "IMPACT").head(5))
 ```
 
+## Documentation
+
+Build and serve the docs locally:
+
+```bash
+uv sync --extra docs
+uv run mkdocs serve
+```
+
+Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Docs are auto-deployed to GitHub Pages on each tag push.
+
 ### One-liner smoke test
 
 Exercises cache build, both annotation backends, and VCF output:

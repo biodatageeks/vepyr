@@ -18,6 +18,12 @@ dependencies = ["pyarrow>=18.0", "polars>=1.37.1", "tqdm>=4.60"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings>=0.27",
+    "mkdocstrings-python>=1.12",
+]
 
 [dependency-groups]
 dev = [
