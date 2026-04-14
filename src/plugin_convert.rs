@@ -14,6 +14,8 @@ pub fn convert_plugin(
     partitions: usize,
     memory_limit_gb: usize,
     chromosomes: Option<Vec<String>>,
+    assume_sorted_input: bool,
+    preview_rows: Option<usize>,
 ) -> Result<Vec<(String, usize)>, DataFusionError> {
     match plugin_name {
         "clinvar" => convert_plugin_to_parquet(
@@ -23,6 +25,8 @@ pub fn convert_plugin(
             partitions,
             memory_limit_gb,
             chromosomes,
+            assume_sorted_input,
+            preview_rows,
         ),
         "cadd" => datafusion_bio_function_vep::plugin_cache_builder::convert_plugin(
             source_path,
@@ -30,6 +34,8 @@ pub fn convert_plugin(
             PluginKind::Cadd,
             partitions,
             memory_limit_gb,
+            assume_sorted_input,
+            preview_rows,
         ),
         "spliceai" => convert_plugin_to_parquet(
             "spliceai",
@@ -38,6 +44,8 @@ pub fn convert_plugin(
             partitions,
             memory_limit_gb,
             chromosomes,
+            assume_sorted_input,
+            preview_rows,
         ),
         "alphamissense" => convert_plugin_to_parquet(
             "alphamissense",
@@ -46,6 +54,8 @@ pub fn convert_plugin(
             partitions,
             memory_limit_gb,
             chromosomes,
+            assume_sorted_input,
+            preview_rows,
         ),
         "dbnsfp" => convert_plugin_to_parquet(
             "dbnsfp",
@@ -54,6 +64,8 @@ pub fn convert_plugin(
             partitions,
             memory_limit_gb,
             chromosomes,
+            assume_sorted_input,
+            preview_rows,
         ),
         other => Err(DataFusionError::Execution(format!(
             "Failed to convert plugin {other}: unknown plugin"
@@ -68,6 +80,8 @@ pub fn convert_cadd_plugin(
     partitions: usize,
     memory_limit_gb: usize,
     chromosomes: Option<Vec<String>>,
+    assume_sorted_input: bool,
+    preview_rows: Option<usize>,
 ) -> Result<Vec<(String, usize)>, DataFusionError> {
     convert_cadd_sources_to_parquet(
         snv_source_path,
@@ -76,5 +90,7 @@ pub fn convert_cadd_plugin(
         partitions,
         memory_limit_gb,
         chromosomes,
+        assume_sorted_input,
+        preview_rows,
     )
 }

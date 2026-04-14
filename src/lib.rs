@@ -87,7 +87,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
 /// Convert a VEP plugin source file (VCF.gz or TSV.gz) to per-chromosome Parquet.
 #[pyfunction]
-#[pyo3(signature = (plugin_name, source_path, output_dir, partitions=8, memory_limit_gb=32, chromosomes=None))]
+#[pyo3(signature = (plugin_name, source_path, output_dir, partitions=8, memory_limit_gb=32, chromosomes=None, assume_sorted_input=false, preview_rows=None))]
 fn convert_plugin(
     plugin_name: &str,
     source_path: &str,
@@ -95,6 +95,8 @@ fn convert_plugin(
     partitions: usize,
     memory_limit_gb: usize,
     chromosomes: Option<Vec<String>>,
+    assume_sorted_input: bool,
+    preview_rows: Option<usize>,
 ) -> PyResult<Vec<(String, usize)>> {
     plugin_convert::convert_plugin(
         plugin_name,
@@ -103,12 +105,14 @@ fn convert_plugin(
         partitions,
         memory_limit_gb,
         chromosomes,
+        assume_sorted_input,
+        preview_rows,
     )
     .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
 }
 
 #[pyfunction]
-#[pyo3(signature = (snv_source_path, indel_source_path, output_dir, partitions=8, memory_limit_gb=32, chromosomes=None))]
+#[pyo3(signature = (snv_source_path, indel_source_path, output_dir, partitions=8, memory_limit_gb=32, chromosomes=None, assume_sorted_input=false, preview_rows=None))]
 fn convert_cadd_plugin(
     snv_source_path: &str,
     indel_source_path: &str,
@@ -116,6 +120,8 @@ fn convert_cadd_plugin(
     partitions: usize,
     memory_limit_gb: usize,
     chromosomes: Option<Vec<String>>,
+    assume_sorted_input: bool,
+    preview_rows: Option<usize>,
 ) -> PyResult<Vec<(String, usize)>> {
     plugin_convert::convert_cadd_plugin(
         snv_source_path,
@@ -124,6 +130,8 @@ fn convert_cadd_plugin(
         partitions,
         memory_limit_gb,
         chromosomes,
+        assume_sorted_input,
+        preview_rows,
     )
     .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
 }

@@ -20,6 +20,8 @@ def convert_plugin(
     partitions: int = 8,
     memory_limit_gb: int = 32,
     chromosomes: list[str] | None = None,
+    assume_sorted_input: bool = False,
+    preview_rows: int | None = None,
 ) -> list[tuple[str, int]]:
     """Convert a single plugin source file to Parquet."""
     ...
@@ -31,6 +33,8 @@ def convert_cadd_plugin(
     partitions: int = 8,
     memory_limit_gb: int = 32,
     chromosomes: list[str] | None = None,
+    assume_sorted_input: bool = False,
+    preview_rows: int | None = None,
 ) -> list[tuple[str, int]]:
     """Convert CADD SNV and indel source files into one Parquet plugin cache."""
     ...
