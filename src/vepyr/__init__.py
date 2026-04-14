@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -32,6 +31,14 @@ _ENSEMBL_FTP_PATHS = [
 
 
 _MAX_REDIRECTS = 5
+
+
+def _version_dir(release: int, assembly: str, method: str) -> str:
+    return f"{release}_{assembly}_{method}"
+
+
+def _core_cache_output_dir(cache_dir: str, release: int, assembly: str, method: str) -> str:
+    return os.path.join(cache_dir, _version_dir(release, assembly, method))
 
 
 def _download_with_progress(url: str, dest: str, _redirects: int = 0) -> None:
@@ -175,9 +182,6 @@ def build_cache(
     if method not in ("vep", "merged", "refseq"):
         raise ValueError(f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'.")
 
-    # Version directory name: e.g. "115_GRCh38_vep"
-    version_dir = f"{release}_{assembly}_{method}"
-
     if local_cache is not None:
         cache_root = local_cache
         if not os.path.isdir(cache_root):
@@ -207,8 +211,8 @@ def build_cache(
         if not os.path.isdir(cache_root):
             raise FileNotFoundError(f"Cache directory not found after extraction: {cache_root}")
 
-    # Output: parquet/<version_dir>/<entity>/chr1.parquet
-    output_dir = os.path.join(cache_dir, "parquet", version_dir)
+    # Output: <version_dir>/<entity>/chr1.parquet
+    output_dir = _core_cache_output_dir(cache_dir, release, assembly, method)
 
     import time
 
@@ -278,7 +282,7 @@ def build_cache(
             build_plugin(
                 plugin_name,
                 source_path,
-                cache_dir,
+                output_dir,
                 partitions=partitions,
                 chromosomes=chromosomes,
                 build_fjall=True,
@@ -305,35 +309,13 @@ def build_cache_fjall(
     if method not in ("vep", "merged", "refseq"):
         raise ValueError(f"Invalid method '{method}'. Must be 'vep', 'merged', or 'refseq'.")
 
-    version_dir = f"{release}_{assembly}_{method}"
-    output_dir = os.path.join(cache_dir, "parquet", version_dir)
+    output_dir = _core_cache_output_dir(cache_dir, release, assembly, method)
     targets = entities or ["variation", "translation"]
 
     outputs: list[tuple[str, int]] = []
     for entity in targets:
         outputs.extend(_build_entity_fjall(cache_root, output_dir, entity, partitions, chromosomes))
 
-    relocation_targets = {
-        "variation.fjall": os.path.join(cache_dir, "variation.fjall"),
-        "translation_sift.fjall": os.path.join(cache_dir, "translation_sift.fjall"),
-    }
-    for name, final_path in relocation_targets.items():
-        built_path = os.path.join(output_dir, name)
-        if not os.path.isdir(built_path):
-            continue
-        if os.path.isdir(final_path):
-            shutil.rmtree(final_path)
-        shutil.move(built_path, final_path)
-
-    outputs = [
-        (
-            os.path.join(cache_dir, os.path.basename(path))
-            if os.path.basename(path) in relocation_targets
-            else path,
-            count,
-        )
-        for path, count in outputs
-    ]
     return outputs
 
 
@@ -429,6 +411,8 @@ def build_plugin(
     chromosomes: list[str] | None = None,
     build_fjall: bool = True,
     memory_limit_gb: int = 32,
+    assume_sorted_input: bool = False,
+    preview_rows: int | None = None,
 ) -> list[tuple[str, int]]:
     """Convert a VEP plugin source file to optimized per-chromosome Parquet.
 
@@ -444,7 +428,8 @@ def build_plugin(
         forms remain accepted for compatibility and are normalized to the
         SNV source path.
     cache_dir : str
-        Same cache directory used in :func:`build_cache`. Plugin output
+        Partitioned cache directory used at annotation time, typically
+        ``<cache_root>/<release>_<assembly>_<method>``. Plugin output
         goes to ``<cache_dir>/<plugin_name>/``.
     partitions : int
         Number of DataFusion partitions for parallelism (default: 8).
@@ -453,10 +438,19 @@ def build_plugin(
         ``["1", "X"]``. When omitted, all chromosomes present in the
         source are converted.
     build_fjall : bool
-        When true, also materialize ``<plugin>.fjall`` next to the plugin
-        parquet directory for point-lookups at annotation time.
+        When true, also materialize ``<plugin>.fjall`` in ``cache_dir``,
+        alongside core stores such as ``variation.fjall``.
     memory_limit_gb : int
         Memory limit in GB reserved for the plugin conversion path.
+    assume_sorted_input : bool
+        Safe opt-in to skip SQL ``ORDER BY`` during single-source plugin
+        conversion when the raw input is already sorted by
+        ``chrom,pos,ref,alt``. Currently ignored for CADD because it merges
+        two independent sources.
+    preview_rows : int or None
+        Optional row limit pushed into the plugin conversion query. This is
+        used by preview builds to avoid materializing a second temporary
+        preview file when the original source path can be consumed directly.
 
     Returns
     -------
@@ -486,6 +480,8 @@ def build_plugin(
                 partitions,
                 memory_limit_gb,
                 chromosomes,
+                assume_sorted_input,
+                preview_rows,
             )
         elif isinstance(source_path, dict):
             snv_source = source_path.get("snv")
@@ -509,6 +505,8 @@ def build_plugin(
                 partitions,
                 memory_limit_gb,
                 chromosomes,
+                assume_sorted_input,
+                preview_rows,
             )
         elif isinstance(source_path, (tuple, list)) and len(source_path) == 2:
             snv_source, indel_source = source_path
@@ -531,6 +529,8 @@ def build_plugin(
                 partitions,
                 memory_limit_gb,
                 chromosomes,
+                assume_sorted_input,
+                preview_rows,
             )
         else:
             raise ValueError(
@@ -550,6 +550,8 @@ def build_plugin(
             partitions,
             memory_limit_gb,
             chromosomes,
+            assume_sorted_input,
+            preview_rows,
         )
     if build_fjall:
         fjall_path = os.path.join(cache_dir, f"{name}.fjall")
@@ -622,8 +624,8 @@ def annotate(
     vcf : str
         Path to the input VCF file.
     cache_dir : str
-        Path to the parquet cache directory produced by :func:`build_cache`,
-        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_vep"``.
+        Path to the partitioned cache directory produced by :func:`build_cache`,
+        e.g. ``"/data/vep/wgs/115_GRCh38_vep"``.
     everything : bool
         Enable all annotation features (80-field CSQ). Implies ``hgvs``,
         ``af``, ``check_existing``, ``pubmed``, etc. Requires
@@ -669,7 +671,9 @@ def annotate(
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     plugins : list[str] or None
-        Optional list of plugin names to enable from ``<cache_dir>/plugins``.
+        Optional list of plugin names to enable from the same cache
+        directory as core entities, e.g. ``<cache_dir>/clinvar`` and
+        ``<cache_dir>/cadd``.
     use_fjall : bool
         Use fjall (embedded KV store) backend instead of parquet
         (default: False).
@@ -710,13 +714,13 @@ def annotate(
     Examples
     --------
     >>> import vepyr
-    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_vep")
+    >>> lf = vepyr.annotate("input.vcf", "/data/vep/115_GRCh38_vep")
     >>> lf.collect()
 
     >>> # Full annotation with all features
     >>> lf = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     "/data/vep/115_GRCh38_vep",
     ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ... )
@@ -724,7 +728,7 @@ def annotate(
     >>> # Selective: HGVS + allele frequencies
     >>> lf = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     "/data/vep/115_GRCh38_vep",
     ...     hgvs=True,
     ...     af=True,
     ...     af_gnomadg=True,
@@ -734,7 +738,7 @@ def annotate(
     >>> # Write annotated VCF directly
     >>> path = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     "/data/vep/115_GRCh38_vep",
     ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ...     output_vcf="annotated.vcf",

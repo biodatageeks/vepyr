@@ -62,6 +62,21 @@ vepyr.build_plugin(
     "/data/vep/cache",
     chromosomes=["1"],
 )
+
+vepyr.build_plugin(
+    "spliceai",
+    "/data/plugins/spliceai.vcf.gz",
+    "/data/vep/cache/115_GRCh38_vep",
+    assume_sorted_input=True,
+)
+
+vepyr.build_plugin(
+    "dbnsfp",
+    "/data/plugins/dbNSFP5.3.1a_grch38.gz",
+    "/data/vep/cache/115_GRCh38_vep",
+    chromosomes=["1"],
+    preview_rows=1000,
+)
 ```
 
 Downloaded files are stored under:
@@ -73,9 +88,19 @@ Downloaded files are stored under:
 Built plugin caches are stored under:
 
 ```text
-<cache_dir>/<plugin>/chr*.parquet
-<cache_dir>/<plugin>.fjall/
+<cache_dir>/<release>_<assembly>_<method>/<plugin>/chr*.parquet
+<cache_dir>/<release>_<assembly>_<method>/<plugin>.fjall/
 ```
+
+For local plugin files that are already sorted by `chrom,pos,ref,alt`, you can
+opt in to skipping the SQL `ORDER BY` during conversion with
+`assume_sorted_input=True`. This currently applies only to single-source
+plugins; `cadd` still keeps the explicit sort because it merges SNV and indel
+inputs.
+
+`preview_rows=` is also available on `build_plugin()` for reduced-scope local
+validation. It is most useful together with `chromosomes=[...]`, especially
+for indexed plugin sources that can be sliced through `tabix`.
 
 Supported automated sources in the current implementation:
 
@@ -97,7 +122,7 @@ When building from already-downloaded local files, CADD materializes one shared
 cache. The issue-like default is to point at the SNV source file and keep the
 official indel file next to it in the same directory:
 
-- `vepyr.build_plugin("cadd", "/data/plugins/whole_genome_SNVs.tsv.gz", ...)` -> `<cache_dir>/cadd/` + `<cache_dir>/cadd.fjall/`
+- `vepyr.build_plugin("cadd", "/data/plugins/whole_genome_SNVs.tsv.gz", "/data/vep/cache/115_GRCh38_vep")` -> `/data/vep/cache/115_GRCh38_vep/cadd/` + `/data/vep/cache/115_GRCh38_vep/cadd.fjall/`
 
 You can also build the core cache and selected plugin caches in one call via
 `build_cache(..., plugins=...)`.
@@ -108,10 +133,10 @@ List mode auto-downloads supported sources:
 import vepyr
 
 vepyr.build_cache(
+    release=115,
+    cache_dir="/data/vep/cache",
     species="homo_sapiens",
-    version=115,
     assembly="GRCh38",
-    output_dir="/data/vep/cache",
     plugins=["clinvar", "spliceai", "cadd"],
 )
 ```
@@ -125,10 +150,10 @@ Dict and tuple forms remain accepted for compatibility.
 import vepyr
 
 vepyr.build_cache(
+    release=115,
+    cache_dir="/data/vep/cache",
     species="homo_sapiens",
-    version=115,
     assembly="GRCh38",
-    output_dir="/data/vep/cache",
     plugins={
         "clinvar": "/data/plugins/clinvar.vcf.gz",
         "alphamissense": "/data/plugins/AlphaMissense_hg38.tsv.gz",

@@ -36,13 +36,38 @@ def _make_fake_core(call_log: dict[str, list[tuple]]):
     module = types.ModuleType("vepyr._core")
     module.convert_entity = lambda *args: [("entity.parquet", 1)]
     module.build_entity_fjall = lambda *args: []
-    module.build_plugin_fjall = lambda *args: ("plugin.fjall", 1)
+
+    def build_plugin_fjall(plugin_name, parquet_dir, fjall_path, partitions=8, chromosomes=None):
+        call_log.setdefault("build_plugin_fjall", []).append(
+            (plugin_name, parquet_dir, fjall_path, partitions, chromosomes)
+        )
+        return (fjall_path, 1)
+
+    module.build_plugin_fjall = build_plugin_fjall
     module.annotate_vcf = lambda *args, **kwargs: 0
     module.create_annotator = lambda *args, **kwargs: None
 
-    def convert_plugin(plugin_name, source_path, output_dir, partitions=8, memory_limit_gb=32, chromosomes=None):
+    def convert_plugin(
+        plugin_name,
+        source_path,
+        output_dir,
+        partitions=8,
+        memory_limit_gb=32,
+        chromosomes=None,
+        assume_sorted_input=False,
+        preview_rows=None,
+    ):
         call_log.setdefault("convert_plugin", []).append(
-            (plugin_name, source_path, output_dir, partitions, memory_limit_gb, chromosomes)
+            (
+                plugin_name,
+                source_path,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+                assume_sorted_input,
+                preview_rows,
+            )
         )
         return [(str(Path(output_dir) / "chr1.parquet"), 1)]
 
@@ -55,6 +80,8 @@ def _make_fake_core(call_log: dict[str, list[tuple]]):
         partitions=8,
         memory_limit_gb=32,
         chromosomes=None,
+        assume_sorted_input=False,
+        preview_rows=None,
     ):
         call_log.setdefault("convert_cadd_plugin", []).append(
             (
@@ -64,6 +91,8 @@ def _make_fake_core(call_log: dict[str, list[tuple]]):
                 partitions,
                 memory_limit_gb,
                 chromosomes,
+                assume_sorted_input,
+                preview_rows,
             )
         )
         return [(str(Path(output_dir) / "chr1.parquet"), 2)]
@@ -108,11 +137,45 @@ def test_build_cache_accepts_local_plugin_mapping(tmp_path: Path):
     )
 
     assert call_log["convert_plugin"] == [
-        ("cadd", str(snv), str(tmp_path / "cache" / "cadd"), 8, 32, None),
-        ("spliceai", str(spliceai), str(tmp_path / "cache" / "spliceai"), 8, 32, None),
+        (
+            "cadd",
+            str(snv),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd"),
+            8,
+            32,
+            None,
+            False,
+            None,
+        ),
+        (
+            "spliceai",
+            str(spliceai),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "spliceai"),
+            8,
+            32,
+            None,
+            False,
+            None,
+        ),
     ]
     assert "convert_cadd_plugin" not in call_log
     assert "fetch_plugin_source" not in call_log
+    assert call_log["build_plugin_fjall"] == [
+        (
+            "cadd",
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd"),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd.fjall"),
+            8,
+            None,
+        ),
+        (
+            "spliceai",
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "spliceai"),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "spliceai.fjall"),
+            8,
+            None,
+        ),
+    ]
 
 
 def test_build_cache_accepts_single_cadd_snv_path(tmp_path: Path):
@@ -136,9 +199,27 @@ def test_build_cache_accepts_single_cadd_snv_path(tmp_path: Path):
     )
 
     assert call_log["convert_plugin"] == [
-        ("cadd", str(snv), str(tmp_path / "cache" / "cadd"), 8, 32, None),
+        (
+            "cadd",
+            str(snv),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd"),
+            8,
+            32,
+            None,
+            False,
+            None,
+        ),
     ]
     assert "convert_cadd_plugin" not in call_log
+    assert call_log["build_plugin_fjall"] == [
+        (
+            "cadd",
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd"),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd.fjall"),
+            8,
+            None,
+        )
+    ]
 
 
 def test_build_cache_auto_download_expands_logical_cadd(tmp_path: Path):
@@ -165,10 +246,28 @@ def test_build_cache_auto_download_expands_logical_cadd(tmp_path: Path):
         (
             str(tmp_path / "cache" / "cadd_snv.gz"),
             str(tmp_path / "cache" / "cadd_indel.gz"),
-            str(tmp_path / "cache" / "cadd"),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd"),
             8,
             32,
             ["Y"],
+            False,
+            None,
         )
     ]
     assert [item[0] for item in call_log["convert_plugin"]] == ["clinvar"]
+    assert call_log["build_plugin_fjall"] == [
+        (
+            "cadd",
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd"),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "cadd.fjall"),
+            8,
+            ["Y"],
+        ),
+        (
+            "clinvar",
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "clinvar"),
+            str(tmp_path / "cache" / "115_GRCh38_vep" / "clinvar.fjall"),
+            8,
+            ["Y"],
+        ),
+    ]
