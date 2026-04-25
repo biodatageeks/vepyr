@@ -32,7 +32,7 @@ SCRIPT_DIR = Path(__file__).parent
 # Defaults
 CACHE_SRC = os.environ.get(
     "CACHE_SRC",
-    "/Users/mwiewior/research/data/vep/wgs/parquet/115_GRCh38_vep",
+    "/Users/mwiewior/research/data/vep/wgs/115_GRCh38_vep",
 )
 VCF_SRC = os.environ.get(
     "VCF_SRC",
