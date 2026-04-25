@@ -5,6 +5,7 @@ Preprocesses input VCF (bcftools norm), runs vepyr annotation with both
 parquet and fjall backends, and compares results against original VEP output.
 """
 
+import argparse
 import json
 import os
 import re
@@ -13,16 +14,50 @@ import time
 
 import vepyr
 
+# ── Mode configuration ────────────────────────────────────────────────────
+# Annotation mode: "default" (Ensembl), "merged" (Ensembl+RefSeq), "refseq"
+parser = argparse.ArgumentParser(description="Full-genome annotation benchmark")
+parser.add_argument(
+    "--mode",
+    choices=["default", "merged", "refseq"],
+    default="default",
+    help="Annotation mode (default: %(default)s)",
+)
+args = parser.parse_args()
+MODE = args.mode
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
-CACHE_DIR = os.path.join(DATA_DIR, "115_GRCh38_vep")
 REFERENCE_FASTA = os.path.join(DATA_DIR, "Homo_sapiens.GRCh38.dna.primary_assembly.fa")
 VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 
-# Original VEP outputs for comparison
-VEP_EVERYTHING = os.path.join(DATA_DIR, "HG002_annotated_wgs_everything.vcf")
-VEP_EVERYTHING_HGVS = os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs.vcf")
+# Cache and VEP reference paths per mode
+_MODE_CONFIG = {
+    "default": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_vep"),
+        "vep_reference": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"
+        ),
+        "annotate_kwargs": {},
+    },
+    "merged": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_reference": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"
+        ),
+        "annotate_kwargs": {"merged": True},
+    },
+    "refseq": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_refseq"),
+        "vep_reference": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_refseq.vcf"
+        ),
+        "annotate_kwargs": {"refseq": True},
+    },
+}
+mode_cfg = _MODE_CONFIG[MODE]
+CACHE_DIR = mode_cfg["cache_dir"]
+VEP_EVERYTHING_HGVS = mode_cfg["vep_reference"]
 
 # Working directories
 WORK_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
@@ -64,9 +99,10 @@ print(f"Input: {n_variants:,} biallelic variants in {vcf_gz}")
 
 backends = ["parquet", "fjall"]
 timings = {}
+mode_suffix = f"_{MODE}" if MODE != "default" else ""
 
 for backend in backends:
-    output_vcf = os.path.join(WORK_DIR, f"vepyr_{backend}.vcf")
+    output_vcf = os.path.join(WORK_DIR, f"vepyr_{backend}{mode_suffix}.vcf")
 
     print()
     print("=" * 60)
@@ -96,6 +132,7 @@ for backend in backends:
             reference_fasta=REFERENCE_FASTA,
             use_fjall=(backend == "fjall"),
             output_vcf=output_vcf,
+            **mode_cfg["annotate_kwargs"],
         )
         elapsed = time.time() - t0
 
@@ -123,8 +160,8 @@ print("=" * 60)
 print("Step 3: Comparing vepyr parquet vs fjall")
 print("=" * 60)
 
-parquet_vcf = os.path.join(WORK_DIR, "vepyr_parquet.vcf")
-fjall_vcf = os.path.join(WORK_DIR, "vepyr_fjall.vcf")
+parquet_vcf = os.path.join(WORK_DIR, f"vepyr_parquet{mode_suffix}.vcf")
+fjall_vcf = os.path.join(WORK_DIR, f"vepyr_fjall{mode_suffix}.vcf")
 
 # Line counts
 for name, path in [("parquet", parquet_vcf), ("fjall", fjall_vcf)]:
@@ -466,12 +503,14 @@ print("Step 6: Writing report")
 print("=" * 60)
 
 report = {
+    "mode": MODE,
     "input": {
         "vcf": VCF_INPUT,
         "normalized_vcf": vcf_gz,
         "n_variants_input": n_variants,
         "cache": CACHE_DIR,
         "reference": REFERENCE_FASTA,
+        "vep_reference": VEP_EVERYTHING_HGVS,
     },
     "timings": timings,
     "parquet_vs_fjall": {
@@ -480,7 +519,8 @@ report = {
     "vepyr_vs_vep": comparison_results,
 }
 
-report_path = os.path.join(REPORT_DIR, "benchmark_report.json")
+report_name = f"benchmark_report{mode_suffix}.json"
+report_path = os.path.join(REPORT_DIR, report_name)
 with open(report_path, "w") as f:
     json.dump(report, f, indent=2)
 print(f"  Report saved to {report_path}")

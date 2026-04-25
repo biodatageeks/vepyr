@@ -154,8 +154,43 @@ pub fn annotate_to_vcf_file(
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
         hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
+        hgvsc: opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false),
+        hgvsp: opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false),
+        shift_hgvs: opts.get("shift_hgvs").and_then(|v| v.as_bool()),
+        no_escape: opts
+            .get("no_escape")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        remove_hgvsp_version: opts
+            .get("remove_hgvsp_version")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        hgvsp_use_prediction: opts
+            .get("hgvsp_use_prediction")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         merged: opts
             .get("merged")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        refseq: opts
+            .get("refseq")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        gencode_basic: opts
+            .get("gencode_basic")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        gencode_primary: opts
+            .get("gencode_primary")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        all_refseq: opts
+            .get("all_refseq")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        exclude_predicted: opts
+            .get("exclude_predicted")
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
         failed: opts.get("failed").and_then(|v| v.as_i64()),
