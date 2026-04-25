@@ -24,5 +24,5 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "a82b1accff8f78f54b90830056eab447647f67c3", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "a0b510bd50dc68e4040d15f172b6316b9aa81af6", features = ["cache-builder"] }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "5fc6a6fc26c4300402d9283d69d9d521e96abc60" }
