@@ -149,6 +149,14 @@ class TestAnnotate:
         with pytest.raises(ValueError, match="reference_fasta"):
             vepyr.annotate(INPUT_VCF, CACHE_DIR, hgvs=True)
 
+    @pytest.mark.parametrize("kwargs", [{"hgvsc": True}, {"hgvsp": True}])
+    def test_validates_hgvs_subfield_reference_fasta(self, kwargs):
+        """hgvsc/hgvsp without reference_fasta should raise."""
+        import vepyr
+
+        with pytest.raises(ValueError, match="reference_fasta"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, **kwargs)
+
     def test_annotate_to_vcf_output(self, skip_if_no_cache):
         """Writing to VCF via output_vcf should produce a non-empty file."""
         import vepyr

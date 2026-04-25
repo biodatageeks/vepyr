@@ -23,6 +23,11 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(SCRIPT_DIR, "..", "reports")
+CACHE_SUFFIXES = {
+    "vep": "_vep",
+    "merged": "_merged",
+    "refseq": "_refseq",
+}
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -109,6 +114,12 @@ def parse_args():
         help="Chromosome numbers to process (default: 1-22)",
     )
     p.add_argument(
+        "--cache",
+        choices=["vep", "merged", "refseq"],
+        default="vep",
+        help="Cache type — forwarded to run_annotation_fast.py (default: %(default)s)",
+    )
+    p.add_argument(
         "--no-force",
         action="store_true",
         help="Reuse existing annotation output if present (default: always re-annotate)",
@@ -124,15 +135,21 @@ def parse_args():
 # ── Step 1: Run per-chromosome annotation ────────────────────────────────
 
 
-def run_chromosome(chrom_num, force=False):
+def run_chromosome(chrom_num, cache="vep", force=False):
     """Run run_annotation_fast.py for a single chromosome."""
     chrom = f"chr{chrom_num}"
-    cmd = [sys.executable, os.path.join(SCRIPT_DIR, "run_annotation_fast.py"), chrom]
+    cmd = [
+        sys.executable,
+        os.path.join(SCRIPT_DIR, "run_annotation_fast.py"),
+        chrom,
+        "--cache",
+        cache,
+    ]
     if force:
         cmd.append("--force")
 
     print(f"\n{'=' * 60}")
-    print(f"  Running {chrom}")
+    print(f"  Running {chrom} (cache={cache})")
     print(f"{'=' * 60}")
     result = subprocess.run(cmd, cwd=SCRIPT_DIR)
     if result.returncode != 0:
@@ -144,11 +161,11 @@ def run_chromosome(chrom_num, force=False):
 # ── Step 2: Load all per-chromosome reports ──────────────────────────────
 
 
-def load_reports(chrom_nums):
+def load_reports(chrom_nums, suffix=""):
     """Load JSON reports for all chromosomes."""
     reports = []
     for n in chrom_nums:
-        path = os.path.join(REPORT_DIR, f"fast_chr{n}_report.json")
+        path = os.path.join(REPORT_DIR, f"fast_chr{n}{suffix}_report.json")
         if not os.path.exists(path):
             print(f"  WARNING: {path} not found, skipping chr{n}")
             continue
@@ -627,16 +644,21 @@ def main():
     args = parse_args()
     os.makedirs(REPORT_DIR, exist_ok=True)
 
+    cache = args.cache
+    suffix = CACHE_SUFFIXES[cache]
+
     # Step 1: Run annotations
     if not args.skip_annotate:
-        print(f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]}")
+        print(
+            f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} (cache={cache})"
+        )
         for n in args.chroms:
-            ok = run_chromosome(n, force=not args.no_force)
+            ok = run_chromosome(n, cache=cache, force=not args.no_force)
             if not ok:
                 print(f"  chr{n} failed, continuing...")
 
     # Step 2: Load reports
-    reports = load_reports(args.chroms)
+    reports = load_reports(args.chroms, suffix=suffix)
     if not reports:
         sys.exit("No reports found. Run without --skip-annotate first.")
     print(f"\nLoaded {len(reports)} chromosome reports")
@@ -671,7 +693,9 @@ def main():
     md = generate_report(reports, agg, csq_classes, old_mm, build_info)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    report_path = os.path.join(REPORT_DIR, f"fast_chr1_22_summary_{timestamp}.md")
+    report_path = os.path.join(
+        REPORT_DIR, f"fast_chr1_22{suffix}_summary_{timestamp}.md"
+    )
     with open(report_path, "w") as f:
         f.write(md)
 

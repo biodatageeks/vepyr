@@ -8,20 +8,39 @@ Produces:
 Each line: variant_key \t csq_entry_idx \t field \t vepyr_value \t vep_value
 """
 
+import argparse
 import os
 import re
 import subprocess
 
+# ── Mode configuration ────────────────────────────────────────────────────
+parser = argparse.ArgumentParser(description="Extract ALL mismatches to TSV")
+parser.add_argument(
+    "--mode",
+    choices=["default", "merged", "refseq"],
+    default="default",
+    help="Annotation mode (default: %(default)s)",
+)
+args = parser.parse_args()
+MODE = args.mode
+
 # ── Paths ──────────────────────────────────────────────────────────────────
-DATA_DIR = "/home/tgambin/workspace/data_vepyr"
-VEP_VCF = os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs.vcf")
+DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
+
+_VEP_REFERENCE = {
+    "default": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"),
+    "merged": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"),
+    "refseq": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_refseq.vcf"),
+}
+VEP_VCF = _VEP_REFERENCE[MODE]
 
 WORK_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "reports")
 
+mode_suffix = f"_{MODE}" if MODE != "default" else ""
 BACKENDS = {
-    "parquet": os.path.join(WORK_DIR, "vepyr_parquet.vcf"),
-    "fjall": os.path.join(WORK_DIR, "vepyr_fjall.vcf"),
+    "parquet": os.path.join(WORK_DIR, f"vepyr_parquet{mode_suffix}.vcf"),
+    "fjall": os.path.join(WORK_DIR, f"vepyr_fjall{mode_suffix}.vcf"),
 }
 
 csq_re = re.compile(r"CSQ=([^;\t]+)")
@@ -136,7 +155,9 @@ def main():
         vepyr_kc = os.path.join(WORK_DIR, f"vepyr_{backend}.keyscsq")
         extract_keyscsq(vcf_path, vepyr_kc)
 
-        out_tsv = os.path.join(REPORT_DIR, f"mismatches_{backend}_vs_vep.tsv")
+        out_tsv = os.path.join(
+            REPORT_DIR, f"mismatches_{backend}_vs_vep{mode_suffix}.tsv"
+        )
         compare_and_dump(vepyr_kc, vep_kc, vepyr_fields, vep_fields, out_tsv)
 
         # Cleanup

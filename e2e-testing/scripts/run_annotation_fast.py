@@ -22,12 +22,38 @@ import vepyr
 
 # ── Defaults ──────────────────────────────────────────────────────────────
 DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
-DEFAULT_CACHE_DIR = os.path.join(DATA_DIR, "115_GRCh38_vep")
 DEFAULT_REFERENCE_FASTA = os.path.join(
     DATA_DIR, "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
-DEFAULT_VEP_VCF = os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs.vcf")
+
+# Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
+_CACHE_PROFILES = {
+    "vep": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_vep"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"
+        ),
+        "annotate_kwargs": {},
+        "suffix": "_vep",
+    },
+    "merged": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"
+        ),
+        "annotate_kwargs": {"merged": True},
+        "suffix": "_merged",
+    },
+    "refseq": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_refseq"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_refseq.vcf"
+        ),
+        "annotate_kwargs": {"refseq": True},
+        "suffix": "_refseq",
+    },
+}
 
 
 def parse_args():
@@ -38,19 +64,25 @@ def parse_args():
         "chrom", help="Chromosome to extract and annotate (e.g. chr1, chr22, 1, 22)"
     )
     p.add_argument(
+        "--cache",
+        choices=["vep", "merged", "refseq"],
+        default="vep",
+        help="Cache type — selects cache dir, VEP reference, and annotate flags (default: %(default)s)",
+    )
+    p.add_argument(
         "--vcf",
         default=DEFAULT_VCF_INPUT,
         help="Tabix-indexed input VCF (default: %(default)s)",
     )
     p.add_argument(
         "--vep",
-        default=DEFAULT_VEP_VCF,
-        help="VEP reference VCF for comparison (default: %(default)s)",
+        default=None,
+        help="VEP reference VCF for comparison (default: auto from --cache)",
     )
     p.add_argument(
         "--cache-dir",
-        default=DEFAULT_CACHE_DIR,
-        help="Ensembl cache directory (default: %(default)s)",
+        default=None,
+        help="Ensembl cache directory (default: auto from --cache)",
     )
     p.add_argument(
         "--fasta",
@@ -68,7 +100,18 @@ def parse_args():
     p.add_argument(
         "--force", action="store_true", help="Re-run annotation even if output exists"
     )
-    return p.parse_args()
+    args = p.parse_args()
+
+    # Resolve defaults from cache profile; explicit --cache-dir / --vep override
+    profile = _CACHE_PROFILES[args.cache]
+    if args.cache_dir is None:
+        args.cache_dir = profile["cache_dir"]
+    if args.vep is None:
+        args.vep = profile["vep_vcf"]
+    args.annotate_kwargs = profile["annotate_kwargs"]
+    args.suffix = profile["suffix"]
+
+    return args
 
 
 def count_data_lines(path):
@@ -158,10 +201,10 @@ def extract_chrom_from_vcf(vcf_gz, chrom, out_dir):
     return chrom_vcf_gz
 
 
-def extract_chrom_from_vep(vep_vcf, chrom, out_dir):
+def extract_chrom_from_vep(vep_vcf, chrom, out_dir, suffix="", force=False):
     """Extract chromosome lines from an uncompressed VEP VCF."""
-    out_path = os.path.join(out_dir, f"vep_{chrom}.vcf")
-    if os.path.exists(out_path):
+    out_path = os.path.join(out_dir, f"vep_{chrom}{suffix}.vcf")
+    if os.path.exists(out_path) and not force:
         print(f"  Using existing {out_path}")
         return out_path
 
@@ -474,11 +517,11 @@ def main():
     print(f"  Input: {n_variants:,} variants for {chrom}")
 
     # ── Step 2: Annotate with fjall ───────────────────────────────────────
-    output_vcf = os.path.join(work_dir, f"vepyr_fjall_{chrom}.vcf")
+    output_vcf = os.path.join(work_dir, f"vepyr_fjall_{chrom}{args.suffix}.vcf")
 
     print()
     print("=" * 60)
-    print(f"Step 2: Annotate {chrom} with vepyr (fjall)")
+    print(f"Step 2: Annotate {chrom} with vepyr (fjall, cache={args.cache})")
     print("=" * 60)
 
     if (
@@ -502,6 +545,7 @@ def main():
             reference_fasta=args.fasta,
             use_fjall=True,
             output_vcf=output_vcf,
+            **args.annotate_kwargs,
         )
         elapsed = time.time() - t0
 
@@ -522,12 +566,19 @@ def main():
         print("=" * 60)
         print(f"Step 3: Extract {chrom} from VEP reference")
         print("=" * 60)
-        vep_chrom_vcf = extract_chrom_from_vep(args.vep, chrom, work_dir)
+        vep_chrom_vcf = extract_chrom_from_vep(
+            args.vep,
+            chrom,
+            work_dir,
+            suffix=args.suffix,
+            force=args.force,
+        )
         comparison = compare_vcfs(output_vcf, vep_chrom_vcf, chrom)
 
     # ── Report ────────────────────────────────────────────────────────────
     report = {
         "chrom": chrom,
+        "cache": args.cache,
         "input_variants": n_variants,
         "annotation": {
             "backend": "fjall",
@@ -537,7 +588,7 @@ def main():
         "comparison": comparison,
     }
 
-    report_path = os.path.join(report_dir, f"fast_{chrom}_report.json")
+    report_path = os.path.join(report_dir, f"fast_{chrom}{args.suffix}_report.json")
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
 

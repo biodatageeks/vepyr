@@ -441,6 +441,11 @@ def annotate(
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     merged: bool = False,
+    refseq: bool = False,
+    gencode_basic: bool = False,
+    gencode_primary: bool = False,
+    all_refseq: bool = False,
+    exclude_predicted: bool = False,
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
@@ -507,7 +512,24 @@ def annotate(
         Upstream/downstream distance for transcript overlap. Single int =
         both directions; tuple = (upstream, downstream).
     merged : bool
-        Use merged Ensembl+RefSeq cache.
+        Use merged Ensembl+RefSeq cache. Adds ``SOURCE``, ``REFSEQ_MATCH``,
+        ``REFSEQ_OFFSET``, ``GIVEN_REF``, ``USED_REF``, ``BAM_EDIT`` CSQ
+        fields. Mutually exclusive with ``refseq``.
+    refseq : bool
+        Use RefSeq cache/transcripts instead of Ensembl. Adds
+        ``REFSEQ_MATCH``, ``REFSEQ_OFFSET``, ``GIVEN_REF``, ``USED_REF``,
+        ``BAM_EDIT`` CSQ fields. Mutually exclusive with ``merged``,
+        ``gencode_basic``, and ``gencode_primary``.
+    gencode_basic : bool
+        Restrict to transcripts in the GENCODE basic set. Mutually exclusive
+        with ``gencode_primary`` and ``refseq``.
+    gencode_primary : bool
+        Restrict to transcripts in the GENCODE primary set (GRCh38 only).
+        Mutually exclusive with ``gencode_basic`` and ``refseq``.
+    all_refseq : bool
+        Keep all RefSeq transcripts including CCDS/EST-style rows.
+    exclude_predicted : bool
+        Exclude predicted RefSeq transcripts (``XM_`` / ``XR_`` prefixes).
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     use_fjall : bool
@@ -583,10 +605,20 @@ def annotate(
     import json
 
     # Validate reference_fasta requirement
-    if (everything or hgvs) and not reference_fasta:
+    if (everything or hgvs or hgvsc or hgvsp) and not reference_fasta:
         raise ValueError(
-            "reference_fasta is required when everything=True or hgvs=True"
+            "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
         )
+
+    # Validate mutual exclusivity of cache/transcript flags
+    if refseq and merged:
+        raise ValueError("refseq and merged are mutually exclusive")
+    if refseq and (gencode_basic or gencode_primary):
+        raise ValueError(
+            "refseq is mutually exclusive with gencode_basic and gencode_primary"
+        )
+    if gencode_basic and gencode_primary:
+        raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
@@ -630,6 +662,16 @@ def annotate(
         opts["pubmed"] = True
     if merged:
         opts["merged"] = True
+    if refseq:
+        opts["refseq"] = True
+    if gencode_basic:
+        opts["gencode_basic"] = True
+    if gencode_primary:
+        opts["gencode_primary"] = True
+    if all_refseq:
+        opts["all_refseq"] = True
+    if exclude_predicted:
+        opts["exclude_predicted"] = True
     if failed != 0:
         opts["failed"] = failed
     if distance is not None:
