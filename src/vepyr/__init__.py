@@ -446,6 +446,12 @@ def annotate(
     gencode_primary: bool = False,
     all_refseq: bool = False,
     exclude_predicted: bool = False,
+    pick: bool = False,
+    pick_allele: bool = False,
+    per_gene: bool = False,
+    pick_allele_gene: bool = False,
+    flag_pick: bool = False,
+    flag_pick_allele: bool = False,
     flag_pick_allele_gene: bool = False,
     pick_order: str | None = None,
     failed: int = 0,
@@ -532,6 +538,23 @@ def annotate(
         Keep all RefSeq transcripts including CCDS/EST-style rows.
     exclude_predicted : bool
         Exclude predicted RefSeq transcripts (``XM_`` / ``XR_`` prefixes).
+    pick : bool
+        Emit one selected consequence per variant, matching VEP ``--pick``.
+    pick_allele : bool
+        Emit one selected consequence per allele, matching VEP
+        ``--pick_allele``.
+    per_gene : bool
+        Emit one selected consequence per gene while retaining non-transcript
+        rows, matching VEP ``--per_gene``.
+    pick_allele_gene : bool
+        Emit one selected consequence per allele and gene, matching VEP
+        ``--pick_allele_gene``.
+    flag_pick : bool
+        Retain all consequences and add ``PICK=1`` to one selected entry per
+        variant, matching VEP ``--flag_pick``.
+    flag_pick_allele : bool
+        Retain all consequences and add ``PICK=1`` to one selected entry per
+        allele, matching VEP ``--flag_pick_allele``.
     flag_pick_allele_gene : bool
         Add a standalone ``PICK=1`` CSQ field for the selected transcript per
         allele and gene, matching VEP ``--flag_pick_allele_gene``.
@@ -680,8 +703,17 @@ def annotate(
         opts["all_refseq"] = True
     if exclude_predicted:
         opts["exclude_predicted"] = True
-    if flag_pick_allele_gene:
-        opts["flag_pick_allele_gene"] = True
+    for key, enabled in {
+        "pick": pick,
+        "pick_allele": pick_allele,
+        "per_gene": per_gene,
+        "pick_allele_gene": pick_allele_gene,
+        "flag_pick": flag_pick,
+        "flag_pick_allele": flag_pick_allele,
+        "flag_pick_allele_gene": flag_pick_allele_gene,
+    }.items():
+        if enabled:
+            opts[key] = True
     if pick_order:
         opts["pick_order"] = pick_order
     if failed != 0:

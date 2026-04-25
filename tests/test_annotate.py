@@ -220,7 +220,7 @@ class TestAnnotate:
             os.unlink(out_path)
 
     def test_pick_options_forward_to_vcf_writer(self, monkeypatch):
-        """flag_pick_allele_gene and pick_order should reach native VCF output."""
+        """Pick mode options and pick_order should reach native VCF output."""
         import vepyr
 
         seen = {}
@@ -249,11 +249,23 @@ class TestAnnotate:
                 output_vcf=out_path,
                 show_progress=False,
                 merged=True,
+                pick=True,
+                pick_allele=True,
+                per_gene=True,
+                pick_allele_gene=True,
+                flag_pick=True,
+                flag_pick_allele=True,
                 flag_pick_allele_gene=True,
                 pick_order="biotype,rank,mane_select",
             )
             assert result == out_path
             assert seen["options"]["merged"] is True
+            assert seen["options"]["pick"] is True
+            assert seen["options"]["pick_allele"] is True
+            assert seen["options"]["per_gene"] is True
+            assert seen["options"]["pick_allele_gene"] is True
+            assert seen["options"]["flag_pick"] is True
+            assert seen["options"]["flag_pick_allele"] is True
             assert seen["options"]["flag_pick_allele_gene"] is True
             assert seen["options"]["pick_order"] == "biotype,rank,mane_select"
         finally:
