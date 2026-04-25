@@ -16,7 +16,7 @@ import vepyr
 
 # ── Mode configuration ────────────────────────────────────────────────────
 # Annotation mode: "default" (Ensembl), "merged" (Ensembl+RefSeq),
-# "merged_pick" (merged + flag_pick_allele_gene PICK), filtering pick profiles, "refseq"
+# explicit pick/flag pick profiles, and "refseq".
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
 
 parser = argparse.ArgumentParser(description="Full-genome annotation benchmark")
@@ -26,6 +26,9 @@ parser.add_argument(
         "default",
         "merged",
         "merged_pick",
+        "merged_flag_pick",
+        "merged_flag_pick_allele",
+        "merged_flag_pick_allele_gene",
         "merged_pick_filter",
         "merged_pick_allele",
         "merged_per_gene",
@@ -63,6 +66,41 @@ _MODE_CONFIG = {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
         "vep_reference": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+    },
+    "merged_flag_pick": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_reference": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+    },
+    "merged_flag_pick_allele": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_reference": os.path.join(
+            DATA_DIR,
+            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf",
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+    },
+    "merged_flag_pick_allele_gene": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_reference": os.path.join(
+            DATA_DIR,
+            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf",
         ),
         "annotate_kwargs": {
             "merged": True,

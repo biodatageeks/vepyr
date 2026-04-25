@@ -58,6 +58,44 @@ _CACHE_PROFILES = {
         },
         "suffix": "_merged_pick",
     },
+    "merged_flag_pick": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_flag_pick",
+    },
+    "merged_flag_pick_allele": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR,
+            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf",
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_flag_pick_allele",
+    },
+    "merged_flag_pick_allele_gene": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR,
+            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf",
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_flag_pick_allele_gene",
+    },
     "merged_pick_filter": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
         "vep_vcf": os.path.join(

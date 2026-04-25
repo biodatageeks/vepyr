@@ -27,6 +27,13 @@ CACHE_SUFFIXES = {
     "vep": "_vep",
     "merged": "_merged",
     "merged_pick": "_merged_pick",
+    "merged_flag_pick": "_merged_flag_pick",
+    "merged_flag_pick_allele": "_merged_flag_pick_allele",
+    "merged_flag_pick_allele_gene": "_merged_flag_pick_allele_gene",
+    "merged_pick_filter": "_merged_pick_filter",
+    "merged_pick_allele": "_merged_pick_allele",
+    "merged_per_gene": "_merged_per_gene",
+    "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
 
