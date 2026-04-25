@@ -15,11 +15,14 @@ import time
 import vepyr
 
 # ── Mode configuration ────────────────────────────────────────────────────
-# Annotation mode: "default" (Ensembl), "merged" (Ensembl+RefSeq), "refseq"
+# Annotation mode: "default" (Ensembl), "merged" (Ensembl+RefSeq),
+# "merged_pick" (merged + PICK), "refseq"
+VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
+
 parser = argparse.ArgumentParser(description="Full-genome annotation benchmark")
 parser.add_argument(
     "--mode",
-    choices=["default", "merged", "refseq"],
+    choices=["default", "merged", "merged_pick", "refseq"],
     default="default",
     help="Annotation mode (default: %(default)s)",
 )
@@ -46,6 +49,17 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"
         ),
         "annotate_kwargs": {"merged": True},
+    },
+    "merged_pick": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_reference": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
     },
     "refseq": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_refseq"),

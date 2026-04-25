@@ -26,6 +26,7 @@ DEFAULT_REFERENCE_FASTA = os.path.join(
     DATA_DIR, "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
+VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
@@ -44,6 +45,18 @@ _CACHE_PROFILES = {
         ),
         "annotate_kwargs": {"merged": True},
         "suffix": "_merged",
+    },
+    "merged_pick": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_pick",
     },
     "refseq": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_refseq"),
@@ -65,7 +78,7 @@ def parse_args():
     )
     p.add_argument(
         "--cache",
-        choices=["vep", "merged", "refseq"],
+        choices=sorted(_CACHE_PROFILES),
         default="vep",
         help="Cache type — selects cache dir, VEP reference, and annotate flags (default: %(default)s)",
     )

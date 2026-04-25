@@ -446,6 +446,8 @@ def annotate(
     gencode_primary: bool = False,
     all_refseq: bool = False,
     exclude_predicted: bool = False,
+    flag_pick_allele_gene: bool = False,
+    pick_order: str | None = None,
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
@@ -530,6 +532,12 @@ def annotate(
         Keep all RefSeq transcripts including CCDS/EST-style rows.
     exclude_predicted : bool
         Exclude predicted RefSeq transcripts (``XM_`` / ``XR_`` prefixes).
+    flag_pick_allele_gene : bool
+        Add a standalone ``PICK=1`` CSQ field for the selected transcript per
+        allele and gene, matching VEP ``--flag_pick_allele_gene``.
+    pick_order : str or None
+        Comma-separated VEP pick ranking order, e.g.
+        ``"biotype,rank,mane_select,tsl,canonical,appris,ccds,length"``.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     use_fjall : bool
@@ -672,6 +680,10 @@ def annotate(
         opts["all_refseq"] = True
     if exclude_predicted:
         opts["exclude_predicted"] = True
+    if flag_pick_allele_gene:
+        opts["flag_pick_allele_gene"] = True
+    if pick_order:
+        opts["pick_order"] = pick_order
     if failed != 0:
         opts["failed"] = failed
     if distance is not None:
