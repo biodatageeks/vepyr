@@ -337,7 +337,7 @@ class TestBuildCacheIntegration:
         alleles = tables["variation"].column("allele_string").to_pylist()
         assert all("/" in a for a in alleles)
 
-    # ── Transcript (106 rows, 67 cols) ──────────────────────────────
+    # ── Transcript (106 rows, 70 cols) ──────────────────────────────
 
     def test_transcript_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -345,7 +345,7 @@ class TestBuildCacheIntegration:
 
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["transcript"].num_columns == 67
+        assert tables["transcript"].num_columns == 70
 
     def test_transcript_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -372,6 +372,9 @@ class TestBuildCacheIntegration:
             "tsl",
             "appris",
             "mane_select",
+            "source_regbuild",
+            "source_sift",
+            "source_src_1000genomes",
         ):
             assert c in cols, f"Missing transcript column: {c}"
 
@@ -482,7 +485,7 @@ class TestBuildCacheIntegration:
         ids = tables["exon"].column("stable_id").to_pylist()
         assert all(i.startswith("ENSE") for i in ids)
 
-    # ── Translation core (7 rows, 8 cols) ───────────────────────────
+    # ── Translation core (7 rows, 10 cols) ──────────────────────────
 
     def test_translation_core_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -490,7 +493,7 @@ class TestBuildCacheIntegration:
 
     def test_translation_core_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["translation_core"].num_columns == 8
+        assert tables["translation_core"].num_columns == 10
 
     def test_translation_core_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -503,6 +506,8 @@ class TestBuildCacheIntegration:
             "protein_len",
             "translation_seq",
             "cds_sequence",
+            "translation_seq_canonical",
+            "cds_sequence_canonical",
             "protein_features",
         ):
             assert c in cols, f"Missing translation_core column: {c}"
