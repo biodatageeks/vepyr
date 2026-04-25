@@ -23,6 +23,11 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(SCRIPT_DIR, "..", "reports")
+CACHE_SUFFIXES = {
+    "vep": "_vep",
+    "merged": "_merged",
+    "refseq": "_refseq",
+}
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -640,7 +645,7 @@ def main():
     os.makedirs(REPORT_DIR, exist_ok=True)
 
     cache = args.cache
-    suffix = f"_{cache}" if cache != "vep" else ""
+    suffix = CACHE_SUFFIXES[cache]
 
     # Step 1: Run annotations
     if not args.skip_annotate:

@@ -605,9 +605,9 @@ def annotate(
     import json
 
     # Validate reference_fasta requirement
-    if (everything or hgvs) and not reference_fasta:
+    if (everything or hgvs or hgvsc or hgvsp) and not reference_fasta:
         raise ValueError(
-            "reference_fasta is required when everything=True or hgvs=True"
+            "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
         )
 
     # Validate mutual exclusivity of cache/transcript flags
