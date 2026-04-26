@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import threading
@@ -215,6 +216,58 @@ class TestAnnotate:
             with open(out_path) as f:
                 header_lines = [line for line in f if line.startswith("#")]
             assert any("CSQ" in line for line in header_lines)
+        finally:
+            os.unlink(out_path)
+
+    def test_pick_options_forward_to_vcf_writer(self, monkeypatch):
+        """Pick mode options and pick_order should reach native VCF output."""
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen["options"] = json.loads(options_json)
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                merged=True,
+                pick=True,
+                pick_allele=True,
+                per_gene=True,
+                pick_allele_gene=True,
+                flag_pick=True,
+                flag_pick_allele=True,
+                flag_pick_allele_gene=True,
+                pick_order="biotype,rank,mane_select",
+            )
+            assert result == out_path
+            assert seen["options"]["merged"] is True
+            assert seen["options"]["pick"] is True
+            assert seen["options"]["pick_allele"] is True
+            assert seen["options"]["per_gene"] is True
+            assert seen["options"]["pick_allele_gene"] is True
+            assert seen["options"]["flag_pick"] is True
+            assert seen["options"]["flag_pick_allele"] is True
+            assert seen["options"]["flag_pick_allele_gene"] is True
+            assert seen["options"]["pick_order"] == "biotype,rank,mane_select"
         finally:
             os.unlink(out_path)
 

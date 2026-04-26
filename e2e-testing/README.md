@@ -80,11 +80,31 @@ uv run python run_annotation_fast.py chr1 --force
 
 # Skip comparison, only annotate
 uv run python run_annotation_fast.py chr1 --skip-compare
+
+# Compare against a merged-cache VEP pick-mode reference
+uv run python run_annotation_fast.py chr22 --cache merged_pick_filter
+uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
 ```
 
 **Output:**
 - `results/fast_chr{N}/` -- intermediate VCF files
 - `reports/fast_chr{N}_report.json` -- per-field match rates, mismatch examples
+
+Supported `--cache` profiles:
+
+| Profile | VEP reference flag |
+|---------|--------------------|
+| `vep` | Ensembl cache baseline |
+| `merged` | `--merged` baseline |
+| `merged_pick_filter` | `--pick` |
+| `merged_pick_allele` | `--pick_allele` |
+| `merged_per_gene` | `--per_gene` |
+| `merged_pick_allele_gene` | `--pick_allele_gene` |
+| `merged_flag_pick` | `--flag_pick` |
+| `merged_flag_pick_allele` | `--flag_pick_allele` |
+| `merged_flag_pick_allele_gene` | `--flag_pick_allele_gene` |
+| `merged_pick` | legacy alias for `--flag_pick_allele_gene` |
+| `refseq` | RefSeq cache baseline |
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
@@ -101,6 +121,9 @@ uv run python run_annotation_fast_all.py --no-force
 
 # Only specific chromosomes
 uv run python run_annotation_fast_all.py --chroms 1 6 22
+
+# Run a pick-mode profile across chr1-22
+uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
 
 # Regenerate report from existing per-chromosome JSONs (instant)
 uv run python run_annotation_fast_all.py --skip-annotate
@@ -120,6 +143,9 @@ Run the complete benchmark with both parquet and fjall backends, including backe
 ```bash
 cd scripts
 uv run python run_annotation.py
+
+# Full-genome pick-mode benchmark
+uv run python run_annotation.py --mode merged_flag_pick_allele
 ```
 
 **Output:**

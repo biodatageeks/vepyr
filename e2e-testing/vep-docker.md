@@ -87,7 +87,172 @@ WARNING: Transcript-assembly mismatch in chr20_62306724_T/C
 ```
 
 
-### VEP with pick
+### Merged cache + pick-mode references
+
+These commands generate the VEP reference files used by the e2e pick-mode
+profiles. All modes use the same merged VEP 115 cache, normalized HG002 input,
+`--everything --hgvs`, and pick ranking order:
+`biotype,rank,mane_select,tsl,canonical,appris,ccds,length`.
+
+#### `merged_pick_filter` e2e mode: `--pick`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_pick_filter.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--pick --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### `merged_pick_allele` e2e mode: `--pick_allele`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_pick_allele.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--pick_allele --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### `merged_per_gene` e2e mode: `--per_gene`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_per_gene.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--per_gene --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### `merged_pick_allele_gene` e2e mode: `--pick_allele_gene`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--pick_allele_gene --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### `merged_flag_pick` e2e mode: `--flag_pick`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--flag_pick --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### `merged_flag_pick_allele` e2e mode: `--flag_pick_allele`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--flag_pick_allele --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### `merged_flag_pick_allele_gene` e2e mode: `--flag_pick_allele_gene`
+```shell
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--merged \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--flag_pick_allele_gene --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+```
+
+#### Legacy `merged_pick` e2e mode: `--flag_pick_allele_gene`
+
+The historical `merged_pick` profile is kept as an alias for the original
+`--flag_pick_allele_gene` comparison output.
+
 ```shell
 time docker run --rm \
 -v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
