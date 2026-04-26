@@ -163,6 +163,8 @@ class GoldenConfig:
     annotate_kwargs: dict[str, Any]
     csq_fields: list[str]
     df_comparison_fields: list[str]
+    exact_csq_entry_count: bool = False
+    check_most_severe_consequence: bool = True
 
     @property
     def vcf_comparison_fields(self) -> list[str]:
@@ -289,12 +291,22 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
 
         def test_csq_entry_count(self, vepyr_vcf_annotations, golden_annotations):
             fewer = []
+            mismatched = []
             for key, golden_csqs in golden_annotations.items():
                 vepyr_csqs = _lookup(key, vepyr_vcf_annotations)
                 if vepyr_csqs is None:
                     fewer.append((key, len(golden_csqs), 0))
+                elif config.exact_csq_entry_count and len(vepyr_csqs) != len(
+                    golden_csqs
+                ):
+                    mismatched.append((key, len(golden_csqs), len(vepyr_csqs)))
                 elif len(vepyr_csqs) < len(golden_csqs):
                     fewer.append((key, len(golden_csqs), len(vepyr_csqs)))
+            if config.exact_csq_entry_count:
+                assert not mismatched, (
+                    "Variants with different CSQ entry counts than golden: "
+                    f"{mismatched}"
+                )
             assert not fewer, f"Variants with fewer CSQ entries than golden: {fewer}"
 
         def test_csq_field_order(self, golden_field_order, vepyr_vcf_path):
@@ -374,6 +386,11 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
             )
 
         def test_most_severe_consequence_match(self, vepyr_df, golden_annotations):
+            if not config.check_most_severe_consequence:
+                pytest.skip(
+                    "most_severe_consequence is computed before pick-mode filtering"
+                )
+
             matched = 0
             total = 0
             for row in vepyr_df.iter_rows(named=True):
