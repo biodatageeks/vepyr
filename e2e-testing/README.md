@@ -15,12 +15,12 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 
 ### 2. External data
 
-The scripts expect data files under `~/workspace/data_vepyr/`. Override paths with CLI flags if your layout differs.
+The scripts expect data files under `~/workspace/data_vepyr/`. Set `DATA_VEPYR_DIR` or use CLI flags if your layout differs.
 
 | File | Description | Default path |
 |------|-------------|-------------|
 | VCF input | HG002 GRCh38 benchmark VCF (GIAB) | `~/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` |
-| VEP reference | VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs.vcf` |
+| VEP reference | Golden Ensembl VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs_vep.vcf` |
 | Cache dir | Converted Ensembl 115 cache (parquet + fjall) | `~/workspace/data_vepyr/115_GRCh38_vep` |
 | Reference FASTA | GRCh38 primary assembly | `~/workspace/data_vepyr/Homo_sapiens.GRCh38.dna.primary_assembly.fa` |
 

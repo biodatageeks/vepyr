@@ -21,7 +21,9 @@ import vepyr
 
 
 # ── Defaults ──────────────────────────────────────────────────────────────
-DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
+DATA_DIR = os.path.expanduser(
+    os.path.expandvars(os.environ.get("DATA_VEPYR_DIR", "$HOME/workspace/data_vepyr"))
+)
 DEFAULT_REFERENCE_FASTA = os.path.join(
     DATA_DIR, "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 )
