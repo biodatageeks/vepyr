@@ -3,13 +3,14 @@
 
 The tests reuse ``tests/data/golden/input.vcf`` and the trimmed merged cache
 from ``tests/data/golden_merged/cache``. This script extracts matching variants
-from full Ensembl VEP outputs in ``sandbox/`` into small committed fixtures.
+from full Ensembl VEP outputs in ``data_vepyr`` into small committed fixtures.
 
 Usage:
     python tests/data/golden_merged/prepare_pick_modes.py
 
 Env vars:
-    SANDBOX_DIR  Directory containing full Ensembl VEP pick-mode outputs.
+    DATA_VEPYR_DIR  Directory containing full HG002 inputs, VEP outputs, caches, FASTA
+    GOLDEN_SRC_DIR  Directory containing full Ensembl VEP pick-mode outputs.
     INPUT_VCF    Sampled VCF used by the existing golden tests.
 """
 
@@ -21,9 +22,21 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR.parent
 BASE_GOLDEN_DIR = DATA_DIR / "golden"
-REPO_ROOT = SCRIPT_DIR.parents[2]
 
-SANDBOX_DIR = Path(os.environ.get("SANDBOX_DIR", str(REPO_ROOT / "sandbox")))
+
+def expand_path(path: str) -> Path:
+    return Path(os.path.expandvars(path)).expanduser()
+
+
+DATA_VEPYR_DIR = expand_path(
+    os.environ.get("DATA_VEPYR_DIR", "$HOME/workspace/data_vepyr")
+)
+GOLDEN_SRC_DIR = expand_path(
+    os.environ.get(
+        "GOLDEN_SRC_DIR",
+        os.environ.get("SANDBOX_DIR", str(DATA_VEPYR_DIR)),
+    )
+)
 INPUT_VCF = Path(os.environ.get("INPUT_VCF", str(BASE_GOLDEN_DIR / "input.vcf")))
 
 PICK_MODE_FIXTURES = {
@@ -32,6 +45,12 @@ PICK_MODE_FIXTURES = {
     ),
     "golden_merged_pick_allele": (
         "HG002_annotated_wgs_everything_hgvs_merged_pick_allele.vcf"
+    ),
+    "golden_merged_pick_allele_gene": (
+        "HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf"
+    ),
+    "golden_merged_flag_pick_allele": (
+        "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf"
     ),
 }
 
@@ -72,11 +91,11 @@ def write_golden_subset(
 
 def main() -> None:
     sample_keys = load_sample_keys(INPUT_VCF)
-    print(f"Preparing merged pick-mode golden fixtures from {SANDBOX_DIR}")
+    print(f"Preparing merged pick-mode golden fixtures from {GOLDEN_SRC_DIR}")
     print(f"Input sample: {len(sample_keys)} variants")
 
     for fixture_dir, source_name in PICK_MODE_FIXTURES.items():
-        source = SANDBOX_DIR / source_name
+        source = GOLDEN_SRC_DIR / source_name
         output = DATA_DIR / fixture_dir / "golden.vcf"
         matched = write_golden_subset(sample_keys, source, output)
         print(f"  {fixture_dir}: wrote {matched} variants to {output}")
