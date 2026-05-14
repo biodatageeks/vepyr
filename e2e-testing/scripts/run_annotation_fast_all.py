@@ -6,6 +6,7 @@ Usage:
     python run_annotation_fast_all.py --no-force       # reuse existing annotation output
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
+    python run_annotation_fast_all.py --backend parquet
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
 per-chromosome JSON reports into a single timestamped Markdown summary
@@ -36,6 +37,7 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
+BACKENDS = ("fjall", "parquet")
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -128,6 +130,12 @@ def parse_args():
         help="Cache type — forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
+        "--backend",
+        choices=BACKENDS,
+        default="fjall",
+        help="Annotation cache backend forwarded to run_annotation_fast.py (default: %(default)s)",
+    )
+    p.add_argument(
         "--no-force",
         action="store_true",
         help="Reuse existing annotation output if present (default: always re-annotate)",
@@ -143,7 +151,14 @@ def parse_args():
 # ── Step 1: Run per-chromosome annotation ────────────────────────────────
 
 
-def run_chromosome(chrom_num, cache="vep", force=False):
+def report_suffix(cache_suffix, backend):
+    """Keep existing fjall report names; namespace non-default backends."""
+    if backend == "fjall":
+        return cache_suffix
+    return f"{cache_suffix}_{backend}"
+
+
+def run_chromosome(chrom_num, cache="vep", backend="fjall", force=False):
     """Run run_annotation_fast.py for a single chromosome."""
     chrom = f"chr{chrom_num}"
     cmd = [
@@ -152,12 +167,14 @@ def run_chromosome(chrom_num, cache="vep", force=False):
         chrom,
         "--cache",
         cache,
+        "--backend",
+        backend,
     ]
     if force:
         cmd.append("--force")
 
     print(f"\n{'=' * 60}")
-    print(f"  Running {chrom} (cache={cache})")
+    print(f"  Running {chrom} (cache={cache}, backend={backend})")
     print(f"{'=' * 60}")
     result = subprocess.run(cmd, cwd=SCRIPT_DIR)
     if result.returncode != 0:
@@ -286,16 +303,15 @@ def classify_consequence_mismatches(examples):
 # ── Step 5: Load old benchmark for comparison ────────────────────────────
 
 
-def load_old_benchmark():
+def load_old_benchmark(backend="fjall"):
     """Load the previous full-genome benchmark report for delta comparison."""
     path = os.path.join(REPORT_DIR, "benchmark_report.json")
     if not os.path.exists(path):
         return None
     with open(path) as f:
         r = json.load(f)
-    # Use fjall backend comparison (matches our fast run)
     vvv = r.get("vepyr_vs_vep", {})
-    comp = vvv.get("fjall", vvv.get("parquet", {}))
+    comp = vvv.get(backend, vvv.get("fjall", vvv.get("parquet", {})))
     return comp.get("field_mismatch_counts", {})
 
 
@@ -362,7 +378,9 @@ def pr_link(num):
     return f"[#{num}]({REPO}/pull/{num})"
 
 
-def generate_report(reports, agg, csq_classes, old_mm, build_info=None):
+def generate_report(
+    reports, agg, csq_classes, old_mm, build_info=None, backend="fjall"
+):
     """Generate the full Markdown report."""
     lines = []
     now = datetime.now()
@@ -378,11 +396,11 @@ def generate_report(reports, agg, csq_classes, old_mm, build_info=None):
     bi = build_info or {}
 
     # ── Header ────────────────────────────────────────────────────────
-    lines.append("# Fast Annotation Report: chr1-22 (fjall)")
+    lines.append(f"# Fast Annotation Report: chr1-22 ({backend})")
     lines.append("")
     lines.append(f"**Date:** {now.strftime('%Y-%m-%d %H:%M')}")
     lines.append(f"**Variants:** {total_in:,} (HG002 GRCh38, bcftools norm -m -both)")
-    lines.append("**Backend:** fjall only")
+    lines.append(f"**Backend:** {backend} only")
     lines.append(
         f"**Total annotation time:** {total_time:.0f}s ({total_time / 60:.1f} min)"
     )
@@ -654,19 +672,24 @@ def main():
 
     cache = args.cache
     suffix = CACHE_SUFFIXES[cache]
+    backend = args.backend
+    report_name_suffix = report_suffix(suffix, backend)
 
     # Step 1: Run annotations
     if not args.skip_annotate:
         print(
-            f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} (cache={cache})"
+            f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} "
+            f"(cache={cache}, backend={backend})"
         )
         for n in args.chroms:
-            ok = run_chromosome(n, cache=cache, force=not args.no_force)
+            ok = run_chromosome(
+                n, cache=cache, backend=backend, force=not args.no_force
+            )
             if not ok:
                 print(f"  chr{n} failed, continuing...")
 
     # Step 2: Load reports
-    reports = load_reports(args.chroms, suffix=suffix)
+    reports = load_reports(args.chroms, suffix=report_name_suffix)
     if not reports:
         sys.exit("No reports found. Run without --skip-annotate first.")
     print(f"\nLoaded {len(reports)} chromosome reports")
@@ -683,7 +706,7 @@ def main():
         print(f"  {cls:<30} {len(exs):>5} mismatches")
 
     # Step 5: Load old benchmark
-    old_mm = load_old_benchmark()
+    old_mm = load_old_benchmark(backend)
     if old_mm:
         print(f"\nLoaded old benchmark ({sum(old_mm.values()):,} total mismatches)")
     else:
@@ -698,11 +721,11 @@ def main():
     )
 
     # Step 6: Generate report
-    md = generate_report(reports, agg, csq_classes, old_mm, build_info)
+    md = generate_report(reports, agg, csq_classes, old_mm, build_info, backend)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     report_path = os.path.join(
-        REPORT_DIR, f"fast_chr1_22{suffix}_summary_{timestamp}.md"
+        REPORT_DIR, f"fast_chr1_22{report_name_suffix}_summary_{timestamp}.md"
     )
     with open(report_path, "w") as f:
         f.write(md)

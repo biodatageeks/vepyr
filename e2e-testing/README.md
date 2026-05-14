@@ -60,7 +60,8 @@ datafusion-bio-format-vcf   = { git = "https://github.com/biodatageeks/datafusio
 
 ### `run_annotation_fast.py` -- single chromosome
 
-Annotate one chromosome with the fjall backend and compare against VEP.
+Annotate one chromosome with the fjall backend by default and compare against VEP.
+Use `--backend parquet` to run the same flow against the parquet cache backend.
 
 ```bash
 cd scripts
@@ -81,6 +82,9 @@ uv run python run_annotation_fast.py chr1 --force
 # Skip comparison, only annotate
 uv run python run_annotation_fast.py chr1 --skip-compare
 
+# Use parquet instead of the default fjall backend
+uv run python run_annotation_fast.py chr1 --backend parquet
+
 # Compare against a merged-cache VEP pick-mode reference
 uv run python run_annotation_fast.py chr22 --cache merged_pick_filter
 uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
@@ -88,7 +92,8 @@ uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
 
 **Output:**
 - `results/fast_chr{N}/` -- intermediate VCF files
-- `reports/fast_chr{N}_report.json` -- per-field match rates, mismatch examples
+- `reports/fast_chr{N}{cache_suffix}_report.json` -- default fjall report
+- `reports/fast_chr{N}{cache_suffix}_parquet_report.json` -- parquet override report
 
 Supported `--cache` profiles:
 
@@ -108,7 +113,7 @@ Supported `--cache` profiles:
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
-Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links.
+Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links. The default backend is fjall; pass `--backend parquet` to use parquet.
 
 ```bash
 cd scripts
@@ -125,12 +130,16 @@ uv run python run_annotation_fast_all.py --chroms 1 6 22
 # Run a pick-mode profile across chr1-22
 uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
 
+# Run parquet backend across chr1-22
+uv run python run_annotation_fast_all.py --backend parquet
+
 # Regenerate report from existing per-chromosome JSONs (instant)
 uv run python run_annotation_fast_all.py --skip-annotate
 ```
 
 **Output:**
-- `reports/fast_chr1_22_summary_YYYYMMDD.md` -- full report with:
+- `reports/fast_chr1_22{cache_suffix}_summary_YYYYMMDD_HHMM.md` -- default fjall report
+- `reports/fast_chr1_22{cache_suffix}_parquet_summary_YYYYMMDD_HHMM.md` -- parquet override report
   - Per-chromosome performance table
   - Root cause classification with GitHub issue links
   - Field-level delta vs previous benchmark
