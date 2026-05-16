@@ -7,6 +7,7 @@ Usage:
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
     python run_annotation_fast_all.py --backend parquet
+    python run_annotation_fast_all.py --parallel 4
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
 per-chromosome JSON reports into a single timestamped Markdown summary
@@ -19,6 +20,7 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 
@@ -37,7 +39,7 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
-BACKENDS = ("fjall", "parquet")
+BACKENDS = ("fjall", "parquet", "redb")
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -145,7 +147,25 @@ def parse_args():
         action="store_true",
         help="Skip annotation, only regenerate report from existing JSONs",
     )
+    p.add_argument(
+        "--parallel",
+        "--jobs",
+        dest="parallel",
+        type=positive_int,
+        default=1,
+        help="Number of chromosomes to annotate concurrently (default: %(default)s)",
+    )
     return p.parse_args()
+
+
+def positive_int(value):
+    try:
+        n = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if n < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
+    return n
 
 
 # ── Step 1: Run per-chromosome annotation ────────────────────────────────
@@ -181,6 +201,37 @@ def run_chromosome(chrom_num, cache="vep", backend="fjall", force=False):
         print(f"  WARNING: {chrom} failed with exit code {result.returncode}")
         return False
     return True
+
+
+def run_chromosomes(chrom_nums, cache="vep", backend="fjall", force=False, parallel=1):
+    """Run per-chromosome annotation jobs and return failed chromosome numbers."""
+    if parallel <= 1 or len(chrom_nums) <= 1:
+        failed = []
+        for n in chrom_nums:
+            if not run_chromosome(n, cache=cache, backend=backend, force=force):
+                failed.append(n)
+        return failed
+
+    workers = min(parallel, len(chrom_nums))
+    print(f"\nRunning up to {workers} chromosomes in parallel")
+    failed = []
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(
+                run_chromosome, n, cache=cache, backend=backend, force=force
+            ): n
+            for n in chrom_nums
+        }
+        for future in as_completed(futures):
+            n = futures[future]
+            try:
+                ok = future.result()
+            except Exception as exc:
+                print(f"  WARNING: chr{n} failed with exception: {exc}")
+                ok = False
+            if not ok:
+                failed.append(n)
+    return failed
 
 
 # ── Step 2: Load all per-chromosome reports ──────────────────────────────
@@ -679,14 +730,17 @@ def main():
     if not args.skip_annotate:
         print(
             f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} "
-            f"(cache={cache}, backend={backend})"
+            f"(cache={cache}, backend={backend}, parallel={args.parallel})"
         )
-        for n in args.chroms:
-            ok = run_chromosome(
-                n, cache=cache, backend=backend, force=not args.no_force
-            )
-            if not ok:
-                print(f"  chr{n} failed, continuing...")
+        failed = run_chromosomes(
+            args.chroms,
+            cache=cache,
+            backend=backend,
+            force=not args.no_force,
+            parallel=args.parallel,
+        )
+        for n in failed:
+            print(f"  chr{n} failed, continuing...")
 
     # Step 2: Load reports
     reports = load_reports(args.chroms, suffix=report_name_suffix)

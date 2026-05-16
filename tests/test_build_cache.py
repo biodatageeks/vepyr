@@ -39,6 +39,11 @@ class TestBuildCacheSignature:
         p = sig.parameters["build_fjall"]
         assert p.default is True
 
+    def test_has_kv_backend_param(self):
+        sig = inspect.signature(vepyr.build_cache)
+        p = sig.parameters["kv_backend"]
+        assert p.default is None
+
     def test_has_fjall_zstd_level_param(self):
         sig = inspect.signature(vepyr.build_cache)
         p = sig.parameters["fjall_zstd_level"]
@@ -92,6 +97,10 @@ class TestBuildCacheValidation:
     def test_invalid_cache_type_raises(self):
         with pytest.raises(ValueError, match="Invalid cache_type"):
             vepyr.build_cache(115, "/tmp/fake", cache_type="invalid")
+
+    def test_invalid_kv_backend_raises(self):
+        with pytest.raises(ValueError, match="kv_backend must be one of"):
+            vepyr.build_cache(115, "/tmp/fake", kv_backend="sqlite")
 
     def test_local_cache_not_found_raises(self):
         with pytest.raises(FileNotFoundError, match="Local cache directory not found"):
@@ -205,6 +214,26 @@ class TestBuildCacheProgressCallback:
         assert call_args[3] is False  # build_fjall
         assert call_args[4] == 5  # zstd_level
         assert call_args[5] == 256  # dict_size_kb
+
+    @patch("vepyr._build_cache")
+    def test_kv_backend_redb_forwarded(self, mock_native):
+        """kv_backend='redb' should be forwarded to the native cache builder."""
+        mock_native.return_value = []
+
+        os.makedirs("/tmp/test_vepyr_cache_redb", exist_ok=True)
+        try:
+            vepyr.build_cache(
+                115,
+                "/tmp/test_vepyr_cache_redb_out",
+                local_cache="/tmp/test_vepyr_cache_redb",
+                kv_backend="redb",
+                show_progress=False,
+            )
+        finally:
+            os.rmdir("/tmp/test_vepyr_cache_redb")
+
+        call_args = mock_native.call_args[0]
+        assert call_args[7] == "redb"
 
 
 @pytest.fixture(scope="module")

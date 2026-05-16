@@ -229,6 +229,7 @@ def build_cache(
     cache_type: str = "vep",
     partitions: int = 1,
     build_fjall: bool = True,
+    kv_backend: str | None = None,
     fjall_zstd_level: int = 3,
     fjall_dict_size_kb: int = 112,
     local_cache: str | None = None,
@@ -236,7 +237,7 @@ def build_cache(
     show_progress: bool = True,
     on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
 ) -> list[tuple[str, int]]:
-    """Download an Ensembl VEP cache and convert it to optimized Parquet + fjall.
+    """Download an Ensembl VEP cache and convert it to optimized Parquet + KV cache.
 
     Parameters
     ----------
@@ -253,7 +254,11 @@ def build_cache(
     partitions : int
         Number of DataFusion partitions for parallelism (default: 1).
     build_fjall : bool
-        Build fjall KV stores for variation and sift lookups (default: True).
+        Backward-compatible alias for ``kv_backend="fjall"`` when true and
+        ``kv_backend="none"`` when false.
+    kv_backend : {"none", "fjall", "redb"} or None
+        Optional variation KV backend to build alongside Parquet. ``None``
+        preserves the legacy ``build_fjall`` behavior.
     fjall_zstd_level : int
         Zstd compression level for fjall stores (default: 3).
     fjall_dict_size_kb : int
@@ -284,6 +289,15 @@ def build_cache(
         raise ValueError(
             f"Invalid cache_type '{cache_type}'. Must be 'vep', 'merged', or 'refseq'."
         )
+    if kv_backend is None:
+        selected_kv_backend = "fjall" if build_fjall else "none"
+    else:
+        selected_kv_backend = kv_backend
+    if selected_kv_backend not in ("none", "fjall", "redb"):
+        raise ValueError(
+            f"kv_backend must be one of 'none', 'fjall', or 'redb', got {selected_kv_backend!r}"
+        )
+    native_build_fjall = selected_kv_backend == "fjall"
     if not 1 <= fjall_zstd_level <= 22:
         raise ValueError(
             f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
@@ -384,10 +398,11 @@ def build_cache(
             cache_root,
             output_dir,
             partitions,
-            build_fjall,
+            native_build_fjall,
             fjall_zstd_level,
             fjall_dict_size_kb,
             native_cb,
+            selected_kv_backend,
         )
     finally:
         if _bars is not None:
@@ -402,8 +417,9 @@ def build_cache(
         if fjall_stats is not None:
             variants, positions, total_bytes, secs = fjall_stats
             log.info(
-                "%s fjall: %d variants, %d positions, %.1f MB in %.1fs",
+                "%s %s: %d variants, %d positions, %.1f MB in %.1fs",
                 entity_name,
+                selected_kv_backend,
                 variants,
                 positions,
                 total_bytes / (1024 * 1024),
@@ -437,6 +453,7 @@ def annotate(
     max_af: bool = False,
     pubmed: bool = False,
     # Lookup tuning
+    backend: str | None = None,
     use_fjall: bool = False,
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
@@ -514,6 +531,11 @@ def annotate(
         Include maximum AF across populations.
     pubmed : bool
         Include PubMed IDs for co-located variants.
+    backend : {"parquet", "fjall", "redb"} or None
+        Annotation cache backend. ``None`` preserves the legacy
+        ``use_fjall`` behavior.
+    use_fjall : bool
+        Backward-compatible shortcut for ``backend="fjall"``.
     extended_probes : bool
         Use interval-overlap fallback for shifted indels (default: True).
     distance : int or tuple[int, int] or None
@@ -563,9 +585,6 @@ def annotate(
         ``"biotype,rank,mane_select,tsl,canonical,appris,ccds,length"``.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
-    use_fjall : bool
-        Use fjall (embedded KV store) backend instead of parquet
-        (default: False).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     skip_csq : bool
@@ -650,14 +669,26 @@ def annotate(
         )
     if gencode_basic and gencode_primary:
         raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
+    if backend is None:
+        selected_backend = "fjall" if use_fjall else "parquet"
+    else:
+        selected_backend = backend
+    if selected_backend not in ("parquet", "fjall", "redb"):
+        raise ValueError(
+            f"backend must be one of 'parquet', 'fjall', or 'redb', got {selected_backend!r}"
+        )
+    if use_fjall and selected_backend != "fjall":
+        raise ValueError("use_fjall=True is incompatible with backend != 'fjall'")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
         "extended_probes": extended_probes,
     }
 
-    if use_fjall:
+    if selected_backend == "fjall":
         opts["use_fjall"] = True
+    elif selected_backend == "redb":
+        opts["use_redb"] = True
 
     if everything:
         opts["everything"] = True
@@ -728,7 +759,12 @@ def annotate(
 
     options_json = json.dumps(opts)
 
-    log.info("Running annotation on %s with cache %s", vcf, cache_dir)
+    log.info(
+        "Running annotation on %s with cache %s using %s backend",
+        vcf,
+        cache_dir,
+        selected_backend,
+    )
 
     # VCF output path: write directly and return the path.
     if output_vcf is not None:

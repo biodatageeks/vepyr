@@ -2,6 +2,19 @@ from collections.abc import Callable, Iterator
 
 import pyarrow as pa
 
+def build_cache(
+    cache_root: str,
+    output_dir: str,
+    partitions: int = 8,
+    build_fjall: bool = True,
+    zstd_level: int = 3,
+    dict_size_kb: int = 112,
+    on_progress: Callable[[str, str, int, int, int], None] | None = None,
+    kv_backend: str | None = None,
+) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
+    """Build all cache entities to Parquet plus an optional KV backend."""
+    ...
+
 def convert_entity(
     cache_root: str,
     output_dir: str,

@@ -69,7 +69,7 @@ graph LR
     C --> D[EnsemblCacheTableProvider]
     D --> E[DataFusion SQL<br/>sort & partition]
     E --> F[Parquet files]
-    E --> G[fjall KV stores]
+    E --> G[fjall/redb KV stores]
 ```
 
 Entity types processed: `Variation`, `Transcript`, `Exon`, `Translation`, `RegulatoryFeature`, `MotifFeature`.
@@ -107,6 +107,6 @@ graph LR
 | Data format | Apache Arrow 56 |
 | Async runtime | Tokio |
 | Interval trees | COITree |
-| KV store | fjall (embedded, LSM-based) |
+| KV store | fjall (embedded, LSM-based) or redb (single-file) |
 | DataFrame | Polars |
 | Build system | maturin + uv |

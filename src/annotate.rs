@@ -16,6 +16,40 @@ use tokio::runtime::Runtime;
 static RUNTIME: LazyLock<Arc<Runtime>> =
     LazyLock::new(|| Arc::new(Runtime::new().expect("failed to create Tokio runtime")));
 
+fn backend_from_options(opts: &Value) -> PyResult<&'static str> {
+    let use_fjall = opts
+        .get("use_fjall")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let use_redb = opts
+        .get("use_redb")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    if use_fjall && use_redb {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "use_fjall and use_redb are mutually exclusive",
+        ));
+    }
+
+    if let Some(backend) = opts.get("backend").and_then(|v| v.as_str()) {
+        match backend {
+            "parquet" => Ok("parquet"),
+            "fjall" => Ok("fjall"),
+            "redb" => Ok("redb"),
+            other => Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "backend must be one of 'parquet', 'fjall', or 'redb', got {other:?}"
+            ))),
+        }
+    } else if use_redb {
+        Ok("redb")
+    } else if use_fjall {
+        Ok("fjall")
+    } else {
+        Ok("parquet")
+    }
+}
+
 /// A streaming annotator that yields PyArrow RecordBatches.
 /// Thread-safe: wraps the stream in a Mutex so polars can call from any thread.
 #[pyclass]
@@ -99,15 +133,7 @@ pub fn annotate_to_vcf_file(
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
 
-    let backend = if opts
-        .get("use_fjall")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
-    {
-        "fjall"
-    } else {
-        "parquet"
-    };
+    let backend = backend_from_options(&opts)?;
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -152,7 +178,13 @@ pub fn annotate_to_vcf_file(
         use_fjall: opts
             .get("use_fjall")
             .and_then(|v| v.as_bool())
-            .unwrap_or(false),
+            .unwrap_or(false)
+            || backend == "fjall",
+        use_redb: opts
+            .get("use_redb")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+            || backend == "redb",
         hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsc: opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsp: opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false),
@@ -294,15 +326,7 @@ pub fn create_streaming_annotator(
         let opts: Value = serde_json::from_str(options_json).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
         })?;
-        let backend = if opts
-            .get("use_fjall")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            "fjall"
-        } else {
-            "parquet"
-        };
+        let backend = backend_from_options(&opts)?;
 
         let limit_clause = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();
         let sql = format!(

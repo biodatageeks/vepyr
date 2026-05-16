@@ -39,13 +39,13 @@ uv run pytest
 ## Quick start
 
 The repository ships with small test fixtures so you can verify the full
-pipeline — build, annotate (parquet), annotate (fjall) — without downloading
-any external data.
+pipeline — build, annotate (parquet), annotate (fjall), annotate (redb) —
+without downloading any external data.
 
 ### 1. Build a cache from a local Ensembl VEP cache directory
 
 `tests/data/ensembl_cache` contains a tiny slice of the Ensembl VEP 115
-offline cache (chr22). Convert it to Parquet **and** fjall formats:
+offline cache (chr22). Convert it to Parquet and a KV backend:
 
 ```python
 import vepyr
@@ -54,13 +54,15 @@ results = vepyr.build_cache(
     release=115,
     cache_dir="/tmp/vepyr_cache",
     local_cache="tests/data/ensembl_cache",  # skip download
-    build_fjall=True,                         # parquet + fjall
+    kv_backend="fjall",                       # parquet + fjall
 )
 for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
-Set `build_fjall=False` if you only need Parquet files.
+Use `kv_backend="redb"` to build a single-file redb variation cache, or
+`kv_backend="none"` if you only need Parquet files. `build_fjall=False`
+remains supported as a backward-compatible alias for Parquet-only builds.
 
 ### 2a. Annotate variants (Parquet backend)
 
@@ -84,10 +86,10 @@ df = lf.collect()
 print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
 ```
 
-### 2b. Annotate variants (fjall backend)
+### 2b. Annotate variants (KV backend)
 
-Pass `use_fjall=True` to use the embedded KV store instead of Parquet for
-co-located variant lookups — same API, faster on large caches:
+Pass `backend="fjall"` or `backend="redb"` to use a KV store instead of
+Parquet for co-located variant lookups — same API, faster on large caches:
 
 ```python
 lf = vepyr.annotate(
@@ -97,7 +99,7 @@ lf = vepyr.annotate(
     af=True,
     af_gnomadg=True,
     max_af=True,
-    use_fjall=True,  # <-- only difference
+    backend="fjall",  # or "redb" when built with kv_backend="redb"
 )
 
 df = lf.collect()
@@ -162,14 +164,14 @@ Exercises cache build, both annotation backends, and VCF output:
 uv run python -c "
 import vepyr, tempfile, os
 with tempfile.TemporaryDirectory() as d:
-    r = vepyr.build_cache(115, d, local_cache='tests/data/ensembl_cache', build_fjall=True, show_progress=False)
+    r = vepyr.build_cache(115, d, local_cache='tests/data/ensembl_cache', kv_backend='redb', show_progress=False)
     cache = os.path.join(d, 'parquet', '115_GRCh38_vep')
     print(f'build_cache : {len(r)} parquet files, {sum(n for _,n in r):,} rows')
     vcf = 'tests/data/ensembl_cache/sample.vcf'
     df1 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True).collect()
     print(f'parquet     : {df1.height} variants × {df1.width} columns')
-    df2 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True, use_fjall=True).collect()
-    print(f'fjall       : {df2.height} variants × {df2.width} columns')
+    df2 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True, backend='redb').collect()
+    print(f'redb        : {df2.height} variants × {df2.width} columns')
     assert df1.height == df2.height and df1.width == df2.width, 'backend mismatch'
     out = os.path.join(d, 'annotated.vcf')
     vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True, output_vcf=out, show_progress=False)

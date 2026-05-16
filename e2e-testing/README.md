@@ -61,7 +61,7 @@ datafusion-bio-format-vcf   = { git = "https://github.com/biodatageeks/datafusio
 ### `run_annotation_fast.py` -- single chromosome
 
 Annotate one chromosome with the fjall backend by default and compare against VEP.
-Use `--backend parquet` to run the same flow against the parquet cache backend.
+Use `--backend parquet` or `--backend redb` to run the same flow against another cache backend.
 
 ```bash
 cd scripts
@@ -82,8 +82,9 @@ uv run python run_annotation_fast.py chr1 --force
 # Skip comparison, only annotate
 uv run python run_annotation_fast.py chr1 --skip-compare
 
-# Use parquet instead of the default fjall backend
+# Use parquet or redb instead of the default fjall backend
 uv run python run_annotation_fast.py chr1 --backend parquet
+uv run python run_annotation_fast.py chr1 --backend redb
 
 # Compare against a merged-cache VEP pick-mode reference
 uv run python run_annotation_fast.py chr22 --cache merged_pick_filter
@@ -94,6 +95,7 @@ uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
 - `results/fast_chr{N}/` -- intermediate VCF files
 - `reports/fast_chr{N}{cache_suffix}_report.json` -- default fjall report
 - `reports/fast_chr{N}{cache_suffix}_parquet_report.json` -- parquet override report
+- `reports/fast_chr{N}{cache_suffix}_redb_report.json` -- redb override report
 
 Supported `--cache` profiles:
 
@@ -113,7 +115,7 @@ Supported `--cache` profiles:
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
-Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links. The default backend is fjall; pass `--backend parquet` to use parquet.
+Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links. The default backend is fjall; pass `--backend parquet` or `--backend redb` to use another backend.
 
 ```bash
 cd scripts
@@ -126,6 +128,9 @@ uv run python run_annotation_fast_all.py --no-force
 
 # Only specific chromosomes
 uv run python run_annotation_fast_all.py --chroms 1 6 22
+
+# Run up to 4 chromosomes at once
+uv run python run_annotation_fast_all.py --parallel 4
 
 # Run a pick-mode profile across chr1-22
 uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene

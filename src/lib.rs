@@ -1,4 +1,5 @@
-use datafusion_bio_function_vep::cache_builder::{CacheBuilder, OnProgress};
+use datafusion_bio_function_vep::cache_builder::{CacheBuilder, EntityStats, OnProgress};
+use datafusion_bio_function_vep::kv_cache::{CacheBackend, LoadStats};
 use pyo3::prelude::*;
 
 mod annotate;
@@ -7,7 +8,7 @@ mod annotate;
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, kv_backend=None))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -18,7 +19,21 @@ fn build_cache(
     zstd_level: i32,
     dict_size_kb: u32,
     on_progress: Option<PyObject>,
+    kv_backend: Option<String>,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
+    let selected_backend = match kv_backend.as_deref() {
+        Some("none") => None,
+        Some("fjall") => Some(CacheBackend::Fjall),
+        Some("redb") => Some(CacheBackend::Redb),
+        Some(other) => {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "kv_backend must be one of 'none', 'fjall', or 'redb', got {other:?}"
+            )));
+        }
+        None if build_fjall => Some(CacheBackend::Fjall),
+        None => None,
+    };
+
     let cb: Option<OnProgress> = on_progress.map(|py_cb| {
         Box::new(
             move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
@@ -33,7 +48,7 @@ fn build_cache(
 
     let mut builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
-        .with_build_fjall(build_fjall)
+        .with_build_fjall(matches!(selected_backend, Some(CacheBackend::Fjall)))
         .with_zstd_level(zstd_level)
         .with_dict_size_kb(dict_size_kb);
 
@@ -50,8 +65,34 @@ fn build_cache(
     // Release the GIL so tokio worker threads can run in parallel.
     // The progress callback re-acquires it via Python::with_gil() when needed.
     let stats = py.allow_threads(|| {
-        rt.block_on(builder.build_all()).map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+        rt.block_on(async {
+            let mut stats = builder.build_all().await.map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+            })?;
+
+            if matches!(selected_backend, Some(CacheBackend::Redb)) {
+                let redb_entities =
+                    builder
+                        .build_variation_redb_from_parquet()
+                        .await
+                        .map_err(|e| {
+                            pyo3::exceptions::PyRuntimeError::new_err(format!(
+                                "redb cache build failed: {e}"
+                            ))
+                        })?;
+                let redb_stats = redb_entities
+                    .into_iter()
+                    .find(|entity| entity.entity == "variation")
+                    .and_then(|entity| entity.fjall_stats)
+                    .ok_or_else(|| {
+                        pyo3::exceptions::PyRuntimeError::new_err(
+                            "redb cache build did not return variation stats",
+                        )
+                    })?;
+                attach_variation_stats(&mut stats, redb_stats);
+            }
+
+            Ok::<_, PyErr>(stats)
         })
     })?;
 
@@ -72,6 +113,18 @@ fn build_cache(
         .collect();
 
     Ok(result)
+}
+
+fn attach_variation_stats(stats: &mut Vec<EntityStats>, redb_stats: LoadStats) {
+    if let Some(entity) = stats.iter_mut().find(|s| s.entity == "variation") {
+        entity.fjall_stats = Some(redb_stats);
+    } else {
+        stats.push(EntityStats {
+            entity: "variation".to_string(),
+            parquet_files: Vec::new(),
+            fjall_stats: Some(redb_stats),
+        });
+    }
 }
 
 /// Annotate a VCF and write results directly to a VCF file.

@@ -12,7 +12,7 @@
 
 vepyr is a Python library backed by a native Rust engine that provides:
 
-- **Cache conversion** — download and convert Ensembl VEP offline caches to optimized Parquet and [fjall](https://github.com/fjall-rs/fjall) (embedded KV store) formats
+- **Cache conversion** — download and convert Ensembl VEP offline caches to optimized Parquet plus optional [fjall](https://github.com/fjall-rs/fjall) or redb KV stores
 - **Variant annotation** — annotate VCF files with transcript consequences, HGVS notation, allele frequencies, and more
 - **Full `--everything` parity** — aims for zero mismatches against Ensembl VEP for the supported scope
 - **50x+ speedup** — dramatically faster than the reference Perl implementation
@@ -23,7 +23,7 @@ vepyr is a Python library backed by a native Rust engine that provides:
 - **Polars integration** — annotation results returned as `polars.LazyFrame` for efficient downstream analysis
 - **VCF output** — write annotated VCFs with CSQ in the INFO column, compatible with downstream tools
 - **Streaming engine** — built on Apache Arrow and DataFusion for memory-efficient processing of large datasets
-- **Dual backend** — choose Parquet (default) or fjall for co-located variant lookups
+- **Multiple backends** — choose Parquet (default), fjall, or redb for co-located variant lookups
 
 ## Supported scope
 

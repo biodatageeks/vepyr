@@ -45,7 +45,7 @@ for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
-This downloads the Ensembl VEP 115 cache for `homo_sapiens` / `GRCh38`, converts it to Parquet, and builds fjall KV stores.
+This downloads the Ensembl VEP 115 cache for `homo_sapiens` / `GRCh38`, converts it to Parquet, and builds the default fjall KV store.
 
 ### Convert a local cache
 
@@ -64,7 +64,8 @@ results = vepyr.build_cache(
 | Parameter | Default | Description |
 |---|---|---|
 | `partitions` | `1` | DataFusion partitions for parallel conversion |
-| `build_fjall` | `True` | Build fjall KV stores alongside Parquet |
+| `kv_backend` | `None` | Optional KV backend: `none`, `fjall`, or `redb`; `None` preserves `build_fjall` behavior |
+| `build_fjall` | `True` | Backward-compatible alias for building fjall alongside Parquet |
 | `fjall_zstd_level` | `3` | Zstd compression level (1-22) |
 | `species` | `homo_sapiens` | Species name |
 | `assembly` | `GRCh38` | Genome assembly |
@@ -105,9 +106,9 @@ df = lf.collect()
 print(f"{df.height} variants x {df.width} columns")
 ```
 
-### Using the fjall backend
+### Using a KV backend
 
-Pass `use_fjall=True` for faster co-located variant lookups on large caches:
+Pass `backend="fjall"` or `backend="redb"` for faster co-located variant lookups on large caches:
 
 ```python
 lf = vepyr.annotate(
@@ -116,9 +117,11 @@ lf = vepyr.annotate(
     check_existing=True,
     af=True,
     max_af=True,
-    use_fjall=True,
+    backend="fjall",
 )
 ```
+
+Build redb caches with `vepyr.build_cache(..., kv_backend="redb")`, then annotate with `backend="redb"`.
 
 ### Writing annotated VCF output
 

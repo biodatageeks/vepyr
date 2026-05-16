@@ -1117,7 +1117,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.6.3"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=6b482ed1a8648a509104e60a6921c09137e6f726#6b482ed1a8648a509104e60a6921c09137e6f726"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=eae584e84afca1149c33e7035ff05022fb798aa9#eae584e84afca1149c33e7035ff05022fb798aa9"
 dependencies = [
  "ahash",
  "arrow-ipc",
@@ -1135,6 +1135,7 @@ dependencies = [
  "noodles-core 0.16.0",
  "noodles-fasta",
  "parquet",
+ "redb",
  "serde_json",
  "tokio",
  "zstd",
@@ -4039,6 +4040,15 @@ checksum = "76009fbe0614077fc1a2ce255e3a1881a2e3a3527097d5dc6d8212c585e7e38b"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "redb"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e925444704b5f17d32bf42f5b6e2df050bceebc3dcd6e71cc73dafe8092e839"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

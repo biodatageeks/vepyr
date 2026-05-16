@@ -271,6 +271,49 @@ class TestAnnotate:
         finally:
             os.unlink(out_path)
 
+    def test_redb_backend_forwards_to_vcf_writer(self, monkeypatch):
+        """backend='redb' should select the redb variation cache path."""
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen["options"] = json.loads(options_json)
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                backend="redb",
+                output_vcf=out_path,
+                show_progress=False,
+            )
+            assert result == out_path
+            assert seen["options"]["use_redb"] is True
+            assert "use_fjall" not in seen["options"]
+        finally:
+            os.unlink(out_path)
+
+    def test_invalid_annotation_backend_raises(self):
+        import vepyr
+
+        with pytest.raises(ValueError, match="backend must be one of"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, backend="sqlite")
+
     def test_notebook_progress_updates_on_main_thread(self, monkeypatch):
         """Default tqdm notebook updates should be applied from the main thread."""
         import vepyr
