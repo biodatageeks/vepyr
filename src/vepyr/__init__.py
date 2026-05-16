@@ -230,6 +230,7 @@ def build_cache(
     partitions: int = 1,
     build_fjall: bool = True,
     kv_backend: str | None = None,
+    compact_redb: bool = False,
     fjall_zstd_level: int = 3,
     fjall_dict_size_kb: int = 112,
     local_cache: str | None = None,
@@ -259,6 +260,9 @@ def build_cache(
     kv_backend : {"none", "fjall", "redb"} or None
         Optional variation KV backend to build alongside Parquet. ``None``
         preserves the legacy ``build_fjall`` behavior.
+    compact_redb : bool
+        Run redb full compaction after rebuilding ``variation.redb``. Defaults
+        to false because compaction can take a long time for large caches.
     fjall_zstd_level : int
         Zstd compression level for fjall stores (default: 3).
     fjall_dict_size_kb : int
@@ -403,6 +407,7 @@ def build_cache(
             fjall_dict_size_kb,
             native_cb,
             selected_kv_backend,
+            compact_redb,
         )
     finally:
         if _bars is not None:

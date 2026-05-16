@@ -11,6 +11,7 @@ def build_cache(
     dict_size_kb: int = 112,
     on_progress: Callable[[str, str, int, int, int], None] | None = None,
     kv_backend: str | None = None,
+    compact_redb: bool = False,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
     """Build all cache entities to Parquet plus an optional KV backend."""
     ...

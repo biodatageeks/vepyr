@@ -63,6 +63,8 @@ for path, rows in results:
 Use `kv_backend="redb"` to build a single-file redb variation cache, or
 `kv_backend="none"` if you only need Parquet files. `build_fjall=False`
 remains supported as a backward-compatible alias for Parquet-only builds.
+Existing redb caches are reused by default; pass `compact_redb=True` only
+when you explicitly want post-build redb compaction.
 
 ### 2a. Annotate variants (Parquet backend)
 

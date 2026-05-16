@@ -8,7 +8,7 @@ mod annotate;
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, kv_backend=None))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, kv_backend=None, compact_redb=false))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -20,6 +20,7 @@ fn build_cache(
     dict_size_kb: u32,
     on_progress: Option<PyObject>,
     kv_backend: Option<String>,
+    compact_redb: bool,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let selected_backend = match kv_backend.as_deref() {
         Some("none") => None,
@@ -50,7 +51,8 @@ fn build_cache(
         .with_partitions(partitions)
         .with_build_fjall(matches!(selected_backend, Some(CacheBackend::Fjall)))
         .with_zstd_level(zstd_level)
-        .with_dict_size_kb(dict_size_kb);
+        .with_dict_size_kb(dict_size_kb)
+        .with_compact_redb_after_load(compact_redb);
 
     if let Some(progress) = cb {
         builder = builder.with_on_progress(progress);
@@ -83,13 +85,10 @@ fn build_cache(
                 let redb_stats = redb_entities
                     .into_iter()
                     .find(|entity| entity.entity == "variation")
-                    .and_then(|entity| entity.fjall_stats)
-                    .ok_or_else(|| {
-                        pyo3::exceptions::PyRuntimeError::new_err(
-                            "redb cache build did not return variation stats",
-                        )
-                    })?;
-                attach_variation_stats(&mut stats, redb_stats);
+                    .and_then(|entity| entity.fjall_stats);
+                if let Some(redb_stats) = redb_stats {
+                    attach_variation_stats(&mut stats, redb_stats);
+                }
             }
 
             Ok::<_, PyErr>(stats)

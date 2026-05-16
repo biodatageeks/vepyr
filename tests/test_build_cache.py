@@ -44,6 +44,11 @@ class TestBuildCacheSignature:
         p = sig.parameters["kv_backend"]
         assert p.default is None
 
+    def test_has_compact_redb_param(self):
+        sig = inspect.signature(vepyr.build_cache)
+        p = sig.parameters["compact_redb"]
+        assert p.default is False
+
     def test_has_fjall_zstd_level_param(self):
         sig = inspect.signature(vepyr.build_cache)
         p = sig.parameters["fjall_zstd_level"]
@@ -234,6 +239,29 @@ class TestBuildCacheProgressCallback:
 
         call_args = mock_native.call_args[0]
         assert call_args[7] == "redb"
+        assert call_args[8] is False
+
+    @patch("vepyr._build_cache")
+    def test_compact_redb_forwarded(self, mock_native):
+        """compact_redb=True should be forwarded to the native cache builder."""
+        mock_native.return_value = []
+
+        os.makedirs("/tmp/test_vepyr_cache_redb_compact", exist_ok=True)
+        try:
+            vepyr.build_cache(
+                115,
+                "/tmp/test_vepyr_cache_redb_compact_out",
+                local_cache="/tmp/test_vepyr_cache_redb_compact",
+                kv_backend="redb",
+                compact_redb=True,
+                show_progress=False,
+            )
+        finally:
+            os.rmdir("/tmp/test_vepyr_cache_redb_compact")
+
+        call_args = mock_native.call_args[0]
+        assert call_args[7] == "redb"
+        assert call_args[8] is True
 
 
 @pytest.fixture(scope="module")
