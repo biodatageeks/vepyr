@@ -27,8 +27,8 @@ Results are streamed as Arrow `RecordBatch`es rather than materializing full dat
 The Ensembl VEP offline cache ships as Perl `Storable` / `Sereal` serialized files. vepyr converts these to:
 
 - **Parquet** — columnar, compressed, with sorted row groups and DataFusion-friendly partitioning
-- **fjall** — embedded LSM-based KV store with zstd dictionary compression for fast co-located variant lookups
-- **redb** — single-file KV store using the same compressed position-entry format for variation lookups
+- **fjall** — embedded LSM-based KV stores for fast co-located variant and SIFT/PolyPhen lookups
+- **redb** — single-file KV stores using the same compact formats for variation and SIFT/PolyPhen lookups
 
 ### COITree interval matching
 
@@ -79,7 +79,7 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 | Parameter | Default | Effect |
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
-| `backend` | `None` | Use `fjall` or `redb` KV backend for co-located variant lookups — faster on large caches |
+| `backend` | `None` | Use `fjall` or `redb` KV backend for co-located variant and SIFT/PolyPhen lookups — faster on large caches |
 | `use_fjall` | `False` | Backward-compatible shortcut for `backend="fjall"` |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 

@@ -60,7 +60,7 @@ for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
-Use `kv_backend="redb"` to build a single-file redb variation cache, or
+Use `kv_backend="redb"` to build redb variation and SIFT caches, or
 `kv_backend="none"` if you only need Parquet files. `build_fjall=False`
 remains supported as a backward-compatible alias for Parquet-only builds.
 Existing redb caches are reused by default; pass `compact_redb=True` only

@@ -751,6 +751,23 @@ class TestBuildCacheIntegration:
                 assert fjall is None, f"{entity} has fjall stats with build_fjall=False"
             assert not os.path.isdir(os.path.join(out, "variation.fjall"))
 
+    def test_redb_backend_builds_variation_and_sift_redb(
+        self, skip_if_no_ensembl_cache
+    ):
+        """kv_backend='redb' should build redb stores for variation and SIFT."""
+        with tempfile.TemporaryDirectory() as out:
+            result = _build_cache(
+                str(ENSEMBL_CACHE_DIR), out, 2, False, 3, 112, None, "redb", False
+            )
+
+            stats_by_entity = {entity: stats for entity, _, stats in result}
+            assert stats_by_entity["variation"] is not None
+            assert stats_by_entity["translation_sift"] is not None
+            assert os.path.isfile(os.path.join(out, "variation.redb"))
+            assert os.path.isfile(os.path.join(out, "translation_sift.redb"))
+            assert not os.path.isdir(os.path.join(out, "variation.fjall"))
+            assert not os.path.isdir(os.path.join(out, "translation_sift.fjall"))
+
     # ── Progress callback ───────────────────────────────────────────
 
     def test_progress_callback_invoked(self, skip_if_no_ensembl_cache):

@@ -87,7 +87,21 @@ fn build_cache(
                     .find(|entity| entity.entity == "variation")
                     .and_then(|entity| entity.fjall_stats);
                 if let Some(redb_stats) = redb_stats {
-                    attach_variation_stats(&mut stats, redb_stats);
+                    attach_entity_stats(&mut stats, "variation", redb_stats);
+                }
+
+                let redb_sift_entities =
+                    builder.build_sift_redb_from_parquet().await.map_err(|e| {
+                        pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "redb sift cache build failed: {e}"
+                        ))
+                    })?;
+                let redb_sift_stats = redb_sift_entities
+                    .into_iter()
+                    .find(|entity| entity.entity == "translation_sift")
+                    .and_then(|entity| entity.fjall_stats);
+                if let Some(redb_sift_stats) = redb_sift_stats {
+                    attach_entity_stats(&mut stats, "translation_sift", redb_sift_stats);
                 }
             }
 
@@ -114,14 +128,14 @@ fn build_cache(
     Ok(result)
 }
 
-fn attach_variation_stats(stats: &mut Vec<EntityStats>, redb_stats: LoadStats) {
-    if let Some(entity) = stats.iter_mut().find(|s| s.entity == "variation") {
-        entity.fjall_stats = Some(redb_stats);
+fn attach_entity_stats(stats: &mut Vec<EntityStats>, entity_name: &str, load_stats: LoadStats) {
+    if let Some(entity) = stats.iter_mut().find(|s| s.entity == entity_name) {
+        entity.fjall_stats = Some(load_stats);
     } else {
         stats.push(EntityStats {
-            entity: "variation".to_string(),
+            entity: entity_name.to_string(),
             parquet_files: Vec::new(),
-            fjall_stats: Some(redb_stats),
+            fjall_stats: Some(load_stats),
         });
     }
 }

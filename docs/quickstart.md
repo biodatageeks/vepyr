@@ -64,7 +64,7 @@ results = vepyr.build_cache(
 | Parameter | Default | Description |
 |---|---|---|
 | `partitions` | `1` | DataFusion partitions for parallel conversion |
-| `kv_backend` | `None` | Optional KV backend: `none`, `fjall`, or `redb`; `None` preserves `build_fjall` behavior |
+| `kv_backend` | `None` | Optional KV backend: `none`, `fjall`, or `redb`; redb builds `variation.redb` and `translation_sift.redb`; `None` preserves `build_fjall` behavior |
 | `compact_redb` | `False` | Optional full redb compaction after rebuilding `variation.redb`; existing redb caches are skipped by default |
 | `build_fjall` | `True` | Backward-compatible alias for building fjall alongside Parquet |
 | `fjall_zstd_level` | `3` | Zstd compression level (1-22) |
@@ -122,7 +122,7 @@ lf = vepyr.annotate(
 )
 ```
 
-Build redb caches with `vepyr.build_cache(..., kv_backend="redb")`, then annotate with `backend="redb"`. Re-running the build skips an existing `variation.redb` unless overwrite is requested; pass `compact_redb=True` only when you want full post-build redb compaction.
+Build redb caches with `vepyr.build_cache(..., kv_backend="redb")`, then annotate with `backend="redb"`. Re-running the build skips existing redb files unless overwrite is requested; pass `compact_redb=True` only when you want full post-build redb compaction.
 
 ### Writing annotated VCF output
 
