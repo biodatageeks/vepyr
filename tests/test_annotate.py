@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import inspect
 import os
 import sys
 import threading
@@ -28,6 +29,13 @@ def skip_if_no_cache():
 
 class TestAnnotate:
     """Test the streaming annotation pipeline."""
+
+    def test_annotate_exposes_backend_not_use_fjall(self):
+        import vepyr
+
+        sig = inspect.signature(vepyr.annotate)
+        assert "backend" in sig.parameters
+        assert "use_fjall" not in sig.parameters
 
     def test_returns_lazyframe(self, skip_if_no_cache):
         import vepyr

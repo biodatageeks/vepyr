@@ -80,7 +80,6 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
 | `backend` | `None` | Use `fjall` or `redb` KV backend for co-located variant and SIFT/PolyPhen lookups — faster on large caches |
-| `use_fjall` | `False` | Backward-compatible shortcut for `backend="fjall"` |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 
 !!! tip "Compile-time optimization"

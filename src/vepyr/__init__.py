@@ -459,7 +459,6 @@ def annotate(
     pubmed: bool = False,
     # Lookup tuning
     backend: str | None = None,
-    use_fjall: bool = False,
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     merged: bool = False,
@@ -537,10 +536,7 @@ def annotate(
     pubmed : bool
         Include PubMed IDs for co-located variants.
     backend : {"parquet", "fjall", "redb"} or None
-        Annotation cache backend. ``None`` preserves the legacy
-        ``use_fjall`` behavior.
-    use_fjall : bool
-        Backward-compatible shortcut for ``backend="fjall"``.
+        Annotation cache backend. ``None`` uses the default parquet backend.
     extended_probes : bool
         Use interval-overlap fallback for shifted indels (default: True).
     distance : int or tuple[int, int] or None
@@ -674,16 +670,11 @@ def annotate(
         )
     if gencode_basic and gencode_primary:
         raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
-    if backend is None:
-        selected_backend = "fjall" if use_fjall else "parquet"
-    else:
-        selected_backend = backend
+    selected_backend = backend or "parquet"
     if selected_backend not in ("parquet", "fjall", "redb"):
         raise ValueError(
             f"backend must be one of 'parquet', 'fjall', or 'redb', got {selected_backend!r}"
         )
-    if use_fjall and selected_backend != "fjall":
-        raise ValueError("use_fjall=True is incompatible with backend != 'fjall'")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
