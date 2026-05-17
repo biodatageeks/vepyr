@@ -64,7 +64,7 @@ results = vepyr.build_cache(
 | Parameter | Default | Description |
 |---|---|---|
 | `partitions` | `1` | DataFusion partitions for parallel conversion |
-| `kv_backend` | `None` | Optional KV backend: `none`, `fjall`, or `redb`; redb builds `variation.redb` and `translation_sift.redb`; `None` preserves `build_fjall` behavior |
+| `kv_backend` | `None` | Optional KV backend: `none`, `fjall`, or `redb`; fjall/redb build matching `variation.*` and `translation_sift.*` stores; `None` preserves `build_fjall` behavior |
 | `compact_redb` | `False` | Optional full redb compaction after rebuilding `variation.redb`; existing redb caches are skipped by default |
 | `build_fjall` | `True` | Backward-compatible alias for building fjall alongside Parquet |
 | `fjall_zstd_level` | `3` | Zstd compression level (1-22) |
@@ -109,7 +109,7 @@ print(f"{df.height} variants x {df.width} columns")
 
 ### Using a KV backend
 
-Pass `backend="fjall"` or `backend="redb"` for faster co-located variant lookups on large caches:
+Pass `backend="fjall"` or `backend="redb"` for faster co-located variant and SIFT/PolyPhen lookups on large caches:
 
 ```python
 lf = vepyr.annotate(
@@ -123,6 +123,8 @@ lf = vepyr.annotate(
 ```
 
 Build redb caches with `vepyr.build_cache(..., kv_backend="redb")`, then annotate with `backend="redb"`. Re-running the build skips existing redb files unless overwrite is requested; pass `compact_redb=True` only when you want full post-build redb compaction.
+
+KV annotation is strict. `backend="fjall"` requires both `variation.fjall` and `translation_sift.fjall`; `backend="redb"` requires both `variation.redb` and `translation_sift.redb`. Missing KV stores raise an error instead of falling back to Parquet.
 
 ### Writing annotated VCF output
 

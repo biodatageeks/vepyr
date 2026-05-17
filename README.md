@@ -90,8 +90,9 @@ print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head(
 
 ### 2b. Annotate variants (KV backend)
 
-Pass `backend="fjall"` or `backend="redb"` to use a KV store instead of
-Parquet for co-located variant lookups — same API, faster on large caches:
+Pass `backend="fjall"` or `backend="redb"` to use KV stores instead of
+Parquet for co-located variant and SIFT/PolyPhen lookups — same API, faster
+on large caches:
 
 ```python
 lf = vepyr.annotate(
@@ -107,6 +108,11 @@ lf = vepyr.annotate(
 df = lf.collect()
 print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
 ```
+
+KV annotation is strict: `backend="fjall"` requires both `variation.fjall`
+and `translation_sift.fjall`; `backend="redb"` requires both `variation.redb`
+and `translation_sift.redb`. Missing KV stores raise an error instead of
+falling back to Parquet.
 
 ### 2c. Write annotated VCF output
 

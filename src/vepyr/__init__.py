@@ -537,6 +537,10 @@ def annotate(
         Include PubMed IDs for co-located variants.
     backend : {"parquet", "fjall", "redb"} or None
         Annotation cache backend. ``None`` uses the default parquet backend.
+        ``"fjall"`` requires ``variation.fjall`` and
+        ``translation_sift.fjall``; ``"redb"`` requires ``variation.redb`` and
+        ``translation_sift.redb``. Missing KV stores raise an error instead of
+        falling back to Parquet.
     extended_probes : bool
         Use interval-overlap fallback for shifted indels (default: True).
     distance : int or tuple[int, int] or None

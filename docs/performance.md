@@ -82,6 +82,10 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 | `backend` | `None` | Use `fjall` or `redb` KV backend for co-located variant and SIFT/PolyPhen lookups — faster on large caches |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 
+KV annotation does not silently fall back to Parquet. `backend="fjall"` requires
+`variation.fjall` and `translation_sift.fjall`; `backend="redb"` requires
+`variation.redb` and `translation_sift.redb`.
+
 !!! tip "Compile-time optimization"
     For maximum throughput, build with native CPU instructions:
 
