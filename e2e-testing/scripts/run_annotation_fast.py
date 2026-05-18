@@ -345,7 +345,26 @@ def extract_chrom_from_vep(vep_vcf, chrom, out_dir, suffix="", force=False):
     return out_path
 
 
-def compare_vcfs(vepyr_vcf, vep_vcf, label, backend="fjall"):
+VEP_HASH_ORDER_PICK_CACHES = {"merged_per_gene", "merged_pick_allele_gene"}
+
+VEP_HASH_ORDER_PICK_IGNORE_REASON = (
+    "CSQ entry order is ignored for per_gene and pick_allele_gene because "
+    "Ensembl VEP selects the representative consequences, then emits those "
+    "winners by iterating Perl hashes (`keys %by_gene`; for pick_allele_gene "
+    "also `keys %by_allele`). The comma order of those already-selected CSQ "
+    "entries has no biological or interpretation meaning; it is not a severity, "
+    "transcript-priority, genomic, MANE, or canonical ranking. The meaningful "
+    "checks are the selected CSQ entries, entry counts, and field values."
+)
+
+
+def compare_vcfs(
+    vepyr_vcf,
+    vep_vcf,
+    label,
+    backend="fjall",
+    ignore_csq_order=False,
+):
     """Field-by-field CSQ comparison between vepyr and VEP output."""
     print()
     print("=" * 60)
@@ -410,7 +429,9 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label, backend="fjall"):
     n_csq_count_match = 0
     n_csq_count_mismatch = 0
     n_csq_order_mismatch = 0
+    n_csq_order_ignored = 0
     csq_order_mismatch_examples = []
+    csq_order_ignored_examples = []
     field_order_mismatches = {f: 0 for f in shared_fields}
     field_order_mismatch_examples = {f: [] for f in shared_fields}
 
@@ -450,15 +471,29 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label, backend="fjall"):
             vepyr_order = [d.get("Feature", "") for d in vepyr_parsed]
             vep_order = [d.get("Feature", "") for d in vep_parsed]
             if vepyr_order != vep_order and sorted(vepyr_order) == sorted(vep_order):
-                n_csq_order_mismatch += 1
-                if len(csq_order_mismatch_examples) < 10:
-                    csq_order_mismatch_examples.append(
-                        {
-                            "variant": key_str,
-                            "vepyr_order": vepyr_order,
-                            "vep_order": vep_order,
-                        }
-                    )
+                example = {
+                    "variant": key_str,
+                    "vepyr_order": vepyr_order,
+                    "vep_order": vep_order,
+                }
+                # Ensembl VEP's --per_gene and --pick_allele_gene paths group
+                # transcript alleles in Perl hashes, choose representative
+                # consequences, then emit winners with `keys %by_gene` and, for
+                # pick_allele_gene, `keys %by_allele`. The comma order of those
+                # already-selected CSQ entries has no biological or
+                # interpretation meaning: it is not a severity,
+                # transcript-priority, genomic, MANE, or canonical ranking.
+                # Ignoring only this order therefore does not change
+                # interpretation; entry counts and every CSQ field value are
+                # still compared strictly.
+                if ignore_csq_order:
+                    n_csq_order_ignored += 1
+                    if len(csq_order_ignored_examples) < 10:
+                        csq_order_ignored_examples.append(example)
+                else:
+                    n_csq_order_mismatch += 1
+                    if len(csq_order_mismatch_examples) < 10:
+                        csq_order_mismatch_examples.append(example)
 
             # Sort by Feature for stable pairing (so field comparison is meaningful)
             vepyr_parsed.sort(key=sort_key)
@@ -519,6 +554,11 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label, backend="fjall"):
     print(
         f"    CSQ order mismatch:       {n_csq_order_mismatch:,}  (same entries, wrong order — issue #83)"
     )
+    if ignore_csq_order:
+        print(
+            f"    CSQ order ignored:        {n_csq_order_ignored:,}  "
+            "(VEP hash-order only)"
+        )
 
     if csq_order_mismatch_examples:
         print("\n  CSQ order mismatch examples:")
@@ -576,6 +616,11 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label, backend="fjall"):
         "variants_only_in_vepyr": n_missing_in_vep,
         "csq_order_mismatch": n_csq_order_mismatch,
         "csq_order_mismatch_examples": csq_order_mismatch_examples,
+        "csq_order_ignored": n_csq_order_ignored,
+        "csq_order_ignored_examples": csq_order_ignored_examples,
+        "csq_order_ignore_reason": VEP_HASH_ORDER_PICK_IGNORE_REASON
+        if ignore_csq_order
+        else None,
         "variants_only_in_vep": n_missing_in_vepyr,
         "csq_entry_count_match": n_csq_count_match,
         "csq_entry_count_mismatch": n_csq_count_mismatch,
@@ -692,7 +737,13 @@ def main():
             suffix=args.suffix,
             force=args.force,
         )
-        comparison = compare_vcfs(output_vcf, vep_chrom_vcf, chrom, args.backend)
+        comparison = compare_vcfs(
+            output_vcf,
+            vep_chrom_vcf,
+            chrom,
+            args.backend,
+            ignore_csq_order=args.cache in VEP_HASH_ORDER_PICK_CACHES,
+        )
 
     # ── Report ────────────────────────────────────────────────────────────
     report = {
