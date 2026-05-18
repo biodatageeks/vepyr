@@ -191,6 +191,9 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# E2E generated data
+e2e-testing/results/
+
 # PyPI configuration file
 .pypirc
 
