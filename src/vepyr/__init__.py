@@ -454,6 +454,7 @@ def annotate(
     flag_pick_allele: bool = False,
     flag_pick_allele_gene: bool = False,
     pick_order: str | None = None,
+    buffer_size: int = 5000,
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
@@ -561,6 +562,9 @@ def annotate(
     pick_order : str or None
         Comma-separated VEP pick ranking order, e.g.
         ``"biotype,rank,mane_select,tsl,canonical,appris,ccds,length"``.
+    buffer_size : int
+        Number of input variants per VEP-style annotation buffer. Defaults to
+        Ensembl VEP's ``--buffer_size`` default of ``5000``.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     use_fjall : bool
@@ -650,10 +654,17 @@ def annotate(
         )
     if gencode_basic and gencode_primary:
         raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
+    if (
+        isinstance(buffer_size, bool)
+        or not isinstance(buffer_size, int)
+        or buffer_size <= 0
+    ):
+        raise ValueError("buffer_size must be a positive integer")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
         "extended_probes": extended_probes,
+        "buffer_size": buffer_size,
     }
 
     if use_fjall:
