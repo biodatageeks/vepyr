@@ -107,6 +107,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
+          maturin-version: v1.13.3
           args: --release --out dist --find-interpreter
           sccache: true
       - uses: actions/upload-artifact@v4
