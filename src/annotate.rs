@@ -193,12 +193,47 @@ pub fn annotate_to_vcf_file(
             .get("exclude_predicted")
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
+        pick: opts.get("pick").and_then(|v| v.as_bool()).unwrap_or(false),
+        pick_allele: opts
+            .get("pick_allele")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        per_gene: opts
+            .get("per_gene")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        pick_allele_gene: opts
+            .get("pick_allele_gene")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        flag_pick: opts
+            .get("flag_pick")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        flag_pick_allele: opts
+            .get("flag_pick_allele")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        flag_pick_allele_gene: opts
+            .get("flag_pick_allele_gene")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        pick_order: opts
+            .get("pick_order")
+            .and_then(|v| v.as_str())
+            .map(String::from),
         failed: opts.get("failed").and_then(|v| v.as_i64()),
         distance: opts.get("distance").and_then(|v| {
             v.as_str()
                 .map(String::from)
                 .or_else(|| v.as_i64().map(|n| n.to_string()))
         }),
+        buffer_size: opts
+            .get("buffer_size")
+            .and_then(|v| v.as_u64())
+            .and_then(|n| usize::try_from(n).ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,

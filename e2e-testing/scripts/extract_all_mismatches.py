@@ -25,7 +25,9 @@ args = parser.parse_args()
 MODE = args.mode
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
+DATA_DIR = os.path.expanduser(
+    os.path.expandvars(os.environ.get("DATA_VEPYR_DIR", "$HOME/workspace/data_vepyr"))
+)
 
 _VEP_REFERENCE = {
     "default": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"),

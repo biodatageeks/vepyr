@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import threading
@@ -217,6 +218,120 @@ class TestAnnotate:
             assert any("CSQ" in line for line in header_lines)
         finally:
             os.unlink(out_path)
+
+    def test_pick_options_forward_to_vcf_writer(self, monkeypatch):
+        """Pick mode options and pick_order should reach native VCF output."""
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen["options"] = json.loads(options_json)
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                merged=True,
+                pick=True,
+                pick_allele=True,
+                per_gene=True,
+                pick_allele_gene=True,
+                flag_pick=True,
+                flag_pick_allele=True,
+                flag_pick_allele_gene=True,
+                pick_order="biotype,rank,mane_select",
+            )
+            assert result == out_path
+            assert seen["options"]["merged"] is True
+            assert seen["options"]["pick"] is True
+            assert seen["options"]["pick_allele"] is True
+            assert seen["options"]["per_gene"] is True
+            assert seen["options"]["pick_allele_gene"] is True
+            assert seen["options"]["flag_pick"] is True
+            assert seen["options"]["flag_pick_allele"] is True
+            assert seen["options"]["flag_pick_allele_gene"] is True
+            assert seen["options"]["pick_order"] == "biotype,rank,mane_select"
+        finally:
+            os.unlink(out_path)
+
+    def test_buffer_size_forwards_to_vcf_writer(self, monkeypatch):
+        """buffer_size should default to VEP's 5000 and allow override."""
+        import vepyr
+
+        seen = []
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen.append(json.loads(options_json))
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as default_file:
+            default_out = default_file.name
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as override_file:
+            override_out = override_file.name
+
+        try:
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=default_out,
+                show_progress=False,
+            )
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=override_out,
+                show_progress=False,
+                buffer_size=1234,
+            )
+
+            assert seen[0]["buffer_size"] == 5000
+            assert seen[1]["buffer_size"] == 1234
+        finally:
+            os.unlink(default_out)
+            os.unlink(override_out)
+
+    def test_buffer_size_rejects_non_positive_values(self):
+        """buffer_size mirrors VEP's positive integer buffer-size contract."""
+        import vepyr
+
+        for value in (0, True):
+            with pytest.raises(
+                ValueError, match="buffer_size must be a positive integer"
+            ):
+                vepyr.annotate(
+                    INPUT_VCF,
+                    CACHE_DIR,
+                    output_vcf="unused.vcf",
+                    show_progress=False,
+                    buffer_size=value,
+                )
 
     def test_notebook_progress_updates_on_main_thread(self, monkeypatch):
         """Default tqdm notebook updates should be applied from the main thread."""

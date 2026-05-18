@@ -15,12 +15,12 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 
 ### 2. External data
 
-The scripts expect data files under `~/workspace/data_vepyr/`. Override paths with CLI flags if your layout differs.
+The scripts expect data files under `~/workspace/data_vepyr/`. Set `DATA_VEPYR_DIR` or use CLI flags if your layout differs.
 
 | File | Description | Default path |
 |------|-------------|-------------|
 | VCF input | HG002 GRCh38 benchmark VCF (GIAB) | `~/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` |
-| VEP reference | VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs.vcf` |
+| VEP reference | Golden Ensembl VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs_vep.vcf` |
 | Cache dir | Converted Ensembl 115 cache (parquet + fjall) | `~/workspace/data_vepyr/115_GRCh38_vep` |
 | Reference FASTA | GRCh38 primary assembly | `~/workspace/data_vepyr/Homo_sapiens.GRCh38.dna.primary_assembly.fa` |
 
@@ -60,7 +60,8 @@ datafusion-bio-format-vcf   = { git = "https://github.com/biodatageeks/datafusio
 
 ### `run_annotation_fast.py` -- single chromosome
 
-Annotate one chromosome with the fjall backend and compare against VEP.
+Annotate one chromosome with the fjall backend by default and compare against VEP.
+Use `--backend parquet` to run the same flow against the parquet cache backend.
 
 ```bash
 cd scripts
@@ -80,15 +81,39 @@ uv run python run_annotation_fast.py chr1 --force
 
 # Skip comparison, only annotate
 uv run python run_annotation_fast.py chr1 --skip-compare
+
+# Use parquet instead of the default fjall backend
+uv run python run_annotation_fast.py chr1 --backend parquet
+
+# Compare against a merged-cache VEP pick-mode reference
+uv run python run_annotation_fast.py chr22 --cache merged_pick_filter
+uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
 ```
 
 **Output:**
 - `results/fast_chr{N}/` -- intermediate VCF files
-- `reports/fast_chr{N}_report.json` -- per-field match rates, mismatch examples
+- `reports/fast_chr{N}{cache_suffix}_report.json` -- default fjall report
+- `reports/fast_chr{N}{cache_suffix}_parquet_report.json` -- parquet override report
+
+Supported `--cache` profiles:
+
+| Profile | VEP reference flag |
+|---------|--------------------|
+| `vep` | Ensembl cache baseline |
+| `merged` | `--merged` baseline |
+| `merged_pick_filter` | `--pick` |
+| `merged_pick_allele` | `--pick_allele` |
+| `merged_per_gene` | `--per_gene` |
+| `merged_pick_allele_gene` | `--pick_allele_gene` |
+| `merged_flag_pick` | `--flag_pick` |
+| `merged_flag_pick_allele` | `--flag_pick_allele` |
+| `merged_flag_pick_allele_gene` | `--flag_pick_allele_gene` |
+| `merged_pick` | legacy alias for `--flag_pick_allele_gene` |
+| `refseq` | RefSeq cache baseline |
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
-Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links.
+Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links. The default backend is fjall; pass `--backend parquet` to use parquet.
 
 ```bash
 cd scripts
@@ -102,12 +127,19 @@ uv run python run_annotation_fast_all.py --no-force
 # Only specific chromosomes
 uv run python run_annotation_fast_all.py --chroms 1 6 22
 
+# Run a pick-mode profile across chr1-22
+uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
+
+# Run parquet backend across chr1-22
+uv run python run_annotation_fast_all.py --backend parquet
+
 # Regenerate report from existing per-chromosome JSONs (instant)
 uv run python run_annotation_fast_all.py --skip-annotate
 ```
 
 **Output:**
-- `reports/fast_chr1_22_summary_YYYYMMDD.md` -- full report with:
+- `reports/fast_chr1_22{cache_suffix}_summary_YYYYMMDD_HHMM.md` -- default fjall report
+- `reports/fast_chr1_22{cache_suffix}_parquet_summary_YYYYMMDD_HHMM.md` -- parquet override report
   - Per-chromosome performance table
   - Root cause classification with GitHub issue links
   - Field-level delta vs previous benchmark
@@ -120,6 +152,9 @@ Run the complete benchmark with both parquet and fjall backends, including backe
 ```bash
 cd scripts
 uv run python run_annotation.py
+
+# Full-genome pick-mode benchmark
+uv run python run_annotation.py --mode merged_flag_pick_allele
 ```
 
 **Output:**

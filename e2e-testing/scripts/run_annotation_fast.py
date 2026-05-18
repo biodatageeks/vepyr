@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Fast-track single-chromosome annotation comparison (fjall only).
+"""Fast-track single-chromosome annotation comparison.
 
 Usage:
     python run_annotation_fast.py chr1
     python run_annotation_fast.py chr22 --vcf /path/to/input.vcf.gz --vep /path/to/vep_output.vcf
+    python run_annotation_fast.py chr22 --backend parquet
 
 Extracts a single chromosome from a tabix-indexed VCF, annotates with the
-fjall backend, and compares against the corresponding VEP reference output.
+selected backend, and compares against the corresponding VEP reference output.
 """
 
 import argparse
@@ -21,11 +22,15 @@ import vepyr
 
 
 # ── Defaults ──────────────────────────────────────────────────────────────
-DATA_DIR = f"{os.environ['HOME']}/workspace/data_vepyr"
+DATA_DIR = os.path.expanduser(
+    os.path.expandvars(os.environ.get("DATA_VEPYR_DIR", "$HOME/workspace/data_vepyr"))
+)
 DEFAULT_REFERENCE_FASTA = os.path.join(
     DATA_DIR, "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
+VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
+BACKENDS = ("fjall", "parquet")
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
@@ -44,6 +49,104 @@ _CACHE_PROFILES = {
         ),
         "annotate_kwargs": {"merged": True},
         "suffix": "_merged",
+    },
+    "merged_pick": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_pick",
+    },
+    "merged_flag_pick": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_flag_pick",
+    },
+    "merged_flag_pick_allele": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR,
+            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf",
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_flag_pick_allele",
+    },
+    "merged_flag_pick_allele_gene": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR,
+            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf",
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "flag_pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_flag_pick_allele_gene",
+    },
+    "merged_pick_filter": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_filter.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "pick": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_pick_filter",
+    },
+    "merged_pick_allele": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_allele.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "pick_allele": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_pick_allele",
+    },
+    "merged_per_gene": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_per_gene.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "per_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_per_gene",
+    },
+    "merged_pick_allele_gene": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        "vep_vcf": os.path.join(
+            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf"
+        ),
+        "annotate_kwargs": {
+            "merged": True,
+            "pick_allele_gene": True,
+            "pick_order": VEP_PICK_ORDER,
+        },
+        "suffix": "_merged_pick_allele_gene",
     },
     "refseq": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_refseq"),
@@ -65,9 +168,15 @@ def parse_args():
     )
     p.add_argument(
         "--cache",
-        choices=["vep", "merged", "refseq"],
+        choices=sorted(_CACHE_PROFILES),
         default="vep",
         help="Cache type — selects cache dir, VEP reference, and annotate flags (default: %(default)s)",
+    )
+    p.add_argument(
+        "--backend",
+        choices=BACKENDS,
+        default="fjall",
+        help="Annotation cache backend (default: %(default)s)",
     )
     p.add_argument(
         "--vcf",
@@ -110,8 +219,16 @@ def parse_args():
         args.vep = profile["vep_vcf"]
     args.annotate_kwargs = profile["annotate_kwargs"]
     args.suffix = profile["suffix"]
+    args.report_suffix = report_suffix(args.suffix, args.backend)
 
     return args
+
+
+def report_suffix(cache_suffix, backend):
+    """Keep existing fjall report names; namespace non-default backends."""
+    if backend == "fjall":
+        return cache_suffix
+    return f"{cache_suffix}_{backend}"
 
 
 def count_data_lines(path):
@@ -228,11 +345,30 @@ def extract_chrom_from_vep(vep_vcf, chrom, out_dir, suffix="", force=False):
     return out_path
 
 
-def compare_vcfs(vepyr_vcf, vep_vcf, label):
+VEP_HASH_ORDER_PICK_CACHES = {"merged_per_gene", "merged_pick_allele_gene"}
+
+VEP_HASH_ORDER_PICK_IGNORE_REASON = (
+    "CSQ entry order is ignored for per_gene and pick_allele_gene because "
+    "Ensembl VEP selects the representative consequences, then emits those "
+    "winners by iterating Perl hashes (`keys %by_gene`; for pick_allele_gene "
+    "also `keys %by_allele`). The comma order of those already-selected CSQ "
+    "entries has no biological or interpretation meaning; it is not a severity, "
+    "transcript-priority, genomic, MANE, or canonical ranking. The meaningful "
+    "checks are the selected CSQ entries, entry counts, and field values."
+)
+
+
+def compare_vcfs(
+    vepyr_vcf,
+    vep_vcf,
+    label,
+    backend="fjall",
+    ignore_csq_order=False,
+):
     """Field-by-field CSQ comparison between vepyr and VEP output."""
     print()
     print("=" * 60)
-    print(f"Comparing vepyr (fjall) vs VEP — {label}")
+    print(f"Comparing vepyr ({backend}) vs VEP — {label}")
     print("=" * 60)
 
     n_vepyr = count_data_lines(vepyr_vcf)
@@ -293,7 +429,9 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label):
     n_csq_count_match = 0
     n_csq_count_mismatch = 0
     n_csq_order_mismatch = 0
+    n_csq_order_ignored = 0
     csq_order_mismatch_examples = []
+    csq_order_ignored_examples = []
     field_order_mismatches = {f: 0 for f in shared_fields}
     field_order_mismatch_examples = {f: [] for f in shared_fields}
 
@@ -333,15 +471,29 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label):
             vepyr_order = [d.get("Feature", "") for d in vepyr_parsed]
             vep_order = [d.get("Feature", "") for d in vep_parsed]
             if vepyr_order != vep_order and sorted(vepyr_order) == sorted(vep_order):
-                n_csq_order_mismatch += 1
-                if len(csq_order_mismatch_examples) < 10:
-                    csq_order_mismatch_examples.append(
-                        {
-                            "variant": key_str,
-                            "vepyr_order": vepyr_order,
-                            "vep_order": vep_order,
-                        }
-                    )
+                example = {
+                    "variant": key_str,
+                    "vepyr_order": vepyr_order,
+                    "vep_order": vep_order,
+                }
+                # Ensembl VEP's --per_gene and --pick_allele_gene paths group
+                # transcript alleles in Perl hashes, choose representative
+                # consequences, then emit winners with `keys %by_gene` and, for
+                # pick_allele_gene, `keys %by_allele`. The comma order of those
+                # already-selected CSQ entries has no biological or
+                # interpretation meaning: it is not a severity,
+                # transcript-priority, genomic, MANE, or canonical ranking.
+                # Ignoring only this order therefore does not change
+                # interpretation; entry counts and every CSQ field value are
+                # still compared strictly.
+                if ignore_csq_order:
+                    n_csq_order_ignored += 1
+                    if len(csq_order_ignored_examples) < 10:
+                        csq_order_ignored_examples.append(example)
+                else:
+                    n_csq_order_mismatch += 1
+                    if len(csq_order_mismatch_examples) < 10:
+                        csq_order_mismatch_examples.append(example)
 
             # Sort by Feature for stable pairing (so field comparison is meaningful)
             vepyr_parsed.sort(key=sort_key)
@@ -402,6 +554,11 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label):
     print(
         f"    CSQ order mismatch:       {n_csq_order_mismatch:,}  (same entries, wrong order — issue #83)"
     )
+    if ignore_csq_order:
+        print(
+            f"    CSQ order ignored:        {n_csq_order_ignored:,}  "
+            "(VEP hash-order only)"
+        )
 
     if csq_order_mismatch_examples:
         print("\n  CSQ order mismatch examples:")
@@ -459,6 +616,11 @@ def compare_vcfs(vepyr_vcf, vep_vcf, label):
         "variants_only_in_vepyr": n_missing_in_vep,
         "csq_order_mismatch": n_csq_order_mismatch,
         "csq_order_mismatch_examples": csq_order_mismatch_examples,
+        "csq_order_ignored": n_csq_order_ignored,
+        "csq_order_ignored_examples": csq_order_ignored_examples,
+        "csq_order_ignore_reason": VEP_HASH_ORDER_PICK_IGNORE_REASON
+        if ignore_csq_order
+        else None,
         "variants_only_in_vep": n_missing_in_vepyr,
         "csq_entry_count_match": n_csq_count_match,
         "csq_entry_count_mismatch": n_csq_count_mismatch,
@@ -516,12 +678,14 @@ def main():
     )
     print(f"  Input: {n_variants:,} variants for {chrom}")
 
-    # ── Step 2: Annotate with fjall ───────────────────────────────────────
-    output_vcf = os.path.join(work_dir, f"vepyr_fjall_{chrom}{args.suffix}.vcf")
+    # ── Step 2: Annotate with selected backend ────────────────────────────
+    output_vcf = os.path.join(
+        work_dir, f"vepyr_{args.backend}_{chrom}{args.suffix}.vcf"
+    )
 
     print()
     print("=" * 60)
-    print(f"Step 2: Annotate {chrom} with vepyr (fjall, cache={args.cache})")
+    print(f"Step 2: Annotate {chrom} with vepyr ({args.backend}, cache={args.cache})")
     print("=" * 60)
 
     if (
@@ -543,7 +707,7 @@ def main():
             args.cache_dir,
             everything=True,
             reference_fasta=args.fasta,
-            use_fjall=True,
+            use_fjall=(args.backend == "fjall"),
             output_vcf=output_vcf,
             **args.annotate_kwargs,
         )
@@ -573,7 +737,13 @@ def main():
             suffix=args.suffix,
             force=args.force,
         )
-        comparison = compare_vcfs(output_vcf, vep_chrom_vcf, chrom)
+        comparison = compare_vcfs(
+            output_vcf,
+            vep_chrom_vcf,
+            chrom,
+            args.backend,
+            ignore_csq_order=args.cache in VEP_HASH_ORDER_PICK_CACHES,
+        )
 
     # ── Report ────────────────────────────────────────────────────────────
     report = {
@@ -581,14 +751,16 @@ def main():
         "cache": args.cache,
         "input_variants": n_variants,
         "annotation": {
-            "backend": "fjall",
+            "backend": args.backend,
             "time_s": round(elapsed, 1) if elapsed else None,
             "output_variants": n_out,
         },
         "comparison": comparison,
     }
 
-    report_path = os.path.join(report_dir, f"fast_{chrom}{args.suffix}_report.json")
+    report_path = os.path.join(
+        report_dir, f"fast_{chrom}{args.report_suffix}_report.json"
+    )
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
 

@@ -4,13 +4,14 @@
 This reuses the sampled input VCF and trimmed reference from
 ``tests/data/golden`` and creates:
 
-- ``golden.vcf`` from the real merged Ensembl VEP output in ``sandbox/``
+- ``golden.vcf`` from the real merged Ensembl VEP output in ``data_vepyr``
 - ``cache/`` from the real merged parquet cache in ``data_vepyr``
 
 Usage:
     python tests/data/golden_merged/prepare.py
 
 Env vars:
+    DATA_VEPYR_DIR  Directory containing full HG002 inputs, VEP outputs, caches, FASTA
     CACHE_SRC   Full merged parquet cache directory
     GOLDEN_SRC  Full merged Ensembl VEP output VCF
     INPUT_VCF   Sampled VCF used by the existing golden tests
@@ -28,18 +29,26 @@ import pyarrow.parquet as pq
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR.parent
 BASE_GOLDEN_DIR = DATA_DIR / "golden"
-REPO_ROOT = SCRIPT_DIR.parents[2]
 
-CACHE_SRC = Path(
+
+def expand_path(path: str) -> Path:
+    return Path(os.path.expandvars(path)).expanduser()
+
+
+DATA_VEPYR_DIR = expand_path(
+    os.environ.get("DATA_VEPYR_DIR", "$HOME/workspace/data_vepyr")
+)
+
+CACHE_SRC = expand_path(
     os.environ.get(
         "CACHE_SRC",
-        "/Users/mwiewior/workspace/data_vepyr/115_GRCh38_merged",
+        str(DATA_VEPYR_DIR / "115_GRCh38_merged"),
     )
 )
-GOLDEN_SRC = Path(
+GOLDEN_SRC = expand_path(
     os.environ.get(
         "GOLDEN_SRC",
-        str(REPO_ROOT / "sandbox" / "HG002_annotated_wgs_everything_hgvs_merged.vcf"),
+        str(DATA_VEPYR_DIR / "HG002_annotated_wgs_everything_hgvs_merged.vcf"),
     )
 )
 INPUT_VCF = Path(os.environ.get("INPUT_VCF", str(BASE_GOLDEN_DIR / "input.vcf")))

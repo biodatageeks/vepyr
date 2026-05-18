@@ -56,3 +56,48 @@ def test_extract_chrom_from_vep_force_refreshes_cached_slice(tmp_path):
         module.extract_chrom_from_vep(str(vep_vcf), "chr8", str(tmp_path), force=True)
     )
     assert refreshed_path.read_text().count("chr8\t") == 2
+
+
+def write_csq_vcf(path, csq):
+    path.write_text(
+        "\n".join(
+            [
+                "##fileformat=VCFv4.2",
+                '##INFO=<ID=CSQ,Number=.,Type=String,Description="Format: Allele|Consequence|Feature|Gene">',
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+                f"chr1\t10\t.\tA\tG\t50\tPASS\tCSQ={csq};DP=1",
+            ]
+        )
+        + "\n"
+    )
+
+
+def test_compare_vcfs_can_ignore_vep_hash_order_pick_csq_order(tmp_path):
+    module = load_run_annotation_fast()
+    vepyr_vcf = tmp_path / "vepyr.vcf"
+    vep_vcf = tmp_path / "vep.vcf"
+    write_csq_vcf(
+        vepyr_vcf,
+        "G|intron_variant|ENST0001|GENE1,G|intron_variant|ENST0002|GENE2",
+    )
+    write_csq_vcf(
+        vep_vcf,
+        "G|intron_variant|ENST0002|GENE2,G|intron_variant|ENST0001|GENE1",
+    )
+
+    strict = module.compare_vcfs(str(vepyr_vcf), str(vep_vcf), "chr1")
+    assert strict["csq_order_mismatch"] == 1
+    assert strict["csq_order_ignored"] == 0
+    assert strict["field_mismatch_counts"] == {}
+
+    hash_order_pick = module.compare_vcfs(
+        str(vepyr_vcf),
+        str(vep_vcf),
+        "chr1",
+        ignore_csq_order=True,
+    )
+    assert hash_order_pick["csq_order_mismatch"] == 0
+    assert hash_order_pick["csq_order_ignored"] == 1
+    assert hash_order_pick["field_mismatch_counts"] == {}
+    assert "per_gene" in hash_order_pick["csq_order_ignore_reason"]
+    assert "pick_allele_gene" in hash_order_pick["csq_order_ignore_reason"]
