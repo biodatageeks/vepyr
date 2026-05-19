@@ -85,9 +85,18 @@ class TestNativeBuildCacheSignature:
         sig = inspect.signature(_build_cache)
         assert "on_progress" in sig.parameters
 
+    def test_accepts_cache_source_type_param(self):
+        sig = inspect.signature(_build_cache)
+        assert "cache_source_type" in sig.parameters
+        assert sig.parameters["cache_source_type"].default == "ensembl"
+
 
 class TestBuildCacheValidation:
     """Test input validation in the Python build_cache() wrapper."""
+
+    def test_default_cache_type_is_vepyr(self):
+        sig = inspect.signature(vepyr.build_cache)
+        assert sig.parameters["cache_type"].default == "vepyr"
 
     def test_invalid_cache_type_raises(self):
         with pytest.raises(ValueError, match="Invalid cache_type"):
@@ -98,13 +107,52 @@ class TestBuildCacheValidation:
             vepyr.build_cache(115, "/tmp/fake", local_cache="/nonexistent/path")
 
     def test_valid_cache_types_accepted(self):
-        """vep, merged, refseq should not raise ValueError."""
-        for cache_type in ("vep", "merged", "refseq"):
+        """vepyr, merged, refseq should not raise ValueError."""
+        for cache_type in ("vepyr", "merged", "refseq"):
             # Will fail at a later stage (no cache dir), not at cache_type validation
             with pytest.raises((FileNotFoundError, RuntimeError)):
                 vepyr.build_cache(
                     115, "/tmp/fake", cache_type=cache_type, local_cache="/nonexistent"
                 )
+
+    def test_vep_cache_type_alias_warns(self, tmp_path):
+        local = tmp_path / "local"
+        local.mkdir()
+
+        with patch("vepyr._build_cache") as mock_native:
+            mock_native.return_value = []
+            with pytest.warns(
+                DeprecationWarning, match="cache_type='vep' is deprecated"
+            ):
+                vepyr.build_cache(
+                    115,
+                    str(tmp_path / "out"),
+                    cache_type="vep",
+                    local_cache=str(local),
+                    show_progress=False,
+                )
+
+        assert mock_native.call_args.args[7] == "ensembl"
+
+    @pytest.mark.parametrize(
+        ("cache_type", "source_type"),
+        [("vepyr", "ensembl"), ("merged", "merged"), ("refseq", "refseq")],
+    )
+    def test_build_cache_forwards_source_type(self, cache_type, source_type, tmp_path):
+        local = tmp_path / "local"
+        local.mkdir()
+
+        with patch("vepyr._build_cache") as mock_native:
+            mock_native.return_value = []
+            vepyr.build_cache(
+                115,
+                str(tmp_path / "out"),
+                cache_type=cache_type,
+                local_cache=str(local),
+                show_progress=False,
+            )
+
+        assert mock_native.call_args.args[7] == source_type
 
 
 class TestBuildCacheProgressCallback:
@@ -133,6 +181,7 @@ class TestBuildCacheProgressCallback:
         # The 7th positional arg is the progress callback
         call_args = mock_native.call_args
         assert call_args[0][6] is cb
+        assert call_args[0][7] == "ensembl"
 
     @patch("vepyr._build_cache")
     def test_show_progress_false_no_tqdm(self, mock_native):
@@ -152,6 +201,7 @@ class TestBuildCacheProgressCallback:
 
         call_args = mock_native.call_args
         assert call_args[0][6] is None
+        assert call_args[0][7] == "ensembl"
 
     @patch("vepyr._build_cache")
     def test_returns_flat_parquet_list(self, mock_native):
@@ -337,7 +387,7 @@ class TestBuildCacheIntegration:
         alleles = tables["variation"].column("allele_string").to_pylist()
         assert all("/" in a for a in alleles)
 
-    # ── Transcript (106 rows, 70 cols) ──────────────────────────────
+    # ── Transcript (106 rows, 71 cols) ──────────────────────────────
 
     def test_transcript_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -345,7 +395,7 @@ class TestBuildCacheIntegration:
 
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["transcript"].num_columns == 70
+        assert tables["transcript"].num_columns == 71
 
     def test_transcript_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -777,7 +827,7 @@ class TestBuildCacheIntegration:
                 build_fjall=True,
                 show_progress=False,
             )
-            parquet_dir = os.path.join(out, "parquet", "115_GRCh38_vep")
+            parquet_dir = os.path.join(out, "parquet", "115_GRCh38_vepyr")
             assert os.path.isdir(parquet_dir)
             for entity in (
                 "variation",

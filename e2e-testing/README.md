@@ -21,7 +21,7 @@ The scripts expect data files under `~/workspace/data_vepyr/`. Set `DATA_VEPYR_D
 |------|-------------|-------------|
 | VCF input | HG002 GRCh38 benchmark VCF (GIAB) | `~/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` |
 | VEP reference | Golden Ensembl VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs_vep.vcf` |
-| Cache dir | Converted Ensembl 115 cache (parquet + fjall) | `~/workspace/data_vepyr/115_GRCh38_vep` |
+| Cache dir | Converted Ensembl 115 cache (parquet + fjall) | `~/workspace/data_vepyr/115_GRCh38_vepyr` |
 | Reference FASTA | GRCh38 primary assembly | `~/workspace/data_vepyr/Homo_sapiens.GRCh38.dna.primary_assembly.fa` |
 
 ### 3. System tools

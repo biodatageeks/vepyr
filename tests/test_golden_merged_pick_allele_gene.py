@@ -22,11 +22,11 @@ install_golden_suite(
     GoldenConfig(
         name="merged pick_allele_gene golden",
         cache_dir=MERGED_GOLDEN_DIR / "cache",
+        cache_source_type="merged",
         input_vcf=DEFAULT_GOLDEN_DIR / "input.vcf.gz",
         golden_vcf=PICK_ALLELE_GENE_GOLDEN_DIR / "golden.vcf",
         reference_fasta=DEFAULT_GOLDEN_DIR / "reference.fa",
         annotate_kwargs={
-            "merged": True,
             "pick_allele_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },

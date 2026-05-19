@@ -5111,6 +5111,7 @@ version = "0.1.0"
 dependencies = [
  "arrow",
  "datafusion",
+ "datafusion-bio-format-ensembl-cache",
  "datafusion-bio-format-vcf",
  "datafusion-bio-function-vep",
  "env_logger",

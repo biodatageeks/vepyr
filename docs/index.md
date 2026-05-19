@@ -31,7 +31,7 @@ vepyr is a Python library backed by a native Rust engine that provides:
 |---|---|
 | Species | `homo_sapiens` |
 | Assembly | `GRCh38` |
-| Cache types | `vep`, `merged`, `refseq` |
+| Cache types | `vepyr`, `merged`, `refseq` |
 | Ensembl releases | 115+ |
 | Python | 3.10 — 3.14 |
 | Platforms | Linux (x86_64), macOS (x86_64, aarch64) |
@@ -51,7 +51,7 @@ results = vepyr.build_cache(
 # Annotate variants
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vepyr",
     everything=True,
     reference_fasta="GRCh38.fa",
 )

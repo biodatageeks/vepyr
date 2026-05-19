@@ -19,6 +19,7 @@ install_golden_suite(
     GoldenConfig(
         name="default golden",
         cache_dir=GOLDEN_DIR / "cache",
+        cache_source_type="ensembl",
         input_vcf=GOLDEN_DIR / "input.vcf.gz",
         golden_vcf=GOLDEN_DIR / "golden.vcf",
         reference_fasta=GOLDEN_DIR / "reference.fa",

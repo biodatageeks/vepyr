@@ -68,7 +68,7 @@ results = vepyr.build_cache(
 | `fjall_zstd_level` | `3` | Zstd compression level (1-22) |
 | `species` | `homo_sapiens` | Species name |
 | `assembly` | `GRCh38` | Genome assembly |
-| `cache_type` | `vep` | Cache type: `vep`, `merged`, or `refseq` |
+| `cache_type` | `vepyr` | Cache type: `vepyr`, `merged`, or `refseq` (`vep` is a deprecated alias) |
 
 ## Annotating variants
 
@@ -79,7 +79,7 @@ import vepyr
 
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vepyr",
     check_existing=True,
     af=True,
     max_af=True,
@@ -96,7 +96,7 @@ Enable all annotation features (80-field CSQ). Requires a reference FASTA:
 ```python
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vepyr",
     everything=True,
     reference_fasta="GRCh38.fa",
 )
@@ -112,7 +112,7 @@ Pass `use_fjall=True` for faster co-located variant lookups on large caches:
 ```python
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vepyr",
     check_existing=True,
     af=True,
     max_af=True,
@@ -127,7 +127,7 @@ Write results directly to a VCF file instead of returning a LazyFrame:
 ```python
 out_path = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vepyr",
     everything=True,
     reference_fasta="GRCh38.fa",
     output_vcf="annotated.vcf.gz",  # .vcf.gz for bgzf, .vcf for plain

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -16,7 +17,7 @@ __all__ = ["build_cache", "annotate"]
 log = logging.getLogger(__name__)
 
 # Ensembl FTP URL templates for VEP cache tarballs.
-# {method_infix} is "" for vep, "_merged" for merged, "_refseq" for refseq.
+# {method_infix} is "" for vepyr/vep, "_merged" for merged, "_refseq" for refseq.
 # Release >=115 uses indexed_vep_cache/, older releases use vep/.
 _ENSEMBL_FTP_PATHS = [
     "https://ftp.ensembl.org/pub/release-{release}/variation/indexed_vep_cache/{species}{method_infix}_vep_{release}_{assembly}.tar.gz",
@@ -30,6 +31,20 @@ _MAX_REDIRECTS = 5
 _DOWNLOAD_TIMEOUT = 300
 _DOWNLOAD_MAX_RETRIES = 10
 _DOWNLOAD_RETRY_BACKOFF = 5  # seconds, doubled each retry
+
+_CACHE_TYPE_TO_DOWNLOAD_INFIX = {
+    "vepyr": "",
+    "vep": "",
+    "merged": "_merged",
+    "refseq": "_refseq",
+}
+_CACHE_TYPE_TO_SOURCE_TYPE = {
+    "vepyr": "ensembl",
+    "vep": "ensembl",
+    "merged": "merged",
+    "refseq": "refseq",
+}
+_PUBLIC_CACHE_TYPES = ("vepyr", "merged", "refseq")
 
 
 def _download_with_progress(
@@ -196,7 +211,7 @@ def _download_cache(
     """Try FTP URL patterns and download the cache tarball."""
     import urllib.error
 
-    method_infix = "" if cache_type == "vep" else f"_{cache_type}"
+    method_infix = _CACHE_TYPE_TO_DOWNLOAD_INFIX[cache_type]
 
     for pattern in _ENSEMBL_FTP_PATHS:
         url = pattern.format(
@@ -226,7 +241,7 @@ def build_cache(
     *,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    cache_type: str = "vep",
+    cache_type: str = "vepyr",
     partitions: int = 1,
     build_fjall: bool = True,
     fjall_zstd_level: int = 3,
@@ -249,7 +264,8 @@ def build_cache(
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
     cache_type : str
-        Cache type: ``"vep"`` (default), ``"merged"``, or ``"refseq"``.
+        Cache type: ``"vepyr"`` (default), ``"merged"``, or ``"refseq"``.
+        ``"vep"`` is accepted as a deprecated alias for ``"vepyr"``.
     partitions : int
         Number of DataFusion partitions for parallelism (default: 1).
     build_fjall : bool
@@ -280,9 +296,16 @@ def build_cache(
     import os
     import tarfile
 
-    if cache_type not in ("vep", "merged", "refseq"):
+    if cache_type not in _CACHE_TYPE_TO_DOWNLOAD_INFIX:
+        allowed = "', '".join((*_PUBLIC_CACHE_TYPES, "vep"))
         raise ValueError(
-            f"Invalid cache_type '{cache_type}'. Must be 'vep', 'merged', or 'refseq'."
+            f"Invalid cache_type '{cache_type}'. Must be one of '{allowed}'."
+        )
+    if cache_type == "vep":
+        warnings.warn(
+            "cache_type='vep' is deprecated; use cache_type='vepyr'.",
+            DeprecationWarning,
+            stacklevel=2,
         )
     if not 1 <= fjall_zstd_level <= 22:
         raise ValueError(
@@ -293,7 +316,7 @@ def build_cache(
             f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
         )
 
-    # Version directory name: e.g. "115_GRCh38_vep"
+    # Version directory name: e.g. "115_GRCh38_vepyr"
     version_dir = f"{release}_{assembly}_{cache_type}"
 
     if local_cache is not None:
@@ -302,7 +325,7 @@ def build_cache(
             raise FileNotFoundError(f"Local cache directory not found: {cache_root}")
         log.info("Using local cache: %s", cache_root)
     else:
-        method_infix = "" if cache_type == "vep" else f"_{cache_type}"
+        method_infix = _CACHE_TYPE_TO_DOWNLOAD_INFIX[cache_type]
         tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
         tarball_path = os.path.join(cache_dir, tarball_name)
         cache_root = os.path.join(
@@ -371,8 +394,6 @@ def build_cache(
     # GIL contention — each tokio worker would re-acquire the GIL per batch,
     # serializing the parallel work.
     if on_progress is not None and partitions > 1:
-        import warnings
-
         warnings.warn(
             "on_progress callback is disabled when partitions > 1 to avoid GIL contention.",
             stacklevel=2,
@@ -388,6 +409,7 @@ def build_cache(
             fjall_zstd_level,
             fjall_dict_size_kb,
             native_cb,
+            _CACHE_TYPE_TO_SOURCE_TYPE[cache_type],
         )
     finally:
         if _bars is not None:
@@ -479,7 +501,7 @@ def annotate(
         Path to the input VCF file.
     cache_dir : str
         Path to the parquet cache directory produced by :func:`build_cache`,
-        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_vep"``.
+        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_vepyr"``.
     everything : bool
         Enable all annotation features (80-field CSQ). Implies ``hgvs``,
         ``af``, ``check_existing``, ``pubmed``, etc. Requires
@@ -521,17 +543,14 @@ def annotate(
         Upstream/downstream distance for transcript overlap. Single int =
         both directions; tuple = (upstream, downstream).
     merged : bool
-        Use merged Ensembl+RefSeq cache. Adds ``SOURCE``, ``REFSEQ_MATCH``,
-        ``REFSEQ_OFFSET``, ``GIVEN_REF``, ``USED_REF``, ``BAM_EDIT`` CSQ
-        fields. Mutually exclusive with ``refseq``.
+        Deprecated no-op. Source mode is read from cache metadata produced by
+        :func:`build_cache`; use a merged cache directory to get merged fields.
     refseq : bool
-        Use RefSeq cache/transcripts instead of Ensembl. Adds
-        ``REFSEQ_MATCH``, ``REFSEQ_OFFSET``, ``GIVEN_REF``, ``USED_REF``,
-        ``BAM_EDIT`` CSQ fields. Mutually exclusive with ``merged``,
-        ``gencode_basic``, and ``gencode_primary``.
+        Deprecated no-op. Source mode is read from cache metadata produced by
+        :func:`build_cache`; use a RefSeq cache directory to get RefSeq fields.
     gencode_basic : bool
         Restrict to transcripts in the GENCODE basic set. Mutually exclusive
-        with ``gencode_primary`` and ``refseq``.
+        with ``gencode_primary``.
     gencode_primary : bool
         Restrict to transcripts in the GENCODE primary set (GRCh38 only).
         Mutually exclusive with ``gencode_basic`` and ``refseq``.
@@ -607,13 +626,13 @@ def annotate(
     Examples
     --------
     >>> import vepyr
-    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_vep")
+    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_vepyr")
     >>> lf.collect()
 
     >>> # Full annotation with all features
     >>> lf = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     "/data/vep/parquet/115_GRCh38_vepyr",
     ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ... )
@@ -621,7 +640,7 @@ def annotate(
     >>> # Selective: HGVS + allele frequencies
     >>> lf = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     "/data/vep/parquet/115_GRCh38_vepyr",
     ...     hgvs=True,
     ...     af=True,
     ...     af_gnomadg=True,
@@ -631,7 +650,7 @@ def annotate(
     >>> # Write annotated VCF directly
     >>> path = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vep",
+    ...     "/data/vep/parquet/115_GRCh38_vepyr",
     ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ...     output_vcf="annotated.vcf",
@@ -645,12 +664,13 @@ def annotate(
             "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
         )
 
-    # Validate mutual exclusivity of cache/transcript flags
-    if refseq and merged:
-        raise ValueError("refseq and merged are mutually exclusive")
-    if refseq and (gencode_basic or gencode_primary):
-        raise ValueError(
-            "refseq is mutually exclusive with gencode_basic and gencode_primary"
+    if refseq or merged:
+        warnings.warn(
+            "annotate(..., merged=True/refseq=True) is deprecated and no longer "
+            "selects source mode; source mode is read from cache metadata built "
+            "by build_cache(cache_type=...).",
+            DeprecationWarning,
+            stacklevel=2,
         )
     if gencode_basic and gencode_primary:
         raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
@@ -702,10 +722,6 @@ def annotate(
         opts["max_af"] = True
     if pubmed:
         opts["pubmed"] = True
-    if merged:
-        opts["merged"] = True
-    if refseq:
-        opts["refseq"] = True
     if gencode_basic:
         opts["gencode_basic"] = True
     if gencode_primary:

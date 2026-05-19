@@ -169,14 +169,8 @@ pub fn annotate_to_vcf_file(
             .get("hgvsp_use_prediction")
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
-        merged: opts
-            .get("merged")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        refseq: opts
-            .get("refseq")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
+        merged: false,
+        refseq: false,
         gencode_basic: opts
             .get("gencode_basic")
             .and_then(|v| v.as_bool())

@@ -69,7 +69,7 @@ A small 5-variant VCF for chr22 ships with the cache fixture:
 ```python
 import vepyr
 
-cache_dir = "/tmp/vepyr_cache/parquet/115_GRCh38_vep"
+cache_dir = "/tmp/vepyr_cache/parquet/115_GRCh38_vepyr"
 
 lf = vepyr.annotate(
     vcf="tests/data/ensembl_cache/sample.vcf",
@@ -163,7 +163,7 @@ uv run python -c "
 import vepyr, tempfile, os
 with tempfile.TemporaryDirectory() as d:
     r = vepyr.build_cache(115, d, local_cache='tests/data/ensembl_cache', build_fjall=True, show_progress=False)
-    cache = os.path.join(d, 'parquet', '115_GRCh38_vep')
+    cache = os.path.join(d, 'parquet', '115_GRCh38_vepyr')
     print(f'build_cache : {len(r)} parquet files, {sum(n for _,n in r):,} rows')
     vcf = 'tests/data/ensembl_cache/sample.vcf'
     df1 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True).collect()

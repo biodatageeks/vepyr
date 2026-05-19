@@ -12,6 +12,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
+from tests.cache_metadata import copy_cache_with_source_metadata
 
 TESTS_DIR = Path(__file__).parent
 GOLDEN_DIR = TESTS_DIR / "data" / "golden"
@@ -26,26 +27,32 @@ def skip_if_no_cache():
         pytest.skip("Golden test cache not available")
 
 
+@pytest.fixture(scope="module")
+def metadata_cache_dir(skip_if_no_cache, tmp_path_factory):
+    target = tmp_path_factory.mktemp("ensembl_cache_with_metadata")
+    return str(copy_cache_with_source_metadata(CACHE_DIR, target, "ensembl"))
+
+
 class TestAnnotate:
     """Test the streaming annotation pipeline."""
 
-    def test_returns_lazyframe(self, skip_if_no_cache):
+    def test_returns_lazyframe(self, metadata_cache_dir):
         import vepyr
 
         lf = vepyr.annotate(
             INPUT_VCF,
-            CACHE_DIR,
+            metadata_cache_dir,
             everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
         assert isinstance(lf, pl.LazyFrame)
 
-    def test_collect_returns_dataframe(self, skip_if_no_cache):
+    def test_collect_returns_dataframe(self, metadata_cache_dir):
         import vepyr
 
         lf = vepyr.annotate(
             INPUT_VCF,
-            CACHE_DIR,
+            metadata_cache_dir,
             everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
@@ -54,12 +61,12 @@ class TestAnnotate:
         assert df.height > 0
         assert df.width > 10
 
-    def test_has_annotation_columns(self, skip_if_no_cache):
+    def test_has_annotation_columns(self, metadata_cache_dir):
         import vepyr
 
         df = vepyr.annotate(
             INPUT_VCF,
-            CACHE_DIR,
+            metadata_cache_dir,
             everything=True,
             reference_fasta=REFERENCE_FASTA,
         ).collect()
@@ -69,14 +76,14 @@ class TestAnnotate:
         assert "ref" in df.columns
         assert "alt" in df.columns
 
-    def test_projection_pushdown(self, skip_if_no_cache):
+    def test_projection_pushdown(self, metadata_cache_dir):
         """Selecting a subset of columns should work."""
         import vepyr
 
         df = (
             vepyr.annotate(
                 INPUT_VCF,
-                CACHE_DIR,
+                metadata_cache_dir,
                 everything=True,
                 reference_fasta=REFERENCE_FASTA,
             )
@@ -86,14 +93,14 @@ class TestAnnotate:
         assert df.width == 5
         assert df.height > 0
 
-    def test_filter_pushdown(self, skip_if_no_cache):
+    def test_filter_pushdown(self, metadata_cache_dir):
         """Filtering should work on the LazyFrame."""
         import vepyr
 
         df = (
             vepyr.annotate(
                 INPUT_VCF,
-                CACHE_DIR,
+                metadata_cache_dir,
                 everything=True,
                 reference_fasta=REFERENCE_FASTA,
             )
@@ -107,13 +114,13 @@ class TestAnnotate:
                 v == "missense_variant" for v in df["most_severe_consequence"].to_list()
             )
 
-    def test_sink_vcf(self, skip_if_no_cache):
+    def test_sink_vcf(self, metadata_cache_dir):
         """Writing to VCF via polars-bio sink_vcf should work."""
         import vepyr
 
         lf = vepyr.annotate(
             INPUT_VCF,
-            CACHE_DIR,
+            metadata_cache_dir,
             everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
@@ -158,7 +165,7 @@ class TestAnnotate:
         with pytest.raises(ValueError, match="reference_fasta"):
             vepyr.annotate(INPUT_VCF, CACHE_DIR, **kwargs)
 
-    def test_annotate_to_vcf_output(self, skip_if_no_cache):
+    def test_annotate_to_vcf_output(self, metadata_cache_dir):
         """Writing to VCF via output_vcf should produce a non-empty file."""
         import vepyr
 
@@ -168,7 +175,7 @@ class TestAnnotate:
         try:
             result = vepyr.annotate(
                 INPUT_VCF,
-                CACHE_DIR,
+                metadata_cache_dir,
                 everything=True,
                 reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
@@ -178,7 +185,7 @@ class TestAnnotate:
         finally:
             os.unlink(out_path)
 
-    def test_annotate_vcf_returns_path(self, skip_if_no_cache):
+    def test_annotate_vcf_returns_path(self, metadata_cache_dir):
         """output_vcf should return the output path as a string."""
         import vepyr
 
@@ -188,7 +195,7 @@ class TestAnnotate:
         try:
             result = vepyr.annotate(
                 INPUT_VCF,
-                CACHE_DIR,
+                metadata_cache_dir,
                 everything=True,
                 reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
@@ -198,7 +205,7 @@ class TestAnnotate:
         finally:
             os.unlink(out_path)
 
-    def test_annotate_vcf_has_csq_header(self, skip_if_no_cache):
+    def test_annotate_vcf_has_csq_header(self, metadata_cache_dir):
         """VCF output should contain CSQ in the INFO header."""
         import vepyr
 
@@ -208,7 +215,7 @@ class TestAnnotate:
         try:
             vepyr.annotate(
                 INPUT_VCF,
-                CACHE_DIR,
+                metadata_cache_dir,
                 everything=True,
                 reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
@@ -243,23 +250,27 @@ class TestAnnotate:
             out_path = f.name
 
         try:
-            result = vepyr.annotate(
-                INPUT_VCF,
-                CACHE_DIR,
-                output_vcf=out_path,
-                show_progress=False,
-                merged=True,
-                pick=True,
-                pick_allele=True,
-                per_gene=True,
-                pick_allele_gene=True,
-                flag_pick=True,
-                flag_pick_allele=True,
-                flag_pick_allele_gene=True,
-                pick_order="biotype,rank,mane_select",
-            )
+            with pytest.warns(
+                DeprecationWarning, match="source mode is read from cache metadata"
+            ):
+                result = vepyr.annotate(
+                    INPUT_VCF,
+                    CACHE_DIR,
+                    output_vcf=out_path,
+                    show_progress=False,
+                    merged=True,
+                    pick=True,
+                    pick_allele=True,
+                    per_gene=True,
+                    pick_allele_gene=True,
+                    flag_pick=True,
+                    flag_pick_allele=True,
+                    flag_pick_allele_gene=True,
+                    pick_order="biotype,rank,mane_select",
+                )
             assert result == out_path
-            assert seen["options"]["merged"] is True
+            assert "merged" not in seen["options"]
+            assert "refseq" not in seen["options"]
             assert seen["options"]["pick"] is True
             assert seen["options"]["pick_allele"] is True
             assert seen["options"]["per_gene"] is True
@@ -316,6 +327,46 @@ class TestAnnotate:
         finally:
             os.unlink(default_out)
             os.unlink(override_out)
+
+    def test_source_flags_do_not_reach_options_json(self, monkeypatch):
+        """Source mode comes from cache metadata, not annotate() flags."""
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen.update(json.loads(options_json))
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            with pytest.warns(
+                DeprecationWarning, match="source mode is read from cache metadata"
+            ):
+                vepyr.annotate(
+                    INPUT_VCF,
+                    CACHE_DIR,
+                    output_vcf=out_path,
+                    show_progress=False,
+                    merged=True,
+                    refseq=True,
+                )
+            assert "merged" not in seen
+            assert "refseq" not in seen
+        finally:
+            os.unlink(out_path)
 
     def test_buffer_size_rejects_non_positive_values(self):
         """buffer_size mirrors VEP's positive integer buffer-size contract."""

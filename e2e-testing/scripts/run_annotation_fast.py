@@ -34,20 +34,20 @@ BACKENDS = ("fjall", "parquet")
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
-    "vep": {
-        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_vep"),
+    "vepyr": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_vepyr"),
         "vep_vcf": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"
         ),
         "annotate_kwargs": {},
-        "suffix": "_vep",
+        "suffix": "_vepyr",
     },
     "merged": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
         "vep_vcf": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"
         ),
-        "annotate_kwargs": {"merged": True},
+        "annotate_kwargs": {},
         "suffix": "_merged",
     },
     "merged_pick": {
@@ -56,7 +56,6 @@ _CACHE_PROFILES = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick_allele_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -68,7 +67,6 @@ _CACHE_PROFILES = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -81,7 +79,6 @@ _CACHE_PROFILES = {
             "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf",
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick_allele": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -94,7 +91,6 @@ _CACHE_PROFILES = {
             "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf",
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick_allele_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -106,7 +102,6 @@ _CACHE_PROFILES = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_filter.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "pick": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -118,7 +113,6 @@ _CACHE_PROFILES = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_allele.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "pick_allele": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -130,7 +124,6 @@ _CACHE_PROFILES = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_per_gene.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "per_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -142,7 +135,6 @@ _CACHE_PROFILES = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "pick_allele_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -153,7 +145,7 @@ _CACHE_PROFILES = {
         "vep_vcf": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_refseq.vcf"
         ),
-        "annotate_kwargs": {"refseq": True},
+        "annotate_kwargs": {},
         "suffix": "_refseq",
     },
 }
@@ -169,8 +161,8 @@ def parse_args():
     p.add_argument(
         "--cache",
         choices=sorted(_CACHE_PROFILES),
-        default="vep",
-        help="Cache type — selects cache dir, VEP reference, and annotate flags (default: %(default)s)",
+        default="vepyr",
+        help="Cache profile selecting cache dir and VEP reference (default: %(default)s)",
     )
     p.add_argument(
         "--backend",
