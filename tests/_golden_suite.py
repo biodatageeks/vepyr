@@ -166,7 +166,7 @@ class GoldenConfig:
     csq_fields: list[str]
     df_comparison_fields: list[str]
     exact_csq_entry_count: bool = False
-    check_most_severe_consequence: bool = True
+    most_severe_consequence_golden_vcf: Path | None = None
 
     @property
     def vcf_comparison_fields(self) -> list[str]:
@@ -238,6 +238,11 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
     @pytest.fixture(scope="module")
     def golden_annotations():
         return _parse_vcf_csq(config.golden_vcf)
+
+    @pytest.fixture(scope="module")
+    def most_severe_consequence_annotations():
+        golden_vcf = config.most_severe_consequence_golden_vcf or config.golden_vcf
+        return _parse_vcf_csq(golden_vcf)
 
     @pytest.fixture(scope="module")
     def golden_field_order():
@@ -394,17 +399,14 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
                 f"Too few: vepyr={vepyr_df.height}, golden={len(golden_annotations)}"
             )
 
-        def test_most_severe_consequence_match(self, vepyr_df, golden_annotations):
-            if not config.check_most_severe_consequence:
-                pytest.skip(
-                    "most_severe_consequence is computed before pick-mode filtering"
-                )
-
+        def test_most_severe_consequence_match(
+            self, vepyr_df, most_severe_consequence_annotations
+        ):
             matched = 0
             total = 0
             for row in vepyr_df.iter_rows(named=True):
                 key = (row["chrom"], row["start"], row["ref"], row["alt"])
-                golden_csqs = _lookup(key, golden_annotations)
+                golden_csqs = _lookup(key, most_severe_consequence_annotations)
                 if golden_csqs is None:
                     continue
                 total += 1
@@ -486,6 +488,7 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
     namespace.update(
         {
             "golden_annotations": golden_annotations,
+            "most_severe_consequence_annotations": most_severe_consequence_annotations,
             "golden_field_order": golden_field_order,
             "skip_if_no_cache": skip_if_no_cache,
             "metadata_cache_dir": metadata_cache_dir,
