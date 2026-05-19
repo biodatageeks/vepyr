@@ -13,7 +13,9 @@ The default profile is the publication seed profile: merged cache, Fjall
 backend, `--everything`, and `--hgvs`.
 
 Override defaults with `PROFILE=vep|merged|refseq`, `BACKEND=fjall|parquet`,
-`INPUT_VCF`, `VEP_VCF`, `CACHE_DIR`, `FASTA`, or `OUT_DIR`.
+`INPUT_VCF`, `VEP_VCF`, `CACHE_DIR`, `FASTA`, `OUT_DIR`, or
+`DATAFRAME_CHUNK_SIZE`. Set `DATAFRAME_PROGRESS_EVERY` to control streaming
+progress logging.
 
 Existing vepyr output is reused. Set `FORCE=1` to re-run vepyr annotation.
 
@@ -39,7 +41,7 @@ By default, outputs are written to `e2e-testing/results/concordance/`:
 
 ```mermaid
 flowchart TD
-    run[run_concordance.sh<br/>md5 | dataframe | both]
+    run[run_concordance.sh<br/>modes: md5, dataframe, both]
 
     input[INPUT_VCF]
     vep[VEP_VCF oracle]
@@ -56,7 +58,7 @@ flowchart TD
     md5[md5/canonical_md5_vcf.py]
     md5out[canonical-md5 report]
 
-    df[data_frame/compare_annotation_frames.py]
+    df[data_frame/compare_annotation_frames.py<br/>ordered streaming CSQ rows]
     dfout[dataframe report]
 
     run --> input
