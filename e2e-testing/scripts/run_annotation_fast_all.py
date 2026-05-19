@@ -25,7 +25,7 @@ from datetime import datetime
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(SCRIPT_DIR, "..", "reports")
 CACHE_SUFFIXES = {
-    "vep": "_vep",
+    "ensembl": "_ensembl",
     "merged": "_merged",
     "merged_pick": "_merged_pick",
     "merged_flag_pick": "_merged_flag_pick",
@@ -126,7 +126,7 @@ def parse_args():
     p.add_argument(
         "--cache",
         choices=sorted(CACHE_SUFFIXES),
-        default="vep",
+        default="ensembl",
         help="Cache type — forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
@@ -158,7 +158,7 @@ def report_suffix(cache_suffix, backend):
     return f"{cache_suffix}_{backend}"
 
 
-def run_chromosome(chrom_num, cache="vep", backend="fjall", force=False):
+def run_chromosome(chrom_num, cache="ensembl", backend="fjall", force=False):
     """Run run_annotation_fast.py for a single chromosome."""
     chrom = f"chr{chrom_num}"
     cmd = [

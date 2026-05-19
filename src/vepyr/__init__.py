@@ -17,7 +17,7 @@ __all__ = ["build_cache", "annotate"]
 log = logging.getLogger(__name__)
 
 # Ensembl FTP URL templates for VEP cache tarballs.
-# {method_infix} is "" for vepyr/vep, "_merged" for merged, "_refseq" for refseq.
+# {method_infix} is "" for Ensembl, "_merged" for merged, "_refseq" for RefSeq.
 # Release >=115 uses indexed_vep_cache/, older releases use vep/.
 _ENSEMBL_FTP_PATHS = [
     "https://ftp.ensembl.org/pub/release-{release}/variation/indexed_vep_cache/{species}{method_infix}_vep_{release}_{assembly}.tar.gz",
@@ -33,18 +33,19 @@ _DOWNLOAD_MAX_RETRIES = 10
 _DOWNLOAD_RETRY_BACKOFF = 5  # seconds, doubled each retry
 
 _CACHE_TYPE_TO_DOWNLOAD_INFIX = {
-    "vepyr": "",
-    "vep": "",
+    "ensembl": "",
     "merged": "_merged",
     "refseq": "_refseq",
 }
-_CACHE_TYPE_TO_SOURCE_TYPE = {
-    "vepyr": "ensembl",
-    "vep": "ensembl",
-    "merged": "merged",
-    "refseq": "refseq",
-}
-_PUBLIC_CACHE_TYPES = ("vepyr", "merged", "refseq")
+_PUBLIC_CACHE_TYPES = ("ensembl", "merged", "refseq")
+
+
+def _validate_cache_type(cache_type: str) -> None:
+    if cache_type in _CACHE_TYPE_TO_DOWNLOAD_INFIX:
+        return
+
+    allowed = "', '".join(_PUBLIC_CACHE_TYPES)
+    raise ValueError(f"Invalid cache_type '{cache_type}'. Must be one of '{allowed}'.")
 
 
 def _download_with_progress(
@@ -239,9 +240,9 @@ def build_cache(
     release: int,
     cache_dir: str,
     *,
+    cache_type: str,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    cache_type: str = "vepyr",
     partitions: int = 1,
     build_fjall: bool = True,
     fjall_zstd_level: int = 3,
@@ -259,13 +260,13 @@ def build_cache(
         Ensembl release number (e.g. 115).
     cache_dir : str
         Root directory for cache data and Parquet output.
+    cache_type : str
+        Required Ensembl VEP cache type: ``"ensembl"``, ``"merged"``, or
+        ``"refseq"``.
     species : str
         Species name (default: ``"homo_sapiens"``).
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
-    cache_type : str
-        Cache type: ``"vepyr"`` (default), ``"merged"``, or ``"refseq"``.
-        ``"vep"`` is accepted as a deprecated alias for ``"vepyr"``.
     partitions : int
         Number of DataFusion partitions for parallelism (default: 1).
     build_fjall : bool
@@ -296,17 +297,7 @@ def build_cache(
     import os
     import tarfile
 
-    if cache_type not in _CACHE_TYPE_TO_DOWNLOAD_INFIX:
-        allowed = "', '".join((*_PUBLIC_CACHE_TYPES, "vep"))
-        raise ValueError(
-            f"Invalid cache_type '{cache_type}'. Must be one of '{allowed}'."
-        )
-    if cache_type == "vep":
-        warnings.warn(
-            "cache_type='vep' is deprecated; use cache_type='vepyr'.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+    _validate_cache_type(cache_type)
     if not 1 <= fjall_zstd_level <= 22:
         raise ValueError(
             f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
@@ -316,7 +307,7 @@ def build_cache(
             f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
         )
 
-    # Version directory name: e.g. "115_GRCh38_vepyr"
+    # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
 
     if local_cache is not None:
@@ -409,7 +400,7 @@ def build_cache(
             fjall_zstd_level,
             fjall_dict_size_kb,
             native_cb,
-            _CACHE_TYPE_TO_SOURCE_TYPE[cache_type],
+            cache_type,
         )
     finally:
         if _bars is not None:
@@ -501,7 +492,7 @@ def annotate(
         Path to the input VCF file.
     cache_dir : str
         Path to the parquet cache directory produced by :func:`build_cache`,
-        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_vepyr"``.
+        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_ensembl"``.
     everything : bool
         Enable all annotation features (80-field CSQ). Implies ``hgvs``,
         ``af``, ``check_existing``, ``pubmed``, etc. Requires
@@ -626,13 +617,13 @@ def annotate(
     Examples
     --------
     >>> import vepyr
-    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_vepyr")
+    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_ensembl")
     >>> lf.collect()
 
     >>> # Full annotation with all features
     >>> lf = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vepyr",
+    ...     "/data/vep/parquet/115_GRCh38_ensembl",
     ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ... )
@@ -640,7 +631,7 @@ def annotate(
     >>> # Selective: HGVS + allele frequencies
     >>> lf = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vepyr",
+    ...     "/data/vep/parquet/115_GRCh38_ensembl",
     ...     hgvs=True,
     ...     af=True,
     ...     af_gnomadg=True,
@@ -650,7 +641,7 @@ def annotate(
     >>> # Write annotated VCF directly
     >>> path = vepyr.annotate(
     ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_vepyr",
+    ...     "/data/vep/parquet/115_GRCh38_ensembl",
     ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ...     output_vcf="annotated.vcf",

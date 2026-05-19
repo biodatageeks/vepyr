@@ -94,51 +94,44 @@ class TestNativeBuildCacheSignature:
 class TestBuildCacheValidation:
     """Test input validation in the Python build_cache() wrapper."""
 
-    def test_default_cache_type_is_vepyr(self):
+    def test_cache_type_is_required(self):
         sig = inspect.signature(vepyr.build_cache)
-        assert sig.parameters["cache_type"].default == "vepyr"
+        param = sig.parameters["cache_type"]
+        assert param.default is inspect._empty
+        assert param.kind is inspect.Parameter.KEYWORD_ONLY
 
     def test_invalid_cache_type_raises(self):
         with pytest.raises(ValueError, match="Invalid cache_type"):
             vepyr.build_cache(115, "/tmp/fake", cache_type="invalid")
 
+    @pytest.mark.parametrize("cache_type", ["vep", "vepyr"])
+    def test_legacy_cache_types_rejected(self, cache_type):
+        with pytest.raises(ValueError, match="Invalid cache_type"):
+            vepyr.build_cache(115, "/tmp/fake", cache_type=cache_type)
+
     def test_local_cache_not_found_raises(self):
         with pytest.raises(FileNotFoundError, match="Local cache directory not found"):
-            vepyr.build_cache(115, "/tmp/fake", local_cache="/nonexistent/path")
+            vepyr.build_cache(
+                115,
+                "/tmp/fake",
+                cache_type="ensembl",
+                local_cache="/nonexistent/path",
+            )
 
     def test_valid_cache_types_accepted(self):
-        """vepyr, merged, refseq should not raise ValueError."""
-        for cache_type in ("vepyr", "merged", "refseq"):
+        """ensembl, merged, and refseq should not raise ValueError."""
+        for cache_type in ("ensembl", "merged", "refseq"):
             # Will fail at a later stage (no cache dir), not at cache_type validation
             with pytest.raises((FileNotFoundError, RuntimeError)):
                 vepyr.build_cache(
                     115, "/tmp/fake", cache_type=cache_type, local_cache="/nonexistent"
                 )
 
-    def test_vep_cache_type_alias_warns(self, tmp_path):
-        local = tmp_path / "local"
-        local.mkdir()
-
-        with patch("vepyr._build_cache") as mock_native:
-            mock_native.return_value = []
-            with pytest.warns(
-                DeprecationWarning, match="cache_type='vep' is deprecated"
-            ):
-                vepyr.build_cache(
-                    115,
-                    str(tmp_path / "out"),
-                    cache_type="vep",
-                    local_cache=str(local),
-                    show_progress=False,
-                )
-
-        assert mock_native.call_args.args[7] == "ensembl"
-
     @pytest.mark.parametrize(
-        ("cache_type", "source_type"),
-        [("vepyr", "ensembl"), ("merged", "merged"), ("refseq", "refseq")],
+        "cache_type",
+        ["ensembl", "merged", "refseq"],
     )
-    def test_build_cache_forwards_source_type(self, cache_type, source_type, tmp_path):
+    def test_build_cache_forwards_source_type(self, cache_type, tmp_path):
         local = tmp_path / "local"
         local.mkdir()
 
@@ -152,7 +145,7 @@ class TestBuildCacheValidation:
                 show_progress=False,
             )
 
-        assert mock_native.call_args.args[7] == source_type
+        assert mock_native.call_args.args[7] == cache_type
 
 
 class TestBuildCacheProgressCallback:
@@ -170,6 +163,7 @@ class TestBuildCacheProgressCallback:
             vepyr.build_cache(
                 115,
                 "/tmp/test_vepyr_cache_cb_out",
+                cache_type="ensembl",
                 local_cache="/tmp/test_vepyr_cache_cb",
                 on_progress=cb,
                 show_progress=False,
@@ -193,6 +187,7 @@ class TestBuildCacheProgressCallback:
             vepyr.build_cache(
                 115,
                 "/tmp/test_vepyr_cache_np_out",
+                cache_type="ensembl",
                 local_cache="/tmp/test_vepyr_cache_np",
                 show_progress=False,
             )
@@ -220,6 +215,7 @@ class TestBuildCacheProgressCallback:
             result = vepyr.build_cache(
                 115,
                 "/tmp/test_vepyr_cache_ret_out",
+                cache_type="ensembl",
                 local_cache="/tmp/test_vepyr_cache_ret",
                 show_progress=False,
             )
@@ -241,6 +237,7 @@ class TestBuildCacheProgressCallback:
             vepyr.build_cache(
                 115,
                 "/tmp/test_vepyr_cache_fj_out",
+                cache_type="ensembl",
                 local_cache="/tmp/test_vepyr_cache_fj",
                 build_fjall=False,
                 fjall_zstd_level=5,
@@ -780,6 +777,7 @@ class TestBuildCacheIntegration:
                 vepyr.build_cache(
                     115,
                     out,
+                    cache_type="ensembl",
                     local_cache=str(ENSEMBL_CACHE_DIR),
                     partitions=2,
                     build_fjall=False,
@@ -795,13 +793,21 @@ class TestBuildCacheIntegration:
     def test_invalid_zstd_level_raises(self):
         with pytest.raises(ValueError, match="fjall_zstd_level must be between"):
             vepyr.build_cache(
-                115, "/tmp/unused", local_cache="/nonexistent", fjall_zstd_level=99
+                115,
+                "/tmp/unused",
+                cache_type="ensembl",
+                local_cache="/nonexistent",
+                fjall_zstd_level=99,
             )
 
     def test_invalid_dict_size_raises(self):
         with pytest.raises(ValueError, match="fjall_dict_size_kb must be non-negative"):
             vepyr.build_cache(
-                115, "/tmp/unused", local_cache="/nonexistent", fjall_dict_size_kb=-1
+                115,
+                "/tmp/unused",
+                cache_type="ensembl",
+                local_cache="/nonexistent",
+                fjall_dict_size_kb=-1,
             )
 
     # ── Python wrapper end-to-end ───────────────────────────────────
@@ -811,6 +817,7 @@ class TestBuildCacheIntegration:
             result = vepyr.build_cache(
                 115,
                 out,
+                cache_type="ensembl",
                 local_cache=str(ENSEMBL_CACHE_DIR),
                 build_fjall=True,
                 show_progress=False,
@@ -823,11 +830,12 @@ class TestBuildCacheIntegration:
             vepyr.build_cache(
                 115,
                 out,
+                cache_type="ensembl",
                 local_cache=str(ENSEMBL_CACHE_DIR),
                 build_fjall=True,
                 show_progress=False,
             )
-            parquet_dir = os.path.join(out, "parquet", "115_GRCh38_vepyr")
+            parquet_dir = os.path.join(out, "parquet", "115_GRCh38_ensembl")
             assert os.path.isdir(parquet_dir)
             for entity in (
                 "variation",

@@ -40,7 +40,7 @@ DATA_VEPYR_DIR = expand_path(
     os.environ.get("DATA_VEPYR_DIR", "$HOME/workspace/data_vepyr")
 )
 CACHE_SRC = expand_path(
-    os.environ.get("CACHE_SRC", str(DATA_VEPYR_DIR / "115_GRCh38_vep"))
+    os.environ.get("CACHE_SRC", str(DATA_VEPYR_DIR / "115_GRCh38_ensembl"))
 )
 VCF_SRC = expand_path(
     os.environ.get(

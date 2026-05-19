@@ -34,13 +34,13 @@ BACKENDS = ("fjall", "parquet")
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
-    "vepyr": {
-        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_vepyr"),
+    "ensembl": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_ensembl"),
         "vep_vcf": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"
         ),
         "annotate_kwargs": {},
-        "suffix": "_vepyr",
+        "suffix": "_ensembl",
     },
     "merged": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
@@ -161,7 +161,7 @@ def parse_args():
     p.add_argument(
         "--cache",
         choices=sorted(_CACHE_PROFILES),
-        default="vepyr",
+        default="ensembl",
         help="Cache profile selecting cache dir and VEP reference (default: %(default)s)",
     )
     p.add_argument(
