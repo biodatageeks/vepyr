@@ -1023,29 +1023,6 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-core"
-version = "1.3.1"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=ab1f2a5#ab1f2a51d1725bb3bdc4fc1df2745ad698b076dd"
-dependencies = [
- "async-compression",
- "bytes",
- "datafusion",
- "datafusion-execution",
- "futures",
- "log",
- "noodles 0.93.0",
- "noodles-bgzf 0.36.0",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=da905fff4909ada93e407c780456332fe113858b)",
- "noodles-sam 0.78.0",
- "opendal",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "url",
-]
-
-[[package]]
-name = "datafusion-bio-format-core"
 version = "1.4.0"
 source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=5fc6a6fc26c4300402d9283d69d9d521e96abc60#5fc6a6fc26c4300402d9283d69d9d521e96abc60"
 dependencies = [
@@ -1068,13 +1045,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "datafusion-bio-format-core"
+version = "1.6.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=c3f611769b05b007e315eed310fcab2c47b636cb#c3f611769b05b007e315eed310fcab2c47b636cb"
+dependencies = [
+ "async-compression",
+ "bytes",
+ "datafusion",
+ "datafusion-execution",
+ "futures",
+ "log",
+ "noodles 0.93.0",
+ "noodles-bgzf 0.36.0",
+ "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=da905fff4909ada93e407c780456332fe113858b)",
+ "noodles-sam 0.78.0",
+ "opendal",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
 name = "datafusion-bio-format-ensembl-cache"
-version = "1.3.1"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=ab1f2a5#ab1f2a51d1725bb3bdc4fc1df2745ad698b076dd"
+version = "1.6.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=c3f611769b05b007e315eed310fcab2c47b636cb#c3f611769b05b007e315eed310fcab2c47b636cb"
 dependencies = [
  "async-trait",
  "datafusion",
- "datafusion-bio-format-core 1.3.1",
+ "datafusion-bio-format-core 1.6.0",
  "datafusion-execution",
  "flate2",
  "log",
@@ -1117,7 +1117,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.7.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=fec9740fa8cf6320deed79b983465f18289b7edf#fec9740fa8cf6320deed79b983465f18289b7edf"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=10d7b4f#10d7b4f1d313947347cac82596431133da1930f4"
 dependencies = [
  "ahash",
  "arrow-ipc",
