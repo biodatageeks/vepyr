@@ -5,9 +5,9 @@ use pyo3::prelude::*;
 mod annotate;
 
 fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
-    value.parse::<CacheSourceType>().map_err(|()| {
+    value.parse::<CacheSourceType>().map_err(|err| {
         pyo3::exceptions::PyValueError::new_err(format!(
-            "Invalid cache_source_type '{value}'. Must be 'ensembl', 'merged', or 'refseq'."
+            "Invalid cache_source_type '{value}': {err}"
         ))
     })
 }
