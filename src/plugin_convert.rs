@@ -7,6 +7,7 @@ use datafusion_bio_function_vep::plugin_cache_builder::{
     convert_cadd_sources_to_parquet, convert_plugin_to_parquet,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn convert_plugin(
     plugin_name: &str,
     source_path: &str,
@@ -73,6 +74,7 @@ pub fn convert_plugin(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn convert_cadd_plugin(
     snv_source_path: &str,
     indel_source_path: &str,
