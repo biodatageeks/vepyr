@@ -209,7 +209,7 @@ print(f"Input: {n_variants:,} biallelic variants in {vcf_gz}")
 
 backends = ["parquet", "fjall"]
 timings = {}
-mode_suffix = f"_{MODE}" if MODE != "default" else ""
+mode_suffix = f"_{MODE}"
 
 for backend in backends:
     output_vcf = os.path.join(WORK_DIR, f"vepyr_{backend}{mode_suffix}.vcf")

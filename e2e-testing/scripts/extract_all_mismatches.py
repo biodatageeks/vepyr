@@ -17,8 +17,8 @@ import subprocess
 parser = argparse.ArgumentParser(description="Extract ALL mismatches to TSV")
 parser.add_argument(
     "--mode",
-    choices=["default", "merged", "refseq"],
-    default="default",
+    choices=["ensembl", "merged", "refseq"],
+    default="ensembl",
     help="Annotation mode (default: %(default)s)",
 )
 args = parser.parse_args()
@@ -30,7 +30,7 @@ DATA_DIR = os.path.expanduser(
 )
 
 _VEP_REFERENCE = {
-    "default": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"),
+    "ensembl": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"),
     "merged": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"),
     "refseq": os.path.join(DATA_DIR, "HG002_annotated_wgs_everything_hgvs_refseq.vcf"),
 }
@@ -39,7 +39,7 @@ VEP_VCF = _VEP_REFERENCE[MODE]
 WORK_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "reports")
 
-mode_suffix = f"_{MODE}" if MODE != "default" else ""
+mode_suffix = f"_{MODE}"
 BACKENDS = {
     "parquet": os.path.join(WORK_DIR, f"vepyr_parquet{mode_suffix}.vcf"),
     "fjall": os.path.join(WORK_DIR, f"vepyr_fjall{mode_suffix}.vcf"),
