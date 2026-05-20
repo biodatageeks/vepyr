@@ -36,36 +36,116 @@ uv run python -c "import vepyr; print(vepyr.__all__)"
 uv run pytest
 ```
 
-## Quick start
+## Plugin sources
 
-The repository ships with small test fixtures so you can verify the full
-pipeline — build, annotate (parquet), annotate (fjall) — without downloading
-any external data.
-
-### 1. Build a cache from a local Ensembl VEP cache directory
-
-`tests/data/ensembl_cache` contains a tiny slice of the Ensembl VEP 115
-offline cache (chr22). Convert it to Parquet **and** fjall formats:
+`vepyr` can now download raw source files and convert them into plugin parquet
+plus `<plugin>.fjall` point-lookup stores via `build_plugin()`.
 
 ```python
 import vepyr
 
-results = vepyr.build_cache(
+source_path = vepyr.fetch_plugin_source("alphamissense", "/data/vep/cache")
+vepyr.build_plugin("alphamissense", source_path, "/data/vep/cache")
+```
+
+You can also keep the workflow chromosome-scoped:
+
+```python
+source_path = vepyr.fetch_plugin_source(
+    "clinvar",
+    "/data/vep/cache",
+    chromosomes=["1"],
+)
+vepyr.build_plugin(
+    "clinvar",
+    source_path,
+    "/data/vep/cache",
+    chromosomes=["1"],
+)
+
+vepyr.build_plugin(
+    "spliceai",
+    "/data/plugins/spliceai.vcf.gz",
+    "/data/vep/cache/115_GRCh38_vep",
+    assume_sorted_input=True,
+)
+
+vepyr.build_plugin(
+    "dbnsfp",
+    "/data/plugins/dbNSFP5.3.1a_grch38.gz",
+    "/data/vep/cache/115_GRCh38_vep",
+    chromosomes=["1"],
+    preview_rows=1000,
+)
+```
+
+Downloaded files are stored under:
+
+```text
+<cache_dir>/plugin_sources/<plugin>/<assembly>/<version>/<scope>/
+```
+
+Built plugin caches are stored under:
+
+```text
+<cache_dir>/<release>_<assembly>_<method>/<plugin>/chr*.parquet
+<cache_dir>/<release>_<assembly>_<method>/<plugin>.fjall/
+```
+
+For local plugin files that are already sorted by `chrom,pos,ref,alt`, you can
+opt in to skipping the SQL `ORDER BY` during conversion with
+`assume_sorted_input=True`. This currently applies only to single-source
+plugins; `cadd` still keeps the explicit sort because it merges SNV and indel
+inputs.
+
+`preview_rows=` is also available on `build_plugin()` for reduced-scope local
+validation. It is most useful together with `chromosomes=[...]`, especially
+for indexed plugin sources that can be sliced through `tabix`.
+
+Supported automated sources in the current implementation:
+
+- `alphamissense`
+- `cadd` (SNV source file)
+- `spliceai` (GRCh38 Ensembl plugin VCF)
+- `dbnsfp` (GRCh38 merged source prepared from the vendor zip)
+- `clinvar`
+
+Current chromosome-aware source strategies:
+
+- `clinvar`, `spliceai`: indexed VCF region slicing via `tabix` + `bgzip`
+- `dbnsfp`: chromosome-aware assembly from per-chromosome files inside the
+  vendor zip
+- `alphamissense`, `cadd`: full source download followed by local
+  chromosome filtering
+
+When building from already-downloaded local files, CADD materializes one shared
+cache. The issue-like default is to point at the SNV source file and keep the
+official indel file next to it in the same directory:
+
+- `vepyr.build_plugin("cadd", "/data/plugins/whole_genome_SNVs.tsv.gz", "/data/vep/cache/115_GRCh38_vep")` -> `/data/vep/cache/115_GRCh38_vep/cadd/` + `/data/vep/cache/115_GRCh38_vep/cadd.fjall/`
+
+You can also build the core cache and selected plugin caches in one call via
+`build_cache(..., plugins=...)`.
+
+List mode auto-downloads supported sources:
+
+```python
+import vepyr
+
+vepyr.build_cache(
     release=115,
     cache_dir="/tmp/vepyr_cache",
     cache_type="ensembl",
     local_cache="tests/data/ensembl_cache",  # skip download
     build_fjall=True,                         # parquet + fjall
+    plugins=["clinvar", "spliceai", "cadd"],  # optional plugin sources
 )
-for path, rows in results:
-    print(f"{path}: {rows:,} rows")
 ```
 
-Set `build_fjall=False` if you only need Parquet files.
-
-### 2a. Annotate variants (Parquet backend)
-
-A small 5-variant VCF for chr22 ships with the cache fixture:
+Mapping mode uses explicit local paths instead of downloading. Logical `cadd`
+accepts the SNV source path `whole_genome_SNVs.tsv.gz` and resolves the
+official sibling indel file `gnomad.genomes.r4.0.indel.tsv.gz` automatically.
+Dict and tuple forms remain accepted for compatibility.
 
 ```python
 import vepyr
@@ -182,6 +262,26 @@ print(f'everything  : {df.height} variants × {df.width} columns')
 assert df.height > 0 and df.width > 80, 'smoke test failed'
 print('smoke test passed')
 "
+```
+
+### Plugin source mapping
+
+Beyond the auto-download list form, you can pass an explicit path map. Logical
+`cadd` accepts the SNV source `whole_genome_SNVs.tsv.gz` and resolves the
+sibling indel file automatically.
+
+```python
+vepyr.build_cache(
+    release=115,
+    cache_dir="/data/vep/cache",
+    species="homo_sapiens",
+    assembly="GRCh38",
+    plugins={
+        "clinvar": "/data/plugins/clinvar.vcf.gz",
+        "alphamissense": "/data/plugins/AlphaMissense_hg38.tsv.gz",
+        "cadd": "/data/plugins/whole_genome_SNVs.tsv.gz",
+    },
+)
 ```
 
 

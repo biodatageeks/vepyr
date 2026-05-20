@@ -10,9 +10,13 @@ if TYPE_CHECKING:
 
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
+from vepyr._core import build_plugin_fjall as _build_plugin_fjall
+from vepyr._core import convert_cadd_plugin as _convert_cadd_plugin
+from vepyr._core import convert_plugin as _convert_plugin
 from vepyr._core import create_annotator as _create_annotator
+from vepyr.plugin_sources import fetch_plugin_source
 
-__all__ = ["build_cache", "annotate"]
+__all__ = ["build_cache", "annotate", "build_plugin", "fetch_plugin_source"]
 
 log = logging.getLogger(__name__)
 
@@ -425,6 +429,144 @@ def build_cache(
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results
+
+
+_VALID_PLUGIN_BUILD_NAMES = frozenset(
+    ["clinvar", "cadd", "spliceai", "alphamissense", "dbnsfp"]
+)
+
+
+def build_plugin(
+    plugin_name: str,
+    source_path: "str | dict[str, str] | tuple[str, str] | list[str]",
+    cache_dir: str,
+    *,
+    partitions: int = 8,
+    chromosomes: list[str] | None = None,
+    build_fjall: bool = True,
+    memory_limit_gb: int = 32,
+    assume_sorted_input: bool = False,
+    preview_rows: int | None = None,
+) -> list[tuple[str, int]]:
+    """Convert a VEP plugin source file to optimized per-chromosome Parquet.
+
+    Supported ``plugin_name``: ``clinvar``, ``cadd``, ``spliceai``,
+    ``alphamissense``, ``dbnsfp``. CADD accepts either an SNV source path
+    string (sibling indel file resolved automatically), a
+    ``{"snv": path, "indel": path}`` dict, or a 2-item tuple/list. All other
+    plugins accept a single filesystem path.
+
+    When ``build_fjall`` is true a ``<plugin>.fjall`` store is materialized
+    in ``cache_dir`` alongside the core stores.
+
+    Returns a list of ``(parquet_file_path, row_count)`` for each written file.
+    """
+    import os
+
+    name = plugin_name.lower()
+    if name not in _VALID_PLUGIN_BUILD_NAMES:
+        raise ValueError(
+            f"Unknown plugin '{plugin_name}'. Supported: "
+            f"{', '.join(sorted(_VALID_PLUGIN_BUILD_NAMES))}"
+        )
+
+    output_dir = os.path.join(cache_dir, name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    if name == "cadd":
+        if isinstance(source_path, str):
+            if not os.path.exists(source_path):
+                raise FileNotFoundError(f"CADD source path not found: {source_path}")
+            log.info("Converting plugin '%s' from %s to %s", name, source_path, output_dir)
+            results = _convert_plugin(
+                name,
+                source_path,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+                assume_sorted_input,
+                preview_rows,
+            )
+        elif isinstance(source_path, dict):
+            snv_source = source_path.get("snv")
+            indel_source = source_path.get("indel")
+            if not isinstance(snv_source, str) or not isinstance(indel_source, str):
+                raise ValueError("Plugin 'cadd' local sources must be filesystem paths.")
+            for label, path in (("snv", snv_source), ("indel", indel_source)):
+                if not os.path.isfile(path):
+                    raise FileNotFoundError(f"CADD {label} source not found: {path}")
+            results = _convert_cadd_plugin(
+                snv_source,
+                indel_source,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+                assume_sorted_input,
+                preview_rows,
+            )
+        elif isinstance(source_path, (tuple, list)) and len(source_path) == 2:
+            snv_source, indel_source = source_path
+            if not isinstance(snv_source, str) or not isinstance(indel_source, str):
+                raise ValueError("Plugin 'cadd' local sources must be filesystem paths.")
+            for label, path in (("snv", snv_source), ("indel", indel_source)):
+                if not os.path.isfile(path):
+                    raise FileNotFoundError(f"CADD {label} source not found: {path}")
+            results = _convert_cadd_plugin(
+                snv_source,
+                indel_source,
+                output_dir,
+                partitions,
+                memory_limit_gb,
+                chromosomes,
+                assume_sorted_input,
+                preview_rows,
+            )
+        else:
+            raise ValueError(
+                "Plugin 'cadd' requires the SNV source path string "
+                "(whole_genome_SNVs.tsv.gz), {'snv': path, 'indel': path}, "
+                "or a 2-item tuple/list."
+            )
+    else:
+        if not isinstance(source_path, str):
+            raise ValueError(f"Plugin '{plugin_name}' source must be a filesystem path.")
+        if not os.path.isfile(source_path):
+            raise FileNotFoundError(f"Plugin source not found: {source_path}")
+        log.info("Converting plugin '%s' from %s to %s", name, source_path, output_dir)
+        results = _convert_plugin(
+            name,
+            source_path,
+            output_dir,
+            partitions,
+            memory_limit_gb,
+            chromosomes,
+            assume_sorted_input,
+            preview_rows,
+        )
+
+    if build_fjall:
+        fjall_path = os.path.join(cache_dir, f"{name}.fjall")
+        fjall_result = _build_plugin_fjall(
+            name, output_dir, fjall_path, partitions, chromosomes
+        )
+        log.info(
+            "Plugin '%s': built fjall store with %d rows at %s",
+            name,
+            fjall_result[1],
+            fjall_result[0],
+        )
+
+    total = sum(r[1] for r in results)
+    log.info(
+        "Plugin '%s': wrote %d files, %d total rows to %s",
+        name,
+        len(results),
+        total,
+        output_dir,
+    )
+    return results
 
 
 def annotate(

@@ -228,6 +228,20 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
+        plugins_dir: opts
+            .get("plugins_dir")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        plugins: opts
+            .get("plugins")
+            .and_then(|v| v.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
