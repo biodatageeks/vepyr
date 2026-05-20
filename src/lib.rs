@@ -1,13 +1,22 @@
+use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, OnProgress};
 use pyo3::prelude::*;
 
 mod annotate;
 
+fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
+    value.parse::<CacheSourceType>().map_err(|err| {
+        pyo3::exceptions::PyValueError::new_err(format!(
+            "Invalid cache_source_type '{value}': {err}"
+        ))
+    })
+}
+
 /// Build all entities from an Ensembl VEP cache to parquet + optional fjall.
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl"))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -18,7 +27,10 @@ fn build_cache(
     zstd_level: i32,
     dict_size_kb: u32,
     on_progress: Option<PyObject>,
+    cache_source_type: &str,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
+    let cache_source_type = parse_cache_source_type(cache_source_type)?;
+
     let cb: Option<OnProgress> = on_progress.map(|py_cb| {
         Box::new(
             move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
@@ -35,7 +47,8 @@ fn build_cache(
         .with_partitions(partitions)
         .with_build_fjall(build_fjall)
         .with_zstd_level(zstd_level)
-        .with_dict_size_kb(dict_size_kb);
+        .with_dict_size_kb(dict_size_kb)
+        .with_cache_source_type(cache_source_type);
 
     if let Some(progress) = cb {
         builder = builder.with_on_progress(progress);

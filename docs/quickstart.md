@@ -40,6 +40,7 @@ import vepyr
 results = vepyr.build_cache(
     release=115,
     cache_dir="/data/vepyr_cache",
+    cache_type="ensembl",
 )
 for path, rows in results:
     print(f"{path}: {rows:,} rows")
@@ -55,6 +56,7 @@ If you already have the Ensembl VEP cache unpacked locally:
 results = vepyr.build_cache(
     release=115,
     cache_dir="/data/vepyr_cache",
+    cache_type="ensembl",
     local_cache="/data/ensembl_vep/homo_sapiens/115_GRCh38",
 )
 ```
@@ -68,7 +70,7 @@ results = vepyr.build_cache(
 | `fjall_zstd_level` | `3` | Zstd compression level (1-22) |
 | `species` | `homo_sapiens` | Species name |
 | `assembly` | `GRCh38` | Genome assembly |
-| `cache_type` | `vep` | Cache type: `vep`, `merged`, or `refseq` |
+| `cache_type` | required | Ensembl VEP cache type: `ensembl`, `merged`, or `refseq` |
 
 ## Annotating variants
 
@@ -79,7 +81,7 @@ import vepyr
 
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     check_existing=True,
     af=True,
     max_af=True,
@@ -96,7 +98,7 @@ Enable all annotation features (80-field CSQ). Requires a reference FASTA:
 ```python
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     everything=True,
     reference_fasta="GRCh38.fa",
 )
@@ -112,7 +114,7 @@ Pass `use_fjall=True` for faster co-located variant lookups on large caches:
 ```python
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     check_existing=True,
     af=True,
     max_af=True,
@@ -127,7 +129,7 @@ Write results directly to a VCF file instead of returning a LazyFrame:
 ```python
 out_path = vepyr.annotate(
     vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     everything=True,
     reference_fasta="GRCh38.fa",
     output_vcf="annotated.vcf.gz",  # .vcf.gz for bgzf, .vcf for plain

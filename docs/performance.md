@@ -64,7 +64,7 @@ import time
 start = time.time()
 lf = vepyr.annotate(
     vcf="input.vcf",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_vep",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     everything=True,
     reference_fasta="GRCh38.fa",
 )

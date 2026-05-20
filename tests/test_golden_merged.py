@@ -20,10 +20,11 @@ install_golden_suite(
     GoldenConfig(
         name="merged golden",
         cache_dir=MERGED_GOLDEN_DIR / "cache",
+        cache_source_type="merged",
         input_vcf=DEFAULT_GOLDEN_DIR / "input.vcf.gz",
         golden_vcf=MERGED_GOLDEN_DIR / "golden.vcf",
         reference_fasta=DEFAULT_GOLDEN_DIR / "reference.fa",
-        annotate_kwargs={"merged": True},
+        annotate_kwargs={},
         csq_fields=MERGED_CSQ_FIELDS,
         df_comparison_fields=[
             *DEFAULT_DF_COMPARISON_FIELDS,

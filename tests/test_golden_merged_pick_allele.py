@@ -22,11 +22,12 @@ install_golden_suite(
     GoldenConfig(
         name="merged pick_allele golden",
         cache_dir=MERGED_GOLDEN_DIR / "cache",
+        cache_source_type="merged",
         input_vcf=DEFAULT_GOLDEN_DIR / "input.vcf.gz",
         golden_vcf=PICK_ALLELE_GOLDEN_DIR / "golden.vcf",
+        most_severe_consequence_golden_vcf=MERGED_GOLDEN_DIR / "golden.vcf",
         reference_fasta=DEFAULT_GOLDEN_DIR / "reference.fa",
         annotate_kwargs={
-            "merged": True,
             "pick_allele": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -41,6 +42,5 @@ install_golden_suite(
             "BAM_EDIT",
         ],
         exact_csq_entry_count=True,
-        check_most_severe_consequence=False,
     ),
 )

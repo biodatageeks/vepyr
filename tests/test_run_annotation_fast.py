@@ -16,6 +16,16 @@ def load_run_annotation_fast():
     return module
 
 
+def test_refseq_cache_profile_uses_data_vepyr_paths():
+    module = load_run_annotation_fast()
+    profile = module._CACHE_PROFILES["refseq"]
+
+    assert profile["cache_dir"].endswith("data_vepyr/115_GRCh38_refseq")
+    assert profile["vep_vcf"].endswith(
+        "data_vepyr/HG002_annotated_wgs_everything_hgvs_refseq.vcf"
+    )
+
+
 def test_extract_chrom_from_vep_force_refreshes_cached_slice(tmp_path):
     module = load_run_annotation_fast()
     vep_vcf = tmp_path / "vep.vcf"

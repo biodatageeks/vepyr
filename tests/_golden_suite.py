@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from tests.cache_metadata import copy_cache_with_source_metadata
 
 DEFAULT_CSQ_FIELDS = [
     "Allele",
@@ -157,6 +158,7 @@ DEFAULT_DF_COMPARISON_FIELDS = [
 class GoldenConfig:
     name: str
     cache_dir: Path
+    cache_source_type: str
     input_vcf: Path
     golden_vcf: Path
     reference_fasta: Path
@@ -164,7 +166,7 @@ class GoldenConfig:
     csq_fields: list[str]
     df_comparison_fields: list[str]
     exact_csq_entry_count: bool = False
-    check_most_severe_consequence: bool = True
+    most_severe_consequence_golden_vcf: Path | None = None
 
     @property
     def vcf_comparison_fields(self) -> list[str]:
@@ -238,6 +240,11 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
         return _parse_vcf_csq(config.golden_vcf)
 
     @pytest.fixture(scope="module")
+    def most_severe_consequence_annotations():
+        golden_vcf = config.most_severe_consequence_golden_vcf or config.golden_vcf
+        return _parse_vcf_csq(golden_vcf)
+
+    @pytest.fixture(scope="module")
     def golden_field_order():
         return _parse_vcf_csq_field_order(config.golden_vcf)
 
@@ -247,26 +254,33 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
             pytest.skip(f"{config.name} cache fixture not available")
 
     @pytest.fixture(scope="module")
-    def vepyr_df(skip_if_no_cache):
+    def metadata_cache_dir(skip_if_no_cache, tmp_path_factory):
+        target = tmp_path_factory.mktemp(f"{config.name.replace(' ', '_')}_cache")
+        return copy_cache_with_source_metadata(
+            config.cache_dir, target, config.cache_source_type
+        )
+
+    @pytest.fixture(scope="module")
+    def vepyr_df(metadata_cache_dir):
         import vepyr
 
         return vepyr.annotate(
             str(config.input_vcf),
-            str(config.cache_dir),
+            str(metadata_cache_dir),
             everything=True,
             reference_fasta=str(config.reference_fasta),
             **config.annotate_kwargs,
         ).collect()
 
     @pytest.fixture(scope="module")
-    def vepyr_vcf_path(skip_if_no_cache):
+    def vepyr_vcf_path(metadata_cache_dir):
         import vepyr
 
         with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as handle:
             vcf_path = handle.name
         vepyr.annotate(
             str(config.input_vcf),
-            str(config.cache_dir),
+            str(metadata_cache_dir),
             everything=True,
             reference_fasta=str(config.reference_fasta),
             output_vcf=vcf_path,
@@ -385,17 +399,14 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
                 f"Too few: vepyr={vepyr_df.height}, golden={len(golden_annotations)}"
             )
 
-        def test_most_severe_consequence_match(self, vepyr_df, golden_annotations):
-            if not config.check_most_severe_consequence:
-                pytest.skip(
-                    "most_severe_consequence is computed before pick-mode filtering"
-                )
-
+        def test_most_severe_consequence_match(
+            self, vepyr_df, most_severe_consequence_annotations
+        ):
             matched = 0
             total = 0
             for row in vepyr_df.iter_rows(named=True):
                 key = (row["chrom"], row["start"], row["ref"], row["alt"])
-                golden_csqs = _lookup(key, golden_annotations)
+                golden_csqs = _lookup(key, most_severe_consequence_annotations)
                 if golden_csqs is None:
                     continue
                 total += 1
@@ -477,8 +488,10 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
     namespace.update(
         {
             "golden_annotations": golden_annotations,
+            "most_severe_consequence_annotations": most_severe_consequence_annotations,
             "golden_field_order": golden_field_order,
             "skip_if_no_cache": skip_if_no_cache,
+            "metadata_cache_dir": metadata_cache_dir,
             "vepyr_df": vepyr_df,
             "vepyr_vcf_path": vepyr_vcf_path,
             "vepyr_vcf_annotations": vepyr_vcf_annotations,

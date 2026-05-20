@@ -2,14 +2,17 @@ from collections.abc import Callable, Iterator
 
 import pyarrow as pa
 
-def convert_entity(
+def build_cache(
     cache_root: str,
     output_dir: str,
-    entity: str,
     partitions: int = 8,
-    memory_limit_gb: int = 32,
-) -> list[tuple[str, int]] | None:
-    """Convert a single entity type from an Ensembl VEP cache to Parquet."""
+    build_fjall: bool = True,
+    zstd_level: int = 3,
+    dict_size_kb: int = 112,
+    on_progress: Callable[[str, str, int, int, int], None] | None = None,
+    cache_source_type: str = "ensembl",
+) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
+    """Build all cache entities from an Ensembl VEP cache to Parquet."""
     ...
 
 def annotate_vcf(

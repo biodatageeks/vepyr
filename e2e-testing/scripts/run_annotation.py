@@ -15,7 +15,7 @@ import time
 import vepyr
 
 # ── Mode configuration ────────────────────────────────────────────────────
-# Annotation mode: "default" (Ensembl), "merged" (Ensembl+RefSeq),
+# Annotation mode: "ensembl", "merged" (Ensembl+RefSeq),
 # explicit pick/flag pick profiles, and "refseq".
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
 VEP_HASH_ORDER_PICK_MODES = {"merged_per_gene", "merged_pick_allele_gene"}
@@ -34,9 +34,8 @@ parser = argparse.ArgumentParser(description="Full-genome annotation benchmark")
 parser.add_argument(
     "--mode",
     choices=[
-        "default",
+        "ensembl",
         "merged",
-        "merged_pick",
         "merged_flag_pick",
         "merged_flag_pick_allele",
         "merged_flag_pick_allele_gene",
@@ -46,7 +45,7 @@ parser.add_argument(
         "merged_pick_allele_gene",
         "refseq",
     ],
-    default="default",
+    default="ensembl",
     help="Annotation mode (default: %(default)s)",
 )
 args = parser.parse_args()
@@ -61,8 +60,8 @@ VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 
 # Cache and VEP reference paths per mode
 _MODE_CONFIG = {
-    "default": {
-        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_vep"),
+    "ensembl": {
+        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_ensembl"),
         "vep_reference": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_vep.vcf"
         ),
@@ -73,18 +72,7 @@ _MODE_CONFIG = {
         "vep_reference": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"
         ),
-        "annotate_kwargs": {"merged": True},
-    },
-    "merged_pick": {
-        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
-        "vep_reference": os.path.join(
-            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
-        ),
-        "annotate_kwargs": {
-            "merged": True,
-            "flag_pick_allele_gene": True,
-            "pick_order": VEP_PICK_ORDER,
-        },
+        "annotate_kwargs": {},
     },
     "merged_flag_pick": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
@@ -92,7 +80,6 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -104,7 +91,6 @@ _MODE_CONFIG = {
             "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf",
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick_allele": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -116,7 +102,6 @@ _MODE_CONFIG = {
             "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf",
         ),
         "annotate_kwargs": {
-            "merged": True,
             "flag_pick_allele_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -127,7 +112,6 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_filter.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "pick": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -138,7 +122,6 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_allele.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "pick_allele": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -149,7 +132,6 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_per_gene.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "per_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -160,7 +142,6 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf"
         ),
         "annotate_kwargs": {
-            "merged": True,
             "pick_allele_gene": True,
             "pick_order": VEP_PICK_ORDER,
         },
@@ -170,7 +151,7 @@ _MODE_CONFIG = {
         "vep_reference": os.path.join(
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_refseq.vcf"
         ),
-        "annotate_kwargs": {"refseq": True},
+        "annotate_kwargs": {},
     },
 }
 mode_cfg = _MODE_CONFIG[MODE]
@@ -217,7 +198,7 @@ print(f"Input: {n_variants:,} biallelic variants in {vcf_gz}")
 
 backends = ["parquet", "fjall"]
 timings = {}
-mode_suffix = f"_{MODE}" if MODE != "default" else ""
+mode_suffix = f"_{MODE}"
 
 for backend in backends:
     output_vcf = os.path.join(WORK_DIR, f"vepyr_{backend}{mode_suffix}.vcf")

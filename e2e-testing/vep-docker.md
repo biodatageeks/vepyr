@@ -6,6 +6,31 @@ wget -c --tries=20 --waitretry=5 --retry-connrefused --timeout=30 https://ftp.en
 ```
 
 
+### Refseq cache + everything + hgvs
+```bash
+time docker run --rm \
+-v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_refseq/115_GRCh38:/opt/vep/.vep/homo_sapiens_refseq/115_GRCh38:ro \
+-v /Users/mwiewior/research/git/vepyr/sandbox:/work \
+-v /Users/mwiewior/research/data/vep:/fasta:ro \
+ensemblorg/ensembl-vep:release_115.2 \
+vep \
+--dir /opt/vep/.vep \
+--cache \
+--refseq \
+--offline \
+--assembly GRCh38 \
+--input_file /work/HG002_normalized.vcf \
+--output_file /work/HG002_annotated_wgs_everything_hgvs_refseq.vcf \
+--vcf \
+--force_overwrite \
+--no_stats \
+--everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+
+2026-05-19 09:57:14 - INFO: BAM-edited cache detected, enabling --use_transcript_ref; use --use_given_ref to override this
+docker run --rm -v  -v /Users/mwiewior/research/git/vepyr/sandbox:/work -v     0.57s user 0.32s system 0% cpu 4:02:40.60 total
+```
+
+
 
 ### VEP cache + everything + hgvs
 ```bash
@@ -249,32 +274,6 @@ vep \
 --assembly GRCh38 \
 --input_file /work/HG002_normalized.vcf \
 --output_file /work/HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf \
---vcf \
---force_overwrite \
---no_stats \
---flag_pick_allele_gene --pick_order biotype,rank,mane_select,tsl,canonical,appris,ccds,length \
---everything --hgvs --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
-```
-
-#### Legacy `merged_pick` e2e mode: `--flag_pick_allele_gene`
-
-The historical `merged_pick` profile is kept as an alias for the original
-`--flag_pick_allele_gene` comparison output.
-
-```shell
-time docker run --rm \
--v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/115_GRCh38:/opt/vep/.vep/homo_sapiens_merged/115_GRCh38:ro \
--v /Users/mwiewior/research/git/vepyr/sandbox:/work \
--v /Users/mwiewior/workspace/data_vepyr:/fasta:ro \
-ensemblorg/ensembl-vep:release_115.2 \
-vep \
---dir /opt/vep/.vep \
---cache \
---merged \
---offline \
---assembly GRCh38 \
---input_file /work/HG002_normalized.vcf \
---output_file /work/HG002_annotated_wgs_everything_hgvs_merged_pick.vcf \
 --vcf \
 --force_overwrite \
 --no_stats \
