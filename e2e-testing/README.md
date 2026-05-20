@@ -21,7 +21,7 @@ The scripts expect data files under `~/workspace/data_vepyr/`. Set `DATA_VEPYR_D
 |------|-------------|-------------|
 | VCF input | HG002 GRCh38 benchmark VCF (GIAB) | `~/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` |
 | VEP reference | Golden Ensembl VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs_vep.vcf` |
-| Cache dir | Converted Ensembl 115 cache (parquet + fjall) | `~/workspace/data_vepyr/115_GRCh38_vepyr` |
+| Cache dir | Converted Ensembl 115 cache (parquet + fjall) | `~/workspace/data_vepyr/115_GRCh38_ensembl` |
 | Reference FASTA | GRCh38 primary assembly | `~/workspace/data_vepyr/Homo_sapiens.GRCh38.dna.primary_assembly.fa` |
 
 ### 3. System tools
@@ -95,20 +95,23 @@ uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
 - `reports/fast_chr{N}{cache_suffix}_report.json` -- default fjall report
 - `reports/fast_chr{N}{cache_suffix}_parquet_report.json` -- parquet override report
 
-Supported `--cache` profiles:
+Supported `--cache` profiles and golden truth samples:
 
-| Profile | VEP reference flag |
-|---------|--------------------|
-| `ensembl` | Ensembl cache baseline |
-| `merged` | `--merged` baseline |
-| `merged_pick_filter` | `--pick` |
-| `merged_pick_allele` | `--pick_allele` |
-| `merged_per_gene` | `--per_gene` |
-| `merged_pick_allele_gene` | `--pick_allele_gene` |
-| `merged_flag_pick` | `--flag_pick` |
-| `merged_flag_pick_allele` | `--flag_pick_allele` |
-| `merged_flag_pick_allele_gene` | `--flag_pick_allele_gene` |
-| `refseq` | RefSeq cache baseline |
+Golden truth VCF paths are resolved under `DATA_VEPYR_DIR` (default:
+`~/workspace/data_vepyr`) unless `--vep` is passed explicitly.
+
+| Test scenario (`--cache`) | VEP reference flags | Golden truth sample |
+|---------------------------|---------------------|---------------------|
+| `ensembl` | Ensembl cache baseline | `HG002_annotated_wgs_everything_hgvs_vep.vcf` |
+| `merged` | `--merged` baseline | `HG002_annotated_wgs_everything_hgvs_merged.vcf` |
+| `merged_pick_filter` | `--merged --pick` | `HG002_annotated_wgs_everything_hgvs_merged_pick_filter.vcf` |
+| `merged_pick_allele` | `--merged --pick_allele` | `HG002_annotated_wgs_everything_hgvs_merged_pick_allele.vcf` |
+| `merged_per_gene` | `--merged --per_gene` | `HG002_annotated_wgs_everything_hgvs_merged_per_gene.vcf` |
+| `merged_pick_allele_gene` | `--merged --pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf` |
+| `merged_flag_pick` | `--merged --flag_pick` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf` |
+| `merged_flag_pick_allele` | `--merged --flag_pick_allele` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf` |
+| `merged_flag_pick_allele_gene` | `--merged --flag_pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf` |
+| `refseq` | `--refseq` baseline | `HG002_annotated_wgs_everything_hgvs_refseq.vcf` |
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
