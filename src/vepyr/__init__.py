@@ -453,8 +453,6 @@ def annotate(
     use_fjall: bool = False,
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
-    merged: bool = False,
-    refseq: bool = False,
     gencode_basic: bool = False,
     gencode_primary: bool = False,
     all_refseq: bool = False,
@@ -533,18 +531,12 @@ def annotate(
     distance : int or tuple[int, int] or None
         Upstream/downstream distance for transcript overlap. Single int =
         both directions; tuple = (upstream, downstream).
-    merged : bool
-        Deprecated no-op. Source mode is read from cache metadata produced by
-        :func:`build_cache`; use a merged cache directory to get merged fields.
-    refseq : bool
-        Deprecated no-op. Source mode is read from cache metadata produced by
-        :func:`build_cache`; use a RefSeq cache directory to get RefSeq fields.
     gencode_basic : bool
         Restrict to transcripts in the GENCODE basic set. Mutually exclusive
         with ``gencode_primary``.
     gencode_primary : bool
         Restrict to transcripts in the GENCODE primary set (GRCh38 only).
-        Mutually exclusive with ``gencode_basic`` and ``refseq``.
+        Mutually exclusive with ``gencode_basic``.
     all_refseq : bool
         Keep all RefSeq transcripts including CCDS/EST-style rows.
     exclude_predicted : bool
@@ -655,14 +647,6 @@ def annotate(
             "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
         )
 
-    if refseq or merged:
-        warnings.warn(
-            "annotate(..., merged=True/refseq=True) is deprecated and no longer "
-            "selects source mode; source mode is read from cache metadata built "
-            "by build_cache(cache_type=...).",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     if gencode_basic and gencode_primary:
         raise ValueError("gencode_basic and gencode_primary are mutually exclusive")
     if (

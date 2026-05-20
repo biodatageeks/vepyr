@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import sys
@@ -35,6 +36,13 @@ def metadata_cache_dir(skip_if_no_cache, tmp_path_factory):
 
 class TestAnnotate:
     """Test the streaming annotation pipeline."""
+
+    def test_source_mode_flags_not_in_signature(self):
+        import vepyr
+
+        sig = inspect.signature(vepyr.annotate)
+        assert "merged" not in sig.parameters
+        assert "refseq" not in sig.parameters
 
     def test_returns_lazyframe(self, metadata_cache_dir):
         import vepyr
@@ -250,27 +258,21 @@ class TestAnnotate:
             out_path = f.name
 
         try:
-            with pytest.warns(
-                DeprecationWarning, match="source mode is read from cache metadata"
-            ):
-                result = vepyr.annotate(
-                    INPUT_VCF,
-                    CACHE_DIR,
-                    output_vcf=out_path,
-                    show_progress=False,
-                    merged=True,
-                    pick=True,
-                    pick_allele=True,
-                    per_gene=True,
-                    pick_allele_gene=True,
-                    flag_pick=True,
-                    flag_pick_allele=True,
-                    flag_pick_allele_gene=True,
-                    pick_order="biotype,rank,mane_select",
-                )
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                pick=True,
+                pick_allele=True,
+                per_gene=True,
+                pick_allele_gene=True,
+                flag_pick=True,
+                flag_pick_allele=True,
+                flag_pick_allele_gene=True,
+                pick_order="biotype,rank,mane_select",
+            )
             assert result == out_path
-            assert "merged" not in seen["options"]
-            assert "refseq" not in seen["options"]
             assert seen["options"]["pick"] is True
             assert seen["options"]["pick_allele"] is True
             assert seen["options"]["per_gene"] is True
@@ -328,45 +330,13 @@ class TestAnnotate:
             os.unlink(default_out)
             os.unlink(override_out)
 
-    def test_source_flags_do_not_reach_options_json(self, monkeypatch):
-        """Source mode comes from cache metadata, not annotate() flags."""
+    @pytest.mark.parametrize("source_flag", ["merged", "refseq"])
+    def test_source_mode_flags_rejected(self, source_flag):
+        """Source mode is selected by cache metadata, not annotate() flags."""
         import vepyr
 
-        seen = {}
-
-        def fake_annotate_vcf(
-            vcf_path,
-            cache_dir,
-            output_path,
-            options_json,
-            show_progress,
-            compression,
-            on_batch_written,
-        ):
-            seen.update(json.loads(options_json))
-            return 0
-
-        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
-
-        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
-            out_path = f.name
-
-        try:
-            with pytest.warns(
-                DeprecationWarning, match="source mode is read from cache metadata"
-            ):
-                vepyr.annotate(
-                    INPUT_VCF,
-                    CACHE_DIR,
-                    output_vcf=out_path,
-                    show_progress=False,
-                    merged=True,
-                    refseq=True,
-                )
-            assert "merged" not in seen
-            assert "refseq" not in seen
-        finally:
-            os.unlink(out_path)
+        with pytest.raises(TypeError, match=f"{source_flag}"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, **{source_flag: True})
 
     def test_buffer_size_rejects_non_positive_values(self):
         """buffer_size mirrors VEP's positive integer buffer-size contract."""
