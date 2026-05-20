@@ -99,7 +99,7 @@ Supported `--cache` profiles:
 
 | Profile | VEP reference flag |
 |---------|--------------------|
-| `vep` | Ensembl cache baseline |
+| `ensembl` | Ensembl cache baseline |
 | `merged` | `--merged` baseline |
 | `merged_pick_filter` | `--pick` |
 | `merged_pick_allele` | `--pick_allele` |
@@ -108,7 +108,6 @@ Supported `--cache` profiles:
 | `merged_flag_pick` | `--flag_pick` |
 | `merged_flag_pick_allele` | `--flag_pick_allele` |
 | `merged_flag_pick_allele_gene` | `--flag_pick_allele_gene` |
-| `merged_pick` | legacy alias for `--flag_pick_allele_gene` |
 | `refseq` | RefSeq cache baseline |
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report

@@ -27,7 +27,6 @@ REPORT_DIR = os.path.join(SCRIPT_DIR, "..", "reports")
 CACHE_SUFFIXES = {
     "ensembl": "_ensembl",
     "merged": "_merged",
-    "merged_pick": "_merged_pick",
     "merged_flag_pick": "_merged_flag_pick",
     "merged_flag_pick_allele": "_merged_flag_pick_allele",
     "merged_flag_pick_allele_gene": "_merged_flag_pick_allele_gene",

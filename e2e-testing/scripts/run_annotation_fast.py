@@ -50,17 +50,6 @@ _CACHE_PROFILES = {
         "annotate_kwargs": {},
         "suffix": "_merged",
     },
-    "merged_pick": {
-        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
-        "vep_vcf": os.path.join(
-            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
-        ),
-        "annotate_kwargs": {
-            "flag_pick_allele_gene": True,
-            "pick_order": VEP_PICK_ORDER,
-        },
-        "suffix": "_merged_pick",
-    },
     "merged_flag_pick": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
         "vep_vcf": os.path.join(

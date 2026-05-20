@@ -36,7 +36,6 @@ parser.add_argument(
     choices=[
         "ensembl",
         "merged",
-        "merged_pick",
         "merged_flag_pick",
         "merged_flag_pick_allele",
         "merged_flag_pick_allele_gene",
@@ -74,16 +73,6 @@ _MODE_CONFIG = {
             DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged.vcf"
         ),
         "annotate_kwargs": {},
-    },
-    "merged_pick": {
-        "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
-        "vep_reference": os.path.join(
-            DATA_DIR, "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
-        ),
-        "annotate_kwargs": {
-            "flag_pick_allele_gene": True,
-            "pick_order": VEP_PICK_ORDER,
-        },
     },
     "merged_flag_pick": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
