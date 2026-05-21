@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 def load_run_annotation_fast():
     script_path = (
@@ -24,6 +26,43 @@ def test_refseq_cache_profile_uses_data_vepyr_paths():
     assert profile["vep_vcf"].endswith(
         "data_vepyr/HG002_annotated_wgs_everything_hgvs_refseq.vcf"
     )
+
+
+def test_parse_args_accepts_target_partitions(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--backend",
+            "fjall",
+            "--target-partitions",
+            "4",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.target_partitions == 4
+
+
+def test_parse_args_rejects_parallel_parquet(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--backend",
+            "parquet",
+            "--target-partitions",
+            "2",
+        ],
+    )
+
+    with pytest.raises(SystemExit):
+        module.parse_args()
 
 
 def test_extract_chrom_from_vep_force_refreshes_cached_slice(tmp_path):

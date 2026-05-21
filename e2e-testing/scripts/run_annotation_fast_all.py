@@ -135,6 +135,12 @@ def parse_args():
         help="Annotation cache backend forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
+        "--target-partitions",
+        type=int,
+        default=1,
+        help="Fjall annotation target partitions forwarded to run_annotation_fast.py (default: %(default)s)",
+    )
+    p.add_argument(
         "--no-force",
         action="store_true",
         help="Reuse existing annotation output if present (default: always re-annotate)",
@@ -144,7 +150,12 @@ def parse_args():
         action="store_true",
         help="Skip annotation, only regenerate report from existing JSONs",
     )
-    return p.parse_args()
+    args = p.parse_args()
+    if args.target_partitions <= 0:
+        p.error("--target-partitions must be a positive integer")
+    if args.target_partitions > 1 and args.backend != "fjall":
+        p.error("--target-partitions > 1 requires --backend fjall")
+    return args
 
 
 # ── Step 1: Run per-chromosome annotation ────────────────────────────────
@@ -157,7 +168,9 @@ def report_suffix(cache_suffix, backend):
     return f"{cache_suffix}_{backend}"
 
 
-def run_chromosome(chrom_num, cache="ensembl", backend="fjall", force=False):
+def run_chromosome(
+    chrom_num, cache="ensembl", backend="fjall", target_partitions=1, force=False
+):
     """Run run_annotation_fast.py for a single chromosome."""
     chrom = f"chr{chrom_num}"
     cmd = [
@@ -168,6 +181,8 @@ def run_chromosome(chrom_num, cache="ensembl", backend="fjall", force=False):
         cache,
         "--backend",
         backend,
+        "--target-partitions",
+        str(target_partitions),
     ]
     if force:
         cmd.append("--force")
@@ -682,7 +697,11 @@ def main():
         )
         for n in args.chroms:
             ok = run_chromosome(
-                n, cache=cache, backend=backend, force=not args.no_force
+                n,
+                cache=cache,
+                backend=backend,
+                target_partitions=args.target_partitions,
+                force=not args.no_force,
             )
             if not ok:
                 print(f"  chr{n} failed, continuing...")

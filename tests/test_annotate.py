@@ -44,6 +44,13 @@ class TestAnnotate:
         assert "merged" not in sig.parameters
         assert "refseq" not in sig.parameters
 
+    def test_has_target_partitions_param(self):
+        import vepyr
+
+        sig = inspect.signature(vepyr.annotate)
+        p = sig.parameters["target_partitions"]
+        assert p.default == 1
+
     def test_returns_lazyframe(self, metadata_cache_dir):
         import vepyr
 
@@ -54,6 +61,44 @@ class TestAnnotate:
             reference_fasta=REFERENCE_FASTA,
         )
         assert isinstance(lf, pl.LazyFrame)
+
+    def test_target_partitions_forwards_to_streaming_annotator(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path,
+            cache_dir,
+            options_json,
+            skip_csq=True,
+            limit=None,
+            target_partitions=1,
+        ):
+            seen.append((json.loads(options_json), target_partitions, limit))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            use_fjall=True,
+            target_partitions=4,
+        )
+
+        assert isinstance(lf, pl.LazyFrame)
+        assert seen[0][1] == 4
+        assert seen[0][2] is None
+        assert seen[0][0]["use_fjall"] is True
+        assert "target_partitions" not in seen[0][0]
 
     def test_collect_returns_dataframe(self, metadata_cache_dir):
         import vepyr
@@ -248,6 +293,7 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
+            target_partitions,
         ):
             seen["options"] = json.loads(options_json)
             return 0
@@ -298,6 +344,7 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
+            target_partitions,
         ):
             seen.append(json.loads(options_json))
             return 0
@@ -330,6 +377,48 @@ class TestAnnotate:
             os.unlink(default_out)
             os.unlink(override_out)
 
+    def test_target_partitions_forwards_to_vcf_writer_outside_options(
+        self, monkeypatch
+    ):
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+            target_partitions,
+        ):
+            seen["options"] = json.loads(options_json)
+            seen["target_partitions"] = target_partitions
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                use_fjall=True,
+                target_partitions=4,
+            )
+            assert result == out_path
+            assert seen["target_partitions"] == 4
+            assert seen["options"]["use_fjall"] is True
+            assert "target_partitions" not in seen["options"]
+        finally:
+            os.unlink(out_path)
+
     @pytest.mark.parametrize("source_flag", ["merged", "refseq"])
     def test_source_mode_flags_rejected(self, source_flag):
         """Source mode is selected by cache metadata, not annotate() flags."""
@@ -353,6 +442,35 @@ class TestAnnotate:
                     show_progress=False,
                     buffer_size=value,
                 )
+
+    @pytest.mark.parametrize("value", [0, -1, True])
+    def test_target_partitions_rejects_invalid_values(self, value):
+        import vepyr
+
+        with pytest.raises(
+            ValueError, match="target_partitions must be a positive integer"
+        ):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                target_partitions=value,
+            )
+
+    def test_target_partitions_requires_fjall_when_greater_than_one(self):
+        import vepyr
+
+        with pytest.raises(
+            ValueError, match="target_partitions > 1 requires use_fjall=True"
+        ):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                target_partitions=2,
+            )
 
     def test_notebook_progress_updates_on_main_thread(self, monkeypatch):
         """Default tqdm notebook updates should be applied from the main thread."""
@@ -384,6 +502,7 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
+            target_partitions,
         ):
             assert show_progress is False
             assert on_batch_written is not None

@@ -16,6 +16,14 @@ use tokio::runtime::Runtime;
 static RUNTIME: LazyLock<Arc<Runtime>> =
     LazyLock::new(|| Arc::new(Runtime::new().expect("failed to create Tokio runtime")));
 
+fn effective_target_partitions(use_fjall: bool, target_partitions: usize) -> usize {
+    if use_fjall {
+        target_partitions.max(1)
+    } else {
+        1
+    }
+}
+
 /// A streaming annotator that yields PyArrow RecordBatches.
 /// Thread-safe: wraps the stream in a Mutex so polars can call from any thread.
 #[pyclass]
@@ -85,6 +93,7 @@ pub fn annotate_to_vcf_file(
     show_progress: bool,
     compression: &str,
     on_batch_written: Option<PyObject>,
+    target_partitions: usize,
 ) -> PyResult<usize> {
     let rt = &*RUNTIME;
     log::info!(
@@ -99,15 +108,12 @@ pub fn annotate_to_vcf_file(
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
 
-    let backend = if opts
+    let use_fjall = opts
         .get("use_fjall")
         .and_then(|v| v.as_bool())
-        .unwrap_or(false)
-    {
-        "fjall"
-    } else {
-        "parquet"
-    };
+        .unwrap_or(false);
+    let backend = if use_fjall { "fjall" } else { "parquet" };
+    let target_partitions = effective_target_partitions(use_fjall, target_partitions);
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -149,10 +155,7 @@ pub fn annotate_to_vcf_file(
             .get("reference_fasta_path")
             .and_then(|v| v.as_str())
             .map(String::from),
-        use_fjall: opts
-            .get("use_fjall")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
+        use_fjall,
         hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsc: opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsp: opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false),
@@ -228,6 +231,7 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
+        target_partitions,
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -262,12 +266,22 @@ pub fn create_streaming_annotator(
     options_json: &str,
     skip_csq: bool,
     limit: Option<usize>,
+    target_partitions: usize,
 ) -> PyResult<StreamingAnnotator> {
     let rt = &*RUNTIME;
 
     let (stream, schema) = rt.block_on(async {
-        // Single partition ensures deterministic row ordering for streaming.
-        let config = SessionConfig::new().with_target_partitions(1);
+        let opts: Value = serde_json::from_str(options_json).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+        })?;
+        let use_fjall = opts
+            .get("use_fjall")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let backend = if use_fjall { "fjall" } else { "parquet" };
+        let target_partitions = effective_target_partitions(use_fjall, target_partitions);
+
+        let config = SessionConfig::new().with_target_partitions(target_partitions);
         let ctx = SessionContext::new_with_config(config);
         register_vep_functions(&ctx);
 
@@ -290,18 +304,6 @@ pub fn create_streaming_annotator(
             "SELECT * EXCLUDE (\"CSQ\")"
         } else {
             "SELECT *"
-        };
-        let opts: Value = serde_json::from_str(options_json).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
-        })?;
-        let backend = if opts
-            .get("use_fjall")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            "fjall"
-        } else {
-            "parquet"
         };
 
         let limit_clause = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();

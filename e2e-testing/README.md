@@ -85,6 +85,15 @@ uv run python run_annotation_fast.py chr1 --skip-compare
 # Use parquet instead of the default fjall backend
 uv run python run_annotation_fast.py chr1 --backend parquet
 
+# Use fjall lookup workers for annotation parallelism on one chromosome
+uv run python run_annotation_fast.py chr22 --backend fjall --target-partitions 4 --force
+
+# Same option works with cache profiles
+uv run python run_annotation_fast.py chr22 --cache merged_pick_filter \
+    --backend fjall \
+    --target-partitions 4 \
+    --force
+
 # Compare against a merged-cache VEP pick-mode reference
 uv run python run_annotation_fast.py chr22 --cache merged_pick_filter
 uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
@@ -135,6 +144,9 @@ uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
 # Run parquet backend across chr1-22
 uv run python run_annotation_fast_all.py --backend parquet
 
+# Run fjall backend across chr1-22 with lookup parallelism
+uv run python run_annotation_fast_all.py --backend fjall --target-partitions 4
+
 # Regenerate report from existing per-chromosome JSONs (instant)
 uv run python run_annotation_fast_all.py --skip-annotate
 ```
@@ -146,6 +158,39 @@ uv run python run_annotation_fast_all.py --skip-annotate
   - Root cause classification with GitHub issue links
   - Field-level delta vs previous benchmark
   - Mismatch examples per field
+
+### Multiple annotation partitions
+
+Use `--target-partitions N` to run multiple ordered fjall lookup workers during
+annotation. This only applies to the fjall backend:
+
+```bash
+cd scripts
+
+# One chromosome, re-annotating even if a previous VCF exists
+uv run python run_annotation_fast.py chr22 \
+    --backend fjall \
+    --target-partitions 4 \
+    --force
+
+# All autosomes
+uv run python run_annotation_fast_all.py \
+    --backend fjall \
+    --target-partitions 4
+
+# A pick-mode cache profile with fjall lookup parallelism
+uv run python run_annotation_fast_all.py \
+    --cache merged_pick_allele_gene \
+    --backend fjall \
+    --target-partitions 4
+```
+
+`--target-partitions` defaults to `1`. Values greater than `1` require
+`--backend fjall`; `--backend parquet --target-partitions 2` is rejected because
+the parquet annotation path is kept single-partition to preserve output
+correctness. If output files already exist, pass `--force` to
+`run_annotation_fast.py` or omit `--no-force` from `run_annotation_fast_all.py`
+so timing reflects the new partition count.
 
 ### `run_annotation.py` -- full genome benchmark (both backends)
 

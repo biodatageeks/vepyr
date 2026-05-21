@@ -79,6 +79,7 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
 | `use_fjall` | `False` | Use fjall KV backend for co-located variant lookups — faster on large caches |
+| `target_partitions` | `1` | Fjall annotation lookup parallelism. Use with `use_fjall=True`; parquet annotation is guarded to 1. |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 
 !!! tip "Compile-time optimization"

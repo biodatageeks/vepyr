@@ -160,6 +160,12 @@ def parse_args():
         help="Annotation cache backend (default: %(default)s)",
     )
     p.add_argument(
+        "--target-partitions",
+        type=int,
+        default=1,
+        help="Fjall annotation target partitions (default: %(default)s)",
+    )
+    p.add_argument(
         "--vcf",
         default=DEFAULT_VCF_INPUT,
         help="Tabix-indexed input VCF (default: %(default)s)",
@@ -191,6 +197,10 @@ def parse_args():
         "--force", action="store_true", help="Re-run annotation even if output exists"
     )
     args = p.parse_args()
+    if args.target_partitions <= 0:
+        p.error("--target-partitions must be a positive integer")
+    if args.target_partitions > 1 and args.backend != "fjall":
+        p.error("--target-partitions > 1 requires --backend fjall")
 
     # Resolve defaults from cache profile; explicit --cache-dir / --vep override
     profile = _CACHE_PROFILES[args.cache]
@@ -690,6 +700,7 @@ def main():
             reference_fasta=args.fasta,
             use_fjall=(args.backend == "fjall"),
             output_vcf=output_vcf,
+            target_partitions=args.target_partitions,
             **args.annotate_kwargs,
         )
         elapsed = time.time() - t0

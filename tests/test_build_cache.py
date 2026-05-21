@@ -17,6 +17,11 @@ TESTS_DIR = Path(__file__).parent
 ENSEMBL_CACHE_DIR = TESTS_DIR / "data" / "ensembl_cache"
 
 
+def read_vcf_data_lines(path: Path) -> list[str]:
+    with open(path) as handle:
+        return [line for line in handle if not line.startswith("#")]
+
+
 @pytest.fixture(scope="module")
 def skip_if_no_ensembl_cache():
     if not (ENSEMBL_CACHE_DIR / "info.txt").exists():
@@ -732,6 +737,35 @@ class TestBuildCacheIntegration:
         assert variants == 7
         assert positions == 7
         assert os.path.isdir(os.path.join(out, "translation_sift.fjall"))
+
+    def test_fjall_annotation_target_partitions_preserves_vcf_output(
+        self, built_cache, tmp_path
+    ):
+        out, _, _, _ = built_cache
+        input_vcf = ENSEMBL_CACHE_DIR / "sample.vcf"
+        serial_vcf = tmp_path / "serial.vcf"
+        parallel_vcf = tmp_path / "parallel.vcf"
+
+        vepyr.annotate(
+            str(input_vcf),
+            out,
+            check_existing=True,
+            use_fjall=True,
+            output_vcf=str(serial_vcf),
+            show_progress=False,
+            target_partitions=1,
+        )
+        vepyr.annotate(
+            str(input_vcf),
+            out,
+            check_existing=True,
+            use_fjall=True,
+            output_vcf=str(parallel_vcf),
+            show_progress=False,
+            target_partitions=2,
+        )
+
+        assert read_vcf_data_lines(parallel_vcf) == read_vcf_data_lines(serial_vcf)
 
     def test_fjall_disabled(self, skip_if_no_ensembl_cache):
         """build_fjall=False should produce no fjall directories or stats."""
