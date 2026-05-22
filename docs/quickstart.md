@@ -122,16 +122,16 @@ lf = vepyr.annotate(
 )
 ```
 
-For fjall annotation, `target_partitions` controls lookup worker parallelism while
-preserving output row order. Values greater than 1 require `use_fjall=True`;
-parquet annotation remains single-partition to preserve correctness.
+For fjall annotation, `forks` controls VEP-style annotation parallelism while
+preserving output row order. Values greater than 0 require `use_fjall=True`;
+`forks=0` uses the strict single-lane path.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     "/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     use_fjall=True,
-    target_partitions=4,
+    forks=4,
 ).collect()
 ```
 

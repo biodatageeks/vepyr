@@ -45,7 +45,7 @@ def test_refseq_cache_profile_uses_data_vepyr_paths():
     )
 
 
-def test_parse_args_accepts_target_partitions(monkeypatch):
+def test_parse_args_accepts_forks(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
@@ -54,14 +54,14 @@ def test_parse_args_accepts_target_partitions(monkeypatch):
             "chr1",
             "--backend",
             "fjall",
-            "--target-partitions",
+            "--forks",
             "4",
         ],
     )
 
     args = module.parse_args()
 
-    assert args.target_partitions == 4
+    assert args.forks == 4
 
 
 def test_parse_args_accepts_skip_comparison_alias(monkeypatch):
@@ -119,7 +119,7 @@ def test_parse_args_rejects_parallel_parquet(monkeypatch):
             "chr1",
             "--backend",
             "parquet",
-            "--target-partitions",
+            "--forks",
             "2",
         ],
     )

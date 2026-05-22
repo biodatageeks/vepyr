@@ -135,10 +135,10 @@ def parse_args():
         help="Annotation cache backend forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
-        "--target-partitions",
+        "--forks",
         type=int,
-        default=1,
-        help="Fjall annotation target partitions forwarded to run_annotation_fast.py (default: %(default)s)",
+        default=0,
+        help="VEP-style annotation forks forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
         "--no-force",
@@ -158,10 +158,10 @@ def parse_args():
         help="Skip per-chromosome VEP comparisons and the aggregate comparison report",
     )
     args = p.parse_args()
-    if args.target_partitions <= 0:
-        p.error("--target-partitions must be a positive integer")
-    if args.target_partitions > 1 and args.backend != "fjall":
-        p.error("--target-partitions > 1 requires --backend fjall")
+    if args.forks < 0:
+        p.error("--forks must be a non-negative integer")
+    if args.forks > 0 and args.backend != "fjall":
+        p.error("--forks > 0 requires --backend fjall")
     return args
 
 
@@ -179,7 +179,7 @@ def run_chromosome(
     chrom_num,
     cache="ensembl",
     backend="fjall",
-    target_partitions=1,
+    forks=0,
     force=False,
     skip_comparison=False,
 ):
@@ -193,8 +193,8 @@ def run_chromosome(
         cache,
         "--backend",
         backend,
-        "--target-partitions",
-        str(target_partitions),
+        "--forks",
+        str(forks),
     ]
     if force:
         cmd.append("--force")
@@ -714,7 +714,7 @@ def main():
                 n,
                 cache=cache,
                 backend=backend,
-                target_partitions=args.target_partitions,
+                forks=args.forks,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,
             )

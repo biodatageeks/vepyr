@@ -44,12 +44,13 @@ class TestAnnotate:
         assert "merged" not in sig.parameters
         assert "refseq" not in sig.parameters
 
-    def test_has_target_partitions_param(self):
+    def test_has_forks_param(self):
         import vepyr
 
         sig = inspect.signature(vepyr.annotate)
-        p = sig.parameters["target_partitions"]
-        assert p.default == 1
+        assert "target_partitions" not in sig.parameters
+        p = sig.parameters["forks"]
+        assert p.default == 0
 
     def test_returns_lazyframe(self, metadata_cache_dir):
         import vepyr
@@ -62,7 +63,7 @@ class TestAnnotate:
         )
         assert isinstance(lf, pl.LazyFrame)
 
-    def test_target_partitions_forwards_to_streaming_annotator(self, monkeypatch):
+    def test_forks_forwards_to_streaming_annotator(self, monkeypatch):
         import pyarrow as pa
         import vepyr
 
@@ -80,9 +81,9 @@ class TestAnnotate:
             options_json,
             skip_csq=True,
             limit=None,
-            target_partitions=1,
+            forks=0,
         ):
-            seen.append((json.loads(options_json), target_partitions, limit))
+            seen.append((json.loads(options_json), forks, limit))
             return FakeAnnotator()
 
         monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
@@ -91,14 +92,16 @@ class TestAnnotate:
             INPUT_VCF,
             CACHE_DIR,
             use_fjall=True,
-            target_partitions=4,
+            forks=4,
         )
 
         assert isinstance(lf, pl.LazyFrame)
         assert seen[0][1] == 4
         assert seen[0][2] is None
         assert seen[0][0]["use_fjall"] is True
-        assert "target_partitions" not in seen[0][0]
+        assert seen[0][0]["forks"] == 4
+        assert seen[0][0]["annotation_workers"] == 4
+        assert seen[0][0]["inline_lookup"] is False
 
     def test_collect_returns_dataframe(self, metadata_cache_dir):
         import vepyr
@@ -293,7 +296,7 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            target_partitions,
+            forks,
         ):
             seen["options"] = json.loads(options_json)
             return 0
@@ -344,7 +347,7 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            target_partitions,
+            forks,
         ):
             seen.append(json.loads(options_json))
             return 0
@@ -377,9 +380,7 @@ class TestAnnotate:
             os.unlink(default_out)
             os.unlink(override_out)
 
-    def test_target_partitions_forwards_to_vcf_writer_outside_options(
-        self, monkeypatch
-    ):
+    def test_forks_forwards_to_vcf_writer(self, monkeypatch):
         import vepyr
 
         seen = {}
@@ -392,10 +393,10 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            target_partitions,
+            forks,
         ):
             seen["options"] = json.loads(options_json)
-            seen["target_partitions"] = target_partitions
+            seen["forks"] = forks
             return 0
 
         monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
@@ -410,12 +411,14 @@ class TestAnnotate:
                 output_vcf=out_path,
                 show_progress=False,
                 use_fjall=True,
-                target_partitions=4,
+                forks=4,
             )
             assert result == out_path
-            assert seen["target_partitions"] == 4
+            assert seen["forks"] == 4
             assert seen["options"]["use_fjall"] is True
-            assert "target_partitions" not in seen["options"]
+            assert seen["options"]["forks"] == 4
+            assert seen["options"]["annotation_workers"] == 4
+            assert seen["options"]["inline_lookup"] is False
         finally:
             os.unlink(out_path)
 
@@ -443,33 +446,29 @@ class TestAnnotate:
                     buffer_size=value,
                 )
 
-    @pytest.mark.parametrize("value", [0, -1, True])
-    def test_target_partitions_rejects_invalid_values(self, value):
+    @pytest.mark.parametrize("value", [-1, True])
+    def test_forks_rejects_invalid_values(self, value):
         import vepyr
 
-        with pytest.raises(
-            ValueError, match="target_partitions must be a positive integer"
-        ):
+        with pytest.raises(ValueError, match="forks must be a non-negative integer"):
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
                 output_vcf="unused.vcf",
                 show_progress=False,
-                target_partitions=value,
+                forks=value,
             )
 
-    def test_target_partitions_requires_fjall_when_greater_than_one(self):
+    def test_forks_requires_fjall_when_nonzero(self):
         import vepyr
 
-        with pytest.raises(
-            ValueError, match="target_partitions > 1 requires use_fjall=True"
-        ):
+        with pytest.raises(ValueError, match="forks > 0 requires use_fjall=True"):
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
                 output_vcf="unused.vcf",
                 show_progress=False,
-                target_partitions=2,
+                forks=2,
             )
 
     def test_notebook_progress_updates_on_main_thread(self, monkeypatch):
@@ -502,7 +501,7 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            target_partitions,
+            forks,
         ):
             assert show_progress is False
             assert on_batch_written is not None

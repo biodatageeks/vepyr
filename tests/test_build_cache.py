@@ -738,9 +738,7 @@ class TestBuildCacheIntegration:
         assert positions == 7
         assert os.path.isdir(os.path.join(out, "translation_sift.fjall"))
 
-    def test_fjall_annotation_target_partitions_preserves_vcf_output(
-        self, built_cache, tmp_path
-    ):
+    def test_fjall_annotation_forks_preserves_vcf_output(self, built_cache, tmp_path):
         out, _, _, _ = built_cache
         input_vcf = ENSEMBL_CACHE_DIR / "sample.vcf"
         serial_vcf = tmp_path / "serial.vcf"
@@ -753,7 +751,7 @@ class TestBuildCacheIntegration:
             use_fjall=True,
             output_vcf=str(serial_vcf),
             show_progress=False,
-            target_partitions=1,
+            forks=0,
         )
         vepyr.annotate(
             str(input_vcf),
@@ -762,7 +760,7 @@ class TestBuildCacheIntegration:
             use_fjall=True,
             output_vcf=str(parallel_vcf),
             show_progress=False,
-            target_partitions=2,
+            forks=2,
         )
 
         assert read_vcf_data_lines(parallel_vcf) == read_vcf_data_lines(serial_vcf)

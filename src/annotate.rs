@@ -9,19 +9,40 @@ use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, 
 use futures::StreamExt;
 use pyo3::prelude::*;
 use serde_json::Value;
-use std::sync::LazyLock;
-use tokio::runtime::Runtime;
+use tokio::runtime::{Builder, Runtime};
 
-/// Module-level Tokio runtime shared across all annotation calls.
-static RUNTIME: LazyLock<Arc<Runtime>> =
-    LazyLock::new(|| Arc::new(Runtime::new().expect("failed to create Tokio runtime")));
-
-fn effective_target_partitions(use_fjall: bool, target_partitions: usize) -> usize {
-    if use_fjall {
-        target_partitions.max(1)
+fn effective_session_partitions(use_fjall: bool, forks: usize) -> usize {
+    if use_fjall && forks > 0 {
+        forks
     } else {
         1
     }
+}
+
+fn runtime_for_forks(forks: usize) -> PyResult<Arc<Runtime>> {
+    // DataFusion uses `tokio::task::block_in_place()` while resolving table
+    // metadata. That requires Tokio's multi-thread scheduler even when the VEP
+    // annotation plan itself is strict single-lane (`forks=0`).
+    let runtime = Builder::new_multi_thread()
+        .worker_threads(forks.max(1))
+        .build()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    Ok(Arc::new(runtime))
+}
+
+fn options_json_with_forks(options_json: &str, forks: usize) -> PyResult<String> {
+    let mut opts: Value = serde_json::from_str(options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    let object = opts
+        .as_object_mut()
+        .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("options JSON must be an object"))?;
+    object.insert("forks".to_string(), Value::from(forks));
+    object.insert("annotation_workers".to_string(), Value::from(forks.max(1)));
+    object.insert("inline_lookup".to_string(), Value::from(forks == 0));
+    serde_json::to_string(&opts)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}")))
 }
 
 /// A streaming annotator that yields PyArrow RecordBatches.
@@ -93,9 +114,8 @@ pub fn annotate_to_vcf_file(
     show_progress: bool,
     compression: &str,
     on_batch_written: Option<PyObject>,
-    target_partitions: usize,
+    forks: usize,
 ) -> PyResult<usize> {
-    let rt = &*RUNTIME;
     log::info!(
         "annotate_to_vcf_file start: input={}, output={}, show_progress={}, compression={}",
         vcf_path,
@@ -113,7 +133,8 @@ pub fn annotate_to_vcf_file(
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
     let backend = if use_fjall { "fjall" } else { "parquet" };
-    let target_partitions = effective_target_partitions(use_fjall, target_partitions);
+    let session_partitions = effective_session_partitions(use_fjall, forks);
+    let rt = runtime_for_forks(forks)?;
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -231,7 +252,8 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
-        target_partitions,
+        target_partitions: session_partitions,
+        forks: Some(forks),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -266,12 +288,13 @@ pub fn create_streaming_annotator(
     options_json: &str,
     skip_csq: bool,
     limit: Option<usize>,
-    target_partitions: usize,
+    forks: usize,
 ) -> PyResult<StreamingAnnotator> {
-    let rt = &*RUNTIME;
+    let options_json = options_json_with_forks(options_json, forks)?;
+    let rt = runtime_for_forks(forks)?;
 
     let (stream, schema) = rt.block_on(async {
-        let opts: Value = serde_json::from_str(options_json).map_err(|e| {
+        let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
         })?;
         let use_fjall = opts
@@ -279,9 +302,9 @@ pub fn create_streaming_annotator(
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
         let backend = if use_fjall { "fjall" } else { "parquet" };
-        let target_partitions = effective_target_partitions(use_fjall, target_partitions);
+        let session_partitions = effective_session_partitions(use_fjall, forks);
 
-        let config = SessionConfig::new().with_target_partitions(target_partitions);
+        let config = SessionConfig::new().with_target_partitions(session_partitions);
         let ctx = SessionContext::new_with_config(config);
         register_vep_functions(&ctx);
 
@@ -332,7 +355,7 @@ pub fn create_streaming_annotator(
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(StreamingAnnotator {
-        rt: Arc::clone(&RUNTIME),
+        rt,
         stream: std::sync::Mutex::new(Some(stream)),
         schema: py_schema,
     })

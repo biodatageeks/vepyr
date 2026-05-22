@@ -469,7 +469,7 @@ def annotate(
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
-    target_partitions: int = 1,
+    forks: int = 0,
     skip_csq: bool = True,
     # Output mode
     output_vcf: str | None = None,
@@ -575,11 +575,12 @@ def annotate(
         (default: False).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
-    target_partitions : int
-        DataFusion target partitions for fjall annotation lookup workers
-        (default: 1). Values greater than 1 require ``use_fjall=True`` and
-        preserve VCF/input row order by draining upstream lookup partitions in
-        order.
+    forks : int
+        User-facing VEP-style fork count (default: 0). ``0`` uses the strict
+        single-lane path with one DataFusion partition and no additional
+        lookup/formatting worker tasks. Values greater than 0 require
+        ``use_fjall=True`` and set the lookup, annotation, and VCF formatting
+        concurrency budget.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -661,19 +662,19 @@ def annotate(
         or buffer_size <= 0
     ):
         raise ValueError("buffer_size must be a positive integer")
-    if (
-        isinstance(target_partitions, bool)
-        or not isinstance(target_partitions, int)
-        or target_partitions <= 0
-    ):
-        raise ValueError("target_partitions must be a positive integer")
-    if target_partitions > 1 and not use_fjall:
-        raise ValueError("target_partitions > 1 requires use_fjall=True")
+    if isinstance(forks, bool) or not isinstance(forks, int) or forks < 0:
+        raise ValueError("forks must be a non-negative integer")
+    effective_forks = forks
+    if effective_forks > 0 and not use_fjall:
+        raise ValueError("forks > 0 requires use_fjall=True")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
         "extended_probes": extended_probes,
         "buffer_size": buffer_size,
+        "forks": effective_forks,
+        "annotation_workers": max(effective_forks, 1),
+        "inline_lookup": effective_forks == 0,
     }
 
     if use_fjall:
@@ -799,7 +800,7 @@ def annotate(
                         False,
                         comp,
                         callback,
-                        target_partitions,
+                        effective_forks,
                     )
                 except Exception as exc:
                     _error[0] = exc
@@ -840,7 +841,7 @@ def annotate(
 
     # Get schema from a probe annotator (doesn't consume data)
     probe = _create_annotator(
-        vcf, cache_dir, options_json, skip_csq, None, target_partitions
+        vcf, cache_dir, options_json, skip_csq, None, effective_forks
     )
     pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
@@ -849,12 +850,12 @@ def annotate(
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _skip, _target_partitions = (
+    _vcf, _cache_dir, _opts, _skip, _forks = (
         vcf,
         cache_dir,
         options_json,
         skip_csq,
-        target_partitions,
+        effective_forks,
     )
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
@@ -865,7 +866,7 @@ def annotate(
             _opts,
             _skip,
             n_rows,
-            _target_partitions,
+            _forks,
         )
         remaining = n_rows
         for py_batch in annotator:
