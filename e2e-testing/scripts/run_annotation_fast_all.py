@@ -150,6 +150,13 @@ def parse_args():
         action="store_true",
         help="Skip annotation, only regenerate report from existing JSONs",
     )
+    p.add_argument(
+        "--skip-compare",
+        "--skip-comparison",
+        dest="skip_comparison",
+        action="store_true",
+        help="Skip per-chromosome VEP comparisons and the aggregate comparison report",
+    )
     args = p.parse_args()
     if args.target_partitions <= 0:
         p.error("--target-partitions must be a positive integer")
@@ -169,7 +176,12 @@ def report_suffix(cache_suffix, backend):
 
 
 def run_chromosome(
-    chrom_num, cache="ensembl", backend="fjall", target_partitions=1, force=False
+    chrom_num,
+    cache="ensembl",
+    backend="fjall",
+    target_partitions=1,
+    force=False,
+    skip_comparison=False,
 ):
     """Run run_annotation_fast.py for a single chromosome."""
     chrom = f"chr{chrom_num}"
@@ -186,6 +198,8 @@ def run_chromosome(
     ]
     if force:
         cmd.append("--force")
+    if skip_comparison:
+        cmd.append("--skip-compare")
 
     print(f"\n{'=' * 60}")
     print(f"  Running {chrom} (cache={cache}, backend={backend})")
@@ -702,9 +716,14 @@ def main():
                 backend=backend,
                 target_partitions=args.target_partitions,
                 force=not args.no_force,
+                skip_comparison=args.skip_comparison,
             )
             if not ok:
                 print(f"  chr{n} failed, continuing...")
+
+    if args.skip_comparison:
+        print("\nSkipping aggregate comparison report (--skip-comparison)")
+        return
 
     # Step 2: Load reports
     reports = load_reports(args.chroms, suffix=report_name_suffix)

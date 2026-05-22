@@ -1,4 +1,5 @@
 import importlib.util
+import types
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,22 @@ def load_run_annotation_fast():
         / "run_annotation_fast.py"
     )
     spec = importlib.util.spec_from_file_location("run_annotation_fast", script_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_run_annotation_fast_all():
+    script_path = (
+        Path(__file__).resolve().parents[1]
+        / "e2e-testing"
+        / "scripts"
+        / "run_annotation_fast_all.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "run_annotation_fast_all", script_path
+    )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -45,6 +62,52 @@ def test_parse_args_accepts_target_partitions(monkeypatch):
     args = module.parse_args()
 
     assert args.target_partitions == 4
+
+
+def test_parse_args_accepts_skip_comparison_alias(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--skip-comparison",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.skip_compare is True
+
+
+def test_fast_all_parse_args_accepts_skip_comparison(monkeypatch):
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast_all.py",
+            "--skip-comparison",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.skip_comparison is True
+
+
+def test_fast_all_run_chromosome_forwards_skip_compare(monkeypatch):
+    module = load_run_annotation_fast_all()
+    seen = {}
+
+    def fake_run(cmd, cwd=None):
+        seen["cmd"] = cmd
+        seen["cwd"] = cwd
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module.run_chromosome(22, skip_comparison=True) is True
+    assert "--skip-compare" in seen["cmd"]
 
 
 def test_parse_args_rejects_parallel_parquet(monkeypatch):

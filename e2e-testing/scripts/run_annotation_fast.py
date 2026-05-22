@@ -191,7 +191,11 @@ def parse_args():
         help="Skip bcftools norm (normalization is on by default)",
     )
     p.add_argument(
-        "--skip-compare", action="store_true", help="Skip comparison, only annotate"
+        "--skip-compare",
+        "--skip-comparison",
+        dest="skip_compare",
+        action="store_true",
+        help="Skip comparison, only annotate",
     )
     p.add_argument(
         "--force", action="store_true", help="Re-run annotation even if output exists"

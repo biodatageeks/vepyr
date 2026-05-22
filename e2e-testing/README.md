@@ -80,7 +80,7 @@ uv run python run_annotation_fast.py chr22 \
 uv run python run_annotation_fast.py chr1 --force
 
 # Skip comparison, only annotate
-uv run python run_annotation_fast.py chr1 --skip-compare
+uv run python run_annotation_fast.py chr1 --skip-comparison
 
 # Use parquet instead of the default fjall backend
 uv run python run_annotation_fast.py chr1 --backend parquet
@@ -147,6 +147,9 @@ uv run python run_annotation_fast_all.py --backend parquet
 # Run fjall backend across chr1-22 with lookup parallelism
 uv run python run_annotation_fast_all.py --backend fjall --target-partitions 4
 
+# Annotate all selected chromosomes without VEP comparison or aggregate report
+uv run python run_annotation_fast_all.py --skip-comparison
+
 # Regenerate report from existing per-chromosome JSONs (instant)
 uv run python run_annotation_fast_all.py --skip-annotate
 ```
@@ -178,6 +181,12 @@ uv run python run_annotation_fast_all.py \
     --backend fjall \
     --target-partitions 4
 
+# All autosomes, annotation timing only
+uv run python run_annotation_fast_all.py \
+    --backend fjall \
+    --target-partitions 4 \
+    --skip-comparison
+
 # A pick-mode cache profile with fjall lookup parallelism
 uv run python run_annotation_fast_all.py \
     --cache merged_pick_allele_gene \
@@ -190,7 +199,9 @@ uv run python run_annotation_fast_all.py \
 the parquet annotation path is kept single-partition to preserve output
 correctness. If output files already exist, pass `--force` to
 `run_annotation_fast.py` or omit `--no-force` from `run_annotation_fast_all.py`
-so timing reflects the new partition count.
+so timing reflects the new partition count. Pass `--skip-comparison` when you
+only need annotation timing; the all-chromosome wrapper forwards skip mode to
+each chromosome run and does not create an aggregate comparison report.
 
 ### `run_annotation.py` -- full genome benchmark (both backends)
 
