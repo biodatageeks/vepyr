@@ -1,0 +1,23 @@
+	Command being timed: "docker run --rm -v /home/tgambin/workspace/vep_data2:/cache:ro -v /home/tgambin/workspace/vep_data2/vep_benchmark_100k_uncompressed:/out ensemblorg/ensembl-vep:release_115.1 vep --input_file /cache/HG002_GRCh38_1_22_v4.2.1_benchmark.normalized.100k.vcf --output_file /out/vep_merged_buffer20000_100k_uncompressed_fork_16.vcf --offline --cache --merged --dir_cache /cache --species homo_sapiens --assembly GRCh38 --cache_version 115 --fasta /cache/Homo_sapiens.GRCh38.dna.primary_assembly.fa --format vcf --vcf --everything --buffer_size 20000 --fork 16 --force_overwrite --no_stats"
+	User time (seconds): 0.00
+	System time (seconds): 0.01
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:42.20
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23552
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2
+	Minor (reclaiming a frame) page faults: 2707
+	Voluntary context switches: 661
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 392
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

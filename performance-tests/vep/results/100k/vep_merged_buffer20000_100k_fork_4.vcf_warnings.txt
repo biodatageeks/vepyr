@@ -1,0 +1,6 @@
+WARNING: 35 : WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: 40 : WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: 44 : WARNING: Transcript-assembly mismatch in chr1_25317062_T/C
+WARNING: Transcript-assembly mismatch in chr1_25317062_T/C

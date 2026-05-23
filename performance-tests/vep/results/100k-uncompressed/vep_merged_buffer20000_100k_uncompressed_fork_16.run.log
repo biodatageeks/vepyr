@@ -1,0 +1,9 @@
+=== 2026-05-23T00:35:57+02:00 fork=16 input_records=100000 input_type=vcf ===
+2026-05-22 22:35:58 - INFO: BAM-edited cache detected, enabling --use_transcript_ref; use --use_given_ref to override this
+WARNING: 81 : WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: 101 : WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: 116 : WARNING: Transcript-assembly mismatch in chr1_25317062_T/C
+WARNING: Transcript-assembly mismatch in chr1_25317062_T/C
+=== 2026-05-23T00:37:40+02:00 fork=16 done output_records=100000 status=OK output_size=749594735 ===

@@ -1,0 +1,47 @@
+=== 2026-05-23T08:20:24+02:00 fork=none input_records=4096123 ===
+2026-05-23 06:20:24 - INFO: BAM-edited cache detected, enabling --use_transcript_ref; use --use_given_ref to override this
+WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: Transcript-assembly mismatch in chr1_25317062_T/C
+WARNING: Transcript-assembly mismatch in chr1_155324483_A/G
+WARNING: Transcript-assembly mismatch in chr2_9904885_C/T
+WARNING: Transcript-assembly mismatch in chr2_73385904_T/TGGA
+WARNING: Transcript-assembly mismatch in chr2_115768384_G/A
+WARNING: Transcript-assembly mismatch in chr2_219248520_T/G
+WARNING: Transcript-assembly mismatch in chr3_4725578_T/C
+WARNING: Transcript-assembly mismatch in chr3_4775373_T/C
+WARNING: Transcript-assembly mismatch in chr3_4814496_T/C
+WARNING: Transcript-assembly mismatch in chr3_38698083_T/C
+WARNING: Transcript-assembly mismatch in chr3_38722372_G/C
+WARNING: Transcript-assembly mismatch in chr3_38726809_T/C
+WARNING: Transcript-assembly mismatch in chr3_114139503_C/T
+WARNING: Transcript-assembly mismatch in chr3_114171968_C/T
+WARNING: Transcript-assembly mismatch in chr3_184319745_A/G
+WARNING: Transcript-assembly mismatch in chr3_184321878_A/G
+WARNING: Transcript-assembly mismatch in chr5_120686122_C/A
+WARNING: Transcript-assembly mismatch in chr5_120686124_G/A
+WARNING: Transcript-assembly mismatch in chr6_18138983_G/A
+WARNING: Transcript-assembly mismatch in chr8_17628773_T/C
+WARNING: Transcript-assembly mismatch in chr8_17642714_T/C
+WARNING: Transcript-assembly mismatch in chr8_39223113_C/G
+WARNING: Transcript-assembly mismatch in chr9_33798019_A/G
+WARNING: Transcript-assembly mismatch in chr9_127868360_A/G
+WARNING: Transcript-assembly mismatch in chr9_128473042_A/G
+WARNING: Transcript-assembly mismatch in chr10_48174883_G/T
+WARNING: Transcript-assembly mismatch in chr10_48180858_C/T
+WARNING: Transcript-assembly mismatch in chr10_102399439_A/G
+WARNING: Transcript-assembly mismatch in chr10_102400677_A/G
+WARNING: Transcript-assembly mismatch in chr11_64243969_T/C
+WARNING: Transcript-assembly mismatch in chr11_89400281_C/T
+WARNING: Transcript-assembly mismatch in chr11_89490933_G/T
+WARNING: Transcript-assembly mismatch in chr12_56236660_G/C
+WARNING: Transcript-assembly mismatch in chr13_30462544_A/G
+WARNING: Transcript-assembly mismatch in chr14_59596754_A/G
+WARNING: Transcript-assembly mismatch in chr16_29697029_A/G
+WARNING: Transcript-assembly mismatch in chr17_7101608_C/T
+WARNING: Transcript-assembly mismatch in chr19_5844526_A/G
+WARNING: Transcript-assembly mismatch in chr19_53805300_C/T
+WARNING: Transcript-assembly mismatch in chr20_35496586_C/G
+WARNING: Transcript-assembly mismatch in chr20_62306724_T/C
+[W::hts_idx_load2] The index file is older than the data file: /cache/homo_sapiens_merged/115_GRCh38/21/all_vars.gz.csi
+=== 2026-05-23T17:40:39+02:00 fork=none done output_records=4096123 status=OK output_size=25095747428 ===

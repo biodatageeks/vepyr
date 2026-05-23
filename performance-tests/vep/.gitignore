@@ -1,0 +1,7 @@
+# Large generated benchmark data
+results/**/*.vcf
+results/**/*.vcf.gz
+results/**/*.vcf.gz.tbi
+results/**/*.bcf
+results/**/*.bcf.csi
+results/**/*_summary.html
