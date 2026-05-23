@@ -1,0 +1,4 @@
+=== 2026-05-23T18:35:41+02:00 fork=1 input_records=4096123 ===
+2026-05-23 16:35:42 - INFO: BAM-edited cache detected, enabling --use_transcript_ref; use --use_given_ref to override this
+=== 2026-05-23T18:40:33+02:00 fork=1 monitor attached to docker container 8d4197882d37 ===
+=== 2026-05-23T23:15:46+02:00 fork=1 done output_records=4096123 status=OK output_size=25095656895 elapsed=4:37:51 ===

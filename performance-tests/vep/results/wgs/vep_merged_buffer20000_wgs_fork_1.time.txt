@@ -1,0 +1,8 @@
+Docker container: 8d4197882d37
+Command being timed: docker run ... ensemblorg/ensembl-vep:release_115.1 vep ... --fork 1 ...
+StartedAt epoch: 1779554141
+FinishedAt epoch: 1779570812
+Elapsed (wall clock): 4:37:51
+Exit code: 0
+Maximum resident set size (kbytes): NA
+Note: /usr/bin/time parent session was interrupted; elapsed is from Docker events.

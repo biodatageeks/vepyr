@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 COMMAND_TEXT = """Kod uruchomienia VEP WGS benchmark:
 # WGS benchmark; FORK=none means no --fork argument is passed
-for FORK in 16 8 4 2 none; do
+for FORK in 16 8 4 2 1 none; do
   FORK_ARGS=(); if [ "$FORK" != "none" ]; then FORK_ARGS=(--fork "$FORK"); fi
   /usr/bin/time -v -o "$LOG" docker run --rm \\
     -v /home/tgambin/workspace/vep_data2:/cache:ro \\

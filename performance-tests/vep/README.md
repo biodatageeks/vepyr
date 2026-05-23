@@ -11,7 +11,7 @@ FASTA, Docker image, and `--buffer_size 20000` fixed.
 - `scripts/normalize_vcf.sh` - decompose and normalize the benchmark VCF with `bcftools norm`.
 - `scripts/run_vep_scalability_benchmark.sh` - run VEP for one or more fork settings and append `summary.tsv`.
 - `scripts/plot_vep_scalability.py` - regenerate the timing plot from a summary table.
-- `results/wgs/` - full WGS raw logs and summary, excluding the still-running `fork=1` run.
+- `results/wgs/` - full WGS raw logs and summary.
 - `results/100k/` - 100k-variant compressed-input raw logs and summary.
 - `results/100k-uncompressed/` - 100k-variant uncompressed-input comparison logs.
 - `results/figures/` - generated PNG plots.
@@ -47,7 +47,7 @@ performance-tests/vep/scripts/run_vep_scalability_benchmark.sh
 Run selected fork values only:
 
 ```bash
-performance-tests/vep/scripts/run_vep_scalability_benchmark.sh none 2 4 8 16
+performance-tests/vep/scripts/run_vep_scalability_benchmark.sh none 1 2 4 8 16
 ```
 
 Regenerate the WGS plot:
@@ -67,10 +67,12 @@ completed fork setting, `input_records == output_records`.
 | fork | elapsed | speedup vs none |
 |---:|---:|---:|
 | none | 9:19:55 | 1.00x |
+| 1 | 4:37:51 | 2.02x |
 | 2 | 3:11:38 | 2.92x |
 | 4 | 2:03:40 | 4.53x |
 | 8 | 1:22:13 | 6.81x |
 | 16 | 1:01:21 | 9.13x |
 
-Note: `fork=1` was still running when this preliminary branch was prepared, so
-it is intentionally absent from the committed WGS summary and plot.
+Note: `fork=1` elapsed time was recovered from Docker event timestamps because
+the original `/usr/bin/time` parent session was interrupted. Its record count
+matches the input, but `max_rss_kb` is recorded as `NA`.
