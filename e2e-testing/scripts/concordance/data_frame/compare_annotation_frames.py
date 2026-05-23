@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare VEP and vepyr annotation rows in VCF/CSQ order."""
+"""Compare VEP and vepyr parsed VCF annotation rows in VCF/CSQ order."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import polars_bio as pb
 from polars.testing import assert_frame_equal
 
 
-KEY_COLUMNS = ["chrom", "pos", "ref", "alt", "canonical_csq_entry"]
+CANONICAL_CSQ_COLUMN = "canonical_csq_entry"
 
 
 def open_text(path: Path):
@@ -35,12 +35,16 @@ def csq_fields(path: Path) -> list[str]:
     raise ValueError(f"No INFO/CSQ Format header found in {path}")
 
 
+def parsed_vcf_columns(path: Path) -> list[str]:
+    schema = pb.scan_vcf(str(path), info_fields=None, format_fields=None).collect_schema()
+    return ["pos" if column == "start" else column for column in schema.names() if column != "CSQ"]
+
+
 def normalized_csq_field(struct_name: str, field: str) -> pl.Expr:
     return (
         pl.col(struct_name)
         .struct.field(field)
         .fill_null("")
-        .cast(pl.Utf8)
         .str.split("&")
         .list.sort()
         .list.join("&")
@@ -48,7 +52,10 @@ def normalized_csq_field(struct_name: str, field: str) -> pl.Expr:
 
 
 def annotation_rows(
-    path: Path, source_fields: list[str], compare_fields: list[str]
+    path: Path,
+    source_fields: list[str],
+    compare_fields: list[str],
+    data_columns: list[str],
 ) -> pl.LazyFrame:
     csq_struct = (
         pl.col("csq_entry")
@@ -59,23 +66,17 @@ def annotation_rows(
     canonical_csq = pl.concat_str(
         [normalized_csq_field("__csq", field) for field in compare_fields],
         separator="|",
-    ).alias("canonical_csq_entry")
+    ).alias(CANONICAL_CSQ_COLUMN)
 
     return (
-        pb.scan_vcf(str(path), info_fields=["CSQ"], format_fields=[])
-        .select(["chrom", "start", "ref", "alt", "CSQ"])
+        pb.scan_vcf(str(path), info_fields=None, format_fields=None)
         .rename({"start": "pos"})
+        .select(data_columns + ["CSQ"])
         .explode("CSQ")
         .rename({"CSQ": "csq_entry"})
         .filter(pl.col("csq_entry").is_not_null() & (pl.col("csq_entry") != ""))
         .with_columns(csq_struct)
-        .select(
-            pl.col("chrom").cast(pl.Utf8),
-            pl.col("pos").cast(pl.UInt64),
-            pl.col("ref").cast(pl.Utf8),
-            pl.col("alt").cast(pl.Utf8),
-            canonical_csq,
-        )
+        .select(data_columns + [canonical_csq])
     )
 
 
@@ -97,6 +98,7 @@ def next_nonempty(batches: Iterator[pl.DataFrame]) -> pl.DataFrame | None:
 def mismatch_examples(
     vep: pl.DataFrame,
     vepyr: pl.DataFrame,
+    compare_columns: list[str],
     row_offset: int,
     max_examples: int,
 ) -> pl.DataFrame:
@@ -106,15 +108,15 @@ def mismatch_examples(
         suffix="_vepyr",
     )
     differs = pl.any_horizontal(
-        [pl.col(col) != pl.col(f"{col}_vepyr") for col in KEY_COLUMNS]
+        [pl.col(col) != pl.col(f"{col}_vepyr") for col in compare_columns]
     )
     return (
         paired.filter(differs)
         .with_columns((pl.col("__row") + row_offset).alias("annotation_row"))
         .select(
             ["annotation_row"]
-            + KEY_COLUMNS
-            + [f"{col}_vepyr" for col in KEY_COLUMNS]
+            + compare_columns
+            + [f"{col}_vepyr" for col in compare_columns]
         )
         .head(max_examples)
     )
@@ -123,6 +125,7 @@ def mismatch_examples(
 def compare_ordered(
     vep_rows: pl.LazyFrame,
     vepyr_rows: pl.LazyFrame,
+    compare_columns: list[str],
     chunk_size: int,
     progress_every: int,
     max_examples: int,
@@ -150,7 +153,15 @@ def compare_ordered(
         except AssertionError as exc:
             print(f"first_checked_annotation_row\t{compared_rows}")
             print("\nMismatch examples:")
-            print(mismatch_examples(vep_part, vepyr_part, compared_rows, max_examples))
+            print(
+                mismatch_examples(
+                    vep_part,
+                    vepyr_part,
+                    compare_columns,
+                    compared_rows,
+                    max_examples,
+                )
+            )
             print(f"\nAssertionError: {exc}")
             return False, compared_rows
 
@@ -192,33 +203,47 @@ def main() -> int:
 
     vep_fields = csq_fields(args.vep_vcf)
     vepyr_fields = csq_fields(args.vepyr_vcf)
+    vep_columns = parsed_vcf_columns(args.vep_vcf)
+    vepyr_columns = parsed_vcf_columns(args.vepyr_vcf)
     vepyr_field_set = set(vepyr_fields)
     compare_fields = [field for field in vep_fields if field in vepyr_field_set]
     vep_only = sorted(set(vep_fields) - set(vepyr_fields))
     vepyr_only = sorted(set(vepyr_fields) - set(vep_fields))
+    vepyr_column_set = set(vepyr_columns)
+    data_columns = [column for column in vep_columns if column in vepyr_column_set]
+    vep_only_columns = sorted(set(vep_columns) - set(vepyr_columns))
+    vepyr_only_columns = sorted(set(vepyr_columns) - set(vep_columns))
+    compare_columns = data_columns + [CANONICAL_CSQ_COLUMN]
 
-    if (vep_only or vepyr_only) and not args.allow_field_differences:
+    if (vep_only or vepyr_only or vep_only_columns or vepyr_only_columns) and not args.allow_field_differences:
         print("CSQ field sets differ")
         print(f"vep_only\t{','.join(vep_only) if vep_only else '-'}")
         print(f"vepyr_only\t{','.join(vepyr_only) if vepyr_only else '-'}")
+        print("parsed VCF column sets differ")
+        print(f"vep_only_columns\t{','.join(vep_only_columns) if vep_only_columns else '-'}")
+        print(f"vepyr_only_columns\t{','.join(vepyr_only_columns) if vepyr_only_columns else '-'}")
         return 1
 
     print(f"shared_csq_fields\t{len(compare_fields)}")
+    print(f"shared_parsed_vcf_columns\t{len(data_columns)}")
     print("reader\tpolars-bio")
     print("comparison\tordered streaming")
-    print("semantic_input_columns\tchrom,pos,ref,alt,CSQ")
+    print("semantic_input_columns\tall parsed VCF columns plus canonicalized CSQ")
     print("canonicalization\tsplit CSQ rows, sort ampersand-delimited values per CSQ field")
-    print("asserted_dataframe_columns\tchrom,pos,ref,alt,canonical_csq_entry")
+    print(f"asserted_dataframe_columns\t{','.join(compare_columns)}")
     print("row_multiplicity\tpreserved as repeated rows")
     print(f"chunk_size\t{args.chunk_size}")
     print(f"progress_every\t{args.progress_every}")
     print(f"vep_only_fields\t{','.join(vep_only) if vep_only else '-'}")
     print(f"vepyr_only_fields\t{','.join(vepyr_only) if vepyr_only else '-'}")
+    print(f"vep_only_columns\t{','.join(vep_only_columns) if vep_only_columns else '-'}")
+    print(f"vepyr_only_columns\t{','.join(vepyr_only_columns) if vepyr_only_columns else '-'}")
     print("comparator\tpolars.testing.assert_frame_equal")
 
     ok, compared_rows = compare_ordered(
-        annotation_rows(args.vep_vcf, vep_fields, compare_fields),
-        annotation_rows(args.vepyr_vcf, vepyr_fields, compare_fields),
+        annotation_rows(args.vep_vcf, vep_fields, compare_fields, data_columns),
+        annotation_rows(args.vepyr_vcf, vepyr_fields, compare_fields, data_columns),
+        compare_columns,
         args.chunk_size,
         args.progress_every,
         args.max_examples,

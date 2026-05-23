@@ -4,9 +4,9 @@ This directory contains a small reviewer-facing comparator for semantic
 annotation concordance. It compares VEP and vepyr annotation rows as ordered
 Polars DataFrame batches.
 
-The comparator deliberately ignores VCF container presentation fields such as
-`QUAL`, `FILTER`, `FORMAT`, and sample columns. It reads only the variant key
-and `INFO/CSQ`, explodes CSQ into one annotation row per consequence,
+The comparator reads the parsed VCF representation produced by `polars-bio`,
+including variant columns, non-CSQ `INFO` fields, `FORMAT` fields, and sample
+columns. It explodes `INFO/CSQ` into one annotation row per consequence,
 canonicalizes ampersand-delimited values inside each CSQ field, and compares
 successive batches with `polars.testing.assert_frame_equal`.
 
@@ -14,10 +14,11 @@ This is intentionally order-sensitive. It is appropriate for profiles where
 VEP and vepyr are expected to emit the same variant and CSQ order. It is not the
 right comparator for known order-unstable VEP modes such as `--per_gene`.
 
-The asserted columns are:
+The asserted columns are the shared parsed VCF columns, with `start` renamed to
+`pos`, plus:
 
 ```text
-chrom, pos, ref, alt, canonical_csq_entry
+canonical_csq_entry
 ```
 
 Row multiplicity is preserved as repeated rows.
@@ -54,7 +55,7 @@ The script prints:
 
 - number of shared CSQ fields,
 - CSQ fields present only on one side, if any,
-- semantic input columns,
+- parsed input columns,
 - CSQ canonicalization rule,
 - asserted DataFrame columns,
 - progress interval,
