@@ -16,6 +16,9 @@ FASTA, Docker image, and `--buffer_size 20000` fixed.
 - `results/100k-uncompressed/` - 100k-variant uncompressed-input comparison logs.
 - `results/figures/` - generated PNG plots.
 
+The current WGS plot including `fork=1` is also available under the cache-busting
+filename `results/figures/vep_merged_fork_benchmark_wgs_with_fork1.png`.
+
 Large VEP output VCF files are intentionally not versioned.
 
 ## Data Assumptions
