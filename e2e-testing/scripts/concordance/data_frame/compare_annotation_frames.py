@@ -66,15 +66,26 @@ def annotation_rows(
     canonical_csq = pl.concat_str(
         [normalized_csq_field("__csq", field) for field in compare_fields],
         separator="|",
-    ).alias(CANONICAL_CSQ_COLUMN)
+    )
+    canonical_csq = (
+        pl.when(pl.col("csq_entry").is_null() | (pl.col("csq_entry") == ""))
+        .then(pl.lit(""))
+        .otherwise(canonical_csq)
+        .alias(CANONICAL_CSQ_COLUMN)
+    )
 
     return (
         pb.scan_vcf(str(path), info_fields=None, format_fields=None)
         .rename({"start": "pos"})
         .select(data_columns + ["CSQ"])
+        .with_columns(
+            pl.when(pl.col("CSQ").is_null() | (pl.col("CSQ").list.len().fill_null(0) == 0))
+            .then(pl.lit([""]))
+            .otherwise(pl.col("CSQ"))
+            .alias("CSQ")
+        )
         .explode("CSQ")
         .rename({"CSQ": "csq_entry"})
-        .filter(pl.col("csq_entry").is_not_null() & (pl.col("csq_entry") != ""))
         .with_columns(csq_struct)
         .select(data_columns + [canonical_csq])
     )
