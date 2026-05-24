@@ -8,7 +8,13 @@ OUTPUT_VCF="$4"
 PROFILE="${5:-merged}"
 
 VEP_IMAGE="${VEP_IMAGE:-ensemblorg/ensembl-vep:release_115.2}"
-VEP_FORKS="${VEP_FORKS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}"
+VEP_ARGS=()
+if [ -n "${VEP_FORKS:-}" ]; then
+    VEP_ARGS+=(--fork "$VEP_FORKS")
+fi
+if [ "${VEP_COMPRESS_OUTPUT:-0}" = "1" ]; then
+    VEP_ARGS+=(--compress_output bgzip)
+fi
 
 case "$PROFILE" in
     merged)
@@ -49,7 +55,7 @@ else
     DOCKER_OUTPUT="/output/$OUTPUT_BASE"
 fi
 
-echo "Running VEP $PROFILE with --fork $VEP_FORKS -> $OUTPUT_VCF"
+echo "Running VEP $PROFILE -> $OUTPUT_VCF"
 
 docker run --rm \
     -v "$VEP_CACHE_DIR:/opt/vep/.vep/$CACHE_NAME/115_GRCh38:ro" \
@@ -67,10 +73,11 @@ docker run --rm \
     --vcf \
     --force_overwrite \
     --no_stats \
-    --fork "$VEP_FORKS" \
     --everything \
     --hgvs \
     --fasta "/fasta/$FASTA_BASE" \
-    --compress_output bgzip
+    "${VEP_ARGS[@]}"
 
-tabix -f -p vcf "$OUTPUT_VCF"
+if [ "${VEP_COMPRESS_OUTPUT:-0}" = "1" ]; then
+    tabix -f -p vcf "$OUTPUT_VCF"
+fi

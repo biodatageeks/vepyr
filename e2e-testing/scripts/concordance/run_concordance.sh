@@ -18,7 +18,7 @@ DATAFRAME_PROGRESS_EVERY="${DATAFRAME_PROGRESS_EVERY:-1000000}"
 
 STEM="${PROFILE}.${FEATURES}.${BACKEND}"
 NORM_GZ="$OUT_DIR/input.decomposed-left-normalized.vcf.gz"
-VEP_VCF="${VEP_VCF:-"$OUT_DIR/vep.${STEM}.vcf.gz"}"
+VEP_VCF="${VEP_VCF:-"$OUT_DIR/vep.${STEM}.vcf"}"
 VEPYR_VCF="$OUT_DIR/vepyr.${STEM}.vcf"
 PATCHED_VCF="$OUT_DIR/vepyr.${STEM}.container-patched.vcf"
 MD5_REPORT="$OUT_DIR/canonical-md5.${STEM}.txt"
