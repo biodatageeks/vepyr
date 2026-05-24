@@ -21,12 +21,6 @@ def main() -> int:
     parser.add_argument("--no-hgvs", action="store_false", dest="hgvs", default=True)
     args = parser.parse_args()
 
-    profile_opts = {}
-    if args.profile == "merged":
-        profile_opts["merged"] = True
-    elif args.profile == "refseq":
-        profile_opts["refseq"] = True
-
     start = time.time()
     vepyr.annotate(
         args.input_vcf,
@@ -36,7 +30,6 @@ def main() -> int:
         reference_fasta=args.fasta,
         use_fjall=args.backend == "fjall",
         output_vcf=args.output_vcf,
-        **profile_opts,
     )
     print(f"Wrote {args.output_vcf} in {time.time() - start:.1f}s")
     return 0
