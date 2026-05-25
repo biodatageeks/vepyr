@@ -19,30 +19,68 @@ fn effective_session_partitions(use_fjall: bool, forks: usize) -> usize {
     }
 }
 
-fn runtime_for_forks(forks: usize) -> PyResult<Arc<Runtime>> {
+fn effective_runtime_threads(use_fjall: bool, forks: usize, chrom_parallelism: usize) -> usize {
+    if use_fjall && forks > 0 {
+        forks.max(1).saturating_mul(chrom_parallelism.max(1))
+    } else {
+        1
+    }
+}
+
+fn runtime_for_parallelism(
+    use_fjall: bool,
+    forks: usize,
+    chrom_parallelism: usize,
+) -> PyResult<Arc<Runtime>> {
     // DataFusion uses `tokio::task::block_in_place()` while resolving table
     // metadata. That requires Tokio's multi-thread scheduler even when the VEP
     // annotation plan itself is strict single-lane (`forks=0`).
     let runtime = Builder::new_multi_thread()
-        .worker_threads(forks.max(1))
+        .worker_threads(effective_runtime_threads(
+            use_fjall,
+            forks,
+            chrom_parallelism,
+        ))
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(Arc::new(runtime))
 }
 
-fn options_json_with_forks(options_json: &str, forks: usize) -> PyResult<String> {
+fn options_json_with_parallelism(
+    options_json: &str,
+    forks: usize,
+    chrom_parallelism: usize,
+) -> PyResult<(String, bool)> {
     let mut opts: Value = serde_json::from_str(options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
     let object = opts
         .as_object_mut()
         .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("options JSON must be an object"))?;
+    let use_fjall = object
+        .get("use_fjall")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let effective_chrom_parallelism = if use_fjall && forks > 0 {
+        chrom_parallelism.max(1)
+    } else {
+        1
+    };
     object.insert("forks".to_string(), Value::from(forks));
     object.insert("annotation_workers".to_string(), Value::from(forks.max(1)));
     object.insert("inline_lookup".to_string(), Value::from(forks == 0));
-    serde_json::to_string(&opts)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}")))
+    object.insert(
+        "contig_parallelism".to_string(),
+        Value::from(effective_chrom_parallelism),
+    );
+    if use_fjall && forks > 0 {
+        object.insert("chunked_buffer_lookup".to_string(), Value::Bool(true));
+    }
+    let options_json = serde_json::to_string(&opts).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    Ok((options_json, use_fjall))
 }
 
 /// A streaming annotator that yields PyArrow RecordBatches.
@@ -115,6 +153,7 @@ pub fn annotate_to_vcf_file(
     compression: &str,
     on_batch_written: Option<PyObject>,
     forks: usize,
+    chrom_parallelism: usize,
 ) -> PyResult<usize> {
     log::info!(
         "annotate_to_vcf_file start: input={}, output={}, show_progress={}, compression={}",
@@ -134,7 +173,12 @@ pub fn annotate_to_vcf_file(
         .unwrap_or(false);
     let backend = if use_fjall { "fjall" } else { "parquet" };
     let session_partitions = effective_session_partitions(use_fjall, forks);
-    let rt = runtime_for_forks(forks)?;
+    let effective_chrom_parallelism = if use_fjall && forks > 0 {
+        chrom_parallelism.max(1)
+    } else {
+        1
+    };
+    let rt = runtime_for_parallelism(use_fjall, forks, effective_chrom_parallelism)?;
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -252,6 +296,16 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
+        chunked_buffer_lookup: opts
+            .get("chunked_buffer_lookup")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(use_fjall && forks > 0),
+        contig_parallelism: opts
+            .get("contig_parallelism")
+            .and_then(|v| v.as_u64())
+            .and_then(|n| usize::try_from(n).ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(effective_chrom_parallelism),
         target_partitions: session_partitions,
         forks: Some(forks),
         compression: vcf_compression,
@@ -281,6 +335,7 @@ pub fn annotate_to_vcf_file(
 }
 
 /// Create a streaming annotator that yields PyArrow RecordBatches.
+#[allow(clippy::too_many_arguments)]
 pub fn create_streaming_annotator(
     py: Python<'_>,
     vcf_path: &str,
@@ -289,18 +344,16 @@ pub fn create_streaming_annotator(
     skip_csq: bool,
     limit: Option<usize>,
     forks: usize,
+    chrom_parallelism: usize,
 ) -> PyResult<StreamingAnnotator> {
-    let options_json = options_json_with_forks(options_json, forks)?;
-    let rt = runtime_for_forks(forks)?;
+    let (options_json, use_fjall) =
+        options_json_with_parallelism(options_json, forks, chrom_parallelism)?;
+    let rt = runtime_for_parallelism(use_fjall, forks, chrom_parallelism)?;
 
     let (stream, schema) = rt.block_on(async {
-        let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        let _opts: Value = serde_json::from_str(&options_json).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
         })?;
-        let use_fjall = opts
-            .get("use_fjall")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
         let backend = if use_fjall { "fjall" } else { "parquet" };
         let session_partitions = effective_session_partitions(use_fjall, forks);
 

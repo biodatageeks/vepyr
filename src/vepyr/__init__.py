@@ -470,6 +470,7 @@ def annotate(
     # Engine tuning
     cache_size_mb: int = 1024,
     forks: int = 0,
+    chrom_parallelism: int = 1,
     skip_csq: bool = True,
     # Output mode
     output_vcf: str | None = None,
@@ -576,11 +577,14 @@ def annotate(
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     forks : int
-        User-facing VEP-style fork count (default: 0). ``0`` uses the strict
-        single-lane path with one DataFusion partition and no additional
-        lookup/formatting worker tasks. Values greater than 0 require
-        ``use_fjall=True`` and set the lookup, annotation, and VCF formatting
-        concurrency budget.
+        VEP-style fork count per active chromosome (default: 0). ``0`` uses
+        the strict single-lane path with one DataFusion partition and no
+        additional lookup/formatting worker tasks. Values greater than 0
+        require ``use_fjall=True``.
+    chrom_parallelism : int
+        Number of chromosomes to annotate concurrently when ``forks > 0``
+        (default: 1). The approximate Rust worker budget is
+        ``forks * chrom_parallelism``.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -664,7 +668,16 @@ def annotate(
         raise ValueError("buffer_size must be a positive integer")
     if isinstance(forks, bool) or not isinstance(forks, int) or forks < 0:
         raise ValueError("forks must be a non-negative integer")
+    if (
+        isinstance(chrom_parallelism, bool)
+        or not isinstance(chrom_parallelism, int)
+        or chrom_parallelism <= 0
+    ):
+        raise ValueError("chrom_parallelism must be a positive integer")
     effective_forks = forks
+    effective_chrom_parallelism = chrom_parallelism if effective_forks > 0 else 1
+    if chrom_parallelism > 1 and effective_forks == 0:
+        raise ValueError("chrom_parallelism > 1 requires forks > 0")
     if effective_forks > 0 and not use_fjall:
         raise ValueError("forks > 0 requires use_fjall=True")
 
@@ -675,10 +688,13 @@ def annotate(
         "forks": effective_forks,
         "annotation_workers": max(effective_forks, 1),
         "inline_lookup": effective_forks == 0,
+        "contig_parallelism": effective_chrom_parallelism,
     }
 
     if use_fjall:
         opts["use_fjall"] = True
+        if effective_forks > 0:
+            opts["chunked_buffer_lookup"] = True
 
     if everything:
         opts["everything"] = True
@@ -801,6 +817,7 @@ def annotate(
                         comp,
                         callback,
                         effective_forks,
+                        effective_chrom_parallelism,
                     )
                 except Exception as exc:
                     _error[0] = exc
@@ -841,7 +858,13 @@ def annotate(
 
     # Get schema from a probe annotator (doesn't consume data)
     probe = _create_annotator(
-        vcf, cache_dir, options_json, skip_csq, None, effective_forks
+        vcf,
+        cache_dir,
+        options_json,
+        skip_csq,
+        None,
+        effective_forks,
+        effective_chrom_parallelism,
     )
     pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
@@ -850,12 +873,13 @@ def annotate(
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _skip, _forks = (
+    _vcf, _cache_dir, _opts, _skip, _forks, _chrom_parallelism = (
         vcf,
         cache_dir,
         options_json,
         skip_csq,
         effective_forks,
+        effective_chrom_parallelism,
     )
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
@@ -867,6 +891,7 @@ def annotate(
             _skip,
             n_rows,
             _forks,
+            _chrom_parallelism,
         )
         remaining = n_rows
         for py_batch in annotator:

@@ -163,7 +163,13 @@ def parse_args():
         "--forks",
         type=int,
         default=0,
-        help="VEP-style annotation forks (default: %(default)s)",
+        help="VEP-style annotation forks per active chromosome (default: %(default)s)",
+    )
+    p.add_argument(
+        "--chrom-parallelism",
+        type=int,
+        default=1,
+        help="Number of chromosomes to annotate concurrently (default: %(default)s)",
     )
     p.add_argument(
         "--vcf",
@@ -203,6 +209,10 @@ def parse_args():
     args = p.parse_args()
     if args.forks < 0:
         p.error("--forks must be a non-negative integer")
+    if args.chrom_parallelism <= 0:
+        p.error("--chrom-parallelism must be a positive integer")
+    if args.chrom_parallelism > 1 and args.forks == 0:
+        p.error("--chrom-parallelism > 1 requires --forks > 0")
     if args.forks > 0 and args.backend != "fjall":
         p.error("--forks > 0 requires --backend fjall")
 
@@ -705,6 +715,7 @@ def main():
             use_fjall=(args.backend == "fjall"),
             output_vcf=output_vcf,
             forks=args.forks,
+            chrom_parallelism=args.chrom_parallelism,
             **args.annotate_kwargs,
         )
         elapsed = time.time() - t0

@@ -56,12 +56,15 @@ def test_parse_args_accepts_forks(monkeypatch):
             "fjall",
             "--forks",
             "4",
+            "--chrom-parallelism",
+            "2",
         ],
     )
 
     args = module.parse_args()
 
     assert args.forks == 4
+    assert args.chrom_parallelism == 2
 
 
 def test_parse_args_accepts_skip_comparison_alias(monkeypatch):
@@ -108,6 +111,7 @@ def test_fast_all_run_chromosome_forwards_skip_compare(monkeypatch):
 
     assert module.run_chromosome(22, skip_comparison=True) is True
     assert "--skip-compare" in seen["cmd"]
+    assert "--chrom-parallelism" in seen["cmd"]
 
 
 def test_parse_args_rejects_parallel_parquet(monkeypatch):

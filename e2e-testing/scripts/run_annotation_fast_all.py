@@ -138,7 +138,13 @@ def parse_args():
         "--forks",
         type=int,
         default=0,
-        help="VEP-style annotation forks forwarded to run_annotation_fast.py (default: %(default)s)",
+        help="VEP-style annotation forks per active chromosome forwarded to run_annotation_fast.py (default: %(default)s)",
+    )
+    p.add_argument(
+        "--chrom-parallelism",
+        type=int,
+        default=1,
+        help="Number of chromosomes to annotate concurrently forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
         "--no-force",
@@ -160,6 +166,10 @@ def parse_args():
     args = p.parse_args()
     if args.forks < 0:
         p.error("--forks must be a non-negative integer")
+    if args.chrom_parallelism <= 0:
+        p.error("--chrom-parallelism must be a positive integer")
+    if args.chrom_parallelism > 1 and args.forks == 0:
+        p.error("--chrom-parallelism > 1 requires --forks > 0")
     if args.forks > 0 and args.backend != "fjall":
         p.error("--forks > 0 requires --backend fjall")
     return args
@@ -180,6 +190,7 @@ def run_chromosome(
     cache="ensembl",
     backend="fjall",
     forks=0,
+    chrom_parallelism=1,
     force=False,
     skip_comparison=False,
 ):
@@ -195,6 +206,8 @@ def run_chromosome(
         backend,
         "--forks",
         str(forks),
+        "--chrom-parallelism",
+        str(chrom_parallelism),
     ]
     if force:
         cmd.append("--force")
@@ -715,6 +728,7 @@ def main():
                 cache=cache,
                 backend=backend,
                 forks=args.forks,
+                chrom_parallelism=args.chrom_parallelism,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,
             )
