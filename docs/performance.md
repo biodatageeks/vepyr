@@ -79,7 +79,8 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
 | `use_fjall` | `False` | Use fjall KV backend for co-located variant lookups — faster on large caches |
-| `forks` | `0` | VEP-style annotation parallelism. Use values greater than 0 with `use_fjall=True`; `0` uses the strict single-lane path. |
+| `forks` | `0` | Active chromosome lanes. `0` uses the strict single-lane path with `workers=1`; values greater than 0 require `use_fjall=True`. |
+| `workers` | `1` | Annotation workers per active chromosome. Values greater than 1 require `forks > 0`. |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 
 !!! tip "Compile-time optimization"

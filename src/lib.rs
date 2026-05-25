@@ -90,7 +90,7 @@ fn build_cache(
 /// Annotate a VCF and write results directly to a VCF file.
 /// Returns the number of rows written.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None, forks=0, chrom_parallelism=1))]
+#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None, forks=0, workers=1))]
 #[allow(clippy::too_many_arguments)]
 fn annotate_vcf(
     py: Python<'_>,
@@ -102,7 +102,7 @@ fn annotate_vcf(
     compression: &str,
     on_batch_written: Option<PyObject>,
     forks: usize,
-    chrom_parallelism: usize,
+    workers: usize,
 ) -> PyResult<usize> {
     annotate::annotate_to_vcf_file(
         py,
@@ -114,13 +114,13 @@ fn annotate_vcf(
         compression,
         on_batch_written,
         forks,
-        chrom_parallelism,
+        workers,
     )
 }
 
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None, forks=0, chrom_parallelism=1))]
+#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None, forks=0, workers=1))]
 #[allow(clippy::too_many_arguments)]
 fn create_annotator(
     py: Python<'_>,
@@ -130,7 +130,7 @@ fn create_annotator(
     skip_csq: bool,
     limit: Option<usize>,
     forks: usize,
-    chrom_parallelism: usize,
+    workers: usize,
 ) -> PyResult<annotate::StreamingAnnotator> {
     annotate::create_streaming_annotator(
         py,
@@ -140,7 +140,7 @@ fn create_annotator(
         skip_csq,
         limit,
         forks,
-        chrom_parallelism,
+        workers,
     )
 }
 

@@ -85,13 +85,14 @@ uv run python run_annotation_fast.py chr1 --skip-comparison
 # Use parquet instead of the default fjall backend
 uv run python run_annotation_fast.py chr1 --backend parquet
 
-# Use fjall annotation forks for parallelism on one chromosome
-uv run python run_annotation_fast.py chr22 --backend fjall --forks 4 --force
+# Use fjall annotation workers for parallelism on one chromosome
+uv run python run_annotation_fast.py chr22 --backend fjall --forks 1 --workers 4 --force
 
 # Same option works with cache profiles
 uv run python run_annotation_fast.py chr22 --cache merged_pick_filter \
     --backend fjall \
-    --forks 4 \
+    --forks 1 \
+    --workers 4 \
     --force
 
 # Compare against a merged-cache VEP pick-mode reference
@@ -144,8 +145,8 @@ uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
 # Run parquet backend across chr1-22
 uv run python run_annotation_fast_all.py --backend parquet
 
-# Run fjall backend across chr1-22 with annotation parallelism
-uv run python run_annotation_fast_all.py --backend fjall --forks 4
+# Run fjall backend across chr1-22 with chromosome lanes and per-chromosome workers
+uv run python run_annotation_fast_all.py --backend fjall --forks 4 --workers 1
 
 # Annotate all selected chromosomes without VEP comparison or aggregate report
 uv run python run_annotation_fast_all.py --skip-comparison
@@ -162,10 +163,12 @@ uv run python run_annotation_fast_all.py --skip-annotate
   - Field-level delta vs previous benchmark
   - Mismatch examples per field
 
-### Multiple annotation forks
+### Annotation lanes and workers
 
-Use `--forks N` to run VEP-style parallel annotation. This only applies to the
-fjall backend when `N > 0`; `--forks 0` uses the strict single-lane path:
+Use `--forks N` to choose how many chromosomes can be annotated concurrently
+and `--workers M` to choose annotation workers per active chromosome. This only
+applies to the fjall backend when `N > 0`; `--forks 0 --workers 1` uses the
+strict single-lane path:
 
 ```bash
 cd scripts
@@ -173,34 +176,40 @@ cd scripts
 # One chromosome, re-annotating even if a previous VCF exists
 uv run python run_annotation_fast.py chr22 \
     --backend fjall \
-    --forks 4 \
+    --forks 1 \
+    --workers 4 \
     --force
 
 # All autosomes
 uv run python run_annotation_fast_all.py \
     --backend fjall \
-    --forks 4
+    --forks 4 \
+    --workers 1
 
 # All autosomes, annotation timing only
 uv run python run_annotation_fast_all.py \
     --backend fjall \
     --forks 4 \
+    --workers 1 \
     --skip-comparison
 
-# A pick-mode cache profile with fjall lookup parallelism
+# A pick-mode cache profile with chromosome lanes and per-chromosome workers
 uv run python run_annotation_fast_all.py \
     --cache merged_pick_allele_gene \
     --backend fjall \
-    --forks 4
+    --forks 4 \
+    --workers 1
 ```
 
-`--forks` defaults to `0`. Values greater than `0` require `--backend fjall`;
-`--backend parquet --forks 2` is rejected because the parquet annotation path is
-kept single-partition to preserve output correctness. If output files already exist, pass `--force` to
-`run_annotation_fast.py` or omit `--no-force` from `run_annotation_fast_all.py`
-so timing reflects the new fork count. Pass `--skip-comparison` when you
-only need annotation timing; the all-chromosome wrapper forwards skip mode to
-each chromosome run and does not create an aggregate comparison report.
+`--forks` defaults to `0` and `--workers` defaults to `1`. `--workers > 1`
+requires `--forks > 0`. Values of `--forks` greater than `0` require
+`--backend fjall`; `--backend parquet --forks 2` is rejected because the parquet
+annotation path is kept single-partition to preserve output correctness. If
+output files already exist, pass `--force` to `run_annotation_fast.py` or omit
+`--no-force` from `run_annotation_fast_all.py` so timing reflects the new fork
+and worker settings. Pass `--skip-comparison` when you only need annotation
+timing; the all-chromosome wrapper forwards skip mode to each chromosome run
+and does not create an aggregate comparison report.
 
 ### `run_annotation.py` -- full genome benchmark (both backends)
 

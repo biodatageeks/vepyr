@@ -45,7 +45,7 @@ def test_refseq_cache_profile_uses_data_vepyr_paths():
     )
 
 
-def test_parse_args_accepts_forks(monkeypatch):
+def test_parse_args_accepts_forks_and_workers(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
@@ -55,16 +55,74 @@ def test_parse_args_accepts_forks(monkeypatch):
             "--backend",
             "fjall",
             "--forks",
-            "4",
-            "--chrom-parallelism",
             "2",
+            "--workers",
+            "4",
         ],
     )
 
     args = module.parse_args()
 
-    assert args.forks == 4
-    assert args.chrom_parallelism == 2
+    assert args.forks == 2
+    assert args.workers == 4
+
+
+def test_main_preserves_requested_forks_and_workers_for_single_chrom(
+    monkeypatch, tmp_path
+):
+    module = load_run_annotation_fast()
+    seen = {}
+
+    def fake_annotate(*_args, **kwargs):
+        seen["forks"] = kwargs["forks"]
+        seen["workers"] = kwargs["workers"]
+        Path(kwargs["output_vcf"]).write_text(
+            "\n".join(
+                [
+                    "##fileformat=VCFv4.2",
+                    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+                    "chr1\t1\t.\tA\tC\t.\tPASS\t.",
+                ]
+            )
+            + "\n"
+        )
+
+    monkeypatch.setattr(module.vepyr, "annotate", fake_annotate)
+    monkeypatch.setattr(
+        module,
+        "extract_chrom_from_vcf",
+        lambda *_args, **_kwargs: str(tmp_path / "input_chr1.vcf.gz"),
+    )
+    monkeypatch.setattr(
+        module.subprocess, "check_output", lambda *_args, **_kwargs: b"1"
+    )
+    monkeypatch.setattr(module, "count_data_lines", lambda _path: 1)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--backend",
+            "fjall",
+            "--forks",
+            "4",
+            "--workers",
+            "1",
+            "--vcf",
+            str(tmp_path / "input.vcf.gz"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--fasta",
+            str(tmp_path / "ref.fa"),
+            "--no-normalize",
+            "--skip-compare",
+            "--force",
+        ],
+    )
+
+    module.main()
+
+    assert seen == {"forks": 4, "workers": 1}
 
 
 def test_parse_args_accepts_skip_comparison_alias(monkeypatch):
@@ -111,7 +169,8 @@ def test_fast_all_run_chromosome_forwards_skip_compare(monkeypatch):
 
     assert module.run_chromosome(22, skip_comparison=True) is True
     assert "--skip-compare" in seen["cmd"]
-    assert "--chrom-parallelism" in seen["cmd"]
+    assert "--workers" in seen["cmd"]
+    assert "--chrom-parallelism" not in seen["cmd"]
 
 
 def test_parse_args_rejects_parallel_parquet(monkeypatch):

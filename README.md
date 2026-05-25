@@ -105,16 +105,18 @@ df = lf.collect()
 print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
 ```
 
-For fjall annotation, `forks` controls VEP-style annotation parallelism while
-preserving output row order. Values greater than 0 require `use_fjall=True`;
-`forks=0` uses the strict single-lane path.
+For fjall annotation, `forks` controls how many chromosomes can be annotated
+concurrently and `workers` controls annotation workers per active chromosome.
+`forks=0, workers=1` uses the strict single-lane path; `workers > 1` requires
+`forks > 0`; values of `forks` greater than 0 require `use_fjall=True`.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
     use_fjall=True,
-    forks=4,
+    forks=1,
+    workers=4,
 ).collect()
 ```
 

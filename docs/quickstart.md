@@ -122,16 +122,18 @@ lf = vepyr.annotate(
 )
 ```
 
-For fjall annotation, `forks` controls VEP-style annotation parallelism while
-preserving output row order. Values greater than 0 require `use_fjall=True`;
-`forks=0` uses the strict single-lane path.
+For fjall annotation, `forks` controls how many chromosomes can be annotated
+concurrently and `workers` controls annotation workers per active chromosome.
+`forks=0, workers=1` uses the strict single-lane path; `workers > 1` requires
+`forks > 0`; values of `forks` greater than 0 require `use_fjall=True`.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     "/data/vepyr_cache/parquet/115_GRCh38_ensembl",
     use_fjall=True,
-    forks=4,
+    forks=1,
+    workers=4,
 ).collect()
 ```
 

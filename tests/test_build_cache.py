@@ -760,7 +760,8 @@ class TestBuildCacheIntegration:
             use_fjall=True,
             output_vcf=str(parallel_vcf),
             show_progress=False,
-            forks=2,
+            forks=1,
+            workers=2,
         )
 
         assert read_vcf_data_lines(parallel_vcf) == read_vcf_data_lines(serial_vcf)

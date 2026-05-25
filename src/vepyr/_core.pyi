@@ -24,7 +24,7 @@ def annotate_vcf(
     compression: str = "",
     on_batch_written: Callable[[int, int, int], None] | None = None,
     forks: int = 0,
-    chrom_parallelism: int = 1,
+    workers: int = 1,
 ) -> int:
     """Annotate a VCF and write results directly to a VCF file.
 
@@ -39,7 +39,7 @@ def create_annotator(
     skip_csq: bool = True,
     limit: int | None = None,
     forks: int = 0,
-    chrom_parallelism: int = 1,
+    workers: int = 1,
 ) -> StreamingAnnotator:
     """Create a streaming VEP annotator that yields PyArrow RecordBatches."""
     ...
