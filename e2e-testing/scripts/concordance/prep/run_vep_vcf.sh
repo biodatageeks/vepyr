@@ -57,7 +57,7 @@ fi
 
 echo "Running VEP $PROFILE -> $OUTPUT_VCF"
 
-docker run --rm \
+DOCKER_CMD=(docker run --rm \
     -v "$VEP_CACHE_DIR:/opt/vep/.vep/$CACHE_NAME/115_GRCh38:ro" \
     "${IO_MOUNTS[@]}" \
     -v "$FASTA_DIR:/fasta:ro" \
@@ -75,8 +75,13 @@ docker run --rm \
     --no_stats \
     --everything \
     --hgvs \
-    --fasta "/fasta/$FASTA_BASE" \
-    "${VEP_ARGS[@]}"
+    --fasta "/fasta/$FASTA_BASE")
+
+if [ "${#VEP_ARGS[@]}" -gt 0 ]; then
+    DOCKER_CMD+=("${VEP_ARGS[@]}")
+fi
+
+"${DOCKER_CMD[@]}"
 
 if [ "${VEP_COMPRESS_OUTPUT:-0}" = "1" ]; then
     tabix -f -p vcf "$OUTPUT_VCF"
