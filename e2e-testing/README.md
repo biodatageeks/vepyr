@@ -163,6 +163,13 @@ uv run python run_annotation.py --mode merged_flag_pick_allele
 - `results/vepyr_parquet.vcf`, `results/vepyr_fjall.vcf`
 - `reports/benchmark_report.json`, `reports/benchmark_report.md`
 
+### `scripts/concordance/` -- VEP-vs-vepyr concordance
+
+Small reviewer-facing scripts for canonical MD5 and semantic DataFrame
+comparison live in [`scripts/concordance/`](scripts/concordance/). The parent
+runner can execute the MD5 path, the DataFrame path, or both from the same
+normalized input and vepyr output.
+
 ### `extract_all_mismatches.py` -- detailed mismatch TSV
 
 Extract every field-level mismatch across all variants into TSV files for analysis.
