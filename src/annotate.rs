@@ -33,9 +33,12 @@ fn effective_runtime_threads(
     contig_parallelism: usize,
 ) -> usize {
     if use_fjall && engine_forks > 0 {
-        engine_forks
-            .max(1)
-            .saturating_mul(contig_parallelism.max(1))
+        let per_contig_threads = if contig_parallelism > 1 {
+            engine_forks.max(1).saturating_add(1)
+        } else {
+            engine_forks.max(1)
+        };
+        per_contig_threads.saturating_mul(contig_parallelism.max(1))
     } else {
         1
     }
@@ -452,7 +455,7 @@ pub fn create_streaming_annotator(
 
 #[cfg(test)]
 mod tests {
-    use super::options_json_with_parallelism;
+    use super::{effective_runtime_threads, options_json_with_parallelism};
 
     #[test]
     fn single_chrom_workers_keep_chunked_lookup_disabled_by_default() {
@@ -467,7 +470,19 @@ mod tests {
     }
 
     #[test]
-    fn multi_chrom_forks_enable_chunked_lookup() {
+    fn multi_chrom_single_worker_enables_chunked_lookup() {
+        let (options_json, use_fjall) =
+            options_json_with_parallelism(r#"{"use_fjall":true}"#, 2, 1).unwrap();
+        let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
+
+        assert!(use_fjall);
+        assert_eq!(opts["forks"], 1);
+        assert_eq!(opts["contig_parallelism"], 2);
+        assert_eq!(opts["chunked_buffer_lookup"], true);
+    }
+
+    #[test]
+    fn multi_chrom_multi_worker_enables_chunked_lookup() {
         let (options_json, use_fjall) =
             options_json_with_parallelism(r#"{"use_fjall":true}"#, 2, 4).unwrap();
         let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
@@ -476,5 +491,15 @@ mod tests {
         assert_eq!(opts["forks"], 4);
         assert_eq!(opts["contig_parallelism"], 2);
         assert_eq!(opts["chunked_buffer_lookup"], true);
+    }
+
+    #[test]
+    fn multi_chrom_single_worker_budgets_lookup_thread_per_lane() {
+        assert_eq!(effective_runtime_threads(true, 1, 6), 12);
+    }
+
+    #[test]
+    fn single_chrom_workers_keep_runtime_budget_to_worker_count() {
+        assert_eq!(effective_runtime_threads(true, 4, 1), 4);
     }
 }

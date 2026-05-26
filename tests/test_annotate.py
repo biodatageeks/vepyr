@@ -152,6 +152,47 @@ class TestAnnotate:
         assert seen[0][0]["contig_parallelism"] == 1
         assert "chunked_buffer_lookup" not in seen[0][0]
 
+    def test_multi_chrom_single_worker_enables_chunked_lookup(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path,
+            cache_dir,
+            options_json,
+            skip_csq=True,
+            limit=None,
+            forks=0,
+            workers=1,
+        ):
+            seen.append((json.loads(options_json), forks, workers, limit))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            use_fjall=True,
+            forks=4,
+            workers=1,
+        )
+
+        assert isinstance(lf, pl.LazyFrame)
+        assert seen[0][1] == 4
+        assert seen[0][2] == 1
+        assert seen[0][0]["forks"] == 1
+        assert seen[0][0]["contig_parallelism"] == 4
+        assert seen[0][0]["chunked_buffer_lookup"] is True
+
     def test_collect_returns_dataframe(self, metadata_cache_dir):
         import vepyr
 
