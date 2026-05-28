@@ -15,6 +15,17 @@ def build_cache(
     """Build all cache entities from an Ensembl VEP cache to Parquet."""
     ...
 
+def build_variation_cache_tier(
+    cache_dir: str,
+    chroms: list[str] | None = None,
+    af_threshold: float = 0.01,
+    position_radius: int = 1,
+    row_group_rows: int = 500_000,
+    batch_size: int = 65_536,
+) -> list[tuple[str, int, int, int, int, int, int, int]]:
+    """Rebuild warm/cold variation parquet tier and cold position indexes."""
+    ...
+
 def annotate_vcf(
     vcf_path: str,
     cache_dir: str,
@@ -24,7 +35,6 @@ def annotate_vcf(
     compression: str = "",
     on_batch_written: Callable[[int, int, int], None] | None = None,
     forks: int = 0,
-    workers: int = 1,
 ) -> int:
     """Annotate a VCF and write results directly to a VCF file.
 
@@ -39,7 +49,6 @@ def create_annotator(
     skip_csq: bool = True,
     limit: int | None = None,
     forks: int = 0,
-    workers: int = 1,
 ) -> StreamingAnnotator:
     """Create a streaming VEP annotator that yields PyArrow RecordBatches."""
     ...

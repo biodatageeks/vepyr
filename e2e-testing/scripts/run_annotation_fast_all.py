@@ -145,10 +145,9 @@ def parse_args():
         ),
     )
     p.add_argument(
-        "--workers",
-        type=int,
-        default=1,
-        help="Annotation workers per active chromosome forwarded to run_annotation_fast.py (default: %(default)s)",
+        "--warm-variation-cache",
+        action="store_true",
+        help="Use warm/cold variation tier files when annotating with fjall",
     )
     p.add_argument(
         "--no-force",
@@ -170,12 +169,10 @@ def parse_args():
     args = p.parse_args()
     if args.forks < 0:
         p.error("--forks must be a non-negative integer")
-    if args.workers <= 0:
-        p.error("--workers must be a positive integer")
-    if args.workers > 1 and args.forks == 0:
-        p.error("--workers > 1 requires --forks > 0")
     if args.forks > 0 and args.backend != "fjall":
         p.error("--forks > 0 requires --backend fjall")
+    if args.warm_variation_cache and args.backend != "fjall":
+        p.error("--warm-variation-cache requires --backend fjall")
     return args
 
 
@@ -194,7 +191,7 @@ def run_chromosome(
     cache="ensembl",
     backend="fjall",
     forks=0,
-    workers=1,
+    warm_variation_cache=False,
     force=False,
     skip_comparison=False,
 ):
@@ -210,9 +207,9 @@ def run_chromosome(
         backend,
         "--forks",
         str(forks),
-        "--workers",
-        str(workers),
     ]
+    if warm_variation_cache:
+        cmd.append("--warm-variation-cache")
     if force:
         cmd.append("--force")
     if skip_comparison:
@@ -732,7 +729,7 @@ def main():
                 cache=cache,
                 backend=backend,
                 forks=args.forks,
-                workers=args.workers,
+                warm_variation_cache=args.warm_variation_cache,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,
             )

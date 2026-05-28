@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use arrow::pyarrow::ToPyArrow;
@@ -11,64 +13,35 @@ use pyo3::prelude::*;
 use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
 
-fn engine_forks_for_public_args(forks: usize, workers: usize) -> usize {
-    if forks > 0 {
-        workers.max(1)
-    } else {
-        0
-    }
-}
-
-fn effective_session_partitions(use_fjall: bool, engine_forks: usize) -> usize {
-    if use_fjall && engine_forks > 0 {
-        engine_forks
+fn effective_session_partitions(use_fjall: bool, forks: usize) -> usize {
+    if use_fjall && forks > 0 {
+        forks
     } else {
         1
     }
 }
 
-fn effective_runtime_threads(
-    use_fjall: bool,
-    engine_forks: usize,
-    contig_parallelism: usize,
-) -> usize {
-    if use_fjall && engine_forks > 0 {
-        let per_contig_threads = if contig_parallelism > 1 {
-            engine_forks.max(1).saturating_add(1)
-        } else {
-            engine_forks.max(1)
-        };
-        per_contig_threads.saturating_mul(contig_parallelism.max(1))
+fn effective_runtime_threads(use_fjall: bool, forks: usize) -> usize {
+    if use_fjall && forks > 0 {
+        forks
     } else {
         1
     }
 }
 
-fn runtime_for_parallelism(
-    use_fjall: bool,
-    engine_forks: usize,
-    contig_parallelism: usize,
-) -> PyResult<Arc<Runtime>> {
+fn runtime_for_parallelism(use_fjall: bool, forks: usize) -> PyResult<Arc<Runtime>> {
     // DataFusion uses `tokio::task::block_in_place()` while resolving table
     // metadata. That requires Tokio's multi-thread scheduler even when the VEP
     // annotation plan itself is strict single-lane (`forks=0`).
     let runtime = Builder::new_multi_thread()
-        .worker_threads(effective_runtime_threads(
-            use_fjall,
-            engine_forks,
-            contig_parallelism,
-        ))
+        .worker_threads(effective_runtime_threads(use_fjall, forks))
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(Arc::new(runtime))
 }
 
-fn options_json_with_parallelism(
-    options_json: &str,
-    forks: usize,
-    workers: usize,
-) -> PyResult<(String, bool)> {
+fn options_json_with_parallelism(options_json: &str, forks: usize) -> PyResult<(String, bool)> {
     let mut opts: Value = serde_json::from_str(options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
@@ -79,44 +52,104 @@ fn options_json_with_parallelism(
         .get("use_fjall")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    if workers == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "workers must be a positive integer",
-        ));
-    }
-    if workers > 1 && forks == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "workers > 1 requires forks > 0",
-        ));
-    }
     if forks > 0 && !use_fjall {
         return Err(pyo3::exceptions::PyValueError::new_err(
             "forks > 0 requires use_fjall=True",
         ));
     }
-    let engine_forks = engine_forks_for_public_args(forks, workers);
-    let effective_chrom_parallelism = if use_fjall && engine_forks > 0 {
-        forks.max(1)
-    } else {
-        1
-    };
-    object.insert("forks".to_string(), Value::from(engine_forks));
-    object.insert(
-        "annotation_workers".to_string(),
-        Value::from(engine_forks.max(1)),
-    );
-    object.insert("inline_lookup".to_string(), Value::from(engine_forks == 0));
-    object.insert(
-        "contig_parallelism".to_string(),
-        Value::from(effective_chrom_parallelism),
-    );
-    if use_fjall && engine_forks > 0 && effective_chrom_parallelism > 1 {
-        object.insert("chunked_buffer_lookup".to_string(), Value::Bool(true));
-    }
+    object.insert("forks".to_string(), Value::from(forks));
+    object.insert("inline_lookup".to_string(), Value::from(forks == 0));
     let options_json = serde_json::to_string(&opts).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
     Ok((options_json, use_fjall))
+}
+
+#[derive(Debug)]
+struct EnvGuard {
+    previous: Vec<(&'static str, Option<OsString>)>,
+}
+
+impl EnvGuard {
+    fn set(vars: Vec<(&'static str, OsString)>) -> Self {
+        let previous = vars
+            .iter()
+            .map(|(key, _)| (*key, std::env::var_os(key)))
+            .collect();
+        for (key, value) in vars {
+            // SAFETY: vepyr annotation is a blocking native call. The guard
+            // restores process-global variables immediately after the stream
+            // or VCF write finishes.
+            unsafe { std::env::set_var(key, value) };
+        }
+        Self { previous }
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        for (key, value) in self.previous.drain(..).rev() {
+            if let Some(value) = value {
+                // SAFETY: see EnvGuard::set.
+                unsafe { std::env::set_var(key, value) };
+            } else {
+                // SAFETY: see EnvGuard::set.
+                unsafe { std::env::remove_var(key) };
+            }
+        }
+    }
+}
+
+fn string_option(opts: &Value, key: &str) -> Option<OsString> {
+    opts.get(key)
+        .and_then(|v| v.as_str())
+        .map(|s| PathBuf::from(s).into_os_string())
+}
+
+fn warm_variation_env_guard(
+    cache_dir: &str,
+    opts: &Value,
+    use_fjall: bool,
+) -> PyResult<Option<EnvGuard>> {
+    let enabled = opts
+        .get("warm_variation_cache")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    if !enabled {
+        return Ok(None);
+    }
+    if !use_fjall {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "warm_variation_cache=True requires use_fjall=True",
+        ));
+    }
+
+    let cache_root = Path::new(cache_dir);
+    let variation_dir = string_option(opts, "warm_variation_dir")
+        .unwrap_or_else(|| cache_root.join("variation").into_os_string());
+    let cold_dir =
+        string_option(opts, "variation_cold_dir").unwrap_or_else(|| variation_dir.clone());
+    let position_index_dir = string_option(opts, "variation_position_index_dir")
+        .unwrap_or_else(|| cache_root.join("variation.position_index").into_os_string());
+
+    let mut vars = vec![
+        ("VEP_WARM_VARIATION_CACHE", OsString::from("1")),
+        ("VEP_WARM_VARIATION_DIR", variation_dir),
+        ("VEP_VARIATION_COLD_DIR", cold_dir),
+        ("VEP_VARIATION_POSITION_INDEX_DIR", position_index_dir),
+    ];
+    if let Some(batch_size) = opts
+        .get("warm_variation_batch_size")
+        .and_then(|v| v.as_u64())
+        .filter(|n| *n > 0)
+    {
+        vars.push((
+            "VEP_WARM_VARIATION_BATCH_SIZE",
+            OsString::from(batch_size.to_string()),
+        ));
+    }
+
+    Ok(Some(EnvGuard::set(vars)))
 }
 
 /// A streaming annotator that yields PyArrow RecordBatches.
@@ -125,6 +158,7 @@ fn options_json_with_parallelism(
 pub struct StreamingAnnotator {
     rt: std::sync::Arc<Runtime>,
     stream: std::sync::Mutex<Option<SendableRecordBatchStream>>,
+    _env_guard: Option<EnvGuard>,
     #[pyo3(get)]
     schema: PyObject,
 }
@@ -189,7 +223,6 @@ pub fn annotate_to_vcf_file(
     compression: &str,
     on_batch_written: Option<PyObject>,
     forks: usize,
-    workers: usize,
 ) -> PyResult<usize> {
     log::info!(
         "annotate_to_vcf_file start: input={}, output={}, show_progress={}, compression={}",
@@ -199,20 +232,14 @@ pub fn annotate_to_vcf_file(
         compression
     );
 
-    let (options_json, use_fjall) = options_json_with_parallelism(options_json, forks, workers)?;
+    let (options_json, use_fjall) = options_json_with_parallelism(options_json, forks)?;
     let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
+    let _warm_env_guard = warm_variation_env_guard(cache_dir, &opts, use_fjall)?;
 
     let backend = if use_fjall { "fjall" } else { "parquet" };
-    let engine_forks = engine_forks_for_public_args(forks, workers);
-    let session_partitions = effective_session_partitions(use_fjall, engine_forks);
-    let effective_chrom_parallelism = if use_fjall && engine_forks > 0 {
-        forks.max(1)
-    } else {
-        1
-    };
-    let rt = runtime_for_parallelism(use_fjall, engine_forks, effective_chrom_parallelism)?;
+    let rt = runtime_for_parallelism(use_fjall, forks)?;
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -330,18 +357,7 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
-        chunked_buffer_lookup: opts
-            .get("chunked_buffer_lookup")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(use_fjall && engine_forks > 0 && effective_chrom_parallelism > 1),
-        contig_parallelism: opts
-            .get("contig_parallelism")
-            .and_then(|v| v.as_u64())
-            .and_then(|n| usize::try_from(n).ok())
-            .filter(|n| *n > 0)
-            .unwrap_or(effective_chrom_parallelism),
-        target_partitions: session_partitions,
-        forks: Some(engine_forks),
+        forks: Some(forks),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -378,23 +394,17 @@ pub fn create_streaming_annotator(
     skip_csq: bool,
     limit: Option<usize>,
     forks: usize,
-    workers: usize,
 ) -> PyResult<StreamingAnnotator> {
-    let (options_json, use_fjall) = options_json_with_parallelism(options_json, forks, workers)?;
-    let engine_forks = engine_forks_for_public_args(forks, workers);
-    let effective_chrom_parallelism = if use_fjall && engine_forks > 0 {
-        forks.max(1)
-    } else {
-        1
-    };
-    let rt = runtime_for_parallelism(use_fjall, engine_forks, effective_chrom_parallelism)?;
+    let (options_json, use_fjall) = options_json_with_parallelism(options_json, forks)?;
+    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    let env_guard = warm_variation_env_guard(cache_dir, &opts, use_fjall)?;
+    let rt = runtime_for_parallelism(use_fjall, forks)?;
 
     let (stream, schema) = rt.block_on(async {
-        let _opts: Value = serde_json::from_str(&options_json).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
-        })?;
         let backend = if use_fjall { "fjall" } else { "parquet" };
-        let session_partitions = effective_session_partitions(use_fjall, engine_forks);
+        let session_partitions = effective_session_partitions(use_fjall, forks);
 
         let config = SessionConfig::new().with_target_partitions(session_partitions);
         let ctx = SessionContext::new_with_config(config);
@@ -449,6 +459,7 @@ pub fn create_streaming_annotator(
     Ok(StreamingAnnotator {
         rt,
         stream: std::sync::Mutex::new(Some(stream)),
+        _env_guard: env_guard,
         schema: py_schema,
     })
 }
@@ -458,48 +469,43 @@ mod tests {
     use super::{effective_runtime_threads, options_json_with_parallelism};
 
     #[test]
-    fn single_chrom_workers_keep_chunked_lookup_disabled_by_default() {
+    fn forks_are_forwarded_as_chromosome_lanes() {
         let (options_json, use_fjall) =
-            options_json_with_parallelism(r#"{"use_fjall":true}"#, 1, 4).unwrap();
+            options_json_with_parallelism(r#"{"use_fjall":true}"#, 4).unwrap();
         let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
 
         assert!(use_fjall);
         assert_eq!(opts["forks"], 4);
-        assert_eq!(opts["contig_parallelism"], 1);
+        assert_eq!(opts["inline_lookup"], false);
+        assert!(opts.get("annotation_workers").is_none());
+        assert!(opts.get("contig_parallelism").is_none());
         assert!(opts.get("chunked_buffer_lookup").is_none());
     }
 
     #[test]
-    fn multi_chrom_single_worker_enables_chunked_lookup() {
+    fn forks_zero_selects_inline_lookup() {
         let (options_json, use_fjall) =
-            options_json_with_parallelism(r#"{"use_fjall":true}"#, 2, 1).unwrap();
+            options_json_with_parallelism(r#"{"use_fjall":true}"#, 0).unwrap();
         let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
 
         assert!(use_fjall);
-        assert_eq!(opts["forks"], 1);
-        assert_eq!(opts["contig_parallelism"], 2);
-        assert_eq!(opts["chunked_buffer_lookup"], true);
+        assert_eq!(opts["forks"], 0);
+        assert_eq!(opts["inline_lookup"], true);
     }
 
     #[test]
-    fn multi_chrom_multi_worker_enables_chunked_lookup() {
-        let (options_json, use_fjall) =
-            options_json_with_parallelism(r#"{"use_fjall":true}"#, 2, 4).unwrap();
-        let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
-
-        assert!(use_fjall);
-        assert_eq!(opts["forks"], 4);
-        assert_eq!(opts["contig_parallelism"], 2);
-        assert_eq!(opts["chunked_buffer_lookup"], true);
+    fn nonzero_forks_require_fjall() {
+        let err = options_json_with_parallelism(r#"{}"#, 1).unwrap_err();
+        assert!(err.to_string().contains("forks > 0 requires use_fjall"));
     }
 
     #[test]
-    fn multi_chrom_single_worker_budgets_lookup_thread_per_lane() {
-        assert_eq!(effective_runtime_threads(true, 1, 6), 12);
+    fn runtime_budget_tracks_forks() {
+        assert_eq!(effective_runtime_threads(true, 6), 6);
     }
 
     #[test]
-    fn single_chrom_workers_keep_runtime_budget_to_worker_count() {
-        assert_eq!(effective_runtime_threads(true, 4, 1), 4);
+    fn strict_path_uses_one_runtime_worker() {
+        assert_eq!(effective_runtime_threads(true, 0), 1);
     }
 }

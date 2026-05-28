@@ -106,18 +106,32 @@ print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head(
 ```
 
 For fjall annotation, `forks` controls how many chromosomes can be annotated
-concurrently and `workers` controls annotation workers per active chromosome.
-`forks=0, workers=1` uses the strict single-lane path; `workers > 1` requires
-`forks > 0`; values of `forks` greater than 0 require `use_fjall=True`.
+concurrently. `forks=0` uses the strict single-lane path with one DataFusion
+partition; values greater than 0 require `use_fjall=True`.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
     use_fjall=True,
-    forks=1,
-    workers=4,
+    forks=4,
 ).collect()
+```
+
+To use the warm/cold variation tier, build it once from the existing
+`variation/*.parquet` master files and enable it for fjall annotation:
+
+```python
+vepyr.build_variation_cache_tier(cache_dir, af_threshold=0.01)
+
+out = vepyr.annotate(
+    "input.vcf.gz",
+    cache_dir,
+    use_fjall=True,
+    warm_variation_cache=True,
+    forks=8,
+    output_vcf="annotated.vcf",
+)
 ```
 
 ### 2c. Write annotated VCF output
