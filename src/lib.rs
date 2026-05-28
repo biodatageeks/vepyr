@@ -1,8 +1,5 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, OnProgress};
-use datafusion_bio_function_vep::warm_cache::build::{
-    build_warm_variation_tier, WarmVariationTierOptions,
-};
 use pyo3::prelude::*;
 
 mod annotate;
@@ -19,7 +16,7 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl"))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_row_group_rows=500_000, variation_tier_batch_size=65_536))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -31,6 +28,11 @@ fn build_cache(
     dict_size_kb: u32,
     on_progress: Option<PyObject>,
     cache_source_type: &str,
+    overwrite: bool,
+    variation_af_threshold: f64,
+    variation_position_radius: i64,
+    variation_row_group_rows: usize,
+    variation_tier_batch_size: usize,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
 
@@ -51,7 +53,14 @@ fn build_cache(
         .with_build_fjall(build_fjall)
         .with_zstd_level(zstd_level)
         .with_dict_size_kb(dict_size_kb)
-        .with_cache_source_type(cache_source_type);
+        .with_cache_source_type(cache_source_type)
+        .with_overwrite(overwrite)
+        .with_variation_tier_options(
+            variation_af_threshold,
+            variation_position_radius,
+            variation_row_group_rows,
+            variation_tier_batch_size,
+        );
 
     if let Some(progress) = cb {
         builder = builder.with_on_progress(progress);
@@ -88,114 +97,6 @@ fn build_cache(
         .collect();
 
     Ok(result)
-}
-
-/// Rebuild the warm/cold variation cache tier for one or more chromosomes.
-///
-/// Returns `(chrom, warm_positions, warm_rows, cold_rows, warm_row_groups,
-/// cold_row_groups, cold_rows_sharing_warm_positions, row_group_position_splits)`.
-#[pyfunction]
-#[pyo3(signature = (cache_dir, chroms=None, af_threshold=0.01, position_radius=1, row_group_rows=500_000, batch_size=65_536))]
-#[allow(clippy::type_complexity, clippy::too_many_arguments)]
-fn build_variation_cache_tier(
-    cache_dir: &str,
-    chroms: Option<Vec<String>>,
-    af_threshold: f64,
-    position_radius: i64,
-    row_group_rows: usize,
-    batch_size: usize,
-) -> PyResult<Vec<(String, usize, usize, usize, usize, usize, usize, usize)>> {
-    let cache_root = std::path::Path::new(cache_dir);
-    let variation_dir = cache_root.join("variation");
-    if !variation_dir.is_dir() {
-        return Err(pyo3::exceptions::PyFileNotFoundError::new_err(format!(
-            "variation directory not found: {}",
-            variation_dir.display()
-        )));
-    }
-
-    let chroms = match chroms {
-        Some(chroms) => chroms,
-        None => discover_variation_chroms(&variation_dir)?,
-    };
-    if chroms.is_empty() {
-        return Err(pyo3::exceptions::PyValueError::new_err(format!(
-            "no variation parquet files found in {}",
-            variation_dir.display()
-        )));
-    }
-
-    let mut out = Vec::with_capacity(chroms.len());
-    for chrom in chroms {
-        let input = variation_dir.join(format!("{chrom}.parquet"));
-        if !input.is_file() {
-            return Err(pyo3::exceptions::PyFileNotFoundError::new_err(format!(
-                "variation parquet not found: {}",
-                input.display()
-            )));
-        }
-        let mut options = WarmVariationTierOptions::new(input, variation_dir.clone());
-        options.af_threshold = af_threshold;
-        options.position_radius = position_radius;
-        options.row_group_rows = row_group_rows;
-        options.batch_size = batch_size;
-        let stats = build_warm_variation_tier(options).map_err(|err| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!(
-                "variation cache tier build failed for {chrom}: {err}"
-            ))
-        })?;
-        out.push((
-            stats.chrom,
-            stats.warm_positions,
-            stats.warm_rows,
-            stats.cold_rows,
-            stats.warm_row_groups,
-            stats.cold_row_groups,
-            stats.cold_rows_sharing_warm_positions,
-            stats.row_group_position_splits,
-        ));
-    }
-
-    Ok(out)
-}
-
-fn discover_variation_chroms(variation_dir: &std::path::Path) -> PyResult<Vec<String>> {
-    let mut chroms = Vec::new();
-    for entry in std::fs::read_dir(variation_dir).map_err(|err| {
-        pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "failed to read {}: {err}",
-            variation_dir.display()
-        ))
-    })? {
-        let path = entry
-            .map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(format!("{err}")))?
-            .path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("parquet") {
-            continue;
-        }
-        let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
-            continue;
-        };
-        if stem.ends_with("_warm") || stem.ends_with("_cold") {
-            continue;
-        }
-        chroms.push(stem.to_string());
-    }
-    chroms.sort_by_key(|chrom| chrom_sort_key(chrom));
-    Ok(chroms)
-}
-
-fn chrom_sort_key(chrom: &str) -> (u8, u32, String) {
-    let normalized = chrom.strip_prefix("chr").unwrap_or(chrom);
-    match normalized {
-        "X" => (0, 23, normalized.to_string()),
-        "Y" => (0, 24, normalized.to_string()),
-        "MT" | "M" => (0, 25, normalized.to_string()),
-        _ => normalized
-            .parse::<u32>()
-            .map(|n| (0, n, normalized.to_string()))
-            .unwrap_or_else(|_| (1, u32::MAX, normalized.to_string())),
-    }
 }
 
 /// Annotate a VCF and write results directly to a VCF file.
@@ -256,7 +157,6 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
-    m.add_function(wrap_pyfunction!(build_variation_cache_tier, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     Ok(())

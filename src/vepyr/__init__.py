@@ -10,10 +10,9 @@ if TYPE_CHECKING:
 
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
-from vepyr._core import build_variation_cache_tier as _build_variation_cache_tier
 from vepyr._core import create_annotator as _create_annotator
 
-__all__ = ["build_cache", "build_variation_cache_tier", "annotate"]
+__all__ = ["build_cache", "annotate"]
 
 log = logging.getLogger(__name__)
 
@@ -252,6 +251,11 @@ def build_cache(
     download_retries: int = 10,
     show_progress: bool = True,
     on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
+    overwrite: bool = False,
+    variation_af_threshold: float = 0.01,
+    variation_position_radius: int = 1,
+    variation_row_group_rows: int = 500_000,
+    variation_tier_batch_size: int = 65_536,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to optimized Parquet + fjall.
 
@@ -289,6 +293,20 @@ def build_cache(
         Custom progress callback with signature
         ``(entity, format, batch_rows, total_rows, total_expected)``.
         Overrides the default tqdm bars when provided.
+    overwrite : bool
+        Rebuild existing cache outputs instead of skipping them.
+    variation_af_threshold : float
+        Maximum global allele-frequency threshold used to split variation
+        parquet into ``<chrom>_warm.parquet`` and ``<chrom>_cold.parquet``.
+        Default keeps positions with AF >= 1%.
+    variation_position_radius : int
+        Number of neighboring positions around each warm position to include
+        in the warm variation parquet tier.
+    variation_row_group_rows : int
+        Target warm/cold variation parquet row group size. Row groups are
+        extended as needed so a position is not split across row groups.
+    variation_tier_batch_size : int
+        Arrow parquet batch size for building the warm/cold variation tier.
 
     Returns
     -------
@@ -307,6 +325,23 @@ def build_cache(
         raise ValueError(
             f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
         )
+    if (
+        not isinstance(variation_af_threshold, (int, float))
+        or variation_af_threshold < 0
+    ):
+        raise ValueError("variation_af_threshold must be a non-negative number")
+    if (
+        isinstance(variation_position_radius, bool)
+        or not isinstance(variation_position_radius, int)
+        or variation_position_radius < 0
+    ):
+        raise ValueError("variation_position_radius must be a non-negative integer")
+    for name, value in {
+        "variation_row_group_rows": variation_row_group_rows,
+        "variation_tier_batch_size": variation_tier_batch_size,
+    }.items():
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{name} must be a positive integer")
 
     # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
@@ -402,6 +437,11 @@ def build_cache(
             fjall_dict_size_kb,
             native_cb,
             cache_type,
+            overwrite,
+            float(variation_af_threshold),
+            int(variation_position_radius),
+            int(variation_row_group_rows),
+            int(variation_tier_batch_size),
         )
     finally:
         if _bars is not None:
@@ -426,83 +466,6 @@ def build_cache(
 
     log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
     return all_results
-
-
-def build_variation_cache_tier(
-    cache_dir: str,
-    *,
-    chroms: list[str] | None = None,
-    af_threshold: float = 0.01,
-    position_radius: int = 1,
-    row_group_rows: int = 500_000,
-    batch_size: int = 65_536,
-) -> list[dict[str, int | str]]:
-    """Rebuild warm/cold variation parquet files and cold position indexes.
-
-    Parameters
-    ----------
-    cache_dir : str
-        Parquet cache directory produced by :func:`build_cache`, e.g.
-        ``"/data/vep/parquet/115_GRCh38_merged"``.
-    chroms : list[str] or None
-        Chromosomes to rebuild. ``None`` discovers every base
-        ``variation/<chrom>.parquet`` file and ignores existing
-        ``*_warm.parquet`` / ``*_cold.parquet`` files.
-    af_threshold : float
-        Maximum global allele-frequency threshold for selecting warm
-        positions. Default keeps positions with AF >= 1%.
-    position_radius : int
-        Number of neighboring positions around each selected position to keep
-        warm. Default is ``1``.
-    row_group_rows : int
-        Target rows per warm/cold parquet row group. Row groups are extended
-        as needed to avoid splitting a position.
-    batch_size : int
-        Arrow parquet scan batch size.
-
-    Returns
-    -------
-    list[dict[str, int | str]]
-        Per-chromosome build statistics.
-    """
-    if not isinstance(af_threshold, (int, float)) or af_threshold < 0:
-        raise ValueError("af_threshold must be a non-negative number")
-    if (
-        isinstance(position_radius, bool)
-        or not isinstance(position_radius, int)
-        or position_radius < 0
-    ):
-        raise ValueError("position_radius must be a non-negative integer")
-    for name, value in {
-        "row_group_rows": row_group_rows,
-        "batch_size": batch_size,
-    }.items():
-        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-            raise ValueError(f"{name} must be a positive integer")
-    if chroms is not None and (
-        not isinstance(chroms, list) or not all(isinstance(c, str) for c in chroms)
-    ):
-        raise ValueError("chroms must be a list[str] or None")
-
-    stats = _build_variation_cache_tier(
-        cache_dir,
-        chroms,
-        float(af_threshold),
-        int(position_radius),
-        int(row_group_rows),
-        int(batch_size),
-    )
-    keys = (
-        "chrom",
-        "warm_positions",
-        "warm_rows",
-        "cold_rows",
-        "warm_row_groups",
-        "cold_row_groups",
-        "cold_rows_sharing_warm_positions",
-        "row_group_position_splits",
-    )
-    return [dict(zip(keys, row, strict=True)) for row in stats]
 
 
 def annotate(
@@ -666,7 +629,7 @@ def annotate(
     warm_variation_cache : bool
         Enable the warm/cold variation cache tier for fjall annotation.
         Requires ``use_fjall=True`` and tier files generated by
-        :func:`build_variation_cache_tier`.
+        :func:`build_cache`.
     warm_variation_dir : str or None
         Directory containing ``<chrom>_warm.parquet`` files. Defaults to
         ``cache_dir/variation``.

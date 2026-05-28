@@ -11,19 +11,13 @@ def build_cache(
     dict_size_kb: int = 112,
     on_progress: Callable[[str, str, int, int, int], None] | None = None,
     cache_source_type: str = "ensembl",
+    overwrite: bool = False,
+    variation_af_threshold: float = 0.01,
+    variation_position_radius: int = 1,
+    variation_row_group_rows: int = 500_000,
+    variation_tier_batch_size: int = 65_536,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
     """Build all cache entities from an Ensembl VEP cache to Parquet."""
-    ...
-
-def build_variation_cache_tier(
-    cache_dir: str,
-    chroms: list[str] | None = None,
-    af_threshold: float = 0.01,
-    position_radius: int = 1,
-    row_group_rows: int = 500_000,
-    batch_size: int = 65_536,
-) -> list[tuple[str, int, int, int, int, int, int, int]]:
-    """Rebuild warm/cold variation parquet tier and cold position indexes."""
     ...
 
 def annotate_vcf(

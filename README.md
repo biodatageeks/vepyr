@@ -118,12 +118,12 @@ df = vepyr.annotate(
 ).collect()
 ```
 
-To use the warm/cold variation tier, build it once from the existing
-`variation/*.parquet` master files and enable it for fjall annotation:
+`build_cache()` writes variation as `chrN_warm.parquet` and
+`chrN_cold.parquet` files, plus cold-position indexes. Re-running
+`build_cache()` is idempotent by default; pass `overwrite=True` to rebuild
+existing cache outputs.
 
 ```python
-vepyr.build_variation_cache_tier(cache_dir, af_threshold=0.01)
-
 out = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
