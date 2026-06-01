@@ -16,7 +16,7 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="indexed_parquet", zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_row_group_rows=500_000, variation_tier_batch_size=65_536))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="indexed_parquet", zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_cold_row_group_rows=8_192, variation_cold_data_page_rows=1_024))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -31,8 +31,8 @@ fn build_cache(
     overwrite: bool,
     variation_af_threshold: f64,
     variation_position_radius: i64,
-    variation_row_group_rows: usize,
-    variation_tier_batch_size: usize,
+    variation_cold_row_group_rows: usize,
+    variation_cold_data_page_rows: usize,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
@@ -58,11 +58,10 @@ fn build_cache(
         .with_dict_size_kb(dict_size_kb)
         .with_cache_source_type(cache_source_type)
         .with_overwrite(overwrite)
-        .with_variation_tier_options(
-            variation_af_threshold,
-            variation_position_radius,
-            variation_row_group_rows,
-            variation_tier_batch_size,
+        .with_variation_tier_filter_options(variation_af_threshold, variation_position_radius)
+        .with_indexed_variation_cold_layout_options(
+            variation_cold_row_group_rows,
+            variation_cold_data_page_rows,
         );
 
     if let Some(progress) = cb {

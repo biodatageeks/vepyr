@@ -14,8 +14,8 @@ def build_cache(
     overwrite: bool = False,
     variation_af_threshold: float = 0.01,
     variation_position_radius: int = 1,
-    variation_row_group_rows: int = 500_000,
-    variation_tier_batch_size: int = 65_536,
+    variation_cold_row_group_rows: int = 8_192,
+    variation_cold_data_page_rows: int = 1_024,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
     """Build all cache entities from an Ensembl VEP cache to Parquet."""
     ...

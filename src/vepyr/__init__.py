@@ -254,8 +254,8 @@ def build_cache(
     overwrite: bool = False,
     variation_af_threshold: float = 0.01,
     variation_position_radius: int = 1,
-    variation_row_group_rows: int = 500_000,
-    variation_tier_batch_size: int = 65_536,
+    variation_cold_row_group_rows: int = 8_192,
+    variation_cold_data_page_rows: int = 1_024,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to an optimized cache.
 
@@ -303,11 +303,12 @@ def build_cache(
     variation_position_radius : int
         Number of neighboring positions around each warm position to include
         in the warm variation parquet tier.
-    variation_row_group_rows : int
-        Target warm/cold variation parquet row group size. Row groups are
-        extended as needed so a position is not split across row groups.
-    variation_tier_batch_size : int
-        Arrow parquet batch size for building the warm/cold variation tier.
+    variation_cold_row_group_rows : int
+        Target cold variation parquet row group size. Row groups are extended
+        as needed so a position is not split across row groups.
+    variation_cold_data_page_rows : int
+        Target cold variation parquet data page row count used for page-level
+        pruning metadata.
 
     Returns
     -------
@@ -340,8 +341,8 @@ def build_cache(
     ):
         raise ValueError("variation_position_radius must be a non-negative integer")
     for name, value in {
-        "variation_row_group_rows": variation_row_group_rows,
-        "variation_tier_batch_size": variation_tier_batch_size,
+        "variation_cold_row_group_rows": variation_cold_row_group_rows,
+        "variation_cold_data_page_rows": variation_cold_data_page_rows,
     }.items():
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValueError(f"{name} must be a positive integer")
@@ -443,8 +444,8 @@ def build_cache(
             overwrite,
             float(variation_af_threshold),
             int(variation_position_radius),
-            int(variation_row_group_rows),
-            int(variation_tier_batch_size),
+            int(variation_cold_row_group_rows),
+            int(variation_cold_data_page_rows),
         )
     finally:
         if _bars is not None:

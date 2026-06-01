@@ -82,6 +82,13 @@ class TestBuildCacheSignature:
         sig = inspect.signature(vepyr.build_cache)
         assert "memory_limit_gb" not in sig.parameters
 
+    def test_exposes_only_cold_variation_layout_params(self):
+        sig = inspect.signature(vepyr.build_cache)
+        assert "variation_row_group_rows" not in sig.parameters
+        assert "variation_tier_batch_size" not in sig.parameters
+        assert sig.parameters["variation_cold_row_group_rows"].default == 8_192
+        assert sig.parameters["variation_cold_data_page_rows"].default == 1_024
+
 
 class TestNativeBuildCacheSignature:
     """Verify the native _core.build_cache function signature."""
@@ -98,6 +105,13 @@ class TestNativeBuildCacheSignature:
         sig = inspect.signature(_build_cache)
         assert "cache_source_type" in sig.parameters
         assert sig.parameters["cache_source_type"].default == "ensembl"
+
+    def test_exposes_only_cold_variation_layout_params(self):
+        sig = inspect.signature(_build_cache)
+        assert "variation_row_group_rows" not in sig.parameters
+        assert "variation_tier_batch_size" not in sig.parameters
+        assert sig.parameters["variation_cold_row_group_rows"].default == 8_192
+        assert sig.parameters["variation_cold_data_page_rows"].default == 1_024
 
 
 class TestBuildCacheValidation:
@@ -164,6 +178,25 @@ class TestBuildCacheValidation:
             )
 
         assert mock_native.call_args.args[7] == cache_type
+
+    def test_build_cache_forwards_cold_variation_layout(self, tmp_path):
+        local = tmp_path / "local"
+        local.mkdir()
+
+        with patch("vepyr._build_cache") as mock_native:
+            mock_native.return_value = []
+            vepyr.build_cache(
+                115,
+                str(tmp_path / "out"),
+                cache_type="ensembl",
+                local_cache=str(local),
+                show_progress=False,
+                variation_cold_row_group_rows=4096,
+                variation_cold_data_page_rows=512,
+            )
+
+        assert mock_native.call_args.args[11] == 4096
+        assert mock_native.call_args.args[12] == 512
 
 
 class TestBuildCacheProgressCallback:
