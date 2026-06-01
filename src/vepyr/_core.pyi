@@ -6,7 +6,7 @@ def build_cache(
     cache_root: str,
     output_dir: str,
     partitions: int = 8,
-    build_fjall: bool = True,
+    cache_format: str = "indexed_parquet",
     zstd_level: int = 3,
     dict_size_kb: int = 112,
     on_progress: Callable[[str, str, int, int, int], None] | None = None,
@@ -29,6 +29,7 @@ def annotate_vcf(
     compression: str = "",
     on_batch_written: Callable[[int, int, int], None] | None = None,
     forks: int = 0,
+    workers: int = 1,
 ) -> int:
     """Annotate a VCF and write results directly to a VCF file.
 
@@ -43,6 +44,7 @@ def create_annotator(
     skip_csq: bool = True,
     limit: int | None = None,
     forks: int = 0,
+    workers: int = 1,
 ) -> StreamingAnnotator:
     """Create a streaming VEP annotator that yields PyArrow RecordBatches."""
     ...

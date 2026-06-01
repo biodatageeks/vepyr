@@ -1,5 +1,5 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
-use datafusion_bio_function_vep::cache_builder::{CacheBuilder, OnProgress};
+use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat, OnProgress};
 use pyo3::prelude::*;
 
 mod annotate;
@@ -12,18 +12,18 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
     })
 }
 
-/// Build all entities from an Ensembl VEP cache to parquet + optional fjall.
+/// Build all entities from an Ensembl VEP cache.
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_row_group_rows=500_000, variation_tier_batch_size=65_536))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="indexed_parquet", zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_row_group_rows=500_000, variation_tier_batch_size=65_536))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     partitions: usize,
-    build_fjall: bool,
+    cache_format: &str,
     zstd_level: i32,
     dict_size_kb: u32,
     on_progress: Option<PyObject>,
@@ -35,6 +35,9 @@ fn build_cache(
     variation_tier_batch_size: usize,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
+    let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid cache_format: {err}"))
+    })?;
 
     let cb: Option<OnProgress> = on_progress.map(|py_cb| {
         Box::new(
@@ -50,7 +53,7 @@ fn build_cache(
 
     let mut builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
-        .with_build_fjall(build_fjall)
+        .with_cache_format(cache_format)
         .with_zstd_level(zstd_level)
         .with_dict_size_kb(dict_size_kb)
         .with_cache_source_type(cache_source_type)
@@ -102,7 +105,7 @@ fn build_cache(
 /// Annotate a VCF and write results directly to a VCF file.
 /// Returns the number of rows written.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None, forks=0))]
+#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None, forks=0, workers=1))]
 #[allow(clippy::too_many_arguments)]
 fn annotate_vcf(
     py: Python<'_>,
@@ -114,6 +117,7 @@ fn annotate_vcf(
     compression: &str,
     on_batch_written: Option<PyObject>,
     forks: usize,
+    workers: usize,
 ) -> PyResult<usize> {
     annotate::annotate_to_vcf_file(
         py,
@@ -125,12 +129,13 @@ fn annotate_vcf(
         compression,
         on_batch_written,
         forks,
+        workers,
     )
 }
 
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None, forks=0))]
+#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None, forks=0, workers=1))]
 #[allow(clippy::too_many_arguments)]
 fn create_annotator(
     py: Python<'_>,
@@ -140,6 +145,7 @@ fn create_annotator(
     skip_csq: bool,
     limit: Option<usize>,
     forks: usize,
+    workers: usize,
 ) -> PyResult<annotate::StreamingAnnotator> {
     annotate::create_streaming_annotator(
         py,
@@ -149,6 +155,7 @@ fn create_annotator(
         skip_csq,
         limit,
         forks,
+        workers,
     )
 }
 

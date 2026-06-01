@@ -6,7 +6,7 @@ Usage:
     python run_annotation_fast_all.py --no-force       # reuse existing annotation output
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
-    python run_annotation_fast_all.py --backend parquet
+    python run_annotation_fast_all.py --backend legacy_fjall
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
 per-chromosome JSON reports into a single timestamped Markdown summary
@@ -36,7 +36,7 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
-BACKENDS = ("fjall", "parquet")
+BACKENDS = ("indexed_parquet", "legacy_fjall")
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -131,8 +131,8 @@ def parse_args():
     p.add_argument(
         "--backend",
         choices=BACKENDS,
-        default="fjall",
-        help="Annotation cache backend forwarded to run_annotation_fast.py (default: %(default)s)",
+        default="indexed_parquet",
+        help="Annotation cache format forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
         "--forks",
@@ -145,9 +145,10 @@ def parse_args():
         ),
     )
     p.add_argument(
-        "--warm-variation-cache",
-        action="store_true",
-        help="Use warm/cold variation tier files when annotating with fjall",
+        "--workers",
+        type=int,
+        default=1,
+        help="Per-chromosome annotation worker budget forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
         "--no-force",
@@ -169,10 +170,10 @@ def parse_args():
     args = p.parse_args()
     if args.forks < 0:
         p.error("--forks must be a non-negative integer")
-    if args.forks > 0 and args.backend != "fjall":
-        p.error("--forks > 0 requires --backend fjall")
-    if args.warm_variation_cache and args.backend != "fjall":
-        p.error("--warm-variation-cache requires --backend fjall")
+    if args.workers <= 0:
+        p.error("--workers must be a positive integer")
+    if args.workers > 1 and args.forks <= 0:
+        p.error("--workers > 1 requires --forks > 0")
     return args
 
 
@@ -180,8 +181,8 @@ def parse_args():
 
 
 def report_suffix(cache_suffix, backend):
-    """Keep existing fjall report names; namespace non-default backends."""
-    if backend == "fjall":
+    """Keep indexed parquet report names; namespace non-default formats."""
+    if backend == "indexed_parquet":
         return cache_suffix
     return f"{cache_suffix}_{backend}"
 
@@ -189,9 +190,9 @@ def report_suffix(cache_suffix, backend):
 def run_chromosome(
     chrom_num,
     cache="ensembl",
-    backend="fjall",
+    backend="indexed_parquet",
     forks=0,
-    warm_variation_cache=False,
+    workers=1,
     force=False,
     skip_comparison=False,
 ):
@@ -207,9 +208,9 @@ def run_chromosome(
         backend,
         "--forks",
         str(forks),
+        "--workers",
+        str(workers),
     ]
-    if warm_variation_cache:
-        cmd.append("--warm-variation-cache")
     if force:
         cmd.append("--force")
     if skip_comparison:
@@ -345,7 +346,7 @@ def classify_consequence_mismatches(examples):
 # ── Step 5: Load old benchmark for comparison ────────────────────────────
 
 
-def load_old_benchmark(backend="fjall"):
+def load_old_benchmark(backend="indexed_parquet"):
     """Load the previous full-genome benchmark report for delta comparison."""
     path = os.path.join(REPORT_DIR, "benchmark_report.json")
     if not os.path.exists(path):
@@ -353,7 +354,7 @@ def load_old_benchmark(backend="fjall"):
     with open(path) as f:
         r = json.load(f)
     vvv = r.get("vepyr_vs_vep", {})
-    comp = vvv.get(backend, vvv.get("fjall", vvv.get("parquet", {})))
+    comp = vvv.get(backend, vvv.get("indexed_parquet", vvv.get("fjall", {})))
     return comp.get("field_mismatch_counts", {})
 
 
@@ -421,7 +422,7 @@ def pr_link(num):
 
 
 def generate_report(
-    reports, agg, csq_classes, old_mm, build_info=None, backend="fjall"
+    reports, agg, csq_classes, old_mm, build_info=None, backend="indexed_parquet"
 ):
     """Generate the full Markdown report."""
     lines = []
@@ -729,7 +730,7 @@ def main():
                 cache=cache,
                 backend=backend,
                 forks=args.forks,
-                warm_variation_cache=args.warm_variation_cache,
+                workers=args.workers,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,
             )

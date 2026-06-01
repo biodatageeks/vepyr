@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Full-genome annotation benchmark: preprocess, annotate, compare.
 
-Preprocesses input VCF (bcftools norm), runs vepyr annotation with both
-parquet and fjall backends, and compares results against original VEP output.
+Preprocesses input VCF (bcftools norm), runs vepyr annotation with indexed
+Parquet and legacy Fjall cache formats, and compares results against original
+VEP output.
 """
 
 import argparse
@@ -196,7 +197,7 @@ print(f"Input: {n_variants:,} biallelic variants in {vcf_gz}")
 
 # ── Step 2: Annotate with vepyr ────────────────────────────────────────────
 
-backends = ["parquet", "fjall"]
+backends = ["indexed_parquet", "legacy_fjall"]
 timings = {}
 mode_suffix = f"_{MODE}"
 
@@ -205,7 +206,7 @@ for backend in backends:
 
     print()
     print("=" * 60)
-    print(f"Step 2: Annotating with vepyr ({backend} backend)")
+    print(f"Step 2: Annotating with vepyr ({backend} cache format)")
     print("=" * 60)
 
     if os.path.exists(output_vcf) and os.path.getsize(output_vcf) > 1_000_000:
@@ -229,7 +230,7 @@ for backend in backends:
             CACHE_DIR,
             everything=True,
             reference_fasta=REFERENCE_FASTA,
-            use_fjall=(backend == "fjall"),
+            cache_format=backend,
             output_vcf=output_vcf,
             **mode_cfg["annotate_kwargs"],
         )
@@ -253,33 +254,36 @@ for backend in backends:
             f"({rate:,.0f} variants/s), {size_mb:.0f} MB"
         )
 
-# ── Step 3: Compare parquet vs fjall ───────────────────────────────────────
+# ── Step 3: Compare indexed_parquet vs legacy_fjall ────────────────────────
 print()
 print("=" * 60)
-print("Step 3: Comparing vepyr parquet vs fjall")
+print("Step 3: Comparing vepyr indexed_parquet vs legacy_fjall")
 print("=" * 60)
 
-parquet_vcf = os.path.join(WORK_DIR, f"vepyr_parquet{mode_suffix}.vcf")
-fjall_vcf = os.path.join(WORK_DIR, f"vepyr_fjall{mode_suffix}.vcf")
+indexed_parquet_vcf = os.path.join(WORK_DIR, f"vepyr_indexed_parquet{mode_suffix}.vcf")
+legacy_fjall_vcf = os.path.join(WORK_DIR, f"vepyr_legacy_fjall{mode_suffix}.vcf")
 
 # Line counts
-for name, path in [("parquet", parquet_vcf), ("fjall", fjall_vcf)]:
+for name, path in [
+    ("indexed_parquet", indexed_parquet_vcf),
+    ("legacy_fjall", legacy_fjall_vcf),
+]:
     n = int(subprocess.check_output(f"grep -cv '^#' '{path}'", shell=True).strip())
     print(f"  {name}: {n:,} data lines")
 
 # Diff data lines (sorted by position)
 diff_result = subprocess.run(
-    f"diff <(grep -v '^#' '{parquet_vcf}' | sort -k1,1V -k2,2n) "
-    f"<(grep -v '^#' '{fjall_vcf}' | sort -k1,1V -k2,2n) | grep -c '^[<>]'",
+    f"diff <(grep -v '^#' '{indexed_parquet_vcf}' | sort -k1,1V -k2,2n) "
+    f"<(grep -v '^#' '{legacy_fjall_vcf}' | sort -k1,1V -k2,2n) | grep -c '^[<>]'",
     shell=True,
     executable="/bin/bash",
     capture_output=True,
     text=True,
 )
 n_diff_pf = int(diff_result.stdout.strip()) if diff_result.stdout.strip() else 0
-print(f"  Differing lines (parquet vs fjall): {n_diff_pf}")
+print(f"  Differing lines (indexed_parquet vs legacy_fjall): {n_diff_pf}")
 
-# ── Step 4 & 5: Compare BOTH vepyr backends vs original VEP ────────────────
+# ── Step 4 & 5: Compare BOTH vepyr formats vs original VEP ─────────────────
 
 
 def compare_vepyr_vs_vep(
@@ -620,9 +624,12 @@ def compare_vepyr_vs_vep(
     }
 
 
-# Run comparison for BOTH backends
+# Run comparison for BOTH formats
 comparison_results = {}
-for backend_name, vcf_path in [("parquet", parquet_vcf), ("fjall", fjall_vcf)]:
+for backend_name, vcf_path in [
+    ("indexed_parquet", indexed_parquet_vcf),
+    ("legacy_fjall", legacy_fjall_vcf),
+]:
     comparison_results[backend_name] = compare_vepyr_vs_vep(
         vcf_path,
         VEP_EVERYTHING_HGVS,

@@ -4,10 +4,10 @@
 Usage:
     python run_annotation_fast.py chr1
     python run_annotation_fast.py chr22 --vcf /path/to/input.vcf.gz --vep /path/to/vep_output.vcf
-    python run_annotation_fast.py chr22 --backend parquet
+    python run_annotation_fast.py chr22 --backend legacy_fjall
 
 Extracts a single chromosome from a tabix-indexed VCF, annotates with the
-selected backend, and compares against the corresponding VEP reference output.
+selected cache format, and compares against the corresponding VEP reference output.
 """
 
 import argparse
@@ -30,7 +30,7 @@ DEFAULT_REFERENCE_FASTA = os.path.join(
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
-BACKENDS = ("fjall", "parquet")
+BACKENDS = ("indexed_parquet", "legacy_fjall")
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
@@ -156,8 +156,8 @@ def parse_args():
     p.add_argument(
         "--backend",
         choices=BACKENDS,
-        default="fjall",
-        help="Annotation cache backend (default: %(default)s)",
+        default="indexed_parquet",
+        help="Annotation cache format (default: %(default)s)",
     )
     p.add_argument(
         "--forks",
@@ -169,9 +169,10 @@ def parse_args():
         ),
     )
     p.add_argument(
-        "--warm-variation-cache",
-        action="store_true",
-        help="Use warm/cold variation tier files when annotating with fjall",
+        "--workers",
+        type=int,
+        default=1,
+        help="Per-chromosome annotation worker budget (default: %(default)s)",
     )
     p.add_argument(
         "--vcf",
@@ -211,10 +212,10 @@ def parse_args():
     args = p.parse_args()
     if args.forks < 0:
         p.error("--forks must be a non-negative integer")
-    if args.forks > 0 and args.backend != "fjall":
-        p.error("--forks > 0 requires --backend fjall")
-    if args.warm_variation_cache and args.backend != "fjall":
-        p.error("--warm-variation-cache requires --backend fjall")
+    if args.workers <= 0:
+        p.error("--workers must be a positive integer")
+    if args.workers > 1 and args.forks <= 0:
+        p.error("--workers > 1 requires --forks > 0")
 
     # Resolve defaults from cache profile; explicit --cache-dir / --vep override
     profile = _CACHE_PROFILES[args.cache]
@@ -230,8 +231,8 @@ def parse_args():
 
 
 def report_suffix(cache_suffix, backend):
-    """Keep existing fjall report names; namespace non-default backends."""
-    if backend == "fjall":
+    """Keep indexed parquet report names; namespace non-default formats."""
+    if backend == "indexed_parquet":
         return cache_suffix
     return f"{cache_suffix}_{backend}"
 
@@ -367,7 +368,7 @@ def compare_vcfs(
     vepyr_vcf,
     vep_vcf,
     label,
-    backend="fjall",
+    backend="indexed_parquet",
     ignore_csq_order=False,
 ):
     """Field-by-field CSQ comparison between vepyr and VEP output."""
@@ -712,10 +713,10 @@ def main():
             args.cache_dir,
             everything=True,
             reference_fasta=args.fasta,
-            use_fjall=(args.backend == "fjall"),
+            cache_format=args.backend,
             output_vcf=output_vcf,
             forks=args.forks,
-            warm_variation_cache=args.warm_variation_cache,
+            workers=args.workers,
             **args.annotate_kwargs,
         )
         elapsed = time.time() - t0

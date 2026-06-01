@@ -39,13 +39,13 @@ uv run pytest
 ## Quick start
 
 The repository ships with small test fixtures so you can verify the full
-pipeline — build, annotate (parquet), annotate (fjall) — without downloading
-any external data.
+pipeline — build, annotate with indexed Parquet, and write VCF output —
+without downloading any external data.
 
 ### 1. Build a cache from a local Ensembl VEP cache directory
 
 `tests/data/ensembl_cache` contains a tiny slice of the Ensembl VEP 115
-offline cache (chr22). Convert it to Parquet **and** fjall formats:
+offline cache (chr22). Convert it to the default indexed Parquet cache:
 
 ```python
 import vepyr
@@ -55,15 +55,15 @@ results = vepyr.build_cache(
     cache_dir="/tmp/vepyr_cache",
     cache_type="ensembl",
     local_cache="tests/data/ensembl_cache",  # skip download
-    build_fjall=True,                         # parquet + fjall
 )
 for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
-Set `build_fjall=False` if you only need Parquet files.
+Use `cache_format="legacy_fjall"` only when building the old compatibility
+stores.
 
-### 2a. Annotate variants (Parquet backend)
+### 2a. Annotate variants
 
 A small 5-variant VCF for chr22 ships with the cache fixture:
 
@@ -85,41 +85,20 @@ df = lf.collect()
 print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
 ```
 
-### 2b. Annotate variants (fjall backend)
-
-Pass `use_fjall=True` to use the embedded KV store instead of Parquet for
-co-located variant lookups — same API, faster on large caches:
-
-```python
-lf = vepyr.annotate(
-    vcf="tests/data/ensembl_cache/sample.vcf",
-    cache_dir=cache_dir,
-    check_existing=True,
-    af=True,
-    af_gnomadg=True,
-    max_af=True,
-    use_fjall=True,  # <-- only difference
-)
-
-df = lf.collect()
-print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
-```
-
-For fjall annotation, `forks` controls how many chromosomes can be annotated
-concurrently. `forks=0` uses the strict single-lane path with one DataFusion
-partition; values greater than 0 require `use_fjall=True`.
+`forks` controls how many chromosomes can be annotated concurrently.
+`forks=0` uses the strict single-lane path with one DataFusion partition.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
-    use_fjall=True,
     forks=4,
 ).collect()
 ```
 
 `build_cache()` writes variation as `chrN_warm.parquet` and
-`chrN_cold.parquet` files, plus cold-position indexes. Re-running
+`chrN_cold.parquet` files, plus cold-position and variant-bloom indexes.
+Re-running
 `build_cache()` is idempotent by default; pass `overwrite=True` to rebuild
 existing cache outputs.
 
@@ -127,14 +106,12 @@ existing cache outputs.
 out = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
-    use_fjall=True,
-    warm_variation_cache=True,
     forks=8,
     output_vcf="annotated.vcf",
 )
 ```
 
-### 2c. Write annotated VCF output
+### 2b. Write annotated VCF output
 
 Instead of a LazyFrame, write results directly to a VCF file with CSQ in the
 INFO column — use `.vcf.gz` for bgzf compression or `.vcf` for plain text:
@@ -186,21 +163,18 @@ Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Docs are auto-deployed
 
 ### One-liner smoke test
 
-Exercises cache build, both annotation backends, and VCF output:
+Exercises cache build, indexed Parquet annotation, and VCF output:
 
 ```bash
 uv run python -c "
 import vepyr, tempfile, os
 with tempfile.TemporaryDirectory() as d:
-    r = vepyr.build_cache(115, d, cache_type='ensembl', local_cache='tests/data/ensembl_cache', build_fjall=True, show_progress=False)
+    r = vepyr.build_cache(115, d, cache_type='ensembl', local_cache='tests/data/ensembl_cache', show_progress=False)
     cache = os.path.join(d, 'parquet', '115_GRCh38_ensembl')
     print(f'build_cache : {len(r)} parquet files, {sum(n for _,n in r):,} rows')
     vcf = 'tests/data/ensembl_cache/sample.vcf'
     df1 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True).collect()
-    print(f'parquet     : {df1.height} variants × {df1.width} columns')
-    df2 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True, use_fjall=True).collect()
-    print(f'fjall       : {df2.height} variants × {df2.width} columns')
-    assert df1.height == df2.height and df1.width == df2.width, 'backend mismatch'
+    print(f'indexed     : {df1.height} variants × {df1.width} columns')
     out = os.path.join(d, 'annotated.vcf')
     vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True, output_vcf=out, show_progress=False)
     print(f'vcf output  : {os.path.getsize(out):,} bytes')

@@ -60,8 +60,9 @@ datafusion-bio-format-vcf   = { git = "https://github.com/biodatageeks/datafusio
 
 ### `run_annotation_fast.py` -- single chromosome
 
-Annotate one chromosome with the fjall backend by default and compare against VEP.
-Use `--backend parquet` to run the same flow against the parquet cache backend.
+Annotate one chromosome with the indexed Parquet cache format by default and
+compare against VEP. Use `--backend legacy_fjall` only when benchmarking the
+old compatibility store.
 
 ```bash
 cd scripts
@@ -82,15 +83,14 @@ uv run python run_annotation_fast.py chr1 --force
 # Skip comparison, only annotate
 uv run python run_annotation_fast.py chr1 --skip-comparison
 
-# Use parquet instead of the default fjall backend
-uv run python run_annotation_fast.py chr1 --backend parquet
+# Use legacy Fjall instead of the default indexed Parquet format
+uv run python run_annotation_fast.py chr1 --backend legacy_fjall
 
-# Use fjall annotation workers for parallelism on one chromosome
-uv run python run_annotation_fast.py chr22 --backend fjall --forks 1 --workers 4 --force
+# Use annotation workers for parallelism on one chromosome
+uv run python run_annotation_fast.py chr22 --forks 1 --workers 4 --force
 
 # Same option works with cache profiles
 uv run python run_annotation_fast.py chr22 --cache merged_pick_filter \
-    --backend fjall \
     --forks 1 \
     --workers 4 \
     --force
@@ -125,7 +125,10 @@ Golden truth VCF paths are resolved under `DATA_VEPYR_DIR` (default:
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
-Run all 22 chromosomes and generate a timestamped Markdown summary with root cause classification and upstream issue links. The default backend is fjall; pass `--backend parquet` to use parquet.
+Run all 22 chromosomes and generate a timestamped Markdown summary with root
+cause classification and upstream issue links. The default cache format is
+indexed Parquet; pass `--backend legacy_fjall` to use the old compatibility
+store.
 
 ```bash
 cd scripts
@@ -142,11 +145,11 @@ uv run python run_annotation_fast_all.py --chroms 1 6 22
 # Run a pick-mode profile across chr1-22
 uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
 
-# Run parquet backend across chr1-22
-uv run python run_annotation_fast_all.py --backend parquet
+# Run legacy Fjall across chr1-22
+uv run python run_annotation_fast_all.py --backend legacy_fjall
 
-# Run fjall backend across chr1-22 with chromosome lanes and per-chromosome workers
-uv run python run_annotation_fast_all.py --backend fjall --forks 4 --workers 1
+# Run indexed Parquet across chr1-22 with chromosome lanes and per-chromosome workers
+uv run python run_annotation_fast_all.py --forks 4 --workers 1
 
 # Annotate all selected chromosomes without VEP comparison or aggregate report
 uv run python run_annotation_fast_all.py --skip-comparison
@@ -167,7 +170,7 @@ uv run python run_annotation_fast_all.py --skip-annotate
 
 Use `--forks N` to choose how many chromosomes can be annotated concurrently
 and `--workers M` to choose annotation workers per active chromosome. This only
-applies to the fjall backend when `N > 0`; `--forks 0 --workers 1` uses the
+applies to indexed Parquet and legacy Fjall when `N > 0`; `--forks 0 --workers 1` uses the
 strict single-lane path:
 
 ```bash
@@ -175,20 +178,17 @@ cd scripts
 
 # One chromosome, re-annotating even if a previous VCF exists
 uv run python run_annotation_fast.py chr22 \
-    --backend fjall \
     --forks 1 \
     --workers 4 \
     --force
 
 # All autosomes
 uv run python run_annotation_fast_all.py \
-    --backend fjall \
     --forks 4 \
     --workers 1
 
 # All autosomes, annotation timing only
 uv run python run_annotation_fast_all.py \
-    --backend fjall \
     --forks 4 \
     --workers 1 \
     --skip-comparison
@@ -196,15 +196,12 @@ uv run python run_annotation_fast_all.py \
 # A pick-mode cache profile with chromosome lanes and per-chromosome workers
 uv run python run_annotation_fast_all.py \
     --cache merged_pick_allele_gene \
-    --backend fjall \
     --forks 4 \
     --workers 1
 ```
 
 `--forks` defaults to `0` and `--workers` defaults to `1`. `--workers > 1`
-requires `--forks > 0`. Values of `--forks` greater than `0` require
-`--backend fjall`; `--backend parquet --forks 2` is rejected because the parquet
-annotation path is kept single-partition to preserve output correctness. If
+requires `--forks > 0`. If
 output files already exist, pass `--force` to `run_annotation_fast.py` or omit
 `--no-force` from `run_annotation_fast_all.py` so timing reflects the new fork
 and worker settings. Pass `--skip-comparison` when you only need annotation
@@ -221,10 +218,11 @@ uv run python run_annotation.py
 
 # Full-genome pick-mode benchmark
 uv run python run_annotation.py --mode merged_flag_pick_allele
+
 ```
 
 **Output:**
-- `results/vepyr_parquet.vcf`, `results/vepyr_fjall.vcf`
+- `results/vepyr_indexed_parquet.vcf`, `results/vepyr_legacy_fjall.vcf`
 - `reports/benchmark_report.json`, `reports/benchmark_report.md`
 
 ### `extract_all_mismatches.py` -- detailed mismatch TSV

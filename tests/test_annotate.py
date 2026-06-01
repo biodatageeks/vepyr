@@ -95,7 +95,6 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            use_fjall=True,
             forks=2,
             workers=4,
         )
@@ -104,7 +103,7 @@ class TestAnnotate:
         assert seen[0][1] == 2
         assert seen[0][2] == 4
         assert seen[0][3] is None
-        assert seen[0][0]["use_fjall"] is True
+        assert seen[0][0]["cache_format"] == "indexed_parquet"
         assert seen[0][0]["forks"] == 4
         assert seen[0][0]["annotation_workers"] == 4
         assert seen[0][0]["inline_lookup"] is False
@@ -140,7 +139,6 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            use_fjall=True,
             forks=1,
             workers=4,
         )
@@ -181,7 +179,6 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            use_fjall=True,
             forks=4,
             workers=1,
         )
@@ -504,14 +501,13 @@ class TestAnnotate:
                 CACHE_DIR,
                 output_vcf=out_path,
                 show_progress=False,
-                use_fjall=True,
                 forks=3,
                 workers=4,
             )
             assert result == out_path
             assert seen["forks"] == 3
             assert seen["workers"] == 4
-            assert seen["options"]["use_fjall"] is True
+            assert seen["options"]["cache_format"] == "indexed_parquet"
             assert seen["options"]["forks"] == 4
             assert seen["options"]["annotation_workers"] == 4
             assert seen["options"]["inline_lookup"] is False
@@ -557,16 +553,16 @@ class TestAnnotate:
                 forks=value,
             )
 
-    def test_forks_requires_fjall_when_nonzero(self):
+    def test_invalid_cache_format_rejected(self):
         import vepyr
 
-        with pytest.raises(ValueError, match="forks > 0 requires use_fjall=True"):
+        with pytest.raises(ValueError, match="cache_format"):
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
                 output_vcf="unused.vcf",
                 show_progress=False,
-                forks=2,
+                cache_format="fjall",
             )
 
     @pytest.mark.parametrize("value", [0, -1, True])
@@ -591,7 +587,6 @@ class TestAnnotate:
                 CACHE_DIR,
                 output_vcf="unused.vcf",
                 show_progress=False,
-                use_fjall=True,
                 workers=2,
             )
 
@@ -604,7 +599,6 @@ class TestAnnotate:
                 CACHE_DIR,
                 output_vcf="unused.vcf",
                 show_progress=False,
-                use_fjall=True,
                 chrom_parallelism=2,
             )
 
