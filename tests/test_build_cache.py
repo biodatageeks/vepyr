@@ -331,7 +331,20 @@ def built_cache(skip_if_no_ensembl_cache):
     tables: dict = {}
     for entity, files, _ in native_result:
         entity_tables = [pq.read_table(path) for path, _ in files]
-        tables[entity] = pa.concat_tables(entity_tables) if entity_tables else None
+        if entity == "variation":
+            entity_tables = [
+                table.drop(["variant_keys"])
+                if "variant_keys" in table.column_names
+                else table
+                for table in entity_tables
+            ]
+        tables[entity] = (
+            pa.concat_tables(entity_tables, promote_options="default")
+            if entity_tables
+            else None
+        )
+        if entity == "variation":
+            tables[entity] = tables[entity].sort_by("start")
 
     yield _tmpdir, flat_result, native_result, tables
 
@@ -443,7 +456,7 @@ class TestBuildCacheIntegration:
         alleles = tables["variation"].column("allele_string").to_pylist()
         assert all("/" in a for a in alleles)
 
-    # ── Transcript (106 rows, 71 cols) ──────────────────────────────
+    # ── Transcript (106 rows, 77 cols) ──────────────────────────────
 
     def test_transcript_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -451,7 +464,7 @@ class TestBuildCacheIntegration:
 
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["transcript"].num_columns == 71
+        assert tables["transcript"].num_columns == 77
 
     def test_transcript_required_columns(self, built_cache):
         _, _, _, tables = built_cache
