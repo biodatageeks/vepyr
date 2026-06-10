@@ -516,6 +516,7 @@ def annotate(
     cache_size_mb: int = 1024,
     forks: int = 0,
     workers: int = 1,
+    target_partitions: int = 1,
     skip_csq: bool = True,
     # Output mode
     output_vcf: str | None = None,
@@ -629,6 +630,10 @@ def annotate(
     workers : int
         Number of per-chromosome annotation workers when ``forks > 0``
         (default: 1).
+    target_partitions : int
+        Maximum number of independent cold-Parquet lookup readers per
+        chromosome. This does not repartition transcript/exon context scans.
+        Independent from ``workers`` (default: 1).
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -714,6 +719,12 @@ def annotate(
         raise ValueError("forks must be a non-negative integer")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
+    if (
+        isinstance(target_partitions, bool)
+        or not isinstance(target_partitions, int)
+        or target_partitions <= 0
+    ):
+        raise ValueError("target_partitions must be a positive integer")
     if workers > 1 and forks <= 0:
         raise ValueError("workers > 1 requires forks > 0")
     if cache_format not in {"indexed_parquet", "legacy_fjall"}:
@@ -724,6 +735,7 @@ def annotate(
         "extended_probes": extended_probes,
         "cache_format": cache_format,
         "buffer_size": buffer_size,
+        "target_partitions": target_partitions,
     }
     if forks > 0:
         opts["contig_parallelism"] = forks

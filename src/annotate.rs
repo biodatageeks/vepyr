@@ -307,6 +307,13 @@ pub fn annotate_to_vcf_file(
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
         forks: Some(forks),
+        workers,
+        target_partitions: opts
+            .get("target_partitions")
+            .and_then(|v| v.as_u64())
+            .and_then(|n| usize::try_from(n).ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(1),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,

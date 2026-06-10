@@ -44,16 +44,17 @@ class TestAnnotate:
         assert "merged" not in sig.parameters
         assert "refseq" not in sig.parameters
 
-    def test_has_forks_and_workers_params(self):
+    def test_has_parallelism_params(self):
         import vepyr
 
         sig = inspect.signature(vepyr.annotate)
-        assert "target_partitions" not in sig.parameters
         assert "chrom_parallelism" not in sig.parameters
         p = sig.parameters["forks"]
         assert p.default == 0
         workers = sig.parameters["workers"]
         assert workers.default == 1
+        target_partitions = sig.parameters["target_partitions"]
+        assert target_partitions.default == 1
 
     def test_returns_lazyframe(self, metadata_cache_dir):
         import vepyr
@@ -97,6 +98,7 @@ class TestAnnotate:
             CACHE_DIR,
             forks=2,
             workers=4,
+            target_partitions=3,
         )
 
         assert isinstance(lf, pl.LazyFrame)
@@ -106,6 +108,7 @@ class TestAnnotate:
         assert seen[0][0]["cache_format"] == "indexed_parquet"
         assert seen[0][0]["forks"] == 4
         assert seen[0][0]["annotation_workers"] == 4
+        assert seen[0][0]["target_partitions"] == 3
         assert seen[0][0]["inline_lookup"] is False
         assert seen[0][0]["contig_parallelism"] == 2
         assert seen[0][0]["chunked_buffer_lookup"] is True
@@ -577,6 +580,43 @@ class TestAnnotate:
                 show_progress=False,
                 workers=value,
             )
+
+    @pytest.mark.parametrize("value", [0, -1, True])
+    def test_target_partitions_rejects_invalid_values(self, value):
+        import vepyr
+
+        with pytest.raises(
+            ValueError, match="target_partitions must be a positive integer"
+        ):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                target_partitions=value,
+            )
+
+    def test_target_partitions_can_exceed_workers(self, monkeypatch):
+        import vepyr
+
+        seen = []
+        monkeypatch.setattr(
+            vepyr,
+            "_annotate_vcf",
+            lambda *args: seen.append(args[3]) or 0,
+        )
+
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            output_vcf="unused.vcf",
+            show_progress=False,
+            forks=1,
+            workers=2,
+            target_partitions=3,
+        )
+
+        assert json.loads(seen[0])["target_partitions"] == 3
 
     def test_workers_gt_one_requires_forks(self):
         import vepyr
