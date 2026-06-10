@@ -1,0 +1,99 @@
+{
+  "created_at": "2026-06-10T11:20:36+0200",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "python": "3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)]",
+  "git_commit": "bb4809a79ac75bd8a4c985ff6b4e66a7e1b9043d",
+  "git_branch": "test-annotation-target-partitions",
+  "input_vcf": "/private/tmp/vepyr-indexed-chr22-full/chr22_sparse_50000.sorted.chr22.single_alt.vcf",
+  "cache_dir": "/private/tmp/vepyr-indexed-chr22-full/parquet/115_GRCh38_ensembl",
+  "reference_fasta": "/Users/lukaszjezapkowicz/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.toplevel.fa",
+  "repeats": 3,
+  "profile": true,
+  "matrix_max": null,
+  "pairs": "1:1,2:1,1:2,4:4,1:8,2:8,1:16",
+  "regression_suite": false,
+  "smoke_suite": false,
+  "regression_values": null,
+  "shuffle_seed": 20260609,
+  "target_partitions": null,
+  "reference_body_sha256": "16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30",
+  "results": [
+    {
+      "mode": "parallel",
+      "workers": 1,
+      "target_partitions": 1,
+      "runs": 3,
+      "median_seconds": 24.567759,
+      "min_seconds": 20.634773,
+      "max_seconds": 28.164526,
+      "median_max_rss_bytes": 3004284928,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 1,
+      "target_partitions": 2,
+      "runs": 3,
+      "median_seconds": 16.698211,
+      "min_seconds": 13.8351,
+      "max_seconds": 19.877226,
+      "median_max_rss_bytes": 2947858432,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 1,
+      "target_partitions": 8,
+      "runs": 3,
+      "median_seconds": 12.721813,
+      "min_seconds": 8.868816,
+      "max_seconds": 14.450824,
+      "median_max_rss_bytes": 2996961280,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 1,
+      "target_partitions": 16,
+      "runs": 3,
+      "median_seconds": 13.49583,
+      "min_seconds": 10.505125,
+      "max_seconds": 15.661989,
+      "median_max_rss_bytes": 3501195264,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 2,
+      "target_partitions": 1,
+      "runs": 3,
+      "median_seconds": 22.521824,
+      "min_seconds": 20.312581,
+      "max_seconds": 28.778457,
+      "median_max_rss_bytes": 3066347520,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 2,
+      "target_partitions": 8,
+      "runs": 3,
+      "median_seconds": 9.642902,
+      "min_seconds": 9.483567,
+      "max_seconds": 11.059627,
+      "median_max_rss_bytes": 3071639552,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 4,
+      "target_partitions": 4,
+      "runs": 3,
+      "median_seconds": 13.058677,
+      "min_seconds": 10.987224,
+      "max_seconds": 14.122307,
+      "median_max_rss_bytes": 2897494016,
+      "all_outputs_match": true
+    }
+  ]
+}

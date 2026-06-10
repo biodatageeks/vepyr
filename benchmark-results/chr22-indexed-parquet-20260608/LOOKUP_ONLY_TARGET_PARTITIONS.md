@@ -165,6 +165,51 @@ why future changes must compare the whole matrix instead of one chosen point.
 The compact 8-point set remains available as `--smoke-suite` for quick local
 checks. It is not sufficient for final performance evaluation.
 
+## Adaptive prefetch wave
+
+The next optimization changed the cold-Parquet prefetch wave from a fixed 64
+row groups to an adaptive size:
+
+```text
+max(64, target_partitions * 32)
+```
+
+The environment variable
+`VEP_COLD_PARQUET_PREFETCH_ROW_GROUP_BATCH_SIZE` remains an explicit override.
+This keeps the original 64-row-group behavior for one or two readers while
+reducing repeated thread creation, file opening, and reader initialization for
+larger reader counts.
+
+An exploratory sweep compared wave sizes `64`, `128`, `256`, `512`, and a
+single unbounded wave. A single wave improved the parallel configurations but
+regressed the single-reader path and increased its memory use, so it was
+rejected in favor of the adaptive policy.
+
+The retained adaptive full matrix is:
+
+- result directory: `parallelism-full-matrix-adaptive-prefetch-wave/`
+- comparison: `comparison-adaptive-prefetch-wave/`
+- completed runs: `192/192`
+- matching output hashes: `192/192`
+- comparison result: 40 improvements, 17 neutral, 7 nominal regressions
+
+The nominal regressions are concentrated in `target_partitions=1/2`, where the
+adaptive policy still uses the unchanged 64-row-group wave. They are therefore
+consistent with the substantial host-time variance observed during the earlier
+worker sweep rather than with the new batching behavior.
+
+For the changed `target_partitions=4-10` range, most matrix cells improved by
+approximately 8-30%. Representative results:
+
+| workers | target | baseline | adaptive | change |
+|---:|---:|---:|---:|---:|
+| 1 | 4 | 13.856 s | 10.791 s | -22.1% |
+| 2 | 4 | 14.142 s | 10.305 s | -27.1% |
+| 4 | 6 | 13.416 s | 9.718 s | -27.6% |
+| 8 | 6 | 13.392 s | 9.360 s | -30.1% |
+| 2 | 8 | 10.459 s | 9.591 s | -8.3% |
+| 16 | 10 | 10.784 s | 9.904 s | -8.2% |
+
 ## Repeat command
 
 Use the full named regression suite after every parallelism change:

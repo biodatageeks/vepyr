@@ -1,0 +1,55 @@
+{
+  "created_at": "2026-06-10T09:40:46+0200",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "python": "3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)]",
+  "git_commit": "bb4809a79ac75bd8a4c985ff6b4e66a7e1b9043d",
+  "git_branch": "test-annotation-target-partitions",
+  "input_vcf": "/private/tmp/vepyr-indexed-chr22-full/chr22_sparse_50000.sorted.chr22.single_alt.vcf",
+  "cache_dir": "/private/tmp/vepyr-indexed-chr22-full/parquet/115_GRCh38_ensembl",
+  "reference_fasta": "/Users/lukaszjezapkowicz/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.toplevel.fa",
+  "repeats": 3,
+  "profile": true,
+  "matrix_max": null,
+  "pairs": "1:8,2:8,6:10",
+  "regression_suite": false,
+  "smoke_suite": false,
+  "regression_values": null,
+  "shuffle_seed": 20260609,
+  "target_partitions": null,
+  "reference_body_sha256": "16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30",
+  "results": [
+    {
+      "mode": "parallel",
+      "workers": 1,
+      "target_partitions": 8,
+      "runs": 3,
+      "median_seconds": 9.48823,
+      "min_seconds": 9.423034,
+      "max_seconds": 9.732833,
+      "median_max_rss_bytes": 3147448320,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 2,
+      "target_partitions": 8,
+      "runs": 3,
+      "median_seconds": 10.209574,
+      "min_seconds": 9.461626,
+      "max_seconds": 11.216563,
+      "median_max_rss_bytes": 3061530624,
+      "all_outputs_match": true
+    },
+    {
+      "mode": "parallel",
+      "workers": 6,
+      "target_partitions": 10,
+      "runs": 3,
+      "median_seconds": 10.34727,
+      "min_seconds": 10.129475,
+      "max_seconds": 11.202543,
+      "median_max_rss_bytes": 3132456960,
+      "all_outputs_match": true
+    }
+  ]
+}
