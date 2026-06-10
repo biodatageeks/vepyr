@@ -1,0 +1,29 @@
+{
+  "created_at": "2026-06-09T17:54:15+0200",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "python": "3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)]",
+  "git_commit": "8caf5cb7fb2085331375a8834021e95c5a819d38",
+  "git_branch": "test-annotation-target-partitions",
+  "input_vcf": "/private/tmp/vepyr-indexed-chr22-full/chr22_sparse_50000.sorted.chr22.single_alt.vcf",
+  "cache_dir": "/private/tmp/vepyr-indexed-chr22-full/parquet/115_GRCh38_ensembl",
+  "reference_fasta": "/Users/lukaszjezapkowicz/.vep/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.toplevel.fa",
+  "repeats": 5,
+  "profile": true,
+  "matrix_max": null,
+  "shuffle_seed": 20260609,
+  "target_partitions": 3,
+  "reference_body_sha256": "16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30",
+  "results": [
+    {
+      "mode": "parallel",
+      "workers": 3,
+      "target_partitions": 3,
+      "runs": 5,
+      "median_seconds": 16.015194,
+      "min_seconds": 13.988417,
+      "max_seconds": 18.880803,
+      "median_max_rss_bytes": 3144990720,
+      "all_outputs_match": true
+    }
+  ]
+}

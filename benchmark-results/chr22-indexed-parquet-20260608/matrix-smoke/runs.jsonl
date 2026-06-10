@@ -1,0 +1,1 @@
+{"body_sha256": "16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30", "elapsed_seconds": 24.997758, "forks": 1, "matches_reference": true, "max_rss_bytes": 3061268480, "mode": "parallel", "records": 59013, "repeat": 1, "target_partitions": 1, "workers": 1}

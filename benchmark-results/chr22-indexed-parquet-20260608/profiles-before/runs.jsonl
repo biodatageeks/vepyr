@@ -1,0 +1,2 @@
+{"body_sha256": "16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30", "elapsed_seconds": 27.116921, "forks": 1, "matches_reference": true, "max_rss_bytes": 2383413248, "mode": "parallel", "records": 59013, "repeat": 1, "workers": 2}
+{"body_sha256": "16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30", "elapsed_seconds": 24.155895, "forks": 1, "matches_reference": true, "max_rss_bytes": 2559541248, "mode": "parallel", "records": 59013, "repeat": 1, "workers": 4}

@@ -1,0 +1,2 @@
+mode,workers,repeat,forks,elapsed_seconds,max_rss_bytes,records,body_sha256,matches_reference
+parallel,2,1,1,192.030273,2357673984,59013,16cc94c0afee4553d18f37b8a0083b8f5011d32cab753c72f75e24a125664b30,True
