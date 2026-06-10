@@ -210,6 +210,70 @@ approximately 8-30%. Representative results:
 | 2 | 8 | 10.459 s | 9.591 s | -8.3% |
 | 16 | 10 | 10.784 s | 9.904 s | -8.2% |
 
+## Rejected cost-aware partitioning experiment
+
+A follow-up experiment partitioned each prefetch wave into contiguous reader
+ranges balanced by the number of page-index-selected rows instead of by the
+number of row groups. The intent was to reduce reader-tail imbalance while
+preserving row-group and output ordering.
+
+The retained 12-cell smoke benchmark used 5 shuffled repeats per cell:
+
+- results: `cost-aware-partitioning-smoke/`
+- comparison: `comparison-cost-aware-partitioning-smoke/`
+- matching output hashes: `60/60`
+- improvements: 0
+- neutral: 6
+- regressions: 6
+
+The largest regression was workers 2 / target 8: `9.591 s` to `10.926 s`
+(`+13.9%`). The implementation was therefore rejected and restored. Selected
+row count is not a sufficiently accurate proxy for Parquet reader cost on this
+cache; equal row-group-count partitioning remains the production behavior.
+
+## Rejected persistent reader pool experiment
+
+A second follow-up kept scoped reader threads alive across all prefetch waves
+within one `prefetch_positions` call. Each worker opened the Parquet file once,
+received later wave partitions over a channel, and returned tagged results for
+ordered assembly. Wave sizing, cache retention, and output ordering were
+unchanged.
+
+The same 12-cell smoke set used 5 shuffled repeats:
+
+- results: `persistent-reader-pool-smoke/`
+- comparison: `comparison-persistent-reader-pool-smoke/`
+- matching output hashes: `60/60`
+- improvements: 0
+- neutral: 11
+- regressions: 1
+
+Most changes were between -2.6% and +1.5%, below the 5% significance threshold.
+Workers 2 / target 4 regressed from `10.305 s` to `10.948 s` (`+6.2%`).
+The implementation was rejected because the small neutral gains did not justify
+the additional worker/channel lifecycle complexity.
+
+## Rejected lookup/annotation lookahead experiment
+
+The final experiment kept one complete VEP input buffer ready ahead of the
+buffer being annotated. Lookup targeted two ready buffers, while each
+annotation iteration consumed at most one, using the existing bounded lookup
+queues and preserving output order.
+
+The same 12-cell smoke set used 5 shuffled repeats:
+
+- results: `pipeline-lookahead-smoke/`
+- comparison: `comparison-pipeline-lookahead-smoke/`
+- matching output hashes: `60/60`
+- improvements: 0
+- neutral: 12
+- regressions: 0
+
+Median changes ranged from `-2.7%` to `+2.8%`, below the 5% significance
+threshold. The implementation was rejected and restored because it added
+buffering/state-machine behavior without a measurable throughput improvement.
+This concludes the planned parallel lookup optimization experiments.
+
 ## Repeat command
 
 Use the full named regression suite after every parallelism change:
