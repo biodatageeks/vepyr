@@ -304,6 +304,25 @@ class TestBuildCacheProgressCallback:
         assert call_args[4] == 5  # zstd_level
         assert call_args[5] == 256  # dict_size_kb
 
+    @patch("vepyr._build_cache")
+    def test_lance_build_uses_top_level_cache_layout(self, mock_native, tmp_path):
+        """Lance writes directly to cache_dir/<release>_<assembly>_<cache_type>."""
+        mock_native.return_value = []
+        local_cache = tmp_path / "homo_sapiens" / "115_GRCh38_merged"
+        local_cache.mkdir(parents=True)
+
+        vepyr.build_cache(
+            115,
+            str(tmp_path),
+            cache_type="merged",
+            local_cache=str(local_cache),
+            cache_format="lance",
+            show_progress=False,
+        )
+
+        assert mock_native.call_args.args[1] == str(tmp_path / "115_GRCh38_merged")
+        assert mock_native.call_args.args[3] == "lance"
+
 
 @pytest.fixture(scope="module")
 def built_cache(skip_if_no_ensembl_cache):

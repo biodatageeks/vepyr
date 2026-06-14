@@ -5,9 +5,10 @@ use datafusion::execution::SendableRecordBatchStream;
 use datafusion::prelude::{SessionConfig, SessionContext};
 use datafusion_bio_format_vcf::VcfCompressionType;
 use datafusion_bio_function_vep::register_vep_functions;
-use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, OnBatchWritten};
+use datafusion_bio_function_vep::vcf_sink::{AnnotateVcfConfig, OnBatchWritten, annotate_to_vcf};
 use futures::StreamExt;
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
 
@@ -73,9 +74,12 @@ fn options_json_with_parallelism(
         .and_then(|v| v.as_str())
         .unwrap_or("indexed_parquet")
         .to_string();
-    if !matches!(cache_format.as_str(), "indexed_parquet" | "legacy_fjall") {
+    if !matches!(
+        cache_format.as_str(),
+        "indexed_parquet" | "legacy_fjall" | "lance"
+    ) {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "cache_format must be 'indexed_parquet' or 'legacy_fjall'",
+            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'lance'",
         ));
     }
     object.insert(
@@ -107,7 +111,7 @@ pub struct StreamingAnnotator {
     rt: std::sync::Arc<Runtime>,
     stream: std::sync::Mutex<Option<SendableRecordBatchStream>>,
     #[pyo3(get)]
-    schema: PyObject,
+    schema: Py<PyAny>,
 }
 
 #[pymethods]
@@ -116,7 +120,7 @@ impl StreamingAnnotator {
         slf
     }
 
-    fn __next__(&self, py: Python<'_>) -> PyResult<Option<PyObject>> {
+    fn __next__(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
         let mut guard = self.stream.lock().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Lock poisoned: {e}"))
         })?;
@@ -136,7 +140,7 @@ impl StreamingAnnotator {
                     let py_batch = batch
                         .to_pyarrow(py)
                         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-                    return Ok(Some(py_batch));
+                    return Ok(Some(py_batch.into()));
                 }
                 Some(Err(e)) => {
                     return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -168,7 +172,7 @@ pub fn annotate_to_vcf_file(
     options_json: &str,
     show_progress: bool,
     compression: &str,
-    on_batch_written: Option<PyObject>,
+    on_batch_written: Option<Py<PyAny>>,
     forks: usize,
     workers: usize,
 ) -> PyResult<usize> {
@@ -185,7 +189,10 @@ pub fn annotate_to_vcf_file(
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
     let use_fjall = cache_format == "legacy_fjall";
-    let uses_parallel_lookup = matches!(cache_format.as_str(), "indexed_parquet" | "legacy_fjall");
+    let uses_parallel_lookup = matches!(
+        cache_format.as_str(),
+        "indexed_parquet" | "legacy_fjall" | "lance"
+    );
 
     let backend = cache_format.as_str();
     let rt = runtime_for_parallelism(uses_parallel_lookup, forks, workers)?;
@@ -208,7 +215,7 @@ pub fn annotate_to_vcf_file(
                     total_rows,
                     total_input
                 );
-                Python::with_gil(|py| {
+                Python::attach(|py| {
                     if let Err(e) = cb.call1(py, (batch_rows, total_rows, total_input)) {
                         log::warn!("on_batch_written callback error: {e}");
                     }
@@ -307,6 +314,8 @@ pub fn annotate_to_vcf_file(
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
         forks: Some(forks),
+        workers,
+        target_partitions: effective_session_partitions(uses_parallel_lookup, forks),
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -315,7 +324,7 @@ pub fn annotate_to_vcf_file(
     // Release the GIL so the Python background thread (in __init__.py) can
     // let Jupyter's main thread pump display updates for tqdm progress bars.
     // The on_batch_written callback re-acquires the GIL via Python::with_gil().
-    py.allow_threads(|| {
+    py.detach(|| {
         rt.block_on(async {
             let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
                 .await
@@ -349,7 +358,10 @@ pub fn create_streaming_annotator(
     let _opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
-    let uses_parallel_lookup = matches!(cache_format.as_str(), "indexed_parquet" | "legacy_fjall");
+    let uses_parallel_lookup = matches!(
+        cache_format.as_str(),
+        "indexed_parquet" | "legacy_fjall" | "lance"
+    );
     let rt = runtime_for_parallelism(uses_parallel_lookup, forks, workers)?;
 
     let (stream, schema) = rt.block_on(async {
@@ -409,7 +421,7 @@ pub fn create_streaming_annotator(
     Ok(StreamingAnnotator {
         rt,
         stream: std::sync::Mutex::new(Some(stream)),
-        schema: py_schema,
+        schema: py_schema.into(),
     })
 }
 
@@ -443,7 +455,20 @@ mod tests {
     }
 
     #[test]
+    fn lance_cache_format_is_accepted() {
+        let (options_json, cache_format) =
+            options_json_with_parallelism(r#"{"cache_format":"lance"}"#, 0, 1).unwrap();
+        let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
+
+        assert_eq!(cache_format, "lance");
+        assert_eq!(opts["cache_format"], "lance");
+        assert_eq!(opts["forks"], 0);
+        assert_eq!(opts["inline_lookup"], true);
+    }
+
+    #[test]
     fn invalid_cache_format_is_rejected() {
+        pyo3::Python::initialize();
         let err = options_json_with_parallelism(r#"{"cache_format":"fjall"}"#, 1, 1).unwrap_err();
         assert!(err.to_string().contains("cache_format"));
     }

@@ -3,6 +3,10 @@ name = "vepyr"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module"]
+
 [lib]
 name = "_core"
 # "cdylib" is necessary to produce a shared library for Python to import from.
@@ -10,13 +14,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # PyO3 for Python bindings
-pyo3 = { version = "0.25", features = ["extension-module", "abi3-py310"] }
+pyo3 = { version = "0.28", features = ["abi3-py310"] }
 
 # Arrow interop between Rust and Python (PyArrow)
-arrow = { version = "56", features = ["pyarrow"] }
+arrow = { version = "58", features = ["pyarrow"] }
 
 # DataFusion for query execution
-datafusion = "50.3.0"
+datafusion = "=53.0.0"
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
 futures = "0.3"
 log = "0.4"
@@ -24,6 +28,6 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d63965d4f932fcdb0cece53160bd2977d864e66b", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "9cfe804f405f421e41daa2a9cb6aedb7fd7504cf" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "9cfe804f405f421e41daa2a9cb6aedb7fd7504cf" }
+datafusion-bio-function-vep = { path = "../datafusion-bio-functions/datafusion/bio-function-vep", features = ["cache-builder", "lance-cache"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.0" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.0" }

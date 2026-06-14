@@ -17,7 +17,7 @@ def build_cache(
     variation_cold_row_group_rows: int = 8_192,
     variation_cold_data_page_rows: int = 1_024,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
-    """Build all cache entities from an Ensembl VEP cache to Parquet."""
+    """Build all cache entities from an Ensembl VEP cache."""
     ...
 
 def annotate_vcf(

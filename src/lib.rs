@@ -1,6 +1,7 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat, OnProgress};
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 
 mod annotate;
 
@@ -26,7 +27,7 @@ fn build_cache(
     cache_format: &str,
     zstd_level: i32,
     dict_size_kb: u32,
-    on_progress: Option<PyObject>,
+    on_progress: Option<Py<PyAny>>,
     cache_source_type: &str,
     overwrite: bool,
     variation_af_threshold: f64,
@@ -42,7 +43,7 @@ fn build_cache(
     let cb: Option<OnProgress> = on_progress.map(|py_cb| {
         Box::new(
             move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
-                Python::with_gil(|py| {
+                Python::attach(|py| {
                     if let Err(e) = py_cb.call1(py, (entity, fmt, batch, total, expected)) {
                         log::warn!("on_progress callback error: {e}");
                     }
@@ -76,7 +77,7 @@ fn build_cache(
 
     // Release the GIL so tokio worker threads can run in parallel.
     // The progress callback re-acquires it via Python::with_gil() when needed.
-    let stats = py.allow_threads(|| {
+    let stats = py.detach(|| {
         rt.block_on(builder.build_all()).map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
         })
@@ -114,7 +115,7 @@ fn annotate_vcf(
     options_json: &str,
     show_progress: bool,
     compression: &str,
-    on_batch_written: Option<PyObject>,
+    on_batch_written: Option<Py<PyAny>>,
     forks: usize,
     workers: usize,
 ) -> PyResult<usize> {

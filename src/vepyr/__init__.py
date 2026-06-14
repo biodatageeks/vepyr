@@ -275,8 +275,8 @@ def build_cache(
     partitions : int
         Number of DataFusion partitions for parallelism (default: 1).
     cache_format : str
-        Cache format to build: ``"indexed_parquet"`` (default) or
-        ``"legacy_fjall"``.
+        Cache format to build: ``"indexed_parquet"`` (default),
+        ``"legacy_fjall"``, or ``"lance"``.
     fjall_zstd_level : int
         Zstd compression level for fjall stores (default: 3).
     fjall_dict_size_kb : int
@@ -319,8 +319,10 @@ def build_cache(
     import tarfile
 
     _validate_cache_type(cache_type)
-    if cache_format not in {"indexed_parquet", "legacy_fjall"}:
-        raise ValueError("cache_format must be 'indexed_parquet' or 'legacy_fjall'")
+    if cache_format not in {"indexed_parquet", "legacy_fjall", "lance"}:
+        raise ValueError(
+            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'lance'"
+        )
     if not 1 <= fjall_zstd_level <= 22:
         raise ValueError(
             f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
@@ -389,8 +391,13 @@ def build_cache(
                 f"Cache directory not found after extraction: {cache_root}"
             )
 
-    # Output: parquet/<version_dir>/<entity>/chr1.parquet
-    output_dir = os.path.join(cache_dir, "parquet", version_dir)
+    # Output layout:
+    # - indexed_parquet / legacy_fjall: parquet/<version_dir>/<entity>/chr1.parquet
+    # - lance: <version_dir>/<entity>.lance/chr1.lance
+    if cache_format == "lance":
+        output_dir = os.path.join(cache_dir, version_dir)
+    else:
+        output_dir = os.path.join(cache_dir, "parquet", version_dir)
 
     # Build progress callback: explicit wins, then auto-tqdm, then None.
     progress_cb = on_progress
@@ -468,7 +475,8 @@ def build_cache(
                 secs,
             )
 
-    log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
+    output_kind = "Lance datasets" if cache_format == "lance" else "Parquet files"
+    log.info("Done. Wrote %d %s to %s", len(all_results), output_kind, output_dir)
     return all_results
 
 
@@ -617,8 +625,8 @@ def annotate(
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     cache_format : str
-        Cache format to use: ``"indexed_parquet"`` (default) or
-        ``"legacy_fjall"``.
+        Cache format to use: ``"indexed_parquet"`` (default),
+        ``"legacy_fjall"``, or ``"lance"``.
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     forks : int
@@ -716,8 +724,10 @@ def annotate(
         raise ValueError("workers must be a positive integer")
     if workers > 1 and forks <= 0:
         raise ValueError("workers > 1 requires forks > 0")
-    if cache_format not in {"indexed_parquet", "legacy_fjall"}:
-        raise ValueError("cache_format must be 'indexed_parquet' or 'legacy_fjall'")
+    if cache_format not in {"indexed_parquet", "legacy_fjall", "lance"}:
+        raise ValueError(
+            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'lance'"
+        )
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
