@@ -27,3 +27,10 @@ serde_json = "1"
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "34f4355af1fe5954f156b588a691c305740c386b", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "9cfe804f405f421e41daa2a9cb6aedb7fd7504cf" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "9cfe804f405f421e41daa2a9cb6aedb7fd7504cf" }
+
+# Local-dev override: build against the in-tree datafusion-bio-functions checkout
+# (HEAD == pinned rev 34f4355) so cache-builder parallelization changes are picked
+# up without pushing. Its own ensembl-cache dep pins the same formats rev (9cfe804)
+# as above, so the dependency graph stays single-versioned. Revert before release.
+[patch."https://github.com/biodatageeks/datafusion-bio-functions.git"]
+datafusion-bio-function-vep = { path = "../datafusion-bio-functions/datafusion/bio-function-vep" }
