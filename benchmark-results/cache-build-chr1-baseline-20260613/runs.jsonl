@@ -1,0 +1,1 @@
+{"elapsed_seconds": 1234.928665, "knob": "partitions", "knob_value": 1, "max_rss_bytes": 9342271488, "num_files": 7, "repeat": 1, "total_parquet_bytes": 6453056620, "total_rows": 88639209}

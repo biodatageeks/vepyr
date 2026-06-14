@@ -1,0 +1,2 @@
+knob,knob_value,repeat,elapsed_seconds,max_rss_bytes,num_files,total_rows,total_parquet_bytes
+partitions,1,1,1234.928665,9342271488,7,88639209,6453056620

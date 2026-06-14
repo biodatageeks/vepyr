@@ -1,0 +1,5 @@
+knob,knob_value,repeat,elapsed_seconds,max_rss_bytes,num_files,total_rows,total_parquet_bytes
+build_concurrency,1,1,1047.337525,11353178112,28,78305358,6665459277
+build_concurrency,2,1,649.063241,9530949632,28,78305358,6665459277
+build_concurrency,4,1,491.049426,11397070848,28,78305358,6665459277
+build_concurrency,8,1,420.990329,10594287616,28,78305358,6665459277

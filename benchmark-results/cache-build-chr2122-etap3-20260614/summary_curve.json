@@ -1,0 +1,72 @@
+{
+  "created_at": "2026-06-14T09:54:55+0200",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "python": "3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)]",
+  "git_commit": "b2bea8a8d3f0374b16b7fb6b252f5ca1186301f9",
+  "git_branch": "test-annotation-target-partitions",
+  "local_cache": "/tmp/bench_chr2122/raw_subset",
+  "chromosomes": "21,22",
+  "knob": "build_concurrency",
+  "values": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "repeats": 1,
+  "fixed_partitions": 1,
+  "results": [
+    {
+      "knob_value": 1,
+      "runs": 1,
+      "median_seconds": 351.920828,
+      "min_seconds": 351.920828,
+      "max_seconds": 351.920828,
+      "median_max_rss_bytes": 7315456000,
+      "total_rows": [
+        29893709
+      ],
+      "rows_consistent": true,
+      "speedup_vs_1": 1.0
+    },
+    {
+      "knob_value": 2,
+      "runs": 1,
+      "median_seconds": 198.335837,
+      "min_seconds": 198.335837,
+      "max_seconds": 198.335837,
+      "median_max_rss_bytes": 7843627008,
+      "total_rows": [
+        29893709
+      ],
+      "rows_consistent": true,
+      "speedup_vs_1": 1.774
+    },
+    {
+      "knob_value": 4,
+      "runs": 1,
+      "median_seconds": 177.779177,
+      "min_seconds": 177.779177,
+      "max_seconds": 177.779177,
+      "median_max_rss_bytes": 7185055744,
+      "total_rows": [
+        29893709
+      ],
+      "rows_consistent": true,
+      "speedup_vs_1": 1.98
+    },
+    {
+      "knob_value": 8,
+      "runs": 1,
+      "median_seconds": 178.480102,
+      "min_seconds": 178.480102,
+      "max_seconds": 178.480102,
+      "median_max_rss_bytes": 6906986496,
+      "total_rows": [
+        29893709
+      ],
+      "rows_consistent": true,
+      "speedup_vs_1": 1.972
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "created_at": "2026-06-14T09:37:50+0200",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "python": "3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)]",
+  "git_commit": "b2bea8a8d3f0374b16b7fb6b252f5ca1186301f9",
+  "git_branch": "test-annotation-target-partitions",
+  "local_cache": "/tmp/bench_chr2122/raw_subset",
+  "chromosomes": "21,22",
+  "knob": "build_concurrency",
+  "values": [
+    1,
+    4
+  ],
+  "repeats": 1,
+  "fixed_partitions": 1,
+  "results": [
+    {
+      "knob_value": 1,
+      "runs": 1,
+      "median_seconds": 383.95797,
+      "min_seconds": 383.95797,
+      "max_seconds": 383.95797,
+      "median_max_rss_bytes": 5107449856,
+      "total_rows": [
+        29893709
+      ],
+      "rows_consistent": true,
+      "speedup_vs_1": 1.0
+    },
+    {
+      "knob_value": 4,
+      "runs": 1,
+      "median_seconds": 182.980559,
+      "min_seconds": 182.980559,
+      "max_seconds": 182.980559,
+      "median_max_rss_bytes": 6252298240,
+      "total_rows": [
+        29893709
+      ],
+      "rows_consistent": true,
+      "speedup_vs_1": 2.098
+    }
+  ]
+}
