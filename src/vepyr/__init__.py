@@ -256,6 +256,7 @@ def build_cache(
     variation_position_radius: int = 1,
     variation_cold_row_group_rows: int = 8_192,
     variation_cold_data_page_rows: int = 1_024,
+    build_concurrency: int = 0,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to an optimized cache.
 
@@ -309,6 +310,12 @@ def build_cache(
     variation_cold_data_page_rows : int
         Target cold variation parquet data page row count used for page-level
         pruning metadata.
+    build_concurrency : int
+        Maximum number of cache entities built concurrently. ``0`` (default)
+        auto-selects ``min(cpu_count, 6)``. ``1`` reproduces the original
+        serial build. Entities write to disjoint output directories, so this
+        only changes scheduling, never output content. The tokio runtime worker
+        thread count is set to ``max(partitions, build_concurrency)``.
 
     Returns
     -------
@@ -346,6 +353,8 @@ def build_cache(
     }.items():
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValueError(f"{name} must be a positive integer")
+    if isinstance(build_concurrency, bool) or not isinstance(build_concurrency, int) or build_concurrency < 0:
+        raise ValueError("build_concurrency must be a non-negative integer (0 = auto)")
 
     # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
@@ -446,6 +455,7 @@ def build_cache(
             int(variation_position_radius),
             int(variation_cold_row_group_rows),
             int(variation_cold_data_page_rows),
+            int(build_concurrency),
         )
     finally:
         if _bars is not None:

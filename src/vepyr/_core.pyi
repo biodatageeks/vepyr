@@ -16,6 +16,7 @@ def build_cache(
     variation_position_radius: int = 1,
     variation_cold_row_group_rows: int = 8_192,
     variation_cold_data_page_rows: int = 1_024,
+    build_concurrency: int = 0,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
     """Build all cache entities from an Ensembl VEP cache to Parquet."""
     ...

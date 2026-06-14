@@ -16,7 +16,7 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="indexed_parquet", zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_cold_row_group_rows=8_192, variation_cold_data_page_rows=1_024))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="indexed_parquet", zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_cold_row_group_rows=8_192, variation_cold_data_page_rows=1_024, build_concurrency=0))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -33,11 +33,28 @@ fn build_cache(
     variation_position_radius: i64,
     variation_cold_row_group_rows: usize,
     variation_cold_data_page_rows: usize,
+    build_concurrency: usize,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid cache_format: {err}"))
     })?;
+
+    // build_concurrency = max entity build tasks running at once. 0 = auto:
+    // min(available_parallelism, number of entities = 6).
+    let resolved_concurrency = if build_concurrency == 0 {
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
+            .min(6)
+    } else {
+        build_concurrency
+    }
+    .max(1);
+    // The runtime needs enough worker threads to actually parallelize the
+    // concurrent entity tasks (each may also drive its own intra-query
+    // partitions), so decouple it from `partitions`.
+    let worker_threads = partitions.max(resolved_concurrency).max(1);
 
     let cb: Option<OnProgress> = on_progress.map(|py_cb| {
         Box::new(
@@ -62,14 +79,16 @@ fn build_cache(
         .with_indexed_variation_cold_layout_options(
             variation_cold_row_group_rows,
             variation_cold_data_page_rows,
-        );
+        )
+        .with_build_concurrency(resolved_concurrency);
 
     if let Some(progress) = cb {
         builder = builder.with_on_progress(progress);
     }
+    let builder = std::sync::Arc::new(builder);
 
     let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(partitions)
+        .worker_threads(worker_threads)
         .enable_all()
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
