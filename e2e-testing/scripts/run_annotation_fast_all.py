@@ -7,6 +7,7 @@ Usage:
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
     python run_annotation_fast_all.py --backend legacy_fjall
+    python run_annotation_fast_all.py --backend lance --cache merged
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
 per-chromosome JSON reports into a single timestamped Markdown summary
@@ -36,7 +37,7 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
-BACKENDS = ("indexed_parquet", "legacy_fjall")
+BACKENDS = ("indexed_parquet", "legacy_fjall", "lance")
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.

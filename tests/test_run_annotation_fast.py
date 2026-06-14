@@ -86,6 +86,19 @@ def test_parse_args_accepts_legacy_fjall(monkeypatch):
     assert args.backend == "legacy_fjall"
 
 
+def test_parse_args_accepts_lance_backend(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast.py", "chr1", "--cache", "merged", "--backend", "lance"],
+    )
+
+    args = module.parse_args()
+
+    assert args.backend == "lance"
+    assert args.cache == "merged"
+
+
 def test_main_preserves_requested_forks_and_workers_for_single_chrom(
     monkeypatch, tmp_path
 ):
@@ -211,6 +224,38 @@ def test_fast_all_parse_args_accepts_legacy_fjall(monkeypatch):
     args = module.parse_args()
 
     assert args.backend == "legacy_fjall"
+
+
+def test_fast_all_parse_args_accepts_lance(monkeypatch):
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast_all.py", "--cache", "merged", "--backend", "lance"],
+    )
+
+    args = module.parse_args()
+
+    assert args.backend == "lance"
+    assert args.cache == "merged"
+
+
+def test_fast_all_run_chromosome_forwards_lance_backend_and_cache(monkeypatch):
+    module = load_run_annotation_fast_all()
+    seen = {}
+
+    def fake_run(cmd, cwd=None):
+        seen["cmd"] = cmd
+        seen["cwd"] = cwd
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module.run_chromosome(1, cache="merged", backend="lance", force=True) is True
+    assert "--cache" in seen["cmd"]
+    assert "merged" in seen["cmd"]
+    assert "--backend" in seen["cmd"]
+    assert "lance" in seen["cmd"]
+    assert "--force" in seen["cmd"]
 
 
 def test_parse_args_allows_parallel_indexed_parquet(monkeypatch):

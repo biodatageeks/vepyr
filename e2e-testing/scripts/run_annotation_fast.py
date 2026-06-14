@@ -5,6 +5,7 @@ Usage:
     python run_annotation_fast.py chr1
     python run_annotation_fast.py chr22 --vcf /path/to/input.vcf.gz --vep /path/to/vep_output.vcf
     python run_annotation_fast.py chr22 --backend legacy_fjall
+    python run_annotation_fast.py chr1 --cache merged --backend lance --forks 0 --force
 
 Extracts a single chromosome from a tabix-indexed VCF, annotates with the
 selected cache format, and compares against the corresponding VEP reference output.
@@ -30,7 +31,7 @@ DEFAULT_REFERENCE_FASTA = os.path.join(
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
-BACKENDS = ("indexed_parquet", "legacy_fjall")
+BACKENDS = ("indexed_parquet", "legacy_fjall", "lance")
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
