@@ -75,7 +75,7 @@ class TestBuildCacheSignature:
     def test_has_partitions_param(self):
         sig = inspect.signature(vepyr.build_cache)
         p = sig.parameters["partitions"]
-        assert p.default == 1
+        assert p.default == 8
 
     def test_no_memory_limit_gb_param(self):
         """memory_limit_gb was removed in the upstream migration."""

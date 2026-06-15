@@ -243,7 +243,7 @@ def build_cache(
     cache_type: str,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    partitions: int = 1,
+    partitions: int = 8,
     cache_format: str = "indexed_parquet",
     fjall_zstd_level: int = 3,
     fjall_dict_size_kb: int = 112,
@@ -273,7 +273,7 @@ def build_cache(
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
     partitions : int
-        Number of DataFusion partitions for parallelism (default: 1).
+        Number of DataFusion partitions for parallelism (default: 8).
     cache_format : str
         Cache format to build: ``"indexed_parquet"`` (default),
         ``"legacy_fjall"``, or ``"lance"``.
