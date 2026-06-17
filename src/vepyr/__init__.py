@@ -524,6 +524,7 @@ def annotate(
     cache_size_mb: int = 1024,
     forks: int = 0,
     workers: int = 1,
+    threads: int = 1,
     skip_csq: bool = True,
     # Output mode
     output_vcf: str | None = None,
@@ -808,6 +809,10 @@ def annotate(
             opts["distance"] = distance
     if cache_size_mb != 1024:
         opts["cache_size_mb"] = cache_size_mb
+    if threads and threads > 1:
+        # Single within-contig parallelism knob: N per-partition annotation
+        # pipelines. Requires a tabix-indexed (bgzip+.tbi) input VCF.
+        opts["threads"] = threads
 
     options_json = json.dumps(opts)
 

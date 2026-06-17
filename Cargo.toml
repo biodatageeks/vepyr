@@ -13,6 +13,7 @@ name = "_core"
 crate-type = ["cdylib"]
 
 [dependencies]
+mimalloc = "0.1"
 # PyO3 for Python bindings
 pyo3 = { version = "0.28", features = ["abi3-py310"] }
 

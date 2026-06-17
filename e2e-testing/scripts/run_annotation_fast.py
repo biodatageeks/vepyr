@@ -176,6 +176,13 @@ def parse_args():
         help="Per-chromosome annotation worker budget (default: %(default)s)",
     )
     p.add_argument(
+        "--threads",
+        type=int,
+        default=1,
+        help="Within-contig parallel annotation pipelines; >1 requires a "
+        "tabix-indexed input (default: %(default)s)",
+    )
+    p.add_argument(
         "--vcf",
         default=DEFAULT_VCF_INPUT,
         help="Tabix-indexed input VCF (default: %(default)s)",
@@ -718,6 +725,7 @@ def main():
             output_vcf=output_vcf,
             forks=args.forks,
             workers=args.workers,
+            threads=args.threads,
             **args.annotate_kwargs,
         )
         elapsed = time.time() - t0

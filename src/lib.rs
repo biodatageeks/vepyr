@@ -3,6 +3,14 @@ use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat, OnPr
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
+// The VEP consequence engine is allocation-heavy (CSQ strings, feature clones,
+// HashMaps); macOS libmalloc is slow per-alloc and contends across threads,
+// which capped within-contig parallel scaling. mimalloc fixes both — ~1.67x
+// faster single-threaded and materially better thread scaling. A cdylib CAN
+// set the global allocator (a library crate cannot), so it belongs here.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 mod annotate;
 
 fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {

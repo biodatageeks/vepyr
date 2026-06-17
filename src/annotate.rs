@@ -315,6 +315,15 @@ pub fn annotate_to_vcf_file(
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
         forks: Some(forks),
         workers,
+        // Single within-contig parallelism knob: `threads` in the options JSON
+        // drives N per-partition annotation pipelines (engine requires a
+        // tabix-indexed input when threads>1).
+        threads: opts
+            .get("threads")
+            .and_then(|v| v.as_u64())
+            .and_then(|n| usize::try_from(n).ok())
+            .filter(|n| *n > 0)
+            .unwrap_or(1),
         target_partitions: effective_session_partitions(uses_parallel_lookup, forks),
         compression: vcf_compression,
         show_progress,
