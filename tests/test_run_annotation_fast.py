@@ -43,7 +43,7 @@ def test_refseq_cache_profile_uses_data_vepyr_paths():
     )
 
 
-def test_parse_args_accepts_forks_and_workers(monkeypatch):
+def test_parse_args_accepts_workers(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
@@ -51,9 +51,7 @@ def test_parse_args_accepts_forks_and_workers(monkeypatch):
             "run_annotation_fast.py",
             "chr1",
             "--backend",
-            "indexed_parquet",
-            "--forks",
-            "2",
+            "lance",
             "--workers",
             "4",
         ],
@@ -61,29 +59,29 @@ def test_parse_args_accepts_forks_and_workers(monkeypatch):
 
     args = module.parse_args()
 
-    assert args.forks == 2
     assert args.workers == 4
 
 
-def test_parse_args_defaults_to_indexed_parquet(monkeypatch):
+def test_parse_args_defaults_to_lance(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr("sys.argv", ["run_annotation_fast.py", "chr1"])
 
     args = module.parse_args()
 
-    assert args.backend == "indexed_parquet"
+    assert args.backend == "lance"
 
 
-def test_parse_args_accepts_legacy_fjall(monkeypatch):
+def test_parse_args_rejects_non_lance_backend(monkeypatch):
+    import pytest
+
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
         ["run_annotation_fast.py", "chr1", "--backend", "legacy_fjall"],
     )
 
-    args = module.parse_args()
-
-    assert args.backend == "legacy_fjall"
+    with pytest.raises(SystemExit):
+        module.parse_args()
 
 
 def test_parse_args_accepts_lance_backend(monkeypatch):
@@ -99,14 +97,11 @@ def test_parse_args_accepts_lance_backend(monkeypatch):
     assert args.cache == "merged"
 
 
-def test_main_preserves_requested_forks_and_workers_for_single_chrom(
-    monkeypatch, tmp_path
-):
+def test_main_preserves_requested_workers_for_single_chrom(monkeypatch, tmp_path):
     module = load_run_annotation_fast()
     seen = {}
 
     def fake_annotate(*_args, **kwargs):
-        seen["forks"] = kwargs["forks"]
         seen["workers"] = kwargs["workers"]
         Path(kwargs["output_vcf"]).write_text(
             "\n".join(
@@ -135,11 +130,9 @@ def test_main_preserves_requested_forks_and_workers_for_single_chrom(
             "run_annotation_fast.py",
             "chr1",
             "--backend",
-            "indexed_parquet",
-            "--forks",
-            "4",
+            "lance",
             "--workers",
-            "1",
+            "4",
             "--vcf",
             str(tmp_path / "input.vcf.gz"),
             "--cache-dir",
@@ -154,7 +147,7 @@ def test_main_preserves_requested_forks_and_workers_for_single_chrom(
 
     module.main()
 
-    assert seen == {"forks": 4, "workers": 1}
+    assert seen == {"workers": 4}
 
 
 def test_parse_args_accepts_skip_comparison_alias(monkeypatch):
@@ -205,25 +198,26 @@ def test_fast_all_run_chromosome_forwards_skip_compare(monkeypatch):
     assert "--chrom-parallelism" not in seen["cmd"]
 
 
-def test_fast_all_parse_args_defaults_to_indexed_parquet(monkeypatch):
+def test_fast_all_parse_args_defaults_to_lance(monkeypatch):
     module = load_run_annotation_fast_all()
     monkeypatch.setattr("sys.argv", ["run_annotation_fast_all.py"])
 
     args = module.parse_args()
 
-    assert args.backend == "indexed_parquet"
+    assert args.backend == "lance"
 
 
-def test_fast_all_parse_args_accepts_legacy_fjall(monkeypatch):
+def test_fast_all_parse_args_rejects_non_lance_backend(monkeypatch):
+    import pytest
+
     module = load_run_annotation_fast_all()
     monkeypatch.setattr(
         "sys.argv",
         ["run_annotation_fast_all.py", "--backend", "legacy_fjall"],
     )
 
-    args = module.parse_args()
-
-    assert args.backend == "legacy_fjall"
+    with pytest.raises(SystemExit):
+        module.parse_args()
 
 
 def test_fast_all_parse_args_accepts_lance(monkeypatch):
@@ -258,7 +252,7 @@ def test_fast_all_run_chromosome_forwards_lance_backend_and_cache(monkeypatch):
     assert "--force" in seen["cmd"]
 
 
-def test_parse_args_allows_parallel_indexed_parquet(monkeypatch):
+def test_parse_args_allows_parallel_lance(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
@@ -266,16 +260,16 @@ def test_parse_args_allows_parallel_indexed_parquet(monkeypatch):
             "run_annotation_fast.py",
             "chr1",
             "--backend",
-            "indexed_parquet",
-            "--forks",
+            "lance",
+            "--workers",
             "2",
         ],
     )
 
     args = module.parse_args()
 
-    assert args.forks == 2
-    assert args.backend == "indexed_parquet"
+    assert args.workers == 2
+    assert args.backend == "lance"
 
 
 def test_extract_chrom_from_vep_force_refreshes_cached_slice(tmp_path):

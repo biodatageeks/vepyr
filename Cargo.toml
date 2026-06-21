@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
+dhat-heap = ["dep:dhat"]
 
 [lib]
 name = "_core"
@@ -14,6 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 mimalloc = "0.1"
+dhat = { version = "0.3", optional = true }
 # PyO3 for Python bindings
 pyo3 = { version = "0.28", features = ["abi3-py310"] }
 

@@ -4,8 +4,8 @@
 Usage:
     python run_annotation_fast.py chr1
     python run_annotation_fast.py chr22 --vcf /path/to/input.vcf.gz --vep /path/to/vep_output.vcf
-    python run_annotation_fast.py chr22 --backend legacy_fjall
-    python run_annotation_fast.py chr1 --cache merged --backend lance --forks 0 --force
+    python run_annotation_fast.py chr22 --backend lance
+    python run_annotation_fast.py chr1 --cache merged --backend lance --workers 4 --force
 
 Extracts a single chromosome from a tabix-indexed VCF, annotates with the
 selected cache format, and compares against the corresponding VEP reference output.
@@ -31,7 +31,7 @@ DEFAULT_REFERENCE_FASTA = os.path.join(
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
-BACKENDS = ("indexed_parquet", "legacy_fjall", "lance")
+BACKENDS = ("lance",)
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
@@ -157,26 +157,11 @@ def parse_args():
     p.add_argument(
         "--backend",
         choices=BACKENDS,
-        default="indexed_parquet",
+        default="lance",
         help="Annotation cache format (default: %(default)s)",
     )
     p.add_argument(
-        "--forks",
-        type=int,
-        default=0,
-        help=(
-            "Chromosome-lane budget. With a single-chromosome input, only one "
-            "lane produces work and extra lanes remain idle (default: %(default)s)"
-        ),
-    )
-    p.add_argument(
         "--workers",
-        type=int,
-        default=1,
-        help="Per-chromosome annotation worker budget (default: %(default)s)",
-    )
-    p.add_argument(
-        "--threads",
         type=int,
         default=1,
         help="Within-contig parallel annotation pipelines; >1 requires a "
@@ -218,12 +203,8 @@ def parse_args():
         "--force", action="store_true", help="Re-run annotation even if output exists"
     )
     args = p.parse_args()
-    if args.forks < 0:
-        p.error("--forks must be a non-negative integer")
     if args.workers <= 0:
         p.error("--workers must be a positive integer")
-    if args.workers > 1 and args.forks <= 0:
-        p.error("--workers > 1 requires --forks > 0")
 
     # Resolve defaults from cache profile; explicit --cache-dir / --vep override
     profile = _CACHE_PROFILES[args.cache]
@@ -239,8 +220,8 @@ def parse_args():
 
 
 def report_suffix(cache_suffix, backend):
-    """Keep indexed parquet report names; namespace non-default formats."""
-    if backend == "indexed_parquet":
+    """Keep default report names; namespace non-default formats."""
+    if backend == "lance":
         return cache_suffix
     return f"{cache_suffix}_{backend}"
 
@@ -376,7 +357,7 @@ def compare_vcfs(
     vepyr_vcf,
     vep_vcf,
     label,
-    backend="indexed_parquet",
+    backend="lance",
     ignore_csq_order=False,
 ):
     """Field-by-field CSQ comparison between vepyr and VEP output."""
@@ -723,9 +704,7 @@ def main():
             reference_fasta=args.fasta,
             cache_format=args.backend,
             output_vcf=output_vcf,
-            forks=args.forks,
             workers=args.workers,
-            threads=args.threads,
             **args.annotate_kwargs,
         )
         elapsed = time.time() - t0

@@ -1,5 +1,5 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
-use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat, OnProgress};
+use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat};
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -8,8 +8,13 @@ use pyo3::types::PyAny;
 // which capped within-contig parallel scaling. mimalloc fixes both — ~1.67x
 // faster single-threaded and materially better thread scaling. A cdylib CAN
 // set the global allocator (a library crate cannot), so it belongs here.
+#[cfg(not(feature = "dhat-heap"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static GLOBAL: dhat::Alloc = dhat::Alloc;
 
 mod annotate;
 
@@ -25,7 +30,7 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="indexed_parquet", zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl", overwrite=false, variation_af_threshold=0.01, variation_position_radius=1, variation_cold_row_group_rows=8_192, variation_cold_data_page_rows=1_024))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="lance", on_progress=None, cache_source_type="ensembl", overwrite=false))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -33,49 +38,24 @@ fn build_cache(
     output_dir: &str,
     partitions: usize,
     cache_format: &str,
-    zstd_level: i32,
-    dict_size_kb: u32,
     on_progress: Option<Py<PyAny>>,
     cache_source_type: &str,
     overwrite: bool,
-    variation_af_threshold: f64,
-    variation_position_radius: i64,
-    variation_cold_row_group_rows: usize,
-    variation_cold_data_page_rows: usize,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid cache_format: {err}"))
     })?;
 
-    let cb: Option<OnProgress> = on_progress.map(|py_cb| {
-        Box::new(
-            move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
-                Python::attach(|py| {
-                    if let Err(e) = py_cb.call1(py, (entity, fmt, batch, total, expected)) {
-                        log::warn!("on_progress callback error: {e}");
-                    }
-                });
-            },
-        ) as OnProgress
-    });
+    // The Lance build path does not invoke a progress callback; the parameter
+    // is retained only for backward-compatible Python API.
+    let _ = on_progress;
 
-    let mut builder = CacheBuilder::new(cache_root, output_dir)
+    let builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
         .with_cache_format(cache_format)
-        .with_zstd_level(zstd_level)
-        .with_dict_size_kb(dict_size_kb)
         .with_cache_source_type(cache_source_type)
-        .with_overwrite(overwrite)
-        .with_variation_tier_filter_options(variation_af_threshold, variation_position_radius)
-        .with_indexed_variation_cold_layout_options(
-            variation_cold_row_group_rows,
-            variation_cold_data_page_rows,
-        );
-
-    if let Some(progress) = cb {
-        builder = builder.with_on_progress(progress);
-    }
+        .with_overwrite(overwrite);
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(partitions)
@@ -95,14 +75,10 @@ fn build_cache(
     let result: Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)> = stats
         .into_iter()
         .map(|s| {
-            let fjall = s.fjall_stats.map(|f| {
-                (
-                    f.total_variants,
-                    f.total_positions,
-                    f.total_bytes,
-                    f.elapsed_secs,
-                )
-            });
+            // The legacy fjall backend has been removed; the dependency no
+            // longer carries an `fjall_stats` field. Keep the tuple shape for
+            // the backward-compatible Python API (always `None`).
+            let fjall: Option<(u64, u64, u64, f64)> = None;
             (s.entity, s.parquet_files, fjall)
         })
         .collect();
@@ -113,7 +89,7 @@ fn build_cache(
 /// Annotate a VCF and write results directly to a VCF file.
 /// Returns the number of rows written.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None, forks=0, workers=1))]
+#[pyo3(signature = (vcf_path, cache_dir, output_path, options_json, show_progress=true, compression="", on_batch_written=None))]
 #[allow(clippy::too_many_arguments)]
 fn annotate_vcf(
     py: Python<'_>,
@@ -124,8 +100,6 @@ fn annotate_vcf(
     show_progress: bool,
     compression: &str,
     on_batch_written: Option<Py<PyAny>>,
-    forks: usize,
-    workers: usize,
 ) -> PyResult<usize> {
     annotate::annotate_to_vcf_file(
         py,
@@ -136,15 +110,12 @@ fn annotate_vcf(
         show_progress,
         compression,
         on_batch_written,
-        forks,
-        workers,
     )
 }
 
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
-#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None, forks=0, workers=1))]
-#[allow(clippy::too_many_arguments)]
+#[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None))]
 fn create_annotator(
     py: Python<'_>,
     vcf_path: &str,
@@ -152,19 +123,8 @@ fn create_annotator(
     options_json: &str,
     skip_csq: bool,
     limit: Option<usize>,
-    forks: usize,
-    workers: usize,
 ) -> PyResult<annotate::StreamingAnnotator> {
-    annotate::create_streaming_annotator(
-        py,
-        vcf_path,
-        cache_dir,
-        options_json,
-        skip_csq,
-        limit,
-        forks,
-        workers,
-    )
+    annotate::create_streaming_annotator(py, vcf_path, cache_dir, options_json, skip_csq, limit)
 }
 
 #[pymodule]

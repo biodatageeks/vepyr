@@ -6,7 +6,7 @@ Usage:
     python run_annotation_fast_all.py --no-force       # reuse existing annotation output
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
-    python run_annotation_fast_all.py --backend legacy_fjall
+    python run_annotation_fast_all.py --backend lance
     python run_annotation_fast_all.py --backend lance --cache merged
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
@@ -37,7 +37,7 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
-BACKENDS = ("indexed_parquet", "legacy_fjall", "lance")
+BACKENDS = ("lance",)
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -132,24 +132,14 @@ def parse_args():
     p.add_argument(
         "--backend",
         choices=BACKENDS,
-        default="indexed_parquet",
+        default="lance",
         help="Annotation cache format forwarded to run_annotation_fast.py (default: %(default)s)",
-    )
-    p.add_argument(
-        "--forks",
-        type=int,
-        default=0,
-        help=(
-            "Chromosome-lane budget forwarded to run_annotation_fast.py. "
-            "Per-chromosome children use one active lane when they only contain one chromosome "
-            "(default: %(default)s)"
-        ),
     )
     p.add_argument(
         "--workers",
         type=int,
         default=1,
-        help="Per-chromosome annotation worker budget forwarded to run_annotation_fast.py (default: %(default)s)",
+        help="Within-contig parallel annotation pipelines forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
         "--no-force",
@@ -169,12 +159,8 @@ def parse_args():
         help="Skip per-chromosome VEP comparisons and the aggregate comparison report",
     )
     args = p.parse_args()
-    if args.forks < 0:
-        p.error("--forks must be a non-negative integer")
     if args.workers <= 0:
         p.error("--workers must be a positive integer")
-    if args.workers > 1 and args.forks <= 0:
-        p.error("--workers > 1 requires --forks > 0")
     return args
 
 
@@ -183,7 +169,7 @@ def parse_args():
 
 def report_suffix(cache_suffix, backend):
     """Keep indexed parquet report names; namespace non-default formats."""
-    if backend == "indexed_parquet":
+    if backend == "lance":
         return cache_suffix
     return f"{cache_suffix}_{backend}"
 
@@ -191,8 +177,7 @@ def report_suffix(cache_suffix, backend):
 def run_chromosome(
     chrom_num,
     cache="ensembl",
-    backend="indexed_parquet",
-    forks=0,
+    backend="lance",
     workers=1,
     force=False,
     skip_comparison=False,
@@ -207,8 +192,6 @@ def run_chromosome(
         cache,
         "--backend",
         backend,
-        "--forks",
-        str(forks),
         "--workers",
         str(workers),
     ]
@@ -347,7 +330,7 @@ def classify_consequence_mismatches(examples):
 # ── Step 5: Load old benchmark for comparison ────────────────────────────
 
 
-def load_old_benchmark(backend="indexed_parquet"):
+def load_old_benchmark(backend="lance"):
     """Load the previous full-genome benchmark report for delta comparison."""
     path = os.path.join(REPORT_DIR, "benchmark_report.json")
     if not os.path.exists(path):
@@ -423,7 +406,7 @@ def pr_link(num):
 
 
 def generate_report(
-    reports, agg, csq_classes, old_mm, build_info=None, backend="indexed_parquet"
+    reports, agg, csq_classes, old_mm, build_info=None, backend="lance"
 ):
     """Generate the full Markdown report."""
     lines = []
@@ -730,7 +713,6 @@ def main():
                 n,
                 cache=cache,
                 backend=backend,
-                forks=args.forks,
                 workers=args.workers,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,

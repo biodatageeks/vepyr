@@ -122,17 +122,14 @@ lf = vepyr.annotate(
 )
 ```
 
-For fjall annotation, `forks` controls how many chromosomes can be annotated
-concurrently and `workers` controls annotation workers per active chromosome.
-`forks=0, workers=1` uses the strict single-lane path; `workers > 1` requires
-`forks > 0`; values of `forks` greater than 0 require `use_fjall=True`.
+`workers` controls how many within-contig annotation pipelines run
+concurrently. `workers=1` is the serial path; `workers > 1` requires a
+tabix-indexed (bgzip + `.tbi`) input VCF.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     "/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    use_fjall=True,
-    forks=1,
     workers=4,
 ).collect()
 ```

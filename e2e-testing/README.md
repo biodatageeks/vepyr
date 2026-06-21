@@ -86,12 +86,11 @@ uv run python run_annotation_fast.py chr1 --skip-comparison
 # Use legacy Fjall instead of the default indexed Parquet format
 uv run python run_annotation_fast.py chr1 --backend legacy_fjall
 
-# Use annotation workers for parallelism on one chromosome
-uv run python run_annotation_fast.py chr22 --forks 1 --workers 4 --force
+# Use annotation workers for within-contig parallelism (requires tabix index)
+uv run python run_annotation_fast.py chr22 --workers 4 --force
 
 # Same option works with cache profiles
 uv run python run_annotation_fast.py chr22 --cache merged_pick_filter \
-    --forks 1 \
     --workers 4 \
     --force
 
@@ -148,8 +147,8 @@ uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
 # Run legacy Fjall across chr1-22
 uv run python run_annotation_fast_all.py --backend legacy_fjall
 
-# Run indexed Parquet across chr1-22 with chromosome lanes and per-chromosome workers
-uv run python run_annotation_fast_all.py --forks 4 --workers 1
+# Run across chr1-22 with within-contig annotation workers
+uv run python run_annotation_fast_all.py --workers 4
 
 # Annotate all selected chromosomes without VEP comparison or aggregate report
 uv run python run_annotation_fast_all.py --skip-comparison
@@ -166,45 +165,39 @@ uv run python run_annotation_fast_all.py --skip-annotate
   - Field-level delta vs previous benchmark
   - Mismatch examples per field
 
-### Annotation lanes and workers
+### Annotation workers
 
-Use `--forks N` to choose how many chromosomes can be annotated concurrently
-and `--workers M` to choose annotation workers per active chromosome. This only
-applies to indexed Parquet and legacy Fjall when `N > 0`; `--forks 0 --workers 1` uses the
-strict single-lane path:
+Use `--workers N` to choose how many within-contig annotation pipelines run
+concurrently. `--workers 1` is the serial path; `--workers > 1` requires a
+tabix-indexed (bgzip + `.tbi`) input VCF:
 
 ```bash
 cd scripts
 
 # One chromosome, re-annotating even if a previous VCF exists
 uv run python run_annotation_fast.py chr22 \
-    --forks 1 \
     --workers 4 \
     --force
 
 # All autosomes
 uv run python run_annotation_fast_all.py \
-    --forks 4 \
-    --workers 1
+    --workers 4
 
 # All autosomes, annotation timing only
 uv run python run_annotation_fast_all.py \
-    --forks 4 \
-    --workers 1 \
+    --workers 4 \
     --skip-comparison
 
-# A pick-mode cache profile with chromosome lanes and per-chromosome workers
+# A pick-mode cache profile with within-contig workers
 uv run python run_annotation_fast_all.py \
     --cache merged_pick_allele_gene \
-    --forks 4 \
-    --workers 1
+    --workers 4
 ```
 
-`--forks` defaults to `0` and `--workers` defaults to `1`. `--workers > 1`
-requires `--forks > 0`. If
+`--workers` defaults to `1`. If
 output files already exist, pass `--force` to `run_annotation_fast.py` or omit
-`--no-force` from `run_annotation_fast_all.py` so timing reflects the new fork
-and worker settings. Pass `--skip-comparison` when you only need annotation
+`--no-force` from `run_annotation_fast_all.py` so timing reflects the new
+worker setting. Pass `--skip-comparison` when you only need annotation
 timing; the all-chromosome wrapper forwards skip mode to each chromosome run
 and does not create an aggregate comparison report.
 

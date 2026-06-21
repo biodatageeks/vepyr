@@ -244,18 +244,12 @@ def build_cache(
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
     partitions: int = 8,
-    cache_format: str = "indexed_parquet",
-    fjall_zstd_level: int = 3,
-    fjall_dict_size_kb: int = 112,
+    cache_format: str = "lance",
     local_cache: str | None = None,
     download_retries: int = 10,
     show_progress: bool = True,
     on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
     overwrite: bool = False,
-    variation_af_threshold: float = 0.01,
-    variation_position_radius: int = 1,
-    variation_cold_row_group_rows: int = 8_192,
-    variation_cold_data_page_rows: int = 1_024,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to an optimized cache.
 
@@ -275,12 +269,7 @@ def build_cache(
     partitions : int
         Number of DataFusion partitions for parallelism (default: 8).
     cache_format : str
-        Cache format to build: ``"indexed_parquet"`` (default),
-        ``"legacy_fjall"``, or ``"lance"``.
-    fjall_zstd_level : int
-        Zstd compression level for fjall stores (default: 3).
-    fjall_dict_size_kb : int
-        Zstd dictionary size in KB for fjall stores (default: 112).
+        Cache format to build. Only ``"lance"`` is supported (default).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
@@ -296,19 +285,6 @@ def build_cache(
         Overrides the default tqdm bars when provided.
     overwrite : bool
         Rebuild existing cache outputs instead of skipping them.
-    variation_af_threshold : float
-        Maximum global allele-frequency threshold used to split variation
-        parquet into ``<chrom>_warm.parquet`` and ``<chrom>_cold.parquet``.
-        Default keeps positions with AF >= 1%.
-    variation_position_radius : int
-        Number of neighboring positions around each warm position to include
-        in the warm variation parquet tier.
-    variation_cold_row_group_rows : int
-        Target cold variation parquet row group size. Row groups are extended
-        as needed so a position is not split across row groups.
-    variation_cold_data_page_rows : int
-        Target cold variation parquet data page row count used for page-level
-        pruning metadata.
 
     Returns
     -------
@@ -319,35 +295,8 @@ def build_cache(
     import tarfile
 
     _validate_cache_type(cache_type)
-    if cache_format not in {"indexed_parquet", "legacy_fjall", "lance"}:
-        raise ValueError(
-            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'lance'"
-        )
-    if not 1 <= fjall_zstd_level <= 22:
-        raise ValueError(
-            f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
-        )
-    if fjall_dict_size_kb < 0:
-        raise ValueError(
-            f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
-        )
-    if (
-        not isinstance(variation_af_threshold, (int, float))
-        or variation_af_threshold < 0
-    ):
-        raise ValueError("variation_af_threshold must be a non-negative number")
-    if (
-        isinstance(variation_position_radius, bool)
-        or not isinstance(variation_position_radius, int)
-        or variation_position_radius < 0
-    ):
-        raise ValueError("variation_position_radius must be a non-negative integer")
-    for name, value in {
-        "variation_cold_row_group_rows": variation_cold_row_group_rows,
-        "variation_cold_data_page_rows": variation_cold_data_page_rows,
-    }.items():
-        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-            raise ValueError(f"{name} must be a positive integer")
+    if cache_format != "lance":
+        raise ValueError("cache_format must be 'lance'")
 
     # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
@@ -391,13 +340,8 @@ def build_cache(
                 f"Cache directory not found after extraction: {cache_root}"
             )
 
-    # Output layout:
-    # - indexed_parquet / legacy_fjall: parquet/<version_dir>/<entity>/chr1.parquet
-    # - lance: <version_dir>/<entity>.lance/chr1.lance
-    if cache_format == "lance":
-        output_dir = os.path.join(cache_dir, version_dir)
-    else:
-        output_dir = os.path.join(cache_dir, "parquet", version_dir)
+    # Output layout (lance): <version_dir>/<entity>.lance/chr1.lance
+    output_dir = os.path.join(cache_dir, version_dir)
 
     # Build progress callback: explicit wins, then auto-tqdm, then None.
     progress_cb = on_progress
@@ -444,15 +388,9 @@ def build_cache(
             output_dir,
             partitions,
             cache_format,
-            fjall_zstd_level,
-            fjall_dict_size_kb,
             native_cb,
             cache_type,
             overwrite,
-            float(variation_af_threshold),
-            int(variation_position_radius),
-            int(variation_cold_row_group_rows),
-            int(variation_cold_data_page_rows),
         )
     finally:
         if _bars is not None:
@@ -461,22 +399,11 @@ def build_cache(
 
     # Flatten entity stats into the simple (path, rows) list for backward compat
     all_results: list[tuple[str, int]] = []
-    for entity_name, parquet_files, fjall_stats in entity_stats:
+    for _entity_name, parquet_files, _legacy_stats in entity_stats:
         for path, rows in parquet_files:
             all_results.append((path, rows))
-        if fjall_stats is not None:
-            variants, positions, total_bytes, secs = fjall_stats
-            log.info(
-                "%s fjall: %d variants, %d positions, %.1f MB in %.1fs",
-                entity_name,
-                variants,
-                positions,
-                total_bytes / (1024 * 1024),
-                secs,
-            )
 
-    output_kind = "Lance datasets" if cache_format == "lance" else "Parquet files"
-    log.info("Done. Wrote %d %s to %s", len(all_results), output_kind, output_dir)
+    log.info("Done. Wrote %d Lance datasets to %s", len(all_results), output_dir)
     return all_results
 
 
@@ -503,7 +430,7 @@ def annotate(
     max_af: bool = False,
     pubmed: bool = False,
     # Lookup tuning
-    cache_format: str = "indexed_parquet",
+    cache_format: str = "lance",
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     gencode_basic: bool = False,
@@ -522,9 +449,7 @@ def annotate(
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
-    forks: int = 0,
     workers: int = 1,
-    threads: int = 1,
     skip_csq: bool = True,
     # Output mode
     output_vcf: str | None = None,
@@ -626,18 +551,13 @@ def annotate(
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     cache_format : str
-        Cache format to use: ``"indexed_parquet"`` (default),
-        ``"legacy_fjall"``, or ``"lance"``.
+        Cache format to use. Only ``"lance"`` is supported (default).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
-    forks : int
-        Number of chromosomes to annotate concurrently (default: 0). ``0``
-        uses the strict single-lane path with one DataFusion partition and no
-        additional lookup/formatting worker tasks. Values greater than 0
-        use the indexed parquet path by default.
     workers : int
-        Number of per-chromosome annotation workers when ``forks > 0``
-        (default: 1).
+        Number of within-contig fused annotation pipelines (default: 1).
+        The single annotation-concurrency knob. ``1`` is serial; values
+        greater than 1 require a tabix-indexed (bgzip + ``.tbi``) input VCF.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -719,16 +639,10 @@ def annotate(
         or buffer_size <= 0
     ):
         raise ValueError("buffer_size must be a positive integer")
-    if isinstance(forks, bool) or not isinstance(forks, int) or forks < 0:
-        raise ValueError("forks must be a non-negative integer")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
-    if workers > 1 and forks <= 0:
-        raise ValueError("workers > 1 requires forks > 0")
-    if cache_format not in {"indexed_parquet", "legacy_fjall", "lance"}:
-        raise ValueError(
-            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'lance'"
-        )
+    if cache_format != "lance":
+        raise ValueError("cache_format must be 'lance'")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
@@ -736,16 +650,6 @@ def annotate(
         "cache_format": cache_format,
         "buffer_size": buffer_size,
     }
-    if forks > 0:
-        opts["contig_parallelism"] = forks
-        opts["annotation_workers"] = workers
-        opts["forks"] = workers
-        opts["inline_lookup"] = False
-        if forks > 1:
-            opts["chunked_buffer_lookup"] = True
-    else:
-        opts["forks"] = 0
-        opts["inline_lookup"] = True
 
     if everything:
         opts["everything"] = True
@@ -809,10 +713,10 @@ def annotate(
             opts["distance"] = distance
     if cache_size_mb != 1024:
         opts["cache_size_mb"] = cache_size_mb
-    if threads and threads > 1:
-        # Single within-contig parallelism knob: N per-partition annotation
-        # pipelines. Requires a tabix-indexed (bgzip+.tbi) input VCF.
-        opts["threads"] = threads
+    if workers > 1:
+        # Single annotation-concurrency knob: N within-contig fused pipelines.
+        # Requires a tabix-indexed (bgzip+.tbi) input VCF.
+        opts["workers"] = workers
 
     options_json = json.dumps(opts)
 
@@ -871,8 +775,6 @@ def annotate(
                         False,
                         comp,
                         callback,
-                        forks,
-                        workers,
                     )
                 except Exception as exc:
                     _error[0] = exc
@@ -918,8 +820,6 @@ def annotate(
         options_json,
         skip_csq,
         None,
-        forks,
-        workers,
     )
     pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
@@ -928,13 +828,11 @@ def annotate(
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _skip, _forks, _workers = (
+    _vcf, _cache_dir, _opts, _skip = (
         vcf,
         cache_dir,
         options_json,
         skip_csq,
-        forks,
-        workers,
     )
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
@@ -945,8 +843,6 @@ def annotate(
             _opts,
             _skip,
             n_rows,
-            _forks,
-            _workers,
         )
         remaining = n_rows
         for py_batch in annotator:

@@ -44,14 +44,14 @@ class TestAnnotate:
         assert "merged" not in sig.parameters
         assert "refseq" not in sig.parameters
 
-    def test_has_forks_and_workers_params(self):
+    def test_has_workers_param_only(self):
         import vepyr
 
         sig = inspect.signature(vepyr.annotate)
+        assert "forks" not in sig.parameters
+        assert "threads" not in sig.parameters
         assert "target_partitions" not in sig.parameters
         assert "chrom_parallelism" not in sig.parameters
-        p = sig.parameters["forks"]
-        assert p.default == 0
         workers = sig.parameters["workers"]
         assert workers.default == 1
 
@@ -66,7 +66,7 @@ class TestAnnotate:
         )
         assert isinstance(lf, pl.LazyFrame)
 
-    def test_parallelism_forwards_to_streaming_annotator(self, monkeypatch):
+    def test_workers_forward_to_streaming_annotator(self, monkeypatch):
         import pyarrow as pa
         import vepyr
 
@@ -84,10 +84,8 @@ class TestAnnotate:
             options_json,
             skip_csq=True,
             limit=None,
-            forks=0,
-            workers=1,
         ):
-            seen.append((json.loads(options_json), forks, workers, limit))
+            seen.append((json.loads(options_json), limit))
             return FakeAnnotator()
 
         monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
@@ -95,22 +93,18 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            forks=2,
             workers=4,
         )
 
         assert isinstance(lf, pl.LazyFrame)
-        assert seen[0][1] == 2
-        assert seen[0][2] == 4
-        assert seen[0][3] is None
-        assert seen[0][0]["cache_format"] == "indexed_parquet"
-        assert seen[0][0]["forks"] == 4
-        assert seen[0][0]["annotation_workers"] == 4
-        assert seen[0][0]["inline_lookup"] is False
-        assert seen[0][0]["contig_parallelism"] == 2
-        assert seen[0][0]["chunked_buffer_lookup"] is True
+        assert seen[0][1] is None
+        assert seen[0][0]["cache_format"] == "lance"
+        assert seen[0][0]["workers"] == 4
+        assert "forks" not in seen[0][0]
+        assert "contig_parallelism" not in seen[0][0]
+        assert "annotation_workers" not in seen[0][0]
 
-    def test_single_chrom_workers_do_not_enable_chunked_lookup(self, monkeypatch):
+    def test_workers_one_omits_workers_key(self, monkeypatch):
         import pyarrow as pa
         import vepyr
 
@@ -128,67 +122,17 @@ class TestAnnotate:
             options_json,
             skip_csq=True,
             limit=None,
-            forks=0,
-            workers=1,
         ):
-            seen.append((json.loads(options_json), forks, workers, limit))
+            seen.append(json.loads(options_json))
             return FakeAnnotator()
 
         monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
 
-        lf = vepyr.annotate(
-            INPUT_VCF,
-            CACHE_DIR,
-            forks=1,
-            workers=4,
-        )
+        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR, workers=1)
 
         assert isinstance(lf, pl.LazyFrame)
-        assert seen[0][1] == 1
-        assert seen[0][2] == 4
-        assert seen[0][0]["forks"] == 4
-        assert seen[0][0]["contig_parallelism"] == 1
-        assert "chunked_buffer_lookup" not in seen[0][0]
-
-    def test_multi_chrom_single_worker_enables_chunked_lookup(self, monkeypatch):
-        import pyarrow as pa
-        import vepyr
-
-        seen = []
-
-        class FakeAnnotator:
-            schema = pa.schema([pa.field("chrom", pa.string())])
-
-            def __iter__(self):
-                return iter(())
-
-        def fake_create_annotator(
-            vcf_path,
-            cache_dir,
-            options_json,
-            skip_csq=True,
-            limit=None,
-            forks=0,
-            workers=1,
-        ):
-            seen.append((json.loads(options_json), forks, workers, limit))
-            return FakeAnnotator()
-
-        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
-
-        lf = vepyr.annotate(
-            INPUT_VCF,
-            CACHE_DIR,
-            forks=4,
-            workers=1,
-        )
-
-        assert isinstance(lf, pl.LazyFrame)
-        assert seen[0][1] == 4
-        assert seen[0][2] == 1
-        assert seen[0][0]["forks"] == 1
-        assert seen[0][0]["contig_parallelism"] == 4
-        assert seen[0][0]["chunked_buffer_lookup"] is True
+        assert "workers" not in seen[0]
+        assert "forks" not in seen[0]
 
     def test_collect_returns_dataframe(self, metadata_cache_dir):
         import vepyr
@@ -383,8 +327,6 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            forks,
-            workers,
         ):
             seen["options"] = json.loads(options_json)
             return 0
@@ -435,8 +377,6 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            forks,
-            workers,
         ):
             seen.append(json.loads(options_json))
             return 0
@@ -469,7 +409,7 @@ class TestAnnotate:
             os.unlink(default_out)
             os.unlink(override_out)
 
-    def test_forks_forwards_to_vcf_writer(self, monkeypatch):
+    def test_workers_forward_to_vcf_writer(self, monkeypatch):
         import vepyr
 
         seen = {}
@@ -482,12 +422,8 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            forks,
-            workers,
         ):
             seen["options"] = json.loads(options_json)
-            seen["forks"] = forks
-            seen["workers"] = workers
             return 0
 
         monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
@@ -501,18 +437,13 @@ class TestAnnotate:
                 CACHE_DIR,
                 output_vcf=out_path,
                 show_progress=False,
-                forks=3,
                 workers=4,
             )
             assert result == out_path
-            assert seen["forks"] == 3
-            assert seen["workers"] == 4
-            assert seen["options"]["cache_format"] == "indexed_parquet"
-            assert seen["options"]["forks"] == 4
-            assert seen["options"]["annotation_workers"] == 4
-            assert seen["options"]["inline_lookup"] is False
-            assert seen["options"]["contig_parallelism"] == 3
-            assert seen["options"]["chunked_buffer_lookup"] is True
+            assert seen["options"]["cache_format"] == "lance"
+            assert seen["options"]["workers"] == 4
+            assert "forks" not in seen["options"]
+            assert "contig_parallelism" not in seen["options"]
         finally:
             os.unlink(out_path)
 
@@ -540,17 +471,17 @@ class TestAnnotate:
                     buffer_size=value,
                 )
 
-    @pytest.mark.parametrize("value", [-1, True])
-    def test_forks_rejects_invalid_values(self, value):
+    @pytest.mark.parametrize("removed", ["forks", "threads"])
+    def test_removed_knobs_rejected(self, removed):
         import vepyr
 
-        with pytest.raises(ValueError, match="forks must be a non-negative integer"):
+        with pytest.raises(TypeError, match=removed):
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
                 output_vcf="unused.vcf",
                 show_progress=False,
-                forks=value,
+                **{removed: 2},
             )
 
     def test_invalid_cache_format_rejected(self):
@@ -576,18 +507,6 @@ class TestAnnotate:
                 output_vcf="unused.vcf",
                 show_progress=False,
                 workers=value,
-            )
-
-    def test_workers_gt_one_requires_forks(self):
-        import vepyr
-
-        with pytest.raises(ValueError, match="workers > 1 requires forks > 0"):
-            vepyr.annotate(
-                INPUT_VCF,
-                CACHE_DIR,
-                output_vcf="unused.vcf",
-                show_progress=False,
-                workers=2,
             )
 
     def test_chrom_parallelism_removed_from_public_api(self):
@@ -632,8 +551,6 @@ class TestAnnotate:
             show_progress,
             compression,
             on_batch_written,
-            forks,
-            workers,
         ):
             assert show_progress is False
             assert on_batch_written is not None

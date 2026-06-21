@@ -12,57 +12,23 @@ use pyo3::types::PyAny;
 use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
 
-fn effective_session_partitions(uses_parallel_lookup: bool, forks: usize) -> usize {
-    if uses_parallel_lookup && forks > 0 {
-        forks
-    } else {
-        1
-    }
+fn worker_thread_count(workers: usize) -> usize {
+    workers.max(1)
 }
 
-fn effective_runtime_threads(uses_parallel_lookup: bool, forks: usize, workers: usize) -> usize {
-    if uses_parallel_lookup && forks > 0 {
-        forks.saturating_mul(workers.max(1)).max(1)
-    } else {
-        workers.max(1)
-    }
-}
-
-fn runtime_for_parallelism(
-    uses_parallel_lookup: bool,
-    forks: usize,
-    workers: usize,
-) -> PyResult<Arc<Runtime>> {
+fn runtime_for_workers(workers: usize) -> PyResult<Arc<Runtime>> {
     // DataFusion uses `tokio::task::block_in_place()` while resolving table
-    // metadata. That requires Tokio's multi-thread scheduler even when the VEP
-    // annotation plan itself is strict single-lane (`forks=0`).
+    // metadata. That requires Tokio's multi-thread scheduler even for the
+    // serial (`workers=1`) path.
     let runtime = Builder::new_multi_thread()
-        .worker_threads(effective_runtime_threads(
-            uses_parallel_lookup,
-            forks,
-            workers,
-        ))
+        .worker_threads(worker_thread_count(workers))
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(Arc::new(runtime))
 }
 
-fn options_json_with_parallelism(
-    options_json: &str,
-    forks: usize,
-    workers: usize,
-) -> PyResult<(String, String)> {
-    if workers == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "workers must be a positive integer",
-        ));
-    }
-    if workers > 1 && forks == 0 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "workers > 1 requires forks > 0",
-        ));
-    }
+fn normalize_options(options_json: &str) -> PyResult<(String, String)> {
     let mut opts: Value = serde_json::from_str(options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
@@ -86,22 +52,18 @@ fn options_json_with_parallelism(
         "cache_format".to_string(),
         Value::from(cache_format.clone()),
     );
-    if forks > 0 {
-        object.insert("contig_parallelism".to_string(), Value::from(forks));
-        object.insert("annotation_workers".to_string(), Value::from(workers));
-        object.insert("forks".to_string(), Value::from(workers));
-        object.insert("inline_lookup".to_string(), Value::from(false));
-        if forks > 1 {
-            object.insert("chunked_buffer_lookup".to_string(), Value::from(true));
-        }
-    } else {
-        object.insert("forks".to_string(), Value::from(0));
-        object.insert("inline_lookup".to_string(), Value::from(true));
-    }
     let options_json = serde_json::to_string(&opts).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
     Ok((options_json, cache_format))
+}
+
+fn workers_from_options(opts: &Value) -> usize {
+    opts.get("workers")
+        .and_then(|v| v.as_u64())
+        .and_then(|n| usize::try_from(n).ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(1)
 }
 
 /// A streaming annotator that yields PyArrow RecordBatches.
@@ -173,8 +135,6 @@ pub fn annotate_to_vcf_file(
     show_progress: bool,
     compression: &str,
     on_batch_written: Option<Py<PyAny>>,
-    forks: usize,
-    workers: usize,
 ) -> PyResult<usize> {
     log::info!(
         "annotate_to_vcf_file start: input={}, output={}, show_progress={}, compression={}",
@@ -184,18 +144,14 @@ pub fn annotate_to_vcf_file(
         compression
     );
 
-    let (options_json, cache_format) = options_json_with_parallelism(options_json, forks, workers)?;
+    let (options_json, cache_format) = normalize_options(options_json)?;
     let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
-    let use_fjall = cache_format == "legacy_fjall";
-    let uses_parallel_lookup = matches!(
-        cache_format.as_str(),
-        "indexed_parquet" | "legacy_fjall" | "lance"
-    );
+    let workers = workers_from_options(&opts);
 
     let backend = cache_format.as_str();
-    let rt = runtime_for_parallelism(uses_parallel_lookup, forks, workers)?;
+    let rt = runtime_for_workers(workers)?;
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -237,7 +193,6 @@ pub fn annotate_to_vcf_file(
             .get("reference_fasta_path")
             .and_then(|v| v.as_str())
             .map(String::from),
-        use_fjall,
         hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsc: opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsp: opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false),
@@ -313,18 +268,9 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
-        forks: Some(forks),
+        // Single annotation-concurrency knob (vepyr `workers` -> engine `workers`).
         workers,
-        // Single within-contig parallelism knob: `threads` in the options JSON
-        // drives N per-partition annotation pipelines (engine requires a
-        // tabix-indexed input when threads>1).
-        threads: opts
-            .get("threads")
-            .and_then(|v| v.as_u64())
-            .and_then(|n| usize::try_from(n).ok())
-            .filter(|n| *n > 0)
-            .unwrap_or(1),
-        target_partitions: effective_session_partitions(uses_parallel_lookup, forks),
+        target_partitions: 1,
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -352,7 +298,6 @@ pub fn annotate_to_vcf_file(
 }
 
 /// Create a streaming annotator that yields PyArrow RecordBatches.
-#[allow(clippy::too_many_arguments)]
 pub fn create_streaming_annotator(
     py: Python<'_>,
     vcf_path: &str,
@@ -360,22 +305,17 @@ pub fn create_streaming_annotator(
     options_json: &str,
     skip_csq: bool,
     limit: Option<usize>,
-    forks: usize,
-    workers: usize,
 ) -> PyResult<StreamingAnnotator> {
-    let (options_json, cache_format) = options_json_with_parallelism(options_json, forks, workers)?;
-    let _opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+    let (options_json, cache_format) = normalize_options(options_json)?;
+    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
-    let uses_parallel_lookup = matches!(
-        cache_format.as_str(),
-        "indexed_parquet" | "legacy_fjall" | "lance"
-    );
-    let rt = runtime_for_parallelism(uses_parallel_lookup, forks, workers)?;
+    let workers = workers_from_options(&opts);
+    let rt = runtime_for_workers(workers)?;
 
     let (stream, schema) = rt.block_on(async {
         let backend = cache_format.as_str();
-        let session_partitions = effective_session_partitions(uses_parallel_lookup, forks);
+        let session_partitions = worker_thread_count(workers);
 
         let config = SessionConfig::new().with_target_partitions(session_partitions);
         let ctx = SessionContext::new_with_config(config);
@@ -436,59 +376,35 @@ pub fn create_streaming_annotator(
 
 #[cfg(test)]
 mod tests {
-    use super::{effective_runtime_threads, options_json_with_parallelism};
+    use super::{normalize_options, worker_thread_count, workers_from_options};
 
     #[test]
-    fn forks_are_forwarded_as_chromosome_lanes() {
-        let (options_json, cache_format) = options_json_with_parallelism(r#"{}"#, 4, 2).unwrap();
-        let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
-
-        assert_eq!(cache_format, "indexed_parquet");
-        assert_eq!(opts["forks"], 2);
-        assert_eq!(opts["inline_lookup"], false);
-        assert_eq!(opts["cache_format"], "indexed_parquet");
-        assert_eq!(opts["annotation_workers"], 2);
-        assert_eq!(opts["contig_parallelism"], 4);
-        assert_eq!(opts["chunked_buffer_lookup"], true);
+    fn normalize_preserves_workers_and_cache_format() {
+        let (json, fmt) = normalize_options(r#"{"cache_format":"lance","workers":4}"#).unwrap();
+        let opts: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(fmt, "lance");
+        assert_eq!(opts["workers"], 4);
+        assert_eq!(workers_from_options(&opts), 4);
     }
 
     #[test]
-    fn forks_zero_selects_inline_lookup() {
-        let (options_json, cache_format) =
-            options_json_with_parallelism(r#"{"cache_format":"legacy_fjall"}"#, 0, 1).unwrap();
-        let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
-
-        assert_eq!(cache_format, "legacy_fjall");
-        assert_eq!(opts["forks"], 0);
-        assert_eq!(opts["inline_lookup"], true);
-    }
-
-    #[test]
-    fn lance_cache_format_is_accepted() {
-        let (options_json, cache_format) =
-            options_json_with_parallelism(r#"{"cache_format":"lance"}"#, 0, 1).unwrap();
-        let opts: serde_json::Value = serde_json::from_str(&options_json).unwrap();
-
-        assert_eq!(cache_format, "lance");
-        assert_eq!(opts["cache_format"], "lance");
-        assert_eq!(opts["forks"], 0);
-        assert_eq!(opts["inline_lookup"], true);
+    fn default_cache_format_and_workers_when_absent() {
+        let (_json, fmt) = normalize_options(r#"{}"#).unwrap();
+        assert_eq!(fmt, "indexed_parquet");
+        let opts: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        assert_eq!(workers_from_options(&opts), 1);
     }
 
     #[test]
     fn invalid_cache_format_is_rejected() {
         pyo3::Python::initialize();
-        let err = options_json_with_parallelism(r#"{"cache_format":"fjall"}"#, 1, 1).unwrap_err();
+        let err = normalize_options(r#"{"cache_format":"fjall"}"#).unwrap_err();
         assert!(err.to_string().contains("cache_format"));
     }
 
     #[test]
-    fn runtime_budget_tracks_forks() {
-        assert_eq!(effective_runtime_threads(true, 6, 2), 12);
-    }
-
-    #[test]
-    fn strict_path_uses_one_runtime_worker() {
-        assert_eq!(effective_runtime_threads(true, 0, 1), 1);
+    fn worker_thread_count_is_at_least_one() {
+        assert_eq!(worker_thread_count(0), 1);
+        assert_eq!(worker_thread_count(8), 8);
     }
 }

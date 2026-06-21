@@ -79,8 +79,7 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
 | `use_fjall` | `False` | Use fjall KV backend for co-located variant lookups — faster on large caches |
-| `forks` | `0` | Active chromosome lanes. `0` uses the strict single-lane path with `workers=1`; values greater than 0 require `use_fjall=True`. |
-| `workers` | `1` | Annotation workers per active chromosome. Values greater than 1 require `forks > 0`. |
+| `workers` | `1` | Within-contig annotation pipelines. `1` is serial; values greater than 1 require a tabix-indexed (bgzip + `.tbi`) input VCF. |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 
 !!! tip "Compile-time optimization"

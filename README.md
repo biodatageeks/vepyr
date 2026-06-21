@@ -85,14 +85,15 @@ df = lf.collect()
 print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
 ```
 
-`forks` controls how many chromosomes can be annotated concurrently.
-`forks=0` uses the strict single-lane path with one DataFusion partition.
+`workers` controls how many within-contig annotation pipelines run
+concurrently. `workers=1` is the serial path; `workers > 1` requires a
+tabix-indexed (bgzip + `.tbi`) input VCF.
 
 ```python
 df = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
-    forks=4,
+    workers=4,
 ).collect()
 ```
 
@@ -106,7 +107,7 @@ existing cache outputs.
 out = vepyr.annotate(
     "input.vcf.gz",
     cache_dir,
-    forks=8,
+    workers=8,
     output_vcf="annotated.vcf",
 )
 ```
