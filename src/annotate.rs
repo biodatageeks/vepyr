@@ -42,10 +42,10 @@ fn normalize_options(options_json: &str) -> PyResult<(String, String)> {
         .to_string();
     if !matches!(
         cache_format.as_str(),
-        "indexed_parquet" | "legacy_fjall" | "lance"
+        "indexed_parquet" | "legacy_fjall" | "lance" | "parquet"
     ) {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'lance'",
+            "cache_format must be 'indexed_parquet', 'legacy_fjall', 'lance', or 'parquet'",
         ));
     }
     object.insert(
@@ -150,7 +150,11 @@ pub fn annotate_to_vcf_file(
     })?;
     let workers = workers_from_options(&opts);
 
-    let backend = cache_format.as_str();
+    // The annotation store (context/SIFT/transcript) is always Lance; the
+    // variation cache backend is selected by `cache_format` carried in
+    // `options_json` (lance | parquet). Keep the two decoupled.
+    let _ = &cache_format;
+    let backend = "lance";
     let rt = runtime_for_workers(workers)?;
 
     let vcf_compression = match compression {
@@ -306,7 +310,7 @@ pub fn create_streaming_annotator(
     skip_csq: bool,
     limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
-    let (options_json, cache_format) = normalize_options(options_json)?;
+    let (options_json, _cache_format) = normalize_options(options_json)?;
     let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
@@ -314,7 +318,9 @@ pub fn create_streaming_annotator(
     let rt = runtime_for_workers(workers)?;
 
     let (stream, schema) = rt.block_on(async {
-        let backend = cache_format.as_str();
+        // Annotation store is always Lance; `cache_format` (in options_json)
+        // selects the variation backend (lance | parquet).
+        let backend = "lance";
         let session_partitions = worker_thread_count(workers);
 
         let config = SessionConfig::new().with_target_partitions(session_partitions);

@@ -641,8 +641,8 @@ def annotate(
         raise ValueError("buffer_size must be a positive integer")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
-    if cache_format != "lance":
-        raise ValueError("cache_format must be 'lance'")
+    if cache_format not in ("lance", "parquet"):
+        raise ValueError("cache_format must be 'lance' or 'parquet'")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {

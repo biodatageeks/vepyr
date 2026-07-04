@@ -31,7 +31,7 @@ DEFAULT_REFERENCE_FASTA = os.path.join(
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
-BACKENDS = ("lance",)
+BACKENDS = ("lance", "parquet")
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
