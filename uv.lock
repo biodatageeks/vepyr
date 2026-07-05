@@ -1205,6 +1205,7 @@ notebook = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "datafusion" },
     { name = "polars-bio" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1225,6 +1226,7 @@ provides-extras = ["notebook", "docs"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "datafusion", specifier = ">=50.0" },
     { name = "polars-bio", specifier = ">=0.26.0" },
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=8.0" },

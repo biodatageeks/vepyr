@@ -44,6 +44,17 @@ class TestAnnotate:
         assert "merged" not in sig.parameters
         assert "refseq" not in sig.parameters
 
+    def test_has_workers_param_only(self):
+        import vepyr
+
+        sig = inspect.signature(vepyr.annotate)
+        assert "forks" not in sig.parameters
+        assert "threads" not in sig.parameters
+        assert "target_partitions" not in sig.parameters
+        assert "chrom_parallelism" not in sig.parameters
+        workers = sig.parameters["workers"]
+        assert workers.default == 1
+
     def test_returns_lazyframe(self, metadata_cache_dir):
         import vepyr
 
@@ -54,6 +65,74 @@ class TestAnnotate:
             reference_fasta=REFERENCE_FASTA,
         )
         assert isinstance(lf, pl.LazyFrame)
+
+    def test_workers_forward_to_streaming_annotator(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path,
+            cache_dir,
+            options_json,
+            skip_csq=True,
+            limit=None,
+        ):
+            seen.append((json.loads(options_json), limit))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            workers=4,
+        )
+
+        assert isinstance(lf, pl.LazyFrame)
+        assert seen[0][1] is None
+        assert seen[0][0]["cache_format"] == "parquet"
+        assert seen[0][0]["workers"] == 4
+        assert "forks" not in seen[0][0]
+        assert "contig_parallelism" not in seen[0][0]
+        assert "annotation_workers" not in seen[0][0]
+
+    def test_workers_one_omits_workers_key(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path,
+            cache_dir,
+            options_json,
+            skip_csq=True,
+            limit=None,
+        ):
+            seen.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+
+        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR, workers=1)
+
+        assert isinstance(lf, pl.LazyFrame)
+        assert "workers" not in seen[0]
+        assert "forks" not in seen[0]
 
     def test_collect_returns_dataframe(self, metadata_cache_dir):
         import vepyr
@@ -330,6 +409,44 @@ class TestAnnotate:
             os.unlink(default_out)
             os.unlink(override_out)
 
+    def test_workers_forward_to_vcf_writer(self, monkeypatch):
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen["options"] = json.loads(options_json)
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                workers=4,
+            )
+            assert result == out_path
+            assert seen["options"]["cache_format"] == "parquet"
+            assert seen["options"]["workers"] == 4
+            assert "forks" not in seen["options"]
+            assert "contig_parallelism" not in seen["options"]
+        finally:
+            os.unlink(out_path)
+
     @pytest.mark.parametrize("source_flag", ["merged", "refseq"])
     def test_source_mode_flags_rejected(self, source_flag):
         """Source mode is selected by cache metadata, not annotate() flags."""
@@ -353,6 +470,56 @@ class TestAnnotate:
                     show_progress=False,
                     buffer_size=value,
                 )
+
+    @pytest.mark.parametrize("removed", ["forks", "threads"])
+    def test_removed_knobs_rejected(self, removed):
+        import vepyr
+
+        with pytest.raises(TypeError, match=removed):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                **{removed: 2},
+            )
+
+    def test_invalid_cache_format_rejected(self):
+        import vepyr
+
+        with pytest.raises(ValueError, match="cache_format"):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                cache_format="fjall",
+            )
+
+    @pytest.mark.parametrize("value", [0, -1, True])
+    def test_workers_rejects_invalid_values(self, value):
+        import vepyr
+
+        with pytest.raises(ValueError, match="workers must be a positive integer"):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                workers=value,
+            )
+
+    def test_chrom_parallelism_removed_from_public_api(self):
+        import vepyr
+
+        with pytest.raises(TypeError, match="chrom_parallelism"):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                chrom_parallelism=2,
+            )
 
     def test_notebook_progress_updates_on_main_thread(self, monkeypatch):
         """Default tqdm notebook updates should be applied from the main thread."""

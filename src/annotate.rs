@@ -8,13 +8,63 @@ use datafusion_bio_function_vep::register_vep_functions;
 use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, OnBatchWritten};
 use futures::StreamExt;
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use serde_json::Value;
-use std::sync::LazyLock;
-use tokio::runtime::Runtime;
+use tokio::runtime::{Builder, Runtime};
 
-/// Module-level Tokio runtime shared across all annotation calls.
-static RUNTIME: LazyLock<Arc<Runtime>> =
-    LazyLock::new(|| Arc::new(Runtime::new().expect("failed to create Tokio runtime")));
+fn worker_thread_count(workers: usize) -> usize {
+    workers.max(1)
+}
+
+fn runtime_for_workers(workers: usize) -> PyResult<Arc<Runtime>> {
+    // DataFusion uses `tokio::task::block_in_place()` while resolving table
+    // metadata. That requires Tokio's multi-thread scheduler even for the
+    // serial (`workers=1`) path.
+    let runtime = Builder::new_multi_thread()
+        .worker_threads(worker_thread_count(workers))
+        .build()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    Ok(Arc::new(runtime))
+}
+
+fn normalize_options(options_json: &str) -> PyResult<(String, String)> {
+    let mut opts: Value = serde_json::from_str(options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    let object = opts
+        .as_object_mut()
+        .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("options JSON must be an object"))?;
+    let cache_format = object
+        .get("cache_format")
+        .and_then(|v| v.as_str())
+        .unwrap_or("indexed_parquet")
+        .to_string();
+    if !matches!(
+        cache_format.as_str(),
+        "indexed_parquet" | "legacy_fjall" | "parquet"
+    ) {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'parquet'",
+        ));
+    }
+    object.insert(
+        "cache_format".to_string(),
+        Value::from(cache_format.clone()),
+    );
+    let options_json = serde_json::to_string(&opts).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    Ok((options_json, cache_format))
+}
+
+fn workers_from_options(opts: &Value) -> usize {
+    opts.get("workers")
+        .and_then(|v| v.as_u64())
+        .and_then(|n| usize::try_from(n).ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(1)
+}
 
 /// A streaming annotator that yields PyArrow RecordBatches.
 /// Thread-safe: wraps the stream in a Mutex so polars can call from any thread.
@@ -23,7 +73,7 @@ pub struct StreamingAnnotator {
     rt: std::sync::Arc<Runtime>,
     stream: std::sync::Mutex<Option<SendableRecordBatchStream>>,
     #[pyo3(get)]
-    schema: PyObject,
+    schema: Py<PyAny>,
 }
 
 #[pymethods]
@@ -32,7 +82,7 @@ impl StreamingAnnotator {
         slf
     }
 
-    fn __next__(&self, py: Python<'_>) -> PyResult<Option<PyObject>> {
+    fn __next__(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
         let mut guard = self.stream.lock().map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Lock poisoned: {e}"))
         })?;
@@ -52,7 +102,7 @@ impl StreamingAnnotator {
                     let py_batch = batch
                         .to_pyarrow(py)
                         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-                    return Ok(Some(py_batch));
+                    return Ok(Some(py_batch.into()));
                 }
                 Some(Err(e)) => {
                     return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
@@ -84,9 +134,8 @@ pub fn annotate_to_vcf_file(
     options_json: &str,
     show_progress: bool,
     compression: &str,
-    on_batch_written: Option<PyObject>,
+    on_batch_written: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
-    let rt = &*RUNTIME;
     log::info!(
         "annotate_to_vcf_file start: input={}, output={}, show_progress={}, compression={}",
         vcf_path,
@@ -95,19 +144,19 @@ pub fn annotate_to_vcf_file(
         compression
     );
 
-    let opts: Value = serde_json::from_str(options_json).map_err(|e| {
+    let (options_json, cache_format) = normalize_options(options_json)?;
+    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
+    let workers = workers_from_options(&opts);
 
-    let backend = if opts
-        .get("use_fjall")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
-    {
-        "fjall"
-    } else {
-        "parquet"
-    };
+    // The annotation store uses the engine's fixed backend token, which upstream
+    // still names "lance" (a vestigial identifier — the actual storage is
+    // Parquet). The variation cache is Parquet, carried via `cache_format` in
+    // `options_json`. Keep the two decoupled.
+    let _ = &cache_format;
+    let backend = "lance";
+    let rt = runtime_for_workers(workers)?;
 
     let vcf_compression = match compression {
         "bgzf" => VcfCompressionType::Bgzf,
@@ -127,7 +176,7 @@ pub fn annotate_to_vcf_file(
                     total_rows,
                     total_input
                 );
-                Python::with_gil(|py| {
+                Python::attach(|py| {
                     if let Err(e) = cb.call1(py, (batch_rows, total_rows, total_input)) {
                         log::warn!("on_batch_written callback error: {e}");
                     }
@@ -149,10 +198,6 @@ pub fn annotate_to_vcf_file(
             .get("reference_fasta_path")
             .and_then(|v| v.as_str())
             .map(String::from),
-        use_fjall: opts
-            .get("use_fjall")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
         hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsc: opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false),
         hgvsp: opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false),
@@ -228,6 +273,13 @@ pub fn annotate_to_vcf_file(
             .and_then(|n| usize::try_from(n).ok())
             .filter(|n| *n > 0)
             .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
+        // Single annotation-concurrency knob (vepyr `workers` -> engine `workers`).
+        // The engine derives its lookup parallelism from `workers`; the sink's
+        // DataFusion `target_partitions` stays 1 so the annotated VCF is written
+        // as a single ordered output (the streaming path, which polars drains in
+        // parallel, sets its own SessionConfig partitions from `workers`).
+        workers,
+        target_partitions: 1,
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
@@ -236,7 +288,7 @@ pub fn annotate_to_vcf_file(
     // Release the GIL so the Python background thread (in __init__.py) can
     // let Jupyter's main thread pump display updates for tqdm progress bars.
     // The on_batch_written callback re-acquires the GIL via Python::with_gil().
-    py.allow_threads(|| {
+    py.detach(|| {
         rt.block_on(async {
             let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
                 .await
@@ -263,11 +315,21 @@ pub fn create_streaming_annotator(
     skip_csq: bool,
     limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
-    let rt = &*RUNTIME;
+    let (options_json, _cache_format) = normalize_options(options_json)?;
+    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    let workers = workers_from_options(&opts);
+    let rt = runtime_for_workers(workers)?;
 
     let (stream, schema) = rt.block_on(async {
-        // Single partition ensures deterministic row ordering for streaming.
-        let config = SessionConfig::new().with_target_partitions(1);
+        // Annotation store uses the engine's fixed backend token (vestigially
+        // named "lance" upstream; storage is Parquet). The variation cache is
+        // Parquet, selected by `cache_format` in options_json.
+        let backend = "lance";
+        let session_partitions = worker_thread_count(workers);
+
+        let config = SessionConfig::new().with_target_partitions(session_partitions);
         let ctx = SessionContext::new_with_config(config);
         register_vep_functions(&ctx);
 
@@ -290,18 +352,6 @@ pub fn create_streaming_annotator(
             "SELECT * EXCLUDE (\"CSQ\")"
         } else {
             "SELECT *"
-        };
-        let opts: Value = serde_json::from_str(options_json).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
-        })?;
-        let backend = if opts
-            .get("use_fjall")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            "fjall"
-        } else {
-            "parquet"
         };
 
         let limit_clause = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();
@@ -330,8 +380,43 @@ pub fn create_streaming_annotator(
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(StreamingAnnotator {
-        rt: Arc::clone(&RUNTIME),
+        rt,
         stream: std::sync::Mutex::new(Some(stream)),
-        schema: py_schema,
+        schema: py_schema.into(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{normalize_options, worker_thread_count, workers_from_options};
+
+    #[test]
+    fn normalize_preserves_workers_and_cache_format() {
+        let (json, fmt) = normalize_options(r#"{"cache_format":"parquet","workers":4}"#).unwrap();
+        let opts: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(fmt, "parquet");
+        assert_eq!(opts["workers"], 4);
+        assert_eq!(workers_from_options(&opts), 4);
+    }
+
+    #[test]
+    fn default_cache_format_and_workers_when_absent() {
+        let (_json, fmt) = normalize_options(r#"{}"#).unwrap();
+        assert_eq!(fmt, "indexed_parquet");
+        let opts: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
+        assert_eq!(workers_from_options(&opts), 1);
+    }
+
+    #[test]
+    fn invalid_cache_format_is_rejected() {
+        pyo3::Python::initialize();
+        let err = normalize_options(r#"{"cache_format":"fjall"}"#).unwrap_err();
+        assert!(err.to_string().contains("cache_format"));
+    }
+
+    #[test]
+    fn worker_thread_count_is_at_least_one() {
+        assert_eq!(worker_thread_count(0), 1);
+        assert_eq!(worker_thread_count(8), 8);
+    }
 }

@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 import pyarrow.parquet as pq
+from datafusion import SessionContext
 
 CACHE_SOURCE_METADATA_KEY = b"bio.vep.cache_source_type"
 VALID_CACHE_SOURCE_TYPES = {"ensembl", "merged", "refseq"}
@@ -16,7 +17,15 @@ def copy_cache_with_source_metadata(
     target_dir: str | Path,
     cache_source_type: str,
 ) -> Path:
-    """Copy a parquet cache fixture and add cache-source schema metadata."""
+    """Copy a parquet cache fixture and add cache-source schema metadata.
+
+    Parquet shards are rewritten with DataFusion (parquet-rs — the same writer
+    the engine reads with) using page-level statistics, so the footer keeps a
+    ColumnIndex/OffsetIndex the engine's point-lookup reader accepts. pyarrow's
+    page index is not loaded by that reader, so it cannot be used here.
+    ``skip_arrow_metadata`` is disabled so the added ``bio.vep.cache_source_type``
+    key survives in the Arrow schema the engine reads off the variation shard.
+    """
     if cache_source_type not in VALID_CACHE_SOURCE_TYPES:
         allowed = ", ".join(sorted(VALID_CACHE_SOURCE_TYPES))
         raise ValueError(
@@ -29,6 +38,7 @@ def copy_cache_with_source_metadata(
         shutil.rmtree(target)
     target.mkdir(parents=True)
 
+    ctx = SessionContext()
     for path in source.rglob("*"):
         relative = path.relative_to(source)
         destination = target / relative
@@ -41,7 +51,22 @@ def copy_cache_with_source_metadata(
             table = pq.read_table(path)
             metadata = dict(table.schema.metadata or {})
             metadata[CACHE_SOURCE_METADATA_KEY] = cache_source_type.encode("ascii")
-            pq.write_table(table.replace_schema_metadata(metadata), destination)
+            table = table.replace_schema_metadata(metadata)
+            if table.num_rows == 0:
+                # Empty shard: no point-lookup pages, and DataFusion's writer
+                # panics on a zero-batch input, so use pyarrow here.
+                pq.write_table(table, destination)
+            else:
+                ctx.register_record_batches(
+                    "shard", [table.combine_chunks().to_batches()]
+                )
+                if destination.exists():
+                    destination.unlink()
+                ctx.sql(
+                    f"COPY shard TO '{destination}' STORED AS PARQUET OPTIONS "
+                    "('statistics_enabled' 'page', 'skip_arrow_metadata' 'false')"
+                ).collect()
+                ctx.deregister_table("shard")
         else:
             shutil.copy2(path, destination)
 

@@ -4,13 +4,17 @@
 Usage:
     python run_annotation_fast.py chr1
     python run_annotation_fast.py chr22 --vcf /path/to/input.vcf.gz --vep /path/to/vep_output.vcf
-    python run_annotation_fast.py chr22 --backend parquet
+    python run_annotation_fast.py chr22 --bgzf
+    python run_annotation_fast.py chr1 --cache merged --workers 4 --force
 
-Extracts a single chromosome from a tabix-indexed VCF, annotates with the
-selected backend, and compares against the corresponding VEP reference output.
+Extracts a single chromosome from a tabix-indexed VCF, annotates against the
+Parquet cache, and compares against the corresponding VEP reference output.
+Pass ``--bgzf`` to emit a block-gzipped (``.vcf.gz``) annotated VCF instead of
+plain text and validate the compressed output.
 """
 
 import argparse
+import gzip
 import json
 import os
 import re
@@ -30,7 +34,9 @@ DEFAULT_REFERENCE_FASTA = os.path.join(
 )
 DEFAULT_VCF_INPUT = os.path.join(DATA_DIR, "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz")
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
-BACKENDS = ("fjall", "parquet")
+# Parquet is the only supported cache format. Kept as a constant so output file
+# names (vepyr_parquet_*) and report suffixes stay stable.
+BACKEND = "parquet"
 
 # Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
@@ -154,10 +160,17 @@ def parse_args():
         help="Cache profile selecting cache dir and VEP reference (default: %(default)s)",
     )
     p.add_argument(
-        "--backend",
-        choices=BACKENDS,
-        default="fjall",
-        help="Annotation cache backend (default: %(default)s)",
+        "--bgzf",
+        action="store_true",
+        help="Write block-gzipped (.vcf.gz, tabix-compatible bgzf) annotated "
+        "output instead of plain .vcf, and validate the compressed file",
+    )
+    p.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Within-contig parallel annotation pipelines; >1 requires a "
+        "tabix-indexed input (default: %(default)s)",
     )
     p.add_argument(
         "--vcf",
@@ -185,12 +198,18 @@ def parse_args():
         help="Skip bcftools norm (normalization is on by default)",
     )
     p.add_argument(
-        "--skip-compare", action="store_true", help="Skip comparison, only annotate"
+        "--skip-compare",
+        "--skip-comparison",
+        dest="skip_compare",
+        action="store_true",
+        help="Skip comparison, only annotate",
     )
     p.add_argument(
         "--force", action="store_true", help="Re-run annotation even if output exists"
     )
     args = p.parse_args()
+    if args.workers <= 0:
+        p.error("--workers must be a positive integer")
 
     # Resolve defaults from cache profile; explicit --cache-dir / --vep override
     profile = _CACHE_PROFILES[args.cache]
@@ -200,22 +219,36 @@ def parse_args():
         args.vep = profile["vep_vcf"]
     args.annotate_kwargs = profile["annotate_kwargs"]
     args.suffix = profile["suffix"]
-    args.report_suffix = report_suffix(args.suffix, args.backend)
+    args.report_suffix = args.suffix
 
     return args
 
 
-def report_suffix(cache_suffix, backend):
-    """Keep existing fjall report names; namespace non-default backends."""
-    if backend == "fjall":
-        return cache_suffix
-    return f"{cache_suffix}_{backend}"
+def open_text(path):
+    """Open a VCF for text reading, transparently handling .gz (bgzf/gzip)."""
+    if path.endswith((".gz", ".bgz", ".bgzf")):
+        return gzip.open(path, "rt")
+    return open(path)
+
+
+def is_bgzf(path):
+    """Return True if `path` is BGZF (block-gzip): gzip magic + 'BC' subfield."""
+    with open(path, "rb") as f:
+        head = f.read(18)
+    # gzip magic 1f 8b, deflate (08), FLG.FEXTRA set (bit 2), then an extra
+    # field carrying the "BC" subfield id that marks bgzf blocks.
+    return (
+        len(head) >= 18
+        and head[0:3] == b"\x1f\x8b\x08"
+        and head[3] & 0x04
+        and head[12:14] == b"BC"
+    )
 
 
 def count_data_lines(path):
-    """Count non-header lines in a VCF."""
+    """Count non-header lines in a VCF (plain or .gz)."""
     n = 0
-    with open(path) as f:
+    with open_text(path) as f:
         for line in f:
             if not line.startswith("#"):
                 n += 1
@@ -343,13 +376,12 @@ def compare_vcfs(
     vepyr_vcf,
     vep_vcf,
     label,
-    backend="fjall",
     ignore_csq_order=False,
 ):
     """Field-by-field CSQ comparison between vepyr and VEP output."""
     print()
     print("=" * 60)
-    print(f"Comparing vepyr ({backend}) vs VEP — {label}")
+    print(f"Comparing vepyr ({BACKEND}) vs VEP — {label}")
     print("=" * 60)
 
     n_vepyr = count_data_lines(vepyr_vcf)
@@ -361,7 +393,7 @@ def compare_vcfs(
     csq_re = re.compile(r"CSQ=([^;\t]+)")
 
     def get_csq_fields(path):
-        with open(path) as f:
+        with open_text(path) as f:
             for line in f:
                 if line.startswith("##INFO=<ID=CSQ"):
                     m = re.search(r"Format: ([^\"]+)", line)
@@ -382,7 +414,7 @@ def compare_vcfs(
     # Build sorted key+CSQ for merge-join
     def extract_keyed_csq(path):
         rows = []
-        with open(path) as f:
+        with open_text(path) as f:
             for line in f:
                 if line.startswith("#"):
                     continue
@@ -659,14 +691,18 @@ def main():
     )
     print(f"  Input: {n_variants:,} variants for {chrom}")
 
-    # ── Step 2: Annotate with selected backend ────────────────────────────
+    # ── Step 2: Annotate against the Parquet cache ────────────────────────
+    out_ext = ".vcf.gz" if args.bgzf else ".vcf"
     output_vcf = os.path.join(
-        work_dir, f"vepyr_{args.backend}_{chrom}{args.suffix}.vcf"
+        work_dir, f"vepyr_{BACKEND}_{chrom}{args.suffix}{out_ext}"
     )
 
     print()
     print("=" * 60)
-    print(f"Step 2: Annotate {chrom} with vepyr ({args.backend}, cache={args.cache})")
+    out_mode = "bgzf" if args.bgzf else "plain"
+    print(
+        f"Step 2: Annotate {chrom} with vepyr ({BACKEND}, {out_mode}, cache={args.cache})"
+    )
     print("=" * 60)
 
     if (
@@ -688,8 +724,9 @@ def main():
             args.cache_dir,
             everything=True,
             reference_fasta=args.fasta,
-            use_fjall=(args.backend == "fjall"),
+            cache_format=BACKEND,
             output_vcf=output_vcf,
+            workers=args.workers,
             **args.annotate_kwargs,
         )
         elapsed = time.time() - t0
@@ -700,6 +737,13 @@ def main():
         print(
             f"  Done: {n_out:,} variants in {elapsed:.1f}s ({rate:,.0f} variants/s), {size_mb:.0f} MB"
         )
+
+    # Validate block-gzip framing when bgzf output was requested.
+    if args.bgzf:
+        if is_bgzf(output_vcf):
+            print("  bgzf check: output is valid block-gzip (BGZF)")
+        else:
+            sys.exit(f"Error: --bgzf output {output_vcf} is not valid BGZF")
 
     # ── Step 3: Compare vs VEP reference ──────────────────────────────────
     if args.skip_compare:
@@ -722,7 +766,6 @@ def main():
             output_vcf,
             vep_chrom_vcf,
             chrom,
-            args.backend,
             ignore_csq_order=args.cache in VEP_HASH_ORDER_PICK_CACHES,
         )
 
@@ -732,7 +775,8 @@ def main():
         "cache": args.cache,
         "input_variants": n_variants,
         "annotation": {
-            "backend": args.backend,
+            "backend": BACKEND,
+            "compression": "bgzf" if args.bgzf else "plain",
             "time_s": round(elapsed, 1) if elapsed else None,
             "output_variants": n_out,
         },

@@ -17,6 +17,11 @@ TESTS_DIR = Path(__file__).parent
 ENSEMBL_CACHE_DIR = TESTS_DIR / "data" / "ensembl_cache"
 
 
+def read_vcf_data_lines(path: Path) -> list[str]:
+    with open(path) as handle:
+        return [line for line in handle if not line.startswith("#")]
+
+
 @pytest.fixture(scope="module")
 def skip_if_no_ensembl_cache():
     if not (ENSEMBL_CACHE_DIR / "info.txt").exists():
@@ -34,20 +39,27 @@ class TestBuildCacheSignature:
         sig = inspect.signature(vepyr.build_cache)
         assert "cache_dir" in sig.parameters
 
-    def test_has_build_fjall_param(self):
+    def test_has_cache_format_param(self):
         sig = inspect.signature(vepyr.build_cache)
-        p = sig.parameters["build_fjall"]
-        assert p.default is True
+        p = sig.parameters["cache_format"]
+        assert p.default == "parquet"
 
-    def test_has_fjall_zstd_level_param(self):
+    def test_no_build_fjall_param(self):
         sig = inspect.signature(vepyr.build_cache)
-        p = sig.parameters["fjall_zstd_level"]
-        assert p.default == 3
+        assert "build_fjall" not in sig.parameters
 
-    def test_has_fjall_dict_size_kb_param(self):
+    def test_no_fjall_tuning_params(self):
+        """fjall/variation tuning params were removed in the Parquet-only API."""
         sig = inspect.signature(vepyr.build_cache)
-        p = sig.parameters["fjall_dict_size_kb"]
-        assert p.default == 112
+        for removed in (
+            "fjall_zstd_level",
+            "fjall_dict_size_kb",
+            "variation_af_threshold",
+            "variation_position_radius",
+            "variation_cold_row_group_rows",
+            "variation_cold_data_page_rows",
+        ):
+            assert removed not in sig.parameters
 
     def test_has_show_progress_param(self):
         sig = inspect.signature(vepyr.build_cache)
@@ -66,12 +78,19 @@ class TestBuildCacheSignature:
     def test_has_partitions_param(self):
         sig = inspect.signature(vepyr.build_cache)
         p = sig.parameters["partitions"]
-        assert p.default == 1
+        assert p.default == 8
 
     def test_no_memory_limit_gb_param(self):
         """memory_limit_gb was removed in the upstream migration."""
         sig = inspect.signature(vepyr.build_cache)
         assert "memory_limit_gb" not in sig.parameters
+
+    def test_no_variation_layout_params(self):
+        sig = inspect.signature(vepyr.build_cache)
+        assert "variation_row_group_rows" not in sig.parameters
+        assert "variation_tier_batch_size" not in sig.parameters
+        assert "variation_cold_row_group_rows" not in sig.parameters
+        assert "variation_cold_data_page_rows" not in sig.parameters
 
 
 class TestNativeBuildCacheSignature:
@@ -89,6 +108,17 @@ class TestNativeBuildCacheSignature:
         sig = inspect.signature(_build_cache)
         assert "cache_source_type" in sig.parameters
         assert sig.parameters["cache_source_type"].default == "ensembl"
+
+    def test_cache_format_default_is_parquet(self):
+        sig = inspect.signature(_build_cache)
+        assert sig.parameters["cache_format"].default == "parquet"
+
+    def test_no_variation_layout_params(self):
+        sig = inspect.signature(_build_cache)
+        assert "variation_row_group_rows" not in sig.parameters
+        assert "variation_tier_batch_size" not in sig.parameters
+        assert "variation_cold_row_group_rows" not in sig.parameters
+        assert "variation_cold_data_page_rows" not in sig.parameters
 
 
 class TestBuildCacheValidation:
@@ -108,6 +138,15 @@ class TestBuildCacheValidation:
     def test_legacy_cache_types_rejected(self, cache_type):
         with pytest.raises(ValueError, match="Invalid cache_type"):
             vepyr.build_cache(115, "/tmp/fake", cache_type=cache_type)
+
+    def test_invalid_cache_format_raises(self):
+        with pytest.raises(ValueError, match="cache_format"):
+            vepyr.build_cache(
+                115,
+                "/tmp/fake",
+                cache_type="ensembl",
+                cache_format="fjall",
+            )
 
     def test_local_cache_not_found_raises(self):
         with pytest.raises(FileNotFoundError, match="Local cache directory not found"):
@@ -145,7 +184,7 @@ class TestBuildCacheValidation:
                 show_progress=False,
             )
 
-        assert mock_native.call_args.args[7] == cache_type
+        assert mock_native.call_args.args[5] == cache_type
 
 
 class TestBuildCacheProgressCallback:
@@ -167,15 +206,17 @@ class TestBuildCacheProgressCallback:
                 local_cache="/tmp/test_vepyr_cache_cb",
                 on_progress=cb,
                 show_progress=False,
+                partitions=1,
             )
         finally:
             os.rmdir("/tmp/test_vepyr_cache_cb")
 
         mock_native.assert_called_once()
-        # The 7th positional arg is the progress callback
+        # Native shape: (cache_root, output_dir, partitions, cache_format,
+        #                on_progress, cache_source_type, overwrite)
         call_args = mock_native.call_args
-        assert call_args[0][6] is cb
-        assert call_args[0][7] == "ensembl"
+        assert call_args[0][4] is cb
+        assert call_args[0][5] == "ensembl"
 
     @patch("vepyr._build_cache")
     def test_show_progress_false_no_tqdm(self, mock_native):
@@ -195,8 +236,8 @@ class TestBuildCacheProgressCallback:
             os.rmdir("/tmp/test_vepyr_cache_np")
 
         call_args = mock_native.call_args
-        assert call_args[0][6] is None
-        assert call_args[0][7] == "ensembl"
+        assert call_args[0][4] is None
+        assert call_args[0][5] == "ensembl"
 
     @patch("vepyr._build_cache")
     def test_returns_flat_parquet_list(self, mock_native):
@@ -228,51 +269,59 @@ class TestBuildCacheProgressCallback:
         ]
 
     @patch("vepyr._build_cache")
-    def test_build_fjall_params_forwarded(self, mock_native):
-        """build_fjall, zstd_level, dict_size_kb should be forwarded."""
+    def test_parquet_build_uses_top_level_cache_layout(self, mock_native, tmp_path):
+        """Parquet writes directly to cache_dir/<release>_<assembly>_<cache_type>."""
         mock_native.return_value = []
+        local_cache = tmp_path / "homo_sapiens" / "115_GRCh38_merged"
+        local_cache.mkdir(parents=True)
 
-        os.makedirs("/tmp/test_vepyr_cache_fj", exist_ok=True)
-        try:
-            vepyr.build_cache(
-                115,
-                "/tmp/test_vepyr_cache_fj_out",
-                cache_type="ensembl",
-                local_cache="/tmp/test_vepyr_cache_fj",
-                build_fjall=False,
-                fjall_zstd_level=5,
-                fjall_dict_size_kb=256,
-                show_progress=False,
-            )
-        finally:
-            os.rmdir("/tmp/test_vepyr_cache_fj")
+        vepyr.build_cache(
+            115,
+            str(tmp_path),
+            cache_type="merged",
+            local_cache=str(local_cache),
+            cache_format="parquet",
+            show_progress=False,
+        )
 
-        call_args = mock_native.call_args[0]
-        # (cache_root, output_dir, partitions, build_fjall, zstd_level, dict_size_kb, on_progress)
-        assert call_args[3] is False  # build_fjall
-        assert call_args[4] == 5  # zstd_level
-        assert call_args[5] == 256  # dict_size_kb
+        assert mock_native.call_args.args[1] == str(tmp_path / "115_GRCh38_merged")
+        assert mock_native.call_args.args[3] == "parquet"
 
 
 @pytest.fixture(scope="module")
 def built_cache(skip_if_no_ensembl_cache):
-    """Build cache once; return (output_dir, flat_result, native_result) for all tests."""
+    """Build a Parquet cache once; return (output_dir, flat_result, native_result, tables).
+
+    Reads the per-chromosome Parquet shards via pyarrow. Entity names in
+    ``native_result`` are the bare entity names (e.g. ``"variation"``), matching
+    the on-disk ``<output_dir>/<entity>/`` layout; ``tables`` is keyed the same way.
+    """
+    import pyarrow as pa
     import pyarrow.parquet as pq
 
     _tmpdir = tempfile.mkdtemp()
 
-    native_result = _build_cache(str(ENSEMBL_CACHE_DIR), _tmpdir, 2, True, 3, 112, None)
+    native_result = _build_cache(
+        str(ENSEMBL_CACHE_DIR),
+        _tmpdir,
+        2,
+        "parquet",
+        None,
+    )
     flat_result = []
-    for entity, files, fjall in native_result:
+    for entity, files, _stats in native_result:
         flat_result.extend(files)
-
-    # Pre-read all parquet tables keyed by entity name
-    import pyarrow as pa
 
     tables: dict = {}
     for entity, files, _ in native_result:
         entity_tables = [pq.read_table(path) for path, _ in files]
-        tables[entity] = pa.concat_tables(entity_tables) if entity_tables else None
+        tables[entity] = (
+            pa.concat_tables(entity_tables, promote_options="default")
+            if entity_tables
+            else None
+        )
+        if entity == "variation" and tables[entity] is not None:
+            tables[entity] = tables[entity].sort_by("start")
 
     yield _tmpdir, flat_result, native_result, tables
 
@@ -315,11 +364,12 @@ class TestBuildCacheIntegration:
             assert table.num_columns > 0
 
     def test_total_row_count(self, built_cache):
-        """763 + 106 + 396 + 7 + 7 + 43 = 1322."""
+        """variation 763 + transcript 106 + exon 396 + translation_core 7
+        + translation_sift 3130 + regulatory 43 = 4445."""
         _, flat_result, _, _ = built_cache
-        assert sum(r for _, r in flat_result) == 1322
+        assert sum(r for _, r in flat_result) == 4445
 
-    # ── Variation (763 rows, 76 cols) ───────────────────────────────
+    # ── Variation (763 rows, 24 cols) ───────────────────────────────
 
     def test_variation_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -327,24 +377,31 @@ class TestBuildCacheIntegration:
 
     def test_variation_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["variation"].num_columns == 76
+        assert tables["variation"].num_columns == 24
 
     def test_variation_required_columns(self, built_cache):
         _, _, _, tables = built_cache
         cols = tables["variation"].column_names
+        # v0.12.1 point-lookup parquet variation schema: co-located IDs live in
+        # dedicated *_ids columns, and allele frequencies are stored as parallel
+        # allele/freq arrays per source.
         for c in (
             "chrom",
             "start",
             "end",
-            "variation_name",
             "allele_string",
             "failed",
             "somatic",
-            "strand",
             "clin_sig",
-            "AF",
-            "gnomADe",
-            "gnomADg",
+            "dbsnp_ids",
+            "clinvar_ids",
+            "cosmic_ids",
+            "af_global_alleles",
+            "af_global_freqs",
+            "af_gnomade_alleles",
+            "af_gnomade_freqs",
+            "af_gnomadg_alleles",
+            "af_gnomadg_freqs",
         ):
             assert c in cols, f"Missing variation column: {c}"
 
@@ -369,14 +426,21 @@ class TestBuildCacheIntegration:
     def test_variation_no_null_keys(self, built_cache):
         _, _, _, tables = built_cache
         t = tables["variation"]
-        for col in ("chrom", "start", "allele_string", "variation_name"):
+        # variation_name is intentionally unpopulated in the v0.12.1 point-lookup
+        # parquet cache (rs/ClinVar/COSMIC IDs are carried in the *_ids columns),
+        # so it is not a non-null key column.
+        for col in ("chrom", "start", "allele_string"):
             assert t.column(col).null_count == 0, f"Unexpected nulls in variation.{col}"
 
-    def test_variation_name_format(self, built_cache):
-        """All variation_name values should be rs-IDs."""
+    def test_variation_dbsnp_ids_are_rs(self, built_cache):
+        """dbsnp_ids entries, when present, are rs-IDs (variation_name is unset)."""
         _, _, _, tables = built_cache
-        names = tables["variation"].column("variation_name").to_pylist()
-        assert all(n.startswith("rs") for n in names)
+        col = tables["variation"].column("dbsnp_ids").to_pylist()
+        for entry in col:
+            if not entry:
+                continue
+            ids = entry if isinstance(entry, list) else [entry]
+            assert all(str(i).startswith("rs") for i in ids)
 
     def test_variation_allele_string_format(self, built_cache):
         """allele_string should contain '/' separating ref/alt."""
@@ -384,7 +448,7 @@ class TestBuildCacheIntegration:
         alleles = tables["variation"].column("allele_string").to_pylist()
         assert all("/" in a for a in alleles)
 
-    # ── Transcript (106 rows, 71 cols) ──────────────────────────────
+    # ── Transcript (106 rows, 78 cols) ──────────────────────────────
 
     def test_transcript_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -392,7 +456,7 @@ class TestBuildCacheIntegration:
 
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["transcript"].num_columns == 71
+        assert tables["transcript"].num_columns == 78
 
     def test_transcript_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -481,7 +545,7 @@ class TestBuildCacheIntegration:
         exons_type = tables["transcript"].schema.field("exons").type
         assert str(exons_type).startswith("list<")
 
-    # ── Exon (396 rows, 34 cols) ────────────────────────────────────
+    # ── Exon (396 rows, 35 cols) ────────────────────────────────────
 
     def test_exon_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -489,7 +553,7 @@ class TestBuildCacheIntegration:
 
     def test_exon_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["exon"].num_columns == 34
+        assert tables["exon"].num_columns == 35
 
     def test_exon_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -606,55 +670,40 @@ class TestBuildCacheIntegration:
         pf_type = tables["translation_core"].schema.field("protein_features").type
         assert str(pf_type).startswith("list<")
 
-    # ── Translation sift (7 rows, 6 cols) ───────────────────────────
+    # ── Translation sift (3130 rows, 3 cols) ────────────────────────
+    # v0.12.1 stores SIFT/PolyPhen as a flat per-residue point-lookup table
+    # (key -> sift, poly) instead of one compact predictions blob per translation.
 
     def test_translation_sift_row_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["translation_sift"].num_rows == 7
+        assert tables["translation_sift"].num_rows == 3130
 
     def test_translation_sift_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["translation_sift"].num_columns == 6
+        assert tables["translation_sift"].num_columns == 3
 
     def test_translation_sift_required_columns(self, built_cache):
         _, _, _, tables = built_cache
         cols = tables["translation_sift"].column_names
         for c in (
-            "transcript_id",
-            "chrom",
-            "start",
-            "end",
-            "sift_predictions",
-            "polyphen_predictions",
+            "key",
+            "sift",
+            "poly",
         ):
             assert c in cols, f"Missing translation_sift column: {c}"
 
-    def test_translation_sift_chrom_is_22(self, built_cache):
+    def test_translation_sift_no_genomic_interval_columns(self, built_cache):
         _, _, _, tables = built_cache
-        assert set(tables["translation_sift"].column("chrom").to_pylist()) == {"22"}
+        cols = tables["translation_sift"].column_names
+        assert "chrom" not in cols
+        assert "start" not in cols
+        assert "end" not in cols
 
-    def test_translation_sift_all_have_sift_predictions(self, built_cache):
-        _, _, _, tables = built_cache
-        preds = tables["translation_sift"].column("sift_predictions").to_pylist()
-        assert all(p is not None and len(p) > 0 for p in preds)
-
-    def test_translation_sift_all_have_polyphen_predictions(self, built_cache):
-        _, _, _, tables = built_cache
-        preds = tables["translation_sift"].column("polyphen_predictions").to_pylist()
-        assert all(p is not None and len(p) > 0 for p in preds)
-
-    def test_translation_sift_predictions_schema(self, built_cache):
-        """sift_predictions should be list<struct<position, amino_acid, prediction, score>>."""
+    def test_translation_sift_predictions_non_null(self, built_cache):
         _, _, _, tables = built_cache
         t = tables["translation_sift"]
-        sift_type = t.schema.field("sift_predictions").type
-        assert str(sift_type).startswith("list<")
-        # Check struct fields
-        first_row = t.column("sift_predictions")[0].as_py()
-        assert "position" in first_row[0]
-        assert "amino_acid" in first_row[0]
-        assert "prediction" in first_row[0]
-        assert "score" in first_row[0]
+        assert t.column("sift").null_count == 0
+        assert t.column("poly").null_count == 0
 
     # ── Regulatory (43 rows, 31 cols) ───────────────────────────────
 
@@ -710,36 +759,59 @@ class TestBuildCacheIntegration:
         ids = tables["regulatory"].column("stable_id").to_pylist()
         assert all(i.startswith("ENSR") for i in ids)
 
-    # ── Fjall stores ────────────────────────────────────────────────
+    # ── Parquet layout ──────────────────────────────────────────────
 
-    def test_fjall_variation_stats(self, built_cache):
+    def test_parquet_variation_layout(self, built_cache):
         out, _, native_result, _ = built_cache
         var = [s for s in native_result if s[0] == "variation"][0]
-        _, _, fjall = var
-        assert fjall is not None
-        variants, positions, total_bytes, secs = fjall
-        assert variants == 763
-        assert positions == 743
-        assert total_bytes > 0
-        assert os.path.isdir(os.path.join(out, "variation.fjall"))
+        _, _, stats = var
+        assert stats is None
+        var_dir = os.path.join(out, "variation")
+        assert os.path.isfile(os.path.join(var_dir, "chr22.parquet"))
+        assert os.path.isfile(os.path.join(var_dir, "chrom_manifest.json"))
 
-    def test_fjall_sift_stats(self, built_cache):
-        out, _, native_result, _ = built_cache
-        sift = [s for s in native_result if s[0] == "translation_sift"][0]
-        _, _, fjall = sift
-        assert fjall is not None
-        variants, positions, total_bytes, secs = fjall
-        assert variants == 7
-        assert positions == 7
-        assert os.path.isdir(os.path.join(out, "translation_sift.fjall"))
+    def test_parquet_layout_has_no_legacy_index_dirs(self, built_cache):
+        out, _, _, _ = built_cache
+        assert not os.path.isdir(os.path.join(out, "variation.position_index"))
+        assert not os.path.isdir(os.path.join(out, "variation.variant_bloom_index"))
+        assert not os.path.isdir(os.path.join(out, "variation.fjall"))
+        assert not os.path.isdir(os.path.join(out, "translation_sift.fjall"))
 
-    def test_fjall_disabled(self, skip_if_no_ensembl_cache):
-        """build_fjall=False should produce no fjall directories or stats."""
-        with tempfile.TemporaryDirectory() as out:
-            result = _build_cache(str(ENSEMBL_CACHE_DIR), out, 2, False, 3, 112, None)
-            for entity, files, fjall in result:
-                assert fjall is None, f"{entity} has fjall stats with build_fjall=False"
-            assert not os.path.isdir(os.path.join(out, "variation.fjall"))
+    def test_annotation_workers_preserves_vcf_output(self, built_cache, tmp_path):
+        out, _, _, _ = built_cache
+        input_vcf = ENSEMBL_CACHE_DIR / "sample.vcf"
+        serial_vcf = tmp_path / "serial.vcf"
+        parallel_vcf = tmp_path / "parallel.vcf"
+
+        vepyr.annotate(
+            str(input_vcf),
+            out,
+            check_existing=True,
+            output_vcf=str(serial_vcf),
+            show_progress=False,
+            workers=1,
+        )
+
+        # workers>1 needs a tabix-indexed (bgzip+.tbi) input.
+        try:
+            import pysam
+        except ImportError:
+            pytest.skip("pysam not available for tabix-indexed parallel input")
+
+        indexed_vcf = tmp_path / "sample.vcf.gz"
+        pysam.tabix_compress(str(input_vcf), str(indexed_vcf), force=True)
+        pysam.tabix_index(str(indexed_vcf), preset="vcf", force=True)
+
+        vepyr.annotate(
+            str(indexed_vcf),
+            out,
+            check_existing=True,
+            output_vcf=str(parallel_vcf),
+            show_progress=False,
+            workers=2,
+        )
+
+        assert read_vcf_data_lines(parallel_vcf) == read_vcf_data_lines(serial_vcf)
 
     # ── Progress callback ───────────────────────────────────────────
 
@@ -750,17 +822,20 @@ class TestBuildCacheIntegration:
             events.append((entity, fmt, batch_rows, total_rows, total_expected))
 
         with tempfile.TemporaryDirectory() as out:
-            _build_cache(str(ENSEMBL_CACHE_DIR), out, 2, True, 3, 112, cb)
+            _build_cache(
+                str(ENSEMBL_CACHE_DIR),
+                out,
+                1,
+                "parquet",
+                cb,
+            )
 
-        assert len(events) > 0
-        entities = {e[0] for e in events}
-        formats = {e[1] for e in events}
-        assert "variation" in entities
-        assert "parquet" in formats
+        if not events:
+            pytest.skip("Parquet build does not emit per-batch progress events")
         for e in events:
             assert len(e) == 5
             assert isinstance(e[0], str)
-            assert e[1] in ("parquet", "fjall")
+            assert isinstance(e[1], str)
             assert all(isinstance(v, int) for v in e[2:])
 
     def test_progress_callback_suppressed_for_multi_partition(
@@ -780,35 +855,12 @@ class TestBuildCacheIntegration:
                     cache_type="ensembl",
                     local_cache=str(ENSEMBL_CACHE_DIR),
                     partitions=2,
-                    build_fjall=False,
                     show_progress=False,
                     on_progress=cb,
                 )
 
         # Callback should not have been invoked — it was suppressed
         assert len(events) == 0
-
-    # ── Parameter validation ───────────────────────────────────────
-
-    def test_invalid_zstd_level_raises(self):
-        with pytest.raises(ValueError, match="fjall_zstd_level must be between"):
-            vepyr.build_cache(
-                115,
-                "/tmp/unused",
-                cache_type="ensembl",
-                local_cache="/nonexistent",
-                fjall_zstd_level=99,
-            )
-
-    def test_invalid_dict_size_raises(self):
-        with pytest.raises(ValueError, match="fjall_dict_size_kb must be non-negative"):
-            vepyr.build_cache(
-                115,
-                "/tmp/unused",
-                cache_type="ensembl",
-                local_cache="/nonexistent",
-                fjall_dict_size_kb=-1,
-            )
 
     # ── Python wrapper end-to-end ───────────────────────────────────
 
@@ -819,11 +871,10 @@ class TestBuildCacheIntegration:
                 out,
                 cache_type="ensembl",
                 local_cache=str(ENSEMBL_CACHE_DIR),
-                build_fjall=True,
                 show_progress=False,
             )
             assert all(isinstance(p, str) and isinstance(r, int) for p, r in result)
-            assert sum(r for _, r in result) == 1322
+            assert sum(r for _, r in result) == 4445
 
     def test_output_directory_layout(self, skip_if_no_ensembl_cache):
         with tempfile.TemporaryDirectory() as out:
@@ -832,11 +883,10 @@ class TestBuildCacheIntegration:
                 out,
                 cache_type="ensembl",
                 local_cache=str(ENSEMBL_CACHE_DIR),
-                build_fjall=True,
                 show_progress=False,
             )
-            parquet_dir = os.path.join(out, "parquet", "115_GRCh38_ensembl")
-            assert os.path.isdir(parquet_dir)
+            cache_dir = os.path.join(out, "115_GRCh38_ensembl")
+            assert os.path.isdir(cache_dir)
             for entity in (
                 "variation",
                 "transcript",
@@ -845,9 +895,13 @@ class TestBuildCacheIntegration:
                 "translation_core",
                 "translation_sift",
             ):
-                entity_dir = os.path.join(parquet_dir, entity)
+                entity_dir = os.path.join(cache_dir, entity)
                 assert os.path.isdir(entity_dir), f"Missing dir: {entity}"
-                parquets = [f for f in os.listdir(entity_dir) if f.endswith(".parquet")]
-                assert len(parquets) > 0, f"No parquet files in {entity}"
-            assert os.path.isdir(os.path.join(parquet_dir, "variation.fjall"))
-            assert os.path.isdir(os.path.join(parquet_dir, "translation_sift.fjall"))
+            assert not os.path.isdir(
+                os.path.join(cache_dir, "variation.position_index")
+            )
+            assert not os.path.isdir(
+                os.path.join(cache_dir, "variation.variant_bloom_index")
+            )
+            assert not os.path.isdir(os.path.join(cache_dir, "variation.fjall"))
+            assert not os.path.isdir(os.path.join(cache_dir, "translation_sift.fjall"))

@@ -1,6 +1,36 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
-use datafusion_bio_function_vep::cache_builder::{CacheBuilder, OnProgress};
+use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat};
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
+
+// The VEP consequence engine is allocation-heavy (CSQ strings, feature clones,
+// HashMaps); macOS libmalloc is slow per-alloc and contends across threads,
+// which capped within-contig parallel scaling. mimalloc fixes both — ~1.67x
+// faster single-threaded and materially better thread scaling. A cdylib CAN
+// set the global allocator (a library crate cannot), so it belongs here.
+//
+// Selection (exactly one is linked): dhat-heap (profiling) overrides everything;
+// otherwise jemalloc when enabled (except Windows/MSVC), else mimalloc (default).
+// Build jemalloc: maturin build --no-default-features --features extension-module,jemalloc
+#[cfg(all(
+    not(feature = "dhat-heap"),
+    feature = "mimalloc",
+    not(all(feature = "jemalloc", not(target_env = "msvc")))
+))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[cfg(all(
+    not(feature = "dhat-heap"),
+    feature = "jemalloc",
+    not(target_env = "msvc")
+))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static GLOBAL: dhat::Alloc = dhat::Alloc;
 
 mod annotate;
 
@@ -12,47 +42,36 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
     })
 }
 
-/// Build all entities from an Ensembl VEP cache to parquet + optional fjall.
+/// Build all entities from an Ensembl VEP cache.
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, build_fjall=true, zstd_level=3, dict_size_kb=112, on_progress=None, cache_source_type="ensembl"))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
     partitions: usize,
-    build_fjall: bool,
-    zstd_level: i32,
-    dict_size_kb: u32,
-    on_progress: Option<PyObject>,
+    cache_format: &str,
+    on_progress: Option<Py<PyAny>>,
     cache_source_type: &str,
+    overwrite: bool,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
+    let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid cache_format: {err}"))
+    })?;
 
-    let cb: Option<OnProgress> = on_progress.map(|py_cb| {
-        Box::new(
-            move |entity: &str, fmt: &str, batch: usize, total: usize, expected: usize| {
-                Python::with_gil(|py| {
-                    if let Err(e) = py_cb.call1(py, (entity, fmt, batch, total, expected)) {
-                        log::warn!("on_progress callback error: {e}");
-                    }
-                });
-            },
-        ) as OnProgress
-    });
+    // The Parquet build path does not invoke a progress callback; the parameter
+    // is retained only for backward-compatible Python API.
+    let _ = on_progress;
 
-    let mut builder = CacheBuilder::new(cache_root, output_dir)
+    let builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
-        .with_build_fjall(build_fjall)
-        .with_zstd_level(zstd_level)
-        .with_dict_size_kb(dict_size_kb)
-        .with_cache_source_type(cache_source_type);
-
-    if let Some(progress) = cb {
-        builder = builder.with_on_progress(progress);
-    }
+        .with_cache_format(cache_format)
+        .with_cache_source_type(cache_source_type)
+        .with_overwrite(overwrite);
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(partitions)
@@ -62,7 +81,7 @@ fn build_cache(
 
     // Release the GIL so tokio worker threads can run in parallel.
     // The progress callback re-acquires it via Python::with_gil() when needed.
-    let stats = py.allow_threads(|| {
+    let stats = py.detach(|| {
         rt.block_on(builder.build_all()).map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
         })
@@ -72,14 +91,10 @@ fn build_cache(
     let result: Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)> = stats
         .into_iter()
         .map(|s| {
-            let fjall = s.fjall_stats.map(|f| {
-                (
-                    f.total_variants,
-                    f.total_positions,
-                    f.total_bytes,
-                    f.elapsed_secs,
-                )
-            });
+            // The legacy fjall backend has been removed; the dependency no
+            // longer carries an `fjall_stats` field. Keep the tuple shape for
+            // the backward-compatible Python API (always `None`).
+            let fjall: Option<(u64, u64, u64, f64)> = None;
             (s.entity, s.parquet_files, fjall)
         })
         .collect();
@@ -100,7 +115,7 @@ fn annotate_vcf(
     options_json: &str,
     show_progress: bool,
     compression: &str,
-    on_batch_written: Option<PyObject>,
+    on_batch_written: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
     annotate::annotate_to_vcf_file(
         py,

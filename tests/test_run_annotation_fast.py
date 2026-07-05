@@ -1,4 +1,5 @@
 import importlib.util
+import types
 from pathlib import Path
 
 
@@ -16,6 +17,22 @@ def load_run_annotation_fast():
     return module
 
 
+def load_run_annotation_fast_all():
+    script_path = (
+        Path(__file__).resolve().parents[1]
+        / "e2e-testing"
+        / "scripts"
+        / "run_annotation_fast_all.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "run_annotation_fast_all", script_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_refseq_cache_profile_uses_data_vepyr_paths():
     module = load_run_annotation_fast()
     profile = module._CACHE_PROFILES["refseq"]
@@ -24,6 +41,232 @@ def test_refseq_cache_profile_uses_data_vepyr_paths():
     assert profile["vep_vcf"].endswith(
         "data_vepyr/HG002_annotated_wgs_everything_hgvs_refseq.vcf"
     )
+
+
+def test_parse_args_accepts_workers(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--workers",
+            "4",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.workers == 4
+
+
+def test_parse_args_defaults_to_plain_output(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr("sys.argv", ["run_annotation_fast.py", "chr1"])
+
+    args = module.parse_args()
+
+    # Parquet is the only cache format; plain .vcf is the default output.
+    assert args.bgzf is False
+    assert module.BACKEND == "parquet"
+
+
+def test_parse_args_rejects_removed_backend_flag(monkeypatch):
+    import pytest
+
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast.py", "chr1", "--backend", "lance"],
+    )
+
+    with pytest.raises(SystemExit):
+        module.parse_args()
+
+
+def test_parse_args_accepts_bgzf(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast.py", "chr1", "--cache", "merged", "--bgzf"],
+    )
+
+    args = module.parse_args()
+
+    assert args.bgzf is True
+    assert args.cache == "merged"
+
+
+def test_main_preserves_requested_workers_for_single_chrom(monkeypatch, tmp_path):
+    module = load_run_annotation_fast()
+    seen = {}
+
+    def fake_annotate(*_args, **kwargs):
+        seen["workers"] = kwargs["workers"]
+        Path(kwargs["output_vcf"]).write_text(
+            "\n".join(
+                [
+                    "##fileformat=VCFv4.2",
+                    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+                    "chr1\t1\t.\tA\tC\t.\tPASS\t.",
+                ]
+            )
+            + "\n"
+        )
+
+    monkeypatch.setattr(module.vepyr, "annotate", fake_annotate)
+    monkeypatch.setattr(
+        module,
+        "extract_chrom_from_vcf",
+        lambda *_args, **_kwargs: str(tmp_path / "input_chr1.vcf.gz"),
+    )
+    monkeypatch.setattr(
+        module.subprocess, "check_output", lambda *_args, **_kwargs: b"1"
+    )
+    monkeypatch.setattr(module, "count_data_lines", lambda _path: 1)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--workers",
+            "4",
+            "--vcf",
+            str(tmp_path / "input.vcf.gz"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--fasta",
+            str(tmp_path / "ref.fa"),
+            "--no-normalize",
+            "--skip-compare",
+            "--force",
+        ],
+    )
+
+    module.main()
+
+    assert seen == {"workers": 4}
+
+
+def test_parse_args_accepts_skip_comparison_alias(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--skip-comparison",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.skip_compare is True
+
+
+def test_fast_all_parse_args_accepts_skip_comparison(monkeypatch):
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast_all.py",
+            "--skip-comparison",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.skip_comparison is True
+
+
+def test_fast_all_run_chromosome_forwards_skip_compare(monkeypatch):
+    module = load_run_annotation_fast_all()
+    seen = {}
+
+    def fake_run(cmd, cwd=None):
+        seen["cmd"] = cmd
+        seen["cwd"] = cwd
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module.run_chromosome(22, skip_comparison=True) is True
+    assert "--skip-compare" in seen["cmd"]
+    assert "--workers" in seen["cmd"]
+    assert "--chrom-parallelism" not in seen["cmd"]
+
+
+def test_fast_all_parse_args_defaults_to_plain_output(monkeypatch):
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr("sys.argv", ["run_annotation_fast_all.py"])
+
+    args = module.parse_args()
+
+    assert args.bgzf is False
+    assert module.BACKEND == "parquet"
+
+
+def test_fast_all_parse_args_rejects_removed_backend_flag(monkeypatch):
+    import pytest
+
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast_all.py", "--backend", "lance"],
+    )
+
+    with pytest.raises(SystemExit):
+        module.parse_args()
+
+
+def test_fast_all_parse_args_accepts_bgzf(monkeypatch):
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast_all.py", "--cache", "merged", "--bgzf"],
+    )
+
+    args = module.parse_args()
+
+    assert args.bgzf is True
+    assert args.cache == "merged"
+
+
+def test_fast_all_run_chromosome_forwards_cache_and_bgzf(monkeypatch):
+    module = load_run_annotation_fast_all()
+    seen = {}
+
+    def fake_run(cmd, cwd=None):
+        seen["cmd"] = cmd
+        seen["cwd"] = cwd
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module.run_chromosome(1, cache="merged", force=True, bgzf=True) is True
+    assert "--cache" in seen["cmd"]
+    assert "merged" in seen["cmd"]
+    assert "--bgzf" in seen["cmd"]
+    assert "--backend" not in seen["cmd"]
+    assert "--force" in seen["cmd"]
+
+
+def test_parse_args_allows_parallel_workers(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_annotation_fast.py",
+            "chr1",
+            "--workers",
+            "2",
+        ],
+    )
+
+    args = module.parse_args()
+
+    assert args.workers == 2
+    assert args.bgzf is False
 
 
 def test_extract_chrom_from_vep_force_refreshes_cached_slice(tmp_path):

@@ -243,16 +243,15 @@ def build_cache(
     cache_type: str,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
-    partitions: int = 1,
-    build_fjall: bool = True,
-    fjall_zstd_level: int = 3,
-    fjall_dict_size_kb: int = 112,
+    partitions: int = 8,
+    cache_format: str = "parquet",
     local_cache: str | None = None,
     download_retries: int = 10,
     show_progress: bool = True,
     on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
+    overwrite: bool = False,
 ) -> list[tuple[str, int]]:
-    """Download an Ensembl VEP cache and convert it to optimized Parquet + fjall.
+    """Download an Ensembl VEP cache and convert it to an optimized cache.
 
     Parameters
     ----------
@@ -268,13 +267,9 @@ def build_cache(
     assembly : str
         Genome assembly (default: ``"GRCh38"``).
     partitions : int
-        Number of DataFusion partitions for parallelism (default: 1).
-    build_fjall : bool
-        Build fjall KV stores for variation and sift lookups (default: True).
-    fjall_zstd_level : int
-        Zstd compression level for fjall stores (default: 3).
-    fjall_dict_size_kb : int
-        Zstd dictionary size in KB for fjall stores (default: 112).
+        Number of DataFusion partitions for parallelism (default: 8).
+    cache_format : str
+        Cache format to build. Only ``"parquet"`` is supported (default).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
@@ -284,10 +279,18 @@ def build_cache(
         Each retry resumes from the last byte received.
     show_progress : bool
         Show tqdm progress bars during conversion (default: True).
+
+        .. note::
+           The partitioned-Parquet build path does not currently emit
+           per-batch progress events, so no bars appear during the cache
+           build regardless of ``show_progress`` / ``on_progress``.
     on_progress : callable or None
         Custom progress callback with signature
         ``(entity, format, batch_rows, total_rows, total_expected)``.
-        Overrides the default tqdm bars when provided.
+        Overrides the default tqdm bars when provided. See the note on
+        ``show_progress`` — the Parquet build path does not invoke it.
+    overwrite : bool
+        Rebuild existing cache outputs instead of skipping them.
 
     Returns
     -------
@@ -298,14 +301,8 @@ def build_cache(
     import tarfile
 
     _validate_cache_type(cache_type)
-    if not 1 <= fjall_zstd_level <= 22:
-        raise ValueError(
-            f"fjall_zstd_level must be between 1 and 22, got {fjall_zstd_level}"
-        )
-    if fjall_dict_size_kb < 0:
-        raise ValueError(
-            f"fjall_dict_size_kb must be non-negative, got {fjall_dict_size_kb}"
-        )
+    if cache_format != "parquet":
+        raise ValueError("cache_format must be 'parquet'")
 
     # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
@@ -349,8 +346,8 @@ def build_cache(
                 f"Cache directory not found after extraction: {cache_root}"
             )
 
-    # Output: parquet/<version_dir>/<entity>/chr1.parquet
-    output_dir = os.path.join(cache_dir, "parquet", version_dir)
+    # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet
+    output_dir = os.path.join(cache_dir, version_dir)
 
     # Build progress callback: explicit wins, then auto-tqdm, then None.
     progress_cb = on_progress
@@ -396,11 +393,10 @@ def build_cache(
             cache_root,
             output_dir,
             partitions,
-            build_fjall,
-            fjall_zstd_level,
-            fjall_dict_size_kb,
+            cache_format,
             native_cb,
             cache_type,
+            overwrite,
         )
     finally:
         if _bars is not None:
@@ -409,21 +405,11 @@ def build_cache(
 
     # Flatten entity stats into the simple (path, rows) list for backward compat
     all_results: list[tuple[str, int]] = []
-    for entity_name, parquet_files, fjall_stats in entity_stats:
+    for _entity_name, parquet_files, _legacy_stats in entity_stats:
         for path, rows in parquet_files:
             all_results.append((path, rows))
-        if fjall_stats is not None:
-            variants, positions, total_bytes, secs = fjall_stats
-            log.info(
-                "%s fjall: %d variants, %d positions, %.1f MB in %.1fs",
-                entity_name,
-                variants,
-                positions,
-                total_bytes / (1024 * 1024),
-                secs,
-            )
 
-    log.info("Done. Wrote %d Parquet files to %s", len(all_results), output_dir)
+    log.info("Done. Wrote %d Parquet datasets to %s", len(all_results), output_dir)
     return all_results
 
 
@@ -450,7 +436,7 @@ def annotate(
     max_af: bool = False,
     pubmed: bool = False,
     # Lookup tuning
-    use_fjall: bool = False,
+    cache_format: str = "parquet",
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     gencode_basic: bool = False,
@@ -469,6 +455,7 @@ def annotate(
     failed: int = 0,
     # Engine tuning
     cache_size_mb: int = 1024,
+    workers: int = 1,
     skip_csq: bool = True,
     # Output mode
     output_vcf: str | None = None,
@@ -569,11 +556,14 @@ def annotate(
         Ensembl VEP's ``--buffer_size`` default of ``5000``.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
-    use_fjall : bool
-        Use fjall (embedded KV store) backend instead of parquet
-        (default: False).
+    cache_format : str
+        Cache format to use. Only ``"parquet"`` is supported (default).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
+    workers : int
+        Number of within-contig fused annotation pipelines (default: 1).
+        The single annotation-concurrency knob. ``1`` is serial; values
+        greater than 1 require a tabix-indexed (bgzip + ``.tbi``) input VCF.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -655,15 +645,17 @@ def annotate(
         or buffer_size <= 0
     ):
         raise ValueError("buffer_size must be a positive integer")
+    if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
+        raise ValueError("workers must be a positive integer")
+    if cache_format != "parquet":
+        raise ValueError("cache_format must be 'parquet'")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
         "extended_probes": extended_probes,
+        "cache_format": cache_format,
         "buffer_size": buffer_size,
     }
-
-    if use_fjall:
-        opts["use_fjall"] = True
 
     if everything:
         opts["everything"] = True
@@ -727,6 +719,10 @@ def annotate(
             opts["distance"] = distance
     if cache_size_mb != 1024:
         opts["cache_size_mb"] = cache_size_mb
+    if workers > 1:
+        # Single annotation-concurrency knob: N within-contig fused pipelines.
+        # Requires a tabix-indexed (bgzip+.tbi) input VCF.
+        opts["workers"] = workers
 
     options_json = json.dumps(opts)
 
@@ -824,7 +820,13 @@ def annotate(
     import pyarrow as pa
 
     # Get schema from a probe annotator (doesn't consume data)
-    probe = _create_annotator(vcf, cache_dir, options_json, skip_csq)
+    probe = _create_annotator(
+        vcf,
+        cache_dir,
+        options_json,
+        skip_csq,
+        None,
+    )
     pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
@@ -832,11 +834,22 @@ def annotate(
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _skip = vcf, cache_dir, options_json, skip_csq
+    _vcf, _cache_dir, _opts, _skip = (
+        vcf,
+        cache_dir,
+        options_json,
+        skip_csq,
+    )
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
         # Pass n_rows as LIMIT to the DataFusion query for engine-level pushdown
-        annotator = _create_annotator(_vcf, _cache_dir, _opts, _skip, n_rows)
+        annotator = _create_annotator(
+            _vcf,
+            _cache_dir,
+            _opts,
+            _skip,
+            n_rows,
+        )
         remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)

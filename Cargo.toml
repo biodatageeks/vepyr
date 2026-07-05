@@ -3,20 +3,39 @@ name = "vepyr"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+# Allocator selection (mirrors polars-bio). Exactly one global allocator is linked;
+# see src/lib.rs. mimalloc is on by default; jemalloc is opt-in and takes precedence
+# when enabled, except on Windows/MSVC where tikv-jemallocator is unsupported.
+#   Build with jemalloc: maturin build --release --no-default-features \
+#     --features extension-module,jemalloc
+default = ["extension-module", "mimalloc"]
+extension-module = ["pyo3/extension-module"]
+mimalloc = ["dep:mimalloc"]
+jemalloc = ["dep:tikv-jemallocator"]
+dhat-heap = ["dep:dhat"]
+
 [lib]
 name = "_core"
 # "cdylib" is necessary to produce a shared library for Python to import from.
 crate-type = ["cdylib"]
 
 [dependencies]
+# Global allocators, selected via [features] above (mimalloc default-on, jemalloc
+# opt-in). Both optional so exactly one is linked. mimalloc pinned to v2: v3
+# segfaults at import on macOS arm64 (per polars-bio). jemalloc is unsupported on
+# Windows/MSVC; there the build falls back to mimalloc.
+mimalloc = { version = "0.1", default-features = false, features = ["v2"], optional = true }
+tikv-jemallocator = { version = "0.7.0", optional = true }
+dhat = { version = "0.3", optional = true }
 # PyO3 for Python bindings
-pyo3 = { version = "0.25", features = ["extension-module", "abi3-py310"] }
+pyo3 = { version = "0.28", features = ["abi3-py310"] }
 
 # Arrow interop between Rust and Python (PyArrow)
-arrow = { version = "56", features = ["pyarrow"] }
+arrow = { version = "58", features = ["pyarrow"] }
 
 # DataFusion for query execution
-datafusion = "50.3.0"
+datafusion = "=53.0.0"
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
 futures = "0.3"
 log = "0.4"
@@ -24,6 +43,6 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9b60f86de4765096538547f320dbbc476ea37031", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "4010e1c34f343de3b099f832560075d0fbf93c9d" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "4010e1c34f343de3b099f832560075d0fbf93c9d" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.13.1", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }

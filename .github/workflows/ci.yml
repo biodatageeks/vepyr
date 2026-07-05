@@ -39,7 +39,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test
+      # The `extension-module` feature makes PyO3 skip linking libpython (the
+      # interpreter supplies the symbols when the module is imported), which
+      # leaves a standalone `cargo test` binary with undefined Python symbols.
+      # Build the tests without it so PyO3 links libpython, and expose that
+      # library dir to the runtime linker.
+      - name: cargo test
+        run: |
+          export LD_LIBRARY_PATH="$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))'):${LD_LIBRARY_PATH:-}"
+          cargo test --no-default-features
 
   linux-tests:
     runs-on: ubuntu-latest
