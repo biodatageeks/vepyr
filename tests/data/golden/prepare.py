@@ -24,9 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
+from _cache_prep import write_trimmed_cache
 
 SCRIPT_DIR = Path(__file__).parent
 
@@ -154,47 +152,11 @@ def main():
     subprocess.run(["samtools", "faidx", str(ref)], check=True)
     print(f"   -> {ref} ({ref.stat().st_size // 1024} KB)")
 
-    # 6. Create trimmed parquet cache
+    # 6. Create trimmed parquet cache in the v0.12.1 partitioned-Parquet layout
+    #    (<entity>/chr1.parquet + <entity>/chrom_manifest.json).
     cache_dir = SCRIPT_DIR / "cache"
     print("6. Creating trimmed parquet cache...")
-
-    entities = {
-        "variation": ("start", 0, end),
-        "transcript": ("start", 0, end),
-        "exon": ("start", 0, end),
-        "translation_sift": ("start", 0, end),
-        "regulatory": ("start", 0, end),
-        "motif": ("start", 0, end),
-    }
-
-    for entity, (col, lo, hi) in entities.items():
-        src = Path(CACHE_SRC) / entity / "chr1.parquet"
-        dst_dir = cache_dir / entity
-        dst_dir.mkdir(parents=True, exist_ok=True)
-        dst = dst_dir / "chr1.parquet"
-        if not src.exists():
-            print(f"   {entity}: source not found, skipping")
-            continue
-        table = pq.read_table(str(src))
-        mask = pc.and_(pc.greater_equal(table[col], lo), pc.less_equal(table[col], hi))
-        table = table.filter(mask)
-        pq.write_table(table, str(dst))
-        print(f"   {entity}: {table.num_rows} rows ({dst.stat().st_size // 1024} KB)")
-
-    # translation_core: filter by transcript IDs from trimmed transcript table
-    tx_table = pq.read_table(str(cache_dir / "transcript" / "chr1.parquet"))
-    tx_ids = pa.array(tx_table.column("stable_id").to_pylist())
-    src = Path(CACHE_SRC) / "translation_core" / "chr1.parquet"
-    dst_dir = cache_dir / "translation_core"
-    dst_dir.mkdir(parents=True, exist_ok=True)
-    dst = dst_dir / "chr1.parquet"
-    table = pq.read_table(str(src))
-    mask = pc.is_in(table["transcript_id"], value_set=tx_ids)
-    table = table.filter(mask)
-    pq.write_table(table, str(dst))
-    print(
-        f"   translation_core: {table.num_rows} rows ({dst.stat().st_size // 1024} KB)"
-    )
+    write_trimmed_cache(CACHE_SRC, cache_dir, end)
 
     print(
         f"\nDone. Total test data: {sum(f.stat().st_size for f in SCRIPT_DIR.rglob('*') if f.is_file()) // 1024} KB"

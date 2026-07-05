@@ -20,15 +20,16 @@ Env vars:
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
-
-import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
 
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR.parent
 BASE_GOLDEN_DIR = DATA_DIR / "golden"
+
+# The shared trimmed-cache builder lives alongside the base golden prepare script.
+sys.path.insert(0, str(BASE_GOLDEN_DIR))
+from _cache_prep import write_trimmed_cache  # noqa: E402
 
 
 def expand_path(path: str) -> Path:
@@ -88,44 +89,6 @@ def write_golden_subset(
                 matched += 1
 
     return matched
-
-
-def write_trimmed_cache(cache_src: Path, cache_dir: Path, end: int) -> None:
-    entities = {
-        "variation": ("start", 0, end),
-        "transcript": ("start", 0, end),
-        "exon": ("start", 0, end),
-        "translation_sift": ("start", 0, end),
-        "regulatory": ("start", 0, end),
-        "motif": ("start", 0, end),
-    }
-
-    for entity, (column, lo, hi) in entities.items():
-        src = cache_src / entity / "chr1.parquet"
-        dst_dir = cache_dir / entity
-        dst_dir.mkdir(parents=True, exist_ok=True)
-        dst = dst_dir / "chr1.parquet"
-        table = pq.read_table(str(src))
-        mask = pc.and_(
-            pc.greater_equal(table[column], lo), pc.less_equal(table[column], hi)
-        )
-        trimmed = table.filter(mask)
-        pq.write_table(trimmed, str(dst))
-        print(f"  {entity}: {trimmed.num_rows} rows")
-
-    transcript_table = pq.read_table(str(cache_dir / "transcript" / "chr1.parquet"))
-    transcript_ids = pa.array(transcript_table.column("stable_id").to_pylist())
-
-    src = cache_src / "translation_core" / "chr1.parquet"
-    dst_dir = cache_dir / "translation_core"
-    dst_dir.mkdir(parents=True, exist_ok=True)
-    dst = dst_dir / "chr1.parquet"
-
-    table = pq.read_table(str(src))
-    mask = pc.is_in(table["transcript_id"], value_set=transcript_ids)
-    trimmed = table.filter(mask)
-    pq.write_table(trimmed, str(dst))
-    print(f"  translation_core: {trimmed.num_rows} rows")
 
 
 def main() -> None:
