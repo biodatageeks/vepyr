@@ -5,7 +5,7 @@ Usage:
     python run_annotation_fast.py chr1
     python run_annotation_fast.py chr22 --vcf /path/to/input.vcf.gz --vep /path/to/vep_output.vcf
     python run_annotation_fast.py chr22 --bgzf
-    python run_annotation_fast.py chr1 --cache merged --workers 4 --force
+    python run_annotation_fast.py chr1 --profile merged --workers 4 --force
 
 Extracts a single chromosome from a tabix-indexed VCF, annotates against the
 Parquet cache, and compares against the corresponding VEP reference output.
@@ -38,7 +38,7 @@ VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
 # names (vepyr_parquet_*) and report suffixes stay stable.
 BACKEND = "parquet"
 
-# Per-cache-type defaults: cache directory, VEP reference VCF, annotate kwargs
+# Per-profile defaults: cache directory, VEP reference VCF, annotate kwargs
 _CACHE_PROFILES = {
     "ensembl": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_ensembl"),
@@ -81,9 +81,11 @@ _CACHE_PROFILES = {
     },
     "merged_flag_pick_allele_gene": {
         "cache_dir": os.path.join(DATA_DIR, "115_GRCh38_merged"),
+        # This local VEP artifact is misnamed: chr16 validation shows it is
+        # the flag_pick_allele_gene reference, with unfiltered CSQs and PICK.
         "vep_vcf": os.path.join(
             DATA_DIR,
-            "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf",
+            "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf",
         ),
         "annotate_kwargs": {
             "flag_pick_allele_gene": True,
@@ -154,10 +156,17 @@ def parse_args():
         "chrom", help="Chromosome to extract and annotate (e.g. chr1, chr22, 1, 22)"
     )
     p.add_argument(
-        "--cache",
+        "--profile",
         choices=sorted(_CACHE_PROFILES),
         default="ensembl",
-        help="Cache profile selecting cache dir and VEP reference (default: %(default)s)",
+        help="Annotation profile selecting cache dir, VEP reference, and "
+        "pick-mode flags (default: %(default)s)",
+    )
+    p.add_argument(
+        "--cache",
+        dest="profile",
+        choices=sorted(_CACHE_PROFILES),
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--bgzf",
@@ -180,12 +189,12 @@ def parse_args():
     p.add_argument(
         "--vep",
         default=None,
-        help="VEP reference VCF for comparison (default: auto from --cache)",
+        help="VEP reference VCF for comparison (default: auto from --profile)",
     )
     p.add_argument(
         "--cache-dir",
         default=None,
-        help="Ensembl cache directory (default: auto from --cache)",
+        help="Ensembl cache directory (default: auto from --profile)",
     )
     p.add_argument(
         "--fasta",
@@ -211,8 +220,8 @@ def parse_args():
     if args.workers <= 0:
         p.error("--workers must be a positive integer")
 
-    # Resolve defaults from cache profile; explicit --cache-dir / --vep override
-    profile = _CACHE_PROFILES[args.cache]
+    # Resolve defaults from annotation profile; explicit --cache-dir / --vep override
+    profile = _CACHE_PROFILES[args.profile]
     if args.cache_dir is None:
         args.cache_dir = profile["cache_dir"]
     if args.vep is None:
@@ -701,7 +710,7 @@ def main():
     print("=" * 60)
     out_mode = "bgzf" if args.bgzf else "plain"
     print(
-        f"Step 2: Annotate {chrom} with vepyr ({BACKEND}, {out_mode}, cache={args.cache})"
+        f"Step 2: Annotate {chrom} with vepyr ({BACKEND}, {out_mode}, profile={args.profile})"
     )
     print("=" * 60)
 
@@ -766,13 +775,14 @@ def main():
             output_vcf,
             vep_chrom_vcf,
             chrom,
-            ignore_csq_order=args.cache in VEP_HASH_ORDER_PICK_CACHES,
+            ignore_csq_order=args.profile in VEP_HASH_ORDER_PICK_CACHES,
         )
 
     # ── Report ────────────────────────────────────────────────────────────
     report = {
         "chrom": chrom,
-        "cache": args.cache,
+        "profile": args.profile,
+        "cache": args.profile,
         "input_variants": n_variants,
         "annotation": {
             "backend": BACKEND,

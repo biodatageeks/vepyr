@@ -43,6 +43,30 @@ def test_refseq_cache_profile_uses_data_vepyr_paths():
     )
 
 
+def test_flag_pick_profiles_use_matching_vep_references():
+    module = load_run_annotation_fast()
+
+    assert (
+        Path(module._CACHE_PROFILES["merged_flag_pick_allele"]["vep_vcf"]).name
+        == "HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf"
+    )
+    # The local VEP artifact is misnamed, but chr16 validation shows it is the
+    # flag_pick_allele_gene reference: unfiltered CSQs plus PICK values.
+    assert (
+        Path(module._CACHE_PROFILES["merged_flag_pick_allele_gene"]["vep_vcf"]).name
+        == "HG002_annotated_wgs_everything_hgvs_merged_pick.vcf"
+    )
+
+
+def test_fast_all_profile_suffixes_match_single_runner_profiles():
+    fast = load_run_annotation_fast()
+    fast_all = load_run_annotation_fast_all()
+
+    assert fast_all.PROFILE_SUFFIXES == {
+        name: profile["suffix"] for name, profile in fast._CACHE_PROFILES.items()
+    }
+
+
 def test_parse_args_accepts_workers(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
@@ -84,17 +108,29 @@ def test_parse_args_rejects_removed_backend_flag(monkeypatch):
         module.parse_args()
 
 
-def test_parse_args_accepts_bgzf(monkeypatch):
+def test_parse_args_accepts_profile_and_bgzf(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
-        ["run_annotation_fast.py", "chr1", "--cache", "merged", "--bgzf"],
+        ["run_annotation_fast.py", "chr1", "--profile", "merged", "--bgzf"],
     )
 
     args = module.parse_args()
 
     assert args.bgzf is True
-    assert args.cache == "merged"
+    assert args.profile == "merged"
+
+
+def test_parse_args_accepts_legacy_cache_alias(monkeypatch):
+    module = load_run_annotation_fast()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast.py", "chr1", "--cache", "merged"],
+    )
+
+    args = module.parse_args()
+
+    assert args.profile == "merged"
 
 
 def test_main_preserves_requested_workers_for_single_chrom(monkeypatch, tmp_path):
@@ -219,20 +255,32 @@ def test_fast_all_parse_args_rejects_removed_backend_flag(monkeypatch):
         module.parse_args()
 
 
-def test_fast_all_parse_args_accepts_bgzf(monkeypatch):
+def test_fast_all_parse_args_accepts_profile_and_bgzf(monkeypatch):
     module = load_run_annotation_fast_all()
     monkeypatch.setattr(
         "sys.argv",
-        ["run_annotation_fast_all.py", "--cache", "merged", "--bgzf"],
+        ["run_annotation_fast_all.py", "--profile", "merged", "--bgzf"],
     )
 
     args = module.parse_args()
 
     assert args.bgzf is True
-    assert args.cache == "merged"
+    assert args.profile == "merged"
 
 
-def test_fast_all_run_chromosome_forwards_cache_and_bgzf(monkeypatch):
+def test_fast_all_parse_args_accepts_legacy_cache_alias(monkeypatch):
+    module = load_run_annotation_fast_all()
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_annotation_fast_all.py", "--cache", "merged"],
+    )
+
+    args = module.parse_args()
+
+    assert args.profile == "merged"
+
+
+def test_fast_all_run_chromosome_forwards_profile_and_bgzf(monkeypatch):
     module = load_run_annotation_fast_all()
     seen = {}
 
@@ -243,8 +291,9 @@ def test_fast_all_run_chromosome_forwards_cache_and_bgzf(monkeypatch):
 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
-    assert module.run_chromosome(1, cache="merged", force=True, bgzf=True) is True
-    assert "--cache" in seen["cmd"]
+    assert module.run_chromosome(1, profile="merged", force=True, bgzf=True) is True
+    assert "--profile" in seen["cmd"]
+    assert "--cache" not in seen["cmd"]
     assert "merged" in seen["cmd"]
     assert "--bgzf" in seen["cmd"]
     assert "--backend" not in seen["cmd"]

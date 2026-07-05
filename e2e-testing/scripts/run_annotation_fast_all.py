@@ -7,7 +7,7 @@ Usage:
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
     python run_annotation_fast_all.py --bgzf           # emit + validate block-gzipped output
-    python run_annotation_fast_all.py --cache merged
+    python run_annotation_fast_all.py --profile merged
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
 per-chromosome JSON reports into a single timestamped Markdown summary
@@ -25,7 +25,7 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(SCRIPT_DIR, "..", "reports")
-CACHE_SUFFIXES = {
+PROFILE_SUFFIXES = {
     "ensembl": "_ensembl",
     "merged": "_merged",
     "merged_flag_pick": "_merged_flag_pick",
@@ -37,6 +37,7 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
+CACHE_SUFFIXES = PROFILE_SUFFIXES
 # Parquet is the only supported cache format.
 BACKEND = "parquet"
 
@@ -125,10 +126,16 @@ def parse_args():
         help="Chromosome numbers to process (default: 1-22)",
     )
     p.add_argument(
-        "--cache",
-        choices=sorted(CACHE_SUFFIXES),
+        "--profile",
+        choices=sorted(PROFILE_SUFFIXES),
         default="ensembl",
-        help="Cache type — forwarded to run_annotation_fast.py (default: %(default)s)",
+        help="Annotation profile forwarded to run_annotation_fast.py (default: %(default)s)",
+    )
+    p.add_argument(
+        "--cache",
+        dest="profile",
+        choices=sorted(PROFILE_SUFFIXES),
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--bgzf",
@@ -170,7 +177,7 @@ def parse_args():
 
 def run_chromosome(
     chrom_num,
-    cache="ensembl",
+    profile="ensembl",
     workers=1,
     force=False,
     skip_comparison=False,
@@ -182,8 +189,8 @@ def run_chromosome(
         sys.executable,
         os.path.join(SCRIPT_DIR, "run_annotation_fast.py"),
         chrom,
-        "--cache",
-        cache,
+        "--profile",
+        profile,
         "--workers",
         str(workers),
     ]
@@ -195,7 +202,7 @@ def run_chromosome(
         cmd.append("--bgzf")
 
     print(f"\n{'=' * 60}")
-    print(f"  Running {chrom} (cache={cache}, {BACKEND})")
+    print(f"  Running {chrom} (profile={profile}, {BACKEND})")
     print(f"{'=' * 60}")
     result = subprocess.run(cmd, cwd=SCRIPT_DIR)
     if result.returncode != 0:
@@ -690,8 +697,8 @@ def main():
     args = parse_args()
     os.makedirs(REPORT_DIR, exist_ok=True)
 
-    cache = args.cache
-    suffix = CACHE_SUFFIXES[cache]
+    profile = args.profile
+    suffix = PROFILE_SUFFIXES[profile]
     backend = BACKEND
     report_name_suffix = suffix
 
@@ -699,12 +706,12 @@ def main():
     if not args.skip_annotate:
         print(
             f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} "
-            f"(cache={cache}, {backend})"
+            f"(profile={profile}, {backend})"
         )
         for n in args.chroms:
             ok = run_chromosome(
                 n,
-                cache=cache,
+                profile=profile,
                 workers=args.workers,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,
