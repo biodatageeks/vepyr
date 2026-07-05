@@ -1,9 +1,10 @@
 name: Version Bump
 
 # Manual workflow (A of 2): compute the next semantic version from Conventional
-# Commit messages since the last tag, update Cargo.toml + pyproject.toml, commit,
-# and create + push the git tag. It does NOT publish — run "Publish to PyPI"
-# afterwards and pick the tag this workflow created.
+# Commit messages since the last tag, update Cargo.toml + pyproject.toml, and
+# open a pull request with the bump. Merge that PR, then run "Publish to PyPI"
+# with the same version. This never pushes to master directly, so it needs no
+# bypass of branch protection.
 
 on:
   workflow_dispatch:
@@ -19,13 +20,14 @@ on:
           - major
         default: auto
       dry_run:
-        description: "Dry run (compute only; no commit/tag/push)"
+        description: "Dry run (compute only; no branch/PR)"
         required: false
         type: boolean
         default: false
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump:
@@ -34,7 +36,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install cargo-set-version
         run: cargo install cargo-set-version --locked
@@ -95,16 +96,28 @@ jobs:
           cargo set-version "$NEXT"
           sed -i "s/^version = \".*\"/version = \"$NEXT\"/" pyproject.toml
 
-      - name: Commit, tag and push
+      - name: Open version-bump pull request
         if: ${{ inputs.dry_run == false }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           NEXT="${{ steps.compute.outputs.next }}"
+          BRANCH="release/${NEXT}"
+          BASE="${GITHUB_REF_NAME}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add Cargo.toml pyproject.toml
           git commit -m "chore(release): ${NEXT}"
-          git tag -a "${NEXT}" -m "Release ${NEXT}"
-          git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
+          git push -u origin "$BRANCH" --force-with-lease
+          gh pr create \
+            --base "$BASE" \
+            --head "$BRANCH" \
+            --title "chore(release): ${NEXT}" \
+            --body "Automated version bump \`${{ steps.compute.outputs.current }}\` → \`${NEXT}\` (${{ steps.compute.outputs.bump }}).
+
+          After merging, run the **Publish to PyPI** workflow with version \`${NEXT}\` to tag, build, and publish."
 
       - name: Summary
         run: |
@@ -116,6 +129,6 @@ jobs:
             echo "- **Dry run:** ${{ inputs.dry_run }}"
             if [ "${{ inputs.dry_run }}" = "false" ]; then
               echo ""
-              echo "Tag \`${{ steps.compute.outputs.next }}\` created. Now run **Publish to PyPI** and select this tag."
+              echo "Opened PR for branch \`release/${{ steps.compute.outputs.next }}\`. Merge it, then run **Publish to PyPI** with version \`${{ steps.compute.outputs.next }}\`."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
