@@ -46,7 +46,7 @@ for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
-This downloads the Ensembl VEP 115 cache for `homo_sapiens` / `GRCh38`, converts it to Parquet, and builds fjall KV stores.
+This downloads the Ensembl VEP 115 cache for `homo_sapiens` / `GRCh38` and converts it to a partitioned Parquet cache.
 
 ### Convert a local cache
 
@@ -65,9 +65,7 @@ results = vepyr.build_cache(
 
 | Parameter | Default | Description |
 |---|---|---|
-| `partitions` | `1` | DataFusion partitions for parallel conversion |
-| `build_fjall` | `True` | Build fjall KV stores alongside Parquet |
-| `fjall_zstd_level` | `3` | Zstd compression level (1-22) |
+| `partitions` | `8` | DataFusion partitions for parallel conversion |
 | `species` | `homo_sapiens` | Species name |
 | `assembly` | `GRCh38` | Genome assembly |
 | `cache_type` | required | Ensembl VEP cache type: `ensembl`, `merged`, or `refseq` |
@@ -105,21 +103,6 @@ lf = vepyr.annotate(
 
 df = lf.collect()
 print(f"{df.height} variants x {df.width} columns")
-```
-
-### Using the fjall backend
-
-Pass `use_fjall=True` for faster co-located variant lookups on large caches:
-
-```python
-lf = vepyr.annotate(
-    vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    check_existing=True,
-    af=True,
-    max_af=True,
-    use_fjall=True,
-)
 ```
 
 `workers` controls how many within-contig annotation pipelines run

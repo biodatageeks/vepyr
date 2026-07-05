@@ -279,10 +279,16 @@ def build_cache(
         Each retry resumes from the last byte received.
     show_progress : bool
         Show tqdm progress bars during conversion (default: True).
+
+        .. note::
+           The partitioned-Parquet build path does not currently emit
+           per-batch progress events, so no bars appear during the cache
+           build regardless of ``show_progress`` / ``on_progress``.
     on_progress : callable or None
         Custom progress callback with signature
         ``(entity, format, batch_rows, total_rows, total_expected)``.
-        Overrides the default tqdm bars when provided.
+        Overrides the default tqdm bars when provided. See the note on
+        ``show_progress`` — the Parquet build path does not invoke it.
     overwrite : bool
         Rebuild existing cache outputs instead of skipping them.
 

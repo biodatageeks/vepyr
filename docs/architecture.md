@@ -68,8 +68,7 @@ graph LR
     B --> C[Storable/Sereal<br/>.gz files]
     C --> D[EnsemblCacheTableProvider]
     D --> E[DataFusion SQL<br/>sort & partition]
-    E --> F[Parquet files]
-    E --> G[fjall KV stores]
+    E --> F[Partitioned Parquet shards<br/>+ chrom_manifest.json]
 ```
 
 Entity types processed: `Variation`, `Transcript`, `Exon`, `Translation`, `RegulatoryFeature`, `MotifFeature`.
@@ -107,6 +106,6 @@ graph LR
 | Data format | Apache Arrow 56 |
 | Async runtime | Tokio |
 | Interval trees | COITree |
-| KV store | fjall (embedded, LSM-based) |
+| Cache format | Partitioned, page-indexed Parquet |
 | DataFrame | Polars |
 | Build system | maturin + uv |

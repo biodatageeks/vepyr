@@ -331,8 +331,7 @@ def load_old_benchmark(backend=BACKEND):
         return None
     with open(path) as f:
         r = json.load(f)
-    vvv = r.get("vepyr_vs_vep", {})
-    comp = vvv.get(backend, vvv.get("indexed_parquet", vvv.get("fjall", {})))
+    comp = r.get("vepyr_vs_vep", {}).get(backend, {})
     return comp.get("field_mismatch_counts", {})
 
 
