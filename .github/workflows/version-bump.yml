@@ -1,0 +1,121 @@
+name: Version Bump
+
+# Manual workflow (A of 2): compute the next semantic version from Conventional
+# Commit messages since the last tag, update Cargo.toml + pyproject.toml, commit,
+# and create + push the git tag. It does NOT publish — run "Publish to PyPI"
+# afterwards and pick the tag this workflow created.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (auto = derive from commit messages)"
+        required: true
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+        default: auto
+      dry_run:
+        description: "Dry run (compute only; no commit/tag/push)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cargo-set-version
+        run: cargo install cargo-set-version --locked
+
+      - name: Compute next version
+        id: compute
+        run: |
+          set -euo pipefail
+          CURRENT=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            RANGE="${LAST_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          echo "Analyzing commits in range: ${RANGE:-<all>} (last tag: ${LAST_TAG:-none})"
+
+          BUMP="${{ inputs.bump }}"
+          if [ "$BUMP" = "auto" ]; then
+            LOG=$(git log $RANGE --format='%s%n%b')
+            if echo "$LOG" | grep -qE '^[a-zA-Z]+(\([^)]*\))?!:' \
+               || echo "$LOG" | grep -qE '(^|[[:space:]])BREAKING[ -]CHANGE'; then
+              BUMP=major
+            elif echo "$LOG" | grep -qE '^feat(\([^)]*\))?:'; then
+              BUMP=minor
+            elif echo "$LOG" | grep -qE '^fix(\([^)]*\))?:'; then
+              BUMP=patch
+            else
+              echo "No feat/fix/breaking commits found; defaulting to patch."
+              BUMP=patch
+            fi
+          fi
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+
+          IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
+          case "$BUMP" in
+            major) MAJ=$((MAJ + 1)); MIN=0; PAT=0 ;;
+            minor) MIN=$((MIN + 1)); PAT=0 ;;
+            patch) PAT=$((PAT + 1)) ;;
+          esac
+          NEXT="${MAJ}.${MIN}.${PAT}"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Next version: $CURRENT -> $NEXT ($BUMP)"
+
+      - name: Guard against existing tag
+        run: |
+          NEXT="${{ steps.compute.outputs.next }}"
+          if git rev-parse "refs/tags/${NEXT}" >/dev/null 2>&1; then
+            echo "::error::Tag ${NEXT} already exists. Aborting."
+            exit 1
+          fi
+
+      - name: Update version in files
+        run: |
+          NEXT="${{ steps.compute.outputs.next }}"
+          cargo set-version "$NEXT"
+          sed -i "s/^version = \".*\"/version = \"$NEXT\"/" pyproject.toml
+
+      - name: Commit, tag and push
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          NEXT="${{ steps.compute.outputs.next }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml pyproject.toml
+          git commit -m "chore(release): ${NEXT}"
+          git tag -a "${NEXT}" -m "Release ${NEXT}"
+          git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
+
+      - name: Summary
+        run: |
+          {
+            echo "### Version Bump"
+            echo "- **From:** ${{ steps.compute.outputs.current }}"
+            echo "- **Bump:** ${{ steps.compute.outputs.bump }}"
+            echo "- **To:** ${{ steps.compute.outputs.next }}"
+            echo "- **Dry run:** ${{ inputs.dry_run }}"
+            if [ "${{ inputs.dry_run }}" = "false" ]; then
+              echo ""
+              echo "Tag \`${{ steps.compute.outputs.next }}\` created. Now run **Publish to PyPI** and select this tag."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

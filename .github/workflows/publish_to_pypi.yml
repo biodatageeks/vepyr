@@ -1,42 +1,66 @@
-name: Release Please
+name: Publish to PyPI
+
+# Manual workflow (B of 2): build wheels for a chosen tag, run the test gate,
+# and publish to PyPI via OIDC Trusted Publishing. Create the tag first with the
+# "Version Bump" workflow, then run this and enter that tag below.
 
 on:
-  push:
-    branches: [master]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag (version) to build and publish, e.g. 0.2.0"
+        required: true
+        type: string
 
 permissions: {}
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  release-please:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  test:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/ci.yml
-
-  sdist:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+  test-rust:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # extension-module makes PyO3 skip linking libpython; build tests without
+      # it so the standalone test binary links libpython, and expose LIBDIR.
+      - name: cargo test
+        run: |
+          export LD_LIBRARY_PATH="$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))'):${LD_LIBRARY_PATH:-}"
+          cargo test --no-default-features
+
+  test-python:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          lfs: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v5
+      - name: Build and test
+        run: |
+          uv python install 3.12
+          uv sync --python 3.12
+          uv run pytest -v
+
+  sdist:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - uses: PyO3/maturin-action@v1
         with:
           command: sdist
@@ -47,8 +71,6 @@ jobs:
           path: dist
 
   linux:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -57,6 +79,8 @@ jobs:
         target: [x86_64]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -70,8 +94,6 @@ jobs:
           path: dist
 
   macos:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}
     permissions:
       contents: read
@@ -80,6 +102,8 @@ jobs:
         target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -92,8 +116,6 @@ jobs:
           path: dist
 
   windows:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
     runs-on: windows-latest
     permissions:
       contents: read
@@ -102,6 +124,8 @@ jobs:
         target: [x64]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -116,8 +140,7 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [release-please, test, sdist, linux, macos, windows]
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: [test-rust, test-python, sdist, linux, macos, windows]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -134,19 +157,27 @@ jobs:
           skip-existing: true
           attestations: true
 
-  attach-assets:
-    needs: [release-please, publish]
-    if: needs.release-please.outputs.release_created == 'true'
+  github-release:
+    needs: [publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
           merge-multiple: true
           path: dist
-      - name: Upload wheels to the GitHub Release
+      - name: Create or update the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" dist/* --clobber
+        run: |
+          TAG="${{ inputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --generate-notes
+          fi

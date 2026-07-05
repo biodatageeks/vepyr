@@ -1,5 +1,14 @@
 # Release-please + PyPI Trusted-Publishing Pipeline Implementation Plan
 
+> **SUPERSEDED (2026-07-05):** Per the user's request the design changed to
+> **two manual workflows** — `version-bump.yml` (dispatch: compute semver from
+> Conventional Commits, update files, commit + tag) and `publish_to_pypi.yml`
+> (dispatch with a `tag` input: test gate → build wheels → OIDC publish →
+> GitHub Release). release-please and its config files were removed and the
+> `ci.yml` `workflow_call` change reverted. See the "Revision" block in the
+> design spec for the final approach. The release-please tasks below are kept
+> for history and were not the final implementation.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the manual `version-bump.yml` + tag-triggered `release.yml` with a single release-please workflow that derives semver from Conventional Commits, gates PyPI publishing on the test suite, and uploads via OIDC Trusted Publishing.
