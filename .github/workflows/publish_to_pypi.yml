@@ -1,0 +1,220 @@
+name: Publish to PyPI
+
+# Manual workflow (B of 2): tag the released version on the default branch,
+# build wheels, run the test gate, and publish to PyPI via OIDC Trusted
+# Publishing. Run "Version Bump" first and merge its PR, then run this with the
+# same version.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (must already be merged to the default branch), e.g. 0.2.0"
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ensure the tag exists for this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists; using it."
+            exit 0
+          fi
+          FILE_VER=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          PY_VER=$(grep '^version' pyproject.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          if [ "$FILE_VER" != "$VERSION" ] || [ "$PY_VER" != "$VERSION" ]; then
+            echo "::error::Version mismatch on ${GITHUB_REF_NAME}: Cargo.toml=${FILE_VER} pyproject.toml=${PY_VER} but requested ${VERSION}. Merge the Version Bump PR first."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${VERSION}" -m "Release ${VERSION}"
+          git push origin "refs/tags/${VERSION}"
+          echo "Created and pushed tag ${VERSION}."
+
+  test-rust:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # extension-module makes PyO3 skip linking libpython; build tests without
+      # it so the standalone test binary links libpython, and expose LIBDIR.
+      - name: cargo test
+        run: |
+          export LD_LIBRARY_PATH="$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))'):${LD_LIBRARY_PATH:-}"
+          cargo test --no-default-features
+
+  test-python:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+          lfs: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v5
+      - name: Build and test
+        run: |
+          uv python install 3.12
+          uv sync --python 3.12
+          uv run pytest -v
+
+  sdist:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+  linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        target: [x86_64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: true
+          manylinux: auto
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-manylinux-${{ matrix.target }}
+          path: dist
+
+  macos:
+    needs: prepare
+    runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        target: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.target }}
+          path: dist
+
+  windows:
+    needs: prepare
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        target: [x64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          maturin-version: v1.13.3
+          args: --release --out dist --find-interpreter
+          sccache: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-win-${{ matrix.target }}
+          path: dist
+
+  publish:
+    name: Publish to PyPI
+    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - name: Publish to PyPI (OIDC Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          attestations: true
+
+  github-release:
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - name: Create or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --generate-notes
+          fi

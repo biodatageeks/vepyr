@@ -1,7 +1,44 @@
 # Robust semantic-versioned release pipeline
 
 **Date:** 2026-07-05
-**Status:** Approved design, pending implementation plan
+**Status:** Superseded — see "Revision" below. Implemented as two manual workflows.
+
+> ## Revision (final, as built)
+>
+> The release-please approach below was replaced, at the user's request, with
+> **two manually-triggered workflows** — the user wants to run releases on
+> demand, not have a bot maintain a release PR.
+>
+> - **`version-bump.yml`** (manual `workflow_dispatch`): computes the next
+>   semver from Conventional Commit messages since the last tag (with an
+>   optional manual `patch`/`minor`/`major` override and a `dry_run`),
+>   updates `Cargo.toml` + `pyproject.toml`, commits `chore(release): X.Y.Z`,
+>   and creates + pushes an annotated tag. Does not publish.
+> - **`publish_to_pypi.yml`** (manual `workflow_dispatch` with a `tag` input,
+>   modelled on biodatageeks/polars-bio): checks out the chosen tag, runs a
+>   Rust + Python test gate, builds the wheel matrix, publishes to PyPI via
+>   **OIDC Trusted Publishing**, and creates/updates the GitHub Release.
+>
+> Retained from the original design: OIDC trusted publishing, the test gate
+> before publish, the unchanged wheel matrix, `wheels-*` artifact naming,
+> `--skip-existing`, and Conventional-Commit-driven versioning. Dropped:
+> release-please, the release-PR flow, `release-please-config.json`,
+> `.release-please-manifest.json`, and the `pyproject.toml` version annotation.
+> The `ci.yml` `workflow_call` change was reverted (B carries its own gate).
+>
+> **Trigger model:** both workflows are `workflow_dispatch` only. Because the
+> tag is pushed by `version-bump.yml` (using `GITHUB_TOKEN`) it would not
+> auto-trigger a tag-listening workflow anyway — so publishing is a deliberate
+> second manual step where the operator selects the tag. No PAT required.
+>
+> **PyPI Trusted Publisher** must reference workflow **`publish_to_pypi.yml`**
+> (not `release-please.yml`), environment `pypi`.
+>
+> The sections below are retained as the original rationale/history.
+
+---
+
+**Original design (release-please) — retained for history:**
 
 ## Goal
 
