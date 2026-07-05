@@ -89,26 +89,26 @@ uv run python run_annotation_fast.py chr1 --bgzf
 # Use annotation workers for within-contig parallelism (requires tabix index)
 uv run python run_annotation_fast.py chr22 --workers 4 --force
 
-# Same option works with cache profiles
-uv run python run_annotation_fast.py chr22 --cache merged_pick_filter \
+# Same option works with annotation profiles
+uv run python run_annotation_fast.py chr22 --profile merged_pick_filter \
     --workers 4 \
     --force
 
 # Compare against a merged-cache VEP pick-mode reference
-uv run python run_annotation_fast.py chr22 --cache merged_pick_filter
-uv run python run_annotation_fast.py chr22 --cache merged_flag_pick_allele_gene
+uv run python run_annotation_fast.py chr22 --profile merged_pick_filter
+uv run python run_annotation_fast.py chr22 --profile merged_flag_pick_allele_gene
 ```
 
 **Output:**
 - `results/fast_chr{N}/` -- intermediate VCF files (`.vcf`, or `.vcf.gz` with `--bgzf`)
-- `reports/fast_chr{N}{cache_suffix}_report.json` -- comparison report
+- `reports/fast_chr{N}{profile_suffix}_report.json` -- comparison report
 
-Supported `--cache` profiles and golden truth samples:
+Supported `--profile` values and golden truth samples:
 
 Golden truth VCF paths are resolved under `DATA_VEPYR_DIR` (default:
 `~/workspace/data_vepyr`) unless `--vep` is passed explicitly.
 
-| Test scenario (`--cache`) | VEP reference flags | Golden truth sample |
+| Test scenario (`--profile`) | VEP reference flags | Golden truth sample |
 |---------------------------|---------------------|---------------------|
 | `ensembl` | Ensembl cache baseline | `HG002_annotated_wgs_everything_hgvs_vep.vcf` |
 | `merged` | `--merged` baseline | `HG002_annotated_wgs_everything_hgvs_merged.vcf` |
@@ -118,8 +118,12 @@ Golden truth VCF paths are resolved under `DATA_VEPYR_DIR` (default:
 | `merged_pick_allele_gene` | `--merged --pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene.vcf` |
 | `merged_flag_pick` | `--merged --flag_pick` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick.vcf` |
 | `merged_flag_pick_allele` | `--merged --flag_pick_allele` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf` |
-| `merged_flag_pick_allele_gene` | `--merged --flag_pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele_gene.vcf` |
+| `merged_flag_pick_allele_gene` | `--merged --flag_pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_pick.vcf` |
 | `refseq` | `--refseq` baseline | `HG002_annotated_wgs_everything_hgvs_refseq.vcf` |
+
+`--cache` is still accepted as a compatibility alias for `--profile`, but new
+commands should use `--profile` because these values select more than a cache
+directory: they also choose the VEP reference and annotation pick-mode flags.
 
 ### `run_annotation_fast_all.py` -- full chr1-22 report
 
@@ -141,7 +145,7 @@ uv run python run_annotation_fast_all.py --no-force
 uv run python run_annotation_fast_all.py --chroms 1 6 22
 
 # Run a pick-mode profile across chr1-22
-uv run python run_annotation_fast_all.py --cache merged_pick_allele_gene
+uv run python run_annotation_fast_all.py --profile merged_pick_allele_gene
 
 # Emit + validate block-gzipped output across chr1-22
 uv run python run_annotation_fast_all.py --bgzf
@@ -157,7 +161,7 @@ uv run python run_annotation_fast_all.py --skip-annotate
 ```
 
 **Output:**
-- `reports/fast_chr1_22{cache_suffix}_summary_YYYYMMDD_HHMM.md` -- aggregate report
+- `reports/fast_chr1_22{profile_suffix}_summary_YYYYMMDD_HHMM.md` -- aggregate report
   - Per-chromosome performance table
   - Root cause classification with GitHub issue links
   - Field-level delta vs previous benchmark
@@ -186,9 +190,9 @@ uv run python run_annotation_fast_all.py \
     --workers 4 \
     --skip-comparison
 
-# A pick-mode cache profile with within-contig workers
+# A pick-mode annotation profile with within-contig workers
 uv run python run_annotation_fast_all.py \
-    --cache merged_pick_allele_gene \
+    --profile merged_pick_allele_gene \
     --workers 4
 ```
 
