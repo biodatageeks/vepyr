@@ -25,7 +25,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@1.91
         with:
           components: rustfmt, clippy
@@ -36,7 +36,7 @@ jobs:
   test-rust:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # The `extension-module` feature makes PyO3 skip linking libpython (the
@@ -57,12 +57,12 @@ jobs:
         target: [x86_64]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           lfs: true
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
       - name: Build and test
         run: |
           uv python install ${{ matrix.python-version }}
@@ -75,7 +75,7 @@ jobs:
       matrix:
         target: [x86_64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -83,7 +83,7 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: true
           manylinux: auto
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
@@ -94,14 +94,14 @@ jobs:
       matrix:
         target: [x86_64, aarch64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
           sccache: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: wheels-macos-${{ matrix.target }}
           path: dist
@@ -112,7 +112,7 @@ jobs:
       matrix:
         target: [x64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -120,7 +120,7 @@ jobs:
           maturin-version: v1.13.3
           args: --release --out dist --find-interpreter
           sccache: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: wheels-win-${{ matrix.target }}
           path: dist
