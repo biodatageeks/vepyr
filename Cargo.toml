@@ -4,8 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["extension-module"]
+# Allocator selection (mirrors polars-bio). Exactly one global allocator is linked;
+# see src/lib.rs. mimalloc is on by default; jemalloc is opt-in and takes precedence
+# when enabled, except on Windows/MSVC where tikv-jemallocator is unsupported.
+#   Build with jemalloc: maturin build --release --no-default-features \
+#     --features extension-module,jemalloc
+default = ["extension-module", "mimalloc"]
 extension-module = ["pyo3/extension-module"]
+mimalloc = ["dep:mimalloc"]
+jemalloc = ["dep:tikv-jemallocator"]
 dhat-heap = ["dep:dhat"]
 
 [lib]
@@ -14,7 +21,12 @@ name = "_core"
 crate-type = ["cdylib"]
 
 [dependencies]
-mimalloc = "0.1"
+# Global allocators, selected via [features] above (mimalloc default-on, jemalloc
+# opt-in). Both optional so exactly one is linked. mimalloc pinned to v2: v3
+# segfaults at import on macOS arm64 (per polars-bio). jemalloc is unsupported on
+# Windows/MSVC; there the build falls back to mimalloc.
+mimalloc = { version = "0.1", default-features = false, features = ["v2"], optional = true }
+tikv-jemallocator = { version = "0.7.0", optional = true }
 dhat = { version = "0.3", optional = true }
 # PyO3 for Python bindings
 pyo3 = { version = "0.28", features = ["abi3-py310"] }
@@ -31,6 +43,6 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { path = "../datafusion-bio-functions/datafusion/bio-function-vep", features = ["cache-builder", "lance-cache"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.0" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.0" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.12.1", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }

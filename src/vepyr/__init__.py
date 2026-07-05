@@ -244,7 +244,7 @@ def build_cache(
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
     partitions: int = 8,
-    cache_format: str = "lance",
+    cache_format: str = "parquet",
     local_cache: str | None = None,
     download_retries: int = 10,
     show_progress: bool = True,
@@ -269,7 +269,7 @@ def build_cache(
     partitions : int
         Number of DataFusion partitions for parallelism (default: 8).
     cache_format : str
-        Cache format to build. Only ``"lance"`` is supported (default).
+        Cache format to build. Only ``"parquet"`` is supported (default).
     local_cache : str or None
         Path to an already-unpacked Ensembl VEP cache directory (the one
         containing ``info.txt``). When provided, downloading and extraction
@@ -295,8 +295,8 @@ def build_cache(
     import tarfile
 
     _validate_cache_type(cache_type)
-    if cache_format != "lance":
-        raise ValueError("cache_format must be 'lance'")
+    if cache_format != "parquet":
+        raise ValueError("cache_format must be 'parquet'")
 
     # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
@@ -340,7 +340,7 @@ def build_cache(
                 f"Cache directory not found after extraction: {cache_root}"
             )
 
-    # Output layout (lance): <version_dir>/<entity>.lance/chr1.lance
+    # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet
     output_dir = os.path.join(cache_dir, version_dir)
 
     # Build progress callback: explicit wins, then auto-tqdm, then None.
@@ -403,7 +403,7 @@ def build_cache(
         for path, rows in parquet_files:
             all_results.append((path, rows))
 
-    log.info("Done. Wrote %d Lance datasets to %s", len(all_results), output_dir)
+    log.info("Done. Wrote %d Parquet datasets to %s", len(all_results), output_dir)
     return all_results
 
 
@@ -430,7 +430,7 @@ def annotate(
     max_af: bool = False,
     pubmed: bool = False,
     # Lookup tuning
-    cache_format: str = "lance",
+    cache_format: str = "parquet",
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     gencode_basic: bool = False,
@@ -551,7 +551,7 @@ def annotate(
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
     cache_format : str
-        Cache format to use. Only ``"lance"`` is supported (default).
+        Cache format to use. Only ``"parquet"`` is supported (default).
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     workers : int
@@ -641,8 +641,8 @@ def annotate(
         raise ValueError("buffer_size must be a positive integer")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
-    if cache_format not in ("lance", "parquet"):
-        raise ValueError("cache_format must be 'lance' or 'parquet'")
+    if cache_format != "parquet":
+        raise ValueError("cache_format must be 'parquet'")
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {

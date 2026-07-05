@@ -5,7 +5,7 @@ use datafusion::execution::SendableRecordBatchStream;
 use datafusion::prelude::{SessionConfig, SessionContext};
 use datafusion_bio_format_vcf::VcfCompressionType;
 use datafusion_bio_function_vep::register_vep_functions;
-use datafusion_bio_function_vep::vcf_sink::{AnnotateVcfConfig, OnBatchWritten, annotate_to_vcf};
+use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, OnBatchWritten};
 use futures::StreamExt;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -42,10 +42,10 @@ fn normalize_options(options_json: &str) -> PyResult<(String, String)> {
         .to_string();
     if !matches!(
         cache_format.as_str(),
-        "indexed_parquet" | "legacy_fjall" | "lance" | "parquet"
+        "indexed_parquet" | "legacy_fjall" | "parquet"
     ) {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "cache_format must be 'indexed_parquet', 'legacy_fjall', 'lance', or 'parquet'",
+            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'parquet'",
         ));
     }
     object.insert(
@@ -150,9 +150,10 @@ pub fn annotate_to_vcf_file(
     })?;
     let workers = workers_from_options(&opts);
 
-    // The annotation store (context/SIFT/transcript) is always Lance; the
-    // variation cache backend is selected by `cache_format` carried in
-    // `options_json` (lance | parquet). Keep the two decoupled.
+    // The annotation store uses the engine's fixed backend token, which upstream
+    // still names "lance" (a vestigial identifier — the actual storage is
+    // Parquet). The variation cache is Parquet, carried via `cache_format` in
+    // `options_json`. Keep the two decoupled.
     let _ = &cache_format;
     let backend = "lance";
     let rt = runtime_for_workers(workers)?;
@@ -318,8 +319,9 @@ pub fn create_streaming_annotator(
     let rt = runtime_for_workers(workers)?;
 
     let (stream, schema) = rt.block_on(async {
-        // Annotation store is always Lance; `cache_format` (in options_json)
-        // selects the variation backend (lance | parquet).
+        // Annotation store uses the engine's fixed backend token (vestigially
+        // named "lance" upstream; storage is Parquet). The variation cache is
+        // Parquet, selected by `cache_format` in options_json.
         let backend = "lance";
         let session_partitions = worker_thread_count(workers);
 
@@ -386,9 +388,9 @@ mod tests {
 
     #[test]
     fn normalize_preserves_workers_and_cache_format() {
-        let (json, fmt) = normalize_options(r#"{"cache_format":"lance","workers":4}"#).unwrap();
+        let (json, fmt) = normalize_options(r#"{"cache_format":"parquet","workers":4}"#).unwrap();
         let opts: serde_json::Value = serde_json::from_str(&json).unwrap();
-        assert_eq!(fmt, "lance");
+        assert_eq!(fmt, "parquet");
         assert_eq!(opts["workers"], 4);
         assert_eq!(workers_from_options(&opts), 4);
     }

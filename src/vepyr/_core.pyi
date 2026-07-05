@@ -6,7 +6,7 @@ def build_cache(
     cache_root: str,
     output_dir: str,
     partitions: int = 8,
-    cache_format: str = "lance",
+    cache_format: str = "parquet",
     on_progress: Callable[[str, str, int, int, int], None] | None = None,
     cache_source_type: str = "ensembl",
     overwrite: bool = False,

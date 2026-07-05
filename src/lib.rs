@@ -8,9 +8,25 @@ use pyo3::types::PyAny;
 // which capped within-contig parallel scaling. mimalloc fixes both — ~1.67x
 // faster single-threaded and materially better thread scaling. A cdylib CAN
 // set the global allocator (a library crate cannot), so it belongs here.
-#[cfg(not(feature = "dhat-heap"))]
+//
+// Selection (exactly one is linked): dhat-heap (profiling) overrides everything;
+// otherwise jemalloc when enabled (except Windows/MSVC), else mimalloc (default).
+// Build jemalloc: maturin build --no-default-features --features extension-module,jemalloc
+#[cfg(all(
+    not(feature = "dhat-heap"),
+    feature = "mimalloc",
+    not(all(feature = "jemalloc", not(target_env = "msvc")))
+))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[cfg(all(
+    not(feature = "dhat-heap"),
+    feature = "jemalloc",
+    not(target_env = "msvc")
+))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
@@ -30,7 +46,7 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="lance", on_progress=None, cache_source_type="ensembl", overwrite=false))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -47,7 +63,7 @@ fn build_cache(
         pyo3::exceptions::PyValueError::new_err(format!("Invalid cache_format: {err}"))
     })?;
 
-    // The Lance build path does not invoke a progress callback; the parameter
+    // The Parquet build path does not invoke a progress callback; the parameter
     // is retained only for backward-compatible Python API.
     let _ = on_progress;
 

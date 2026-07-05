@@ -98,7 +98,7 @@ class TestAnnotate:
 
         assert isinstance(lf, pl.LazyFrame)
         assert seen[0][1] is None
-        assert seen[0][0]["cache_format"] == "lance"
+        assert seen[0][0]["cache_format"] == "parquet"
         assert seen[0][0]["workers"] == 4
         assert "forks" not in seen[0][0]
         assert "contig_parallelism" not in seen[0][0]
@@ -440,7 +440,7 @@ class TestAnnotate:
                 workers=4,
             )
             assert result == out_path
-            assert seen["options"]["cache_format"] == "lance"
+            assert seen["options"]["cache_format"] == "parquet"
             assert seen["options"]["workers"] == 4
             assert "forks" not in seen["options"]
             assert "contig_parallelism" not in seen["options"]

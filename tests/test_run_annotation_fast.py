@@ -50,8 +50,6 @@ def test_parse_args_accepts_workers(monkeypatch):
         [
             "run_annotation_fast.py",
             "chr1",
-            "--backend",
-            "lance",
             "--workers",
             "4",
         ],
@@ -62,38 +60,40 @@ def test_parse_args_accepts_workers(monkeypatch):
     assert args.workers == 4
 
 
-def test_parse_args_defaults_to_lance(monkeypatch):
+def test_parse_args_defaults_to_plain_output(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr("sys.argv", ["run_annotation_fast.py", "chr1"])
 
     args = module.parse_args()
 
-    assert args.backend == "lance"
+    # Parquet is the only cache format; plain .vcf is the default output.
+    assert args.bgzf is False
+    assert module.BACKEND == "parquet"
 
 
-def test_parse_args_rejects_non_lance_backend(monkeypatch):
+def test_parse_args_rejects_removed_backend_flag(monkeypatch):
     import pytest
 
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
-        ["run_annotation_fast.py", "chr1", "--backend", "legacy_fjall"],
+        ["run_annotation_fast.py", "chr1", "--backend", "lance"],
     )
 
     with pytest.raises(SystemExit):
         module.parse_args()
 
 
-def test_parse_args_accepts_lance_backend(monkeypatch):
+def test_parse_args_accepts_bgzf(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
-        ["run_annotation_fast.py", "chr1", "--cache", "merged", "--backend", "lance"],
+        ["run_annotation_fast.py", "chr1", "--cache", "merged", "--bgzf"],
     )
 
     args = module.parse_args()
 
-    assert args.backend == "lance"
+    assert args.bgzf is True
     assert args.cache == "merged"
 
 
@@ -129,8 +129,6 @@ def test_main_preserves_requested_workers_for_single_chrom(monkeypatch, tmp_path
         [
             "run_annotation_fast.py",
             "chr1",
-            "--backend",
-            "lance",
             "--workers",
             "4",
             "--vcf",
@@ -198,42 +196,43 @@ def test_fast_all_run_chromosome_forwards_skip_compare(monkeypatch):
     assert "--chrom-parallelism" not in seen["cmd"]
 
 
-def test_fast_all_parse_args_defaults_to_lance(monkeypatch):
+def test_fast_all_parse_args_defaults_to_plain_output(monkeypatch):
     module = load_run_annotation_fast_all()
     monkeypatch.setattr("sys.argv", ["run_annotation_fast_all.py"])
 
     args = module.parse_args()
 
-    assert args.backend == "lance"
+    assert args.bgzf is False
+    assert module.BACKEND == "parquet"
 
 
-def test_fast_all_parse_args_rejects_non_lance_backend(monkeypatch):
+def test_fast_all_parse_args_rejects_removed_backend_flag(monkeypatch):
     import pytest
 
     module = load_run_annotation_fast_all()
     monkeypatch.setattr(
         "sys.argv",
-        ["run_annotation_fast_all.py", "--backend", "legacy_fjall"],
+        ["run_annotation_fast_all.py", "--backend", "lance"],
     )
 
     with pytest.raises(SystemExit):
         module.parse_args()
 
 
-def test_fast_all_parse_args_accepts_lance(monkeypatch):
+def test_fast_all_parse_args_accepts_bgzf(monkeypatch):
     module = load_run_annotation_fast_all()
     monkeypatch.setattr(
         "sys.argv",
-        ["run_annotation_fast_all.py", "--cache", "merged", "--backend", "lance"],
+        ["run_annotation_fast_all.py", "--cache", "merged", "--bgzf"],
     )
 
     args = module.parse_args()
 
-    assert args.backend == "lance"
+    assert args.bgzf is True
     assert args.cache == "merged"
 
 
-def test_fast_all_run_chromosome_forwards_lance_backend_and_cache(monkeypatch):
+def test_fast_all_run_chromosome_forwards_cache_and_bgzf(monkeypatch):
     module = load_run_annotation_fast_all()
     seen = {}
 
@@ -244,23 +243,21 @@ def test_fast_all_run_chromosome_forwards_lance_backend_and_cache(monkeypatch):
 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
-    assert module.run_chromosome(1, cache="merged", backend="lance", force=True) is True
+    assert module.run_chromosome(1, cache="merged", force=True, bgzf=True) is True
     assert "--cache" in seen["cmd"]
     assert "merged" in seen["cmd"]
-    assert "--backend" in seen["cmd"]
-    assert "lance" in seen["cmd"]
+    assert "--bgzf" in seen["cmd"]
+    assert "--backend" not in seen["cmd"]
     assert "--force" in seen["cmd"]
 
 
-def test_parse_args_allows_parallel_lance(monkeypatch):
+def test_parse_args_allows_parallel_workers(monkeypatch):
     module = load_run_annotation_fast()
     monkeypatch.setattr(
         "sys.argv",
         [
             "run_annotation_fast.py",
             "chr1",
-            "--backend",
-            "lance",
             "--workers",
             "2",
         ],
@@ -269,7 +266,7 @@ def test_parse_args_allows_parallel_lance(monkeypatch):
     args = module.parse_args()
 
     assert args.workers == 2
-    assert args.backend == "lance"
+    assert args.bgzf is False
 
 
 def test_extract_chrom_from_vep_force_refreshes_cached_slice(tmp_path):

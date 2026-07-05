@@ -6,8 +6,8 @@ Usage:
     python run_annotation_fast_all.py --no-force       # reuse existing annotation output
     python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
     python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
-    python run_annotation_fast_all.py --backend lance
-    python run_annotation_fast_all.py --backend lance --cache merged
+    python run_annotation_fast_all.py --bgzf           # emit + validate block-gzipped output
+    python run_annotation_fast_all.py --cache merged
 
 Runs run_annotation_fast.py for each chromosome, then aggregates all
 per-chromosome JSON reports into a single timestamped Markdown summary
@@ -37,7 +37,8 @@ CACHE_SUFFIXES = {
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
 }
-BACKENDS = ("lance", "parquet")
+# Parquet is the only supported cache format.
+BACKEND = "parquet"
 
 # ── Upstream issue registry ─────────────────────────────────────────��────
 # Maps root cause classes to GitHub issue/PR numbers.
@@ -130,10 +131,10 @@ def parse_args():
         help="Cache type — forwarded to run_annotation_fast.py (default: %(default)s)",
     )
     p.add_argument(
-        "--backend",
-        choices=BACKENDS,
-        default="lance",
-        help="Annotation cache format forwarded to run_annotation_fast.py (default: %(default)s)",
+        "--bgzf",
+        action="store_true",
+        help="Emit + validate block-gzipped (.vcf.gz) annotated output; "
+        "forwarded to run_annotation_fast.py",
     )
     p.add_argument(
         "--workers",
@@ -167,20 +168,13 @@ def parse_args():
 # ── Step 1: Run per-chromosome annotation ────────────────────────────────
 
 
-def report_suffix(cache_suffix, backend):
-    """Keep indexed parquet report names; namespace non-default formats."""
-    if backend == "lance":
-        return cache_suffix
-    return f"{cache_suffix}_{backend}"
-
-
 def run_chromosome(
     chrom_num,
     cache="ensembl",
-    backend="lance",
     workers=1,
     force=False,
     skip_comparison=False,
+    bgzf=False,
 ):
     """Run run_annotation_fast.py for a single chromosome."""
     chrom = f"chr{chrom_num}"
@@ -190,8 +184,6 @@ def run_chromosome(
         chrom,
         "--cache",
         cache,
-        "--backend",
-        backend,
         "--workers",
         str(workers),
     ]
@@ -199,9 +191,11 @@ def run_chromosome(
         cmd.append("--force")
     if skip_comparison:
         cmd.append("--skip-compare")
+    if bgzf:
+        cmd.append("--bgzf")
 
     print(f"\n{'=' * 60}")
-    print(f"  Running {chrom} (cache={cache}, backend={backend})")
+    print(f"  Running {chrom} (cache={cache}, {BACKEND})")
     print(f"{'=' * 60}")
     result = subprocess.run(cmd, cwd=SCRIPT_DIR)
     if result.returncode != 0:
@@ -330,7 +324,7 @@ def classify_consequence_mismatches(examples):
 # ── Step 5: Load old benchmark for comparison ────────────────────────────
 
 
-def load_old_benchmark(backend="lance"):
+def load_old_benchmark(backend=BACKEND):
     """Load the previous full-genome benchmark report for delta comparison."""
     path = os.path.join(REPORT_DIR, "benchmark_report.json")
     if not os.path.exists(path):
@@ -377,16 +371,16 @@ def get_build_info():
     except Exception:
         info["vepyr_rev"] = "unknown"
 
-    # bio-functions rev from Cargo.toml
+    # bio-functions version from Cargo.toml (git tag, or rev for pinned commits)
     cargo_path = os.path.join(SCRIPT_DIR, "..", "..", "Cargo.toml")
     info["bio_functions_rev"] = "unknown"
     if os.path.exists(cargo_path):
         with open(cargo_path) as f:
             for line in f:
-                if "datafusion-bio-function-vep" in line and "rev" in line:
+                if "datafusion-bio-function-vep" in line:
                     import re
 
-                    m = re.search(r'rev\s*=\s*"([^"]+)"', line)
+                    m = re.search(r'(?:tag|rev)\s*=\s*"([^"]+)"', line)
                     if m:
                         info["bio_functions_rev"] = m.group(1)[:12]
                     break
@@ -406,7 +400,7 @@ def pr_link(num):
 
 
 def generate_report(
-    reports, agg, csq_classes, old_mm, build_info=None, backend="lance"
+    reports, agg, csq_classes, old_mm, build_info=None, backend=BACKEND
 ):
     """Generate the full Markdown report."""
     lines = []
@@ -699,23 +693,23 @@ def main():
 
     cache = args.cache
     suffix = CACHE_SUFFIXES[cache]
-    backend = args.backend
-    report_name_suffix = report_suffix(suffix, backend)
+    backend = BACKEND
+    report_name_suffix = suffix
 
     # Step 1: Run annotations
     if not args.skip_annotate:
         print(
             f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} "
-            f"(cache={cache}, backend={backend})"
+            f"(cache={cache}, {backend})"
         )
         for n in args.chroms:
             ok = run_chromosome(
                 n,
                 cache=cache,
-                backend=backend,
                 workers=args.workers,
                 force=not args.no_force,
                 skip_comparison=args.skip_comparison,
+                bgzf=args.bgzf,
             )
             if not ok:
                 print(f"  chr{n} failed, continuing...")
