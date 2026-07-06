@@ -5,7 +5,7 @@ use datafusion::execution::SendableRecordBatchStream;
 use datafusion::prelude::{SessionConfig, SessionContext};
 use datafusion_bio_format_vcf::VcfCompressionType;
 use datafusion_bio_function_vep::register_vep_functions;
-use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, OnBatchWritten};
+use datafusion_bio_function_vep::vcf_sink::{AnnotateVcfConfig, OnBatchWritten, annotate_to_vcf};
 use futures::StreamExt;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -283,6 +283,10 @@ pub fn annotate_to_vcf_file(
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
+        plugin_cache_root: opts
+            .get("plugin_cache_root")
+            .and_then(|v| v.as_str())
+            .map(std::path::PathBuf::from),
     };
 
     // Release the GIL so the Python background thread (in __init__.py) can

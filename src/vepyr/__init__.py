@@ -10,9 +10,10 @@ if TYPE_CHECKING:
 
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
+from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import create_annotator as _create_annotator
 
-__all__ = ["build_cache", "annotate"]
+__all__ = ["build_cache", "build_plugin_cache", "annotate"]
 
 log = logging.getLogger(__name__)
 
@@ -413,6 +414,82 @@ def build_cache(
     return all_results
 
 
+DEFAULT_PLUGINS_REPO_URL = "https://github.com/biodatageeks/vepyr-plugins.git"
+
+
+def _resolve_plugin_manifest(
+    plugin: str,
+    version: str,
+    *,
+    plugins_repo: str | None = None,
+    repo_url: str = DEFAULT_PLUGINS_REPO_URL,
+) -> str:
+    """Resolve ``plugins/<plugin>/<plugin>.source.toml`` at git tag ``version``.
+
+    Offline: reuse a provided local clone (``plugins_repo``). Online: clone the
+    public repo into a temp dir. Either way, materialize the file at ``version``
+    via ``git worktree`` (never disturbs the caller's checkout).
+    """
+    import os
+    import subprocess
+    import tempfile
+
+    if plugins_repo is not None:
+        repo = plugins_repo
+    else:
+        repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
+        subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
+    worktree = tempfile.mkdtemp(prefix="vepyr-plugins-wt-")
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            repo,
+            "worktree",
+            "add",
+            "--quiet",
+            "--detach",
+            worktree,
+            version,
+        ],
+        check=True,
+    )
+    rel = os.path.join("plugins", plugin, f"{plugin}.source.toml")
+    manifest = os.path.join(worktree, rel)
+    if not os.path.exists(manifest):
+        raise FileNotFoundError(f"{rel} not found at {version} in {repo}")
+    return manifest
+
+
+def build_plugin_cache(
+    plugin: str,
+    version: str,
+    *,
+    source_path: str,
+    cache_dir: str,
+    plugin_cache_root: str,
+    chroms: list[str] | None = None,
+    plugins_repo: str | None = None,
+    overwrite: bool = False,
+) -> list[tuple[str, int, int, int]]:
+    """Build a per-chromosome plugin cache.
+
+    ``plugin``/``version`` select ``plugins/<plugin>/<plugin>.source.toml`` from
+    the public vepyr-plugins repo at that git tag (or ``plugins_repo`` for
+    offline). Tiering is inherited from the variation cache at ``cache_dir``.
+    Returns per-chrom ``(chrom, rows, warm, cold)`` tuples.
+    """
+    manifest_path = _resolve_plugin_manifest(plugin, version, plugins_repo=plugins_repo)
+    return _build_plugin_cache(
+        manifest_path,
+        source_path,
+        cache_dir,
+        plugin_cache_root,
+        chroms,
+        overwrite,
+    )
+
+
 def annotate(
     vcf: str,
     cache_dir: str,
@@ -457,6 +534,8 @@ def annotate(
     cache_size_mb: int = 1024,
     workers: int = 1,
     skip_csq: bool = True,
+    # Custom plugin caches
+    plugin_cache_root: str | None = None,
     # Output mode
     output_vcf: str | None = None,
     show_progress: bool = True,
@@ -723,6 +802,8 @@ def annotate(
         # Single annotation-concurrency knob: N within-contig fused pipelines.
         # Requires a tabix-indexed (bgzip+.tbi) input VCF.
         opts["workers"] = workers
+    if plugin_cache_root is not None:
+        opts["plugin_cache_root"] = plugin_cache_root
 
     options_json = json.dumps(opts)
 

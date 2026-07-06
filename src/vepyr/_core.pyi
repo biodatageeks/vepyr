@@ -14,6 +14,17 @@ def build_cache(
     """Build all cache entities from an Ensembl VEP cache."""
     ...
 
+def build_plugin_cache(
+    manifest_path: str,
+    source_path: str,
+    variation_cache_dir: str,
+    plugin_cache_root: str,
+    chroms: list[str] | None = None,
+    overwrite: bool = False,
+) -> list[tuple[str, int, int, int]]:
+    """Build a plugin cache from a source manifest. Returns (chrom, rows, warm, cold)."""
+    ...
+
 def annotate_vcf(
     vcf_path: str,
     cache_dir: str,

@@ -1,5 +1,7 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat};
+use datafusion_bio_function_vep::plugin_cache::builder::PluginCacheBuilder;
+use datafusion_bio_function_vep::plugin_cache::source_manifest::SourceManifest;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -102,6 +104,58 @@ fn build_cache(
     Ok(result)
 }
 
+/// Build a plugin cache (all chroms, or a filtered set) from a source manifest.
+/// Returns per-chrom `(chrom, rows, warm, cold)` tuples.
+#[pyfunction]
+#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false))]
+fn build_plugin_cache(
+    py: Python<'_>,
+    manifest_path: &str,
+    source_path: &str,
+    variation_cache_dir: &str,
+    plugin_cache_root: &str,
+    chroms: Option<Vec<String>>,
+    overwrite: bool,
+) -> PyResult<Vec<(String, usize, usize, usize)>> {
+    let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
+    if let Some(first) = manifest.sources.first_mut() {
+        first.path = source_path.to_string();
+    }
+    let manifest_file = std::path::Path::new(manifest_path)
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| manifest_path.to_string());
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let cache = py.detach(|| {
+        rt.block_on(async {
+            let mut b = PluginCacheBuilder::new(
+                &manifest,
+                &manifest_file,
+                variation_cache_dir,
+                plugin_cache_root,
+            )
+            .with_overwrite(overwrite);
+            if let Some(cs) = chroms {
+                b = b.with_chrom_filter(cs);
+            }
+            b.build_all().await
+        })
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("plugin build failed: {e}")))
+    })?;
+
+    Ok(cache
+        .chroms
+        .into_iter()
+        .map(|c| (c.chrom, c.rows, c.warm, c.cold))
+        .collect())
+}
+
 /// Annotate a VCF and write results directly to a VCF file.
 /// Returns the number of rows written.
 #[pyfunction]
@@ -148,6 +202,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     Ok(())
