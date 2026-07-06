@@ -68,10 +68,14 @@ source and map it to CSQ fields.
   that MUST project the fixed key columns `chrom`, `start`, `end`,
   `allele_string` (`ref/alt`), plus any discriminator column(s) and the value
   column(s).
-- **`[[source]]`** — `provider` (`tsv`/`csv`/`parquet`), `path` (overridden at
-  build time by `source_path`), and a `[source.csv]` block (`delimiter`,
-  `has_header`, `comment`, `compression`, and an ordered `schema` of
-  `{name, type}`).
+- **`[[source]]`** — the raw source file(s). `provider` is one of the recognized
+  raw-source types `csv`, `tsv`, `parquet`, `vcf`, `bed` (see
+  [Table providers](#build-pipeline-table-providers-tables-views) for which are
+  wired today — `csv`/`tsv`/`parquet` are implemented; `vcf`/`bed` are recognized
+  but not yet wired). `path` is overridden at build time by `source_path`. A
+  `[source.csv]` block (for `csv`/`tsv`) declares `delimiter`, `has_header`,
+  `comment`, `compression`, and an ordered `schema` of `{name, type}`. Multiple
+  `[[source]]` blocks with a `part` key register as `plugin_<name>_src_<part>`.
 - **`[[match_column]]`** *(optional, 0+)* — a per-transcript discriminator:
   `column` (the stored discriminator column) + `template` (built at runtime from
   the engine-attribute namespace, see below). Omit entirely for per-variant
@@ -196,6 +200,127 @@ Examples: AlphaMissense (amino-acid change) `template = "{ref_aa}{Protein_positi
 A new attribute is added upstream only when a plugin needs a value not already
 listed here — the common discriminators are all present, so most plugins are
 manifest-only.
+
+## Cache format & lookup internals
+
+A plugin cache is a set of per-chromosome Parquet shards
+(`plugin/<name>/chr*.parquet`) plus a `manifest.json`. The shards use the same
+point-lookup-optimized layout as the Ensembl variation cache, so a lookup reads
+only the handful of pages that could contain the queried positions — never the
+whole file.
+
+### Shard schema
+
+Columns, in order: the key columns `chrom` (Utf8), `start` / `end` (UInt32,
+1-based), `allele_string` (Utf8, `ref/alt`); then any **match-discriminator**
+column(s) (e.g. `protein_variant`); then the **value** columns (the CSQ fields);
+then a derived **`tier`** column (Int8: `0` = warm, `1` = cold). The variation
+frequency columns used to compute the tier are **not** stored — only the tier
+survives.
+
+### Parquet storage
+
+The writer properties (shared with the variation cache) are tuned for
+random point lookups rather than scans:
+
+| Property | Value | Why |
+|---|---|---|
+| Compression | ZSTD, level 3 | Good ratio; fast enough to decode per page. |
+| Dictionary encoding | **disabled** | Avoids a per-take dictionary load; ZSTD recovers the ratio (the no-dict file is actually smaller). |
+| Data page size | ≤ 4 KiB | Small pages → fine-grained page index → a lookup touches minimal bytes. |
+| Data page row count | ≤ 512 rows | Same — bounds how many rows a single page decode yields. |
+| Statistics | **Page-level** | Emits `ColumnIndex` + `OffsetIndex` in the footer — the read-side position→page directory. |
+| Row group size | 1,000,000 rows | Large groups keep footer/metadata overhead low; page index gives intra-group resolution. |
+| Sorting columns | `(tier, start)` | Physical clustering: warm rows first, then cold, each ascending by `start`. |
+
+### Page index → the `PageDir`
+
+Because page-level statistics are enabled, each shard's footer carries a
+`ColumnIndex` (per-page min/max of `start`) and an `OffsetIndex` (per-page byte
+offset + row range). At open time the lookup builds a **`PageDir`** over the
+`start` leaf column from these indexes. Resolving a set of query positions to the
+minimal set of candidate page row-ranges is then a metadata-only operation — no
+column data is read until the ranges are known.
+
+### Row groups
+
+Shards use 1,000,000-row row groups. Row groups bound the footer metadata size;
+within a group the small (≤512-row) pages plus the page index provide the actual
+point-lookup resolution. A whole chromosome is typically one or a few row groups.
+
+### Tiering — how warm/cold is calculated
+
+Tiering clusters common variants together on disk so a batch of nearby query
+positions touches fewer, denser pages. The tier is **inherited from the Ensembl
+variation cache**, not recomputed per plugin:
+
+- The variation cache marks a genomic `start` **warm (tier 0)** when its maximum
+  global allele frequency is **≥ 0.01** (`WARM_AF_THRESHOLD`), within a ±1
+  position radius (`WARM_POSITION_RADIUS`); otherwise **cold (tier 1)**.
+- At build time the plugin rows are `LEFT JOIN`-ed onto the variation shard on
+  `(chrom, start, allele_string)` and take `COALESCE(v.tier, 1)` — i.e. a plugin
+  row inherits the variation record's tier, and **any position with no variation
+  match is cold**. (Saturation predictors like AlphaMissense are therefore almost
+  entirely cold, since most possible substitutions are not common variants.)
+- The shard is written **warm rows first, then cold**, each pass sorted by
+  `start`, matching the `(tier, start)` physical sort.
+
+Plugins declare **no** tier policy of their own — there is no `[tier]` block in
+the manifest.
+
+### Build pipeline — table providers, tables & views
+
+The per-chromosome build registers the raw source and then transforms it through
+a short chain of SQL objects:
+
+1. **Table** — the raw source file is registered as a DataFusion **table**
+   `plugin_<name>_src` (or `plugin_<name>_src_<part>` for multi-file sources) via
+   the matching provider (below).
+2. **Ingest view** — `plugin_<name>_ingest`, a `CREATE OR REPLACE VIEW` wrapping
+   the manifest's `ingest_sql` (maps raw columns → the key/discriminator/value
+   columns).
+3. **Normalized view** — `plugin_<name>_norm`, which applies the `canonical_contig`
+   UDF and the coordinate shift (to the variation cache's 1-based convention) and
+   filters to the target chromosome.
+4. The normalized view is tier-joined against the variation shard and the result
+   is written to the Parquet shard.
+
+**Table providers** (`[[source]].provider`):
+
+| Provider | Status | Notes |
+|---|---|---|
+| `csv` | ✅ implemented | Built-in DataFusion CSV reader. |
+| `tsv` | ✅ implemented | CSV reader with tab delimiter. gzip inputs are decompressed to a temp file first (DataFusion is built without the `compression` feature, so `register_csv` can't read `.gz` directly). |
+| `parquet` | ✅ implemented | Built-in DataFusion Parquet reader. |
+| `vcf` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
+| `bed` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
+
+### Runtime lookup — async reader + monotonic cursor, in batches
+
+Annotation runs in position-ordered buffers. For each buffer the runtime does one
+**page-scoped, three-phase take** per plugin shard (`take_buffer`), reading only
+that buffer's candidate pages:
+
+1. **Resolve** — the buffer's sorted, de-duplicated `start` positions are mapped
+   through the `PageDir` to candidate page **row-ranges** (`resolve_ranges`).
+   Metadata only; no data read.
+2. **Locate** — a `start`-only projected read over just those pages (a
+   `RowSelection` built from the ranges) streams `start` values back in batches
+   through a **`CoalescingAsyncReader`** — an async Parquet reader that merges
+   nearby page byte-ranges (within a 512 KiB gap) into single I/O calls. A
+   **monotonic row-offset cursor** (`ranges.flat_map(a..b)`) advances exactly one
+   step per streamed row, staying in lockstep with the selection, and records the
+   exact file offset of every row whose `start` is in the buffer's probe set. The
+   cursor only ever moves forward, so there is no back-seeking.
+3. **Take** — a final projected read at those exact offsets pulls just the payload
+   columns (`allele_string`, match discriminators, values) for the matched rows
+   into one compact `RecordBatch` — the `PluginBufferSlice`.
+
+The engine then probes that in-memory slice **synchronously** per transcript
+consequence: filter by `allele_string` and, if the plugin declares a
+`[[match_column]]`, by the discriminator built from the template. The variation
+lookup (`variation_lookup.rs`) is untouched — the plugin lookup reuses the same
+`page_dir` primitives alongside it.
 
 ## Planned plugins
 
