@@ -8,6 +8,7 @@ nav:
       - Home: index.md
       - Quick start: quickstart.md
       - Architecture: architecture.md
+      - Caches: caches.md
       - API: api.md
       - Plugins: plugins.md
       - Performance: performance.md
