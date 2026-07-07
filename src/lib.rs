@@ -1,5 +1,7 @@
 use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat};
+use datafusion_bio_function_vep::plugin_cache::builder::PluginCacheBuilder;
+use datafusion_bio_function_vep::plugin_cache::source_manifest::SourceManifest;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -102,6 +104,106 @@ fn build_cache(
     Ok(result)
 }
 
+/// Build a plugin cache (all chroms, or a filtered set) from a source manifest.
+/// Returns per-chrom `(chrom, rows, warm, cold)` tuples.
+#[pyfunction]
+#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false))]
+fn build_plugin_cache(
+    py: Python<'_>,
+    manifest_path: &str,
+    source_path: &str,
+    variation_cache_dir: &str,
+    plugin_cache_root: &str,
+    chroms: Option<Vec<String>>,
+    overwrite: bool,
+) -> PyResult<Vec<(String, usize, usize, usize)>> {
+    let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
+    // The public API takes a single `source_path`, so it can only override one
+    // source. A multi-part manifest (multiple `[[source]]` blocks) would leave
+    // later sources on their stale placeholder paths — fail fast instead of
+    // silently reading the wrong file.
+    if manifest.sources.len() > 1 {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+            "manifest declares {} [[source]] entries; build_plugin_cache takes a single \
+             source_path and cannot map multi-part sources (not yet supported)",
+            manifest.sources.len()
+        )));
+    }
+    if let Some(first) = manifest.sources.first_mut() {
+        first.path = source_path.to_string();
+    }
+    // The builder always rewrites each chrom shard (its `with_overwrite` is a
+    // no-op in v0.14.0), so guard here against an accidental FULL rebuild. A build
+    // is "full" when no chromosome filter narrows it — either `chroms=None` or an
+    // empty list, which `PluginCacheBuilder::with_chrom_filter` also treats as no
+    // filter (resolving/rebuilding every shard). Refuse that without `overwrite`.
+    // A non-empty `chroms=[...]` is an explicit, targeted request that upserts into
+    // the existing manifest, so it's allowed (enables incremental builds).
+    let is_full_build = chroms.as_ref().is_none_or(|c| c.is_empty());
+    let plugin_dir = std::path::Path::new(plugin_cache_root)
+        .join("plugin")
+        .join(&manifest.plugin_name);
+    if is_full_build {
+        if overwrite {
+            // A full overwrite must start from a clean slate. The builder's
+            // `with_overwrite` is a no-op (it rewrites each shard per chrom), and
+            // `build_all` SEEDS its manifest from any existing plugin manifest,
+            // preserving chroms that are not part of the new build set. So without
+            // wiping first, rebuilding a smaller/different chrom set into the same
+            // root leaves stale chrom entries and shards behind, and `annotate()`
+            // keeps emitting those stale plugin values. Remove the whole plugin
+            // directory (manifest + shards) so only freshly built chroms remain.
+            if plugin_dir.exists() {
+                std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
+                    pyo3::exceptions::PyValueError::new_err(format!(
+                        "overwrite: failed to remove existing plugin cache at {}: {e}",
+                        plugin_dir.display()
+                    ))
+                })?;
+            }
+        } else if plugin_dir.join("manifest.json").exists() {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "plugin cache already exists at {} (pass overwrite=True to rebuild all \
+                 chromosomes, or chroms=[...] to add/rebuild specific ones)",
+                plugin_dir.join("manifest.json").display()
+            )));
+        }
+    }
+    let manifest_file = std::path::Path::new(manifest_path)
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| manifest_path.to_string());
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let cache = py.detach(|| {
+        rt.block_on(async {
+            let mut b = PluginCacheBuilder::new(
+                &manifest,
+                &manifest_file,
+                variation_cache_dir,
+                plugin_cache_root,
+            )
+            .with_overwrite(overwrite);
+            if let Some(cs) = chroms {
+                b = b.with_chrom_filter(cs);
+            }
+            b.build_all().await
+        })
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("plugin build failed: {e}")))
+    })?;
+
+    Ok(cache
+        .chroms
+        .into_iter()
+        .map(|c| (c.chrom, c.rows, c.warm, c.cold))
+        .collect())
+}
+
 /// Annotate a VCF and write results directly to a VCF file.
 /// Returns the number of rows written.
 #[pyfunction]
@@ -148,6 +250,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     Ok(())

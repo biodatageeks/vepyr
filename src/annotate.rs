@@ -283,6 +283,10 @@ pub fn annotate_to_vcf_file(
         compression: vcf_compression,
         show_progress,
         on_batch_written: callback,
+        plugin_cache_root: opts
+            .get("plugin_cache_root")
+            .and_then(|v| v.as_str())
+            .map(std::path::PathBuf::from),
     };
 
     // Release the GIL so the Python background thread (in __init__.py) can
