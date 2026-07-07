@@ -230,6 +230,27 @@ def test_full_rebuild_refuses_existing_cache_without_overwrite(tmp_path):
     assert (pc / "plugin" / "demo" / "manifest.json").read_text() == "{}"
 
 
+def test_empty_chroms_treated_as_full_rebuild(tmp_path):
+    """chroms=[] is 'no filter' (full rebuild) to the builder, so the overwrite
+    guard must treat it like chroms=None and refuse an existing cache."""
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    (pc / "plugin" / "demo").mkdir(parents=True)
+    (pc / "plugin" / "demo" / "manifest.json").write_text("{}")
+    with pytest.raises(ValueError, match="already exists"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(tmp_path / "src.tsv.gz"),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=[],
+            overwrite=False,
+        )
+    assert (pc / "plugin" / "demo" / "manifest.json").read_text() == "{}"
+
+
 def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     """A filtered (chroms=[...]) build upserts into an existing cache, so the
     overwrite guard must NOT block it — incremental per-chromosome builds work.

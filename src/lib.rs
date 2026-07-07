@@ -134,12 +134,14 @@ fn build_plugin_cache(
         first.path = source_path.to_string();
     }
     // The builder always rewrites each chrom shard (its `with_overwrite` is a
-    // no-op in v0.14.0), so guard here against an accidental FULL rebuild. Only an
-    // UNFILTERED build (`chroms=None`) rewrites every chrom and clobbers the whole
-    // cache — refuse that without `overwrite`. A filtered build (`chroms=[...]`)
-    // is an explicit, targeted request that upserts into the existing manifest, so
-    // it's allowed (enables incremental per-chromosome builds).
-    if !overwrite && chroms.is_none() {
+    // no-op in v0.14.0), so guard here against an accidental FULL rebuild. A build
+    // is "full" when no chromosome filter narrows it — either `chroms=None` or an
+    // empty list, which `PluginCacheBuilder::with_chrom_filter` also treats as no
+    // filter (resolving/rebuilding every shard). Refuse that without `overwrite`.
+    // A non-empty `chroms=[...]` is an explicit, targeted request that upserts into
+    // the existing manifest, so it's allowed (enables incremental builds).
+    let is_full_build = chroms.as_ref().is_none_or(|c| c.is_empty());
+    if !overwrite && is_full_build {
         let out_manifest = std::path::Path::new(plugin_cache_root)
             .join("plugin")
             .join(&manifest.plugin_name)
