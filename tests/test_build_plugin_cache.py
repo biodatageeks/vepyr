@@ -209,8 +209,9 @@ def test_build_rejects_multi_source_manifest(tmp_path):
         )
 
 
-def test_build_refuses_existing_cache_without_overwrite(tmp_path):
-    """overwrite=False must not clobber an existing plugin cache."""
+def test_full_rebuild_refuses_existing_cache_without_overwrite(tmp_path):
+    """An UNFILTERED (chroms=None) build over an existing cache is refused without
+    overwrite — it would rewrite every chrom."""
     repo = _init_full_repo(tmp_path)
     pc = tmp_path / "pc"
     (pc / "plugin" / "demo").mkdir(parents=True)
@@ -227,3 +228,27 @@ def test_build_refuses_existing_cache_without_overwrite(tmp_path):
         )
     # The pre-existing manifest is untouched (build never ran).
     assert (pc / "plugin" / "demo" / "manifest.json").read_text() == "{}"
+
+
+def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
+    """A filtered (chroms=[...]) build upserts into an existing cache, so the
+    overwrite guard must NOT block it — incremental per-chromosome builds work.
+    Here it still fails, but on the missing variation cache, not the guard."""
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    (pc / "plugin" / "demo").mkdir(parents=True)
+    (pc / "plugin" / "demo" / "manifest.json").write_text("{}")
+    with pytest.raises(Exception) as exc:
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(tmp_path / "src.tsv.gz"),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+            overwrite=False,
+        )
+    msg = str(exc.value)
+    assert "already exists" not in msg  # guard did NOT fire
+    assert "variation shard" in msg  # it reached the build (no variation cache)

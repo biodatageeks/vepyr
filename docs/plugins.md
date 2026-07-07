@@ -74,8 +74,11 @@ source and map it to CSQ fields.
   wired today — `csv`/`tsv`/`parquet` are implemented; `vcf`/`bed` are recognized
   but not yet wired). `path` is overridden at build time by `source_path`. A
   `[source.csv]` block (for `csv`/`tsv`) declares `delimiter`, `has_header`,
-  `comment`, `compression`, and an ordered `schema` of `{name, type}`. Multiple
-  `[[source]]` blocks with a `part` key register as `plugin_<name>_src_<part>`.
+  `comment`, `compression`, and an ordered `schema` of `{name, type}`.
+  The cache format reserves `part`-suffixed `[[source]]` blocks
+  (`plugin_<name>_src_<part>`) for multi-file plugins, but vepyr's public
+  `build_plugin_cache()` takes a single `source_path` and **rejects manifests
+  with more than one `[[source]]`** — multi-source builds are not yet supported.
 - **`[[match_column]]`** *(optional, 0+)* — a per-transcript discriminator:
   `column` (the stored discriminator column) + `template` (built at runtime from
   the engine-attribute namespace, see below). Omit entirely for per-variant

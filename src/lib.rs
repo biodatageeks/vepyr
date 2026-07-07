@@ -134,17 +134,23 @@ fn build_plugin_cache(
         first.path = source_path.to_string();
     }
     // The builder always rewrites each chrom shard (its `with_overwrite` is a
-    // no-op in v0.14.0), so guard here: without `overwrite`, refuse to clobber an
-    // existing plugin cache. Callers doing an intentional (re)build pass overwrite=True.
-    let out_manifest = std::path::Path::new(plugin_cache_root)
-        .join("plugin")
-        .join(&manifest.plugin_name)
-        .join("manifest.json");
-    if !overwrite && out_manifest.exists() {
-        return Err(pyo3::exceptions::PyValueError::new_err(format!(
-            "plugin cache already exists at {} (pass overwrite=True to rebuild)",
-            out_manifest.display()
-        )));
+    // no-op in v0.14.0), so guard here against an accidental FULL rebuild. Only an
+    // UNFILTERED build (`chroms=None`) rewrites every chrom and clobbers the whole
+    // cache — refuse that without `overwrite`. A filtered build (`chroms=[...]`)
+    // is an explicit, targeted request that upserts into the existing manifest, so
+    // it's allowed (enables incremental per-chromosome builds).
+    if !overwrite && chroms.is_none() {
+        let out_manifest = std::path::Path::new(plugin_cache_root)
+            .join("plugin")
+            .join(&manifest.plugin_name)
+            .join("manifest.json");
+        if out_manifest.exists() {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "plugin cache already exists at {} (pass overwrite=True to rebuild all \
+                 chromosomes, or chroms=[...] to add/rebuild specific ones)",
+                out_manifest.display()
+            )));
+        }
     }
     let manifest_file = std::path::Path::new(manifest_path)
         .file_name()
