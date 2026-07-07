@@ -442,13 +442,16 @@ def _resolve_plugin_manifest(
     import tempfile
 
     created_clone = plugins_repo is None
-    if created_clone:
-        repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
-        subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
-    else:
-        repo = plugins_repo
-    worktree = tempfile.mkdtemp(prefix="vepyr-plugins-wt-")
+    repo = plugins_repo
+    worktree = None
     try:
+        # Create the temp clone INSIDE the try so a failed `git clone` (bad url,
+        # network, credentials) still hits the cleanup below and doesn't leave a
+        # stale `vepyr-plugins-*` dir behind.
+        if created_clone:
+            repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
+            subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
+        worktree = tempfile.mkdtemp(prefix="vepyr-plugins-wt-")
         subprocess.run(
             [
                 "git",
@@ -471,14 +474,16 @@ def _resolve_plugin_manifest(
     finally:
         # Remove the worktree (deletes the dir AND its registration in `repo`);
         # `rmtree` is a belt-and-suspenders cleanup if `worktree remove` failed
-        # (e.g. it never got added). Drop the whole temp clone we created.
-        subprocess.run(
-            ["git", "-C", repo, "worktree", "remove", "--force", worktree],
-            check=False,
-            capture_output=True,
-        )
-        shutil.rmtree(worktree, ignore_errors=True)
-        if created_clone:
+        # (e.g. it never got added). Drop the whole temp clone we created — even
+        # if it's a partial/failed clone (worktree is None in that case).
+        if worktree is not None:
+            subprocess.run(
+                ["git", "-C", repo, "worktree", "remove", "--force", worktree],
+                check=False,
+                capture_output=True,
+            )
+            shutil.rmtree(worktree, ignore_errors=True)
+        if created_clone and repo is not None:
             shutil.rmtree(repo, ignore_errors=True)
 
 

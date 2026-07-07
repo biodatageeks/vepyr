@@ -152,6 +152,26 @@ def test_no_plugin_cache_root_omits_key(monkeypatch, tmp_path):
     assert "plugin_cache_root" not in captured["options_json"]
 
 
+def test_failed_clone_leaves_no_temp_dir():
+    """A failing online clone (bad repo_url) must not leak a vepyr-plugins-* temp
+    dir — the clone happens inside the cleanup scope."""
+    import glob
+    import os
+    import tempfile
+
+    pat = os.path.join(tempfile.gettempdir(), "vepyr-plugins-*")
+    before = set(glob.glob(pat))
+    with pytest.raises(subprocess.CalledProcessError):
+        # plugins_repo=None → online path; a nonexistent local url fails the clone.
+        with vepyr._resolve_plugin_manifest(
+            "demo",
+            "v0.1.0",
+            repo_url=str(Path(tempfile.gettempdir()) / "no-such-repo.git"),
+        ):
+            pass
+    assert set(glob.glob(pat)) == before  # no leaked clone/worktree
+
+
 def test_plugin_cache_root_reaches_streaming_options(monkeypatch):
     """The LazyFrame/streaming path (output_vcf=None) must forward
     plugin_cache_root too — it flows through the same options_json to
