@@ -141,16 +141,32 @@ fn build_plugin_cache(
     // A non-empty `chroms=[...]` is an explicit, targeted request that upserts into
     // the existing manifest, so it's allowed (enables incremental builds).
     let is_full_build = chroms.as_ref().is_none_or(|c| c.is_empty());
-    if !overwrite && is_full_build {
-        let out_manifest = std::path::Path::new(plugin_cache_root)
-            .join("plugin")
-            .join(&manifest.plugin_name)
-            .join("manifest.json");
-        if out_manifest.exists() {
+    let plugin_dir = std::path::Path::new(plugin_cache_root)
+        .join("plugin")
+        .join(&manifest.plugin_name);
+    if is_full_build {
+        if overwrite {
+            // A full overwrite must start from a clean slate. The builder's
+            // `with_overwrite` is a no-op (it rewrites each shard per chrom), and
+            // `build_all` SEEDS its manifest from any existing plugin manifest,
+            // preserving chroms that are not part of the new build set. So without
+            // wiping first, rebuilding a smaller/different chrom set into the same
+            // root leaves stale chrom entries and shards behind, and `annotate()`
+            // keeps emitting those stale plugin values. Remove the whole plugin
+            // directory (manifest + shards) so only freshly built chroms remain.
+            if plugin_dir.exists() {
+                std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
+                    pyo3::exceptions::PyValueError::new_err(format!(
+                        "overwrite: failed to remove existing plugin cache at {}: {e}",
+                        plugin_dir.display()
+                    ))
+                })?;
+            }
+        } else if plugin_dir.join("manifest.json").exists() {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "plugin cache already exists at {} (pass overwrite=True to rebuild all \
                  chromosomes, or chroms=[...] to add/rebuild specific ones)",
-                out_manifest.display()
+                plugin_dir.join("manifest.json").display()
             )));
         }
     }

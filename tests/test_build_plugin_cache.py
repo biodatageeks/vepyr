@@ -273,3 +273,35 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     msg = str(exc.value)
     assert "already exists" not in msg  # guard did NOT fire
     assert "variation shard" in msg  # it reached the build (no variation cache)
+
+
+def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
+    """A full (chroms=None) overwrite rebuild must start from a clean slate. The
+    builder's `with_overwrite` is a no-op and `build_all` SEEDS its manifest from
+    any existing plugin manifest, preserving chroms not in the new build set — so
+    rebuilding a smaller set into the same root would leave stale chrom entries and
+    shards that `annotate()` keeps emitting. Verify the pre-existing plugin dir
+    (manifest + shards) is removed before the build runs."""
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    (pc / "plugin" / "demo").mkdir(parents=True)
+    # A stale manifest entry + shard for a chrom the new build won't produce.
+    (pc / "plugin" / "demo" / "manifest.json").write_text(
+        '{"chroms": [{"chrom": "chrZZ"}]}'
+    )
+    (pc / "plugin" / "demo" / "chrZZ.parquet").write_bytes(b"stale")
+    # No variation cache exists, so the build itself fails AFTER the wipe.
+    with pytest.raises(Exception) as exc:
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(tmp_path / "src.tsv.gz"),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            overwrite=True,
+        )
+    assert "already exists" not in str(exc.value)  # overwrite bypassed the guard
+    # The stale shard + manifest were removed before the (failing) build.
+    assert not (pc / "plugin" / "demo" / "chrZZ.parquet").exists()
+    assert not (pc / "plugin" / "demo" / "manifest.json").exists()
