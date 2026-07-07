@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -417,48 +418,68 @@ def build_cache(
 DEFAULT_PLUGINS_REPO_URL = "https://github.com/biodatageeks/vepyr-plugins.git"
 
 
+@contextlib.contextmanager
 def _resolve_plugin_manifest(
     plugin: str,
     version: str,
     *,
     plugins_repo: str | None = None,
     repo_url: str = DEFAULT_PLUGINS_REPO_URL,
-) -> str:
+) -> Iterator[str]:
     """Resolve ``plugins/<plugin>/<plugin>.source.toml`` at git tag ``version``.
 
     Offline: reuse a provided local clone (``plugins_repo``). Online: clone the
     public repo into a temp dir. Either way, materialize the file at ``version``
     via ``git worktree`` (never disturbs the caller's checkout).
+
+    A context manager: the temp clone (online only) and the worktree — including
+    its registration in the source repo's ``.git/worktrees/`` — are removed on
+    exit, so repeated builds don't leak ``/tmp`` clones or stale worktree entries.
     """
     import os
+    import shutil
     import subprocess
     import tempfile
 
-    if plugins_repo is not None:
-        repo = plugins_repo
-    else:
+    created_clone = plugins_repo is None
+    if created_clone:
         repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
         subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
+    else:
+        repo = plugins_repo
     worktree = tempfile.mkdtemp(prefix="vepyr-plugins-wt-")
-    subprocess.run(
-        [
-            "git",
-            "-C",
-            repo,
-            "worktree",
-            "add",
-            "--quiet",
-            "--detach",
-            worktree,
-            version,
-        ],
-        check=True,
-    )
-    rel = os.path.join("plugins", plugin, f"{plugin}.source.toml")
-    manifest = os.path.join(worktree, rel)
-    if not os.path.exists(manifest):
-        raise FileNotFoundError(f"{rel} not found at {version} in {repo}")
-    return manifest
+    try:
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                repo,
+                "worktree",
+                "add",
+                "--quiet",
+                "--detach",
+                worktree,
+                version,
+            ],
+            check=True,
+        )
+        rel = os.path.join("plugins", plugin, f"{plugin}.source.toml")
+        manifest = os.path.join(worktree, rel)
+        if not os.path.exists(manifest):
+            raise FileNotFoundError(f"{rel} not found at {version} in {repo}")
+        yield manifest
+    finally:
+        # Remove the worktree (deletes the dir AND its registration in `repo`);
+        # `rmtree` is a belt-and-suspenders cleanup if `worktree remove` failed
+        # (e.g. it never got added). Drop the whole temp clone we created.
+        subprocess.run(
+            ["git", "-C", repo, "worktree", "remove", "--force", worktree],
+            check=False,
+            capture_output=True,
+        )
+        shutil.rmtree(worktree, ignore_errors=True)
+        if created_clone:
+            shutil.rmtree(repo, ignore_errors=True)
 
 
 def build_plugin_cache(
@@ -479,15 +500,17 @@ def build_plugin_cache(
     offline). Tiering is inherited from the variation cache at ``cache_dir``.
     Returns per-chrom ``(chrom, rows, warm, cold)`` tuples.
     """
-    manifest_path = _resolve_plugin_manifest(plugin, version, plugins_repo=plugins_repo)
-    return _build_plugin_cache(
-        manifest_path,
-        source_path,
-        cache_dir,
-        plugin_cache_root,
-        chroms,
-        overwrite,
-    )
+    with _resolve_plugin_manifest(
+        plugin, version, plugins_repo=plugins_repo
+    ) as manifest_path:
+        return _build_plugin_cache(
+            manifest_path,
+            source_path,
+            cache_dir,
+            plugin_cache_root,
+            chroms,
+            overwrite,
+        )
 
 
 def annotate(

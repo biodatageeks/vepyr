@@ -119,8 +119,32 @@ fn build_plugin_cache(
 ) -> PyResult<Vec<(String, usize, usize, usize)>> {
     let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
+    // The public API takes a single `source_path`, so it can only override one
+    // source. A multi-part manifest (multiple `[[source]]` blocks) would leave
+    // later sources on their stale placeholder paths — fail fast instead of
+    // silently reading the wrong file.
+    if manifest.sources.len() > 1 {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+            "manifest declares {} [[source]] entries; build_plugin_cache takes a single \
+             source_path and cannot map multi-part sources (not yet supported)",
+            manifest.sources.len()
+        )));
+    }
     if let Some(first) = manifest.sources.first_mut() {
         first.path = source_path.to_string();
+    }
+    // The builder always rewrites each chrom shard (its `with_overwrite` is a
+    // no-op in v0.14.0), so guard here: without `overwrite`, refuse to clobber an
+    // existing plugin cache. Callers doing an intentional (re)build pass overwrite=True.
+    let out_manifest = std::path::Path::new(plugin_cache_root)
+        .join("plugin")
+        .join(&manifest.plugin_name)
+        .join("manifest.json");
+    if !overwrite && out_manifest.exists() {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+            "plugin cache already exists at {} (pass overwrite=True to rebuild)",
+            out_manifest.display()
+        )));
     }
     let manifest_file = std::path::Path::new(manifest_path)
         .file_name()
