@@ -5,7 +5,7 @@ use datafusion::execution::SendableRecordBatchStream;
 use datafusion::prelude::{SessionConfig, SessionContext};
 use datafusion_bio_format_vcf::VcfCompressionType;
 use datafusion_bio_function_vep::register_vep_functions;
-use datafusion_bio_function_vep::vcf_sink::{AnnotateVcfConfig, OnBatchWritten, annotate_to_vcf};
+use datafusion_bio_function_vep::vcf_sink::{annotate_to_vcf, AnnotateVcfConfig, OnBatchWritten};
 use futures::StreamExt;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;

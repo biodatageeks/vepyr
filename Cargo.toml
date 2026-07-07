@@ -43,7 +43,6 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # Upstream biodatageeks crates
-# DEV: local path dep for plugin-cache integration; revert to a git tag before commit (Phase 10).
-datafusion-bio-function-vep = { path = "/Users/mwiewior/research/git/datafusion-bio-functions/datafusion/bio-function-vep", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.14.0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
