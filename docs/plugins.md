@@ -218,35 +218,8 @@ then a derived **`tier`** column (Int8: `0` = warm, `1` = cold). The variation
 frequency columns used to compute the tier are **not** stored — only the tier
 survives.
 
-### Parquet storage
 
-The writer properties (shared with the variation cache) are tuned for
-random point lookups rather than scans:
-
-| Property | Value | Why |
-|---|---|---|
-| Compression | ZSTD, level 3 | Good ratio; fast enough to decode per page. |
-| Dictionary encoding | **disabled** | Avoids a per-take dictionary load; ZSTD recovers the ratio (the no-dict file is actually smaller). |
-| Data page size | ≤ 4 KiB | Small pages → fine-grained page index → a lookup touches minimal bytes. |
-| Data page row count | ≤ 512 rows | Same — bounds how many rows a single page decode yields. |
-| Statistics | **Page-level** | Emits `ColumnIndex` + `OffsetIndex` in the footer — the read-side position→page directory. |
-| Row group size | 1,000,000 rows | Large groups keep footer/metadata overhead low; page index gives intra-group resolution. |
-| Sorting columns | `(tier, start)` | Physical clustering: warm rows first, then cold, each ascending by `start`. |
-
-### Page index → the `PageDir`
-
-Because page-level statistics are enabled, each shard's footer carries a
-`ColumnIndex` (per-page min/max of `start`) and an `OffsetIndex` (per-page byte
-offset + row range). At open time the lookup builds a **`PageDir`** over the
-`start` leaf column from these indexes. Resolving a set of query positions to the
-minimal set of candidate page row-ranges is then a metadata-only operation — no
-column data is read until the ranges are known.
-
-### Row groups
-
-Shards use 1,000,000-row row groups. Row groups bound the footer metadata size;
-within a group the small (≤512-row) pages plus the page index provide the actual
-point-lookup resolution. A whole chromosome is typically one or a few row groups.
+--8<-- "includes/cache-internals.md"
 
 ### Tiering — how warm/cold is calculated
 
@@ -294,33 +267,6 @@ a short chain of SQL objects:
 | `parquet` | ✅ implemented | Built-in DataFusion Parquet reader. |
 | `vcf` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
 | `bed` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
-
-### Runtime lookup — async reader + monotonic cursor, in batches
-
-Annotation runs in position-ordered buffers. For each buffer the runtime does one
-**page-scoped, three-phase take** per plugin shard (`take_buffer`), reading only
-that buffer's candidate pages:
-
-1. **Resolve** — the buffer's sorted, de-duplicated `start` positions are mapped
-   through the `PageDir` to candidate page **row-ranges** (`resolve_ranges`).
-   Metadata only; no data read.
-2. **Locate** — a `start`-only projected read over just those pages (a
-   `RowSelection` built from the ranges) streams `start` values back in batches
-   through a **`CoalescingAsyncReader`** — an async Parquet reader that merges
-   nearby page byte-ranges (within a 512 KiB gap) into single I/O calls. A
-   **monotonic row-offset cursor** (`ranges.flat_map(a..b)`) advances exactly one
-   step per streamed row, staying in lockstep with the selection, and records the
-   exact file offset of every row whose `start` is in the buffer's probe set. The
-   cursor only ever moves forward, so there is no back-seeking.
-3. **Take** — a final projected read at those exact offsets pulls just the payload
-   columns (`allele_string`, match discriminators, values) for the matched rows
-   into one compact `RecordBatch` — the `PluginBufferSlice`.
-
-The engine then probes that in-memory slice **synchronously** per transcript
-consequence: filter by `allele_string` and, if the plugin declares a
-`[[match_column]]`, by the discriminator built from the template. The variation
-lookup (`variation_lookup.rs`) is untouched — the plugin lookup reuses the same
-`page_dir` primitives alongside it.
 
 ## Planned plugins
 

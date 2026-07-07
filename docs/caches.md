@@ -57,6 +57,10 @@ The entities and what they feed in the CSQ output:
 (The Ensembl `translation` entity is split into two Parquet entities on
 conversion: `translation_core` and `translation_sift`.)
 
+## Cache format & lookup internals
+
+--8<-- "includes/cache-internals.md"
+
 ## Sizing
 
 Measured on-disk sizes of the converted Parquet caches in
