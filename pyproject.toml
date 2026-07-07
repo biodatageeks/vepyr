@@ -1,6 +1,6 @@
 [project]
 name = "vepyr"
-version = "0.1.1"
+version = "0.2.0"
 description = "VEP Yielding Performant Results — Python interface for Ensembl VEP annotation in Rust"
 readme = "README.md"
 authors = [
