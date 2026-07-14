@@ -133,11 +133,11 @@ fn build_plugin_cache(
     if let Some(first) = manifest.sources.first_mut() {
         first.path = source_path.to_string();
     }
-    // The builder always rewrites each chrom shard (its `with_overwrite` is a
-    // no-op in v0.14.0), so guard here against an accidental FULL rebuild. A build
-    // is "full" when no chromosome filter narrows it — either `chroms=None` or an
-    // empty list, which `PluginCacheBuilder::with_chrom_filter` also treats as no
-    // filter (resolving/rebuilding every shard). Refuse that without `overwrite`.
+    // The builder always rewrites each chrom shard, so guard here against an
+    // accidental FULL rebuild. A build is "full" when no chromosome filter narrows
+    // it — either `chroms=None` or an empty list, which
+    // `PluginCacheBuilder::with_chrom_filter` also treats as no filter
+    // (resolving/rebuilding every shard). Refuse that without `overwrite`.
     // A non-empty `chroms=[...]` is an explicit, targeted request that upserts into
     // the existing manifest, so it's allowed (enables incremental builds).
     let is_full_build = chroms.as_ref().is_none_or(|c| c.is_empty());
@@ -146,14 +146,15 @@ fn build_plugin_cache(
         .join(&manifest.plugin_name);
     if is_full_build {
         if overwrite {
-            // A full overwrite must start from a clean slate. The builder's
-            // `with_overwrite` is a no-op (it rewrites each shard per chrom), and
-            // `build_all` SEEDS its manifest from any existing plugin manifest,
-            // preserving chroms that are not part of the new build set. So without
-            // wiping first, rebuilding a smaller/different chrom set into the same
-            // root leaves stale chrom entries and shards behind, and `annotate()`
-            // keeps emitting those stale plugin values. Remove the whole plugin
-            // directory (manifest + shards) so only freshly built chroms remain.
+            // A full overwrite must start from a clean slate. As of engine rev
+            // f7b9e66, `with_overwrite(true)` does make `build_all` start from an
+            // EMPTY chrom list instead of seeding from the existing plugin manifest,
+            // so stale *manifest entries* no longer survive a rebuild. But the
+            // builder only writes the shards it builds — it never deletes the shard
+            // FILES of chroms outside the new build set, so a smaller/different
+            // chrom set would still leave orphan `<chrom>.parquet` files in the
+            // plugin dir. Wipe the whole plugin directory (manifest + shards) so
+            // only freshly built chroms remain on disk as well as in the manifest.
             if plugin_dir.exists() {
                 std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
                     pyo3::exceptions::PyValueError::new_err(format!(
