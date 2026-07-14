@@ -277,11 +277,11 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
 
 def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
     """A full (chroms=None) overwrite rebuild must start from a clean slate. The
-    builder's `with_overwrite` is a no-op and `build_all` SEEDS its manifest from
-    any existing plugin manifest, preserving chroms not in the new build set — so
-    rebuilding a smaller set into the same root would leave stale chrom entries and
-    shards that `annotate()` keeps emitting. Verify the pre-existing plugin dir
-    (manifest + shards) is removed before the build runs."""
+    builder honours `with_overwrite` for the *manifest* (it starts from an empty
+    chrom list rather than seeding from the existing one), but it never deletes the
+    shard FILES of chroms outside the new build set — so rebuilding a smaller set
+    into the same root would leave orphan `<chrom>.parquet` shards behind. Verify the
+    pre-existing plugin dir (manifest + shards) is removed before the build runs."""
     repo = _init_full_repo(tmp_path)
     pc = tmp_path / "pc"
     (pc / "plugin" / "demo").mkdir(parents=True)
