@@ -18,14 +18,33 @@ from pathlib import Path
 
 import pytest
 
-from vepyr.parity import ComparisonResult, compare_csq_fields, compare_vcfs
+from vepyr.parity import (
+    MAX_EXAMPLES,
+    ComparisonResult,
+    compare_csq_fields,
+    compare_vcfs,
+)
 
 # A realistic (trimmed) VEP CSQ format: core fields plus the two AlphaMissense
 # plugin fields, which is exactly the shape the plugin-parity gate sees.
+#
+# ``Protein_position`` and ``Amino_acids`` are the core engine attributes that
+# AlphaMissense's own discriminator (``{ref_aa}{Protein_position}{alt_aa}``) is
+# built from, so they are the fields through which a *core* divergence
+# masquerades as a *plugin* failure. They are here for that reason.
 CSQ_FORMAT = (
     "Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|"
-    "HGVSc|HGVSp|SIFT|PolyPhen|am_class|am_pathogenicity"
+    "HGVSc|HGVSp|Protein_position|Amino_acids|SIFT|PolyPhen|"
+    "am_class|am_pathogenicity"
 )
+
+#: The core fields whose divergence the plugin gate must not blame on a plugin.
+#: ``ref``/``alt`` are absent because in this comparator they are not CSQ fields:
+#: they are part of the variant key, so a disagreement there cannot pair.
+CORE_FIELDS = ["Feature", "Consequence", "Amino_acids", "Protein_position"]
+
+#: The plugin's own CSQ fields — the only ones its parity gate compares.
+PLUGIN_FIELDS = ["am_class", "am_pathogenicity"]
 
 _HEADER_LINES = [
     "##fileformat=VCFv4.2",
@@ -81,6 +100,8 @@ def csq(
     biotype: str = "protein_coding",
     hgvsc: str = "ENST00000001.1:c.100A>G",
     hgvsp: str = "ENSP00000001.1:p.Lys34Arg",
+    protein_position: str = "34",
+    amino_acids: str = "K/R",
     sift: str = "tolerated(0.21)",
     polyphen: str = "benign(0.012)",
     am_class: str = "likely_benign",
@@ -99,6 +120,8 @@ def csq(
             biotype,
             hgvsc,
             hgvsp,
+            protein_position,
+            amino_acids,
             sift,
             polyphen,
             am_class,
@@ -149,6 +172,8 @@ def realistic_records() -> list[tuple[str, int, str, str, list[str]]]:
                     impact="MODIFIER",
                     feature="ENST00000903",
                     hgvsp="",
+                    protein_position="",
+                    amino_acids="",
                     sift="",
                     polyphen="",
                     am_class="",
@@ -236,6 +261,8 @@ def test_over_emission_is_a_mismatch(tmp_path: Path) -> None:
                     impact="MODIFIER",
                     feature="ENST00000903",
                     hgvsp="",
+                    protein_position="",
+                    amino_acids="",
                     sift="",
                     polyphen="",
                     am_class="likely_benign",
@@ -654,3 +681,349 @@ def test_dropouts_are_surfaced_in_the_benchmark_report(tmp_path: Path) -> None:
 
     assert report["csq_missing_in_vepyr"] == len(records)
     assert report["csq_missing_in_vep"] == 0
+
+
+# ── The uncapped mismatch-key set: the exclusion set the plugin gate rests on ─
+#
+# The plugin gate's blame rule needs the set of variants where the CORE already
+# disagrees, so those variants can be excluded before a plugin's own fields are
+# judged. An *approximate* exclusion set is worse than none: it silently
+# attributes core bugs to plugins on precisely the long tail it cannot see. The
+# capped `examples` therefore cannot serve this purpose — hence `mismatch_keys`.
+
+
+def key_of(chrom: str, pos: int, ref: str, alt: str) -> str:
+    """The comparator's rendering of a variant key: ``CHROM\\tPOS\\tREF\\tALT``."""
+    return f"{chrom}\t{pos}\t{ref}\t{alt}"
+
+
+def test_mismatch_keys_holds_every_key_while_examples_stay_capped(
+    tmp_path: Path,
+) -> None:
+    """Every mismatching key is retained; the examples remain a capped report.
+
+    The whole point of the attribute: spread the mismatches across MORE keys
+    than the example cap and the examples can no longer see them all. The
+    exclusion set must.
+    """
+    n_mismatching = MAX_EXAMPLES * 3
+    assert n_mismatching > MAX_EXAMPLES, "the cap must actually bite"
+
+    positions = [100_000 + i * 137 for i in range(n_mismatching)]
+    truth_records = [
+        (
+            "chr1",
+            pos,
+            "A",
+            "G",
+            [csq(feature=f"ENST{i:011d}", am_pathogenicity="0.1000")],
+        )
+        for i, pos in enumerate(positions)
+    ]
+    # vepyr disagrees on am_pathogenicity at EVERY one of them.
+    test_records = [
+        (
+            "chr1",
+            pos,
+            "A",
+            "G",
+            [csq(feature=f"ENST{i:011d}", am_pathogenicity="0.9000")],
+        )
+        for i, pos in enumerate(positions)
+    ]
+    truth = write_vcf(tmp_path / "vep.vcf", truth_records)
+    test = write_vcf(tmp_path / "vepyr.vcf", test_records)
+
+    result = compare_csq_fields(truth, test, fields=PLUGIN_FIELDS)
+
+    expected = {key_of("chr1", pos, "A", "G") for pos in positions}
+    assert result.field_mismatches["am_pathogenicity"] == n_mismatching
+    assert result.mismatch_keys["am_pathogenicity"] == expected
+    assert len(result.mismatch_keys["am_pathogenicity"]) == n_mismatching
+
+    # The examples are still a report, not a dump — unchanged, still capped.
+    examples = result.field_mismatch_examples["am_pathogenicity"]
+    assert len(examples) == MAX_EXAMPLES
+    assert {ex.key for ex in examples} < result.mismatch_keys["am_pathogenicity"]
+
+    # A compared field that never mismatched gets an empty set, not a KeyError.
+    assert result.mismatch_keys["am_class"] == set()
+    assert set(result.mismatch_keys) == set(result.fields_compared)
+
+
+def test_mismatch_keys_deduplicates_a_variant_mismatching_in_several_entries(
+    tmp_path: Path,
+) -> None:
+    """It is a set of *variants*, not of entry pairs: one bad variant, one key.
+
+    The counter stays per-entry-pair (three mismatching transcripts on one
+    variant are three mismatches); the key set collapses them to the one variant
+    that must be excluded.
+    """
+    truth = write_vcf(
+        tmp_path / "vep.vcf",
+        [
+            (
+                "chr1",
+                200_000,
+                "C",
+                "T",
+                [
+                    csq(allele="T", feature="ENST00000900", am_pathogenicity="0.11"),
+                    csq(allele="T", feature="ENST00000901", am_pathogenicity="0.22"),
+                    csq(allele="T", feature="ENST00000902", am_pathogenicity="0.33"),
+                ],
+            )
+        ],
+    )
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [
+            (
+                "chr1",
+                200_000,
+                "C",
+                "T",
+                [
+                    csq(allele="T", feature="ENST00000900", am_pathogenicity="0.99"),
+                    csq(allele="T", feature="ENST00000901", am_pathogenicity="0.88"),
+                    csq(allele="T", feature="ENST00000902", am_pathogenicity="0.77"),
+                ],
+            )
+        ],
+    )
+
+    result = compare_csq_fields(truth, test, fields=PLUGIN_FIELDS)
+
+    assert result.field_mismatches["am_pathogenicity"] == 3
+    assert result.mismatch_keys["am_pathogenicity"] == {
+        key_of("chr1", 200_000, "C", "T")
+    }
+
+
+def test_mismatch_keys_excludes_order_only_differences(tmp_path: Path) -> None:
+    """``a&b`` vs ``b&a`` counts as a MATCH, so its key is not an exclusion.
+
+    The set must track exactly what :attr:`field_mismatches` counts — a key that
+    only differs in multi-value order is not a disagreement, and excluding it
+    would shrink the plugin gate for no reason.
+    """
+    truth = write_vcf(
+        tmp_path / "vep.vcf",
+        [
+            (
+                "chr1",
+                100,
+                "A",
+                "G",
+                [csq(consequence="splice_region_variant&intron_variant")],
+            )
+        ],
+    )
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [
+            (
+                "chr1",
+                100,
+                "A",
+                "G",
+                [csq(consequence="intron_variant&splice_region_variant")],
+            )
+        ],
+    )
+
+    result = compare_csq_fields(truth, test, fields=["Consequence"])
+
+    assert result.field_order_mismatches["Consequence"] == 1
+    assert result.field_mismatches["Consequence"] == 0
+    assert result.mismatch_keys["Consequence"] == set()
+
+
+def test_mismatch_keys_are_empty_on_a_clean_run(tmp_path: Path) -> None:
+    """A clean comparison excludes nothing."""
+    records = realistic_records()
+    truth = write_vcf(tmp_path / "vep.vcf", records)
+    test = write_vcf(tmp_path / "vepyr.vcf", records)
+
+    result = compare_csq_fields(truth, test)
+
+    assert result.is_clean
+    assert result.mismatch_keys == dict.fromkeys(result.fields_compared, set())
+
+
+def test_core_mismatch_keys_let_the_gate_attribute_blame_by_set_difference(
+    tmp_path: Path,
+) -> None:
+    """The blame-attribution rule the plugin gate rests on, end to end.
+
+    A plugin's CSQ fields are *derived* from core engine attributes:
+    AlphaMissense keys its lookup on ``{ref_aa}{Protein_position}{alt_aa}``,
+    built from ``Amino_acids`` and ``Protein_position``. So when the core
+    diverges from VEP, the plugin is handed a wrong lookup key and its field
+    comes out wrong through no fault of its own — and a naive diff blames the
+    plugin.
+
+    Two verdicts over the same pair of files, one set difference:
+
+    * key A — the core agrees, the plugin's value is wrong: a GENUINE plugin bug;
+    * key B — the core disagrees (wrong amino acids), so the plugin's value is
+      wrong downstream of that: NOT the plugin's fault;
+    * key C — everything agrees.
+
+    The gate must find exactly ``{A}``.
+    """
+    key_a = ("chr1", 100, "A", "G")
+    key_b = ("chr1", 200, "C", "T")
+    key_c = ("chr1", 300, "G", "A")
+
+    truth_records = [
+        (
+            *key_a,
+            [
+                csq(
+                    feature="ENST00000A",
+                    protein_position="34",
+                    amino_acids="K/R",
+                    am_class="likely_benign",
+                    am_pathogenicity="0.1234",
+                )
+            ],
+        ),
+        (
+            *key_b,
+            [
+                csq(
+                    feature="ENST00000B",
+                    protein_position="88",
+                    amino_acids="E/K",
+                    am_class="likely_pathogenic",
+                    am_pathogenicity="0.9500",
+                )
+            ],
+        ),
+        (
+            *key_c,
+            [
+                csq(
+                    feature="ENST00000C",
+                    protein_position="12",
+                    amino_acids="A/T",
+                    am_class="likely_benign",
+                    am_pathogenicity="0.0500",
+                )
+            ],
+        ),
+    ]
+    test_records = [
+        # A: core identical, plugin score wrong — the plugin's own bug.
+        (
+            *key_a,
+            [
+                csq(
+                    feature="ENST00000A",
+                    protein_position="34",
+                    amino_acids="K/R",
+                    am_class="likely_benign",
+                    am_pathogenicity="0.5678",
+                )
+            ],
+        ),
+        # B: the CORE diverges — wrong amino acids and protein position, so the
+        # discriminator AlphaMissense looks up is wrong, so its score is wrong.
+        # The plugin is downstream of a core bug, not the cause of it.
+        (
+            *key_b,
+            [
+                csq(
+                    feature="ENST00000B",
+                    protein_position="89",
+                    amino_acids="E/Q",
+                    am_class="likely_benign",
+                    am_pathogenicity="0.2222",
+                )
+            ],
+        ),
+        # C: agreement.
+        (
+            *key_c,
+            [
+                csq(
+                    feature="ENST00000C",
+                    protein_position="12",
+                    amino_acids="A/T",
+                    am_class="likely_benign",
+                    am_pathogenicity="0.0500",
+                )
+            ],
+        ),
+    ]
+    truth = write_vcf(tmp_path / "vep.vcf", truth_records)
+    test = write_vcf(tmp_path / "vepyr.vcf", test_records)
+
+    # Verdict 1: the core fields — which variants does vepyr ALREADY get wrong?
+    core = compare_csq_fields(truth, test, fields=CORE_FIELDS)
+    # Verdict 2: the plugin's own fields, over the same pair of files.
+    plugin = compare_csq_fields(truth, test, fields=PLUGIN_FIELDS)
+
+    core_diverged = set().union(*core.mismatch_keys.values())
+    plugin_failed = set().union(*plugin.mismatch_keys.values())
+
+    assert core_diverged == {key_of(*key_b)}
+    assert plugin_failed == {key_of(*key_a), key_of(*key_b)}
+
+    # The rule. Exactly one genuine plugin failure — key A.
+    genuine_plugin_failures = plugin_failed - core_diverged
+    assert genuine_plugin_failures == {key_of(*key_a)}
+
+    # And what the naive diff would have said: TWO plugin failures, one of them
+    # a core bug wearing a plugin's name.
+    assert plugin.field_mismatches["am_pathogenicity"] == 2
+
+
+def test_mismatch_keys_is_not_added_to_the_report(tmp_path: Path) -> None:
+    """A new attribute for programmatic consumers — NOT a report change.
+
+    Every archived benchmark report reads :meth:`as_report_dict`'s shape, so the
+    payload's key set is frozen. The printed report is likewise untouched.
+    """
+    records = realistic_records()
+    truth = write_vcf(tmp_path / "vep.vcf", records)
+    # Mismatch am_class on every annotated variant — far more keys than the cap.
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [
+            (
+                chrom,
+                pos,
+                ref,
+                alt,
+                [e.replace("|likely_benign|", "|likely_pathogenic|") for e in entries],
+            )
+            for chrom, pos, ref, alt, entries in records
+        ],
+    )
+
+    report = compare_vcfs(str(test), str(truth), "chr1")
+
+    assert set(report) == {
+        "variants_compared",
+        "variants_only_in_vepyr",
+        "csq_order_mismatch",
+        "csq_order_mismatch_examples",
+        "csq_order_ignored",
+        "csq_order_ignored_examples",
+        "csq_order_ignore_reason",
+        "variants_only_in_vep",
+        "csq_missing_in_vepyr",
+        "csq_missing_in_vep",
+        "csq_entry_count_match",
+        "csq_entry_count_mismatch",
+        "field_match_rates",
+        "field_mismatch_counts",
+        "field_mismatch_examples",
+        "field_order_mismatch_counts",
+        "field_order_mismatch_examples",
+    }
+    # The report still carries only the CAPPED examples, and no key sets.
+    assert len(report["field_mismatch_examples"]["am_class"]) == MAX_EXAMPLES  # type: ignore[index]

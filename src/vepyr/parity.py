@@ -248,6 +248,64 @@ class ComparisonResult:
     field_mismatch_examples: dict[str, list[FieldMismatch]] = field(
         default_factory=dict
     )
+    mismatch_keys: dict[str, set[str]] = field(default_factory=dict)
+    """Per field: EVERY variant key that mismatched — uncapped, unlike the examples.
+
+    Keys are rendered exactly as :attr:`FieldMismatch.key`
+    (``CHROM\\tPOS\\tREF\\tALT``). A field compared without a single mismatch maps
+    to an empty set, never to a missing entry, so a consumer may index any
+    compared field. Membership tracks :attr:`field_mismatches` exactly: an
+    order-only ``a&b`` difference counts as a match, so its key is *not* here.
+
+    This exists for the plugin-parity gate's **blame-attribution rule**. A
+    plugin's CSQ fields are derived from core engine attributes — AlphaMissense
+    keys its lookup on ``{ref_aa}{Protein_position}{alt_aa}``, built from
+    ``Amino_acids`` and ``Protein_position`` — so when vepyr's *core* diverges
+    from VEP, the plugin is handed a wrong lookup key and its field comes out
+    wrong through no fault of its own. The gate therefore takes two verdicts
+    over the same pair of files and subtracts::
+
+        core = compare_csq_fields(vep, vepyr, fields=CORE_FIELDS)
+        plugin = compare_csq_fields(vep, vepyr, fields=plugin.csq_fields)
+        core_diverged = set().union(*core.mismatch_keys.values())
+        plugin_failed = set().union(*plugin.mismatch_keys.values())
+        genuine_plugin_failures = plugin_failed - core_diverged
+
+    For that subtraction to be sound the exclusion set must be *complete*. The
+    capped :attr:`field_mismatch_examples` cannot serve: an approximate
+    exclusion set is worse than none, because it silently attributes core bugs
+    to plugins on precisely the long tail it cannot see.
+
+    Note this is a set of *variants*, not of entry pairs: a variant whose three
+    overlapping transcripts all mismatch counts three times in
+    :attr:`field_mismatches` but appears once here — one variant to exclude.
+
+    Memory is bounded by the number of *mismatching variants*, not by the number
+    of comparisons, and the key strings are shared between the per-field sets
+    rather than copied into each. Measured cost is ~42 bytes per (field, key)
+    set slot, plus ~55 bytes per distinct key string, counted once.
+
+    * Steady state — the clean or near-clean run this gate exists to defend:
+      essentially free (empty sets).
+    * A realistic failing run — a few fields diverging on a few percent of
+      variants: tens of MB.
+    * Worst case — a catastrophically broken run in which all ~60 fields
+      mismatch on every variant. Note the WGS benchmark compares **one
+      chromosome per call** (``run_annotation_fast.py``), so a single result
+      spans ~350k variants at most, not 4M: ~21M slots, ~0.9 GB. Only a caller
+      that compared all ~4M variants in one call would reach ~240M slots,
+      ~10 GB.
+
+    That ceiling is accepted rather than capped, for two reasons. It is a
+    total-failure run whose report is worthless anyway — nobody attributes blame
+    on a run where every field is wrong. And it is not a *new* order of cost:
+    :func:`_keyed_csq` already materialises both entire VCFs in memory, CSQ
+    strings and all, before a single comparison happens — that is the dominant
+    term at any realistic mismatch rate. Should a pathological run ever need
+    comparing without this cost, the fix is to make population **opt-out via a
+    flag**, never to cap the set: a capped exclusion set silently corrupts the
+    verdict it feeds, whereas an absent one fails loudly.
+    """
     field_order_mismatches: dict[str, int] = field(default_factory=dict)
     """Per field: same multi-values (``a&b``) in a different order — counted as matches."""
     field_order_mismatch_examples: dict[str, list[FieldMismatch]] = field(
@@ -374,6 +432,11 @@ def compare_csq_fields(
             :data:`VEP_HASH_ORDER_PICK_IGNORE_REASON`. Entry counts and every
             field value are still compared strictly.
         max_examples: Worked examples retained per mismatch class per field.
+            This caps :attr:`~ComparisonResult.field_mismatch_examples` only; it
+            does **not** bound :attr:`~ComparisonResult.mismatch_keys`, which is
+            complete by construction because the plugin gate's blame rule
+            subtracts with it and a partial exclusion set would silently blame
+            plugins for core bugs.
 
     Returns:
         The :class:`ComparisonResult` verdict.
@@ -416,6 +479,7 @@ def compare_csq_fields(
         field_matches=dict.fromkeys(compared, 0),
         field_mismatches=dict.fromkeys(compared, 0),
         field_mismatch_examples={f: [] for f in compared},
+        mismatch_keys={f: set() for f in compared},
         field_order_mismatches=dict.fromkeys(compared, 0),
         field_order_mismatch_examples={f: [] for f in compared},
         over_emissions=dict.fromkeys(compared, 0),
@@ -522,6 +586,11 @@ def compare_csq_fields(
                     result.field_mismatches[f] += 1
                     if mismatch.is_over_emission:
                         result.over_emissions[f] += 1
+                    # The examples are a capped report; the key set is the
+                    # complete record the plugin gate's blame rule subtracts
+                    # with. `key_str` is one object per variant, shared by every
+                    # field's set rather than copied into each.
+                    result.mismatch_keys[f].add(key_str)
                     if len(result.field_mismatch_examples[f]) < max_examples:
                         result.field_mismatch_examples[f].append(mismatch)
 
