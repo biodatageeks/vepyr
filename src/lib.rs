@@ -248,7 +248,16 @@ fn create_annotator(
 
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    let _ = env_logger::try_init();
+    // Default to `warn`, not env_logger's own default of `error`.
+    //
+    // The engine emits its loudest correctness guards at warn level — notably
+    // plugin_cache's "rows > 0 but warm == 0: NOT ONE row joined the variation cache",
+    // which is the single signal that catches a wrong contig naming, a wrong
+    // coordinate_system, or a wrong allele_string format. Under `error` those were
+    // swallowed, so a Python caller with no RUST_LOG set got a green build and silence
+    // for a plugin cache that annotates nothing. RUST_LOG still overrides this.
+    let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn"))
+        .try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
