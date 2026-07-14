@@ -108,13 +108,23 @@ def csq_format_fields(path: str | Path) -> list[str]:
 
 
 def _keyed_csq(path: str | Path) -> list[tuple[VariantKey, str]]:
-    """Return ``(key, raw_csq)`` pairs sorted by key, ready for a merge-join."""
+    """Return ``(key, raw_csq)`` pairs sorted by key, ready for a merge-join.
+
+    The record terminator is stripped before the line is split into columns. It
+    is not part of any field — a VCF field cannot contain CR or LF, since those
+    *are* the record separator — so stripping it cannot eat a legitimate value.
+    It matters because in a sites-only (8-column) VCF, INFO is the final column,
+    so the terminator sits immediately after the last CSQ field; left in place it
+    would be captured as part of that field's value (``[^;\\t]`` matches ``\\n``).
+    That is precisely where plugin fields live: they are appended to the end of
+    VEP's CSQ ``Format`` string.
+    """
     rows: list[tuple[VariantKey, str]] = []
     with open_text(path) as f:
         for line in f:
             if line.startswith("#"):
                 continue
-            cols = line.split("\t", 9)
+            cols = line.rstrip("\r\n").split("\t", 9)
             m = _CSQ_VALUE_RE.search(cols[7])
             csq = m.group(1) if m else ""
             key: VariantKey = (cols[0], int(cols[1]), cols[3], cols[4])
@@ -205,6 +215,17 @@ class ComparisonResult:
     keys_only_in_truth: int
     """Variants VEP emitted that vepyr did not."""
 
+    csq_missing_in_test: int
+    """Compared variants that VEP annotated but vepyr left with no CSQ at all.
+
+    A total annotation dropout: with no CSQ to parse, such a variant contributes
+    no field totals and no entry counts, so it is invisible in every other
+    counter. A plugin cache that annotated *nothing* would otherwise show a
+    perfectly clean field table. It gets its own bucket for that reason.
+    """
+    csq_missing_in_truth: int
+    """Compared variants that vepyr annotated but VEP left with no CSQ at all."""
+
     entry_count_match: int
     """Compared variants where both sides emitted the same number of CSQ entries."""
     entry_count_mismatch: int
@@ -259,8 +280,9 @@ class ComparisonResult:
 
         Clean means every compared field agreed on every compared variant, both
         sides emitted the same variants and the same number of CSQ entries per
-        variant in the same (or a deliberately-ignored) order, and every field
-        that was asked for actually existed on both sides.
+        variant in the same (or a deliberately-ignored) order, neither side
+        dropped a variant's annotation entirely, and every field that was asked
+        for actually existed on both sides.
         """
         return (
             not self.mismatched_fields
@@ -270,6 +292,8 @@ class ComparisonResult:
             and self.entry_order_mismatch == 0
             and self.keys_only_in_test == 0
             and self.keys_only_in_truth == 0
+            and self.csq_missing_in_test == 0
+            and self.csq_missing_in_truth == 0
         )
 
     def as_report_dict(self) -> dict[str, object]:
@@ -291,6 +315,8 @@ class ComparisonResult:
             ],
             "csq_order_ignore_reason": self.entry_order_ignore_reason,
             "variants_only_in_vep": self.keys_only_in_truth,
+            "csq_missing_in_vepyr": self.csq_missing_in_test,
+            "csq_missing_in_vep": self.csq_missing_in_truth,
             "csq_entry_count_match": self.entry_count_match,
             "csq_entry_count_mismatch": self.entry_count_mismatch,
             "field_match_rates": self.field_match_rates,
@@ -375,6 +401,8 @@ def compare_csq_fields(
         keys_compared=0,
         keys_only_in_test=0,
         keys_only_in_truth=0,
+        csq_missing_in_test=0,
+        csq_missing_in_truth=0,
         entry_count_match=0,
         entry_count_mismatch=0,
         entry_order_mismatch=0,
@@ -412,6 +440,13 @@ def compare_csq_fields(
 
         result.keys_compared += 1
         key_str = f"{test_key[0]}\t{test_key[1]}\t{test_key[2]}\t{test_key[3]}"
+
+        # A variant one side left entirely unannotated has no CSQ to parse, so it
+        # can reach no other counter. Count it here or it vanishes.
+        if not test_csq and truth_csq:
+            result.csq_missing_in_test += 1
+        elif test_csq and not truth_csq:
+            result.csq_missing_in_truth += 1
 
         if test_csq and truth_csq:
             test_parsed = _parse_entries(test_csq, test_fields)
@@ -554,6 +589,14 @@ def compare_vcfs(
     print(f"    Variants compared:        {result.keys_compared:,}")
     print(f"    Only in vepyr:            {result.keys_only_in_test:,}")
     print(f"    Only in VEP:              {result.keys_only_in_truth:,}")
+    print(
+        f"    CSQ missing in vepyr:     {result.csq_missing_in_test:,}"
+        "  (VEP annotated it, vepyr emitted no CSQ)"
+    )
+    print(
+        f"    CSQ missing in VEP:       {result.csq_missing_in_truth:,}"
+        "  (vepyr annotated it, VEP emitted no CSQ)"
+    )
     print(f"    CSQ count match:          {result.entry_count_match:,}")
     print(f"    CSQ count mismatch:       {result.entry_count_mismatch:,}")
     print(

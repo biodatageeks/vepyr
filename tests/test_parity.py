@@ -27,43 +27,45 @@ CSQ_FORMAT = (
     "HGVSc|HGVSp|SIFT|PolyPhen|am_class|am_pathogenicity"
 )
 
-_HEADER_TEMPLATE = "\n".join(
-    [
-        "##fileformat=VCFv4.2",
-        "##contig=<ID=chr1,length=248956422>",
-        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
-        '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence '
-        'annotations from Ensembl VEP. Format: {csq_format}">',
-        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG002",
-    ]
-)
+_HEADER_LINES = [
+    "##fileformat=VCFv4.2",
+    "##contig=<ID=chr1,length=248956422>",
+    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence '
+    'annotations from Ensembl VEP. Format: {csq_format}">',
+]
+_COLUMNS = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 
 def write_vcf(
     path: Path,
     records: list[tuple[str, int, str, str, list[str]]],
     csq_format: str = CSQ_FORMAT,
+    *,
+    sites_only: bool = False,
 ) -> Path:
     """Write a VCF whose INFO column carries a VEP-style ``CSQ`` annotation.
-
-    Mirrors the shape of the real benchmark VCFs (``tests/data/golden``): 10
-    columns, i.e. INFO followed by FORMAT and a sample column.
 
     Args:
         path: Destination path.
         records: ``(chrom, pos, ref, alt, csq_entries)`` tuples, where each CSQ
             entry is a raw pipe-delimited string matching ``csq_format``.
         csq_format: The pipe-delimited field spec advertised in the CSQ header.
+        sites_only: Emit an 8-column, sites-only VCF (INFO is the final column),
+            as produced by running VEP over a sites-only region VCF. The default
+            emits 10 columns (INFO + FORMAT + sample), mirroring the real WGS
+            benchmark VCFs in ``tests/data/golden``.
 
     Returns:
         ``path``, for chaining.
     """
-    lines = [_HEADER_TEMPLATE.format(csq_format=csq_format)]
+    header = [line.format(csq_format=csq_format) for line in _HEADER_LINES]
+    header.append(_COLUMNS if sites_only else f"{_COLUMNS}\tFORMAT\tHG002")
+    lines = ["\n".join(header)]
     for chrom, pos, ref, alt, entries in records:
         info = f"DP=30;CSQ={','.join(entries)}" if entries else "DP=30"
-        lines.append(
-            f"{chrom}\t{pos}\t.\t{ref}\t{alt}\t50\tPASS\t{info}\tGT:DP\t1/1:30"
-        )
+        row = f"{chrom}\t{pos}\t.\t{ref}\t{alt}\t50\tPASS\t{info}"
+        lines.append(row if sites_only else f"{row}\tGT:DP\t1/1:30")
     path.write_text("\n".join(lines) + "\n")
     return path
 
@@ -453,3 +455,202 @@ def test_gzipped_inputs_are_read_transparently(tmp_path: Path, suffix: str) -> N
 
     assert result.keys_compared == len(records)
     assert result.is_clean
+
+
+# ── Sites-only (8-column) VCFs: the record separator is not a field value ────
+#
+# A region VEP run over a sites-only VCF emits 8 columns, so INFO is the final
+# column and the line's "\n" sits immediately after the last CSQ field. Plugin
+# fields are appended at the END of the CSQ Format string, which puts them
+# exactly where a leaked line terminator would land.
+
+
+def test_sites_only_last_csq_field_is_not_polluted_by_the_line_terminator(
+    tmp_path: Path,
+) -> None:
+    """The final CSQ field of an 8-column VCF must not absorb the newline."""
+    records = realistic_records()
+    truth = write_vcf(tmp_path / "vep.vcf", records, sites_only=True)
+    test = write_vcf(tmp_path / "vepyr.vcf", records, sites_only=True)
+
+    result = compare_csq_fields(truth, test, fields=["am_pathogenicity"])
+
+    assert result.is_clean
+    # 30 single-entry variants + one 3-entry variant + one intron variant.
+    assert result.field_totals["am_pathogenicity"] == 34
+
+
+def test_sites_only_entry_order_difference_does_not_invent_a_field_mismatch(
+    tmp_path: Path,
+) -> None:
+    """A pure CSQ entry-order difference must not manufacture a mismatch.
+
+    The line terminator used to ride on whichever CSQ entry was emitted last;
+    once entries are paired by Feature, it landed on *different* entries on the
+    two sides and produced a phantom mismatch on the final field.
+    """
+    entries = [
+        csq(allele="T", feature="ENST00000900", am_pathogenicity="0.9101"),
+        csq(allele="T", feature="ENST00000901", am_pathogenicity="0.4400"),
+    ]
+    truth = write_vcf(
+        tmp_path / "vep.vcf", [("chr1", 200_000, "C", "T", entries)], sites_only=True
+    )
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [("chr1", 200_000, "C", "T", list(reversed(entries)))],
+        sites_only=True,
+    )
+
+    result = compare_csq_fields(truth, test, fields=["am_class", "am_pathogenicity"])
+
+    assert result.field_mismatches == {"am_class": 0, "am_pathogenicity": 0}
+    assert result.field_mismatch_examples["am_pathogenicity"] == []
+    # The entry-order difference itself is still reported, strictly.
+    assert result.entry_order_mismatch == 1
+
+
+def test_sites_only_over_emission_on_the_final_field_is_classified(
+    tmp_path: Path,
+) -> None:
+    """An empty final VEP field must read as ``""``, so over-emission is seen."""
+    truth = write_vcf(
+        tmp_path / "vep.vcf",
+        [("chr1", 300_000, "G", "A", [csq(am_class="", am_pathogenicity="")])],
+        sites_only=True,
+    )
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [
+            (
+                "chr1",
+                300_000,
+                "G",
+                "A",
+                [csq(am_class="likely_benign", am_pathogenicity="0.0500")],
+            )
+        ],
+        sites_only=True,
+    )
+
+    result = compare_csq_fields(truth, test, fields=["am_class", "am_pathogenicity"])
+
+    assert result.field_mismatches == {"am_class": 1, "am_pathogenicity": 1}
+    assert result.over_emissions == {"am_class": 1, "am_pathogenicity": 1}
+
+    (example,) = result.field_mismatch_examples["am_pathogenicity"]
+    assert example.truth == ""
+    assert example.test == "0.0500"
+    assert example.is_over_emission
+
+
+def test_sites_only_mismatch_examples_carry_no_stray_whitespace(
+    tmp_path: Path,
+) -> None:
+    """Reported values are the values, not the values plus a line terminator."""
+    truth = write_vcf(
+        tmp_path / "vep.vcf",
+        [("chr1", 100, "A", "G", [csq(am_pathogenicity="0.1234")])],
+        sites_only=True,
+    )
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [("chr1", 100, "A", "G", [csq(am_pathogenicity="0.5678")])],
+        sites_only=True,
+    )
+
+    result = compare_csq_fields(truth, test, fields=["am_pathogenicity"])
+
+    (example,) = result.field_mismatch_examples["am_pathogenicity"]
+    assert example.truth == "0.1234"
+    assert example.test == "0.5678"
+
+
+def test_crlf_line_endings_do_not_pollute_the_final_csq_field(tmp_path: Path) -> None:
+    """A CRLF-terminated sites-only VCF must not leak ``\\r`` into the last field."""
+    records = [("chr1", 100, "A", "G", [csq(am_pathogenicity="0.1234")])]
+    truth = write_vcf(tmp_path / "vep.vcf", records, sites_only=True)
+    test = write_vcf(tmp_path / "vepyr.vcf", records, sites_only=True)
+    test.write_bytes(test.read_bytes().replace(b"\n", b"\r\n"))
+
+    result = compare_csq_fields(truth, test, fields=["am_pathogenicity"])
+
+    assert result.field_mismatches["am_pathogenicity"] == 0
+    assert result.is_clean
+
+
+# ── A total annotation dropout must not read as a clean run ──────────────────
+
+
+def test_variant_with_no_csq_at_all_in_test_is_counted_not_ignored(
+    tmp_path: Path,
+) -> None:
+    """A variant vepyr left entirely unannotated is a defect, not a non-event.
+
+    A plugin cache that annotates NOTHING would otherwise show a perfectly clean
+    field table: with no CSQ to parse, the variant contributes no field totals
+    and no entry counts.
+    """
+    records = realistic_records()
+    truth = write_vcf(tmp_path / "vep.vcf", records)
+    # vepyr emits the variants but annotates none of them.
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [(chrom, pos, ref, alt, []) for chrom, pos, ref, alt, _ in records],
+    )
+
+    result = compare_csq_fields(truth, test, fields=["am_class", "am_pathogenicity"])
+
+    assert result.keys_compared == len(records)
+    assert result.csq_missing_in_test == len(records)
+    assert result.csq_missing_in_truth == 0
+    # The blind spot: nothing lands in the field or entry-count buckets.
+    assert result.field_mismatches == {"am_class": 0, "am_pathogenicity": 0}
+    assert result.entry_count_mismatch == 0
+    assert not result.is_clean
+
+
+def test_variant_with_no_csq_at_all_in_truth_is_counted(tmp_path: Path) -> None:
+    """The mirror case: vepyr annotated a variant VEP did not."""
+    records = realistic_records()
+    truth = write_vcf(
+        tmp_path / "vep.vcf",
+        [(chrom, pos, ref, alt, []) for chrom, pos, ref, alt, _ in records],
+    )
+    test = write_vcf(tmp_path / "vepyr.vcf", records)
+
+    result = compare_csq_fields(truth, test)
+
+    assert result.csq_missing_in_truth == len(records)
+    assert result.csq_missing_in_test == 0
+    assert not result.is_clean
+
+
+def test_variant_unannotated_on_both_sides_is_agreement(tmp_path: Path) -> None:
+    """Neither side annotating a variant is agreement, not a dropout."""
+    records = [
+        (chrom, pos, ref, alt, []) for chrom, pos, ref, alt, _ in realistic_records()
+    ]
+    truth = write_vcf(tmp_path / "vep.vcf", records)
+    test = write_vcf(tmp_path / "vepyr.vcf", records)
+
+    result = compare_csq_fields(truth, test)
+
+    assert result.csq_missing_in_test == 0
+    assert result.csq_missing_in_truth == 0
+    assert result.is_clean
+
+
+def test_dropouts_are_surfaced_in_the_benchmark_report(tmp_path: Path) -> None:
+    """The e2e report must carry the dropout counters, not bury them."""
+    records = realistic_records()
+    truth = write_vcf(tmp_path / "vep.vcf", records)
+    test = write_vcf(
+        tmp_path / "vepyr.vcf",
+        [(chrom, pos, ref, alt, []) for chrom, pos, ref, alt, _ in records],
+    )
+
+    report = compare_vcfs(str(test), str(truth), "chr1")
+
+    assert report["csq_missing_in_vepyr"] == len(records)
+    assert report["csq_missing_in_vep"] == 0
