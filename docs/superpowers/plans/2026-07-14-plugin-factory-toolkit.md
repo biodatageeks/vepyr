@@ -12,17 +12,39 @@
 
 ---
 
-## Two discoveries that change the spec, found while preparing this plan
+## Status — two of the five tasks were already done upstream. Read this before starting.
 
-**1. The mini-cache must be BUILT, not sliced.** The spec (§5) says: slice every table of `_cache_v115` to a region. That cannot work. The local variation cache has **no `tier` column** — verified directly, its 76 columns are `chrom, start, end, variation_name, allele_string, …` and `tier` is not among them — while `plugin_cache::join` does:
+This plan was first drafted against a **stale local checkout of `vepyr`**. After fetching, two tasks
+turned out to exist already, and one premise was simply wrong. Corrected:
+
+- **Task 1 (engine pin): DONE** (`f760f68`). The pin was never `v0.13.1` — it was already `v0.14.0`
+  (moved by `bd12ed3`, "feat: Plugin cache (#27)"). It is now rev-pinned at `f7b9e66`, the Plan A
+  merge. The feared PR-#181 migration was a **non-event**: #181 is already an ancestor of `v0.14.0`,
+  the real delta is two commits, and **zero call sites had to change**.
+- **Task 2 (`build_plugin_cache` binding): ALREADY EXISTS**, and is better than this plan's draft.
+  `src/lib.rs:111`, registered, stubbed, and tested (`tests/test_build_plugin_cache.py`). Its real
+  signature is `build_plugin_cache(manifest_path, source_path, variation_cache_dir,
+  plugin_cache_root, chroms=None, overwrite=False) -> list[(chrom, rows, warm, cold)]`, and it
+  already fail-fasts on multi-source manifests and guards against an accidental full rebuild.
+  **Do not rewrite it.** Tasks 3–5 build on it as-is.
+
+**The one discovery that still stands, and it is the load-bearing one:**
+
+**The mini-cache must be BUILT, not sliced.** The spec (§5) says: slice every table of `_cache_v115`
+to a region. That cannot work. The local variation cache has **no `tier` column** — verified
+directly; its 76 columns are `chrom, start, end, variation_name, allele_string, …` and `tier` is not
+among them — while `plugin_cache::join` does:
 
 ```sql
 SELECT chrom, start, allele_string, tier FROM <variation shard>
 ```
 
-So a plugin build against a slice of `_cache_v115` fails on a missing column. That cache predates the tiering work. The fix is not to weaken the engine (tiering is a real warm/cold code path the parity gate should exercise) but to **rebuild the region's variation shard with the current builder** — which already exists as `examples/build_parquet_variation_chrom` and reads the native Ensembl cache we have on disk.
+So a plugin build against a slice of `_cache_v115` fails on a missing column. That cache predates the
+tiering work. The fix is not to weaken the engine (tiering is a real warm/cold code path the parity
+gate should exercise) but to **rebuild the region's variation shard with the current builder** —
+`examples/build_parquet_variation_chrom`, which reads the native Ensembl cache we have on disk.
 
-**2. `vepyr` pins the engine to `v0.13.1`, which has no `plugin_cache` at all.** (`Cargo.toml:46`. `plugin_cache` landed in `v0.14.0`.) Nothing in this plan compiles until that pin moves. Task 1.
+**Remaining work: Task 3 (`vepyr.parity`), Task 4 (the mini-cache), Task 5 (the e2e proof).**
 
 ---
 
