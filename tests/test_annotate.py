@@ -363,6 +363,74 @@ class TestAnnotate:
         finally:
             os.unlink(out_path)
 
+    def test_pick_order_list_is_joined_to_comma_string(self, monkeypatch):
+        """A list pick_order is joined to the comma-string the engine parses.
+
+        Regression test for #29: a list used to be silently dropped at the
+        Rust boundary (``Value::as_str()`` returns ``None`` for a JSON array),
+        falling back to the default order. It must now reach the engine
+        byte-identically to the equivalent comma-separated string.
+        """
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen["options"] = json.loads(options_json)
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        terms = ["biotype", "rank", "mane_select", "tsl", "canonical"]
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+
+        try:
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                pick_allele=True,
+                pick_order=terms,
+            )
+            assert seen["options"]["pick_order"] == ",".join(terms)
+        finally:
+            os.unlink(out_path)
+
+    def test_pick_order_invalid_type_raises(self):
+        """A non-str/list pick_order raises loudly instead of being ignored (#29)."""
+        import vepyr
+
+        with pytest.raises(TypeError, match="pick_order"):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                pick_allele=True,
+                pick_order=123,  # type: ignore[arg-type]
+            )
+
+        with pytest.raises(TypeError, match="pick_order"):
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf="unused.vcf",
+                show_progress=False,
+                pick_allele=True,
+                pick_order=[1, 2, 3],  # type: ignore[list-item]
+            )
+
     def test_buffer_size_forwards_to_vcf_writer(self, monkeypatch):
         """buffer_size should default to VEP's 5000 and allow override."""
         import vepyr
