@@ -34,7 +34,9 @@ Transcript overlap queries use [COITree](https://github.com/dcjones/coitree) (ca
 
 ### Running a comparison
 
-To benchmark vepyr against Ensembl VEP on the same input:
+To benchmark vepyr against Ensembl VEP on the same input. For the full parity setup —
+downloading the HG002 benchmark VCF, normalizing it, and running the comparison harness —
+see [Testing against Ensembl VEP](testing-vep.md).
 
 **Ensembl VEP (Docker):**
 

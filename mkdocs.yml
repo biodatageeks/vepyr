@@ -12,6 +12,7 @@ nav:
       - API: api.md
       - Plugins: plugins.md
       - Performance: performance.md
+      - Testing vs Ensembl VEP: testing-vep.md
       - Developers: developers.md
       - Contact: contact.md
 
