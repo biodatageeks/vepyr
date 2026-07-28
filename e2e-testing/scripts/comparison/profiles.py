@@ -134,7 +134,13 @@ def data_dir():
     )
 
 
-def _resolve_with_legacy_fallback(subdir, name, exists):
+# Legacy-location notices are emitted once per path. availability_table()
+# probes every profile x release, so without this the same notice would repeat
+# dozens of times in a single run.
+_WARNED_LEGACY = set()
+
+
+def _resolve_with_legacy_fallback(subdir, name, exists, warn=True):
     """Prefer $DATA/{subdir}/{name}, fall back to $DATA/{name} with a warning.
 
     Returns the preferred path when neither exists, so the caller's own existence
@@ -145,11 +151,13 @@ def _resolve_with_legacy_fallback(subdir, name, exists):
         return preferred
     legacy = os.path.join(data_dir(), name)
     if exists(legacy):
-        print(
-            f"  Note: using legacy location {legacy}; move it under {subdir}/ "
-            f"(see {SPEC_DOC})",
-            file=sys.stderr,
-        )
+        if warn and legacy not in _WARNED_LEGACY:
+            _WARNED_LEGACY.add(legacy)
+            print(
+                f"  Note: using legacy location {legacy}; move it under {subdir}/ "
+                f"(see {SPEC_DOC})",
+                file=sys.stderr,
+            )
         return legacy
     return preferred
 
@@ -159,10 +167,14 @@ def default_input(name):
     return _resolve_with_legacy_fallback("input", name, os.path.exists)
 
 
-def cache_dir_for(profile_name, release):
-    """Resolve a Parquet cache, preferring $DATA/cache/ over the legacy root."""
+def cache_dir_for(profile_name, release, warn=True):
+    """Resolve a Parquet cache, preferring $DATA/cache/ over the legacy root.
+
+    `warn=False` is used by availability_table(), which probes every combination
+    and would otherwise turn one diagnostic into a wall of notices.
+    """
     name = f"{release}_GRCh38_{PROFILES[profile_name].flavour}"
-    return _resolve_with_legacy_fallback("cache", name, os.path.isdir)
+    return _resolve_with_legacy_fallback("cache", name, os.path.isdir, warn=warn)
 
 
 def vep_vcf_for(profile_name, release):
@@ -185,7 +197,7 @@ def availability_table():
     for name in sorted(PROFILES):
         cells = []
         for release in RELEASES:
-            has_cache = os.path.isdir(cache_dir_for(name, release))
+            has_cache = os.path.isdir(cache_dir_for(name, release, warn=False))
             has_ref = vep_vcf_for(name, release) is not None
             if has_cache and has_ref:
                 cells.append("ok")
