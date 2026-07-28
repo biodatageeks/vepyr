@@ -1,0 +1,99 @@
+import itertools
+import subprocess
+
+import pytest
+
+from comparison import compare
+
+HEADER = (
+    "##fileformat=VCFv4.2\n"
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations. '
+    'Format: Allele|Consequence|IMPACT|Feature">\n'
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+)
+
+MATCHING = HEADER + (
+    "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|missense_variant|MODERATE|ENST01\n"
+    "chr1\t200\t.\tG\tC\t50\tPASS\tCSQ=C|synonymous_variant|LOW|ENST01\n"
+)
+
+DIFFERING = HEADER + (
+    "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|stop_gained|HIGH|ENST01\n"
+    "chr1\t200\t.\tG\tC\t50\tPASS\tCSQ=C|synonymous_variant|LOW|ENST01\n"
+)
+
+
+def _write(tmp_path, name, body, compressed):
+    plain = tmp_path / name
+    plain.write_text(body)
+    if not compressed:
+        return str(plain)
+    gz = tmp_path / (name + ".gz")
+    with open(gz, "wb") as fh:
+        subprocess.run(["bgzip", "-c", str(plain)], stdout=fh, check=True)
+    return str(gz)
+
+
+@pytest.mark.parametrize(
+    "vepyr_gz,vep_gz", list(itertools.product([False, True], repeat=2))
+)
+def test_compare_is_identical_across_all_compression_combinations(
+    tmp_path, vepyr_gz, vep_gz
+):
+    """Regression for the bare open() that raised UnicodeDecodeError on bgzf refs."""
+    a = _write(tmp_path, "vepyr.vcf", MATCHING, vepyr_gz)
+    b = _write(tmp_path, "vep.vcf", MATCHING, vep_gz)
+    result = compare.compare_vcfs(a, b, "combo")
+    assert result["variants_compared"] == 2
+    assert result["variants_only_in_vepyr"] == 0
+    assert result["variants_only_in_vep"] == 0
+    assert result["field_mismatch_counts"] == {}
+    assert result["field_match_rates"]["Consequence"] == 100.0
+
+
+def test_compare_counts_field_mismatches(tmp_path):
+    a = _write(tmp_path, "vepyr.vcf", MATCHING, False)
+    b = _write(tmp_path, "vep.vcf", DIFFERING, False)
+    result = compare.compare_vcfs(a, b, "diff")
+    assert result["field_mismatch_counts"]["Consequence"] == 1
+    assert result["field_mismatch_counts"]["IMPACT"] == 1
+    assert (
+        result["field_mismatch_examples"]["Consequence"][0]["vepyr"]
+        == "missense_variant"
+    )
+
+
+def test_compare_can_ignore_vep_hash_order_csq_order(tmp_path):
+    two_entries = HEADER + (
+        "chr1\t100\t.\tA\tT\t50\tPASS\t"
+        "CSQ=T|missense_variant|MODERATE|ENST01,T|intron_variant|MODIFIER|ENST02\n"
+    )
+    reordered = HEADER + (
+        "chr1\t100\t.\tA\tT\t50\tPASS\t"
+        "CSQ=T|intron_variant|MODIFIER|ENST02,T|missense_variant|MODERATE|ENST01\n"
+    )
+    a = _write(tmp_path, "vepyr.vcf", two_entries, False)
+    b = _write(tmp_path, "vep.vcf", reordered, False)
+
+    strict = compare.compare_vcfs(a, b, "strict")
+    assert strict["csq_order_mismatch"] == 1
+    assert strict["csq_order_ignored"] == 0
+
+    lenient = compare.compare_vcfs(a, b, "lenient", ignore_csq_order=True)
+    assert lenient["csq_order_mismatch"] == 0
+    assert lenient["csq_order_ignored"] == 1
+    assert lenient["csq_order_ignore_reason"] == (
+        compare.VEP_HASH_ORDER_PICK_IGNORE_REASON
+    )
+
+
+def test_compare_reports_variants_present_in_only_one_side(tmp_path):
+    extra = (
+        MATCHING
+        + "chr1\t300\t.\tT\tA\t50\tPASS\tCSQ=A|intron_variant|MODIFIER|ENST01\n"
+    )
+    a = _write(tmp_path, "vepyr.vcf", extra, False)
+    b = _write(tmp_path, "vep.vcf", MATCHING, False)
+    result = compare.compare_vcfs(a, b, "extra")
+    assert result["variants_only_in_vepyr"] == 1
+    assert result["variants_only_in_vep"] == 0
