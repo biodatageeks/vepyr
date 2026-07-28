@@ -55,6 +55,6 @@ serde_json = "1"
 # datafusion-bio-formats dependency onto the #224 revision. Cargo rejects two
 # different specs for one git repository and also refuses a [patch] aimed back
 # at the same source, so the transitive pin has to live upstream.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7b153d8c38b4b5f7fedf91e26fdf89a85f1794df", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "78a731d3e2ab2ec37c47dd1c37d0389017f0f1ae", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "8c3e50ecb7f35a738c3ba0f25edb9c9e5b25b3bb" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "8c3e50ecb7f35a738c3ba0f25edb9c9e5b25b3bb" }
