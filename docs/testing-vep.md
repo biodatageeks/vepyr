@@ -28,16 +28,54 @@ e2e scripts default to `~/workspace/data_vepyr` and honour `DATA_VEPYR_DIR`.
 
 ```bash
 export DATA_VEPYR_DIR=~/workspace/data_vepyr
-mkdir -p "$DATA_VEPYR_DIR"
+mkdir -p "$DATA_VEPYR_DIR"/{input,cache,output}
 cd "$DATA_VEPYR_DIR"
 ```
 
 You need `bcftools`, `bgzip`, `tabix`, and `samtools` on `PATH`. The reference numbers
 on this page were produced with **bcftools 1.21 / htslib 1.21**.
 
+### Data directory layout
+
+The harness expects three subdirectories under `$DATA_VEPYR_DIR`, separating what you
+feed in, what vepyr reads, and what Ensembl VEP produces:
+
+```
+$DATA_VEPYR_DIR/
+  input/
+    HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz     + .tbi   # downloaded benchmark
+    HG002_normalized.vcf.gz                       + .tbi   # normalized, fed to both tools
+    Homo_sapiens.GRCh38.dna.primary_assembly.fa   + .fai   # reference FASTA
+  cache/
+    {release}_GRCh38_{ensembl,refseq,merged}/              # vepyr Parquet caches
+  output/
+    116/                                                   # Ensembl VEP reference VCFs
+    115.2/                                                 # (115 references live here)
+  homo_sapiens{,_refseq,_merged}/                          # raw Ensembl VEP caches
+```
+
+The raw `homo_sapiens*` caches stay at the top level: they are consumed by the VEP
+Docker containers, not by vepyr, and vepyr reads only the converted Parquet caches
+under `cache/`.
+
+Note the asymmetry in `output/`: release 115 references live in `115.2` (the VEP point
+release they were generated with), release 116 in `116`. The runner keeps that mapping
+explicitly rather than deriving the directory from the release number, so `--release 115`
+finds `output/115.2/` without you having to remember it.
+
+!!! tip "Migrating an older layout"
+    Earlier versions kept inputs and Parquet caches at the top level. The runner still
+    finds them there and prints a one-line notice per path telling you what to move, so
+    you can reorganise whenever it is convenient. Move the caches only when no vepyr
+    annotation is running, and the inputs only when no VEP container has
+    `$DATA_VEPYR_DIR` bind-mounted — a running container reads the FASTA and the
+    normalized VCF by path.
+
 ### 1. Download the benchmark VCF
 
 ```bash
+cd "$DATA_VEPYR_DIR/input"
+
 wget -c --tries=20 --waitretry=5 --retry-connrefused --timeout=30 \
   https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
 
@@ -60,6 +98,8 @@ record per ALT allele before either tool sees them. Without this step the two to
 disagree on allele ordering and the comparison is meaningless.
 
 ```bash
+cd "$DATA_VEPYR_DIR/input"
+
 bcftools norm -m -both \
   -o HG002_normalized.vcf \
   HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
@@ -96,10 +136,15 @@ the uncompressed copy:
 Needed by both tools for HGVS notation (`--hgvs` / `reference_fasta=`):
 
 ```bash
+cd "$DATA_VEPYR_DIR/input"
+
 wget -c https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 gzip -d Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 samtools faidx Homo_sapiens.GRCh38.dna.primary_assembly.fa
 ```
+
+The uncompressed FASTA is ~3.1 GB. It must stay uncompressed: both tools index it with
+`.fai` for random access, which plain gzip does not support.
 
 ### 5. Ensembl VEP caches
 
@@ -118,6 +163,8 @@ mode both expect. The full FTP directory is
 [`release-116/variation/indexed_vep_cache/`](https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/).
 
 ```bash
+cd "$DATA_VEPYR_DIR"
+
 wget -c --tries=20 --waitretry=5 --retry-connrefused --timeout=30 \
   https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_vep_116_GRCh38.tar.gz
 wget -c --tries=20 --waitretry=5 --retry-connrefused --timeout=30 \
@@ -125,6 +172,7 @@ wget -c --tries=20 --waitretry=5 --retry-connrefused --timeout=30 \
 wget -c --tries=20 --waitretry=5 --retry-connrefused --timeout=30 \
   https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz
 
+# Extract from $DATA_VEPYR_DIR, never from inside a species directory -- see below
 for t in homo_sapiens homo_sapiens_refseq homo_sapiens_merged; do
   tar xzf "${t}_vep_116_GRCh38.tar.gz"
 done
@@ -135,12 +183,45 @@ the transcript set, which is why the three can coexist under one root:
 
 | Cache | Extracted path | vepyr Parquet cache |
 |---|---|---|
-| Ensembl | `homo_sapiens/116_GRCh38` | `116_GRCh38_ensembl` |
-| RefSeq | `homo_sapiens_refseq/116_GRCh38` | `116_GRCh38_refseq` |
-| Merged | `homo_sapiens_merged/116_GRCh38` | `116_GRCh38_merged` |
+| Ensembl | `homo_sapiens/116_GRCh38` | `cache/116_GRCh38_ensembl` |
+| RefSeq | `homo_sapiens_refseq/116_GRCh38` | `cache/116_GRCh38_refseq` |
+| Merged | `homo_sapiens_merged/116_GRCh38` | `cache/116_GRCh38_merged` |
+
+!!! warning "The archive carries its own species directory"
+    Each tarball already contains the `homo_sapiens_refseq/` prefix, so extracting from
+    *inside* that directory produces `homo_sapiens_refseq/homo_sapiens_refseq/116_GRCh38`
+    and leaves the path VEP actually looks at empty. Docker then silently creates the
+    missing bind-mount source as an empty directory, and every variant is skipped with:
+
+    ```
+    WARNING: Chromosome chr1 not found in annotation sources or synonyms
+    ```
+
+    That message is misleading — nothing is wrong with the chromosome naming. An empty
+    version directory has no per-chromosome subdirectories *and* no `chr_synonyms.txt`,
+    which is the only thing that maps `chr1` to Ensembl's `1`. The run completes after
+    hours having annotated nothing.
+
+    Verify before starting a multi-hour run:
+
+    ```bash
+    for t in homo_sapiens homo_sapiens_refseq homo_sapiens_merged; do
+      n=$(ls "$DATA_VEPYR_DIR/$t/116_GRCh38" 2>/dev/null | wc -l)
+      echo "$t/116_GRCh38: $n entries $([ -e "$DATA_VEPYR_DIR/$t/116_GRCh38/chr_synonyms.txt" ] \
+        && echo '(chr_synonyms.txt present)' || echo '*** MISSING chr_synonyms.txt ***')"
+    done
+    ```
+
+    Expect roughly 1,900 entries and `chr_synonyms.txt` for each. If one is nested,
+    lift it back up:
+
+    ```bash
+    cd "$DATA_VEPYR_DIR/homo_sapiens_refseq"
+    rmdir 116_GRCh38 && mv homo_sapiens_refseq/116_GRCh38 . && rmdir homo_sapiens_refseq
+    ```
 
 Convert each extracted cache to vepyr's Parquet format with
-[`build_cache()`](caches.md) before annotating.
+[`build_cache()`](caches.md), writing into `cache/`, before annotating.
 
 !!! note "Reproducibility of the normalized VCF"
     `bcftools norm` writes a `##bcftools_normCommand=` header line containing the output
@@ -167,28 +248,33 @@ This is the slow half of the exercise — a full chr1-22 `--everything --hgvs` r
 The three commands below differ only in the cache mounted, the transcript-set flag
 (none / `--refseq` / `--merged`), and the output filename. All of them run
 `--offline --cache --everything --hgvs` against the same
-`HG002_normalized.vcf.gz` from the preprocessing steps.
+`HG002_normalized.vcf.gz` from the preprocessing steps, reading from `input/` and
+writing into `output/116/`.
+
+```bash
+mkdir -p "$DATA_VEPYR_DIR/output/116"
+```
 
 === "Ensembl"
 
     ```bash
     time docker run --rm \
-      -v "$DATA_VEPYR_DIR/homo_sapiens_ensembl/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro" \
-      -v "$DATA_VEPYR_DIR:/work" \
-      -v "$DATA_VEPYR_DIR:/fasta:ro" \
+      -v "$DATA_VEPYR_DIR/homo_sapiens/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro" \
+      -v "$DATA_VEPYR_DIR/input:/input:ro" \
+      -v "$DATA_VEPYR_DIR/output/116:/output" \
       ensemblorg/ensembl-vep:release_116.0 \
       vep \
       --dir /opt/vep/.vep \
       --cache \
       --offline \
       --assembly GRCh38 \
-      --input_file /work/HG002_normalized.vcf.gz \
-      --output_file /work/HG002_annotated_wgs_everything_hgvs_vep.vcf \
+      --input_file /input/HG002_normalized.vcf.gz \
+      --output_file /output/HG002_annotated_wgs_everything_hgvs_vep.vcf \
       --vcf \
       --force_overwrite \
       --no_stats \
       --everything --hgvs \
-      --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+      --fasta /input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
     ```
 
 === "RefSeq"
@@ -196,8 +282,8 @@ The three commands below differ only in the cache mounted, the transcript-set fl
     ```bash
     time docker run --rm \
       -v "$DATA_VEPYR_DIR/homo_sapiens_refseq/116_GRCh38:/opt/vep/.vep/homo_sapiens_refseq/116_GRCh38:ro" \
-      -v "$DATA_VEPYR_DIR:/work" \
-      -v "$DATA_VEPYR_DIR:/fasta:ro" \
+      -v "$DATA_VEPYR_DIR/input:/input:ro" \
+      -v "$DATA_VEPYR_DIR/output/116:/output" \
       ensemblorg/ensembl-vep:release_116.0 \
       vep \
       --dir /opt/vep/.vep \
@@ -205,13 +291,13 @@ The three commands below differ only in the cache mounted, the transcript-set fl
       --refseq \
       --offline \
       --assembly GRCh38 \
-      --input_file /work/HG002_normalized.vcf.gz \
-      --output_file /work/HG002_annotated_wgs_everything_hgvs_refseq.vcf \
+      --input_file /input/HG002_normalized.vcf.gz \
+      --output_file /output/HG002_annotated_wgs_everything_hgvs_refseq.vcf \
       --vcf \
       --force_overwrite \
       --no_stats \
       --everything --hgvs \
-      --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+      --fasta /input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
     ```
 
 === "Merged"
@@ -219,8 +305,8 @@ The three commands below differ only in the cache mounted, the transcript-set fl
     ```bash
     time docker run --rm \
       -v "$DATA_VEPYR_DIR/homo_sapiens_merged/116_GRCh38:/opt/vep/.vep/homo_sapiens_merged/116_GRCh38:ro" \
-      -v "$DATA_VEPYR_DIR:/work" \
-      -v "$DATA_VEPYR_DIR:/fasta:ro" \
+      -v "$DATA_VEPYR_DIR/input:/input:ro" \
+      -v "$DATA_VEPYR_DIR/output/116:/output" \
       ensemblorg/ensembl-vep:release_116.0 \
       vep \
       --dir /opt/vep/.vep \
@@ -228,14 +314,20 @@ The three commands below differ only in the cache mounted, the transcript-set fl
       --merged \
       --offline \
       --assembly GRCh38 \
-      --input_file /work/HG002_normalized.vcf.gz \
-      --output_file /work/HG002_annotated_wgs_everything_hgvs_merged.vcf \
+      --input_file /input/HG002_normalized.vcf.gz \
+      --output_file /output/HG002_annotated_wgs_everything_hgvs_merged.vcf \
       --vcf \
       --force_overwrite \
       --no_stats \
       --everything --hgvs \
-      --fasta /fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+      --fasta /input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
     ```
+
+!!! warning "Docker creates missing bind-mount sources"
+    If a `-v` source path does not exist, Docker creates it as an empty directory rather
+    than failing. A typo in a cache path therefore produces a silent no-op run, not an
+    error — which is the failure mode described under the extraction warning above.
+    Run the verification loop before committing hours to a run.
 
 !!! warning "BAM-edited cache"
     The RefSeq and merged caches are BAM-edited, so VEP logs
@@ -251,6 +343,42 @@ The pick-mode reference commands (`--pick`, `--pick_allele`, `--per_gene`,
 which still documents the release 115 runs the current reports were generated from.
 All pick modes use the ranking order
 `biotype,rank,mane_select,tsl,canonical,appris,ccds,length`.
+
+### Compress and index the reference output
+
+VEP writes plain VCF. With `--everything --hgvs` over 4M variants that is **15-29 GB per
+run**, and a full profile matrix will fill a disk. Block-gzip and index each output as
+soon as its run finishes:
+
+```bash
+cd "$DATA_VEPYR_DIR/output/116"
+
+for f in *.vcf; do
+  bgzip --threads 6 "$f" && tabix -p vcf "${f}.gz"
+done
+```
+
+`bgzip` removes the plain input only after it succeeds, so a failure leaves the original
+intact. Compression is roughly 15x on this data:
+
+| Reference | Plain | Block-gzipped |
+|---|---|---|
+| `..._hgvs_merged.vcf` | 27 GB | 1.6 GB |
+| `..._hgvs_vep.vcf` | 16 GB | 987 MB |
+| `..._hgvs_refseq.vcf` | 10 GB | 718 MB |
+
+This is not merely housekeeping. The comparison harness reads block-gzipped references
+through `tabix`, so extracting one contig becomes a seek instead of a scan of the whole
+file — across 22 contigs that is the difference between 22 full reads of a multi-gigabyte
+file and 22 index lookups. Plain `.vcf` references still work, and are read by streaming
+scan.
+
+Verify before deleting anything upstream:
+
+```bash
+bgzip -t HG002_annotated_wgs_everything_hgvs_merged.vcf.gz   # BGZF framing intact
+tabix -l HG002_annotated_wgs_everything_hgvs_merged.vcf.gz   # expect chr1..chr22
+```
 
 ## Running the comparison
 
@@ -272,14 +400,30 @@ uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
 ```
 
 !!! note "`--release` is required"
-    It selects both the Parquet cache and the VEP reference, so a release 115 cache
-    can never be compared against a release 116 reference. Pass a profile that is not
-    available at the requested release and the run fails immediately, printing the
-    availability matrix.
+    It selects both the Parquet cache (`cache/{release}_GRCh38_{flavour}`) and the VEP
+    reference (`output/{release}/`), so a release 115 cache can never be compared against
+    a release 116 reference. There is no default, because a wrong default here produces a
+    plausible-looking report full of mismatches that are artefacts rather than bugs.
+
+    Not every profile exists at every release. Ask for one that does not and the run
+    fails in milliseconds — before normalizing anything — and prints which combinations
+    are available:
+
+    ```
+    Error: Profile 'refseq' at release 116: no Parquet cache at .../cache/116_GRCh38_refseq
+
+    Available combinations:
+    profile                                   115          116
+    ensembl                                    ok            -
+    merged                                     ok           ok
+    refseq                                     ok     no cache
+    ```
 
 Contigs default to whatever the reference's tabix index contains, intersected with the
 input — so the same command covers chr1-22 here and adapts automatically to a dataset
-with different contigs.
+with different contigs. Detection deliberately reads the index rather than the
+`##contig` headers: the headers on these references list all 195 GRCh38 primary-assembly
+sequences, of which only 22 carry records.
 
 Outputs land in `e2e-testing/reports/`: per-contig JSON
 (`fast_{chrom}_{profile}_{release}_report.json`) and an aggregate summary
