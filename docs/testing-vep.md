@@ -173,7 +173,7 @@ The three commands below differ only in the cache mounted, the transcript-set fl
 
     ```bash
     time docker run --rm \
-      -v "$DATA_VEPYR_DIR/homo_sapiens/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro" \
+      -v "$DATA_VEPYR_DIR/homo_sapiens_ensembl/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro" \
       -v "$DATA_VEPYR_DIR:/work" \
       -v "$DATA_VEPYR_DIR:/fasta:ro" \
       ensemblorg/ensembl-vep:release_116.0 \
@@ -262,25 +262,38 @@ the reference field by field.
 cd e2e-testing/scripts
 
 # Single chromosome
-uv run python run_annotation_fast.py chr1
+uv run python run_comparison.py --release 115 --chroms 1
 
-# Full chr1-22 run with a timestamped Markdown report
-uv run python run_annotation_fast_all.py
+# All detected contigs, with a timestamped Markdown report
+uv run python run_comparison.py --release 115
 
 # A specific pick-mode profile
-uv run python run_annotation_fast_all.py --profile merged_pick_allele_gene
+uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
 ```
 
-Outputs land in `e2e-testing/reports/`: per-chromosome JSON
-(`fast_chr{N}_report.json`) and an aggregate summary
-(`fast_chr1_22_summary_YYYYMMDD_HHMM.md`) with per-chromosome timings, mismatch counts
-classified by root cause, and per-field mismatch examples.
+!!! note "`--release` is required"
+    It selects both the Parquet cache and the VEP reference, so a release 115 cache
+    can never be compared against a release 116 reference. Pass a profile that is not
+    available at the requested release and the run fails immediately, printing the
+    availability matrix.
 
-The scripts normalize the input themselves if a normalized copy is not already present,
+Contigs default to whatever the reference's tabix index contains, intersected with the
+input — so the same command covers chr1-22 here and adapts automatically to a dataset
+with different contigs.
+
+Outputs land in `e2e-testing/reports/`: per-contig JSON
+(`fast_{chrom}_{profile}_{release}_report.json`) and an aggregate summary
+(`fast_{span}_{profile}_{release}_summary_YYYYMMDD_HHMM.md`) with per-contig timings,
+mismatch counts classified by root cause, and per-field mismatch examples.
+Intermediates live under `e2e-testing/results/{release}/`.
+
+The harness normalizes the input itself if a normalized copy is not already present,
 using exactly the `bcftools norm -m -both` → `bgzip` → `tabix` sequence above — so
-running the preprocessing by hand and pointing the scripts at the result gives identical
-inputs.
+running the preprocessing by hand and pointing it at the result gives identical
+inputs. Both plain and block-gzipped VCFs are accepted on the vepyr and VEP sides;
+when the reference is bgzipped and indexed, the per-contig slice is a tabix seek
+rather than a full scan.
 
 See [`e2e-testing/README.md`](https://github.com/biodatageeks/vepyr/blob/master/e2e-testing/README.md)
-for the full flag reference, the profile-to-reference-file mapping, and the
-dependency-bump workflow.
+for the full flag reference, the profile-to-reference-file mapping, the expected data
+directory layout, and the dependency-bump workflow.
