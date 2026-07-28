@@ -141,7 +141,11 @@ def main(argv=None):
     # rebuilt where it actually lives (legacy $DATA root or the new cache/
     # subdirectory) rather than silently written to a second location.
     target = args.target or profiles.cache_dir_for(args.cache_type, RELEASE, warn=False)
-    staging = target + ".rebuild"
+    # build_cache() creates <parent>/<release>_GRCh38_<type>/ rather than
+    # writing into the directory it is given, so stage into a wrapper and
+    # address the real output inside it.
+    staging_parent = target + ".rebuild"
+    staging = os.path.join(staging_parent, os.path.basename(target))
     # build_cache(local_cache=...) wants the directory that *contains*
     # info.txt -- the version directory, not the data root or species dir.
     source = args.local_cache or os.path.join(
@@ -180,8 +184,10 @@ def main(argv=None):
         elif "chr_synonyms.txt" not in entries:
             print(f"  note: no chr_synonyms.txt in {source} (only VEP itself needs it)")
 
-    if os.path.exists(staging):
-        problems.append(f"staging dir already exists, remove it first: {staging}")
+    if os.path.exists(staging_parent):
+        problems.append(
+            f"staging dir already exists, remove it first: {staging_parent}"
+        )
 
     existing_size = 0
     if os.path.isdir(target):
@@ -216,12 +222,12 @@ def main(argv=None):
     # ---- rebuild into staging ----------------------------------------
     import vepyr
 
-    os.makedirs(os.path.dirname(staging), exist_ok=True)
+    os.makedirs(staging_parent, exist_ok=True)
     print(f"\nBuilding into {staging} ...")
     t0 = time.time()
     written = vepyr.build_cache(
         int(RELEASE),
-        staging,
+        staging_parent,
         cache_type=args.cache_type,
         partitions=args.partitions,
         local_cache=source,
@@ -237,7 +243,7 @@ def main(argv=None):
     ok, detail = verify_motif_columns(staging)
     print(f"\nmotif column check: {'PASS' if ok else 'FAIL'} — {detail}")
     if not ok:
-        print(f"\nLeaving {staging} in place and NOT replacing {target}.")
+        print(f"\nLeaving {staging_parent} in place and NOT replacing {target}.")
         return 1
 
     # ---- swap --------------------------------------------------------
@@ -251,6 +257,7 @@ def main(argv=None):
             shutil.rmtree(backup)
             print("previous cache removed (pass --keep-old to retain it)")
     os.rename(staging, target)
+    shutil.rmtree(staging_parent, ignore_errors=True)
     print(f"\nDONE: {target} ({human(dir_size(target))})")
 
     print("\nNext:")
