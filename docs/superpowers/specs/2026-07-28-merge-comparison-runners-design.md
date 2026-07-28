@@ -152,20 +152,32 @@ $DATA/
     HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz     + .tbi
     HG002_normalized.vcf.gz                       + .tbi   # the VEP-side normalized input
     Homo_sapiens.GRCh38.dna.primary_assembly.fa   + .fai
+  cache/
+    {115,116}_GRCh38_{ensembl,merged,refseq}/               # vepyr Parquet caches
   output/{115.2,116}/                                       # VEP reference VCFs
-  {115,116}_GRCh38_{ensembl,merged,refseq}/                 # Parquet caches
+  homo_sapiens_{ensembl,merged,refseq}/                     # raw Ensembl VEP caches, untouched
 ```
 
-**Resolution order.** Default input paths resolve `$DATA/input/{name}` first and fall back to
-`$DATA/{name}`, logging a deprecation warning when the legacy location is used. This decouples the
-code change from the disk move: the runner works before, during, and after the reorganisation, and
-an explicit `--vcf` / `--fasta` always wins.
+Inputs, vepyr caches, and VEP references each get their own subdirectory, so `$DATA` no longer
+mixes all three at the top level. The raw Ensembl VEP cache directories
+(`homo_sapiens_*`) stay where they are: they are consumed by the Docker VEP containers, not by
+this runner, and moving them would break in-flight jobs.
+
+**Resolution order.** Both the default input paths and the derived cache directory resolve the new
+location first and fall back to the legacy `$DATA/` root, logging a deprecation warning when the
+fallback fires. This decouples the code change from the disk move: the runner works before, during,
+and after the reorganisation, and an explicit `--vcf` / `--fasta` / `--cache-dir` always wins.
 
 **The disk move is a separate manual step, not part of this change.** At the time of writing an
 Ensembl-116 VEP container is running with `$DATA` bind-mounted as both `/fasta` and `/work`,
 reading the FASTA and `HG002_normalized.vcf.gz` by path. Moving those files while it runs risks
-killing a multi-hour job. The move must wait until no container holds them, and the Docker `-v`
-paths in `docs/testing-vep.md` and `e2e-testing/vep-docker.md` must be updated in the same pass.
+killing a multi-hour job. The input move must wait until no container holds them, and the Docker
+`-v` paths in `docs/testing-vep.md` and `e2e-testing/vep-docker.md` must be updated in the same
+pass.
+
+The vepyr Parquet caches are not mounted by any container — the VEP containers mount
+`homo_sapiens_*` instead — so `cache/` can be populated independently of the input move, provided
+no vepyr annotation is running.
 
 ## Profile and release resolution
 
@@ -175,7 +187,7 @@ derives both paths. Note that `suffix` is stored **without** a leading underscor
 rendered names are unchanged for the legacy fallback.
 
 ```
-cache_dir = $DATA/{release}_GRCh38_{flavour}
+cache_dir = $DATA/cache/{release}_GRCh38_{flavour}     # falls back to $DATA/{release}_GRCh38_{flavour}
 vep_vcf   = $DATA/output/{RELEASE_DIRS[release]}/{vep_basename}{.vcf.gz | .vcf}
 RELEASE_DIRS = {"115": "115.2", "116": "116"}
 ```
