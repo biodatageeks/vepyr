@@ -1,3 +1,5 @@
+import json
+import os
 import subprocess
 
 import pytest
@@ -58,3 +60,135 @@ def test_ensure_bgzf_returns_an_already_compressed_file_unchanged(bgzf_vcf, tmp_
     out_dir = tmp_path / "work"
     out_dir.mkdir()
     assert vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir)) == str(bgzf_vcf)
+
+
+MULTI_CONTIG_BODY = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##contig=<ID=chr2>
+##contig=<ID=chr3>
+##contig=<ID=chrUn_scaffold99>
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t100\t.\tA\tT\t50\tPASS\t.
+chr2\t100\t.\tG\tC\t50\tPASS\t.
+chr1\t300\t.\tC\tG\t50\tPASS\t.
+"""
+
+
+@pytest.fixture
+def indexed_multi_contig(tmp_path):
+    """Header lists 4 contigs; only chr1 and chr2 carry records."""
+    plain = tmp_path / "multi.vcf"
+    # tabix requires coordinate-sorted input
+    rows = sorted(
+        [ln for ln in MULTI_CONTIG_BODY.splitlines() if not ln.startswith("#")],
+        key=lambda ln: (ln.split("\t")[0], int(ln.split("\t")[1])),
+    )
+    header = [ln for ln in MULTI_CONTIG_BODY.splitlines() if ln.startswith("#")]
+    plain.write_text("\n".join(header + rows) + "\n")
+    gz = tmp_path / "multi.vcf.gz"
+    with open(gz, "wb") as fh:
+        subprocess.run(["bgzip", "-c", str(plain)], stdout=fh, check=True)
+    subprocess.run(["tabix", "-p", "vcf", str(gz)], check=True)
+    return gz
+
+
+def test_detect_contigs_uses_the_index_not_the_header(indexed_multi_contig):
+    """The header lists 4 contigs but only 2 have records; detection must find 2."""
+    assert vcfio.detect_contigs(str(indexed_multi_contig)) == ["chr1", "chr2"]
+
+
+def test_detect_contigs_returns_empty_for_an_unindexed_file(plain_vcf):
+    assert vcfio.detect_contigs(str(plain_vcf)) == []
+
+
+def test_slice_contig_extracts_only_the_requested_contig(
+    indexed_multi_contig, tmp_path
+):
+    out_dir = tmp_path / "work"
+    out_dir.mkdir()
+    sliced = vcfio.slice_contig(str(indexed_multi_contig), "chr1", str(out_dir))
+    assert vcfio.is_bgzf(sliced)
+    assert vcfio.count_data_lines(sliced) == 2
+    with vcfio.open_text(sliced) as fh:
+        chroms = {ln.split("\t")[0] for ln in fh if not ln.startswith("#")}
+    assert chroms == {"chr1"}
+
+
+def test_slice_vep_reads_a_bgzf_reference(indexed_multi_contig, tmp_path):
+    """Regression: extract_chrom_from_vep used bare open() and raised UnicodeDecodeError."""
+    out_dir = tmp_path / "work"
+    out_dir.mkdir()
+    out = vcfio.slice_vep(str(indexed_multi_contig), "chr1", str(out_dir), "merged")
+    assert vcfio.count_data_lines(out) == 2
+
+
+def test_slice_vep_tabix_and_linear_paths_agree(indexed_multi_contig, tmp_path):
+    """The indexed fast path and the plain linear scan must produce identical records."""
+    gz_dir = tmp_path / "gz"
+    gz_dir.mkdir()
+    via_tabix = vcfio.slice_vep(str(indexed_multi_contig), "chr1", str(gz_dir), "a")
+
+    plain = tmp_path / "plain.vcf"
+    with vcfio.open_text(str(indexed_multi_contig)) as fh:
+        plain.write_text(fh.read())
+    plain_dir = tmp_path / "plain_out"
+    plain_dir.mkdir()
+    via_scan = vcfio.slice_vep(str(plain), "chr1", str(plain_dir), "a")
+
+    def records(path):
+        with vcfio.open_text(path) as fh:
+            return [ln for ln in fh if not ln.startswith("#")]
+
+    assert records(via_tabix) == records(via_scan)
+
+
+def test_slice_vep_matches_contig_without_chr_prefix(tmp_path):
+    """VEP output may use bare contig names; chr22 must still match a '22' record."""
+    src = tmp_path / "bare.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "22\t100\t.\tA\tT\t50\tPASS\t.\n"
+    )
+    out_dir = tmp_path / "work"
+    out_dir.mkdir()
+    out = vcfio.slice_vep(str(src), "chr22", str(out_dir), "merged")
+    assert vcfio.count_data_lines(out) == 1
+
+
+def test_normalize_vcf_records_its_source(indexed_multi_contig, tmp_path):
+    out_dir = tmp_path / "shared"
+    out_dir.mkdir()
+    norm = vcfio.normalize_vcf(str(indexed_multi_contig), str(out_dir))
+    sidecar = json.loads((tmp_path / "shared" / "normalized.source.json").read_text())
+    assert sidecar["path"] == str(indexed_multi_contig)
+    assert sidecar["size"] == indexed_multi_contig.stat().st_size
+    assert vcfio.is_bgzf(norm)
+
+
+def test_normalize_vcf_reuses_output_for_the_same_source(
+    indexed_multi_contig, tmp_path
+):
+    out_dir = tmp_path / "shared"
+    out_dir.mkdir()
+    first = vcfio.normalize_vcf(str(indexed_multi_contig), str(out_dir))
+    marker = os.path.join(str(out_dir), "marker")
+    open(marker, "w").close()
+    second = vcfio.normalize_vcf(str(indexed_multi_contig), str(out_dir))
+    assert first == second
+    assert os.path.exists(marker), "reuse must not wipe the shared directory"
+
+
+def test_normalize_vcf_reruns_when_the_source_changes(indexed_multi_contig, tmp_path):
+    """A different --vcf at the same release must not silently reuse a stale decomposition."""
+    out_dir = tmp_path / "shared"
+    out_dir.mkdir()
+    vcfio.normalize_vcf(str(indexed_multi_contig), str(out_dir))
+
+    other = tmp_path / "other.vcf.gz"
+    other.write_bytes(indexed_multi_contig.read_bytes())
+    subprocess.run(["tabix", "-f", "-p", "vcf", str(other)], check=True)
+    vcfio.normalize_vcf(str(other), str(out_dir))
+
+    sidecar = json.loads((out_dir / "normalized.source.json").read_text())
+    assert sidecar["path"] == str(other)
