@@ -64,7 +64,8 @@ def parse_args(argv=None):
     p.add_argument(
         "--local-cache",
         default=None,
-        help="Extracted Ensembl cache root (default: $DATA, which holds homo_sapiens*/)",
+        help="Extracted Ensembl cache version directory containing info.txt "
+        "(default: $DATA/homo_sapiens_<type>/116_GRCh38)",
     )
     args = p.parse_args(argv)
     if args.partitions <= 0:
@@ -136,14 +137,15 @@ def main(argv=None):
     args = parse_args(argv)
 
     data = profiles.data_dir()
-    local_cache = args.local_cache or data
     # Resolve through the same helper the runner uses, so an existing cache is
     # rebuilt where it actually lives (legacy $DATA root or the new cache/
     # subdirectory) rather than silently written to a second location.
     target = args.target or profiles.cache_dir_for(args.cache_type, RELEASE, warn=False)
     staging = target + ".rebuild"
-    source = os.path.join(
-        local_cache,
+    # build_cache(local_cache=...) wants the directory that *contains*
+    # info.txt -- the version directory, not the data root or species dir.
+    source = args.local_cache or os.path.join(
+        data,
         "homo_sapiens"
         if args.cache_type == "ensembl"
         else f"homo_sapiens_{args.cache_type}",
@@ -165,6 +167,11 @@ def main(argv=None):
         problems.append(f"source cache not found: {source}")
     else:
         entries = os.listdir(source)
+        if "info.txt" not in entries:
+            problems.append(
+                f"no info.txt in {source} — build_cache(local_cache=...) requires the "
+                f"directory containing info.txt"
+            )
         if len(entries) < 100:
             problems.append(
                 f"source has only {len(entries)} entries — likely the nested-extraction "
@@ -217,7 +224,7 @@ def main(argv=None):
         staging,
         cache_type=args.cache_type,
         partitions=args.partitions,
-        local_cache=local_cache,
+        local_cache=source,
         overwrite=True,
     )
     elapsed = time.time() - t0
