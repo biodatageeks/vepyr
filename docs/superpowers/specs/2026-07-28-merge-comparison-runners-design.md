@@ -122,7 +122,7 @@ run_comparison.py --release 116 --profile merged --chroms 1 2 22
 |---|---|---|
 | `--release` | **required** | Forces a conscious choice; the strongest guard against cache/reference mismatch |
 | `--chroms` | auto-detected | See "Contig detection"; `all` is a synonym for detect |
-| `--profile` | `ensembl` | Both current scripts agree |
+| `--profile` | `merged` | The only profile that fully resolves at both 115 and 116, so a bare run works at either release (both current scripts default to `ensembl`, which has no 116 cache or reference) |
 | `--force` | off (reuse) | The expensive option is opted into, not out of |
 | `--bgzf` | off (plain output) | Both current scripts agree |
 | `--workers` | `1` | Matches `docs/performance.md` |
@@ -130,8 +130,8 @@ run_comparison.py --release 116 --profile merged --chroms 1 2 22
 | `--isolate` | off (in-process) | Subprocess isolation available on demand |
 | `--skip-annotate` | off | From the all-contigs script |
 | `--skip-compare` | off | Both |
-| `--vcf` | `$DATA/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` | Unchanged |
-| `--fasta` | `$DATA/Homo_sapiens.GRCh38.dna.primary_assembly.fa` | Unchanged |
+| `--vcf` | `$DATA/input/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` | Moved under `input/`; see "Data directory layout" |
+| `--fasta` | `$DATA/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa` | Moved under `input/`; see "Data directory layout" |
 | `--vep`, `--cache-dir` | derived from profile x release | Explicit values override |
 | `$DATA` | `$DATA_VEPYR_DIR` or `~/workspace/data_vepyr` | Unchanged |
 
@@ -139,6 +139,33 @@ Dropped: `--no-force` (polarity resolved to `--force`) and the hidden `--cache` 
 
 At startup, before any work, the runner echoes the resolved `cache_dir`, `vep_vcf`, and detected
 contigs. The 115/116 trap is silent precisely because nobody sees which files a run opened.
+
+## Data directory layout
+
+`$DATA` currently mixes inputs, VEP outputs, caches, logs, and stray artifacts at the top level.
+Inputs move into `$DATA/input/`, mirroring the `$DATA/output/{release}/` convention that already
+exists:
+
+```
+$DATA/
+  input/
+    HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz     + .tbi
+    HG002_normalized.vcf.gz                       + .tbi   # the VEP-side normalized input
+    Homo_sapiens.GRCh38.dna.primary_assembly.fa   + .fai
+  output/{115.2,116}/                                       # VEP reference VCFs
+  {115,116}_GRCh38_{ensembl,merged,refseq}/                 # Parquet caches
+```
+
+**Resolution order.** Default input paths resolve `$DATA/input/{name}` first and fall back to
+`$DATA/{name}`, logging a deprecation warning when the legacy location is used. This decouples the
+code change from the disk move: the runner works before, during, and after the reorganisation, and
+an explicit `--vcf` / `--fasta` always wins.
+
+**The disk move is a separate manual step, not part of this change.** At the time of writing an
+Ensembl-116 VEP container is running with `$DATA` bind-mounted as both `/fasta` and `/work`,
+reading the FASTA and `HG002_normalized.vcf.gz` by path. Moving those files while it runs risks
+killing a multi-hour job. The move must wait until no container holds them, and the Docker `-v`
+paths in `docs/testing-vep.md` and `e2e-testing/vep-docker.md` must be updated in the same pass.
 
 ## Profile and release resolution
 
@@ -279,6 +306,8 @@ New tests the module split makes possible, none of which need a built native ext
 - The tabix slice path and the linear slice path produce byte-identical output.
 - `profiles.resolve` raises with an availability listing for an unavailable combination, and
   omitting `--release` is an argparse error.
+- Default input resolution prefers `$DATA/input/`, falls back to `$DATA/` with a warning, and an
+  explicit `--vcf` / `--fasta` overrides both.
 - Contig detection prefers the index over the header: given a fixture whose header lists more
   contigs than the index, only the indexed ones are returned, in index order.
 - Artifact names for the same profile at two releases do not collide, and every intermediate path
@@ -309,3 +338,5 @@ A `conftest.py` puts `e2e-testing/scripts` on `sys.path` so the package imports 
 | Historical reports predate the release axis and cannot be attributed | Accepted; they are only read by `--skip-annotate` |
 | Per-release normalization costs one redundant `bcftools norm` pass and ~2.9 GB per release | Accepted deliberately to keep the isolation invariant unconditional |
 | Existing `results/fast_chr*/` directories predate the release layout | Left in place, unread by the new layout; removable by hand |
+| Moving inputs into `$DATA/input/` breaks a running VEP container | The move is manual, deferred, and gated on no container holding the files; the fallback keeps the runner working either way |
+| Docker `-v` paths in the docs point at the old input locations | Updated in the same pass as the disk move, not with the code change |
