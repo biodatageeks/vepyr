@@ -43,6 +43,18 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # Upstream biodatageeks crates
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.14.0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
+#
+# TEMPORARILY pinned to unmerged PR revisions for MotifFeature parity work:
+#   datafusion-bio-functions#203 — one CSQ entry per overlapping MotifFeature
+#   datafusion-bio-formats#224   — extract BindingMatrix stable_id / TF names
+# Revert to the released tags (v0.14.0 / v1.8.8) once both land, then bump to
+# the releases that contain them.
+#
+# bio-function-vep points at `integration/motif-parity-116` rather than the PR
+# branch itself: that branch is #203 plus a commit moving its own
+# datafusion-bio-formats dependency onto the #224 revision. Cargo rejects two
+# different specs for one git repository and also refuses a [patch] aimed back
+# at the same source, so the transitive pin has to live upstream.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "ea9a01445dd102c26f9420b09e853d172d93fa07", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "8c3e50ecb7f35a738c3ba0f25edb9c9e5b25b3bb" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "8c3e50ecb7f35a738c3ba0f25edb9c9e5b25b3bb" }
