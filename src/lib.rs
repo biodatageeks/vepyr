@@ -104,6 +104,53 @@ fn build_cache(
     Ok(result)
 }
 
+/// Build a single entity from an Ensembl VEP cache, leaving the rest of the
+/// cache directory untouched.
+///
+/// A schema change usually affects one entity, and rebuilding the whole cache
+/// to pick it up costs an hour and tens of gigabytes. `entity` is one of
+/// "variation", "transcript", "exon", "translation", "regulatory", "motif".
+///
+/// Returns the same `(entity, [(parquet_path, rows)], None)` shape as
+/// [`build_cache`].
+#[pyfunction]
+#[pyo3(signature = (cache_root, output_dir, entity, partitions=8, cache_source_type="ensembl", overwrite=true))]
+#[allow(clippy::type_complexity)]
+fn build_cache_entity(
+    py: Python<'_>,
+    cache_root: &str,
+    output_dir: &str,
+    entity: &str,
+    partitions: usize,
+    cache_source_type: &str,
+    overwrite: bool,
+) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
+    let cache_source_type = parse_cache_source_type(cache_source_type)?;
+
+    let builder = CacheBuilder::new(cache_root, output_dir)
+        .with_partitions(partitions)
+        .with_cache_format(CacheFormat::Parquet)
+        .with_cache_source_type(cache_source_type)
+        .with_overwrite(overwrite);
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(partitions)
+        .enable_all()
+        .build()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let stats = py.detach(|| {
+        rt.block_on(builder.build_entity(entity)).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+        })
+    })?;
+
+    Ok(stats
+        .into_iter()
+        .map(|s| (s.entity, s.parquet_files, None))
+        .collect())
+}
+
 /// Build a plugin cache (all chroms, or a filtered set) from a source manifest.
 /// Returns per-chrom `(chrom, rows, warm, cold)` tuples.
 #[pyfunction]
@@ -250,6 +297,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(build_cache_entity, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
