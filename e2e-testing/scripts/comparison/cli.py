@@ -126,6 +126,24 @@ def results_root(e2e_dir, release):
     return os.path.join(e2e_dir, "results", release)
 
 
+def select_supported_target(release, targets):
+    """Select one exact native support record for a CLI cache release."""
+    matches = [target for target in targets if target.get("cache_version") == release]
+    if len(matches) != 1:
+        supported = sorted(
+            {
+                target.get("cache_version")
+                for target in targets
+                if target.get("cache_version")
+            }
+        )
+        raise ValueError(
+            f"release {release!r} is not uniquely supported by this vepyr build; "
+            f"supported cache versions: {', '.join(supported) or '(none)'}"
+        )
+    return dict(matches[0])
+
+
 def resolve_contigs(args, resolved, input_vcf):
     """Contigs to process: the reference index intersected with the input index.
 
@@ -168,7 +186,17 @@ def resolve_contigs(args, resolved, input_vcf):
     return args.chroms
 
 
-def run_contig(chrom, args, resolved, input_vcf, results_dir, report_dir):
+def run_contig(
+    chrom,
+    args,
+    resolved,
+    input_vcf,
+    results_dir,
+    report_dir,
+    selected_target,
+    reference_identity,
+    build_info,
+):
     """Annotate and compare a single contig, returning its report dict."""
     work_dir = os.path.join(results_dir, f"fast_{chrom}")
     os.makedirs(work_dir, exist_ok=True)
@@ -180,6 +208,12 @@ def run_contig(chrom, args, resolved, input_vcf, results_dir, report_dir):
     chrom_vcf_gz = vcfio.slice_contig(input_vcf, chrom, work_dir)
     n_variants = vcfio.count_data_lines(chrom_vcf_gz)
     print(f"  Input: {n_variants:,} variants for {chrom}")
+
+    cache_identity = annotate.cache_contig_identity(
+        resolved.cache_dir,
+        chrom,
+        selected_target["cache_version"],
+    )
 
     ext = ".vcf.gz" if args.bgzf else ".vcf"
     output_vcf = os.path.join(
@@ -207,6 +241,12 @@ def run_contig(chrom, args, resolved, input_vcf, results_dir, report_dir):
             chrom,
             ignore_csq_order=resolved.ignore_csq_order,
             backend=BACKEND,
+            mismatch_ledger_path=report.mismatch_ledger_path(
+                report_dir,
+                chrom,
+                resolved.suffix,
+                resolved.release,
+            ),
         )
 
     result = {
@@ -214,6 +254,10 @@ def run_contig(chrom, args, resolved, input_vcf, results_dir, report_dir):
         "profile": resolved.profile,
         "release": resolved.release,
         "cache": resolved.profile,
+        "cache_path": resolved.cache_dir,
+        "cache_identity": cache_identity,
+        "supported_target": selected_target,
+        "build": build_info,
         "input_variants": n_variants,
         "annotation": {
             "backend": BACKEND,
@@ -223,6 +267,8 @@ def run_contig(chrom, args, resolved, input_vcf, results_dir, report_dir):
         },
         "comparison": comparison,
     }
+    if reference_identity is not None:
+        result["reference_identity"] = reference_identity
 
     path = report.report_json_path(report_dir, chrom, resolved.suffix, resolved.release)
     with open(path, "w") as f:
@@ -279,6 +325,26 @@ def main(argv=None):
         print(f"Error: {exc}", file=sys.stderr)
         return 2
 
+    try:
+        selected_target = select_supported_target(
+            args.release,
+            annotate.supported_vep_targets(),
+        )
+        reference_identity = None
+        if not args.skip_compare:
+            reference_identity = vcfio.parse_vep_header(resolved.vep_vcf)
+            vcfio.validate_vep_reference_identity(
+                reference_identity,
+                selected_target,
+            )
+    except (RuntimeError, ValueError) as exc:
+        print(f"Error: release identity validation failed: {exc}", file=sys.stderr)
+        return 2
+
+    resolved.annotate_kwargs["expected_cache_version"] = selected_target[
+        "cache_version"
+    ]
+
     # .../e2e-testing/scripts/comparison/cli.py -> .../e2e-testing
     e2e_dir = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -306,6 +372,7 @@ def main(argv=None):
 
     chroms = resolve_contigs(args, resolved, input_vcf)
     print(f"  contigs:   {', '.join(chroms)}")
+    build_info = report.get_build_info()
 
     failures = []
     if not args.skip_annotate:
@@ -316,7 +383,15 @@ def main(argv=None):
                         failures.append(chrom)
                 else:
                     run_contig(
-                        chrom, args, resolved, input_vcf, results_dir, report_dir
+                        chrom,
+                        args,
+                        resolved,
+                        input_vcf,
+                        results_dir,
+                        report_dir,
+                        selected_target,
+                        reference_identity,
+                        build_info,
                     )
             except Exception as exc:  # noqa: BLE001 - one contig must not kill the sweep
                 print(f"  ERROR: {chrom} failed: {exc}", file=sys.stderr)
@@ -336,8 +411,6 @@ def main(argv=None):
         agg["field_examples"].get("Consequence", [])
     )
     old_mm = report.load_old_benchmark(report_dir, BACKEND)
-    build_info = report.get_build_info()
-
     md = report.generate_markdown(
         reports,
         agg,

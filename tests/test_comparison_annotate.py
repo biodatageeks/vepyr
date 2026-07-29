@@ -22,8 +22,26 @@ def fake_vepyr(monkeypatch):
 
     module = types.ModuleType("vepyr")
     module.annotate = fake_annotate
+    module.supported_vep_targets = lambda: (
+        {"cache_version": "115", "vep_codebase_version": "115.2"},
+    )
+    module.cache_contig_identity = lambda cache_dir, chrom, **kwargs: {
+        "cache_version": kwargs["expected_cache_version"],
+        "cache_source_type": "merged",
+        "contig": chrom,
+    }
     monkeypatch.setitem(sys.modules, "vepyr", module)
     return calls
+
+
+def test_native_contract_adapters_defer_import_and_forward(fake_vepyr):
+    assert annotate.supported_vep_targets()[0]["cache_version"] == "115"
+    identity = annotate.cache_contig_identity("/cache", "chr1", "115")
+    assert identity == {
+        "cache_version": "115",
+        "cache_source_type": "merged",
+        "contig": "chr1",
+    }
 
 
 def _existing_output(path, n=200):

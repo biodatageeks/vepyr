@@ -111,3 +111,17 @@ def test_resolve_contigs_rejects_an_explicit_contig_that_is_absent(monkeypatch):
 def test_results_root_is_release_scoped(tmp_path):
     root = cli.results_root(str(tmp_path), "116")
     assert root.endswith("results/116") or root.endswith("results\\116")
+
+
+def test_select_supported_target_uses_native_records_without_python_version_map():
+    targets = (
+        {"cache_version": "115", "vep_codebase_version": "115.2"},
+        {"cache_version": "116", "vep_codebase_version": "116.0"},
+    )
+    assert cli.select_supported_target("116", targets) == targets[1]
+
+
+@pytest.mark.parametrize("targets", [(), ({"cache_version": "115"},) * 2])
+def test_select_supported_target_rejects_missing_or_duplicate_records(targets):
+    with pytest.raises(ValueError, match="not uniquely supported"):
+        cli.select_supported_target("115", targets)

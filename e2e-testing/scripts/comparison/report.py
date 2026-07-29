@@ -4,6 +4,7 @@ Takes dicts and returns a string. Touches the filesystem only to load existing
 per-contig report JSONs and repo metadata.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -99,6 +100,11 @@ def report_json_path(report_dir, chrom, suffix, release):
     return os.path.join(report_dir, f"fast_{chrom}_{suffix}_{release}_report.json")
 
 
+def mismatch_ledger_path(report_dir, chrom, suffix, release):
+    """Release-qualified, uncapped JSONL mismatch evidence for one contig."""
+    return os.path.join(report_dir, f"fast_{chrom}_{suffix}_{release}_mismatches.jsonl")
+
+
 def legacy_report_json_path(report_dir, chrom, suffix):
     """Pre-release-axis path, kept readable so historical reports still load."""
     return os.path.join(report_dir, f"fast_{chrom}_{suffix}_report.json")
@@ -155,6 +161,11 @@ def aggregate_mismatches(reports):
     total_csq_mismatch = 0
     total_only_vepyr = 0
     total_only_vep = 0
+    total_entries_only_vepyr = 0
+    total_entries_only_vep = 0
+    total_ledger_rows = 0
+    equality_buckets = defaultdict(int)
+    ledger_hashes = {}
 
     for r in reports:
         comp = r.get("comparison", {})
@@ -165,6 +176,15 @@ def aggregate_mismatches(reports):
         total_csq_mismatch += comp.get("csq_entry_count_mismatch", 0)
         total_only_vepyr += comp.get("variants_only_in_vepyr", 0)
         total_only_vep += comp.get("variants_only_in_vep", 0)
+        total_entries_only_vepyr += comp.get("csq_entries_only_in_vepyr", 0)
+        total_entries_only_vep += comp.get("csq_entries_only_in_vep", 0)
+
+        ledger = comp.get("mismatch_ledger", {})
+        total_ledger_rows += ledger.get("rows", 0)
+        if ledger.get("sha256"):
+            ledger_hashes[r["chrom"]] = ledger["sha256"]
+        for bucket, count in comp.get("equality_bucket_counts", {}).items():
+            equality_buckets[bucket] += count
 
         all_fields.update(comp.get("field_match_rates", {}).keys())
         for f, c in comp.get("field_mismatch_counts", {}).items():
@@ -186,6 +206,11 @@ def aggregate_mismatches(reports):
         "total_csq_mismatch": total_csq_mismatch,
         "total_only_vepyr": total_only_vepyr,
         "total_only_vep": total_only_vep,
+        "total_entries_only_vepyr": total_entries_only_vepyr,
+        "total_entries_only_vep": total_entries_only_vep,
+        "total_ledger_rows": total_ledger_rows,
+        "ledger_hashes": ledger_hashes,
+        "equality_buckets": equality_buckets,
     }
 
 
@@ -249,48 +274,128 @@ def load_old_benchmark(report_dir, backend="parquet"):
     return comp.get("field_mismatch_counts", {})
 
 
+def _command_output(command, cwd):
+    return (
+        subprocess.check_output(
+            command,
+            cwd=cwd,
+            stderr=subprocess.DEVNULL,
+        )
+        .decode()
+        .strip()
+    )
+
+
+def _git_checkout_info(path):
+    """Describe the checkout containing path, including uncommitted sources."""
+    try:
+        root = _command_output(["git", "rev-parse", "--show-toplevel"], path)
+        return {
+            "repo_root": root,
+            "revision": _command_output(["git", "rev-parse", "HEAD"], root),
+            "dirty": bool(
+                _command_output(
+                    ["git", "status", "--porcelain", "--untracked-files=all"],
+                    root,
+                )
+            ),
+        }
+    except Exception:
+        return {"repo_root": None, "revision": "unknown", "dirty": None}
+
+
+def _declared_dependency_sources(metadata, root_manifest):
+    for package in metadata.get("packages", []):
+        if os.path.abspath(package.get("manifest_path", "")) == os.path.abspath(
+            root_manifest
+        ):
+            return {
+                dependency["name"]: dependency.get("source")
+                for dependency in package.get("dependencies", [])
+            }
+    return {}
+
+
 def get_build_info():
-    """Extract git branch, vepyr commit, and bio-functions rev from Cargo.toml."""
-    info = {}
-
+    """Resolve the effective Cargo graph, path overrides, revisions, and dirt."""
+    root_git = _git_checkout_info(REPO_ROOT)
+    info = {
+        "branch": "unknown",
+        "vepyr_rev": (
+            root_git["revision"][:12]
+            if root_git["revision"] != "unknown"
+            else "unknown"
+        ),
+        "vepyr_dirty": root_git["dirty"],
+        "bio_functions_rev": "unknown",
+        "dependencies": {},
+    }
     try:
-        info["branch"] = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=REPO_ROOT,
-                stderr=subprocess.DEVNULL,
-            )
-            .decode()
-            .strip()
+        info["branch"] = _command_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], REPO_ROOT
         )
     except Exception:
-        info["branch"] = "unknown"
+        pass
+
+    lock_path = os.path.join(REPO_ROOT, "Cargo.lock")
+    if os.path.exists(lock_path):
+        digest = hashlib.sha256()
+        with open(lock_path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        info["cargo_lock_sha256"] = digest.hexdigest()
 
     try:
-        info["vepyr_rev"] = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"],
-                cwd=REPO_ROOT,
-                stderr=subprocess.DEVNULL,
+        metadata = json.loads(
+            _command_output(
+                ["cargo", "metadata", "--format-version", "1", "--locked"],
+                REPO_ROOT,
             )
-            .decode()
-            .strip()
         )
     except Exception:
-        info["vepyr_rev"] = "unknown"
+        return info
 
-    # bio-functions version from Cargo.toml (git tag, or rev for pinned commits)
-    cargo_path = os.path.join(REPO_ROOT, "Cargo.toml")
-    info["bio_functions_rev"] = "unknown"
-    if os.path.exists(cargo_path):
-        with open(cargo_path) as f:
-            for line in f:
-                if "datafusion-bio-function-vep" in line:
-                    m = re.search(r'(?:tag|rev)\s*=\s*"([^"]+)"', line)
-                    if m:
-                        info["bio_functions_rev"] = m.group(1)[:12]
-                    break
+    root_manifest = os.path.join(REPO_ROOT, "Cargo.toml")
+    declared_sources = _declared_dependency_sources(metadata, root_manifest)
+    relevant = {
+        "datafusion-bio-function-vep",
+        "datafusion-bio-format-core",
+        "datafusion-bio-format-ensembl-cache",
+        "datafusion-bio-format-vcf",
+    }
+    checkout_cache = {}
+    for package in metadata.get("packages", []):
+        name = package.get("name")
+        if name not in relevant:
+            continue
+        manifest_path = package["manifest_path"]
+        package_dir = os.path.dirname(manifest_path)
+        effective_source = package.get("source")
+        if package_dir not in checkout_cache:
+            checkout_cache[package_dir] = _git_checkout_info(package_dir)
+        git_info = checkout_cache[package_dir]
+        declared_source = declared_sources.get(name)
+        declared_revision = None
+        if declared_source:
+            match = re.search(r"[?&]rev=([^&#]+)", declared_source)
+            if match:
+                declared_revision = match.group(1)
+        dependency_info = {
+            "version": package.get("version"),
+            "declared_source": declared_source,
+            "declared_revision": declared_revision,
+            "effective_source": effective_source or "path",
+            "manifest_path": manifest_path,
+            **git_info,
+        }
+        info["dependencies"][name] = dependency_info
 
+    bio_functions = info["dependencies"].get("datafusion-bio-function-vep")
+    if bio_functions:
+        revision = bio_functions.get("revision")
+        info["bio_functions_rev"] = (
+            revision[:12] if revision and revision != "unknown" else "unknown"
+        )
     return info
 
 
@@ -350,8 +455,69 @@ def generate_markdown(
     if bi:
         lines.append(
             f"**Build:** branch `{bi.get('branch', '?')}` "
-            f"@ [{bi.get('vepyr_rev', '?')}], "
+            f"@ `{bi.get('vepyr_rev', '?')}`"
+            f"{' (dirty)' if bi.get('vepyr_dirty') else ''}, "
             f"bio-functions rev `{bi.get('bio_functions_rev', '?')}`"
+        )
+        if bi.get("cargo_lock_sha256"):
+            lines.append(f"**Cargo.lock SHA-256:** `{bi['cargo_lock_sha256']}`")
+        for dependency_name, dependency in sorted(bi.get("dependencies", {}).items()):
+            effective = dependency.get("effective_source", "?")
+            if effective == "path":
+                effective = dependency.get("repo_root") or dependency.get(
+                    "manifest_path", "path"
+                )
+            dirty = " (dirty)" if dependency.get("dirty") else ""
+            lines.append(
+                f"**{dependency_name}:** `{dependency.get('revision', '?')}`"
+                f"{dirty}; effective source `{effective}`"
+            )
+    reference_identities = {
+        json.dumps(r.get("reference_identity", {}), sort_keys=True)
+        for r in reports
+        if r.get("reference_identity")
+    }
+    if len(reference_identities) == 1:
+        identity = json.loads(next(iter(reference_identities)))
+        lines.append(
+            f"**VEP reference:** VEP `{identity.get('vep_version', '?')}`, "
+            f"API `{identity.get('api_version', '?')}`, "
+            f"cache `{identity.get('cache_version', '?')}`, "
+            f"Ensembl `{identity.get('ensembl_release', '?')}."
+            f"{identity.get('ensembl_revision', '?')}`, variation "
+            f"`{identity.get('ensembl_variation_release', '?')}."
+            f"{identity.get('ensembl_variation_revision', '?')}`"
+        )
+    cache_identities = {
+        json.dumps(
+            {
+                key: value
+                for key, value in r.get("cache_identity", {}).items()
+                if key != "contig"
+            },
+            sort_keys=True,
+        )
+        for r in reports
+        if r.get("cache_identity")
+    }
+    if len(cache_identities) == 1:
+        identity = json.loads(next(iter(cache_identities)))
+        lines.append(
+            f"**Validated cache:** release `{identity.get('cache_version', '?')}`, "
+            f"source `{identity.get('cache_source_type', '?')}` "
+            "(contig-local Parquet metadata)"
+        )
+    support_targets = {
+        json.dumps(r.get("supported_target", {}), sort_keys=True)
+        for r in reports
+        if r.get("supported_target")
+    }
+    if len(support_targets) == 1:
+        target = json.loads(next(iter(support_targets)))
+        lines.append(
+            f"**Native target:** VEP `{target.get('vep_codebase_version', '?')}`, "
+            f"semantics `{target.get('semantics', '?')}`, "
+            f"cache `{target.get('cache_version', '?')}`"
         )
     lines.append("")
 
@@ -477,7 +643,25 @@ def generate_markdown(
     lines.append(f"| CSQ entry count mismatch | {agg['total_csq_mismatch']:,} |")
     lines.append(f"| Only in vepyr | {agg['total_only_vepyr']:,} |")
     lines.append(f"| Only in VEP | {agg['total_only_vep']:,} |")
+    lines.append(f"| CSQ entries only in vepyr | {agg['total_entries_only_vepyr']:,} |")
+    lines.append(f"| CSQ entries only in VEP | {agg['total_entries_only_vep']:,} |")
+    lines.append(f"| Uncapped mismatch-ledger rows | {agg['total_ledger_rows']:,} |")
     lines.append("")
+
+    if agg["equality_buckets"]:
+        lines.append("## Field Equality Shapes")
+        lines.append("")
+        lines.append("| Shape | CSQ field comparisons |")
+        lines.append("|-------|----------------------:|")
+        for shape in (
+            "both_empty",
+            "both_nonempty_equal",
+            "vepyr_empty_only",
+            "vep_empty_only",
+            "both_nonempty_unequal",
+        ):
+            lines.append(f"| `{shape}` | {agg['equality_buckets'].get(shape, 0):,} |")
+        lines.append("")
 
     # ── Field-level delta table ───────────────────────────────────────
     if old_mm is not None:

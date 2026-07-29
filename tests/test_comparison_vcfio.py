@@ -47,6 +47,61 @@ def test_count_data_lines_ignores_headers(plain_vcf, bgzf_vcf):
     assert vcfio.count_data_lines(str(bgzf_vcf)) == 2
 
 
+def test_parse_vep_header_extracts_exact_code_and_cache_identity(tmp_path):
+    path = tmp_path / "reference.vcf"
+    path.write_text(
+        "##fileformat=VCFv4.2\n"
+        '##VEP="v116.0" API="v116" '
+        'cache="/opt/vep/.vep/homo_sapiens_merged/116_GRCh38" '
+        "ensembl=116.c0cf13d ensembl-variation=116.2fb834b "
+        'assembly="GRCh38.p14"\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    )
+
+    identity = vcfio.parse_vep_header(str(path))
+
+    assert identity["vep_version"] == "116.0"
+    assert identity["api_version"] == "116"
+    assert identity["cache_version"] == "116"
+    assert identity["ensembl_release"] == "116"
+    assert identity["ensembl_revision"] == "c0cf13d"
+    assert identity["ensembl_variation_release"] == "116"
+    assert identity["ensembl_variation_revision"] == "2fb834b"
+    assert identity["assembly"] == "GRCh38.p14"
+
+
+def test_parse_vep_header_rejects_missing_identity(tmp_path):
+    path = tmp_path / "reference.vcf"
+    path.write_text(VCF_BODY)
+    with pytest.raises(ValueError, match="No ##VEP"):
+        vcfio.parse_vep_header(str(path))
+
+
+def test_validate_vep_reference_identity_requires_exact_supported_target(tmp_path):
+    path = tmp_path / "reference.vcf"
+    path.write_text(
+        "##fileformat=VCFv4.2\n"
+        '##VEP="v116.0" API="v116" '
+        'cache="/opt/vep/.vep/homo_sapiens_merged/116_GRCh38" '
+        "ensembl=116.c0cf13d ensembl-variation=116.2fb834b "
+        'assembly="GRCh38.p14"\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    )
+    identity = vcfio.parse_vep_header(str(path))
+    target = {
+        "cache_version": "116",
+        "vep_codebase_version": "116.0",
+        "api_version": "116",
+        "ensembl_core_revision": "c0cf13d",
+        "ensembl_variation_revision": "2fb834b",
+    }
+    vcfio.validate_vep_reference_identity(identity, target)
+
+    wrong = dict(target, ensembl_core_revision="266b84d")
+    with pytest.raises(ValueError, match="ensembl_revision"):
+        vcfio.validate_vep_reference_identity(identity, wrong)
+
+
 def test_ensure_bgzf_compresses_a_plain_vcf(plain_vcf, tmp_path):
     out_dir = tmp_path / "work"
     out_dir.mkdir()

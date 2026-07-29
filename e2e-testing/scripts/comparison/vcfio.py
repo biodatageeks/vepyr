@@ -8,10 +8,15 @@ extension present.
 import gzip
 import json
 import os
+import re
 import subprocess
 import sys
 
 GZIP_SUFFIXES = (".gz", ".bgz", ".bgzf")
+_VEP_HEADER_VALUE_RE = re.compile(
+    r'(?P<key>[A-Za-z0-9_-]+)=(?:"(?P<quoted>[^"]*)"|(?P<bare>\S+))'
+)
+_CACHE_RELEASE_RE = re.compile(r"(?:^|/)(?P<release>\d+)_GRCh\d+(?:$|/)")
 
 
 def open_text(path):
@@ -43,6 +48,110 @@ def count_data_lines(path):
             if not line.startswith("#"):
                 n += 1
     return n
+
+
+def _split_release_revision(value, field):
+    """Split a VEP ``release.git-revision`` token and reject weak identities."""
+    release, separator, revision = value.partition(".")
+    if not separator or not release.isdigit() or not revision:
+        raise ValueError(
+            f"Malformed {field} value {value!r} in ##VEP header; "
+            "expected <release>.<git-revision>"
+        )
+    return release, revision
+
+
+def parse_vep_header(path):
+    """Return the exact Ensembl/VEP/cache identity declared by a VCF.
+
+    The comparison harness treats the reference VCF header as evidence, rather
+    than inferring a release from its directory name. A comparison is not
+    reproducible when this header is absent or does not include the VEP, API,
+    cache, core, and variation identities.
+    """
+    header = None
+    with open_text(path) as f:
+        for line in f:
+            if line.startswith("##VEP="):
+                header = line.rstrip("\r\n")
+                break
+            if line.startswith("#CHROM"):
+                break
+
+    if header is None:
+        raise ValueError(f"No ##VEP identity header found in {path}")
+
+    values = {}
+    for match in _VEP_HEADER_VALUE_RE.finditer(header[2:]):
+        values[match.group("key")] = (
+            match.group("quoted")
+            if match.group("quoted") is not None
+            else match.group("bare")
+        )
+
+    required = ("VEP", "API", "cache", "ensembl", "ensembl-variation")
+    missing = [field for field in required if not values.get(field)]
+    if missing:
+        raise ValueError(
+            f"Incomplete ##VEP identity header in {path}; missing " + ", ".join(missing)
+        )
+
+    cache_match = _CACHE_RELEASE_RE.search(values["cache"])
+    if cache_match is None:
+        raise ValueError(
+            f"Cannot derive cache release from ##VEP cache={values['cache']!r} "
+            f"in {path}; expected a <release>_GRCh<assembly> path component"
+        )
+
+    ensembl_release, ensembl_revision = _split_release_revision(
+        values["ensembl"], "ensembl"
+    )
+    variation_release, variation_revision = _split_release_revision(
+        values["ensembl-variation"], "ensembl-variation"
+    )
+
+    return {
+        "vep_version": values["VEP"].removeprefix("v"),
+        "api_version": values["API"].removeprefix("v"),
+        "cache_version": cache_match.group("release"),
+        "cache_path": values["cache"],
+        "assembly": values.get("assembly"),
+        "ensembl_release": ensembl_release,
+        "ensembl_revision": ensembl_revision,
+        "ensembl_variation_release": variation_release,
+        "ensembl_variation_revision": variation_revision,
+        "header": header,
+    }
+
+
+def validate_vep_reference_identity(identity, target):
+    """Require a parsed reference identity to match one native support record."""
+    expected = {
+        "vep_version": target["vep_codebase_version"],
+        "api_version": target["api_version"],
+        "cache_version": target["cache_version"],
+        "ensembl_release": target["api_version"],
+        "ensembl_revision": target["ensembl_core_revision"],
+        "ensembl_variation_release": target["api_version"],
+        "ensembl_variation_revision": target["ensembl_variation_revision"],
+    }
+    mismatches = [
+        f"{field}: reference={identity.get(field)!r}, expected={value!r}"
+        for field, value in expected.items()
+        if identity.get(field) != value
+    ]
+    assembly = identity.get("assembly")
+    if assembly != "GRCh38" and not (
+        isinstance(assembly, str) and assembly.startswith("GRCh38.")
+    ):
+        mismatches.append(
+            f"assembly: reference={assembly!r}, expected GRCh38 or GRCh38.*"
+        )
+    if mismatches:
+        raise ValueError(
+            "VEP reference does not match the selected native support target: "
+            + "; ".join(mismatches)
+        )
 
 
 def ensure_tabix_index(vcf_gz):

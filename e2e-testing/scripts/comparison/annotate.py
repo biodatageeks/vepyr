@@ -14,6 +14,24 @@ BACKEND = "parquet"
 REUSE_MIN_BYTES = 1000
 
 
+def supported_vep_targets():
+    """Return the native compatibility matrix without importing at module load."""
+    import vepyr
+
+    return vepyr.supported_vep_targets()
+
+
+def cache_contig_identity(cache_dir, chrom, expected_cache_version):
+    """Validate one contig's embedded Parquet identity through the native runtime."""
+    import vepyr
+
+    return vepyr.cache_contig_identity(
+        cache_dir,
+        chrom,
+        expected_cache_version=expected_cache_version,
+    )
+
+
 def annotate_contig(
     chrom_vcf_gz,
     cache_dir,

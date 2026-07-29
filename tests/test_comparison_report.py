@@ -44,6 +44,18 @@ def make_chrom_report(chrom, *, time_s=1.0, consequence_mismatches=0):
             ),
             "field_order_mismatch_counts": {},
             "field_order_mismatch_examples": {},
+            "equality_bucket_counts": {
+                "both_empty": 10,
+                "both_nonempty_equal": 188,
+                "vepyr_empty_only": 1,
+                "vep_empty_only": 1,
+                "both_nonempty_unequal": consequence_mismatches,
+            },
+            "mismatch_ledger": {
+                "path": f"/reports/{chrom}.jsonl",
+                "rows": consequence_mismatches,
+                "sha256": f"{int(chrom.removeprefix('chr')):064x}",
+            },
         },
     }
 
@@ -57,6 +69,11 @@ def test_report_paths_for_two_releases_do_not_collide():
     a = report.report_json_path("/reports", "chr1", "merged", "115")
     b = report.report_json_path("/reports", "chr1", "merged", "116")
     assert a != b
+
+
+def test_mismatch_ledger_path_includes_release():
+    path = report.mismatch_ledger_path("/reports", "chr1", "merged", "116")
+    assert path.endswith("fast_chr1_merged_116_mismatches.jsonl")
 
 
 def test_contig_span_summarises_a_contiguous_range():
@@ -95,6 +112,8 @@ def test_aggregate_sums_across_chromosomes():
         "chr1",
         "chr2",
     }
+    assert agg["total_ledger_rows"] == 5
+    assert agg["equality_buckets"]["both_nonempty_equal"] == 376
 
 
 def test_classify_routes_stop_gained_missing():
