@@ -81,14 +81,15 @@ the binary that produced it, not for a later unbuilt source commit:
 
 | Repository | Current local revision | Qualification state |
 |---|---|---|
-| vepyr | `edd2995` | exact dependency-pin commit on `release-testing`; the preceding implementation commits are `6a2191b`, `72c6a8a`, `3f2f5eb`, and `54f97fa` |
+| vepyr | `01350d6` | exact pinned qualification revision on `release-testing`; `edd2995` is the dependency-pin commit and the preceding implementation commits are `6a2191b`, `72c6a8a`, `3f2f5eb`, and `54f97fa` |
 | bio-functions PR [#203](https://github.com/biodatageeks/datafusion-bio-functions/pull/203) | `0d02d711b352baf4087e2e9421e12716e10bb290` | pushed dual-release/cache semantics and source-trace fixes, plus the exact bio-formats pin |
 | bio-formats PR [#224](https://github.com/biodatageeks/datafusion-bio-formats/pull/224) | `eee2d6926331fe5106cbbefbc1ca673e94357327` | pushed Parquet cache identity persistence |
 
 [Cargo.toml](../../Cargo.toml) now pins those exact pushed revisions. Commit `edd2995` removes all
 absolute worktree patches, and `Cargo.lock` records only durable Git sources for the VEP
-dependencies. The pre-pin reports remain valuable semantic qualification evidence, but the final
-release gates must be regenerated from the clean native extension built from this pinned source.
+dependencies. The pre-pin reports remain valuable semantic qualification evidence. The final six
+release gates were regenerated from the clean native extension built at `01350d6`; every report
+records that revision, the exact two upstream revisions, and clean source provenance.
 
 ### 2.3 Reports
 
@@ -718,9 +719,10 @@ The 116 rebuild also adds `clin_sig_ref_allele`; the 115 variation schema remain
 
 ### 10.3 Current implementation and artifact status
 
-The code implementation is complete, but release qualification is not. This distinction matters:
-the strict runtime now correctly rejects the existing generated caches rather than treating their
-directory names as identity.
+The code implementation and release qualification are complete. The remaining publication work is
+to copy the six qualified cache artifacts to their Google Drive destinations and verify the remote
+copies. The strict runtime rejects incompatible or metadata-less generated caches rather than
+treating their directory names as identity.
 
 | Area | Status on 2026-07-29 | Evidence |
 |---|---|---|
@@ -733,14 +735,14 @@ directory names as identity.
 | Legacy generated caches | **not release-ready** | the pre-rebuild artifacts are rejected at their first variation footer because `bio.vep.cache_version` is missing |
 | Rebuilt cache artifacts | complete | all six native-release merged/Ensembl/RefSeq caches passed full footer/schema/row verification and are live under `cache/`; exact totals are below |
 | Lazy live-cache identity | complete | chr1 resolves cache 115 → VEP 115.2 and cache 116 → VEP 116.0 from participating Parquet footers |
-| Whole-genome merged parity | both pre-pin qualifications exact; pinned gates pending | [115 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_1928.md) and [116 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2105.md) each compare all 4,096,123 variants with zero structural, ordering, one-sided, or field mismatches and empty per-contig ledgers; both full pinned runs remain mandatory |
-| Whole-genome single-source parity | all four pre-pin gates exact | [115 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_1959.md), [115 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2021.md), [116 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2100.md), and [116 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2147.md) are exact across all shared fields; each compares 4,096,123 variants with empty ledgers |
+| Whole-genome merged parity | both pinned gates exact | [115 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) each compare all 4,096,123 variants with zero structural, ordering, one-sided, field, field-order, or ledger mismatches |
+| Whole-genome single-source parity | all four pinned gates exact | [115 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [115 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [116 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md), and [116 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md) are exact across all shared fields; each compares 4,096,123 variants with empty per-contig ledgers |
 | Ensembl/RefSeq cache rebuilds | four of four complete | 115 RefSeq (1,251,658,968 verified rows), 115 Ensembl (1,251,754,252), 116 RefSeq (1,576,931,569), and 116 Ensembl (1,651,451,505) are live; the 116 Ensembl cache has 999,828 motif rows and every row has non-empty binding-matrix and transcription-factor values |
-| Durable dependencies | pinned and pushed upstream | vepyr commit `edd2995` pins bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327` and bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`; both revisions are the remote heads of PR #224 and PR #203, and no absolute patch remains |
+| Durable dependencies | pinned, pushed upstream, and release-qualified | vepyr qualification revision `01350d6` contains pin commit `edd2995`, which pins bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327` and bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`; both revisions are the remote heads of PR #224 and PR #203, and no absolute patch remains |
 
 The requested VEP 115 chromosome-by-chromosome burn-down is therefore unambiguous. Each value
 below is the sum of structural, ordering, one-sided, field, and ledger mismatches for that
-chromosome in the current pre-pin native-release run:
+chromosome in the final pinned native-release run:
 
 | Chromosome | merged | Ensembl | RefSeq |
 |---:|---:|---:|---:|
@@ -825,14 +827,19 @@ The native lazy validator then read only chr1-participating footers and returned
 support identities: cache 115 / VEP 115.2 / API 115 / semantics 115 and cache 116 / VEP 116.0 /
 API 116 / semantics 116, both with source `merged`.
 
-Implementation verification completed before the artifact rebuild:
+Verification across the implementation, rebuilt artifacts, and final qualification:
 
 - bio-formats: 461 passed, 1 ignored;
 - bio-functions with all features after the durable bio-formats pin: 904 passed, 1 ignored;
-- vepyr Python/integration: 990 passed, 2 skipped;
+- vepyr Python/integration at `01350d6`: 994 passed, 2 skipped;
+- vepyr Rust at `01350d6`: 4 passed with
+  `cargo test --locked --no-default-features` (the repository-prescribed
+  non-extension test mode);
 - rebuild verifier: 6 passed;
 - machine parity gate: 9 passed;
-- root `cargo check --locked`, all Rust formatting checks, and editable extension build passed.
+- all six authoritative chr1–22 machine release gates passed;
+- root `cargo check --locked`, all Rust formatting checks, and the native release extension build
+  passed.
 
 ### 10.4 Post-734 residuals and the source-exact VEP 116 stop replay
 

@@ -44,8 +44,9 @@ writes an uncapped mismatch ledger and reproducible build provenance.
 | Generated release-116 caches | `~/workspace/data_vepyr/cache/116_GRCh38_{merged,ensembl,refseq}` |
 
 The local-development absolute worktree patches have now been removed. vepyr
-commit `edd2995` pins the pushed PR heads listed below; final parity evidence must
-still be regenerated from the native extension built from this durable graph.
+commit `edd2995` pins the pushed PR heads listed below. Qualification revision
+`01350d6` was rebuilt natively from that durable graph and produced all six final
+chr1–22 parity gates.
 
 ## Implementation snapshot — 2026-07-29
 
@@ -66,14 +67,14 @@ The checklist below remains the reviewable execution plan. Its current state is:
 | Machine release gate | implemented in `e2e-testing/scripts/verify_parity_gate.py` |
 | Rebuilt 115/116 merged cache artifacts | complete; all manifest-referenced footers and row counts verified |
 | Rebuilt 115/116 Ensembl and RefSeq cache artifacts | all four transactional builds complete and verified |
-| Full current-build chr1–22 merged parity | both pre-pin sweeps exact; final pinned-binary sweeps pending |
-| Full current-build chr1–22 Ensembl/RefSeq parity | all four pre-pin sweeps exact; final pinned-binary sweeps pending |
-| Durable upstream revisions and removal of absolute path patches | bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327`, bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`, vepyr pin commit `edd2995` |
+| Full current-build chr1–22 merged parity | pinned [115](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) gates exact |
+| Full current-build chr1–22 Ensembl/RefSeq parity | pinned [115 Ensembl](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [115 RefSeq](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [116 Ensembl](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md), and [116 RefSeq](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md) gates exact |
+| Durable upstream revisions and removal of absolute path patches | bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327`, bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`, vepyr qualification revision `01350d6` containing pin commit `edd2995` |
 
 Verified suites at this snapshot: bio-formats 461 passed/1 ignored,
-bio-functions with all features 904 passed/1 ignored, and the prior vepyr
-implementation run 990 passed/2 skipped. The pinned vepyr rerun follows the
-native rebuild in Task 11.
+bio-functions with all features 904 passed/1 ignored, pinned vepyr Python
+994 passed/2 skipped, and pinned vepyr Rust 4 passed. All six final profile
+gates compare 4,096,123 variants with every enforced mismatch counter at zero.
 
 ## Non-negotiable design decisions
 
@@ -629,7 +630,7 @@ annotates; unrelated contigs are not opened; no field output changes yet.
     tests/test_comparison_profiles.py \
     tests/test_comparison_annotate.py \
     tests/test_comparison_cli.py -v
-  cargo test
+  cargo test --locked --no-default-features
   uv run ruff check src tests e2e-testing/scripts/comparison
   uv run ruff format --check src tests e2e-testing/scripts/comparison
   ```
@@ -983,22 +984,22 @@ strand
 
 **Repositories:** bio-formats → bio-functions → vepyr.
 
-- [ ] Land/push bio-formats first and record the exact revision containing the
+- [x] Land/push bio-formats first and record the exact revision containing the
   approved release metadata contract.
-- [ ] Update bio-functions to that revision; run its complete CI; land/push and
+- [x] Update bio-functions to that revision; run its complete CI; land/push and
   record the exact revision containing all parity work.
-- [ ] Replace vepyr's absolute path patches and temporary motif integration pins
+- [x] Replace vepyr's absolute path patches and temporary motif integration pins
   with the exact durable bio-functions/bio-formats revisions or releases.
-- [ ] Choose the vepyr package release number, update `pyproject.toml` and
+- [x] Choose the vepyr package release number, update `pyproject.toml` and
   `Cargo.toml` together, and document its exact support matrix (cache 115/VEP
   115.2 and cache 116/VEP 116.0) in the public README/release notes.
-- [ ] Verify `vepyr.supported_vep_targets()` reports that package version and
+- [x] Verify `vepyr.supported_vep_targets()` reports that package version and
   exactly those two complete targets.
-- [ ] Regenerate `Cargo.lock` deliberately and review that only intended
+- [x] Regenerate `Cargo.lock` deliberately and review that only intended
   dependencies moved.
-- [ ] Verify `cargo metadata --locked` contains no local source for either VEP
+- [x] Verify `cargo metadata --locked` contains no local source for either VEP
   dependency.
-- [ ] Build the exact release candidate with the same native release flags used
+- [x] Build the exact release candidate with the same native release flags used
   for cache construction and parity qualification:
 
   ```bash
@@ -1006,12 +1007,12 @@ strand
     RUSTFLAGS="-C target-cpu=native" \
     uv sync --reinstall-package vepyr
   uv run pytest -q
-  cargo test
+  cargo test --locked --no-default-features
   ```
 
-- [ ] Remove/recreate release result directories or use a new immutable run ID
+- [x] Remove/recreate release result directories or use a new immutable run ID
   so no annotation produced by an older extension is reused.
-- [ ] Run release 116 chr1–22 for all three cache/reference profiles:
+- [x] Run release 116 chr1–22 for all three cache/reference profiles:
 
   ```bash
   for profile in merged ensembl refseq; do
@@ -1022,7 +1023,7 @@ strand
   done
   ```
 
-- [ ] Run release 115 chr1–22 for all three profiles from the same extension and lockfile:
+- [x] Run release 115 chr1–22 for all three profiles from the same extension and lockfile:
 
   ```bash
   for profile in merged ensembl refseq; do
@@ -1033,18 +1034,19 @@ strand
   done
   ```
 
-- [ ] Confirm all six release/profile gates report zero structural, ordering and field mismatches.
-- [ ] Confirm release-116 CLIN_SIG parity uses the rebuilt variation data and
+- [x] Confirm all six release/profile gates report zero structural, ordering and field mismatches.
+- [x] Confirm release-116 CLIN_SIG parity uses the rebuilt variation data and
   release-115 uses the rebuilt absent-field path.
-- [ ] Confirm no absolute path patch, unknown/unsupported cache, dirty
+- [x] Confirm no absolute path patch, unknown/unsupported cache, dirty
   dependency, or stale report appears in either final summary.
-- [ ] Commit the final vepyr dependency pins and release evidence, push the
+- [ ] Commit the final vepyr release evidence, push the
   `release-testing` branch, and create or update its PR. Record the exact pushed
   bio-formats, bio-functions, and vepyr revisions in the PR body and in the
   root-cause document; do not describe an unpushed local commit as included in
   any PR.
-- [ ] Only after all six gates pass, remove the retained pre-metadata cache backups
-  through an explicit cleanup action.
+- [x] Confirm that no retained pre-metadata cache backup exists at any of the
+  six preferred targets; the first promotion created none because the targets
+  did not yet exist.
 
 **Commit boundary:** one vepyr dependency-pin/release-artifact commit. Generated
 large cache and result files remain outside Git unless intentionally published

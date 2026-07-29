@@ -25,7 +25,7 @@ largest).
 
 - **Release 115** (GRCh38) — the golden reference VCFs in this project are
   produced with the `ensemblorg/ensembl-vep:release_115.2` docker image.
-- **Release 116** (GRCh38).
+- **Release 116** (GRCh38) — exact VEP 116.0 semantics.
 
 Both are built the same way; a converted cache directory is named
 `<release>_<assembly>_<type>`, e.g. `115_GRCh38_merged`, `116_GRCh38_merged`.
@@ -87,10 +87,12 @@ Measured on-disk sizes of the converted Parquet caches in
 
 | Cache | Total | variation | translation_sift | transcript | translation_core | exon | regulatory | motif |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
-| `115_GRCh38_ensembl` | **29 G** | 26 G | 2.7 G | 478 M | 196 M | 178 M | 71 M | — |
-| `115_GRCh38_refseq`  | **29 G** | 26 G | 2.8 G | 289 M | 155 M | 73 M  | 71 M | — |
-| `115_GRCh38_merged`  | **32 G** | 26 G | 5.5 G | 664 M | 348 M | 240 M | 71 M | — |
-| `116_GRCh38_merged`  | **36 G** | 27 G | 7.0 G | 762 M | 417 M | 272 M | 71 M | 81 M |
+| `115_GRCh38_ensembl` | **29 G** | 26 G | 2.7 G | 533 M | 196 M | 178 M | 71 M | — |
+| `115_GRCh38_refseq`  | **29 G** | 26 G | 2.8 G | 295 M | 156 M | 73 M  | 71 M | — |
+| `115_GRCh38_merged`  | **32 G** | 26 G | 5.5 G | 720 M | 348 M | 240 M | 71 M | — |
+| `116_GRCh38_ensembl` | **32 G** | 27 G | 4.1 G | 633 M | 263 M | 211 M | 71 M | 89 M |
+| `116_GRCh38_refseq`  | **31 G** | 27 G | 2.9 G | 296 M | 156 M | 73 M | 71 M | 89 M |
+| `116_GRCh38_merged`  | **36 G** | 27 G | 7.0 G | 818 M | 418 M | 272 M | 71 M | 89 M |
 
 Observations:
 
