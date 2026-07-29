@@ -1,0 +1,155 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
+
+SCRIPTS_DIR = Path(__file__).parents[1] / "e2e-testing" / "scripts"
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import rebuild_release_cache as rebuild  # noqa: E402
+
+
+def _write_entity(
+    root: Path,
+    entity: str,
+    release: str,
+    *,
+    source_type: str = "merged",
+    include_identity: bool = True,
+) -> None:
+    entity_dir = root / entity
+    entity_dir.mkdir(parents=True)
+    metadata = {}
+    if include_identity:
+        metadata = {
+            rebuild.CACHE_VERSION_METADATA_KEY: release.encode(),
+            rebuild.CACHE_SOURCE_METADATA_KEY: source_type.encode(),
+        }
+
+    fields = [pa.field("value", pa.string(), nullable=True)]
+    arrays = [pa.array(["x"])]
+    if entity == "variation" and release == "116":
+        fields.append(pa.field("clin_sig_ref_allele", pa.string(), nullable=True))
+        arrays.append(pa.array(["A"]))
+    if entity == "motif" and release == "116":
+        fields.extend(
+            [
+                pa.field("binding_matrix", pa.string(), nullable=True),
+                pa.field("transcription_factors", pa.string(), nullable=True),
+            ]
+        )
+        arrays.extend([pa.array(["MATRIX"]), pa.array(["TF"])])
+
+    schema = pa.schema(fields, metadata=metadata)
+    pq.write_table(
+        pa.Table.from_arrays(arrays, schema=schema),
+        entity_dir / "chr1.parquet",
+    )
+    (entity_dir / "chrom_manifest.json").write_text(
+        json.dumps([{"chrom": "chr1", "dataset": "chr1.parquet", "rows": 1}])
+    )
+
+
+def _write_cache(root: Path, release: str = "116") -> None:
+    for entity in rebuild.ENTITIES:
+        _write_entity(root, entity, release)
+
+
+def test_verify_cache_checks_every_entity_and_release_contract(tmp_path):
+    cache = tmp_path / "116_GRCh38_merged"
+    _write_cache(cache)
+
+    report = rebuild.verify_cache(cache, "116", "merged")
+
+    assert report.total_rows == len(rebuild.ENTITIES)
+    assert report.rows_by_entity()["variation"] == 1
+    assert report.motif_non_empty == {
+        "binding_matrix": 1,
+        "transcription_factors": 1,
+    }
+
+
+def test_verify_cache_rejects_missing_parquet_release_metadata(tmp_path):
+    cache = tmp_path / "116_GRCh38_merged"
+    _write_cache(cache)
+    shard = cache / "exon" / "chr1.parquet"
+    table = pq.read_table(shard)
+    pq.write_table(table.replace_schema_metadata({}), shard)
+
+    with pytest.raises(rebuild.VerificationError, match="cache_version"):
+        rebuild.verify_cache(cache, "116", "merged")
+
+
+def test_verify_cache_rejects_116_without_clinvar_reference_field(tmp_path):
+    cache = tmp_path / "116_GRCh38_merged"
+    _write_cache(cache)
+    shard = cache / "variation" / "chr1.parquet"
+    table = pq.read_table(shard, columns=["value"])
+    table = table.replace_schema_metadata(
+        {
+            rebuild.CACHE_VERSION_METADATA_KEY: b"116",
+            rebuild.CACHE_SOURCE_METADATA_KEY: b"merged",
+        }
+    )
+    pq.write_table(table, shard)
+
+    with pytest.raises(rebuild.VerificationError, match="clin_sig_ref_allele"):
+        rebuild.verify_cache(cache, "116", "merged")
+
+
+def test_verify_cache_rejects_manifest_footer_row_mismatch(tmp_path):
+    cache = tmp_path / "115_GRCh38_merged"
+    _write_cache(cache, release="115")
+    manifest = cache / "transcript" / "chrom_manifest.json"
+    manifest.write_text(
+        json.dumps([{"chrom": "chr1", "dataset": "chr1.parquet", "rows": 2}])
+    )
+
+    with pytest.raises(rebuild.VerificationError, match="footer has 1"):
+        rebuild.verify_cache(cache, "115", "merged")
+
+
+def test_print_report_formats_entity_name_and_counts(capsys):
+    report = rebuild.CacheReport(
+        cache_dir=Path("/cache"),
+        release="115",
+        source_type="merged",
+        entities=(rebuild.EntityReport("variation", 463, 1_332_332_652),),
+        motif_non_empty={"binding_matrix": 0, "transcription_factors": 0},
+    )
+
+    rebuild._print_report(report)
+
+    output = capsys.readouterr().out
+    assert "variation" in output
+    assert "463 shards" in output
+    assert "1,332,332,652 rows" in output
+
+
+def test_swap_rolls_back_if_replacement_rename_fails(tmp_path, monkeypatch):
+    target = tmp_path / "cache"
+    target.mkdir()
+    (target / "old").write_text("old")
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    (staging / "new").write_text("new")
+    original_rename = Path.rename
+
+    def fail_staging_rename(path: Path, destination: Path):
+        if path == staging:
+            raise OSError("injected replacement failure")
+        return original_rename(path, destination)
+
+    monkeypatch.setattr(Path, "rename", fail_staging_rename)
+
+    with pytest.raises(OSError, match="injected"):
+        rebuild._swap_with_rollback(staging, target, "STAMP")
+
+    assert (target / "old").read_text() == "old"
+    assert (staging / "new").read_text() == "new"
+    assert not (tmp_path / "cache.backup-STAMP").exists()
