@@ -12,9 +12,17 @@ if TYPE_CHECKING:
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
 from vepyr._core import build_plugin_cache as _build_plugin_cache
+from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
+from vepyr._core import supported_vep_targets_json as _supported_vep_targets_json
 
-__all__ = ["build_cache", "build_plugin_cache", "annotate"]
+__all__ = [
+    "build_cache",
+    "build_plugin_cache",
+    "annotate",
+    "supported_vep_targets",
+    "cache_contig_identity",
+]
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +48,60 @@ _CACHE_TYPE_TO_DOWNLOAD_INFIX = {
     "refseq": "_refseq",
 }
 _PUBLIC_CACHE_TYPES = ("ensembl", "merged", "refseq")
+
+
+def supported_vep_targets() -> tuple[dict[str, str], ...]:
+    """Return the annotation engine's compiled VEP/cache compatibility records."""
+    import json
+
+    records = json.loads(_supported_vep_targets_json())
+    return tuple(dict(record) for record in records)
+
+
+def cache_contig_identity(
+    cache_dir: str,
+    chrom: str,
+    *,
+    expected_cache_version: str | None = None,
+) -> dict[str, str]:
+    """Validate and return Parquet metadata for one cache contig.
+
+    Only shards selected for ``chrom`` are opened. The optional expected value
+    is an assertion and cannot substitute for missing shard metadata.
+    """
+    import json
+
+    _validate_expected_cache_version(expected_cache_version)
+    return dict(
+        json.loads(
+            _cache_contig_identity_json(
+                cache_dir,
+                chrom,
+                expected_cache_version,
+            )
+        )
+    )
+
+
+def _validate_expected_cache_version(value: str | None) -> None:
+    if value is None:
+        return
+    if isinstance(value, bool) or not isinstance(value, str):
+        raise TypeError("expected_cache_version must be a string or None")
+    supported = {target["cache_version"] for target in supported_vep_targets()}
+    if value not in supported:
+        raise ValueError(
+            f"Unsupported expected_cache_version {value!r}; "
+            f"supported cache versions: {', '.join(sorted(supported))}"
+        )
+
+
+def _cache_version_for_release(release: int) -> str:
+    if isinstance(release, bool) or not isinstance(release, int):
+        raise TypeError("release must be an integer Ensembl cache release")
+    cache_version = str(release)
+    _validate_expected_cache_version(cache_version)
+    return cache_version
 
 
 def _validate_cache_type(cache_type: str) -> None:
@@ -303,6 +365,7 @@ def build_cache(
     import tarfile
 
     _validate_cache_type(cache_type)
+    expected_cache_version = _cache_version_for_release(release)
     if cache_format != "parquet":
         raise ValueError("cache_format must be 'parquet'")
 
@@ -399,6 +462,7 @@ def build_cache(
             native_cb,
             cache_type,
             overwrite,
+            expected_cache_version,
         )
     finally:
         if _bars is not None:
@@ -542,6 +606,7 @@ def annotate(
     pubmed: bool = False,
     # Lookup tuning
     cache_format: str = "parquet",
+    expected_cache_version: str | None = None,
     extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     gencode_basic: bool = False,
@@ -665,6 +730,9 @@ def annotate(
         Maximum allowed ``failed`` flag value from cache (default: 0).
     cache_format : str
         Cache format to use. Only ``"parquet"`` is supported (default).
+    expected_cache_version : str or None
+        Optional assertion against the cache version embedded in each requested
+        chromosome's Parquet metadata. It cannot supply missing cache identity.
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     workers : int
@@ -756,6 +824,7 @@ def annotate(
         raise ValueError("workers must be a positive integer")
     if cache_format != "parquet":
         raise ValueError("cache_format must be 'parquet'")
+    _validate_expected_cache_version(expected_cache_version)
 
     # Build options JSON — all flags pass through to the engine.
     opts: dict = {
@@ -763,6 +832,8 @@ def annotate(
         "cache_format": cache_format,
         "buffer_size": buffer_size,
     }
+    if expected_cache_version is not None:
+        opts["expected_cache_version"] = expected_cache_version
 
     if everything:
         opts["everything"] = True

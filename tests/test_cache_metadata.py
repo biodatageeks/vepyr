@@ -5,6 +5,7 @@ import pyarrow.parquet as pq
 
 from tests.cache_metadata import (
     CACHE_SOURCE_METADATA_KEY,
+    CACHE_VERSION_METADATA_KEY,
     copy_cache_with_source_metadata,
 )
 
@@ -18,7 +19,13 @@ def test_copy_cache_with_source_metadata_adds_metadata(tmp_path):
         variation_source / "chr1.parquet",
     )
 
-    target = copy_cache_with_source_metadata(source, tmp_path / "cache", "ensembl")
+    target = copy_cache_with_source_metadata(
+        source,
+        tmp_path / "cache",
+        "ensembl",
+        "115",
+    )
     variation = next((target / "variation").glob("*.parquet"))
     metadata = pq.read_schema(variation).metadata or {}
     assert metadata[CACHE_SOURCE_METADATA_KEY] == b"ensembl"
+    assert metadata[CACHE_VERSION_METADATA_KEY] == b"115"

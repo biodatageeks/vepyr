@@ -30,6 +30,25 @@ largest).
 Both are built the same way; a converted cache directory is named
 `<release>_<assembly>_<type>`, e.g. `115_GRCh38_merged`, `116_GRCh38_merged`.
 
+### Strict Parquet identity
+
+The current vepyr release supports cache 115 with VEP 115.2 semantics and cache
+116 with VEP 116.0 semantics. `build_cache()` derives the raw cache release,
+checks it against the requested release, and embeds `bio.vep.cache_version` in
+the Arrow schema metadata of every generated Parquet shard. There is no
+generated-cache version sidecar.
+
+Before annotating a contig, vepyr checks only that contig's
+manifest-referenced shards. Every participating entity must declare the same
+supported release and source type. The first contig establishes the invocation
+identity; a later contig must agree before any of its rows are annotated. A
+chr1-only annotation therefore does not open chr2 Parquet footers.
+
+Missing, malformed, mixed, and unsupported releases are errors. The generated
+cache directory name is not a fallback, and `expected_cache_version` can only
+assert the independently detected metadata—it cannot label an old
+metadata-less cache. Such caches must be rebuilt.
+
 ## Layout & entities
 
 `build_cache` downloads the Ensembl cache tarball and converts each **entity**

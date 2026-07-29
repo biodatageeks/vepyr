@@ -194,6 +194,10 @@ pub fn annotate_to_vcf_file(
             .get("extended_probes")
             .and_then(|v| v.as_bool())
             .unwrap_or(true),
+        expected_cache_version: opts
+            .get("expected_cache_version")
+            .and_then(|v| v.as_str())
+            .map(String::from),
         reference_fasta_path: opts
             .get("reference_fasta_path")
             .and_then(|v| v.as_str())

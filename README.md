@@ -60,6 +60,15 @@ for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
+This vepyr release supports exactly cache 115 with VEP 115.2 semantics and
+cache 116 with VEP 116.0 semantics. `build_cache()` embeds
+`bio.vep.cache_version` in every generated Parquet shard. Annotation requires
+that metadata and validates it lazily per contig across every participating
+entity; metadata-less, mixed, malformed, or unsupported caches are rejected.
+Directory names and sidecar files are never used as annotation-cache identity.
+The optional `expected_cache_version="115"` (or `"116"`) argument is a strict
+assertion, not an override.
+
 ### 2a. Annotate variants
 
 A small 5-variant VCF for chr22 ships with the cache fixture:

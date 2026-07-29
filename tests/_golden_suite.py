@@ -165,6 +165,7 @@ class GoldenConfig:
     annotate_kwargs: dict[str, Any]
     csq_fields: list[str]
     df_comparison_fields: list[str]
+    cache_version: str = "115"
     exact_csq_entry_count: bool = False
     most_severe_consequence_golden_vcf: Path | None = None
 
@@ -257,7 +258,10 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
     def metadata_cache_dir(skip_if_no_cache, tmp_path_factory):
         target = tmp_path_factory.mktemp(f"{config.name.replace(' ', '_')}_cache")
         return copy_cache_with_source_metadata(
-            config.cache_dir, target, config.cache_source_type
+            config.cache_dir,
+            target,
+            config.cache_source_type,
+            config.cache_version,
         )
 
     @pytest.fixture(scope="module")

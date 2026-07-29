@@ -2,6 +2,18 @@ from collections.abc import Callable, Iterator
 
 import pyarrow as pa
 
+def supported_vep_targets_json() -> str:
+    """Return the compiled Ensembl VEP/cache support matrix as JSON."""
+    ...
+
+def cache_contig_identity_json(
+    cache_dir: str,
+    chrom: str,
+    expected_cache_version: str | None = None,
+) -> str:
+    """Validate one contig's Parquet cache identity and return it as JSON."""
+    ...
+
 def build_cache(
     cache_root: str,
     output_dir: str,
@@ -10,6 +22,7 @@ def build_cache(
     on_progress: Callable[[str, str, int, int, int], None] | None = None,
     cache_source_type: str = "ensembl",
     overwrite: bool = False,
+    expected_cache_version: str | None = None,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
     """Build all cache entities from an Ensembl VEP cache."""
     ...

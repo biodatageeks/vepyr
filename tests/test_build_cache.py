@@ -148,6 +148,24 @@ class TestBuildCacheValidation:
                 cache_format="fjall",
             )
 
+    @pytest.mark.parametrize("release", [114, 117])
+    def test_unsupported_release_raises_before_download(self, release):
+        with pytest.raises(ValueError, match="Unsupported expected_cache_version"):
+            vepyr.build_cache(
+                release,
+                "/tmp/fake",
+                cache_type="ensembl",
+            )
+
+    @pytest.mark.parametrize("release", [True, "115", 115.2])
+    def test_release_requires_a_non_boolean_integer(self, release):
+        with pytest.raises(TypeError, match="release must be an integer"):
+            vepyr.build_cache(
+                release,
+                "/tmp/fake",
+                cache_type="ensembl",
+            )
+
     def test_local_cache_not_found_raises(self):
         with pytest.raises(FileNotFoundError, match="Local cache directory not found"):
             vepyr.build_cache(
@@ -185,6 +203,7 @@ class TestBuildCacheValidation:
             )
 
         assert mock_native.call_args.args[5] == cache_type
+        assert mock_native.call_args.args[7] == "115"
 
 
 class TestBuildCacheProgressCallback:
@@ -213,10 +232,12 @@ class TestBuildCacheProgressCallback:
 
         mock_native.assert_called_once()
         # Native shape: (cache_root, output_dir, partitions, cache_format,
-        #                on_progress, cache_source_type, overwrite)
+        #                on_progress, cache_source_type, overwrite,
+        #                expected_cache_version)
         call_args = mock_native.call_args
         assert call_args[0][4] is cb
         assert call_args[0][5] == "ensembl"
+        assert call_args[0][7] == "115"
 
     @patch("vepyr._build_cache")
     def test_show_progress_false_no_tqdm(self, mock_native):
@@ -238,6 +259,7 @@ class TestBuildCacheProgressCallback:
         call_args = mock_native.call_args
         assert call_args[0][4] is None
         assert call_args[0][5] == "ensembl"
+        assert call_args[0][7] == "115"
 
     @patch("vepyr._build_cache")
     def test_returns_flat_parquet_list(self, mock_native):
@@ -362,6 +384,15 @@ class TestBuildCacheIntegration:
             table = pq.read_table(path)
             assert table.num_rows == expected_rows
             assert table.num_columns > 0
+
+    def test_every_emitted_shard_has_release_and_source_metadata(self, built_cache):
+        import pyarrow.parquet as pq
+
+        _, flat_result, _, _ = built_cache
+        for path, _ in flat_result:
+            metadata = pq.read_schema(path).metadata or {}
+            assert metadata[b"bio.vep.cache_version"] == b"115", path
+            assert metadata[b"bio.vep.cache_source_type"] == b"ensembl", path
 
     def test_total_row_count(self, built_cache):
         """variation 763 + transcript 106 + exon 396 + translation_core 7
