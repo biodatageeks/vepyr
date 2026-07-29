@@ -67,8 +67,8 @@ The checklist below remains the reviewable execution plan. Its current state is:
 | Machine release gate | implemented in `e2e-testing/scripts/verify_parity_gate.py` |
 | Rebuilt 115/116 merged cache artifacts | complete; all manifest-referenced footers and row counts verified |
 | Rebuilt 115/116 Ensembl and RefSeq cache artifacts | all four transactional builds complete and verified |
-| Full current-build chr1–22 merged parity | pinned [115](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) gates exact |
-| Full current-build chr1–22 Ensembl/RefSeq parity | pinned [115 Ensembl](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [115 RefSeq](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [116 Ensembl](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md), and [116 RefSeq](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md) gates exact |
+| Full current-build chr1–22 merged parity | pinned [115](../../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116](../../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) gates exact |
+| Full current-build chr1–22 Ensembl/RefSeq parity | pinned [115 Ensembl](../../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [115 RefSeq](../../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [116 Ensembl](../../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md), and [116 RefSeq](../../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md) gates exact |
 | Durable upstream revisions and removal of absolute path patches | bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327`, bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`, vepyr qualification revision `01350d6` containing pin commit `edd2995` |
 
 Verified suites at this snapshot: bio-formats 461 passed/1 ignored,
