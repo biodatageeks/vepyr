@@ -42,35 +42,9 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# Upstream biodatageeks crates
-#
-# TEMPORARILY pinned to unmerged PR revisions for MotifFeature parity work:
-#   datafusion-bio-functions#203 — one CSQ entry per overlapping MotifFeature
-#   datafusion-bio-formats#224   — extract BindingMatrix stable_id / TF names
-# Revert to the released tags (v0.14.0 / v1.8.8) once both land, then bump to
-# the releases that contain them.
-#
-# bio-function-vep points at `integration/motif-parity-116` rather than the PR
-# branch itself: that branch is #203 plus a commit moving its own
-# datafusion-bio-formats dependency onto the #224 revision. Cargo rejects two
-# different specs for one git repository and also refuses a [patch] aimed back
-# at the same source, so the transitive pin has to live upstream.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "e551ccc4e256cfab87a2c0eeae942444feb1f00f", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "d760d5a50fd7455db8748d09c4da5a6ac63cd379" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "d760d5a50fd7455db8748d09c4da5a6ac63cd379" }
-
-# LOCAL WORKTREE OVERRIDES — motif PWM work (HIGH_INF_POS, MOTIF_SCORE_CHANGE).
-#
-# Both changes are unpushed, so the revs above cannot name them yet. Patching a
-# git source with a *path* is allowed where patching it back at itself is not,
-# which is also what redirects bio-function-vep's own transitive dependency on
-# bio-formats onto the same worktree.
-#
-# Remove once both land upstream and the revs above are bumped.
-[patch."https://github.com/biodatageeks/datafusion-bio-functions.git"]
-datafusion-bio-function-vep = { path = "/Users/mwiewior/research/git/_wt/biofunctions-pwm/datafusion/bio-function-vep" }
-
-[patch."https://github.com/biodatageeks/datafusion-bio-formats.git"]
-datafusion-bio-format-core = { path = "/Users/mwiewior/research/git/_wt/bioformats-pwm/datafusion/bio-format-core" }
-datafusion-bio-format-ensembl-cache = { path = "/Users/mwiewior/research/git/_wt/bioformats-pwm/datafusion/bio-format-ensembl-cache" }
-datafusion-bio-format-vcf = { path = "/Users/mwiewior/research/git/_wt/bioformats-pwm/datafusion/bio-format-vcf" }
+# Exact revisions under review in datafusion-bio-functions#203 and
+# datafusion-bio-formats#224. These pins make the vepyr 0.2.0 VEP 115.2/116.0
+# support contract reproducible without machine-local patches.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "0d02d711b352baf4087e2e9421e12716e10bb290", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "eee2d6926331fe5106cbbefbc1ca673e94357327" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "eee2d6926331fe5106cbbefbc1ca673e94357327" }
