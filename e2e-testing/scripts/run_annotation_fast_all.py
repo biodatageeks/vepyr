@@ -36,6 +36,8 @@ PROFILE_SUFFIXES = {
     "merged_per_gene": "_merged_per_gene",
     "merged_pick_allele_gene": "_merged_pick_allele_gene",
     "refseq": "_refseq",
+    "merged_116_base": "_merged_116_base",
+    "merged_116_5plugins": "_merged_116_5plugins",
 }
 CACHE_SUFFIXES = PROFILE_SUFFIXES
 # Parquet is the only supported cache format.

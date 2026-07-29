@@ -145,6 +145,40 @@ _CACHE_PROFILES = {
         "annotate_kwargs": {},
         "suffix": "_refseq",
     },
+    # Release 116 merged cache, compared against the vepyr_diffly session's
+    # golden VEP output (everything+hgvs, all 5 plugins run together). Both
+    # profiles below share that same VEP reference: "base" has no plugins
+    # attached so only the shared/core CSQ fields are meaningfully comparable
+    # (compare_vcfs() already restricts to shared_fields), "5plugins" attaches
+    # all 5 plugin caches so the full field set is comparable.
+    "merged_116_base": {
+        "cache_dir": os.path.expanduser(
+            "~/annotation/cache/vepyr_cache/116_GRCh38_merged"
+        ),
+        "vep_vcf": (
+            "/Users/lukaszjezapkowicz/Desktop/magisterka/praca/vepyr_diffly/runs/"
+            "all5plugins-e2e-full/HG002_annotated_wgs_everything_hgvs_merged_"
+            "clinvar_spliceai_cadd_am_dbnsfp.vcf"
+        ),
+        "annotate_kwargs": {},
+        "suffix": "_merged_116_base",
+    },
+    "merged_116_5plugins": {
+        "cache_dir": os.path.expanduser(
+            "~/annotation/cache/vepyr_cache/116_GRCh38_merged"
+        ),
+        "vep_vcf": (
+            "/Users/lukaszjezapkowicz/Desktop/magisterka/praca/vepyr_diffly/runs/"
+            "all5plugins-e2e-full/HG002_annotated_wgs_everything_hgvs_merged_"
+            "clinvar_spliceai_cadd_am_dbnsfp.vcf"
+        ),
+        "annotate_kwargs": {
+            "plugin_cache_root": os.path.expanduser(
+                "~/annotation/cache/plugin_cache_116"
+            ),
+        },
+        "suffix": "_merged_116_5plugins",
+    },
 }
 
 
@@ -381,6 +415,42 @@ VEP_HASH_ORDER_PICK_IGNORE_REASON = (
 )
 
 
+def values_equivalent(vv, gv, rel_tol=1e-4, abs_tol=1e-6):
+    """True if two CSQ field values represent the same data, tolerating
+    formatting differences rather than requiring byte-identical strings.
+
+    Two sources of false mismatches this absorbs:
+    - Float precision/padding: Rust's default float formatting produces the
+      shortest round-trip representation ("0", "0.57985"), while VEP's Perl
+      printf-style output pads to a fixed decimal count ("0.00", "0.579850").
+      Same number, different string.
+    - Missing-value marker: some VEP plugins (e.g. ClinVar's --custom
+      passthrough) emit the literal VCF missing-value "." where vepyr emits
+      an empty string. Same absence of data, different marker.
+    """
+    if vv == gv:
+        return True
+    if {vv, gv} == {"", "."}:
+        return True
+    # Multi-value fields (e.g. dbNSFP per-transcript scores) are '&'-joined;
+    # compare token-wise so one differently-formatted float doesn't fail the
+    # whole field.
+    vv_tokens = vv.split("&")
+    gv_tokens = gv.split("&")
+    if len(vv_tokens) != len(gv_tokens):
+        return False
+    for vt, gt in zip(vv_tokens, gv_tokens):
+        if vt == gt or {vt, gt} == {"", "."}:
+            continue
+        try:
+            vf, gf = float(vt), float(gt)
+        except ValueError:
+            return False
+        if abs(vf - gf) > max(abs_tol, rel_tol * max(abs(vf), abs(gf))):
+            return False
+    return True
+
+
 def compare_vcfs(
     vepyr_vcf,
     vep_vcf,
@@ -517,44 +587,63 @@ def compare_vcfs(
                     if len(csq_order_mismatch_examples) < 10:
                         csq_order_mismatch_examples.append(example)
 
-            # Sort by Feature for stable pairing (so field comparison is meaningful)
-            vepyr_parsed.sort(key=sort_key)
-            vep_parsed.sort(key=sort_key)
-
             if len(vepyr_parsed) == len(vep_parsed):
                 n_csq_count_match += 1
             else:
                 n_csq_count_mismatch += 1
 
-            for ei in range(min(len(vepyr_parsed), len(vep_parsed))):
-                vepyr_vals = vepyr_parsed[ei]
-                vep_vals = vep_parsed[ei]
+            # Pair CSQ entries by Feature (transcript ID), not by position.
+            # Sorting each side independently and zipping by index (the old
+            # approach) silently misaligns every entry after the first
+            # transcript-set divergence between vepyr and VEP -- a variant
+            # with an extra/missing transcript on either side would then
+            # compare unrelated transcripts' fields against each other for
+            # every subsequent CSQ entry. Grouping by Feature and iterating
+            # matched entries within a group avoids that cascade; entries
+            # whose Feature exists on only one side are counted separately
+            # rather than falsely reported as a field-value mismatch.
+            def group_by_feature(parsed):
+                groups = {}
+                for d in parsed:
+                    groups.setdefault(d.get("Feature", ""), []).append(d)
+                return groups
 
-                for f in shared_fields:
-                    field_total[f] += 1
-                    vv = vepyr_vals.get(f, "")
-                    gv = vep_vals.get(f, "")
-                    if vv == gv:
-                        field_matches[f] += 1
-                    else:
-                        # Check if it's just an &-ordering difference
-                        if "&" in vv or "&" in gv:
-                            vv_norm = "&".join(sorted(vv.split("&")))
-                            gv_norm = "&".join(sorted(gv.split("&")))
-                            if vv_norm == gv_norm:
-                                # Same values, different order
-                                field_matches[f] += 1
-                                field_order_mismatches[f] += 1
-                                if len(field_order_mismatch_examples[f]) < 10:
-                                    field_order_mismatch_examples[f].append(
-                                        {"variant": key_str, "vepyr": vv, "vep": gv}
-                                    )
-                                continue
-                        field_mismatches[f] += 1
-                        if len(field_mismatch_examples[f]) < 10:
-                            field_mismatch_examples[f].append(
-                                {"variant": key_str, "vepyr": vv, "vep": gv}
-                            )
+            vepyr_by_feature = group_by_feature(vepyr_parsed)
+            vep_by_feature = group_by_feature(vep_parsed)
+            shared_features = set(vepyr_by_feature) & set(vep_by_feature)
+
+            for feature in shared_features:
+                v_list = sorted(vepyr_by_feature[feature], key=sort_key)
+                g_list = sorted(vep_by_feature[feature], key=sort_key)
+                for ei in range(min(len(v_list), len(g_list))):
+                    vepyr_vals = v_list[ei]
+                    vep_vals = g_list[ei]
+
+                    for f in shared_fields:
+                        field_total[f] += 1
+                        vv = vepyr_vals.get(f, "")
+                        gv = vep_vals.get(f, "")
+                        if values_equivalent(vv, gv):
+                            field_matches[f] += 1
+                        else:
+                            # Check if it's just an &-ordering difference
+                            if "&" in vv or "&" in gv:
+                                vv_norm = "&".join(sorted(vv.split("&")))
+                                gv_norm = "&".join(sorted(gv.split("&")))
+                                if vv_norm == gv_norm:
+                                    # Same values, different order
+                                    field_matches[f] += 1
+                                    field_order_mismatches[f] += 1
+                                    if len(field_order_mismatch_examples[f]) < 10:
+                                        field_order_mismatch_examples[f].append(
+                                            {"variant": key_str, "vepyr": vv, "vep": gv}
+                                        )
+                                    continue
+                            field_mismatches[f] += 1
+                            if len(field_mismatch_examples[f]) < 10:
+                                field_mismatch_examples[f].append(
+                                    {"variant": key_str, "vepyr": vv, "vep": gv}
+                                )
 
         i += 1
         j += 1

@@ -46,3 +46,11 @@ serde_json = "1"
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.14.0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.8.8" }
+
+# TEMP dev override (branch: plugin-test-fixes): pulls in the join.rs
+# tier-probe DISTINCT fix (dedup variation probe before the tier LEFT JOIN)
+# from a local checkout ahead of it landing on a released tag. Remove this
+# patch once datafusion-bio-functions cuts a release with the fix and bump
+# the `tag` above instead.
+[patch."https://github.com/biodatageeks/datafusion-bio-functions.git"]
+datafusion-bio-function-vep = { path = "../datafusion-bio-functions/datafusion/bio-function-vep" }
