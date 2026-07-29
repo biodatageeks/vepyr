@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from comparison import report
 
 
@@ -155,3 +157,30 @@ def test_generate_markdown_survives_an_all_reused_run():
         profile="merged",
     )
     assert "Per-Chromosome Performance" in md
+
+
+@pytest.mark.parametrize(
+    ("status", "dirty"),
+    [
+        ("?? .cargo-ok", False),
+        ("?? .cargo-ok\n M src/lib.rs", True),
+        ("?? .cargo-ok\n?? generated.rs", True),
+    ],
+)
+def test_git_checkout_info_ignores_only_cargo_bookkeeping(monkeypatch, status, dirty):
+    def command_output(command, cwd):
+        if command == ["git", "rev-parse", "--show-toplevel"]:
+            return "/cargo/git/checkouts/example/abc123"
+        if command == ["git", "rev-parse", "HEAD"]:
+            return "abc123"
+        if command == ["git", "status", "--porcelain", "--untracked-files=all"]:
+            return status
+        raise AssertionError(command)
+
+    monkeypatch.setattr(report, "_command_output", command_output)
+
+    assert report._git_checkout_info("/cargo/git/checkouts/example/abc123") == {
+        "repo_root": "/cargo/git/checkouts/example/abc123",
+        "revision": "abc123",
+        "dirty": dirty,
+    }

@@ -290,15 +290,19 @@ def _git_checkout_info(path):
     """Describe the checkout containing path, including uncommitted sources."""
     try:
         root = _command_output(["git", "rev-parse", "--show-toplevel"], path)
+        status_lines = _command_output(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            root,
+        ).splitlines()
+        # Cargo materializes this bookkeeping marker in every git dependency
+        # checkout. It is not repository source and cannot affect the resolved
+        # crate, so do not let it make every immutable git dependency appear
+        # dirty. All other tracked or untracked paths remain release blockers.
+        source_changes = [line for line in status_lines if line != "?? .cargo-ok"]
         return {
             "repo_root": root,
             "revision": _command_output(["git", "rev-parse", "HEAD"], root),
-            "dirty": bool(
-                _command_output(
-                    ["git", "status", "--porcelain", "--untracked-files=all"],
-                    root,
-                )
-            ),
+            "dirty": bool(source_changes),
         }
     except Exception:
         return {"repo_root": None, "revision": "unknown", "dirty": None}
