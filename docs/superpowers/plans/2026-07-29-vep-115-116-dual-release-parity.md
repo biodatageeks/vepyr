@@ -1039,7 +1039,7 @@ strand
   release-115 uses the rebuilt absent-field path.
 - [x] Confirm no absolute path patch, unknown/unsupported cache, dirty
   dependency, or stale report appears in either final summary.
-- [ ] Commit the final vepyr release evidence, push the
+- [x] Commit the final vepyr release evidence, push the
   `release-testing` branch, and create or update its PR. Record the exact pushed
   bio-formats, bio-functions, and vepyr revisions in the PR body and in the
   root-cause document; do not describe an unpushed local commit as included in
@@ -1060,10 +1060,10 @@ as release evidence.
 
 **Destination:** `gdrive-mw:/vepyr/cache`
 
-- [ ] Start only after all cache rebuilds, eager shard verification, and six
+- [x] Start only after all cache rebuilds, eager shard verification, and six
   pinned-binary parity gates are complete. Never upload a hidden
   `.rebuild-*` staging directory or retained backup.
-- [ ] Copy all six immutable release/profile directories without renaming them:
+- [x] Copy all six immutable release/profile directories without renaming them:
 
   ```bash
   for cache in \
@@ -1081,14 +1081,21 @@ as release evidence.
   done
   ```
 
-- [ ] A successful copy exit is necessary but not sufficient. For every
+- [x] A successful copy exit is necessary but not sufficient. For every
   directory, compare local and remote file counts and byte totals and run a
   one-way `rclone check` (hash comparison where the remote exposes hashes;
   otherwise explicitly record the size-only fallback).
-- [ ] Re-run the local cache verifier after upload. Remote publication must not
+- [x] Re-run the local cache verifier after upload. Remote publication must not
   mutate or replace the qualified local caches.
-- [ ] Record the six remote destinations and verification results in the final
+- [x] Record the six remote destinations and verification results in the final
   vepyr PR evidence.
+
+Publication completed on 2026-07-30. The remote root contains exactly the six
+named directories above. For every cache, the local and remote file count and
+byte total matched exactly, `rclone check --one-way` reported zero differences,
+and `rebuild_release_cache.py --verify-only` passed again against the unchanged
+local source. The authoritative counts, byte totals, row totals, and remote
+destinations are recorded in §10.3 of the root-cause document.
 
 The upload is an artifact-publication step, not a correctness gate: no Git
 revision changes after the pinned binary has passed may be hidden by uploading

@@ -719,12 +719,12 @@ The 116 rebuild also adds `clin_sig_ref_allele`; the 115 variation schema remain
 
 ### 10.3 Current implementation and artifact status
 
-The code implementation and release qualification are complete. The remaining publication work is
-to copy the six qualified cache artifacts to their Google Drive destinations and verify the remote
-copies. The strict runtime rejects incompatible or metadata-less generated caches rather than
-treating their directory names as identity.
+The code implementation, release qualification, upstream publication, and cache publication are
+complete. All six qualified cache artifacts were copied to their Google Drive destinations and
+the remote copies were checked independently. The strict runtime rejects incompatible or
+metadata-less generated caches rather than treating their directory names as identity.
 
-| Area | Status on 2026-07-29 | Evidence |
+| Area | Status at completion | Evidence |
 |---|---|---|
 | Root-cause partition | complete | all 734 fields reconcile into the six non-overlapping classes in §4 |
 | Comparator/provenance | implemented | uncapped deterministic JSONL ledger, equality-shape counts, allele-aware duplicate pairing, exact reference-header validation, per-contig resolved build provenance |
@@ -739,6 +739,7 @@ treating their directory names as identity.
 | Whole-genome single-source parity | all four pinned gates exact | [115 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [115 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [116 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md), and [116 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md) are exact across all shared fields; each compares 4,096,123 variants with empty per-contig ledgers |
 | Ensembl/RefSeq cache rebuilds | four of four complete | 115 RefSeq (1,251,658,968 verified rows), 115 Ensembl (1,251,754,252), 116 RefSeq (1,576,931,569), and 116 Ensembl (1,651,451,505) are live; the 116 Ensembl cache has 999,828 motif rows and every row has non-empty binding-matrix and transcription-factor values |
 | Durable dependencies | pinned, pushed upstream, and release-qualified | vepyr qualification revision `01350d6` contains pin commit `edd2995`, which pins bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327` and bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`; both revisions are the remote heads of PR #224 and PR #203, and no absolute patch remains |
+| Google Drive publication | six of six complete | each exact local directory name exists under `gdrive-mw:/vepyr/cache`; local and remote file counts and byte totals match, all six one-way hash checks report zero differences, and all six local caches passed the metadata/footer verifier again after upload |
 
 The requested VEP 115 chromosome-by-chromosome burn-down is therefore unambiguous. Each value
 below is the sum of structural, ordering, one-sided, field, and ledger mismatches for that
@@ -822,6 +823,26 @@ it. The six verified live targets are:
 - `/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged`
 - `/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_ensembl`
 - `/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_refseq`
+
+On 2026-07-30, after all six pinned parity gates had passed, those exact directories were copied
+without renaming to `gdrive-mw:/vepyr/cache`. No `.rebuild-*` staging directory or backup was
+present in either the local source set or remote destination. A successful copy exit was followed
+by an independent local/remote size comparison, `rclone check --one-way`, and a new
+`rebuild_release_cache.py --verify-only` run against the unchanged local cache:
+
+| Cache | Google Drive destination | Files | Bytes | One-way hash check | Post-upload local verifier |
+|---|---|---:|---:|---|---|
+| 115 merged | `gdrive-mw:/vepyr/cache/115_GRCh38_merged` | 7,680 | 34,817,172,456 | 7,680 matching, 0 differences | release 115 / merged; 1,332,332,652 rows |
+| 115 Ensembl | `gdrive-mw:/vepyr/cache/115_GRCh38_ensembl` | 7,615 | 31,380,798,912 | 7,615 matching, 0 differences | release 115 / Ensembl; 1,251,754,252 rows |
+| 115 RefSeq | `gdrive-mw:/vepyr/cache/115_GRCh38_refseq` | 2,327 | 31,131,957,496 | 2,327 matching, 0 differences | release 115 / RefSeq; 1,251,658,968 rows |
+| 116 merged | `gdrive-mw:/vepyr/cache/116_GRCh38_merged` | 7,695 | 38,393,261,818 | 7,695 matching, 0 differences | release 116 / merged; 1,739,586,368 rows |
+| 116 Ensembl | `gdrive-mw:/vepyr/cache/116_GRCh38_ensembl` | 7,631 | 34,848,296,737 | 7,631 matching, 0 differences | release 116 / Ensembl; 1,651,451,505 rows |
+| 116 RefSeq | `gdrive-mw:/vepyr/cache/116_GRCh38_refseq` | 2,349 | 33,009,584,587 | 2,349 matching, 0 differences | release 116 / RefSeq; 1,576,931,569 rows |
+
+The remote root contains exactly these six directories. Google Drive exposed a common file hash,
+so no size-only fallback was needed. For both release-116 Ensembl and RefSeq caches, the
+post-upload verifier also reconfirmed that all 999,828 motif rows have non-empty binding-matrix
+and transcription-factor values.
 
 The native lazy validator then read only chr1-participating footers and returned the exact
 support identities: cache 115 / VEP 115.2 / API 115 / semantics 115 and cache 116 / VEP 116.0 /
