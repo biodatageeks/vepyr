@@ -169,7 +169,22 @@ def load_reports(report_dir, chroms, suffix, release):
             print(f"  WARNING: no report for {chrom}, skipping")
             continue
         with open(path) as f:
-            loaded.append(json.load(f))
+            value = json.load(f)
+        expected = {
+            "chrom": chrom,
+            "profile": suffix,
+            "release": release,
+        }
+        mismatches = [
+            f"{field}={value.get(field)!r}, expected {wanted!r}"
+            for field, wanted in expected.items()
+            if value.get(field) != wanted
+        ]
+        if mismatches:
+            raise ValueError(
+                f"report identity does not match {path}: " + "; ".join(mismatches)
+            )
+        loaded.append(value)
     return loaded
 
 

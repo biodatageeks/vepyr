@@ -101,6 +101,24 @@ def test_load_reports_falls_back_to_the_legacy_name(tmp_path, capsys):
     assert "legacy" in capsys.readouterr().out.lower()
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("chrom", "chr2"),
+        ("profile", "refseq"),
+        ("release", "116"),
+    ],
+)
+def test_load_reports_rejects_legacy_identity_mismatches(tmp_path, field, value):
+    legacy = tmp_path / "fast_chr1_merged_report.json"
+    body = make_chrom_report("chr1")
+    body[field] = value
+    legacy.write_text(json.dumps(body))
+
+    with pytest.raises(ValueError, match=field):
+        report.load_reports(str(tmp_path), ["chr1"], "merged", "115")
+
+
 def test_discover_report_contigs_uses_only_the_requested_release(tmp_path):
     for name in (
         "fast_chr10_merged_116_report.json",

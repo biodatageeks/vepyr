@@ -481,16 +481,16 @@ def main(argv=None):
             successful_chroms = [
                 chrom for chrom in successful_chroms if chrom not in missing_evidence
             ]
-    reports = report.load_reports(
-        report_dir,
-        successful_chroms,
-        resolved.suffix,
-        resolved.release,
-    )
-    if not reports:
-        print("No reports found.", file=sys.stderr)
-        return 1
     try:
+        reports = report.load_reports(
+            report_dir,
+            successful_chroms,
+            resolved.suffix,
+            resolved.release,
+        )
+        if not reports:
+            print("No reports found.", file=sys.stderr)
+            return 1
         report_build_info = report.common_build_info(reports)
     except ValueError as exc:
         print(f"Error: cannot summarize reports: {exc}", file=sys.stderr)
