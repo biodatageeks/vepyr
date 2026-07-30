@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import sys
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -58,6 +60,13 @@ def _write_entity(
 def _write_cache(root: Path, release: str = "116") -> None:
     for entity in rebuild.ENTITIES:
         _write_entity(root, entity, release)
+
+
+def _write_raw_source(root: Path) -> None:
+    root.mkdir(parents=True)
+    (root / "info.txt").write_text("cache_version 116\n")
+    for index in range(99):
+        (root / f"source-{index}").write_text("")
 
 
 def test_verify_cache_checks_every_entity_and_release_contract(tmp_path):
@@ -153,3 +162,83 @@ def test_swap_rolls_back_if_replacement_rename_fails(tmp_path, monkeypatch):
     assert (target / "old").read_text() == "old"
     assert (staging / "new").read_text() == "new"
     assert not (tmp_path / "cache.backup-STAMP").exists()
+
+
+def test_main_blocks_when_staging_space_is_insufficient(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "raw" / "116_GRCh38"
+    _write_raw_source(source)
+    target = tmp_path / "116_GRCh38_merged"
+    _write_cache(target)
+    monkeypatch.setattr(rebuild, "dir_size", lambda _path: 1_000)
+    monkeypatch.setattr(
+        rebuild.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=1),
+    )
+
+    with patch("vepyr.build_cache") as public_builder:
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 2
+    public_builder.assert_not_called()
+    assert "insufficient free space" in capsys.readouterr().err
+
+
+def test_main_rejects_row_count_drift_before_swap(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "raw" / "116_GRCh38"
+    _write_raw_source(source)
+    target = tmp_path / "116_GRCh38_merged"
+    _write_cache(target)
+    monkeypatch.setattr(
+        rebuild.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=10**12),
+    )
+
+    def fake_build_cache(
+        release: int,
+        cache_dir: str,
+        *,
+        cache_type: str,
+        **_kwargs,
+    ) -> None:
+        assert release == 116
+        staged = Path(cache_dir) / f"116_GRCh38_{cache_type}"
+        _write_cache(staged)
+        transcript = staged / "transcript" / "chr1.parquet"
+        schema = pq.read_schema(transcript)
+        pq.write_table(
+            pa.Table.from_arrays([pa.array(["x", "y"])], schema=schema),
+            transcript,
+        )
+        (staged / "transcript" / "chrom_manifest.json").write_text(
+            json.dumps([{"chrom": "chr1", "dataset": "chr1.parquet", "rows": 2}])
+        )
+
+    with patch("vepyr.build_cache", side_effect=fake_build_cache):
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 1
+    assert rebuild._manifest_totals(target)["transcript"] == 1
+    assert list(tmp_path.glob(".116_GRCh38_merged.rebuild-*"))
+    assert "row-count reconciliation failed" in capsys.readouterr().err

@@ -379,6 +379,53 @@ def test_main_rebuilds_requested_non_motif_entity(tmp_path):
     )
 
 
+def test_main_dry_run_performs_preflight_without_building(tmp_path, capsys):
+    source = tmp_path / "raw" / "115_GRCh38"
+    source.mkdir(parents=True)
+    (source / "info.txt").write_text("cache_version 115\n")
+    target = tmp_path / "115_GRCh38_merged"
+    target.mkdir()
+
+    with patch("vepyr.build_cache_entity") as public_builder:
+        result = rebuild.main(
+            [
+                "--release",
+                "115",
+                "--entity",
+                "motif",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 0
+    public_builder.assert_not_called()
+    assert "Dry run complete" in capsys.readouterr().out
+
+
+def test_main_blocked_preflight_does_not_build(tmp_path, capsys):
+    with patch("vepyr.build_cache_entity") as public_builder:
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--entity",
+                "variation",
+                "--target",
+                str(tmp_path / "missing-target"),
+                "--local-cache",
+                str(tmp_path / "missing-source"),
+            ]
+        )
+
+    assert result == 2
+    public_builder.assert_not_called()
+    assert "BLOCKED" in capsys.readouterr().err
+
+
 def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):
     source = tmp_path / "raw" / "116_GRCh38"
     source.mkdir(parents=True)
