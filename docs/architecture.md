@@ -102,9 +102,9 @@ graph LR
 |---|---|
 | Language (engine) | Rust 2021 edition |
 | Language (API) | Python 3.10+ |
-| Python bindings | PyO3 0.25, abi3 stable ABI |
-| Query engine | Apache DataFusion 50.3 |
-| Data format | Apache Arrow 56 |
+| Python bindings | PyO3 0.28, abi3 stable ABI |
+| Query engine | Apache DataFusion 53.0 |
+| Data format | Apache Arrow 58 |
 | Async runtime | Tokio |
 | Interval trees | COITree |
 | Cache format | Partitioned, page-indexed Parquet |
