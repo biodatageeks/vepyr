@@ -157,6 +157,14 @@ def test_verify_cache_allows_the_release_115_empty_motif_contract(tmp_path):
     assert report.rows_by_entity()["motif"] == 0
 
 
+def test_verify_cache_rejects_nonempty_release_115_motif_data(tmp_path):
+    cache = tmp_path / "115_GRCh38_merged"
+    _write_cache(cache, release="115")
+
+    with pytest.raises(rebuild.VerificationError, match="motif cache must be empty"):
+        rebuild.verify_cache(cache, "115", "merged")
+
+
 @pytest.mark.parametrize(
     ("column", "values"),
     [

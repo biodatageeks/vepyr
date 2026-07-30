@@ -326,9 +326,11 @@ def verify_cache(
                 f"{entity_dir}: {len(unreferenced)} unreferenced Parquet shard(s), "
                 f"including {preview}"
             )
-        # VEP 115 raw caches do not carry motif-feature rows; the corresponding
-        # generated entity is intentionally empty. Every other release/entity
-        # pair is required to contain data before a fresh cache can be installed.
+        # VEP 115 raw caches do not carry motif-feature rows, so accepting any
+        # would introduce annotations absent from that release. Every other
+        # release/entity pair is required to contain data.
+        if release == "115" and entity == "motif" and entity_rows != 0:
+            raise VerificationError("VEP 115 motif cache must be empty")
         if entity_rows == 0 and not (release == "115" and entity == "motif"):
             raise VerificationError(
                 f"VEP {release} {entity} cache must contain at least one row"
