@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from comparison import cli, profiles
@@ -216,3 +218,67 @@ def test_summary_only_auto_discovers_release_qualified_reports(monkeypatch, tmp_
     assert observed["suffix"] == "merged"
     assert observed["release"] == "116"
     assert observed["report_dir"].endswith("e2e-testing/reports")
+
+
+def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
+    monkeypatch, tmp_path
+):
+    module_path = tmp_path / "e2e-testing" / "scripts" / "comparison" / "cli.py"
+    module_path.parent.mkdir(parents=True)
+    report_dir = tmp_path / "e2e-testing" / "reports"
+    report_dir.mkdir()
+    stale_report = report_dir / "fast_chr1_merged_115_report.json"
+    stale_ledger = report_dir / "fast_chr1_merged_115_mismatches.jsonl"
+    stale_report.write_text(json.dumps({"chrom": "chr1"}))
+    stale_ledger.write_text('{"kind":"old"}\n')
+    observed = {}
+
+    monkeypatch.setattr(cli, "__file__", str(module_path))
+    monkeypatch.setattr(
+        cli.profiles, "resolve", lambda *_args, **_kwargs: _fake_resolved()
+    )
+    monkeypatch.setattr(
+        cli.annotate,
+        "supported_vep_targets",
+        lambda: ({"cache_version": "115"},),
+    )
+    monkeypatch.setattr(cli.vcfio, "parse_vep_header", lambda _path: {})
+    monkeypatch.setattr(
+        cli.vcfio, "validate_vep_reference_identity", lambda *_args: None
+    )
+    monkeypatch.setattr(cli.vcfio, "normalize_vcf", lambda *_args: "input.vcf.gz")
+    monkeypatch.setattr(cli, "resolve_contigs", lambda *_args: ["chr1", "chr2"])
+    monkeypatch.setattr(cli.report, "get_build_info", lambda: {"git": "head"})
+
+    def run_isolated(chrom, _args):
+        if chrom == "chr2":
+            (report_dir / "fast_chr2_merged_115_report.json").write_text(
+                json.dumps({"chrom": "chr2"})
+            )
+            return True
+        stale_report.write_text(json.dumps({"attempt": "failed"}))
+        stale_ledger.write_text('{"kind":"partial"}\n')
+        return False
+
+    monkeypatch.setattr(cli, "_run_contig_isolated", run_isolated)
+
+    def load_reports(_report_dir, chroms, suffix, release):
+        observed.update(chroms=chroms, suffix=suffix, release=release)
+        return []
+
+    monkeypatch.setattr(cli.report, "load_reports", load_reports)
+
+    result = cli.main(["--release", "115", "--isolate", "--chroms", "1", "2"])
+
+    assert result == 1
+    assert observed == {
+        "chroms": ["chr2"],
+        "suffix": "merged",
+        "release": "115",
+    }
+    assert not stale_report.exists()
+    assert not stale_ledger.exists()
+    quarantined_report = report_dir / (stale_report.name + ".stale")
+    quarantined_ledger = report_dir / (stale_ledger.name + ".stale")
+    assert json.loads(quarantined_report.read_text()) == {"attempt": "failed"}
+    assert quarantined_ledger.read_text() == '{"kind":"partial"}\n'

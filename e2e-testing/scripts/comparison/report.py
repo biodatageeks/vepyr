@@ -120,6 +120,18 @@ def mismatch_ledger_path(report_dir, chrom, suffix, release):
     return os.path.join(report_dir, f"fast_{chrom}_{suffix}_{release}_mismatches.jsonl")
 
 
+def quarantine_contig_evidence(report_dir, chrom, suffix, release):
+    """Move prior evidence aside before attempting a fresh contig run."""
+    for path in (
+        report_json_path(report_dir, chrom, suffix, release),
+        mismatch_ledger_path(report_dir, chrom, suffix, release),
+    ):
+        if os.path.exists(path):
+            quarantine = path + ".stale"
+            os.replace(path, quarantine)
+            print(f"  Quarantined stale evidence: {quarantine}")
+
+
 def legacy_report_json_path(report_dir, chrom, suffix):
     """Pre-release-axis path, kept readable so historical reports still load."""
     return os.path.join(report_dir, f"fast_{chrom}_{suffix}_report.json")

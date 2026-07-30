@@ -416,8 +416,20 @@ def main(argv=None):
     if not args.skip_annotate:
         for chrom in chroms:
             try:
+                report.quarantine_contig_evidence(
+                    report_dir,
+                    chrom,
+                    resolved.suffix,
+                    resolved.release,
+                )
                 if args.isolate:
                     if not _run_contig_isolated(chrom, args):
+                        report.quarantine_contig_evidence(
+                            report_dir,
+                            chrom,
+                            resolved.suffix,
+                            resolved.release,
+                        )
                         failures.append(chrom)
                 else:
                     run_contig(
@@ -432,6 +444,12 @@ def main(argv=None):
                         build_info,
                     )
             except Exception as exc:  # noqa: BLE001 - one contig must not kill the sweep
+                report.quarantine_contig_evidence(
+                    report_dir,
+                    chrom,
+                    resolved.suffix,
+                    resolved.release,
+                )
                 print(f"  ERROR: {chrom} failed: {exc}", file=sys.stderr)
                 failures.append(chrom)
 
@@ -439,7 +457,36 @@ def main(argv=None):
         print("\nSkipping aggregate summary (--skip-compare)")
         return 1 if failures else 0
 
-    reports = report.load_reports(report_dir, chroms, resolved.suffix, resolved.release)
+    successful_chroms = [chrom for chrom in chroms if chrom not in failures]
+    if not args.skip_annotate:
+        missing_evidence = [
+            chrom
+            for chrom in successful_chroms
+            if not os.path.isfile(
+                report.report_json_path(
+                    report_dir,
+                    chrom,
+                    resolved.suffix,
+                    resolved.release,
+                )
+            )
+        ]
+        if missing_evidence:
+            print(
+                "  ERROR: fresh report evidence is missing for "
+                + ", ".join(missing_evidence),
+                file=sys.stderr,
+            )
+            failures.extend(missing_evidence)
+            successful_chroms = [
+                chrom for chrom in successful_chroms if chrom not in missing_evidence
+            ]
+    reports = report.load_reports(
+        report_dir,
+        successful_chroms,
+        resolved.suffix,
+        resolved.release,
+    )
     if not reports:
         print("No reports found.", file=sys.stderr)
         return 1
