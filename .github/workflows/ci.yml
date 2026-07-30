@@ -63,10 +63,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v5
-      - name: Install HTSlib command-line tools
+      - name: Install VCF command-line tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y tabix
+          sudo apt-get install -y bcftools tabix
       - name: Build and test
         run: |
           uv python install ${{ matrix.python-version }}
