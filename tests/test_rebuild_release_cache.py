@@ -327,6 +327,35 @@ def test_main_blocks_when_staging_space_is_insufficient(tmp_path, monkeypatch, c
     assert "insufficient free space" in capsys.readouterr().err
 
 
+def test_main_blocks_when_live_manifest_disagrees_with_footer(tmp_path, capsys):
+    source = tmp_path / "raw" / "116_GRCh38"
+    _write_raw_source(source)
+    target = tmp_path / "116_GRCh38_merged"
+    _write_cache(target)
+    (target / "transcript" / "chrom_manifest.json").write_text(
+        json.dumps([{"chrom": "chr1", "dataset": "chr1.parquet", "rows": 2}])
+    )
+
+    with patch("vepyr.build_cache") as public_builder:
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 2
+    public_builder.assert_not_called()
+    error = capsys.readouterr().err
+    assert "cannot inventory existing target" in error
+    assert "manifest declares 2 rows, footer has 1" in error
+
+
 def test_main_rejects_row_count_drift_before_swap(tmp_path, monkeypatch, capsys):
     source = tmp_path / "raw" / "116_GRCh38"
     _write_raw_source(source)
@@ -372,7 +401,7 @@ def test_main_rejects_row_count_drift_before_swap(tmp_path, monkeypatch, capsys)
         )
 
     assert result == 1
-    assert rebuild._manifest_rows_by_entity_chrom(target)["transcript"] == {"chr1": 1}
+    assert rebuild._footer_rows_by_entity_chrom(target)["transcript"] == {"chr1": 1}
     assert list(tmp_path.glob(".116_GRCh38_merged.rebuild-*"))
     assert "row-count reconciliation failed" in capsys.readouterr().err
 
@@ -416,7 +445,7 @@ def test_main_rejects_cross_chrom_row_redistribution_with_equal_total(
         )
 
     assert result == 1
-    assert rebuild._manifest_rows_by_entity_chrom(target)["transcript"] == {
+    assert rebuild._footer_rows_by_entity_chrom(target)["transcript"] == {
         "chr1": 1,
         "chr2": 1,
     }

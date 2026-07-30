@@ -368,24 +368,37 @@ def verify_cache(
     return CacheReport(root, release, source_type, tuple(reports), motif_non_empty)
 
 
-def _manifest_rows_by_entity_chrom(
+def _footer_rows_by_entity_chrom(
     cache_dir: Path,
 ) -> dict[str, dict[str, int]]:
-    """Inventory old manifests per entity/contig without requiring identity."""
+    """Inventory live footer rows per entity/contig without requiring identity."""
     inventory: dict[str, dict[str, int]] = {}
     for entity in ENTITIES:
-        entries = _read_manifest(cache_dir / entity)
+        entity_dir = cache_dir / entity
+        entries = _read_manifest(entity_dir)
         rows_by_chrom: dict[str, int] = {}
+        seen_datasets: set[str] = set()
         for index, entry in enumerate(entries):
             if not isinstance(entry, dict):
                 raise VerificationError(
                     f"{entity} old-cache manifest entry {index} is not an object"
                 )
             chrom = entry.get("chrom")
+            dataset = entry.get("dataset")
             rows = entry.get("rows")
             if not isinstance(chrom, str) or not chrom:
                 raise VerificationError(
                     f"{entity} old-cache manifest entry {index} has invalid chrom"
+                )
+            if (
+                not isinstance(dataset, str)
+                or not dataset
+                or Path(dataset).name != dataset
+                or Path(dataset).suffix != ".parquet"
+            ):
+                raise VerificationError(
+                    f"{entity} old-cache manifest entry {index} has unsafe "
+                    f"dataset {dataset!r}"
                 )
             if not isinstance(rows, int) or isinstance(rows, bool) or rows < 0:
                 raise VerificationError(
@@ -395,7 +408,38 @@ def _manifest_rows_by_entity_chrom(
                 raise VerificationError(
                     f"{entity} old-cache manifest repeats chromosome {chrom!r}"
                 )
-            rows_by_chrom[chrom] = rows
+            if dataset in seen_datasets:
+                raise VerificationError(
+                    f"{entity} old-cache manifest repeats dataset {dataset!r}"
+                )
+            shard = entity_dir / dataset
+            if not shard.is_file():
+                raise VerificationError(
+                    f"old-cache manifest-referenced shard is missing: {shard}"
+                )
+            try:
+                actual_rows = pq.ParquetFile(shard).metadata.num_rows
+            except Exception as exc:
+                raise VerificationError(
+                    f"cannot read old-cache Parquet footer {shard}: {exc}"
+                ) from exc
+            if actual_rows != rows:
+                raise VerificationError(
+                    f"{shard}: old-cache manifest declares {rows:,} rows, footer "
+                    f"has {actual_rows:,}"
+                )
+            rows_by_chrom[chrom] = actual_rows
+            seen_datasets.add(dataset)
+        unreferenced = sorted(
+            path.name
+            for path in entity_dir.glob("*.parquet")
+            if path.name not in seen_datasets
+        )
+        if unreferenced:
+            raise VerificationError(
+                f"{entity_dir}: {len(unreferenced)} unreferenced old-cache "
+                f"Parquet shard(s), including {', '.join(unreferenced[:3])}"
+            )
         inventory[entity] = rows_by_chrom
     return inventory
 
@@ -497,7 +541,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             existing_size = dir_size(target)
             try:
-                old_rows = _manifest_rows_by_entity_chrom(target)
+                old_rows = _footer_rows_by_entity_chrom(target)
             except VerificationError as exc:
                 problems.append(f"cannot inventory existing target: {exc}")
 
