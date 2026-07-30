@@ -45,6 +45,6 @@ serde_json = "1"
 # Exact revisions under review in datafusion-bio-functions#203 and
 # datafusion-bio-formats#224. These pins make the vepyr 0.2.0 VEP 115.2/116.0
 # support contract reproducible without machine-local patches.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "0d02d711b352baf4087e2e9421e12716e10bb290", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "eee2d6926331fe5106cbbefbc1ca673e94357327" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "eee2d6926331fe5106cbbefbc1ca673e94357327" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1c4671f6fed72123a89bc3c80b939f253f809bc0", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c81adf1235984c984918ce5bd39d573476b62337" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c81adf1235984c984918ce5bd39d573476b62337" }
