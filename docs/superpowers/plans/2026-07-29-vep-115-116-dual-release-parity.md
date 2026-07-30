@@ -692,11 +692,10 @@ comparison runs additionally assert the intended cache/reference pair.
 
 - Create: `e2e-testing/scripts/rebuild_release_cache.py`
 - Create or modify: focused script tests under `tests/`
-- Deprecate or delegate from:
-  `e2e-testing/scripts/rebuild_cache_116_merged.py`
+- Remove the redundant release-116 compatibility wrapper after the generalized
+  `rebuild_release_cache.py` command and documentation replace it.
 
-- [ ] Model the safe staging/swap behavior on
-  `rebuild_cache_116_merged.py`, with dry-run as the default.
+- [ ] Preserve safe staging/swap behavior with dry-run as the default.
 - [ ] Require explicit release/cache type and resolve source/target through the
   comparison profile helpers.
 - [ ] Build the complete release cache into a fresh sibling staging directory

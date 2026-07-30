@@ -177,6 +177,33 @@ def cache_dir_for(profile_name, release, warn=True):
     return _resolve_with_legacy_fallback("cache", name, os.path.isdir, warn=warn)
 
 
+def raw_cache_dir_for(cache_type, release):
+    """Resolve an extracted raw cache directory containing ``info.txt``.
+
+    Official Ensembl extraction uses ``homo_sapiens`` for the Ensembl flavour.
+    Existing vepyr workspaces may use the explicit ``homo_sapiens_ensembl``
+    sibling naming used by merged and RefSeq. Accept both without deriving
+    cache identity from the directory name; the builder validates ``info.txt``.
+    """
+    if cache_type not in ("ensembl", "merged", "refseq"):
+        raise ValueError(f"unknown cache type {cache_type!r}")
+    if release not in RELEASES:
+        raise ValueError(f"unknown release {release!r}")
+
+    if cache_type == "ensembl":
+        species_dirs = ("homo_sapiens", "homo_sapiens_ensembl")
+    else:
+        species_dirs = (f"homo_sapiens_{cache_type}",)
+    candidates = [
+        os.path.join(data_dir(), species_dir, f"{release}_GRCh38")
+        for species_dir in species_dirs
+    ]
+    for candidate in candidates:
+        if os.path.isfile(os.path.join(candidate, "info.txt")):
+            return candidate
+    return candidates[0]
+
+
 def vep_vcf_for(profile_name, release):
     """Return the reference path, preferring .vcf.gz, or None if neither exists."""
     base = os.path.join(

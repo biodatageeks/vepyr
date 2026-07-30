@@ -1,6 +1,8 @@
 # E2E Testing
 
-End-to-end annotation benchmarks comparing vepyr against Ensembl VEP 115 on the full HG002 GRCh38 WGS dataset (4M+ variants, chr1-22).
+Release-qualified end-to-end annotation benchmarks comparing vepyr with the
+exact Ensembl VEP 115.2 and 116.0 codebases on the full HG002 GRCh38 WGS
+dataset (4,096,123 variants across chr1–22).
 
 ## Prerequisites
 
@@ -17,12 +19,13 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 
 The scripts expect data files under `~/workspace/data_vepyr/`. Set `DATA_VEPYR_DIR` or use CLI flags if your layout differs.
 
-| File | Description | Default path |
+| Data | Description | Default path |
 |------|-------------|-------------|
-| VCF input | HG002 GRCh38 benchmark VCF (GIAB) | `~/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` |
-| VEP reference | Golden Ensembl VEP 115 `--everything --hgvs` output | `~/workspace/data_vepyr/HG002_annotated_wgs_everything_hgvs_vep.vcf` |
-| Cache dir | Converted Ensembl 115 partitioned Parquet cache | `~/workspace/data_vepyr/115_GRCh38_ensembl` |
-| Reference FASTA | GRCh38 primary assembly | `~/workspace/data_vepyr/Homo_sapiens.GRCh38.dna.primary_assembly.fa` |
+| VCF input | HG002 GRCh38 benchmark VCF (GIAB) | `~/workspace/data_vepyr/input/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` |
+| VEP references | Exact 115.2/116.0 golden VCFs | `~/workspace/data_vepyr/output/{115.2,116}/` |
+| Converted caches | 115/116 × Ensembl/merged/RefSeq Parquet caches | `~/workspace/data_vepyr/cache/<release>_GRCh38_<type>/` |
+| Raw caches | Extracted Ensembl VEP caches containing `info.txt` | `~/workspace/data_vepyr/homo_sapiens{,_ensembl,_merged,_refseq}/<release>_GRCh38/` |
+| Reference FASTA | GRCh38 primary assembly | `~/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa` |
 
 ### 3. System tools
 
@@ -30,30 +33,32 @@ The scripts expect data files under `~/workspace/data_vepyr/`. Set `DATA_VEPYR_D
 
 ## Bumping upstream dependencies
 
-When a fix lands in `datafusion-bio-functions` or `datafusion-bio-formats`, bump the pinned git revision in `Cargo.toml` and rebuild:
+When a fix lands in `datafusion-bio-functions` or `datafusion-bio-formats`,
+update the exact Git revision in `Cargo.toml`, refresh `Cargo.lock`, and rebuild:
 
 ```bash
-# 1. Get the released tag you want to pin to
-#    (e.g. from a release in biodatageeks/datafusion-bio-functions)
+# 1. Get the exact commit SHA that passed the upstream PR checks.
 
-# 2. Update the tag in Cargo.toml
-#    Edit the datafusion-bio-function-vep line:
-#      tag = "<new-tag>"
-#    And/or the datafusion-bio-format-vcf line if formats changed.
+# 2. Update every dependency from that repository to the same exact rev.
+#    Never qualify a release with a local path patch.
 
-# 3. Rebuild
+# 3. Refresh only the changed pinned packages and rebuild the native package.
+cargo update -p datafusion-bio-function-vep
+cargo update -p datafusion-bio-format-ensembl-cache
+cargo update -p datafusion-bio-format-vcf
 cd /path/to/vepyr
 RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 
-# 4. Verify unit tests still pass
+# 4. Verify the complete suite.
 uv run pytest
 ```
 
 The relevant lines in `Cargo.toml`:
 
 ```toml
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "..." }
-datafusion-bio-format-vcf   = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "..." }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "<40-character-sha>", ... }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "<40-character-sha>" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "<same-40-character-sha>" }
 ```
 
 ## Scripts
@@ -132,6 +137,61 @@ The aggregate summary contains a per-contig performance table, root cause
 classification with GitHub issue links, field-level delta vs the previous
 benchmark, and mismatch examples per field.
 
+### `verify_parity_gate.py` -- machine-enforced release gate
+
+The comparison runner produces evidence; the parity gate decides whether that
+evidence is complete and releasable. It requires every requested contig report,
+the exact compiled dependency provenance, matching VEP/cache identity, an empty
+uncapped mismatch ledger, and zero structural, ordering, one-sided, or field
+mismatches.
+
+```bash
+uv run python verify_parity_gate.py \
+    --release 115 --profile ensembl --chroms 1-22
+uv run python verify_parity_gate.py \
+    --release 116 --profile refseq --chroms 1-22
+```
+
+### `rebuild_release_cache.py` -- authoritative complete-cache rebuild
+
+This is the only full-cache rebuild command. It is a dry run by default. A real
+run builds beside the live cache, verifies every manifest-referenced Parquet
+footer, schema, release/source metadata value, and row total, then swaps with
+rollback while retaining the previous cache as a timestamped backup.
+
+```bash
+# Preflight only
+uv run python rebuild_release_cache.py \
+    --release 116 --cache-type merged
+
+# Build, verify, and swap
+uv run python rebuild_release_cache.py \
+    --release 116 --cache-type merged --run
+
+# Verify an existing cache without rebuilding
+uv run python rebuild_release_cache.py \
+    --release 116 --cache-type merged \
+    --verify-only ~/workspace/data_vepyr/cache/116_GRCh38_merged
+```
+
+### `rebuild_motif_entity.py` -- targeted transactional motif rebuild
+
+Use this only when a change is isolated to the raw `motif` entity. It invokes
+the public release-aware `vepyr.build_cache_entity()` API and validates every
+manifest shard, footer row count, schema, Parquet identity value, and required
+motif column before swapping. The old motif directory is retained as a hidden,
+timestamped sibling backup.
+
+```bash
+# Preflight and verify the current motif entity
+uv run python rebuild_motif_entity.py \
+    --release 116 --cache-type merged
+
+# Build, fully verify, and swap only motif
+uv run python rebuild_motif_entity.py \
+    --release 116 --cache-type merged --run
+```
+
 **Data layout** under `$DATA_VEPYR_DIR` (default `~/workspace/data_vepyr`):
 
 ```
@@ -158,21 +218,17 @@ the runner works before and after those files are reorganised.
 | `merged_flag_pick_allele_gene` | `--merged --flag_pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_pick.vcf.gz` |
 | `refseq` | `--refseq` baseline | `HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz` |
 
-Not every profile is available at every release. Pass an unavailable pair to
-print the availability matrix -- the run fails immediately rather than after a
-normalization pass:
+The baseline Ensembl, merged, and RefSeq profiles are qualified and available
+for both supported releases:
 
-```bash
-uv run python run_comparison.py --release 116 --profile refseq
-# Error: Profile 'refseq' at release 116: no Parquet cache at .../cache/116_GRCh38_refseq
-#
-# Available combinations:
-# profile                                   115          116
-# ensembl                                    ok            -
-# merged                                     ok           ok
-# refseq                                     ok     no cache
-# ...
-```
+| Release | Ensembl | merged | RefSeq |
+|---|---|---|---|
+| 115 / VEP 115.2 | qualified, zero mismatches | qualified, zero mismatches | qualified, zero mismatches |
+| 116 / VEP 116.0 | qualified, zero mismatches | qualified, zero mismatches | qualified, zero mismatches |
+
+Optional selection profiles depend on their corresponding reference VCFs.
+Passing an unavailable combination prints the live availability matrix and
+fails before normalization.
 
 ## Typical workflow after a dependency bump
 
@@ -183,11 +239,18 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 # 2. Run unit tests
 uv run pytest
 
-# 3. Run full e2e benchmark
+# 3. Run and gate all six release baselines
 cd e2e-testing/scripts
-uv run python run_comparison.py --release 115 --force
+for release in 115 116; do
+  for profile in ensembl merged refseq; do
+    uv run python run_comparison.py \
+      --release "$release" --profile "$profile" --force
+    uv run python verify_parity_gate.py \
+      --release "$release" --profile "$profile" --chroms 1-22
+  done
+done
 
-# 4. Compare the new report against the previous one
+# 4. Compare a new report against the previous one
 #    Reports are timestamped so you can diff them:
 diff reports/fast_chr1_chr22_merged_115_summary_YYYYMMDD_HHMM.md \
      reports/fast_chr1_chr22_merged_115_summary_YYYYMMDD_HHMM.md
@@ -198,7 +261,10 @@ diff reports/fast_chr1_chr22_merged_115_summary_YYYYMMDD_HHMM.md \
 ```
 e2e-testing/
   scripts/
-    run_comparison.py                  # entry point
+    run_comparison.py                  # release-qualified E2E entry point
+    verify_parity_gate.py              # machine zero-mismatch gate
+    rebuild_release_cache.py           # complete transactional rebuild/verifier
+    rebuild_motif_entity.py            # targeted transactional motif rebuild
     comparison/
       profiles.py                      # profile x release matrix, path derivation
       vcfio.py                         # compression, indexing, contig detection, slicing

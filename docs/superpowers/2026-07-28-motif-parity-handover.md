@@ -3,6 +3,11 @@
 **Date:** 2026-07-28
 **Scope:** vepyr vs Ensembl VEP 116 CSQ parity for MotifFeature annotations.
 
+> **Historical snapshot.** The residuals and open items below describe the
+> 2026-07-28 handover, not the final release state. The completed six-profile,
+> zero-mismatch result is recorded in
+> [the final root-cause and release report](2026-07-29-remaining-734-root-cause-and-plan.md).
+
 ## Where things stand
 
 chr22, release 116, `merged` cache, `--everything --hgvs`:
@@ -106,13 +111,23 @@ Each of these cost a wasted build/rebuild cycle. Do not rediscover them.
 ## Rebuilding the cache
 
 ```bash
-uv run python e2e-testing/scripts/rebuild_cache_116_merged.py          # dry run
-uv run python e2e-testing/scripts/rebuild_cache_116_merged.py --run
+# Complete release-qualified rebuild (dry run, then execute)
+uv run python e2e-testing/scripts/rebuild_release_cache.py \
+    --release 116 --cache-type merged
+uv run python e2e-testing/scripts/rebuild_release_cache.py \
+    --release 116 --cache-type merged --run
+
+# Targeted motif-only rebuild (dry run, then execute)
+uv run python e2e-testing/scripts/rebuild_motif_entity.py \
+    --release 116 --cache-type merged
+uv run python e2e-testing/scripts/rebuild_motif_entity.py \
+    --release 116 --cache-type merged --run
 ```
 
-~90 min, 36 GB, needs ~41 GB free to stage alongside the current cache. Stages into
-`<target>.rebuild`, verifies `binding_matrix` is populated, and only then swaps — a failed run
-leaves the existing cache intact.
+The complete path stages the whole cache and validates every entity. The
+targeted path uses public `vepyr.build_cache_entity()`, validates every motif
+manifest shard and its Parquet release/source metadata, and retains the prior
+motif directory as a timestamped backup.
 
 ## Measuring
 
@@ -129,9 +144,10 @@ input; drop it for a from-scratch run.
 
 ## Other open items (not motif-related)
 
-1. **The full 22-contig run at 116 has never been done.** Every number above is chr22 alone.
-2. **116 caches exist only for `merged`.** `ensembl` and `refseq` references exist under
-   `$DATA/output/116/` but have no Parquet cache, so those profiles fail the availability check.
+1. **Completed later:** the full chr1–22 release-116 run is zero-mismatch for
+   merged, Ensembl, and RefSeq.
+2. **Completed later:** release-116 Parquet caches now exist for merged,
+   Ensembl, and RefSeq.
 3. **`merged_flag_pick` and `merged_pick_filter` references were never generated** — unavailable at
    both releases.
 4. **`$DATA` reorganisation is pending.** The runner prefers `$DATA/input/` and `$DATA/cache/` and

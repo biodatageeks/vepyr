@@ -778,6 +778,14 @@ counts, checks the 116 ClinVar and motif schemas/data, reconciles old/new per-en
 retains a timestamped backup, and rolls the target rename back if replacement fails. It creates
 no version sidecar.
 
+For schema changes isolated to motif data,
+[`rebuild_motif_entity.py`](../../e2e-testing/scripts/rebuild_motif_entity.py) uses the public,
+release-aware `vepyr.build_cache_entity()` API. It stages the entity separately, validates every
+manifest-referenced shard rather than sampling one, requires exact Parquet release/source
+metadata and complete VEP 116 motif identity values, swaps with rollback, and retains the prior
+motif directory as a timestamped backup. The redundant release-116-only compatibility wrapper
+was removed; all complete rebuilds use `rebuild_release_cache.py`.
+
 Both raw merged-cache roots pass preflight. Historical generated artifacts measured 32.4 GiB
 (115) and 35.6 GiB (116), giving conservative fresh-staging estimates of 37.2 GiB and 40.9 GiB.
 Cleaning 108 GiB of recoverable root Cargo build artifacts provided enough space for both
@@ -813,9 +821,11 @@ All 999,828 VEP 116 motif rows have non-empty `binding_matrix` and
 Both long-running processes had loaded an early report-formatting bug and therefore raised after
 successful verification but before target promotion. The failure was safe: staging remained
 intact and neither target existed. `_print_report` was fixed to format
-`EntityReport.entity`, a regression test was added (six rebuild-script tests now pass), and each
-staging cache was fully verified a second time before the existing rollback-safe rename promoted
-it. The six verified live targets are:
+`EntityReport.entity`, a regression test was added, and each staging cache was fully verified a
+second time before the existing rollback-safe rename promoted it. The original six full-rebuild
+tests plus nine targeted motif rebuild tests now cover all-shard identity/value validation, the
+public entity-builder call, backup retention, and swap rollback. The six verified live targets
+are:
 
 - `/Users/mwiewior/workspace/data_vepyr/cache/115_GRCh38_merged`
 - `/Users/mwiewior/workspace/data_vepyr/cache/115_GRCh38_ensembl`

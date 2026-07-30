@@ -376,13 +376,6 @@ def _print_report(report: CacheReport) -> None:
         print(f"  non-empty motif values: {detail}")
 
 
-def _raw_source_path(data_dir: str, release: str, cache_type: str) -> Path:
-    species_dir = (
-        "homo_sapiens" if cache_type == "ensembl" else f"homo_sapiens_{cache_type}"
-    )
-    return Path(data_dir) / species_dir / f"{release}_GRCh38"
-
-
 def _preflight_source(source: Path) -> list[str]:
     problems: list[str] = []
     if not source.is_dir():
@@ -431,14 +424,13 @@ def main(argv: list[str] | None = None) -> int:
         _print_report(report)
         return 0
 
-    data = profiles.data_dir()
     target = (
         Path(args.target or profiles.cache_dir_for(cache_type, release, warn=False))
         .expanduser()
         .resolve()
     )
     source = (
-        Path(args.local_cache or _raw_source_path(data, release, cache_type))
+        Path(args.local_cache or profiles.raw_cache_dir_for(cache_type, release))
         .expanduser()
         .resolve()
     )

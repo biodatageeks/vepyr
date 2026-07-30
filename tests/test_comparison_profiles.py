@@ -58,6 +58,38 @@ def test_cache_dir_prefers_the_cache_subdirectory(tmp_path, monkeypatch):
     assert profiles.cache_dir_for("merged", "115") == str(preferred)
 
 
+def test_raw_cache_dir_accepts_explicit_ensembl_workspace_layout(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    explicit = tmp_path / "homo_sapiens_ensembl" / "116_GRCh38"
+    explicit.mkdir(parents=True)
+    (explicit / "info.txt").write_text("cache_version 116\n")
+
+    assert profiles.raw_cache_dir_for("ensembl", "116") == str(explicit)
+
+
+def test_raw_cache_dir_prefers_official_ensembl_layout(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    official = tmp_path / "homo_sapiens" / "116_GRCh38"
+    explicit = tmp_path / "homo_sapiens_ensembl" / "116_GRCh38"
+    for path in (official, explicit):
+        path.mkdir(parents=True)
+        (path / "info.txt").write_text("cache_version 116\n")
+
+    assert profiles.raw_cache_dir_for("ensembl", "116") == str(official)
+
+
+@pytest.mark.parametrize("cache_type", ["merged", "refseq"])
+def test_raw_cache_dir_resolves_source_specific_layout(
+    tmp_path, monkeypatch, cache_type
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    raw = tmp_path / f"homo_sapiens_{cache_type}" / "115_GRCh38"
+    raw.mkdir(parents=True)
+    (raw / "info.txt").write_text("cache_version 115\n")
+
+    assert profiles.raw_cache_dir_for(cache_type, "115") == str(raw)
+
+
 def test_resolve_prefers_bgzf_over_plain_reference(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     (tmp_path / "cache" / "115_GRCh38_merged").mkdir(parents=True)

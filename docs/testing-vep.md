@@ -405,18 +405,17 @@ uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
     a release 116 reference. There is no default, because a wrong default here produces a
     plausible-looking report full of mismatches that are artefacts rather than bugs.
 
-    Not every profile exists at every release. Ask for one that does not and the run
-    fails in milliseconds — before normalizing anything — and prints which combinations
-    are available:
+    The Ensembl, merged, and RefSeq baselines are qualified for both release 115 and
+    release 116. Optional selection profiles still depend on their corresponding
+    reference VCF. Ask for an unavailable combination and the run fails in
+    milliseconds—before normalizing anything—and prints the live availability matrix:
 
     ```
-    Error: Profile 'refseq' at release 116: no Parquet cache at .../cache/116_GRCh38_refseq
-
-    Available combinations:
     profile                                   115          116
-    ensembl                                    ok            -
+    ensembl                                    ok           ok
     merged                                     ok           ok
-    refseq                                     ok     no cache
+    refseq                                     ok           ok
+    merged_pick_allele                         ok no reference
     ```
 
 Contigs default to whatever the reference's tabix index contains, intersected with the
