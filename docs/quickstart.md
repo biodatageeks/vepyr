@@ -24,8 +24,8 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 3. Verify:
 
 ```bash
-uv run python -c "import vepyr; print(vepyr.__all__)"
-# ['build_cache', 'annotate']
+uv run python -c "import vepyr; print('build_cache_entity' in vepyr.__all__)"
+# True
 ```
 
 ## Building a cache
@@ -60,6 +60,21 @@ results = vepyr.build_cache(
     local_cache="/data/ensembl_vep/homo_sapiens/115_GRCh38",
 )
 ```
+
+To rebuild a single raw entity without converting the full cache:
+
+```python
+results = vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/data/vepyr_cache",
+    entity="motif",
+    cache_type="merged",
+    local_cache="/data/ensembl_vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+)
+```
+
+This uses the same strict release/source validation as `build_cache()`.
 
 ### Options
 

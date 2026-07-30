@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
+from vepyr._core import build_cache_entity as _build_cache_entity
 from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
@@ -18,6 +19,7 @@ from vepyr._core import supported_vep_targets_json as _supported_vep_targets_jso
 
 __all__ = [
     "build_cache",
+    "build_cache_entity",
     "build_plugin_cache",
     "annotate",
     "supported_vep_targets",
@@ -48,6 +50,14 @@ _CACHE_TYPE_TO_DOWNLOAD_INFIX = {
     "refseq": "_refseq",
 }
 _PUBLIC_CACHE_TYPES = ("ensembl", "merged", "refseq")
+_PUBLIC_CACHE_ENTITIES = (
+    "variation",
+    "transcript",
+    "exon",
+    "translation",
+    "regulatory",
+    "motif",
+)
 
 
 def supported_vep_targets() -> tuple[dict[str, str], ...]:
@@ -110,6 +120,14 @@ def _validate_cache_type(cache_type: str) -> None:
 
     allowed = "', '".join(_PUBLIC_CACHE_TYPES)
     raise ValueError(f"Invalid cache_type '{cache_type}'. Must be one of '{allowed}'.")
+
+
+def _validate_cache_entity(entity: str) -> None:
+    if entity in _PUBLIC_CACHE_ENTITIES:
+        return
+
+    allowed = "', '".join(_PUBLIC_CACHE_ENTITIES)
+    raise ValueError(f"Invalid cache entity '{entity}'. Must be one of '{allowed}'.")
 
 
 def _download_with_progress(
@@ -300,6 +318,64 @@ def _download_cache(
     )
 
 
+def _resolve_raw_cache(
+    release: int,
+    cache_dir: str,
+    *,
+    cache_type: str,
+    species: str,
+    assembly: str,
+    local_cache: str | None,
+    download_retries: int,
+) -> str:
+    """Return an unpacked raw cache, downloading and extracting it if needed."""
+    import os
+    import tarfile
+
+    if local_cache is not None:
+        if not os.path.isdir(local_cache):
+            raise FileNotFoundError(f"Local cache directory not found: {local_cache}")
+        log.info("Using local cache: %s", local_cache)
+        return local_cache
+
+    method_infix = _CACHE_TYPE_TO_DOWNLOAD_INFIX[cache_type]
+    tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
+    tarball_path = os.path.join(cache_dir, tarball_name)
+    cache_root = os.path.join(
+        cache_dir,
+        f"{species}{method_infix}",
+        f"{release}_{assembly}",
+    )
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    if not os.path.isdir(cache_root):
+        if not os.path.isfile(tarball_path):
+            _download_cache(
+                release,
+                species,
+                assembly,
+                cache_type,
+                tarball_path,
+                max_retries=download_retries,
+            )
+
+        tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
+        log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
+        with tarfile.open(tarball_path) as tar:
+            tar.extractall(path=cache_dir, filter="data")
+        log.info("Extracted to %s", cache_root)
+
+        os.remove(tarball_path)
+
+    if not os.path.isdir(cache_root):
+        raise FileNotFoundError(
+            f"Cache directory not found after extraction: {cache_root}"
+        )
+
+    return cache_root
+
+
 def build_cache(
     release: int,
     cache_dir: str,
@@ -362,7 +438,6 @@ def build_cache(
         List of ``(parquet_file_path, row_count)`` for each written file.
     """
     import os
-    import tarfile
 
     _validate_cache_type(cache_type)
     expected_cache_version = _cache_version_for_release(release)
@@ -371,45 +446,15 @@ def build_cache(
 
     # Version directory name: e.g. "115_GRCh38_ensembl"
     version_dir = f"{release}_{assembly}_{cache_type}"
-
-    if local_cache is not None:
-        cache_root = local_cache
-        if not os.path.isdir(cache_root):
-            raise FileNotFoundError(f"Local cache directory not found: {cache_root}")
-        log.info("Using local cache: %s", cache_root)
-    else:
-        method_infix = _CACHE_TYPE_TO_DOWNLOAD_INFIX[cache_type]
-        tarball_name = f"{species}{method_infix}_vep_{release}_{assembly}.tar.gz"
-        tarball_path = os.path.join(cache_dir, tarball_name)
-        cache_root = os.path.join(
-            cache_dir, species, f"{release}_{assembly}{method_infix}"
-        )
-
-        os.makedirs(cache_dir, exist_ok=True)
-
-        if not os.path.isdir(cache_root):
-            if not os.path.isfile(tarball_path):
-                _download_cache(
-                    release,
-                    species,
-                    assembly,
-                    cache_type,
-                    tarball_path,
-                    max_retries=download_retries,
-                )
-
-            tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
-            log.info("Extracting %s (%.0f MB) ...", tarball_name, tarball_size_mb)
-            with tarfile.open(tarball_path) as tar:
-                tar.extractall(path=cache_dir, filter="data")
-            log.info("Extracted to %s", cache_root)
-
-            os.remove(tarball_path)
-
-        if not os.path.isdir(cache_root):
-            raise FileNotFoundError(
-                f"Cache directory not found after extraction: {cache_root}"
-            )
+    cache_root = _resolve_raw_cache(
+        release,
+        cache_dir,
+        cache_type=cache_type,
+        species=species,
+        assembly=assembly,
+        local_cache=local_cache,
+        download_retries=download_retries,
+    )
 
     # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet
     output_dir = os.path.join(cache_dir, version_dir)
@@ -477,6 +522,70 @@ def build_cache(
 
     log.info("Done. Wrote %d Parquet datasets to %s", len(all_results), output_dir)
     return all_results
+
+
+def build_cache_entity(
+    release: int,
+    cache_dir: str,
+    entity: str,
+    *,
+    cache_type: str,
+    species: str = "homo_sapiens",
+    assembly: str = "GRCh38",
+    partitions: int = 8,
+    local_cache: str | None = None,
+    download_retries: int = 10,
+    overwrite: bool = False,
+) -> list[tuple[str, int]]:
+    """Download or open an Ensembl VEP cache and convert one raw entity.
+
+    This is the targeted counterpart to :func:`build_cache`. It applies the
+    same exact release/source validation and writes into the same
+    ``<release>_<assembly>_<cache_type>`` output directory. ``entity`` must be
+    one of ``variation``, ``transcript``, ``exon``, ``translation``,
+    ``regulatory``, or ``motif``. The raw ``translation`` entity produces the
+    ``translation_core`` and ``translation_sift`` Parquet datasets.
+
+    Returns a flattened list of ``(parquet_file_path, row_count)`` pairs.
+    """
+    import os
+
+    _validate_cache_type(cache_type)
+    _validate_cache_entity(entity)
+    expected_cache_version = _cache_version_for_release(release)
+    cache_root = _resolve_raw_cache(
+        release,
+        cache_dir,
+        cache_type=cache_type,
+        species=species,
+        assembly=assembly,
+        local_cache=local_cache,
+        download_retries=download_retries,
+    )
+    output_dir = os.path.join(cache_dir, f"{release}_{assembly}_{cache_type}")
+
+    entity_stats = _build_cache_entity(
+        cache_root,
+        output_dir,
+        entity,
+        partitions,
+        cache_type,
+        overwrite,
+        expected_cache_version,
+    )
+
+    results = [
+        (path, rows)
+        for _entity_name, parquet_files, _legacy_stats in entity_stats
+        for path, rows in parquet_files
+    ]
+    log.info(
+        "Done. Wrote %d Parquet datasets for %s to %s",
+        len(results),
+        entity,
+        output_dir,
+    )
+    return results
 
 
 DEFAULT_PLUGINS_REPO_URL = "https://github.com/biodatageeks/vepyr-plugins.git"

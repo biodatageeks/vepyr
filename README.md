@@ -60,6 +60,21 @@ for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
+To rebuild only one raw entity while preserving the same release/source
+contract, use `build_cache_entity()`. For example, a release-116 motif-only
+rebuild is:
+
+```python
+results = vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/tmp/vepyr_cache",
+    entity="motif",
+    cache_type="merged",
+    local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+)
+```
+
 This vepyr release supports exactly cache 115 with VEP 115.2 semantics and
 cache 116 with VEP 116.0 semantics. `build_cache()` embeds
 `bio.vep.cache_version` in every generated Parquet shard. Annotation requires

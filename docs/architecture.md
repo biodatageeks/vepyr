@@ -22,9 +22,10 @@ graph TD
 
 **Location:** `src/vepyr/__init__.py`
 
-The public surface is intentionally minimal — two functions:
+The main public operations are:
 
-- `build_cache()` — download, extract, and convert Ensembl VEP offline caches
+- `build_cache()` — download, extract, and convert complete Ensembl VEP offline caches
+- `build_cache_entity()` — release-aware targeted conversion of one raw cache entity
 - `annotate()` — annotate VCF files against converted caches
 
 This layer handles validation, download orchestration, progress reporting, and conversion of Arrow batches to Polars LazyFrames.

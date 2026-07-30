@@ -120,6 +120,25 @@ vepyr.build_cache(
 # → /Users/mwiewior/workspace/data_vepyr/116_GRCh38_merged/<entity>/chr*.parquet
 ```
 
+For a targeted rebuild, use the same release-aware public contract:
+
+```python
+vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/Users/mwiewior/workspace/data_vepyr",
+    entity="motif",
+    cache_type="merged",
+    local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+)
+```
+
+Valid raw entities are `variation`, `transcript`, `exon`, `translation`,
+`regulatory`, and `motif`. `translation` produces both `translation_core` and
+`translation_sift`. The targeted builder derives the expected Parquet cache
+version from `release` and rejects a conflicting raw-cache release/source
+before writing output, exactly like the full builder.
+
 See the [API reference](api.md#vepyr.build_cache) for the full signature. Plugin
 caches (e.g. AlphaMissense) are built separately and layered on top — see
 [Plugins](plugins.md).
