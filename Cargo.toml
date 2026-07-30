@@ -42,9 +42,9 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# Exact revisions under review in datafusion-bio-functions#203 and
-# datafusion-bio-formats#224. These pins make the vepyr 0.2.0 VEP 115.2/116.0
+# Exact bio-functions revision under review in #203 and the released
+# bio-formats v1.9.0 tag. These pins make the vepyr 0.2.0 VEP 115.2/116.0
 # support contract reproducible without machine-local patches.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1c4671f6fed72123a89bc3c80b939f253f809bc0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c81adf1235984c984918ce5bd39d573476b62337" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c81adf1235984c984918ce5bd39d573476b62337" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b4996420cea2dc2d2b33b35ef75dcdafc553b376", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.9.0" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.9.0" }
