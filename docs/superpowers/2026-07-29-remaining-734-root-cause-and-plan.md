@@ -82,8 +82,8 @@ the binary that produced it, not for a later unbuilt source commit:
 | Repository | Current local revision | Qualification state |
 |---|---|---|
 | vepyr | `01350d6` | exact pinned qualification revision on `release-testing`; `edd2995` is the dependency-pin commit and the preceding implementation commits are `6a2191b`, `72c6a8a`, `3f2f5eb`, and `54f97fa` |
-| bio-functions PR [#203](https://github.com/biodatageeks/datafusion-bio-functions/pull/203) | `0d02d711b352baf4087e2e9421e12716e10bb290` | pushed dual-release/cache semantics and source-trace fixes, plus the exact bio-formats pin |
-| bio-formats PR [#224](https://github.com/biodatageeks/datafusion-bio-formats/pull/224) | `eee2d6926331fe5106cbbefbc1ca673e94357327` | pushed Parquet cache identity persistence |
+| bio-functions PR [#203](https://github.com/biodatageeks/datafusion-bio-functions/pull/203) | `1c4671f6fed72123a89bc3c80b939f253f809bc0` | pushed dual-release/cache semantics and source-trace fixes, plus the exact bio-formats pin and builder release assertion |
+| bio-formats PR [#224](https://github.com/biodatageeks/datafusion-bio-formats/pull/224) | `c81adf1235984c984918ce5bd39d573476b62337` | pushed Parquet cache identity persistence, strict decimal/raw-release validation, and split-translation metadata |
 
 [Cargo.toml](../../Cargo.toml) now pins those exact pushed revisions. Commit `edd2995` removes all
 absolute worktree patches, and `Cargo.lock` records only durable Git sources for the VEP
@@ -627,10 +627,12 @@ Therefore the earlier statement “release detection already works” was incorr
 code and the actual generated caches.
 
 The implemented bio-formats change uses strict fallback from only the final canonical raw-cache
-root name (`115_GRCh38...` or `116_GRCh38...`), rejects an explicit-info/basename conflict, and
-adds `bio.vep.cache_version` to every raw provider schema. The generated-cache builder verifies
-that detected identity before writing and preserves it in every output schema. It never infers an
-annotation-cache release from a parent directory or generated-cache path.
+root name (`115_GRCh38...` or `116_GRCh38...`), rejects non-decimal values, missing provenance,
+explicit-info/basename conflicts, and builder-expected/detected conflicts, and adds
+`bio.vep.cache_version` to every raw provider schema. The generated-cache builder verifies that
+detected identity before writing and preserves it in every output schema, including
+`translation_core` and `translation_sift`. It never writes `"unknown"` as release identity or
+infers an annotation-cache release from a parent directory or generated-cache path.
 
 ---
 
@@ -738,7 +740,7 @@ metadata-less generated caches rather than treating their directory names as ide
 | Whole-genome merged parity | both pinned gates exact | [115 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) each compare all 4,096,123 variants with zero structural, ordering, one-sided, field, field-order, or ledger mismatches |
 | Whole-genome single-source parity | all four pinned gates exact | [115 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [115 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [116 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md), and [116 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md) are exact across all shared fields; each compares 4,096,123 variants with empty per-contig ledgers |
 | Ensembl/RefSeq cache rebuilds | four of four complete | 115 RefSeq (1,251,658,968 verified rows), 115 Ensembl (1,251,754,252), 116 RefSeq (1,576,931,569), and 116 Ensembl (1,651,451,505) are live; the 116 Ensembl cache has 999,828 motif rows and every row has non-empty binding-matrix and transcription-factor values |
-| Durable dependencies | pinned, pushed upstream, and release-qualified | vepyr qualification revision `01350d6` contains pin commit `edd2995`, which pins bio-formats `eee2d6926331fe5106cbbefbc1ca673e94357327` and bio-functions `0d02d711b352baf4087e2e9421e12716e10bb290`; both revisions are the remote heads of PR #224 and PR #203, and no absolute patch remains |
+| Durable dependencies | pinned, pushed upstream, and release-qualified | vepyr pin commit `07db8ff` pins bio-formats `c81adf1235984c984918ce5bd39d573476b62337` and bio-functions `1c4671f6fed72123a89bc3c80b939f253f809bc0`; both revisions are the remote heads of PR #224 and PR #203, and no absolute patch remains |
 | Google Drive publication | six of six complete | each exact local directory name exists under `gdrive-mw:/vepyr/cache`; local and remote file counts and byte totals match, all six one-way hash checks report zero differences, and all six local caches passed the metadata/footer verifier again after upload |
 
 The requested VEP 115 chromosome-by-chromosome burn-down is therefore unambiguous. Each value
