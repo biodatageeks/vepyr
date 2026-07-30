@@ -71,6 +71,26 @@ def expected_csq_fields(profile_name: str) -> frozenset[str]:
     return frozenset(fields)
 
 
+def expected_benchmark_artifacts(
+    profile_name: str, release: str
+) -> dict[str, dict[str, Any]]:
+    """Resolve the canonical full-benchmark artifacts required by the gate."""
+    reference = profiles.vep_vcf_for(profile_name, release)
+    if reference is None:
+        raise GateError(
+            f"canonical VEP reference is unavailable for {profile_name}/{release}"
+        )
+    paths = {
+        "input_vcf": profiles.default_input(profiles.DEFAULT_VCF_NAME),
+        "reference_fasta": profiles.default_input(profiles.DEFAULT_FASTA_NAME),
+        "vep_reference_vcf": reference,
+    }
+    try:
+        return {name: vcfio.source_identity(path) for name, path in paths.items()}
+    except OSError as exc:
+        raise GateError(f"cannot identify canonical benchmark artifact: {exc}") from exc
+
+
 class GateError(RuntimeError):
     """A report set is not a complete, exact, release-qualified result."""
 
@@ -147,12 +167,18 @@ def _require_nonnegative_int(value: Any, label: str) -> int:
     return value
 
 
-def _validate_equality_counts(comparison: dict[str, Any], contig: str) -> None:
+def _validate_equality_counts(
+    comparison: dict[str, Any],
+    contig: str,
+    expected_fields: frozenset[str],
+) -> None:
     per_field = comparison.get("field_equality_counts")
     aggregate = comparison.get("equality_bucket_counts")
     if not isinstance(per_field, dict) or not per_field:
         raise GateError(f"{contig}: missing field_equality_counts")
-    if not isinstance(aggregate, dict):
+    if set(per_field) != expected_fields:
+        raise GateError(f"{contig}: field_equality_counts has the wrong CSQ field set")
+    if not isinstance(aggregate, dict) or set(aggregate) != set(EQUALITY_BUCKETS):
         raise GateError(f"{contig}: missing equality_bucket_counts")
 
     calculated = {bucket: 0 for bucket in EQUALITY_BUCKETS}
@@ -312,6 +338,7 @@ def validate_reports(
     suffix: str,
     expected_package_version: str,
     build_info: dict[str, Any],
+    expected_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, int]:
     if len(reports) != len(contigs):
         raise GateError(f"expected {len(contigs)} reports, got {len(reports)}")
@@ -348,13 +375,25 @@ def validate_reports(
                 comparison.get(key), f"{expected_contig}/{key}"
             )
             totals[key] += count
-        if comparison.get("fields_only_in_vepyr") not in ([], None):
+        if value.get("benchmark_artifacts") != expected_artifacts:
+            raise GateError(
+                f"{expected_contig}: report was not generated from the canonical "
+                "full-benchmark artifacts"
+            )
+        if comparison.get("fields_only_in_vepyr") != []:
             raise GateError(f"{expected_contig}: CSQ fields exist only in vepyr")
-        if comparison.get("fields_only_in_vep") not in ([], None):
+        if comparison.get("fields_only_in_vep") != []:
             raise GateError(f"{expected_contig}: CSQ fields exist only in VEP")
         field_mismatches = comparison.get("field_mismatch_counts")
         if not isinstance(field_mismatches, dict):
             raise GateError(f"{expected_contig}: missing field_mismatch_counts")
+        expected_fields = expected_csq_fields(profile)
+        unexpected_mismatch_fields = set(field_mismatches) - expected_fields
+        if unexpected_mismatch_fields:
+            raise GateError(
+                f"{expected_contig}: mismatch counts contain unexpected CSQ fields "
+                f"{sorted(unexpected_mismatch_fields)}"
+            )
         totals["field_mismatch_total"] += sum(
             _require_nonnegative_int(count, f"{expected_contig}/{field}")
             for field, count in field_mismatches.items()
@@ -362,6 +401,12 @@ def validate_reports(
         field_order = comparison.get("field_order_mismatch_counts")
         if not isinstance(field_order, dict):
             raise GateError(f"{expected_contig}: missing field_order_mismatch_counts")
+        unexpected_order_fields = set(field_order) - expected_fields
+        if unexpected_order_fields:
+            raise GateError(
+                f"{expected_contig}: order counts contain unexpected CSQ fields "
+                f"{sorted(unexpected_order_fields)}"
+            )
         totals["field_order_mismatch_total"] += sum(
             _require_nonnegative_int(count, f"{expected_contig}/{field}/order-only")
             for field, count in field_order.items()
@@ -388,7 +433,6 @@ def validate_reports(
         rates = comparison.get("field_match_rates")
         if not isinstance(rates, dict) or not rates:
             raise GateError(f"{expected_contig}: missing field_match_rates")
-        expected_fields = expected_csq_fields(profile)
         observed_fields = set(rates)
         if observed_fields != expected_fields:
             missing = sorted(expected_fields - observed_fields)
@@ -399,7 +443,7 @@ def validate_reports(
             )
         if any(rate != 100.0 for rate in rates.values()):
             raise GateError(f"{expected_contig}: at least one field is below 100%")
-        _validate_equality_counts(comparison, expected_contig)
+        _validate_equality_counts(comparison, expected_contig, expected_fields)
         _validate_empty_ledger(comparison, directory, expected_contig, suffix, release)
         totals["mismatch_ledger_rows"] += comparison["mismatch_ledger"]["rows"]
         _validate_identity(
@@ -454,6 +498,7 @@ def main(argv: list[str] | None = None) -> int:
             suffix=profile.suffix,
             expected_package_version=running_version,
             build_info=report.get_build_info(),
+            expected_artifacts=expected_benchmark_artifacts(args.profile, args.release),
         )
     except GateError as exc:
         print(f"PARITY GATE FAILED: {exc}", file=sys.stderr)

@@ -19,8 +19,8 @@ _VEP_HEADER_VALUE_RE = re.compile(
 _CACHE_RELEASE_RE = re.compile(r"(?:^|/)(?P<release>\d+)_GRCh\d+(?:$|/)")
 
 
-def _source_identity(path):
-    """Return the cheap, stable identity used for derived working files."""
+def source_identity(path):
+    """Return the filesystem identity used to bind inputs and derived files."""
     stat = os.stat(path)
     return {
         "path": os.path.abspath(path),
@@ -183,7 +183,7 @@ def ensure_tabix_index(vcf_gz, source_marker=None):
     retain a stale, newer-looking index.
     """
     tbi = vcf_gz + ".tbi"
-    source = _source_identity(vcf_gz)
+    source = source_identity(vcf_gz)
     if os.path.exists(tbi):
         if source_marker is not None:
             if _read_json(source_marker) == source:
@@ -219,7 +219,7 @@ def ensure_bgzf(path, out_dir):
     target = os.path.join(out_dir, os.path.basename(path))
     target_gz = target + ".gz"
     sidecar_path = target_gz + ".source.json"
-    source = _source_identity(path)
+    source = source_identity(path)
     if (
         os.path.exists(target_gz)
         and os.path.exists(target_gz + ".tbi")
@@ -276,7 +276,7 @@ def normalize_vcf(vcf, out_dir):
     norm_vcf_gz = norm_vcf + ".gz"
     sidecar_path = os.path.join(out_dir, "normalized.source.json")
 
-    source = _source_identity(vcf)
+    source = source_identity(vcf)
 
     if os.path.exists(norm_vcf_gz) and os.path.exists(sidecar_path):
         previous = _read_json(sidecar_path)
@@ -315,7 +315,7 @@ def slice_contig(vcf_gz, chrom, out_dir, force=False):
     out_vcf = os.path.join(out_dir, f"input_{chrom}.vcf")
     out_gz = out_vcf + ".gz"
     sidecar_path = os.path.join(out_dir, f"input_{chrom}.source.json")
-    source = _source_identity(vcf_gz)
+    source = source_identity(vcf_gz)
     previous = _read_json(sidecar_path)
     if (
         not force
@@ -365,7 +365,7 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.vcf")
     sidecar_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.source.json")
-    source = _source_identity(vep_vcf)
+    source = source_identity(vep_vcf)
     previous = _read_json(sidecar_path)
     if os.path.exists(out_path) and not force and previous == source:
         print(f"  Using existing {out_path}")

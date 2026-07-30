@@ -164,6 +164,37 @@ def test_select_supported_target_rejects_missing_or_duplicate_records(targets):
         cli.select_supported_target("115", targets)
 
 
+def test_benchmark_artifacts_bind_original_input_fasta_and_vep_reference(tmp_path):
+    input_vcf = tmp_path / "input.vcf.gz"
+    fasta = tmp_path / "reference.fa"
+    vep_reference = tmp_path / "vep.vcf.gz"
+    for artifact in (input_vcf, fasta, vep_reference):
+        artifact.write_bytes(artifact.name.encode())
+    args = cli.parse_args(
+        [
+            "--release",
+            "115",
+            "--vcf",
+            str(input_vcf),
+            "--fasta",
+            str(fasta),
+        ]
+    )
+
+    identities = cli.benchmark_artifact_identities(
+        args, _fake_resolved(str(vep_reference))
+    )
+
+    assert set(identities) == {
+        "input_vcf",
+        "reference_fasta",
+        "vep_reference_vcf",
+    }
+    assert identities["input_vcf"]["path"] == str(input_vcf)
+    assert identities["reference_fasta"]["path"] == str(fasta)
+    assert identities["vep_reference_vcf"]["path"] == str(vep_reference)
+
+
 def test_summary_only_does_not_load_native_targets_or_live_data(monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     monkeypatch.setattr(cli.report, "load_reports", lambda *_args: [])
@@ -251,6 +282,15 @@ def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
     monkeypatch.setattr(cli.vcfio, "parse_vep_header", lambda _path: {})
     monkeypatch.setattr(
         cli.vcfio, "validate_vep_reference_identity", lambda *_args: None
+    )
+    monkeypatch.setattr(
+        cli,
+        "benchmark_artifact_identities",
+        lambda *_args: {
+            "input_vcf": {},
+            "reference_fasta": {},
+            "vep_reference_vcf": {},
+        },
     )
     monkeypatch.setattr(cli.vcfio, "normalize_vcf", lambda *_args: "input.vcf.gz")
     monkeypatch.setattr(cli, "resolve_contigs", lambda *_args: ["chr1", "chr2"])

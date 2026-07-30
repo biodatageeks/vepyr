@@ -49,6 +49,18 @@ CLEAN_BUILD = {
 }
 
 
+def _expected_artifacts(report_dir: Path) -> dict[str, dict]:
+    paths = {
+        "input_vcf": report_dir / "benchmark-input.vcf.gz",
+        "reference_fasta": report_dir / "reference.fa",
+        "vep_reference_vcf": report_dir / "vep-reference.vcf.gz",
+    }
+    for path in paths.values():
+        if not path.exists():
+            path.write_bytes(path.name.encode())
+    return {name: gate.vcfio.source_identity(path) for name, path in paths.items()}
+
+
 def _write_report(report_dir: Path, contig: str = "chr1") -> dict:
     ledger = Path(
         gate.report.mismatch_ledger_path(str(report_dir), contig, "merged", "116")
@@ -78,6 +90,7 @@ def _write_report(report_dir: Path, contig: str = "chr1") -> dict:
         },
         "supported_target": dict(TARGET),
         "reference_identity": dict(REFERENCE),
+        "benchmark_artifacts": _expected_artifacts(report_dir),
         "input_variants": 10,
         "annotation": {"output_variants": 10},
         "comparison": {
@@ -123,6 +136,7 @@ def _validate(value: dict, report_dir: Path):
         suffix="merged",
         expected_package_version="0.2.0",
         build_info=CLEAN_BUILD,
+        expected_artifacts=_expected_artifacts(report_dir),
     )
 
 
@@ -190,6 +204,33 @@ def test_gate_rejects_a_truncated_profile_field_set(tmp_path):
         _validate(value, tmp_path)
 
 
+def test_gate_rejects_a_truncated_equality_field_set(tmp_path):
+    value = _write_report(tmp_path)
+    value["comparison"]["field_equality_counts"].pop("Consequence")
+
+    with pytest.raises(gate.GateError, match="wrong CSQ field set"):
+        _validate(value, tmp_path)
+
+
+def test_gate_rejects_substituted_benchmark_artifacts(tmp_path):
+    value = _write_report(tmp_path)
+    substitute = tmp_path / "filtered-input.vcf.gz"
+    substitute.write_bytes(b"filtered")
+    value["benchmark_artifacts"]["input_vcf"] = gate.vcfio.source_identity(substitute)
+
+    with pytest.raises(gate.GateError, match="canonical full-benchmark artifacts"):
+        _validate(value, tmp_path)
+
+
+def test_gate_rejects_benchmark_artifact_changed_after_report(tmp_path):
+    value = _write_report(tmp_path)
+    input_path = Path(value["benchmark_artifacts"]["input_vcf"]["path"])
+    input_path.write_bytes(b"changed after comparison")
+
+    with pytest.raises(gate.GateError, match="canonical full-benchmark artifacts"):
+        _validate(value, tmp_path)
+
+
 def test_gate_rejects_equality_bucket_inconsistency(tmp_path):
     value = _write_report(tmp_path)
     value["comparison"]["equality_bucket_counts"]["both_empty"] = 3
@@ -244,6 +285,7 @@ def test_gate_rejects_local_path_dependency(tmp_path):
             suffix="merged",
             expected_package_version="0.2.0",
             build_info=build,
+            expected_artifacts=_expected_artifacts(tmp_path),
         )
 
 
@@ -278,6 +320,7 @@ def test_gate_rejects_cross_contig_identity_or_cache_drift(
             suffix="merged",
             expected_package_version="0.2.0",
             build_info=CLEAN_BUILD,
+            expected_artifacts=_expected_artifacts(tmp_path),
         )
 
 

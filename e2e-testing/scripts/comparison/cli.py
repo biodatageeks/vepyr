@@ -152,6 +152,21 @@ def select_supported_target(release, targets):
     return dict(matches[0])
 
 
+def benchmark_artifact_identities(args, resolved):
+    """Bind one parity run to its original input, FASTA, and VEP artifacts."""
+    paths = {
+        "input_vcf": args.vcf,
+        "reference_fasta": args.fasta,
+        "vep_reference_vcf": resolved.vep_vcf,
+    }
+    missing = [name for name, path in paths.items() if path is None]
+    if missing:
+        raise ValueError(
+            "cannot identify required benchmark artifact(s): " + ", ".join(missing)
+        )
+    return {name: vcfio.source_identity(path) for name, path in paths.items()}
+
+
 def resolve_contigs(args, resolved, input_vcf):
     """Contigs to process: the reference index intersected with the input index.
 
@@ -210,6 +225,7 @@ def run_contig(
     selected_target,
     reference_identity,
     build_info,
+    benchmark_artifacts,
 ):
     """Annotate and compare a single contig, returning its report dict."""
     work_dir = os.path.join(results_dir, f"fast_{chrom}")
@@ -277,6 +293,7 @@ def run_contig(
         "cache_identity": cache_identity,
         "supported_target": selected_target,
         "build": build_info,
+        "benchmark_artifacts": benchmark_artifacts,
         "input_variants": n_variants,
         "annotation": {
             "backend": BACKEND,
@@ -352,6 +369,7 @@ def main(argv=None):
     try:
         selected_target = None
         reference_identity = None
+        benchmark_artifacts = None
         if not args.skip_annotate:
             selected_target = select_supported_target(
                 args.release,
@@ -363,7 +381,8 @@ def main(argv=None):
                     reference_identity,
                     selected_target,
                 )
-    except (RuntimeError, ValueError) as exc:
+                benchmark_artifacts = benchmark_artifact_identities(args, resolved)
+    except (OSError, RuntimeError, ValueError) as exc:
         print(f"Error: release identity validation failed: {exc}", file=sys.stderr)
         return 2
 
@@ -447,6 +466,7 @@ def main(argv=None):
                         selected_target,
                         reference_identity,
                         build_info,
+                        benchmark_artifacts,
                     )
             except Exception as exc:  # noqa: BLE001 - one contig must not kill the sweep
                 report.quarantine_contig_evidence(
