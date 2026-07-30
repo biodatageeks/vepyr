@@ -11,7 +11,6 @@ import time
 from . import vcfio
 
 BACKEND = "parquet"
-REUSE_MIN_BYTES = 1000
 
 
 def supported_vep_targets():
@@ -42,24 +41,18 @@ def annotate_contig(
     force=False,
     bgzf=False,
 ):
-    """Annotate one contig slice, reusing existing output unless forced.
+    """Annotate one contig without trusting an existing output.
 
-    Returns (elapsed_seconds, output_variant_count). elapsed is None when the
-    existing output was reused, which the report renders as a blank timing.
+    The report records current build/cache provenance. Reusing a VCF without an
+    independently verified identity could relabel stale annotations as current,
+    so an existing output is always replaced. ``force`` remains part of the
+    runner interface because it also controls input/reference slicing.
     """
-    if (
-        not force
-        and os.path.exists(output_vcf)
-        and os.path.getsize(output_vcf) > REUSE_MIN_BYTES
-    ):
-        # Validate framing before reading: a mis-framed .vcf.gz would otherwise
-        # fail inside gzip with BadGzipFile instead of a useful message.
-        _validate_bgzf(output_vcf, bgzf)
-        n_out = vcfio.count_data_lines(output_vcf)
-        size_mb = os.path.getsize(output_vcf) / (1024 * 1024)
-        print(f"  Reusing {output_vcf} ({n_out:,} variants, {size_mb:.0f} MB)")
-        print("  Use --force to re-run")
-        return None, n_out
+    if os.path.exists(output_vcf) and not force:
+        print(
+            f"  Existing {output_vcf} has no verified annotation provenance; "
+            "re-annotating"
+        )
 
     import vepyr
 

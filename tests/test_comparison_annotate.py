@@ -73,15 +73,17 @@ def test_annotate_contig_forwards_profile_kwargs(fake_vepyr, tmp_path):
     assert call["cache_format"] == "parquet"
 
 
-def test_annotate_contig_reuses_existing_output(fake_vepyr, tmp_path):
+def test_annotate_contig_never_relabels_an_unverified_existing_output(
+    fake_vepyr, tmp_path
+):
     out = tmp_path / "out.vcf"
     _existing_output(out)
     elapsed, n = annotate.annotate_contig(
         "input.vcf.gz", "/cache", "/ref.fa", str(out), workers=1, annotate_kwargs={}
     )
-    assert elapsed is None
-    assert n == 200
-    assert fake_vepyr == [], "reuse must not call vepyr.annotate"
+    assert elapsed is not None
+    assert n == 2
+    assert len(fake_vepyr) == 1
 
 
 def test_annotate_contig_force_reannotates(fake_vepyr, tmp_path):

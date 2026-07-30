@@ -501,7 +501,7 @@ def generate_markdown(
         )
         lines.append(f"**Aggregate rate:** {total_in / total_time:,.0f} variants/s")
     else:
-        lines.append("**Total annotation time:** n/a (all output reused)")
+        lines.append("**Total annotation time:** n/a (timing unavailable)")
     if bi:
         lines.append(
             f"**Build:** branch `{bi.get('branch', '?')}` "

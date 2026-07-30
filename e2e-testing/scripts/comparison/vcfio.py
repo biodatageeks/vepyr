@@ -260,12 +260,31 @@ def normalize_vcf(vcf, out_dir):
     return norm_vcf_gz
 
 
-def slice_contig(vcf_gz, chrom, out_dir):
-    """Extract one contig from an indexed VCF into a bgzf + tabix-indexed slice."""
+def slice_contig(vcf_gz, chrom, out_dir, force=False):
+    """Extract one contig into a bgzf slice tied to its indexed source."""
     os.makedirs(out_dir, exist_ok=True)
     out_vcf = os.path.join(out_dir, f"input_{chrom}.vcf")
     out_gz = out_vcf + ".gz"
-    if os.path.exists(out_gz) and os.path.exists(out_gz + ".tbi"):
+    sidecar_path = os.path.join(out_dir, f"input_{chrom}.source.json")
+    stat = os.stat(vcf_gz)
+    source = {
+        "path": os.path.abspath(vcf_gz),
+        "size": stat.st_size,
+        "mtime": stat.st_mtime,
+    }
+    previous = None
+    if os.path.exists(sidecar_path):
+        try:
+            with open(sidecar_path) as stream:
+                previous = json.load(stream)
+        except (OSError, json.JSONDecodeError):
+            previous = None
+    if (
+        not force
+        and previous == source
+        and os.path.exists(out_gz)
+        and os.path.exists(out_gz + ".tbi")
+    ):
         print(f"  Using existing {out_gz}")
         return out_gz
 
@@ -291,6 +310,8 @@ def slice_contig(vcf_gz, chrom, out_dir):
         f.write(body)
     subprocess.run(["bgzip", "-f", out_vcf], check=True)
     subprocess.run(["tabix", "-f", "-p", "vcf", out_gz], check=True)
+    with open(sidecar_path, "w") as stream:
+        json.dump(source, stream, indent=2)
     print(f"  Created {out_gz}")
     return out_gz
 

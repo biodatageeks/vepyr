@@ -170,6 +170,24 @@ def test_slice_contig_extracts_only_the_requested_contig(
     assert chroms == {"chr1"}
 
 
+def test_slice_contig_regenerates_when_the_indexed_source_changes(
+    indexed_multi_contig, tmp_path
+):
+    out_dir = tmp_path / "work"
+    first = vcfio.slice_contig(str(indexed_multi_contig), "chr1", str(out_dir))
+    marker = out_dir / "input_chr1.source.json"
+    first_source = json.loads(marker.read_text())
+    stat = indexed_multi_contig.stat()
+    os.utime(indexed_multi_contig, (stat.st_atime, stat.st_mtime + 1))
+
+    second = vcfio.slice_contig(str(indexed_multi_contig), "chr1", str(out_dir))
+
+    assert second == first
+    second_source = json.loads(marker.read_text())
+    assert second_source["mtime"] != first_source["mtime"]
+    assert vcfio.count_data_lines(second) == 2
+
+
 def test_slice_vep_reads_a_bgzf_reference(indexed_multi_contig, tmp_path):
     """Regression: extract_chrom_from_vep used bare open() and raised UnicodeDecodeError."""
     out_dir = tmp_path / "work"

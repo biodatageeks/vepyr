@@ -55,7 +55,10 @@ def parse_args(argv=None):
         "Default: detect from the VEP reference index",
     )
     p.add_argument(
-        "--force", action="store_true", help="Re-annotate even if output exists"
+        "--force",
+        action="store_true",
+        help="Recreate cached input/reference contig slices; annotation outputs "
+        "are always regenerated",
     )
     p.add_argument(
         "--bgzf",
@@ -212,7 +215,12 @@ def run_contig(
     print(f"  {chrom} (profile={resolved.profile}, release={resolved.release})")
     print(f"{'=' * 60}")
 
-    chrom_vcf_gz = vcfio.slice_contig(input_vcf, chrom, work_dir)
+    chrom_vcf_gz = vcfio.slice_contig(
+        input_vcf,
+        chrom,
+        work_dir,
+        force=args.force,
+    )
     n_variants = vcfio.count_data_lines(chrom_vcf_gz)
     print(f"  Input: {n_variants:,} variants for {chrom}")
 

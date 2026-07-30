@@ -84,7 +84,7 @@ uv run python run_comparison.py --release 115 --chroms 22
 # Several contigs, a different scenario and release
 uv run python run_comparison.py --release 116 --profile merged --chroms 1 2 22
 
-# Re-annotate instead of reusing existing output
+# Recreate cached input/reference slices as well as the annotation
 uv run python run_comparison.py --release 115 --chroms 22 --force
 
 # Block-gzipped output, validated as BGZF
@@ -110,10 +110,10 @@ uv run python run_comparison.py --release 115 --chroms 22 \
     --fasta /path/to/reference.fa
 ```
 
-**Defaults:** `--profile merged`, reuse existing output (`--force` to
-re-annotate), plain output (`--bgzf` for block-gzipped), `--workers 1`,
-normalization on (`--no-normalize` to skip), contigs detected from the
-reference index.
+**Defaults:** `--profile merged`, always regenerate annotation output, reuse
+only source-identified normalized/input slices (`--force` to recreate slices),
+plain output (`--bgzf` for block-gzipped), `--workers 1`, normalization on
+(`--no-normalize` to skip), contigs detected from the reference index.
 
 **Contig detection** reads the tabix index, not the `##contig` headers: the
 real VEP references list 195 contigs in their headers while only 22 carry
