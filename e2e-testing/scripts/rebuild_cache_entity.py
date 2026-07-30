@@ -334,6 +334,19 @@ def _reports_detail(reports: tuple[EntityReport, ...]) -> str:
     return "; ".join(f"{report.entity}: {report.detail()}" for report in reports)
 
 
+def _parquet_row_total(entity_dir: Path) -> int:
+    """Inventory all current Parquet rows when stricter verification fails."""
+    total = 0
+    for shard in sorted(entity_dir.glob("*.parquet")):
+        try:
+            total += pq.ParquetFile(shard).metadata.num_rows
+        except Exception as exc:
+            raise VerificationError(
+                f"cannot read current Parquet footer {shard}: {exc}"
+            ) from exc
+    return total
+
+
 def verify(
     cache_dir: str | Path,
     raw_entity: str,
@@ -428,6 +441,9 @@ def main(argv: list[str] | None = None) -> int:
     existing_outputs = [
         entity for entity in generated_entities if (target / entity).is_dir()
     ]
+    live_totals: dict[str, int] = {}
+    live_reports: list[EntityReport] = []
+    live_errors: list[str] = []
     if existing_outputs:
         if len(existing_outputs) != len(generated_entities):
             missing = sorted(set(generated_entities) - set(existing_outputs))
@@ -435,9 +451,28 @@ def main(argv: list[str] | None = None) -> int:
                 "current entity: NEEDS REBUILD — missing generated outputs "
                 f"{', '.join(missing)}"
             )
-        else:
-            ok, detail = verify(target, raw_entity, release, cache_type)
-            state = "OK" if ok else "NEEDS REBUILD"
+        for entity in existing_outputs:
+            try:
+                entity_report = verify_entity_dir(
+                    target / entity,
+                    entity,
+                    release,
+                    cache_type,
+                )
+                live_totals[entity] = entity_report.rows
+                live_reports.append(entity_report)
+            except VerificationError as exc:
+                live_errors.append(str(exc))
+                print(f"current {entity}: NEEDS REBUILD — {exc}")
+                try:
+                    live_totals[entity] = _parquet_row_total(target / entity)
+                except VerificationError as inventory_exc:
+                    problems.append(
+                        f"cannot inventory current {entity}: {inventory_exc}"
+                    )
+        if len(existing_outputs) == len(generated_entities) and not live_errors:
+            detail = _reports_detail(tuple(live_reports))
+            state = "OK"
             print(f"current entity: {state} — {detail}")
 
     if problems:
@@ -471,10 +506,32 @@ def main(argv: list[str] | None = None) -> int:
     built_rows = sum(rows for _path, rows in results)
     print(f"builder reported {built_rows:,} rows in {elapsed / 60:.1f} min")
 
-    ok, detail = verify(staging_cache, raw_entity, release, cache_type)
-    print(f"staged verification: {'OK' if ok else 'FAILED'} — {detail}")
-    if not ok:
+    try:
+        staged_reports = verify_selected_entity(
+            staging_cache,
+            raw_entity,
+            release,
+            cache_type,
+        )
+    except VerificationError as exc:
+        print(f"staged verification: FAILED — {exc}")
         print(f"staging retained for inspection: {staging_parent}", file=sys.stderr)
+        return 1
+    print(f"staged verification: OK — {_reports_detail(staged_reports)}")
+
+    staged_totals = {report.entity: report.rows for report in staged_reports}
+    changed = {
+        entity: (live_totals[entity], staged_totals[entity])
+        for entity in live_totals
+        if live_totals[entity] != staged_totals[entity]
+    }
+    if changed:
+        print(
+            "row-count reconciliation failed; staging retained and target unchanged:",
+            file=sys.stderr,
+        )
+        for entity, (old, new) in changed.items():
+            print(f"  {entity}: old={old:,}, new={new:,}", file=sys.stderr)
         return 1
 
     try:

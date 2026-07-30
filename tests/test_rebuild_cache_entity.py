@@ -283,7 +283,7 @@ def test_main_uses_public_release_aware_builder_and_retains_backup(tmp_path):
             "overwrite": True,
         }
         staged_motif = Path(cache_dir) / "116_GRCh38_merged" / "motif"
-        shards = _write_motif(staged_motif, shard_count=2)
+        shards = _write_motif(staged_motif, shard_count=1)
         return [(str(shard), 2) for shard in shards]
 
     with patch(
@@ -310,7 +310,7 @@ def test_main_uses_public_release_aware_builder_and_retains_backup(tmp_path):
 
     assert result == 0
     public_builder.assert_called_once()
-    assert rebuild.verify_entity_dir(live_motif, "motif", "116", "merged").rows == 4
+    assert rebuild.verify_entity_dir(live_motif, "motif", "116", "merged").rows == 2
     backups = list(tmp_path.glob(".116_GRCh38_merged.motif-backup-*"))
     assert len(backups) == 1
     assert rebuild.verify_entity_dir(backups[0], "motif", "116", "merged").rows == 2
@@ -335,7 +335,7 @@ def test_main_rebuilds_requested_non_motif_entity(tmp_path):
         assert entity == "variation"
         assert kwargs["cache_type"] == "merged"
         staged = Path(cache_dir) / "116_GRCh38_merged" / "variation"
-        shards = _write_generic_entity(staged, "variation", shard_count=2)
+        shards = _write_generic_entity(staged, "variation", shard_count=1)
         return [(str(shard), 2) for shard in shards]
 
     with patch(
@@ -364,7 +364,7 @@ def test_main_rebuilds_requested_non_motif_entity(tmp_path):
             "116",
             "merged",
         ).rows
-        == 4
+        == 2
     )
     backups = list(tmp_path.glob(".116_GRCh38_merged.variation-backup-*"))
     assert len(backups) == 1
@@ -426,6 +426,54 @@ def test_main_blocked_preflight_does_not_build(tmp_path, capsys):
     assert "BLOCKED" in capsys.readouterr().err
 
 
+def test_main_rejects_empty_targeted_rebuild_before_swap(tmp_path, capsys):
+    source = tmp_path / "raw" / "116_GRCh38"
+    source.mkdir(parents=True)
+    (source / "info.txt").write_text("cache_version 116\n")
+    target = tmp_path / "116_GRCh38_merged"
+    live_transcript = target / "transcript"
+    _write_generic_entity(live_transcript, "transcript")
+
+    def fake_build_cache_entity(
+        _release: int,
+        cache_dir: str,
+        _entity: str,
+        **_kwargs,
+    ) -> list[tuple[str, int]]:
+        staged = Path(cache_dir) / "116_GRCh38_merged" / "transcript"
+        _write_generic_entity(staged, "transcript", shard_count=0)
+        return []
+
+    with patch("vepyr.build_cache_entity", side_effect=fake_build_cache_entity):
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--entity",
+                "transcript",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 1
+    assert (
+        rebuild.verify_entity_dir(
+            live_transcript,
+            "transcript",
+            "116",
+            "merged",
+        ).rows
+        == 2
+    )
+    assert not list(tmp_path.glob(".116_GRCh38_merged.transcript-backup-*"))
+    assert list(tmp_path.glob(".116_GRCh38_merged.transcript-rebuild-*"))
+    assert "row-count reconciliation failed" in capsys.readouterr().err
+
+
 def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):
     source = tmp_path / "raw" / "116_GRCh38"
     source.mkdir(parents=True)
@@ -441,7 +489,7 @@ def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):
         **_kwargs,
     ) -> list[tuple[str, int]]:
         staged_motif = Path(cache_dir) / "116_GRCh38_merged" / "motif"
-        shards = _write_motif(staged_motif, shard_count=2)
+        shards = _write_motif(staged_motif, shard_count=1)
         return [(str(shard), 2) for shard in shards]
 
     original_rename = Path.rename
