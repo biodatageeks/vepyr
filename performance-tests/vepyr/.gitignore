@@ -1,0 +1,5 @@
+outputs/**/*.vcf
+outputs/**/*.vcf.gz
+outputs/**/*.tbi
+outputs/**/*.csi
+scripts/__pycache__/

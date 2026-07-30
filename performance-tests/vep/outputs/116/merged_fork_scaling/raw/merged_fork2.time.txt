@@ -1,0 +1,23 @@
+	Command being timed: "docker run --rm --user 1000:1000 --env HOME=/tmp -v /home/tgambin/workspace/vep_data/homo_sapiens_merged/116_GRCh38:/opt/vep/.vep/homo_sapiens_merged/116_GRCh38:ro -v /home/tgambin/workspace/vep_data/input:/input:ro -v /home/tgambin/workspace/vep_data/output/116/merged_fork_scaling:/output ensemblorg/ensembl-vep:release_116.0 vep --dir /opt/vep/.vep --cache --merged --offline --assembly GRCh38 --input_file /input/HG002_normalized.vcf.gz --output_file /output/HG002_annotated_wgs_everything_hgvs_merged_fork2.vcf --vcf --force_overwrite --no_stats --everything --hgvs --fasta /input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --fork 2"
+	User time (seconds): 0.27
+	System time (seconds): 0.06
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:12:46
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 23772
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 5717
+	Voluntary context switches: 5986
+	Involuntary context switches: 26
+	Swaps: 0
+	File system inputs: 144
+	File system outputs: 256
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
