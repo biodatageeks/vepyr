@@ -79,7 +79,7 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 - **Stack**: Existing Rust + PyO3 + DataFusion architecture — new work should build on the current engine rather than replacing it
 - **Correctness**: Zero mismatches vs Ensembl VEP `--everything` for the supported scope — this is the short-term quality bar
 - **Performance**: `50x+` speedup over Ensembl VEP — performance work must be measured against the reference tool
-- **Scope**: `homo_sapiens`, `GRCh38`, one Ensembl release — limits the initial validation surface so parity can be achieved rigorously
+- **Scope**: `homo_sapiens`, `GRCh38`, pinned VEP 115.2 and 116.0 code/cache pairs — keeps the validation surface explicit so parity can be achieved rigorously
 - **Outputs**: Basic Polars plus VCF-compatible results — output work should serve those two paths first
 <!-- GSD:project-end -->
 
@@ -97,22 +97,22 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 - Tokio multi-thread runtime - created inside `src/annotate.rs` to drive DataFusion streaming work
 - `uv` - implied by committed `uv.lock` and README install command
 - Rust/Cargo - used for native dependency resolution through `Cargo.toml`
-- Lockfile: `uv.lock` present; Cargo lockfile is not committed in the current tree
+- Lockfiles: `uv.lock` and `Cargo.lock` are committed
 ## Frameworks
-- PyO3 0.25 - Python bindings and module export surface in `src/lib.rs`
-- DataFusion 50.3 - SQL/query execution for cache conversion and VCF annotation in `src/annotate.rs` and `src/convert.rs`
-- Arrow 56 with `pyarrow` feature - Arrow/PyArrow interop for batch streaming
-- `datafusion-bio-*` crates from pinned git revisions - domain-specific VCF and Ensembl cache table providers plus VEP functions
+- PyO3 0.28 - Python bindings and module export surface in `src/lib.rs`
+- DataFusion 53.0 - SQL/query execution for cache conversion and VCF annotation in `src/annotate.rs` and `src/convert.rs`
+- Arrow 58 with `pyarrow` feature - Arrow/PyArrow interop for batch streaming
+- released `datafusion-bio-*` crates pinned by tags - domain-specific VCF and Ensembl cache table providers plus VEP functions
 - Pytest 8+ - Python test runner declared in `pyproject.toml`
 - Polars and PyArrow - exercised in integration tests under `tests/test_annotate.py` and `tests/test_golden.py`
 - Maturin 1.x - build backend configured in `pyproject.toml`
 - `uv sync --reinstall-package vepyr` - documented local install/bootstrap flow in `README.md`
 ## Key Dependencies
-- `pyo3` 0.25 - exposes Rust functions/classes to Python
-- `datafusion` 50.3 - powers SQL execution and streaming annotation
-- `arrow` 56 - schema and RecordBatch transport to Python
-- `datafusion-bio-function-vep` (git rev `5baf669...`) - registers annotation functions
-- `datafusion-bio-format-ensembl-cache` and `datafusion-bio-format-vcf` (git rev `7cbc049...`) - provide table providers for cache and input VCFs
+- `pyo3` 0.28 - exposes Rust functions/classes to Python
+- `datafusion` 53.0 - powers SQL execution and streaming annotation
+- `arrow` 58 - schema and RecordBatch transport to Python
+- `datafusion-bio-function-vep` v0.15.0 - registers annotation functions
+- `datafusion-bio-format-ensembl-cache` and `datafusion-bio-format-vcf` v1.9.0 - provide table providers for cache and input VCFs
 - `tokio` 1.x - runtime for async DataFusion execution
 - `futures` 0.3 - stream iteration in Rust
 - `pyarrow`, `tqdm`, `ipywidgets` - Python-side data transport and notebook/progress UX

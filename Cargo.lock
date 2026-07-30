@@ -1122,8 +1122,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-core"
-version = "1.8.8"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.8.8#1623f1dc6b21b9b49234ea533ca4da0ee832d942"
+version = "1.9.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.9.0#6564554619019535ffd3ace5aa650797a31eb8ed"
 dependencies = [
  "async-compression",
  "bytes",
@@ -1144,8 +1144,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-ensembl-cache"
-version = "1.8.8"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.8.8#1623f1dc6b21b9b49234ea533ca4da0ee832d942"
+version = "1.9.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.9.0#6564554619019535ffd3ace5aa650797a31eb8ed"
 dependencies = [
  "async-trait",
  "datafusion",
@@ -1162,8 +1162,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-vcf"
-version = "1.8.8"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.8.8#1623f1dc6b21b9b49234ea533ca4da0ee832d942"
+version = "1.9.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.9.0#6564554619019535ffd3ace5aa650797a31eb8ed"
 dependencies = [
  "async-compression",
  "async-stream",
@@ -1192,8 +1192,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-function-vep"
-version = "0.12.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.14.0#86bd907fc31917351b263681fe103250a5a773ee"
+version = "0.13.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.15.0#ddb1a67640e4e6c4601b97154ba23decb14ce9a2"
 dependencies = [
  "ahash",
  "async-trait",
@@ -5351,7 +5351,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vepyr"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "arrow",
  "datafusion",

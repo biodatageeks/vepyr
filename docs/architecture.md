@@ -22,9 +22,10 @@ graph TD
 
 **Location:** `src/vepyr/__init__.py`
 
-The public surface is intentionally minimal — two functions:
+The main public operations are:
 
-- `build_cache()` — download, extract, and convert Ensembl VEP offline caches
+- `build_cache()` — download, extract, and convert complete Ensembl VEP offline caches
+- `build_cache_entity()` — release-aware targeted conversion of one raw cache entity
 - `annotate()` — annotate VCF files against converted caches
 
 This layer handles validation, download orchestration, progress reporting, and conversion of Arrow batches to Polars LazyFrames.
@@ -101,9 +102,9 @@ graph LR
 |---|---|
 | Language (engine) | Rust 2021 edition |
 | Language (API) | Python 3.10+ |
-| Python bindings | PyO3 0.25, abi3 stable ABI |
-| Query engine | Apache DataFusion 50.3 |
-| Data format | Apache Arrow 56 |
+| Python bindings | PyO3 0.28, abi3 stable ABI |
+| Query engine | Apache DataFusion 53.0 |
+| Data format | Apache Arrow 58 |
 | Async runtime | Tokio |
 | Interval trees | COITree |
 | Cache format | Partitioned, page-indexed Parquet |

@@ -44,11 +44,80 @@ fn parse_cache_source_type(value: &str) -> PyResult<CacheSourceType> {
     })
 }
 
+/// Return the compiled Ensembl VEP/cache support matrix as JSON.
+///
+/// JSON keeps this ABI stable and lets the Python package expose immutable
+/// copies without maintaining a second hand-written compatibility table.
+#[pyfunction]
+fn supported_vep_targets_json() -> PyResult<String> {
+    let targets = datafusion_bio_function_vep::vep_semantics::supported_vep_targets()
+        .iter()
+        .map(|target| {
+            serde_json::json!({
+                "vepyr_version": env!("CARGO_PKG_VERSION"),
+                "cache_version": target.cache_version,
+                "vep_codebase_version": target.vep_codebase_version,
+                "api_version": target.api_version,
+                "ensembl_core_revision": target.ensembl_core_revision,
+                "ensembl_variation_revision": target.ensembl_variation_revision,
+                "semantics": target.semantics.as_str(),
+            })
+        })
+        .collect::<Vec<_>>();
+    serde_json::to_string(&targets).map_err(|error| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "failed to serialize supported VEP targets: {error}"
+        ))
+    })
+}
+
+/// Validate and return the embedded identity for one cache contig as JSON.
+#[pyfunction]
+#[pyo3(signature = (cache_dir, chrom, expected_cache_version=None))]
+fn cache_contig_identity_json(
+    py: Python<'_>,
+    cache_dir: &str,
+    chrom: &str,
+    expected_cache_version: Option<String>,
+) -> PyResult<String> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| pyo3::exceptions::PyRuntimeError::new_err(error.to_string()))?;
+    let identity = py
+        .detach(|| {
+            rt.block_on(
+                datafusion_bio_function_vep::cache_identity::validate_partitioned_cache_contig(
+                    cache_dir,
+                    chrom,
+                    expected_cache_version,
+                ),
+            )
+        })
+        .map_err(|error| pyo3::exceptions::PyRuntimeError::new_err(error.to_string()))?;
+    serde_json::to_string(&serde_json::json!({
+        "vepyr_version": env!("CARGO_PKG_VERSION"),
+        "cache_source_type": identity.cache_source_type,
+        "cache_version": identity.cache_version,
+        "vep_codebase_version": identity.target.vep_codebase_version,
+        "api_version": identity.target.api_version,
+        "ensembl_core_revision": identity.target.ensembl_core_revision,
+        "ensembl_variation_revision": identity.target.ensembl_variation_revision,
+        "semantics": identity.target.semantics.as_str(),
+        "contig": chrom,
+    }))
+    .map_err(|error| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "failed to serialize cache identity: {error}"
+        ))
+    })
+}
+
 /// Build all entities from an Ensembl VEP cache.
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false, expected_cache_version=None))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -59,6 +128,7 @@ fn build_cache(
     on_progress: Option<Py<PyAny>>,
     cache_source_type: &str,
     overwrite: bool,
+    expected_cache_version: Option<String>,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
@@ -69,11 +139,14 @@ fn build_cache(
     // is retained only for backward-compatible Python API.
     let _ = on_progress;
 
-    let builder = CacheBuilder::new(cache_root, output_dir)
+    let mut builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
         .with_cache_format(cache_format)
         .with_cache_source_type(cache_source_type)
         .with_overwrite(overwrite);
+    if let Some(expected_cache_version) = expected_cache_version {
+        builder = builder.with_expected_cache_version(expected_cache_version);
+    }
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(partitions)
@@ -102,6 +175,57 @@ fn build_cache(
         .collect();
 
     Ok(result)
+}
+
+/// Build a single entity from an Ensembl VEP cache, leaving the rest of the
+/// cache directory untouched.
+///
+/// A schema change usually affects one entity, and rebuilding the whole cache
+/// to pick it up costs an hour and tens of gigabytes. `entity` is one of
+/// "variation", "transcript", "exon", "translation", "regulatory", "motif".
+///
+/// Returns the same `(entity, [(parquet_path, rows)], None)` shape as
+/// [`build_cache`].
+#[pyfunction]
+#[pyo3(signature = (cache_root, output_dir, entity, partitions=8, cache_source_type="ensembl", overwrite=true, expected_cache_version=None))]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
+fn build_cache_entity(
+    py: Python<'_>,
+    cache_root: &str,
+    output_dir: &str,
+    entity: &str,
+    partitions: usize,
+    cache_source_type: &str,
+    overwrite: bool,
+    expected_cache_version: Option<String>,
+) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
+    let cache_source_type = parse_cache_source_type(cache_source_type)?;
+
+    let mut builder = CacheBuilder::new(cache_root, output_dir)
+        .with_partitions(partitions)
+        .with_cache_format(CacheFormat::Parquet)
+        .with_cache_source_type(cache_source_type)
+        .with_overwrite(overwrite);
+    if let Some(expected_cache_version) = expected_cache_version {
+        builder = builder.with_expected_cache_version(expected_cache_version);
+    }
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(partitions)
+        .enable_all()
+        .build()
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+
+    let stats = py.detach(|| {
+        rt.block_on(builder.build_entity(entity)).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+        })
+    })?;
+
+    Ok(stats
+        .into_iter()
+        .map(|s| (s.entity, s.parquet_files, None))
+        .collect())
 }
 
 /// Build a plugin cache (all chroms, or a filtered set) from a source manifest.
@@ -250,8 +374,11 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(build_cache_entity, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
+    m.add_function(wrap_pyfunction!(supported_vep_targets_json, m)?)?;
+    m.add_function(wrap_pyfunction!(cache_contig_identity_json, m)?)?;
     Ok(())
 }

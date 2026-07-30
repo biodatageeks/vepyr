@@ -25,10 +25,29 @@ largest).
 
 - **Release 115** (GRCh38) — the golden reference VCFs in this project are
   produced with the `ensemblorg/ensembl-vep:release_115.2` docker image.
-- **Release 116** (GRCh38).
+- **Release 116** (GRCh38) — exact VEP 116.0 semantics.
 
 Both are built the same way; a converted cache directory is named
 `<release>_<assembly>_<type>`, e.g. `115_GRCh38_merged`, `116_GRCh38_merged`.
+
+### Strict Parquet identity
+
+The current vepyr release supports cache 115 with VEP 115.2 semantics and cache
+116 with VEP 116.0 semantics. `build_cache()` derives the raw cache release,
+checks it against the requested release, and embeds `bio.vep.cache_version` in
+the Arrow schema metadata of every generated Parquet shard. There is no
+generated-cache version sidecar.
+
+Before annotating a contig, vepyr checks only that contig's
+manifest-referenced shards. Every participating entity must declare the same
+supported release and source type. The first contig establishes the invocation
+identity; a later contig must agree before any of its rows are annotated. A
+chr1-only annotation therefore does not open chr2 Parquet footers.
+
+Missing, malformed, mixed, and unsupported releases are errors. The generated
+cache directory name is not a fallback, and `expected_cache_version` can only
+assert the independently detected metadata—it cannot label an old
+metadata-less cache. Such caches must be rebuilt.
 
 ## Layout & entities
 
@@ -68,10 +87,12 @@ Measured on-disk sizes of the converted Parquet caches in
 
 | Cache | Total | variation | translation_sift | transcript | translation_core | exon | regulatory | motif |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
-| `115_GRCh38_ensembl` | **29 G** | 26 G | 2.7 G | 478 M | 196 M | 178 M | 71 M | — |
-| `115_GRCh38_refseq`  | **29 G** | 26 G | 2.8 G | 289 M | 155 M | 73 M  | 71 M | — |
-| `115_GRCh38_merged`  | **32 G** | 26 G | 5.5 G | 664 M | 348 M | 240 M | 71 M | — |
-| `116_GRCh38_merged`  | **36 G** | 27 G | 7.0 G | 762 M | 417 M | 272 M | 71 M | 81 M |
+| `115_GRCh38_ensembl` | **29 G** | 26 G | 2.7 G | 533 M | 196 M | 178 M | 71 M | — |
+| `115_GRCh38_refseq`  | **29 G** | 26 G | 2.8 G | 295 M | 156 M | 73 M  | 71 M | — |
+| `115_GRCh38_merged`  | **32 G** | 26 G | 5.5 G | 720 M | 348 M | 240 M | 71 M | — |
+| `116_GRCh38_ensembl` | **32 G** | 27 G | 4.1 G | 633 M | 263 M | 211 M | 71 M | 89 M |
+| `116_GRCh38_refseq`  | **31 G** | 27 G | 2.9 G | 296 M | 156 M | 73 M | 71 M | 89 M |
+| `116_GRCh38_merged`  | **36 G** | 27 G | 7.0 G | 818 M | 418 M | 272 M | 71 M | 89 M |
 
 Observations:
 
@@ -98,6 +119,25 @@ vepyr.build_cache(
 )
 # → /Users/mwiewior/workspace/data_vepyr/116_GRCh38_merged/<entity>/chr*.parquet
 ```
+
+For a targeted rebuild, use the same release-aware public contract:
+
+```python
+vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/Users/mwiewior/workspace/data_vepyr",
+    entity="motif",
+    cache_type="merged",
+    local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+)
+```
+
+Valid raw entities are `variation`, `transcript`, `exon`, `translation`,
+`regulatory`, and `motif`. `translation` produces both `translation_core` and
+`translation_sift`. The targeted builder derives the expected Parquet cache
+version from `release` and rejects a conflicting raw-cache release/source
+before writing output, exactly like the full builder.
 
 See the [API reference](api.md#vepyr.build_cache) for the full signature. Plugin
 caches (e.g. AlphaMissense) are built separately and layered on top — see

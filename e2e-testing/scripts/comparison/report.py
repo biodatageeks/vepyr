@@ -1,47 +1,22 @@
-#!/usr/bin/env python3
-"""Run fast annotation for chr1-22, classify mismatches, and generate a timestamped report.
+"""Aggregation, root-cause classification, and Markdown report generation.
 
-Usage:
-    python run_annotation_fast_all.py                  # re-annotate all chr1-22 (default)
-    python run_annotation_fast_all.py --no-force       # reuse existing annotation output
-    python run_annotation_fast_all.py --chroms 1 2 3   # only specific chromosomes
-    python run_annotation_fast_all.py --skip-annotate  # only regenerate report from existing JSONs
-    python run_annotation_fast_all.py --bgzf           # emit + validate block-gzipped output
-    python run_annotation_fast_all.py --profile merged
-
-Runs run_annotation_fast.py for each chromosome, then aggregates all
-per-chromosome JSON reports into a single timestamped Markdown summary
-with root cause classification and upstream issue links.
+Takes dicts and returns a string. Touches the filesystem only to load existing
+per-contig report JSONs and repo metadata.
 """
 
-import argparse
+import hashlib
 import json
 import os
+import re
 import subprocess
-import sys
 from collections import defaultdict
 from datetime import datetime
 
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+# .../e2e-testing/scripts/comparison -> repo root
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(PACKAGE_DIR)))
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPORT_DIR = os.path.join(SCRIPT_DIR, "..", "reports")
-PROFILE_SUFFIXES = {
-    "ensembl": "_ensembl",
-    "merged": "_merged",
-    "merged_flag_pick": "_merged_flag_pick",
-    "merged_flag_pick_allele": "_merged_flag_pick_allele",
-    "merged_flag_pick_allele_gene": "_merged_flag_pick_allele_gene",
-    "merged_pick_filter": "_merged_pick_filter",
-    "merged_pick_allele": "_merged_pick_allele",
-    "merged_per_gene": "_merged_per_gene",
-    "merged_pick_allele_gene": "_merged_pick_allele_gene",
-    "refseq": "_refseq",
-}
-CACHE_SUFFIXES = PROFILE_SUFFIXES
-# Parquet is the only supported cache format.
-BACKEND = "parquet"
-
-# ── Upstream issue registry ─────────────────────────────────────────��────
+# ── Upstream issue registry ──────────────────────────────────────────────
 # Maps root cause classes to GitHub issue/PR numbers.
 # Update this when new issues are filed or existing ones are closed.
 REPO = "https://github.com/biodatageeks/datafusion-bio-functions"
@@ -57,8 +32,13 @@ ISSUES = {
         "prs": [],
     },
     "stop_lost_extra": {
-        "title": "`stop_lost` missing on frameshift past stop codon",
+        "title": "`stop_lost` false positive",
         "issues": [115],
+        "prs": [],
+    },
+    "stop_lost_missing": {
+        "title": "`stop_lost` missing on frameshift past stop codon",
+        "issues": [90],
         "prs": [],
     },
     "inframe_vs_frameshift": {
@@ -67,7 +47,10 @@ ISSUES = {
         "prs": [],
     },
     "incomplete_terminal_impact_hgvsp": {
-        "title": "Incomplete terminal codon: IMPACT/HGVSp residual (Xaa vs Ter, missing p.Ter=)",
+        "title": (
+            "Incomplete terminal codon: IMPACT/HGVSp residual "
+            "(Xaa vs Ter, missing p.Ter=)"
+        ),
         "issues": [130],
         "prs": [],
     },
@@ -101,6 +84,16 @@ ISSUES = {
         "issues": [100],
         "prs": [],
     },
+    "mirna_overlap": {
+        "title": "`mature_miRNA_variant` emitted outside a mature product",
+        "issues": [90],
+        "prs": [],
+    },
+    "frameshift_missing": {
+        "title": "`frameshift_variant` missing at CDS boundary",
+        "issues": [117],
+        "prs": [],
+    },
     "protein_altering": {
         "title": "`protein_altering_variant` not emitted for complex inframe changes",
         "issues": [124],
@@ -114,120 +107,118 @@ ISSUES = {
 }
 
 
-def parse_args():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    p.add_argument(
-        "--chroms",
-        nargs="+",
-        type=int,
-        default=list(range(1, 23)),
-        help="Chromosome numbers to process (default: 1-22)",
-    )
-    p.add_argument(
-        "--profile",
-        choices=sorted(PROFILE_SUFFIXES),
-        default="ensembl",
-        help="Annotation profile forwarded to run_annotation_fast.py (default: %(default)s)",
-    )
-    p.add_argument(
-        "--cache",
-        dest="profile",
-        choices=sorted(PROFILE_SUFFIXES),
-        help=argparse.SUPPRESS,
-    )
-    p.add_argument(
-        "--bgzf",
-        action="store_true",
-        help="Emit + validate block-gzipped (.vcf.gz) annotated output; "
-        "forwarded to run_annotation_fast.py",
-    )
-    p.add_argument(
-        "--workers",
-        type=int,
-        default=1,
-        help="Within-contig parallel annotation pipelines forwarded to run_annotation_fast.py (default: %(default)s)",
-    )
-    p.add_argument(
-        "--no-force",
-        action="store_true",
-        help="Reuse existing annotation output if present (default: always re-annotate)",
-    )
-    p.add_argument(
-        "--skip-annotate",
-        action="store_true",
-        help="Skip annotation, only regenerate report from existing JSONs",
-    )
-    p.add_argument(
-        "--skip-compare",
-        "--skip-comparison",
-        dest="skip_comparison",
-        action="store_true",
-        help="Skip per-chromosome VEP comparisons and the aggregate comparison report",
-    )
-    args = p.parse_args()
-    if args.workers <= 0:
-        p.error("--workers must be a positive integer")
-    return args
+# ── Report paths ─────────────────────────────────────────────────────────
 
 
-# ── Step 1: Run per-chromosome annotation ────────────────────────────────
+def report_json_path(report_dir, chrom, suffix, release):
+    """Release-qualified per-contig report path."""
+    return os.path.join(report_dir, f"fast_{chrom}_{suffix}_{release}_report.json")
 
 
-def run_chromosome(
-    chrom_num,
-    profile="ensembl",
-    workers=1,
-    force=False,
-    skip_comparison=False,
-    bgzf=False,
-):
-    """Run run_annotation_fast.py for a single chromosome."""
-    chrom = f"chr{chrom_num}"
-    cmd = [
-        sys.executable,
-        os.path.join(SCRIPT_DIR, "run_annotation_fast.py"),
-        chrom,
-        "--profile",
-        profile,
-        "--workers",
-        str(workers),
-    ]
-    if force:
-        cmd.append("--force")
-    if skip_comparison:
-        cmd.append("--skip-compare")
-    if bgzf:
-        cmd.append("--bgzf")
-
-    print(f"\n{'=' * 60}")
-    print(f"  Running {chrom} (profile={profile}, {BACKEND})")
-    print(f"{'=' * 60}")
-    result = subprocess.run(cmd, cwd=SCRIPT_DIR)
-    if result.returncode != 0:
-        print(f"  WARNING: {chrom} failed with exit code {result.returncode}")
-        return False
-    return True
+def mismatch_ledger_path(report_dir, chrom, suffix, release):
+    """Release-qualified, uncapped JSONL mismatch evidence for one contig."""
+    return os.path.join(report_dir, f"fast_{chrom}_{suffix}_{release}_mismatches.jsonl")
 
 
-# ── Step 2: Load all per-chromosome reports ──────────────────────────────
+def quarantine_contig_evidence(report_dir, chrom, suffix, release):
+    """Move prior evidence aside before attempting a fresh contig run."""
+    for path in (
+        report_json_path(report_dir, chrom, suffix, release),
+        mismatch_ledger_path(report_dir, chrom, suffix, release),
+    ):
+        if os.path.exists(path):
+            quarantine = path + ".stale"
+            os.replace(path, quarantine)
+            print(f"  Quarantined stale evidence: {quarantine}")
 
 
-def load_reports(chrom_nums, suffix=""):
-    """Load JSON reports for all chromosomes."""
-    reports = []
-    for n in chrom_nums:
-        path = os.path.join(REPORT_DIR, f"fast_chr{n}{suffix}_report.json")
-        if not os.path.exists(path):
-            print(f"  WARNING: {path} not found, skipping chr{n}")
-            continue
+def legacy_report_json_path(report_dir, chrom, suffix):
+    """Pre-release-axis path, kept readable so historical reports still load."""
+    return os.path.join(report_dir, f"fast_{chrom}_{suffix}_report.json")
+
+
+def contig_span(chroms):
+    """Summarise a contig list for a filename: single name, or first_last."""
+    if not chroms:
+        return "none"
+    if len(chroms) == 1:
+        return chroms[0]
+    return f"{chroms[0]}_{chroms[-1]}"
+
+
+def load_reports(report_dir, chroms, suffix, release):
+    """Load per-contig reports, preferring release-qualified names.
+
+    Falls back to the legacy unqualified name and says so, because silently
+    reading a report that predates the release axis is how a 115 result ends up
+    in a 116 summary.
+    """
+    loaded = []
+    for chrom in chroms:
+        modern = report_json_path(report_dir, chrom, suffix, release)
+        legacy = legacy_report_json_path(report_dir, chrom, suffix)
+        if os.path.exists(modern):
+            path = modern
+        elif os.path.exists(legacy):
+            path = legacy
+            print(
+                f"  Using legacy report {os.path.basename(legacy)} for {chrom} "
+                "(predates the release axis; release attribution unverified)"
+            )
+        else:
+            raise ValueError(f"missing requested report for {chrom}: expected {modern}")
         with open(path) as f:
-            reports.append(json.load(f))
-    return reports
+            value = json.load(f)
+        expected = {
+            "chrom": chrom,
+            "profile": suffix,
+            "release": release,
+        }
+        mismatches = [
+            f"{field}={value.get(field)!r}, expected {wanted!r}"
+            for field, wanted in expected.items()
+            if value.get(field) != wanted
+        ]
+        if mismatches:
+            raise ValueError(
+                f"report identity does not match {path}: " + "; ".join(mismatches)
+            )
+        loaded.append(value)
+    return loaded
 
 
-# ── Step 3: Aggregate field-level mismatches ─────────────────────────────
+def common_build_info(reports):
+    """Return one exact build provenance shared by every report."""
+    builds = [value.get("build") for value in reports]
+    if not builds or not isinstance(builds[0], dict) or not builds[0]:
+        raise ValueError("reports do not contain build provenance")
+    if any(build != builds[0] for build in builds[1:]):
+        raise ValueError("build provenance differs across reports")
+    return builds[0]
+
+
+def discover_report_contigs(report_dir, suffix, release):
+    """Discover release-qualified report contigs in natural chromosome order."""
+    prefix = "fast_"
+    ending = f"_{suffix}_{release}_report.json"
+    try:
+        names = os.listdir(report_dir)
+    except OSError:
+        return []
+    contigs = {
+        name[len(prefix) : -len(ending)]
+        for name in names
+        if name.startswith(prefix) and name.endswith(ending)
+    }
+
+    def chromosome_key(contig):
+        bare = contig.removeprefix("chr")
+        return (0, int(bare)) if bare.isdigit() else (1, bare)
+
+    return sorted(contigs, key=chromosome_key)
+
+
+# ── Aggregation ──────────────────────────────────────────────────────────
 
 
 def aggregate_mismatches(reports):
@@ -242,6 +233,11 @@ def aggregate_mismatches(reports):
     total_csq_mismatch = 0
     total_only_vepyr = 0
     total_only_vep = 0
+    total_entries_only_vepyr = 0
+    total_entries_only_vep = 0
+    total_ledger_rows = 0
+    equality_buckets = defaultdict(int)
+    ledger_hashes = {}
 
     for r in reports:
         comp = r.get("comparison", {})
@@ -252,6 +248,15 @@ def aggregate_mismatches(reports):
         total_csq_mismatch += comp.get("csq_entry_count_mismatch", 0)
         total_only_vepyr += comp.get("variants_only_in_vepyr", 0)
         total_only_vep += comp.get("variants_only_in_vep", 0)
+        total_entries_only_vepyr += comp.get("csq_entries_only_in_vepyr", 0)
+        total_entries_only_vep += comp.get("csq_entries_only_in_vep", 0)
+
+        ledger = comp.get("mismatch_ledger", {})
+        total_ledger_rows += ledger.get("rows", 0)
+        if ledger.get("sha256"):
+            ledger_hashes[r["chrom"]] = ledger["sha256"]
+        for bucket, count in comp.get("equality_bucket_counts", {}).items():
+            equality_buckets[bucket] += count
 
         all_fields.update(comp.get("field_match_rates", {}).keys())
         for f, c in comp.get("field_mismatch_counts", {}).items():
@@ -273,10 +278,12 @@ def aggregate_mismatches(reports):
         "total_csq_mismatch": total_csq_mismatch,
         "total_only_vepyr": total_only_vepyr,
         "total_only_vep": total_only_vep,
+        "total_entries_only_vepyr": total_entries_only_vepyr,
+        "total_entries_only_vep": total_entries_only_vep,
+        "total_ledger_rows": total_ledger_rows,
+        "ledger_hashes": ledger_hashes,
+        "equality_buckets": equality_buckets,
     }
-
-
-# ── Step 4: Classify Consequence mismatches ──────────────────────────────
 
 
 def classify_consequence_mismatches(examples):
@@ -300,7 +307,7 @@ def classify_consequence_mismatches(examples):
         elif "stop_lost" in vepyr and "stop_lost" not in vep:
             classes["stop_lost_extra"].append(ex)
         elif "stop_lost" not in vepyr and "stop_lost" in vep:
-            classes["stop_lost_extra"].append(ex)
+            classes["stop_lost_missing"].append(ex)
         elif "start_retained_variant" in vep and "start_retained_variant" not in vepyr:
             classes["start_retained_missing"].append(ex)
         elif (
@@ -328,12 +335,9 @@ def classify_consequence_mismatches(examples):
     return classes
 
 
-# ── Step 5: Load old benchmark for comparison ────────────────────────────
-
-
-def load_old_benchmark(backend=BACKEND):
+def load_old_benchmark(report_dir, backend="parquet"):
     """Load the previous full-genome benchmark report for delta comparison."""
-    path = os.path.join(REPORT_DIR, "benchmark_report.json")
+    path = os.path.join(report_dir, "benchmark_report.json")
     if not os.path.exists(path):
         return None
     with open(path) as f:
@@ -342,59 +346,136 @@ def load_old_benchmark(backend=BACKEND):
     return comp.get("field_mismatch_counts", {})
 
 
-# ── Step 5b: Detect build info ────────────────────────────────────────────
+def _command_output(command, cwd):
+    return (
+        subprocess.check_output(
+            command,
+            cwd=cwd,
+            stderr=subprocess.DEVNULL,
+        )
+        .decode()
+        .strip()
+    )
+
+
+def _git_checkout_info(path):
+    """Describe the checkout containing path, including uncommitted sources."""
+    try:
+        root = _command_output(["git", "rev-parse", "--show-toplevel"], path)
+        status_lines = _command_output(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            root,
+        ).splitlines()
+        # Cargo materializes this bookkeeping marker in every git dependency
+        # checkout. It is not repository source and cannot affect the resolved
+        # crate, so do not let it make every immutable git dependency appear
+        # dirty. All other tracked or untracked paths remain release blockers.
+        source_changes = [line for line in status_lines if line != "?? .cargo-ok"]
+        return {
+            "repo_root": root,
+            "revision": _command_output(["git", "rev-parse", "HEAD"], root),
+            "dirty": bool(source_changes),
+        }
+    except Exception:
+        return {"repo_root": None, "revision": "unknown", "dirty": None}
+
+
+def _declared_dependency_sources(metadata, root_manifest):
+    for package in metadata.get("packages", []):
+        if os.path.abspath(package.get("manifest_path", "")) == os.path.abspath(
+            root_manifest
+        ):
+            return {
+                dependency["name"]: dependency.get("source")
+                for dependency in package.get("dependencies", [])
+            }
+    return {}
 
 
 def get_build_info():
-    """Extract git branch, vepyr commit, and bio-functions rev from Cargo.toml."""
-    info = {}
-
-    # Git branch
+    """Resolve the effective Cargo graph, path overrides, revisions, and dirt."""
+    root_git = _git_checkout_info(REPO_ROOT)
+    info = {
+        "branch": "unknown",
+        "vepyr_rev": (
+            root_git["revision"][:12]
+            if root_git["revision"] != "unknown"
+            else "unknown"
+        ),
+        "vepyr_dirty": root_git["dirty"],
+        "bio_functions_rev": "unknown",
+        "dependencies": {},
+    }
     try:
-        info["branch"] = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=os.path.join(SCRIPT_DIR, "..", ".."),
-                stderr=subprocess.DEVNULL,
-            )
-            .decode()
-            .strip()
+        info["branch"] = _command_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], REPO_ROOT
         )
     except Exception:
-        info["branch"] = "unknown"
+        pass
 
-    # vepyr commit
+    lock_path = os.path.join(REPO_ROOT, "Cargo.lock")
+    if os.path.exists(lock_path):
+        digest = hashlib.sha256()
+        with open(lock_path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        info["cargo_lock_sha256"] = digest.hexdigest()
+
     try:
-        info["vepyr_rev"] = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"],
-                cwd=os.path.join(SCRIPT_DIR, "..", ".."),
-                stderr=subprocess.DEVNULL,
+        metadata = json.loads(
+            _command_output(
+                ["cargo", "metadata", "--format-version", "1", "--locked"],
+                REPO_ROOT,
             )
-            .decode()
-            .strip()
         )
     except Exception:
-        info["vepyr_rev"] = "unknown"
+        return info
 
-    # bio-functions version from Cargo.toml (git tag, or rev for pinned commits)
-    cargo_path = os.path.join(SCRIPT_DIR, "..", "..", "Cargo.toml")
-    info["bio_functions_rev"] = "unknown"
-    if os.path.exists(cargo_path):
-        with open(cargo_path) as f:
-            for line in f:
-                if "datafusion-bio-function-vep" in line:
-                    import re
+    root_manifest = os.path.join(REPO_ROOT, "Cargo.toml")
+    declared_sources = _declared_dependency_sources(metadata, root_manifest)
+    relevant = {
+        "datafusion-bio-function-vep",
+        "datafusion-bio-format-core",
+        "datafusion-bio-format-ensembl-cache",
+        "datafusion-bio-format-vcf",
+    }
+    checkout_cache = {}
+    for package in metadata.get("packages", []):
+        name = package.get("name")
+        if name not in relevant:
+            continue
+        manifest_path = package["manifest_path"]
+        package_dir = os.path.dirname(manifest_path)
+        effective_source = package.get("source")
+        if package_dir not in checkout_cache:
+            checkout_cache[package_dir] = _git_checkout_info(package_dir)
+        git_info = checkout_cache[package_dir]
+        declared_source = declared_sources.get(name)
+        declared_revision = None
+        if declared_source:
+            match = re.search(r"[?&]rev=([^&#]+)", declared_source)
+            if match:
+                declared_revision = match.group(1)
+        dependency_info = {
+            "version": package.get("version"),
+            "declared_source": declared_source,
+            "declared_revision": declared_revision,
+            "effective_source": effective_source or "path",
+            "manifest_path": manifest_path,
+            **git_info,
+        }
+        info["dependencies"][name] = dependency_info
 
-                    m = re.search(r'(?:tag|rev)\s*=\s*"([^"]+)"', line)
-                    if m:
-                        info["bio_functions_rev"] = m.group(1)[:12]
-                    break
-
+    bio_functions = info["dependencies"].get("datafusion-bio-function-vep")
+    if bio_functions:
+        revision = bio_functions.get("revision")
+        info["bio_functions_rev"] = (
+            revision[:12] if revision and revision != "unknown" else "unknown"
+        )
     return info
 
 
-# ── Step 6: Generate Markdown report ─────────────────────────────────────
+# ── Markdown generation ──────────────────────────────────────────────────
 
 
 def issue_link(num):
@@ -405,8 +486,16 @@ def pr_link(num):
     return f"[#{num}]({REPO}/pull/{num})"
 
 
-def generate_report(
-    reports, agg, csq_classes, old_mm, build_info=None, backend=BACKEND
+def generate_markdown(
+    reports,
+    agg,
+    csq_classes,
+    old_mm,
+    build_info=None,
+    *,
+    release,
+    profile,
+    backend="parquet",
 ):
     """Generate the full Markdown report."""
     lines = []
@@ -421,22 +510,90 @@ def generate_report(
     total_mm = sum(field_mm.values())
 
     bi = build_info or {}
+    span = contig_span([r["chrom"] for r in reports])
 
     # ── Header ────────────────────────────────────────────────────────
-    lines.append(f"# Fast Annotation Report: chr1-22 ({backend})")
+    lines.append(
+        f"# Fast Annotation Report: {span} "
+        f"({backend}, release {release}, profile {profile})"
+    )
     lines.append("")
     lines.append(f"**Date:** {now.strftime('%Y-%m-%d %H:%M')}")
     lines.append(f"**Variants:** {total_in:,} (HG002 GRCh38, bcftools norm -m -both)")
     lines.append(f"**Backend:** {backend} only")
-    lines.append(
-        f"**Total annotation time:** {total_time:.0f}s ({total_time / 60:.1f} min)"
-    )
-    lines.append(f"**Aggregate rate:** {total_in / total_time:,.0f} variants/s")
+    if total_time > 0:
+        lines.append(
+            f"**Total annotation time:** {total_time:.0f}s ({total_time / 60:.1f} min)"
+        )
+        lines.append(f"**Aggregate rate:** {total_in / total_time:,.0f} variants/s")
+    else:
+        lines.append("**Total annotation time:** n/a (timing unavailable)")
     if bi:
         lines.append(
             f"**Build:** branch `{bi.get('branch', '?')}` "
-            f"@ [{bi.get('vepyr_rev', '?')}], "
+            f"@ `{bi.get('vepyr_rev', '?')}`"
+            f"{' (dirty)' if bi.get('vepyr_dirty') else ''}, "
             f"bio-functions rev `{bi.get('bio_functions_rev', '?')}`"
+        )
+        if bi.get("cargo_lock_sha256"):
+            lines.append(f"**Cargo.lock SHA-256:** `{bi['cargo_lock_sha256']}`")
+        for dependency_name, dependency in sorted(bi.get("dependencies", {}).items()):
+            effective = dependency.get("effective_source", "?")
+            if effective == "path":
+                effective = dependency.get("repo_root") or dependency.get(
+                    "manifest_path", "path"
+                )
+            dirty = " (dirty)" if dependency.get("dirty") else ""
+            lines.append(
+                f"**{dependency_name}:** `{dependency.get('revision', '?')}`"
+                f"{dirty}; effective source `{effective}`"
+            )
+    reference_identities = {
+        json.dumps(r.get("reference_identity", {}), sort_keys=True)
+        for r in reports
+        if r.get("reference_identity")
+    }
+    if len(reference_identities) == 1:
+        identity = json.loads(next(iter(reference_identities)))
+        lines.append(
+            f"**VEP reference:** VEP `{identity.get('vep_version', '?')}`, "
+            f"API `{identity.get('api_version', '?')}`, "
+            f"cache `{identity.get('cache_version', '?')}`, "
+            f"Ensembl `{identity.get('ensembl_release', '?')}."
+            f"{identity.get('ensembl_revision', '?')}`, variation "
+            f"`{identity.get('ensembl_variation_release', '?')}."
+            f"{identity.get('ensembl_variation_revision', '?')}`"
+        )
+    cache_identities = {
+        json.dumps(
+            {
+                key: value
+                for key, value in r.get("cache_identity", {}).items()
+                if key != "contig"
+            },
+            sort_keys=True,
+        )
+        for r in reports
+        if r.get("cache_identity")
+    }
+    if len(cache_identities) == 1:
+        identity = json.loads(next(iter(cache_identities)))
+        lines.append(
+            f"**Validated cache:** release `{identity.get('cache_version', '?')}`, "
+            f"source `{identity.get('cache_source_type', '?')}` "
+            "(contig-local Parquet metadata)"
+        )
+    support_targets = {
+        json.dumps(r.get("supported_target", {}), sort_keys=True)
+        for r in reports
+        if r.get("supported_target")
+    }
+    if len(support_targets) == 1:
+        target = json.loads(next(iter(support_targets)))
+        lines.append(
+            f"**Native target:** VEP `{target.get('vep_codebase_version', '?')}`, "
+            f"semantics `{target.get('semantics', '?')}`, "
+            f"cache `{target.get('cache_version', '?')}`"
         )
     lines.append("")
 
@@ -447,7 +604,8 @@ def generate_report(
         f"- **{n_perfect} / {len(all_fields)} CSQ fields at 100% match** (0 mismatches)"
     )
     lines.append(
-        f"- **{n_imperfect} fields** with mismatches, **{total_mm:,} total** across CSQ entries"
+        f"- **{n_imperfect} fields** with mismatches, "
+        f"**{total_mm:,} total** across CSQ entries"
     )
     if old_mm is not None:
         old_total = sum(old_mm.values())
@@ -474,9 +632,7 @@ def generate_report(
     row_num = 0
     for key, info in ISSUES.items():
         row_num += 1
-        # Count mismatches for this class from Consequence classification
         csq_count = len(csq_classes.get(key, []))
-        # For non-Consequence classes, use field totals
         if key == "hgvsc_noncoding":
             count = f"~{field_mm.get('HGVSc', 0)} + {field_mm.get('HGVS_OFFSET', 0)}"
             fields = "HGVSc, HGVS_OFFSET"
@@ -504,7 +660,10 @@ def generate_report(
             count = f"~{csq_count}" if csq_count else "0"
             fields = "Consequence"
         elif key == "incomplete_terminal_impact_hgvsp":
-            count = f"~{field_mm.get('IMPACT', 0)} IMPACT + {field_mm.get('HGVSp', 0)} HGVSp"
+            count = (
+                f"~{field_mm.get('IMPACT', 0)} IMPACT + "
+                f"{field_mm.get('HGVSp', 0)} HGVSp"
+            )
             fields = "IMPACT, HGVSp"
         else:
             count = f"~{csq_count}" if csq_count else "0"
@@ -514,23 +673,10 @@ def generate_report(
             [issue_link(n) for n in info["issues"]] + [pr_link(n) for n in info["prs"]]
         )
 
-        # Derive status from mismatch count
-        # Parse the numeric part of count to check if zero
-        count_str = count.replace("~", "").strip()
-        is_zero = False
-        if count_str == "0":
-            is_zero = True
-        elif " + " in count_str:
-            # e.g. "549 + 549" or "0 + 0"
-            parts = count_str.split(" + ")
-            is_zero = all(p.strip() == "0" for p in parts)
-        elif "Csq" in count_str:
-            # e.g. "0 Csq + 30 IMPACT + 29 HGVSp"
-            import re as _re
-
-            nums = [int(x) for x in _re.findall(r"\d+", count_str)]
-            is_zero = all(n == 0 for n in nums)
-
+        # Every count rendering contains only mismatch counts plus labels.
+        # Parsing all integers handles plain, approximate, and multi-field forms.
+        numbers = [int(value) for value in re.findall(r"\d+", count)]
+        is_zero = bool(numbers) and all(value == 0 for value in numbers)
         status = "FIXED" if is_zero else "OPEN"
         lines.append(
             f"| {row_num} | {info['title']} | {count} | {fields} | {links} | {status} |"
@@ -549,9 +695,9 @@ def generate_report(
         t = r["annotation"]["time_s"] or 0
         rate = v / t if t else 0
         lines.append(f"| {c} | {v:,} | {t:.1f} | {rate:,.0f} |")
+    rate_cell = f"{total_in / total_time:,.0f}" if total_time else "n/a"
     lines.append(
-        f"| **TOTAL** | **{total_in:,}** | **{total_time:.1f}** "
-        f"| **{total_in / total_time:,.0f}** |"
+        f"| **TOTAL** | **{total_in:,}** | **{total_time:.1f}** | **{rate_cell}** |"
     )
     lines.append("")
 
@@ -565,7 +711,25 @@ def generate_report(
     lines.append(f"| CSQ entry count mismatch | {agg['total_csq_mismatch']:,} |")
     lines.append(f"| Only in vepyr | {agg['total_only_vepyr']:,} |")
     lines.append(f"| Only in VEP | {agg['total_only_vep']:,} |")
+    lines.append(f"| CSQ entries only in vepyr | {agg['total_entries_only_vepyr']:,} |")
+    lines.append(f"| CSQ entries only in VEP | {agg['total_entries_only_vep']:,} |")
+    lines.append(f"| Uncapped mismatch-ledger rows | {agg['total_ledger_rows']:,} |")
     lines.append("")
+
+    if agg["equality_buckets"]:
+        lines.append("## Field Equality Shapes")
+        lines.append("")
+        lines.append("| Shape | CSQ field comparisons |")
+        lines.append("|-------|----------------------:|")
+        for shape in (
+            "both_empty",
+            "both_nonempty_equal",
+            "vepyr_empty_only",
+            "vep_empty_only",
+            "both_nonempty_unequal",
+        ):
+            lines.append(f"| `{shape}` | {agg['equality_buckets'].get(shape, 0):,} |")
+        lines.append("")
 
     # ── Field-level delta table ───────────────────────────────────────
     if old_mm is not None:
@@ -596,21 +760,21 @@ def generate_report(
 
         lines.append("")
         lines.append(
-            f"**Total mismatches: {total_mm:,}** (was {sum(old_mm.values()):,}, delta {total_mm - sum(old_mm.values()):+,})"
+            f"**Total mismatches: {total_mm:,}** (was {sum(old_mm.values()):,}, "
+            f"delta {total_mm - sum(old_mm.values()):+,})"
         )
         lines.append("")
 
-        # FIXED fields
         fixed = [f for f in old_mm if field_mm.get(f, 0) == 0]
         if fixed:
             lines.append(
-                f"### Fields FIXED (previously had mismatches, now 0): {len(fixed)} fields"
+                f"### Fields FIXED (previously had mismatches, now 0): "
+                f"{len(fixed)} fields"
             )
             lines.append("")
             lines.append(", ".join(f"**{f}** ({old_mm[f]})" for f in fixed))
             lines.append("")
 
-        # IMPROVED
         improved = [
             f for f in all_delta_fields if 0 < field_mm.get(f, 0) < old_mm.get(f, 0)
         ]
@@ -624,7 +788,6 @@ def generate_report(
                 )
             lines.append("")
 
-        # REGRESSED
         regressed = [
             f for f in all_delta_fields if field_mm.get(f, 0) > old_mm.get(f, 0)
         ]
@@ -671,7 +834,7 @@ def generate_report(
     key_fields = {"Consequence", "HGVSc", "HGVSp", "IMPACT", "HGNC_ID", "HGVS_OFFSET"}
     for r in reports:
         c = r["chrom"]
-        comp = r.get("comparison", {})
+        comp = r.get("comparison", {}) or {}
         v = comp.get("variants_compared", 0)
         cm = comp.get("csq_entry_count_match", 0)
         mm = comp.get("field_mismatch_counts", {})
@@ -680,7 +843,7 @@ def generate_report(
         hgvsp = mm.get("HGVSp", 0)
         impact = mm.get("IMPACT", 0)
         hgnc = mm.get("HGNC_ID", 0)
-        other = sum(v for k, v in mm.items() if k not in key_fields)
+        other = sum(v2 for k, v2 in mm.items() if k not in key_fields)
         lines.append(
             f"| {c} | {v:,} | {cm:,} | {csq} | {hgvsc} "
             f"| {hgvsp} | {impact} | {hgnc} | {other} |"
@@ -688,93 +851,3 @@ def generate_report(
     lines.append("")
 
     return "\n".join(lines)
-
-
-# ── Main ─────────────────────────────────────────────────────────────────
-
-
-def main():
-    args = parse_args()
-    os.makedirs(REPORT_DIR, exist_ok=True)
-
-    profile = args.profile
-    suffix = PROFILE_SUFFIXES[profile]
-    backend = BACKEND
-    report_name_suffix = suffix
-
-    # Step 1: Run annotations
-    if not args.skip_annotate:
-        print(
-            f"Running fast annotation for chr{args.chroms[0]}-chr{args.chroms[-1]} "
-            f"(profile={profile}, {backend})"
-        )
-        for n in args.chroms:
-            ok = run_chromosome(
-                n,
-                profile=profile,
-                workers=args.workers,
-                force=not args.no_force,
-                skip_comparison=args.skip_comparison,
-                bgzf=args.bgzf,
-            )
-            if not ok:
-                print(f"  chr{n} failed, continuing...")
-
-    if args.skip_comparison:
-        print("\nSkipping aggregate comparison report (--skip-comparison)")
-        return
-
-    # Step 2: Load reports
-    reports = load_reports(args.chroms, suffix=report_name_suffix)
-    if not reports:
-        sys.exit("No reports found. Run without --skip-annotate first.")
-    print(f"\nLoaded {len(reports)} chromosome reports")
-
-    # Step 3: Aggregate
-    agg = aggregate_mismatches(reports)
-
-    # Step 4: Classify Consequence mismatches
-    csq_classes = classify_consequence_mismatches(
-        agg["field_examples"].get("Consequence", [])
-    )
-    print("\nConsequence mismatch classification:")
-    for cls, exs in sorted(csq_classes.items(), key=lambda x: -len(x[1])):
-        print(f"  {cls:<30} {len(exs):>5} mismatches")
-
-    # Step 5: Load old benchmark
-    old_mm = load_old_benchmark(backend)
-    if old_mm:
-        print(f"\nLoaded old benchmark ({sum(old_mm.values()):,} total mismatches)")
-    else:
-        print("\nNo old benchmark_report.json found, skipping delta comparison")
-
-    # Step 5b: Build info
-    build_info = get_build_info()
-    print(
-        f"\nBuild: branch={build_info['branch']}, "
-        f"vepyr={build_info['vepyr_rev']}, "
-        f"bio-functions={build_info['bio_functions_rev']}"
-    )
-
-    # Step 6: Generate report
-    md = generate_report(reports, agg, csq_classes, old_mm, build_info, backend)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    report_path = os.path.join(
-        REPORT_DIR, f"fast_chr1_22{report_name_suffix}_summary_{timestamp}.md"
-    )
-    with open(report_path, "w") as f:
-        f.write(md)
-
-    n_perfect = len([f for f in agg["all_fields"] if agg["field_mm"].get(f, 0) == 0])
-    total_mm = sum(agg["field_mm"].values())
-
-    print(f"\n{'=' * 60}")
-    print(f"  Report: {report_path}")
-    print(f"  Fields at 100%: {n_perfect}/{len(agg['all_fields'])}")
-    print(f"  Total mismatches: {total_mm:,}")
-    print(f"{'=' * 60}")
-
-
-if __name__ == "__main__":
-    main()

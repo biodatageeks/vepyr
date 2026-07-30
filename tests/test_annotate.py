@@ -31,7 +31,7 @@ def skip_if_no_cache():
 @pytest.fixture(scope="module")
 def metadata_cache_dir(skip_if_no_cache, tmp_path_factory):
     target = tmp_path_factory.mktemp("ensembl_cache_with_metadata")
-    return str(copy_cache_with_source_metadata(CACHE_DIR, target, "ensembl"))
+    return str(copy_cache_with_source_metadata(CACHE_DIR, target, "ensembl", "115"))
 
 
 class TestAnnotate:
@@ -103,6 +103,32 @@ class TestAnnotate:
         assert "forks" not in seen[0][0]
         assert "contig_parallelism" not in seen[0][0]
         assert "annotation_workers" not in seen[0][0]
+
+    def test_expected_cache_version_forwards_to_streaming_annotator(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path,
+            cache_dir,
+            options_json,
+            skip_csq=True,
+            limit=None,
+        ):
+            seen.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, expected_cache_version="116")
+        assert seen[0]["expected_cache_version"] == "116"
 
     def test_workers_one_omits_workers_key(self, monkeypatch):
         import pyarrow as pa
@@ -446,6 +472,46 @@ class TestAnnotate:
             assert "contig_parallelism" not in seen["options"]
         finally:
             os.unlink(out_path)
+
+    def test_expected_cache_version_forwards_to_vcf_writer(self, monkeypatch):
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen.update(json.loads(options_json))
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            output_vcf="unused.vcf",
+            show_progress=False,
+            expected_cache_version="115",
+        )
+        assert seen["expected_cache_version"] == "115"
+
+    @pytest.mark.parametrize("value", [115, True, 115.2])
+    def test_expected_cache_version_rejects_non_strings(self, value):
+        import vepyr
+
+        with pytest.raises(TypeError, match="expected_cache_version"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, expected_cache_version=value)
+
+    @pytest.mark.parametrize("value", ["115.2", "117", "v116", ""])
+    def test_expected_cache_version_rejects_unsupported_strings(self, value):
+        import vepyr
+
+        with pytest.raises(ValueError, match="Unsupported expected_cache_version"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, expected_cache_version=value)
 
     @pytest.mark.parametrize("source_flag", ["merged", "refseq"])
     def test_source_mode_flags_rejected(self, source_flag):

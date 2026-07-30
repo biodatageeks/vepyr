@@ -9,6 +9,7 @@ import pyarrow.parquet as pq
 from datafusion import SessionContext
 
 CACHE_SOURCE_METADATA_KEY = b"bio.vep.cache_source_type"
+CACHE_VERSION_METADATA_KEY = b"bio.vep.cache_version"
 VALID_CACHE_SOURCE_TYPES = {"ensembl", "merged", "refseq"}
 
 
@@ -16,8 +17,9 @@ def copy_cache_with_source_metadata(
     source_dir: str | Path,
     target_dir: str | Path,
     cache_source_type: str,
+    cache_version: str,
 ) -> Path:
-    """Copy a parquet cache fixture and add cache-source schema metadata.
+    """Copy a parquet cache fixture and add strict VEP cache identity metadata.
 
     Parquet shards are rewritten with DataFusion (parquet-rs — the same writer
     the engine reads with) using page-level statistics, so the footer keeps a
@@ -51,6 +53,7 @@ def copy_cache_with_source_metadata(
             table = pq.read_table(path)
             metadata = dict(table.schema.metadata or {})
             metadata[CACHE_SOURCE_METADATA_KEY] = cache_source_type.encode("ascii")
+            metadata[CACHE_VERSION_METADATA_KEY] = cache_version.encode("ascii")
             table = table.replace_schema_metadata(metadata)
             if table.num_rows == 0:
                 # Empty shard: no point-lookup pages, and DataFusion's writer

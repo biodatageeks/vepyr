@@ -60,6 +60,41 @@ for path, rows in results:
     print(f"{path}: {rows:,} rows")
 ```
 
+To rebuild only one raw entity while preserving the same release/source
+contract, use `build_cache_entity()`. Supported raw entities are `variation`,
+`transcript`, `exon`, `translation`, `regulatory`, and `motif`. The raw
+`translation` entity writes both `translation_core` and `translation_sift`.
+For example, a release-116 motif rebuild is:
+
+```python
+results = vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/tmp/vepyr_cache",
+    entity="motif",
+    cache_type="merged",
+    local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+)
+```
+
+For an existing converted cache,
+`e2e-testing/scripts/rebuild_cache_entity.py` wraps this API in an all-shard
+verification, backup, transactional swap, and rollback workflow:
+
+```bash
+uv run python e2e-testing/scripts/rebuild_cache_entity.py \
+    --release 116 --cache-type merged --entity translation --run
+```
+
+This vepyr release supports exactly cache 115 with VEP 115.2 semantics and
+cache 116 with VEP 116.0 semantics. `build_cache()` embeds
+`bio.vep.cache_version` in every generated Parquet shard. Annotation requires
+that metadata and validates it lazily per contig across every participating
+entity; metadata-less, mixed, malformed, or unsupported caches are rejected.
+Directory names and sidecar files are never used as annotation-cache identity.
+The optional `expected_cache_version="115"` (or `"116"`) argument is a strict
+assertion, not an override.
+
 ### 2a. Annotate variants
 
 A small 5-variant VCF for chr22 ships with the cache fixture:
