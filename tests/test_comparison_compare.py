@@ -181,3 +181,37 @@ def test_unmatched_csq_entry_is_structural_not_a_shifted_field_mismatch(tmp_path
     rows = [json.loads(line) for line in ledger.read_text().splitlines()]
     assert [row["kind"] for row in rows] == ["csq_entry_only_in_vepyr"]
     assert rows[0]["feature"] == "ENST00"
+
+
+def test_mismatch_ledger_closes_when_comparison_raises(monkeypatch):
+    closed = []
+
+    class FakeLedger:
+        def __init__(self, path):
+            assert path == "/tmp/mismatches.jsonl"
+
+        def emit(self, _record):
+            pass
+
+        def close(self):
+            closed.append(True)
+            return {"path": None, "rows": 0, "sha256": ""}
+
+    monkeypatch.setattr(compare, "_MismatchLedger", FakeLedger)
+    monkeypatch.setattr(compare.vcfio, "count_data_lines", lambda _path: 0)
+    monkeypatch.setattr(compare, "_get_csq_fields", lambda _path: [])
+    monkeypatch.setattr(
+        compare,
+        "_extract_keyed_csq",
+        lambda _path: (_ for _ in ()).throw(RuntimeError("injected")),
+    )
+
+    with pytest.raises(RuntimeError, match="injected"):
+        compare.compare_vcfs(
+            "vepyr.vcf",
+            "vep.vcf",
+            "failure",
+            mismatch_ledger_path="/tmp/mismatches.jsonl",
+        )
+
+    assert closed == [True]

@@ -72,6 +72,35 @@ def test_resolve_contigs_intersects_reference_and_input(monkeypatch):
     assert cli.resolve_contigs(args, resolved, "input.gz") == ["chr2", "chr3"]
 
 
+@pytest.mark.parametrize(
+    ("reference", "input_contigs"),
+    [
+        (["chr22"], ["22"]),
+        (["22"], ["chr22"]),
+    ],
+)
+def test_resolve_contigs_intersects_chr_aliases(monkeypatch, reference, input_contigs):
+    monkeypatch.setattr(
+        cli.vcfio,
+        "detect_contigs",
+        lambda path: reference if path == "ref.gz" else input_contigs,
+    )
+    args = cli.parse_args(["--release", "115"])
+
+    assert cli.resolve_contigs(args, _fake_resolved(), "input.gz") == ["chr22"]
+
+
+def test_resolve_contigs_validates_explicit_chr_aliases(monkeypatch):
+    monkeypatch.setattr(
+        cli.vcfio,
+        "detect_contigs",
+        lambda path: ["22"] if path == "ref.gz" else ["chr22"],
+    )
+    args = cli.parse_args(["--release", "115", "--chroms", "22"])
+
+    assert cli.resolve_contigs(args, _fake_resolved(), "input.gz") == ["chr22"]
+
+
 def test_resolve_contigs_preserves_reference_order(monkeypatch):
     """tabix -l returns coordinate order; a naive sort would give chr1, chr10, chr2."""
     monkeypatch.setattr(

@@ -127,6 +127,19 @@ def test_resolve_accepts_explicit_overrides(tmp_path, monkeypatch):
     assert resolved.vep_vcf == str(ref)
 
 
+def test_resolve_annotation_only_does_not_require_a_vep_reference(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    cache = tmp_path / "cache" / "115_GRCh38_merged"
+    cache.mkdir(parents=True)
+
+    resolved = profiles.resolve("merged", "115", require_reference=False)
+
+    assert resolved.cache_dir == str(cache)
+    assert resolved.vep_vcf is None
+
+
 def test_hash_order_profiles_ignore_csq_order():
     assert profiles.PROFILES["merged_per_gene"].ignore_csq_order is True
     assert profiles.PROFILES["merged_pick_allele_gene"].ignore_csq_order is True

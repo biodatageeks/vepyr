@@ -123,6 +123,24 @@ def _validate(value: dict, report_dir: Path):
     )
 
 
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        (["1-3"], ["chr1", "chr2", "chr3"]),
+        (["chr2-4"], ["chr2", "chr3", "chr4"]),
+        (["1", "chr2"], ["chr1", "chr2"]),
+    ],
+)
+def test_parse_contigs_expands_ranges_and_aliases(values, expected):
+    assert gate.parse_contigs(values) == expected
+
+
+@pytest.mark.parametrize("values", [["3-1"], ["chrA-3"], ["1", "chr1"]])
+def test_parse_contigs_rejects_invalid_or_duplicate_ranges(values):
+    with pytest.raises(ValueError):
+        gate.parse_contigs(values)
+
+
 def test_zero_parity_report_passes(tmp_path):
     value = _write_report(tmp_path)
 
@@ -215,6 +233,40 @@ def test_gate_rejects_local_path_dependency(tmp_path):
             suffix="merged",
             expected_package_version="0.2.0",
             build_info=build,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("supported_target", {**TARGET, "semantics": "V115"}, "release identity"),
+        (
+            "reference_identity",
+            {**REFERENCE, "ensembl_revision": "other"},
+            "ensembl_revision",
+        ),
+        ("cache_path", "/cache/other", "cache root"),
+    ],
+)
+def test_gate_rejects_cross_contig_identity_or_cache_drift(
+    tmp_path, field, value, message
+):
+    first = _write_report(tmp_path, "chr1")
+    second = _write_report(tmp_path, "chr2")
+    second[field] = value
+    if field == "supported_target":
+        second["cache_identity"]["semantics"] = value["semantics"]
+
+    with pytest.raises(gate.GateError, match=message):
+        gate.validate_reports(
+            [first, second],
+            report_dir=tmp_path,
+            contigs=["chr1", "chr2"],
+            release="116",
+            profile="merged",
+            suffix="merged",
+            expected_package_version="0.2.0",
+            build_info=CLEAN_BUILD,
         )
 
 

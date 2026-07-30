@@ -22,7 +22,8 @@ Examples:
 
 
 def _normalise_chrom(value):
-    return value if value.startswith("chr") else f"chr{value}"
+    bare = value[3:] if value.lower().startswith("chr") else value
+    return f"chr{bare}"
 
 
 def parse_args(argv=None):
@@ -151,9 +152,10 @@ def resolve_contigs(args, resolved, input_vcf):
     list 195 contigs while only 22 carry records.
     """
     input_contigs = vcfio.detect_contigs(input_vcf)
+    canonical_input = [_normalise_chrom(contig) for contig in input_contigs]
 
     if args.skip_compare:
-        detected = input_contigs
+        detected = canonical_input
     else:
         ref_contigs = vcfio.detect_contigs(resolved.vep_vcf)
         if not ref_contigs:
@@ -162,12 +164,17 @@ def resolve_contigs(args, resolved, input_vcf):
                 "contig detection degraded to the input VCF",
                 file=sys.stderr,
             )
-            detected = input_contigs
+            detected = canonical_input
         elif input_contigs:
-            allowed = set(input_contigs)
-            detected = [c for c in ref_contigs if c in allowed]
+            allowed = set(canonical_input)
+            detected = [
+                canonical
+                for contig in ref_contigs
+                if (canonical := _normalise_chrom(contig)) in allowed
+            ]
         else:
-            detected = ref_contigs
+            detected = [_normalise_chrom(contig) for contig in ref_contigs]
+        detected = list(dict.fromkeys(detected))
 
     if args.chroms is None:
         if not detected:
@@ -319,7 +326,11 @@ def main(argv=None):
 
     try:
         resolved = profiles.resolve(
-            args.profile, args.release, cache_dir=args.cache_dir, vep_vcf=args.vep
+            args.profile,
+            args.release,
+            cache_dir=args.cache_dir,
+            vep_vcf=args.vep,
+            require_reference=not args.skip_compare,
         )
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -372,7 +383,7 @@ def main(argv=None):
 
     chroms = resolve_contigs(args, resolved, input_vcf)
     print(f"  contigs:   {', '.join(chroms)}")
-    build_info = report.get_build_info()
+    build_info = None if args.skip_annotate else report.get_build_info()
 
     failures = []
     if not args.skip_annotate:
@@ -405,6 +416,20 @@ def main(argv=None):
     if not reports:
         print("No reports found.", file=sys.stderr)
         return 1
+    try:
+        report_build_info = report.common_build_info(reports)
+    except ValueError as exc:
+        print(f"Error: cannot summarize reports: {exc}", file=sys.stderr)
+        return 2
+    if build_info is None:
+        build_info = report_build_info
+    elif report_build_info != build_info:
+        print(
+            "Error: cannot summarize reports: report build provenance differs "
+            "from the running checkout",
+            file=sys.stderr,
+        )
+        return 2
 
     agg = report.aggregate_mismatches(reports)
     csq_classes = report.classify_consequence_mismatches(

@@ -101,6 +101,25 @@ def test_load_reports_falls_back_to_the_legacy_name(tmp_path, capsys):
     assert "legacy" in capsys.readouterr().out.lower()
 
 
+def test_common_build_info_returns_the_reported_provenance():
+    build = {"vepyr_rev": "abc", "dependencies": {"bio": {"revision": "def"}}}
+    reports = [{"build": build}, {"build": dict(build)}]
+
+    assert report.common_build_info(reports) == build
+
+
+@pytest.mark.parametrize(
+    "reports",
+    [
+        [{"chrom": "chr1"}],
+        [{"build": {"vepyr_rev": "abc"}}, {"build": {"vepyr_rev": "def"}}],
+    ],
+)
+def test_common_build_info_rejects_missing_or_mixed_provenance(reports):
+    with pytest.raises(ValueError, match="provenance"):
+        report.common_build_info(reports)
+
+
 def test_aggregate_sums_across_chromosomes():
     reports = [
         make_chrom_report("chr1", consequence_mismatches=2),
@@ -126,6 +145,29 @@ def test_classify_routes_stop_gained_missing():
     assert "stop_gained_missing" in classes
 
 
+def test_classify_distinguishes_stop_lost_directions():
+    classes = report.classify_consequence_mismatches(
+        [
+            {"vepyr": "stop_lost", "vep": "frameshift_variant"},
+            {"vepyr": "frameshift_variant", "vep": "stop_lost"},
+        ]
+    )
+
+    assert len(classes["stop_lost_extra"]) == 1
+    assert len(classes["stop_lost_missing"]) == 1
+
+
+def test_every_consequence_classifier_bucket_is_in_the_issue_registry():
+    examples = [
+        {"vepyr": "mature_miRNA_variant", "vep": "non_coding_transcript_variant"},
+        {"vepyr": "coding_sequence_variant", "vep": "frameshift_variant"},
+    ]
+
+    classes = report.classify_consequence_mismatches(examples)
+
+    assert set(classes) <= set(report.ISSUES) | {"other"}
+
+
 def test_generate_markdown_names_the_release_and_profile():
     reports = [make_chrom_report("chr1")]
     agg = report.aggregate_mismatches(reports)
@@ -141,6 +183,34 @@ def test_generate_markdown_names_the_release_and_profile():
     assert "release 115" in md
     assert "profile merged" in md
     assert "## Per-Chromosome Performance" in md
+
+
+def test_generate_markdown_marks_zero_multi_field_counts_fixed():
+    reports = [make_chrom_report("chr1")]
+    agg = report.aggregate_mismatches(reports)
+
+    md = report.generate_markdown(
+        reports,
+        agg,
+        {},
+        None,
+        {},
+        release="115",
+        profile="merged",
+    )
+
+    row = next(
+        line
+        for line in md.splitlines()
+        if "`incomplete_terminal_codon` companion terms" in line
+    )
+    assert row.endswith("| FIXED |")
+    multi_field_row = next(
+        line
+        for line in md.splitlines()
+        if "Incomplete terminal codon: IMPACT/HGVSp residual" in line
+    )
+    assert multi_field_row.endswith("| FIXED |")
 
 
 def test_generate_markdown_survives_an_all_reused_run():

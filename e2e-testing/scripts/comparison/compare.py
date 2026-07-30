@@ -222,6 +222,29 @@ def compare_vcfs(
     mismatch_ledger_path=None,
 ):
     """Compare two VCFs and optionally write every strict mismatch to JSONL."""
+    ledger = _MismatchLedger(mismatch_ledger_path)
+    try:
+        return _compare_vcfs(
+            vepyr_vcf,
+            vep_vcf,
+            label,
+            ignore_csq_order=ignore_csq_order,
+            backend=backend,
+            ledger=ledger,
+        )
+    finally:
+        ledger.close()
+
+
+def _compare_vcfs(
+    vepyr_vcf,
+    vep_vcf,
+    label,
+    *,
+    ignore_csq_order,
+    backend,
+    ledger,
+):
     print()
     print("=" * 60)
     print(f"Comparing vepyr ({backend}) vs VEP — {label}")
@@ -242,7 +265,6 @@ def compare_vcfs(
     if fields_only_vep:
         print(f"  Fields only in VEP:   {fields_only_vep}")
 
-    ledger = _MismatchLedger(mismatch_ledger_path)
     for field in fields_only_vepyr:
         ledger.emit({"kind": "csq_field_only_in_vepyr", "field": field})
     for field in fields_only_vep:

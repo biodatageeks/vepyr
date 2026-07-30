@@ -32,6 +32,11 @@ ISSUES = {
         "prs": [],
     },
     "stop_lost_extra": {
+        "title": "`stop_lost` false positive",
+        "issues": [115],
+        "prs": [],
+    },
+    "stop_lost_missing": {
         "title": "`stop_lost` missing on frameshift past stop codon",
         "issues": [115],
         "prs": [],
@@ -77,6 +82,11 @@ ISSUES = {
     "mirna_dedup": {
         "title": "miRNA dedup (stem repeated in VEP)",
         "issues": [100],
+        "prs": [],
+    },
+    "frameshift_missing": {
+        "title": "`frameshift_variant` missing at CDS boundary",
+        "issues": [117],
         "prs": [],
     },
     "protein_altering": {
@@ -144,6 +154,16 @@ def load_reports(report_dir, chroms, suffix, release):
         with open(path) as f:
             loaded.append(json.load(f))
     return loaded
+
+
+def common_build_info(reports):
+    """Return one exact build provenance shared by every report."""
+    builds = [value.get("build") for value in reports]
+    if not builds or not isinstance(builds[0], dict) or not builds[0]:
+        raise ValueError("reports do not contain build provenance")
+    if any(build != builds[0] for build in builds[1:]):
+        raise ValueError("build provenance differs across reports")
+    return builds[0]
 
 
 # ── Aggregation ──────────────────────────────────────────────────────────
@@ -235,7 +255,7 @@ def classify_consequence_mismatches(examples):
         elif "stop_lost" in vepyr and "stop_lost" not in vep:
             classes["stop_lost_extra"].append(ex)
         elif "stop_lost" not in vepyr and "stop_lost" in vep:
-            classes["stop_lost_extra"].append(ex)
+            classes["stop_lost_missing"].append(ex)
         elif "start_retained_variant" in vep and "start_retained_variant" not in vepyr:
             classes["start_retained_missing"].append(ex)
         elif (
@@ -246,7 +266,7 @@ def classify_consequence_mismatches(examples):
         elif "incomplete_terminal_codon" in vepyr:
             classes["incomplete_terminal"].append(ex)
         elif "mature_miRNA_variant" in vepyr and "mature_miRNA_variant" not in vep:
-            classes["mirna_overlap"].append(ex)
+            classes["mirna_dedup"].append(ex)
         elif "synonymous_variant" in vepyr and "coding_sequence_variant" in vep:
             classes["incomplete_terminal"].append(ex)
         elif (
@@ -601,18 +621,10 @@ def generate_markdown(
             [issue_link(n) for n in info["issues"]] + [pr_link(n) for n in info["prs"]]
         )
 
-        # Derive status from mismatch count
-        count_str = count.replace("~", "").strip()
-        is_zero = False
-        if count_str == "0":
-            is_zero = True
-        elif " + " in count_str:
-            parts = count_str.split(" + ")
-            is_zero = all(p.strip() == "0" for p in parts)
-        elif "Csq" in count_str:
-            nums = [int(x) for x in re.findall(r"\d+", count_str)]
-            is_zero = all(n == 0 for n in nums)
-
+        # Every count rendering contains only mismatch counts plus labels.
+        # Parsing all integers handles plain, approximate, and multi-field forms.
+        numbers = [int(value) for value in re.findall(r"\d+", count)]
+        is_zero = bool(numbers) and all(value == 0 for value in numbers)
         status = "FIXED" if is_zero else "OPEN"
         lines.append(
             f"| {row_num} | {info['title']} | {count} | {fields} | {links} | {status} |"

@@ -268,9 +268,6 @@ def _validate_release_dependencies(build_info: dict[str, Any]) -> None:
         source = dependency.get("effective_source")
         if source in (None, "path"):
             raise GateError(f"dependency {name} resolves from a local path")
-        manifest = dependency.get("manifest_path")
-        if isinstance(manifest, str) and os.path.isabs(manifest) and source == "path":
-            raise GateError(f"dependency {name} has an absolute local manifest path")
 
 
 def validate_reports(

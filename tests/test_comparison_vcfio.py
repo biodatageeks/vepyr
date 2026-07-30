@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 
@@ -209,6 +210,33 @@ def test_slice_vep_matches_contig_without_chr_prefix(tmp_path):
     out_dir.mkdir()
     out = vcfio.slice_vep(str(src), "chr22", str(out_dir), "merged")
     assert vcfio.count_data_lines(out) == 1
+
+
+def test_slice_vep_counts_an_indexed_final_record_without_a_newline(
+    tmp_path, monkeypatch, capsys
+):
+    reference = tmp_path / "reference.vcf.gz"
+    reference.write_bytes(b"")
+    (tmp_path / "reference.vcf.gz.tbi").write_bytes(b"")
+
+    def fake_run(command, **_kwargs):
+        if command[1] == "-H":
+            return SimpleNamespace(
+                returncode=0,
+                stdout=b"##fileformat=VCFv4.2\n"
+                b"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n",
+            )
+        return SimpleNamespace(
+            returncode=0,
+            stdout=b"22\t100\t.\tA\tT\t50\tPASS\t.",
+        )
+
+    monkeypatch.setattr(vcfio.subprocess, "run", fake_run)
+    out_dir = tmp_path / "work"
+
+    vcfio.slice_vep(str(reference), "chr22", str(out_dir), "merged")
+
+    assert "Extracted 1 VEP records" in capsys.readouterr().out
 
 
 def test_normalize_vcf_records_its_source(indexed_multi_contig, tmp_path):

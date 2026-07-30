@@ -324,7 +324,7 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
         with open(out_path, "wb") as f:
             f.write(header)
             f.write(body)
-        n = body.count(b"\n")
+        n = body.count(b"\n") + int(bool(body) and not body.endswith(b"\n"))
     else:
         if vep_vcf.endswith(GZIP_SUFFIXES):
             print(
