@@ -58,6 +58,7 @@ class EntityReport:
     entity: str
     shards: int
     rows: int
+    rows_by_chrom: dict[str, int]
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,9 @@ class CacheReport:
 
     def rows_by_entity(self) -> dict[str, int]:
         return {entity.entity: entity.rows for entity in self.entities}
+
+    def rows_by_entity_and_chrom(self) -> dict[str, dict[str, int]]:
+        return {entity.entity: dict(entity.rows_by_chrom) for entity in self.entities}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -229,6 +233,7 @@ def verify_cache(
         seen_datasets: set[str] = set()
         baseline_schema: pa.Schema | None = None
         entity_rows = 0
+        entity_rows_by_chrom: dict[str, int] = {}
 
         for index, entry in enumerate(entries):
             if not isinstance(entry, dict):
@@ -326,6 +331,7 @@ def verify_cache(
                 for name, count in counts.items():
                     motif_non_empty[name] += count
             entity_rows += actual_rows
+            entity_rows_by_chrom[chrom] = actual_rows
 
         on_disk = {path.name for path in entity_dir.glob("*.parquet")}
         unreferenced = sorted(on_disk - seen_datasets)
@@ -344,7 +350,9 @@ def verify_cache(
             raise VerificationError(
                 f"VEP {release} {entity} cache must contain at least one row"
             )
-        reports.append(EntityReport(entity, len(entries), entity_rows))
+        reports.append(
+            EntityReport(entity, len(entries), entity_rows, entity_rows_by_chrom)
+        )
 
     if release == "116" and verify_motif_values:
         motif_rows = next(report.rows for report in reports if report.entity == "motif")
@@ -360,21 +368,36 @@ def verify_cache(
     return CacheReport(root, release, source_type, tuple(reports), motif_non_empty)
 
 
-def _manifest_totals(cache_dir: Path) -> dict[str, int]:
-    """Read old-cache totals without accepting it as release-identified."""
-    totals: dict[str, int] = {}
+def _manifest_rows_by_entity_chrom(
+    cache_dir: Path,
+) -> dict[str, dict[str, int]]:
+    """Inventory old manifests per entity/contig without requiring identity."""
+    inventory: dict[str, dict[str, int]] = {}
     for entity in ENTITIES:
         entries = _read_manifest(cache_dir / entity)
-        total = 0
+        rows_by_chrom: dict[str, int] = {}
         for index, entry in enumerate(entries):
-            rows = entry.get("rows") if isinstance(entry, dict) else None
+            if not isinstance(entry, dict):
+                raise VerificationError(
+                    f"{entity} old-cache manifest entry {index} is not an object"
+                )
+            chrom = entry.get("chrom")
+            rows = entry.get("rows")
+            if not isinstance(chrom, str) or not chrom:
+                raise VerificationError(
+                    f"{entity} old-cache manifest entry {index} has invalid chrom"
+                )
             if not isinstance(rows, int) or isinstance(rows, bool) or rows < 0:
                 raise VerificationError(
                     f"{entity} old-cache manifest entry {index} has invalid rows"
                 )
-            total += rows
-        totals[entity] = total
-    return totals
+            if chrom in rows_by_chrom:
+                raise VerificationError(
+                    f"{entity} old-cache manifest repeats chromosome {chrom!r}"
+                )
+            rows_by_chrom[chrom] = rows
+        inventory[entity] = rows_by_chrom
+    return inventory
 
 
 def _print_report(report: CacheReport) -> None:
@@ -466,7 +489,7 @@ def main(argv: list[str] | None = None) -> int:
     problems = _preflight_source(source)
     if staging_parent.exists():
         problems.append(f"staging path already exists: {staging_parent}")
-    old_totals: dict[str, int] | None = None
+    old_rows: dict[str, dict[str, int]] | None = None
     existing_size = 0
     if target.exists():
         if not target.is_dir():
@@ -474,7 +497,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             existing_size = dir_size(target)
             try:
-                old_totals = _manifest_totals(target)
+                old_rows = _manifest_rows_by_entity_chrom(target)
             except VerificationError as exc:
                 problems.append(f"cannot inventory existing target: {exc}")
 
@@ -538,20 +561,29 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     _print_report(report)
 
-    if old_totals is not None:
-        new_totals = report.rows_by_entity()
-        changed = {
-            entity: (old_totals[entity], new_totals[entity])
-            for entity in ENTITIES
-            if old_totals[entity] != new_totals[entity]
-        }
+    if old_rows is not None:
+        new_rows = report.rows_by_entity_and_chrom()
+        changed: list[tuple[str, str, int | None, int | None]] = []
+        for entity in ENTITIES:
+            old_entity = old_rows[entity]
+            new_entity = new_rows[entity]
+            for chrom in sorted(set(old_entity) | set(new_entity)):
+                old_count = old_entity.get(chrom)
+                new_count = new_entity.get(chrom)
+                if old_count != new_count:
+                    changed.append((entity, chrom, old_count, new_count))
         if changed:
             print(
                 "row-count reconciliation failed; staging retained and target unchanged:",
                 file=sys.stderr,
             )
-            for entity, (old, new) in changed.items():
-                print(f"  {entity}: old={old:,}, new={new:,}", file=sys.stderr)
+            for entity, chrom, old, new in changed:
+                old_text = "(missing)" if old is None else f"{old:,}"
+                new_text = "(missing)" if new is None else f"{new:,}"
+                print(
+                    f"  {entity}/{chrom}: old={old_text}, new={new_text}",
+                    file=sys.stderr,
+                )
             return 1
 
     try:

@@ -62,6 +62,30 @@ def _write_cache(root: Path, release: str = "116") -> None:
         _write_entity(root, entity, release)
 
 
+def _rewrite_transcript_distribution(root: Path, rows_by_chrom: dict[str, int]) -> None:
+    entity_dir = root / "transcript"
+    for shard in entity_dir.glob("*.parquet"):
+        shard.unlink()
+    schema = pa.schema(
+        [pa.field("value", pa.string(), nullable=True)],
+        metadata={
+            rebuild.CACHE_VERSION_METADATA_KEY: b"116",
+            rebuild.CACHE_SOURCE_METADATA_KEY: b"merged",
+        },
+    )
+    entries = []
+    for chrom, rows in rows_by_chrom.items():
+        dataset = f"{chrom}.parquet"
+        pq.write_table(
+            pa.Table.from_arrays(
+                [pa.array(["x"] * rows, type=pa.string())], schema=schema
+            ),
+            entity_dir / dataset,
+        )
+        entries.append({"chrom": chrom, "dataset": dataset, "rows": rows})
+    (entity_dir / "chrom_manifest.json").write_text(json.dumps(entries))
+
+
 def _write_raw_source(root: Path) -> None:
     root.mkdir(parents=True)
     (root / "info.txt").write_text("cache_version 116\n")
@@ -230,7 +254,14 @@ def test_print_report_formats_entity_name_and_counts(capsys):
         cache_dir=Path("/cache"),
         release="115",
         source_type="merged",
-        entities=(rebuild.EntityReport("variation", 463, 1_332_332_652),),
+        entities=(
+            rebuild.EntityReport(
+                "variation",
+                463,
+                1_332_332_652,
+                {"chr1": 1_332_332_652},
+            ),
+        ),
         motif_non_empty={"binding_matrix": 0, "transcription_factors": 0},
     )
 
@@ -341,6 +372,54 @@ def test_main_rejects_row_count_drift_before_swap(tmp_path, monkeypatch, capsys)
         )
 
     assert result == 1
-    assert rebuild._manifest_totals(target)["transcript"] == 1
+    assert rebuild._manifest_rows_by_entity_chrom(target)["transcript"] == {"chr1": 1}
     assert list(tmp_path.glob(".116_GRCh38_merged.rebuild-*"))
     assert "row-count reconciliation failed" in capsys.readouterr().err
+
+
+def test_main_rejects_cross_chrom_row_redistribution_with_equal_total(
+    tmp_path, monkeypatch, capsys
+):
+    source = tmp_path / "raw" / "116_GRCh38"
+    _write_raw_source(source)
+    target = tmp_path / "116_GRCh38_merged"
+    _write_cache(target)
+    _rewrite_transcript_distribution(target, {"chr1": 1, "chr2": 1})
+    monkeypatch.setattr(
+        rebuild.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=10**12),
+    )
+
+    def fake_build_cache(
+        _release: int,
+        cache_dir: str,
+        *,
+        cache_type: str,
+        **_kwargs,
+    ) -> None:
+        staged = Path(cache_dir) / f"116_GRCh38_{cache_type}"
+        _write_cache(staged)
+        _rewrite_transcript_distribution(staged, {"chr1": 0, "chr2": 2})
+
+    with patch("vepyr.build_cache", side_effect=fake_build_cache):
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 1
+    assert rebuild._manifest_rows_by_entity_chrom(target)["transcript"] == {
+        "chr1": 1,
+        "chr2": 1,
+    }
+    error = capsys.readouterr().err
+    assert "transcript/chr1: old=1, new=0" in error
+    assert "transcript/chr2: old=1, new=2" in error
