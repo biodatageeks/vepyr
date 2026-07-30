@@ -172,6 +172,16 @@ def _check_variation_schema(schema: pa.Schema, release: str, shard: Path) -> Non
         raise VerificationError(
             f"{shard}: clin_sig_ref_allele must be nullable UTF-8, got {field}"
         )
+    if release == "115" and field is not None:
+        values = pq.read_table(shard, columns=["clin_sig_ref_allele"])[
+            "clin_sig_ref_allele"
+        ]
+        populated = _non_empty_count(values)
+        if populated:
+            raise VerificationError(
+                f"{shard}: VEP 115 clin_sig_ref_allele has {populated:,} "
+                "populated row(s); expected absent, null, or empty values"
+            )
 
 
 def verify_entity_dir(
@@ -289,6 +299,8 @@ def verify_entity_dir(
     if entity == "variation" and not entries:
         raise VerificationError("variation manifest must contain at least one shard")
     if entity == "motif":
+        if release == "115" and total_rows != 0:
+            raise VerificationError("VEP 115 motif entity must be empty")
         if release == "116" and total_rows == 0:
             raise VerificationError("VEP 116 motif entity contains no rows")
         if total_rows:

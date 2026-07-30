@@ -156,6 +156,19 @@ def test_verify_variation_requires_release_116_clin_sig_ref_allele(tmp_path):
         rebuild.verify_entity_dir(variation, "variation", "116", "merged")
 
 
+def test_verify_variation_rejects_populated_115_clin_sig_ref_allele(tmp_path):
+    variation = tmp_path / "variation"
+    shards = _write_generic_entity(variation, "variation", release="115")
+    table = pq.read_table(shards[0]).append_column(
+        "clin_sig_ref_allele",
+        pa.array(["A", None]),
+    )
+    pq.write_table(table, shards[0])
+
+    with pytest.raises(rebuild.VerificationError, match="populated row"):
+        rebuild.verify_entity_dir(variation, "variation", "115", "merged")
+
+
 def test_verify_translation_covers_both_generated_entities(tmp_path):
     _write_generic_entity(tmp_path / "translation_core", "translation_core")
     _write_generic_entity(tmp_path / "translation_sift", "translation_sift")
@@ -246,6 +259,14 @@ def test_verify_motif_accepts_empty_115_manifest(tmp_path):
 
     assert report.shards == 0
     assert report.rows == 0
+
+
+def test_verify_motif_rejects_nonempty_115_entity(tmp_path):
+    motif = tmp_path / "motif"
+    _write_motif(motif, release="115", shard_count=1)
+
+    with pytest.raises(rebuild.VerificationError, match="must be empty"):
+        rebuild.verify_entity_dir(motif, "motif", "115", "merged")
 
 
 def test_verify_motif_reports_complete_multi_shard_totals(tmp_path):

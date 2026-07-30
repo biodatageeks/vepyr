@@ -180,6 +180,15 @@ def _check_variation_schema(schema: pa.Schema, release: str, shard: Path) -> Non
         raise VerificationError(
             f"{shard}: clin_sig_ref_allele must be nullable UTF-8, got {field}"
         )
+    if release == "115" and field is not None:
+        populated = _non_empty_string_count(shard, ("clin_sig_ref_allele",))[
+            "clin_sig_ref_allele"
+        ]
+        if populated:
+            raise VerificationError(
+                f"{shard}: VEP 115 clin_sig_ref_allele has {populated:,} "
+                "populated row(s); expected absent, null, or empty values"
+            )
 
 
 def _non_empty_string_count(shard: Path, columns: tuple[str, ...]) -> dict[str, int]:

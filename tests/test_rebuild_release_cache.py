@@ -111,6 +111,20 @@ def test_verify_cache_rejects_116_without_clinvar_reference_field(tmp_path):
         rebuild.verify_cache(cache, "116", "merged")
 
 
+def test_verify_cache_rejects_populated_115_clinvar_reference_alleles(tmp_path):
+    cache = tmp_path / "115_GRCh38_merged"
+    _write_cache(cache, release="115")
+    shard = cache / "variation" / "chr1.parquet"
+    table = pq.read_table(shard).append_column(
+        "clin_sig_ref_allele",
+        pa.array(["A"]),
+    )
+    pq.write_table(table, shard)
+
+    with pytest.raises(rebuild.VerificationError, match="populated row"):
+        rebuild.verify_cache(cache, "115", "merged")
+
+
 def test_verify_cache_rejects_manifest_footer_row_mismatch(tmp_path):
     cache = tmp_path / "115_GRCh38_merged"
     _write_cache(cache, release="115")
