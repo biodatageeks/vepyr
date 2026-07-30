@@ -159,6 +159,13 @@ def test_select_supported_target_rejects_missing_or_duplicate_records(targets):
 def test_summary_only_does_not_load_native_targets_or_live_data(monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     monkeypatch.setattr(cli.report, "load_reports", lambda *_args: [])
+    monkeypatch.setattr(
+        cli,
+        "resolve_contigs",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("explicit summary contigs must not inspect live VCFs")
+        ),
+    )
 
     def fail_if_called():
         raise AssertionError("summary-only mode must not load the native extension")
@@ -176,3 +183,36 @@ def test_summary_only_does_not_load_native_targets_or_live_data(monkeypatch, tmp
     )
 
     assert result == 1
+
+
+def test_summary_only_auto_discovers_release_qualified_reports(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    observed = {}
+
+    def discover(report_dir, suffix, release):
+        observed.update(report_dir=report_dir, suffix=suffix, release=release)
+        return ["chr1", "chr2"]
+
+    monkeypatch.setattr(cli.report, "discover_report_contigs", discover)
+    monkeypatch.setattr(cli.report, "load_reports", lambda *_args: [])
+    monkeypatch.setattr(
+        cli,
+        "resolve_contigs",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("auto summary discovery must not inspect live VCFs")
+        ),
+    )
+    monkeypatch.setattr(
+        cli.annotate,
+        "supported_vep_targets",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("summary-only mode must not load the native extension")
+        ),
+    )
+
+    result = cli.main(["--release", "116", "--skip-annotate"])
+
+    assert result == 1
+    assert observed["suffix"] == "merged"
+    assert observed["release"] == "116"
+    assert observed["report_dir"].endswith("e2e-testing/reports")
