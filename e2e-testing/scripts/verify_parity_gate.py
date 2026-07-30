@@ -37,6 +37,38 @@ REQUIRED_BUILD_DEPENDENCIES = {
     "datafusion-bio-format-ensembl-cache",
     "datafusion-bio-format-vcf",
 }
+_ENSEMBL_CSQ_FIELDS = frozenset(
+    """
+    Allele Consequence IMPACT SYMBOL Gene Feature_type Feature BIOTYPE EXON INTRON
+    HGVSc HGVSp cDNA_position CDS_position Protein_position Amino_acids Codons
+    Existing_variation DISTANCE STRAND FLAGS VARIANT_CLASS SYMBOL_SOURCE HGNC_ID
+    CANONICAL MANE MANE_SELECT MANE_PLUS_CLINICAL TSL APPRIS CCDS ENSP SWISSPROT
+    TREMBL UNIPARC UNIPROT_ISOFORM GENE_PHENO SIFT PolyPhen DOMAINS miRNA
+    HGVS_OFFSET AF AFR_AF AMR_AF EAS_AF EUR_AF SAS_AF gnomADe_AF gnomADe_AFR_AF
+    gnomADe_AMR_AF gnomADe_ASJ_AF gnomADe_EAS_AF gnomADe_FIN_AF gnomADe_MID_AF
+    gnomADe_NFE_AF gnomADe_REMAINING_AF gnomADe_SAS_AF gnomADg_AF gnomADg_AFR_AF
+    gnomADg_AMI_AF gnomADg_AMR_AF gnomADg_ASJ_AF gnomADg_EAS_AF gnomADg_FIN_AF
+    gnomADg_MID_AF gnomADg_NFE_AF gnomADg_REMAINING_AF gnomADg_SAS_AF MAX_AF
+    MAX_AF_POPS CLIN_SIG SOMATIC PHENO PUBMED MOTIF_NAME MOTIF_POS HIGH_INF_POS
+    MOTIF_SCORE_CHANGE TRANSCRIPTION_FACTORS
+    """.split()
+)
+_REFSEQ_CSQ_FIELDS = frozenset(
+    {"REFSEQ_MATCH", "REFSEQ_OFFSET", "GIVEN_REF", "USED_REF", "BAM_EDIT"}
+)
+
+
+def expected_csq_fields(profile_name: str) -> frozenset[str]:
+    """Return the exact Ensembl VEP CSQ contract for one comparison profile."""
+    profile = profiles.PROFILES[profile_name]
+    fields = set(_ENSEMBL_CSQ_FIELDS)
+    if profile.flavour in {"refseq", "merged"}:
+        fields.update(_REFSEQ_CSQ_FIELDS)
+    if profile.flavour == "merged":
+        fields.add("SOURCE")
+    if any(flag.startswith("flag_pick") for flag in profile.annotate_kwargs):
+        fields.add("PICK")
+    return frozenset(fields)
 
 
 class GateError(RuntimeError):
@@ -356,6 +388,15 @@ def validate_reports(
         rates = comparison.get("field_match_rates")
         if not isinstance(rates, dict) or not rates:
             raise GateError(f"{expected_contig}: missing field_match_rates")
+        expected_fields = expected_csq_fields(profile)
+        observed_fields = set(rates)
+        if observed_fields != expected_fields:
+            missing = sorted(expected_fields - observed_fields)
+            unexpected = sorted(observed_fields - expected_fields)
+            raise GateError(
+                f"{expected_contig}: wrong profile-specific CSQ field set; "
+                f"missing={missing}, unexpected={unexpected}"
+            )
         if any(rate != 100.0 for rate in rates.values()):
             raise GateError(f"{expected_contig}: at least one field is below 100%")
         _validate_equality_counts(comparison, expected_contig)

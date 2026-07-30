@@ -54,6 +54,17 @@ def _write_report(report_dir: Path, contig: str = "chr1") -> dict:
         gate.report.mismatch_ledger_path(str(report_dir), contig, "merged", "116")
     )
     ledger.write_bytes(b"")
+    fields = sorted(gate.expected_csq_fields("merged"))
+    equality = {
+        field: {
+            "both_empty": 2,
+            "both_nonempty_equal": 8,
+            "vepyr_empty_only": 0,
+            "vep_empty_only": 0,
+            "both_nonempty_unequal": 0,
+        }
+        for field in fields
+    }
     value = {
         "chrom": contig,
         "profile": "merged",
@@ -79,21 +90,13 @@ def _write_report(report_dir: Path, contig: str = "chr1") -> dict:
             "csq_order_mismatch": 0,
             "fields_only_in_vepyr": [],
             "fields_only_in_vep": [],
-            "field_match_rates": {"Allele": 100.0},
+            "field_match_rates": {field: 100.0 for field in fields},
             "field_mismatch_counts": {},
             "field_order_mismatch_counts": {},
-            "field_equality_counts": {
-                "Allele": {
-                    "both_empty": 2,
-                    "both_nonempty_equal": 8,
-                    "vepyr_empty_only": 0,
-                    "vep_empty_only": 0,
-                    "both_nonempty_unequal": 0,
-                }
-            },
+            "field_equality_counts": equality,
             "equality_bucket_counts": {
-                "both_empty": 2,
-                "both_nonempty_equal": 8,
+                "both_empty": 2 * len(fields),
+                "both_nonempty_equal": 8 * len(fields),
                 "vepyr_empty_only": 0,
                 "vep_empty_only": 0,
                 "both_nonempty_unequal": 0,
@@ -176,6 +179,14 @@ def test_gate_rejects_nonzero_field_mismatch(tmp_path):
     comparison["equality_bucket_counts"]["both_nonempty_unequal"] = 1
 
     with pytest.raises(gate.GateError, match="below 100%"):
+        _validate(value, tmp_path)
+
+
+def test_gate_rejects_a_truncated_profile_field_set(tmp_path):
+    value = _write_report(tmp_path)
+    value["comparison"]["field_match_rates"].pop("Consequence")
+
+    with pytest.raises(gate.GateError, match="profile-specific CSQ field set"):
         _validate(value, tmp_path)
 
 
