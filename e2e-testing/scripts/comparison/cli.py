@@ -117,6 +117,11 @@ def parse_args(argv=None):
             args.chroms = None
         else:
             args.chroms = [_normalise_chrom(c) for c in args.chroms]
+            if len(args.chroms) != len(set(args.chroms)):
+                p.error(
+                    "--chroms must not contain duplicate contigs after "
+                    "chr-prefix normalization"
+                )
     if args.vcf is None:
         args.vcf = profiles.default_input(profiles.DEFAULT_VCF_NAME)
     if args.fasta is None:

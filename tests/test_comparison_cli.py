@@ -56,6 +56,12 @@ def test_chroms_all_means_detect():
     assert args.chroms is None
 
 
+@pytest.mark.parametrize("values", [("1", "1"), ("1", "chr1")])
+def test_chroms_reject_duplicate_canonical_contigs(values):
+    with pytest.raises(SystemExit):
+        cli.parse_args(["--release", "115", "--chroms", *values])
+
+
 def test_workers_must_be_positive():
     with pytest.raises(SystemExit):
         cli.parse_args(["--release", "115", "--workers", "0"])
