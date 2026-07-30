@@ -7,6 +7,7 @@ vepyr_dir=$(cd -- "$script_dir/.." && pwd)
 data_vepyr_dir=${DATA_VEPYR_DIR:-/home/tgambin/workspace/vep_data}
 archive_root=${VEPYR_ARCHIVE_ROOT:-/home/tgambin/workspace/vep_data2}
 release=${RELEASE:-116}
+vepyr_python=${VEPYR_PYTHON:-/home/tgambin/.pyenv/versions/3.12.8/bin/python3}
 cache_folder_id=${VEPYR_REFSEQ_CACHE_FOLDER_ID:-1iOWw4K954iLElLQsMYNs_LWkIMeVxWqn}
 cache_dir="$data_vepyr_dir/cache/${release}_GRCh38_refseq"
 run_log_dir="$archive_root/$release/vepyr_overnight"
@@ -15,6 +16,9 @@ run_log="$run_log_dir/overnight.log"
 lock_file="$run_log_dir/overnight.lock"
 expected_cache_files=2349
 expected_cache_bytes=33009584587
+
+test -x "$vepyr_python"
+export VEPYR_PYTHON="$vepyr_python"
 
 mkdir -p "$run_log_dir"
 exec 9>"$lock_file"
@@ -105,12 +109,12 @@ printf '%s\tCOLLECTING_RESULTS\n' "$(date --iso-8601=seconds)" > "$status_file"
   "$outputs_dir/refseq_worker_scaling"
 
 printf '%s\tGENERATING_FIGURES\n' "$(date --iso-8601=seconds)" > "$status_file"
-python3 "$script_dir/plot_vepyr_worker_scaling.py" \
+"$vepyr_python" "$script_dir/plot_vepyr_worker_scaling.py" \
   --cache-type merged \
   --summary "$outputs_dir/merged_worker_scaling/summary.tsv" \
   --output "$figures_dir/vepyr_merged_worker_benchmark_wgs.png" \
   --title "Vepyr 0.3.0 merged cache WGS benchmark"
-python3 "$script_dir/plot_vepyr_worker_scaling.py" \
+"$vepyr_python" "$script_dir/plot_vepyr_worker_scaling.py" \
   --cache-type refseq \
   --summary "$outputs_dir/refseq_worker_scaling/summary.tsv" \
   --output "$figures_dir/vepyr_refseq_worker_benchmark_wgs.png" \
