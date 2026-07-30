@@ -61,8 +61,10 @@ for path, rows in results:
 ```
 
 To rebuild only one raw entity while preserving the same release/source
-contract, use `build_cache_entity()`. For example, a release-116 motif-only
-rebuild is:
+contract, use `build_cache_entity()`. Supported raw entities are `variation`,
+`transcript`, `exon`, `translation`, `regulatory`, and `motif`. The raw
+`translation` entity writes both `translation_core` and `translation_sift`.
+For example, a release-116 motif rebuild is:
 
 ```python
 results = vepyr.build_cache_entity(
@@ -73,6 +75,15 @@ results = vepyr.build_cache_entity(
     local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
     overwrite=True,
 )
+```
+
+For an existing converted cache,
+`e2e-testing/scripts/rebuild_cache_entity.py` wraps this API in an all-shard
+verification, backup, transactional swap, and rollback workflow:
+
+```bash
+uv run python e2e-testing/scripts/rebuild_cache_entity.py \
+    --release 116 --cache-type merged --entity translation --run
 ```
 
 This vepyr release supports exactly cache 115 with VEP 115.2 semantics and

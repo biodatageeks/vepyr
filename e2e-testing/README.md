@@ -174,22 +174,25 @@ uv run python rebuild_release_cache.py \
     --verify-only ~/workspace/data_vepyr/cache/116_GRCh38_merged
 ```
 
-### `rebuild_motif_entity.py` -- targeted transactional motif rebuild
+### `rebuild_cache_entity.py` -- targeted transactional entity rebuild
 
-Use this only when a change is isolated to the raw `motif` entity. It invokes
-the public release-aware `vepyr.build_cache_entity()` API and validates every
-manifest shard, footer row count, schema, Parquet identity value, and required
-motif column before swapping. The old motif directory is retained as a hidden,
-timestamped sibling backup.
+Use this when a change is isolated to one raw entity: `variation`,
+`transcript`, `exon`, `translation`, `regulatory`, or `motif`. It invokes the
+public release-aware `vepyr.build_cache_entity()` API and validates every
+manifest shard, footer row count, schema, and Parquet identity value before
+swapping. Entity-specific checks enforce the release-116 variation and motif
+contracts. The raw `translation` entity produces `translation_core` and
+`translation_sift`; both are verified and swapped as one transaction. Previous
+generated directories are retained as hidden, timestamped sibling backups.
 
 ```bash
-# Preflight and verify the current motif entity
-uv run python rebuild_motif_entity.py \
-    --release 116 --cache-type merged
+# Preflight and verify the current translation outputs
+uv run python rebuild_cache_entity.py \
+    --release 116 --cache-type merged --entity translation
 
-# Build, fully verify, and swap only motif
-uv run python rebuild_motif_entity.py \
-    --release 116 --cache-type merged --run
+# Build, fully verify, and swap only variation
+uv run python rebuild_cache_entity.py \
+    --release 116 --cache-type merged --entity variation --run
 ```
 
 **Data layout** under `$DATA_VEPYR_DIR` (default `~/workspace/data_vepyr`):
@@ -264,7 +267,7 @@ e2e-testing/
     run_comparison.py                  # release-qualified E2E entry point
     verify_parity_gate.py              # machine zero-mismatch gate
     rebuild_release_cache.py           # complete transactional rebuild/verifier
-    rebuild_motif_entity.py            # targeted transactional motif rebuild
+    rebuild_cache_entity.py            # targeted transactional entity rebuild
     comparison/
       profiles.py                      # profile x release matrix, path derivation
       vcfio.py                         # compression, indexing, contig detection, slicing

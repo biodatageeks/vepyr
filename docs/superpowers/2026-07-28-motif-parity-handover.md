@@ -117,11 +117,11 @@ uv run python e2e-testing/scripts/rebuild_release_cache.py \
 uv run python e2e-testing/scripts/rebuild_release_cache.py \
     --release 116 --cache-type merged --run
 
-# Targeted motif-only rebuild (dry run, then execute)
-uv run python e2e-testing/scripts/rebuild_motif_entity.py \
-    --release 116 --cache-type merged
-uv run python e2e-testing/scripts/rebuild_motif_entity.py \
-    --release 116 --cache-type merged --run
+# Targeted motif rebuild through the generic entity workflow (dry run, then execute)
+uv run python e2e-testing/scripts/rebuild_cache_entity.py \
+    --release 116 --cache-type merged --entity motif
+uv run python e2e-testing/scripts/rebuild_cache_entity.py \
+    --release 116 --cache-type merged --entity motif --run
 ```
 
 The complete path stages the whole cache and validates every entity. The
