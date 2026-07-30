@@ -244,14 +244,16 @@ def resolve(
     cache_dir=None,
     vep_vcf=None,
     *,
+    require_cache=True,
     require_reference=True,
 ):
     """Resolve a profile and release to concrete paths, or raise ProfileUnavailable.
 
     Runs before any other work so a bad combination fails in milliseconds rather
     than after a normalization pass. Explicit cache_dir / vep_vcf override the
-    derived paths and skip their existence checks. ``require_reference=False``
-    supports annotation-only runs that never read a VEP result.
+    derived paths and skip their existence checks. The requirement flags support
+    modes that only annotate (no VEP reference) or only summarize stored reports
+    (no live cache or reference).
     """
     if profile_name not in PROFILES:
         raise ProfileUnavailable(
@@ -267,7 +269,7 @@ def resolve(
     resolved_ref = vep_vcf or vep_vcf_for(profile_name, release)
 
     problems = []
-    if not os.path.isdir(resolved_cache):
+    if require_cache and not os.path.isdir(resolved_cache):
         problems.append(f"no Parquet cache at {resolved_cache}")
     if require_reference and resolved_ref is None:
         problems.append(

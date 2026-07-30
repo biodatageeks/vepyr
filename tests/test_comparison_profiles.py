@@ -140,6 +140,22 @@ def test_resolve_annotation_only_does_not_require_a_vep_reference(
     assert resolved.vep_vcf is None
 
 
+def test_resolve_summary_only_does_not_require_live_cache_or_reference(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+
+    resolved = profiles.resolve(
+        "merged",
+        "116",
+        require_cache=False,
+        require_reference=False,
+    )
+
+    assert resolved.cache_dir == str(tmp_path / "cache" / "116_GRCh38_merged")
+    assert resolved.vep_vcf is None
+
+
 def test_hash_order_profiles_ignore_csq_order():
     assert profiles.PROFILES["merged_per_gene"].ignore_csq_order is True
     assert profiles.PROFILES["merged_pick_allele_gene"].ignore_csq_order is True

@@ -154,3 +154,25 @@ def test_select_supported_target_uses_native_records_without_python_version_map(
 def test_select_supported_target_rejects_missing_or_duplicate_records(targets):
     with pytest.raises(ValueError, match="not uniquely supported"):
         cli.select_supported_target("115", targets)
+
+
+def test_summary_only_does_not_load_native_targets_or_live_data(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(cli.report, "load_reports", lambda *_args: [])
+
+    def fail_if_called():
+        raise AssertionError("summary-only mode must not load the native extension")
+
+    monkeypatch.setattr(cli.annotate, "supported_vep_targets", fail_if_called)
+
+    result = cli.main(
+        [
+            "--release",
+            "116",
+            "--skip-annotate",
+            "--chroms",
+            "1",
+        ]
+    )
+
+    assert result == 1

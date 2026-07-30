@@ -330,6 +330,7 @@ def main(argv=None):
             args.release,
             cache_dir=args.cache_dir,
             vep_vcf=args.vep,
+            require_cache=not args.skip_annotate,
             require_reference=not args.skip_compare and not args.skip_annotate,
         )
     except profiles.ProfileUnavailable as exc:
@@ -337,24 +338,27 @@ def main(argv=None):
         return 2
 
     try:
-        selected_target = select_supported_target(
-            args.release,
-            annotate.supported_vep_targets(),
-        )
+        selected_target = None
         reference_identity = None
-        if not args.skip_compare and not args.skip_annotate:
-            reference_identity = vcfio.parse_vep_header(resolved.vep_vcf)
-            vcfio.validate_vep_reference_identity(
-                reference_identity,
-                selected_target,
+        if not args.skip_annotate:
+            selected_target = select_supported_target(
+                args.release,
+                annotate.supported_vep_targets(),
             )
+            if not args.skip_compare:
+                reference_identity = vcfio.parse_vep_header(resolved.vep_vcf)
+                vcfio.validate_vep_reference_identity(
+                    reference_identity,
+                    selected_target,
+                )
     except (RuntimeError, ValueError) as exc:
         print(f"Error: release identity validation failed: {exc}", file=sys.stderr)
         return 2
 
-    resolved.annotate_kwargs["expected_cache_version"] = selected_target[
-        "cache_version"
-    ]
+    if selected_target is not None:
+        resolved.annotate_kwargs["expected_cache_version"] = selected_target[
+            "cache_version"
+        ]
 
     # .../e2e-testing/scripts/comparison/cli.py -> .../e2e-testing
     e2e_dir = os.path.dirname(
