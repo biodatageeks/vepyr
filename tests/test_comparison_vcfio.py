@@ -112,6 +112,43 @@ def test_ensure_bgzf_compresses_a_plain_vcf(plain_vcf, tmp_path):
     assert vcfio.count_data_lines(result) == 2
 
 
+def test_ensure_bgzf_regenerates_when_the_plain_source_changes(plain_vcf, tmp_path):
+    out_dir = tmp_path / "work"
+    first = vcfio.ensure_bgzf(str(plain_vcf), str(out_dir))
+    first_source = json.loads((out_dir / "sample.vcf.gz.source.json").read_text())
+    plain_vcf.write_text(
+        VCF_BODY + "chr1\t300\t.\tC\tG\t50\tPASS\tCSQ=G|intron_variant|ENST01\n"
+    )
+
+    second = vcfio.ensure_bgzf(str(plain_vcf), str(out_dir))
+
+    assert second == first
+    assert vcfio.count_data_lines(second) == 3
+    second_source = json.loads((out_dir / "sample.vcf.gz.source.json").read_text())
+    assert second_source != first_source
+
+
+def test_ensure_bgzf_regenerates_for_a_same_named_source_from_another_path(tmp_path):
+    first_dir = tmp_path / "first"
+    second_dir = tmp_path / "second"
+    first_dir.mkdir()
+    second_dir.mkdir()
+    first_source = first_dir / "sample.vcf"
+    second_source = second_dir / "sample.vcf"
+    first_source.write_text(VCF_BODY)
+    second_source.write_text(
+        VCF_BODY + "chr1\t300\t.\tC\tG\t50\tPASS\tCSQ=G|intron_variant|ENST01\n"
+    )
+    out_dir = tmp_path / "work"
+
+    vcfio.ensure_bgzf(str(first_source), str(out_dir))
+    result = vcfio.ensure_bgzf(str(second_source), str(out_dir))
+
+    assert vcfio.count_data_lines(result) == 3
+    marker = json.loads((out_dir / "sample.vcf.gz.source.json").read_text())
+    assert marker["path"] == str(second_source)
+
+
 def test_ensure_bgzf_returns_an_already_compressed_file_unchanged(bgzf_vcf, tmp_path):
     out_dir = tmp_path / "work"
     out_dir.mkdir()

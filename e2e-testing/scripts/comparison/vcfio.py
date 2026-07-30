@@ -19,6 +19,26 @@ _VEP_HEADER_VALUE_RE = re.compile(
 _CACHE_RELEASE_RE = re.compile(r"(?:^|/)(?P<release>\d+)_GRCh\d+(?:$|/)")
 
 
+def _source_identity(path):
+    """Return the cheap, stable identity used for derived working files."""
+    stat = os.stat(path)
+    return {
+        "path": os.path.abspath(path),
+        "size": stat.st_size,
+        "mtime": stat.st_mtime,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
+def _read_json(path):
+    """Read a JSON marker, treating a missing or corrupt marker as a cache miss."""
+    try:
+        with open(path) as stream:
+            return json.load(stream)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def open_text(path):
     """Open a VCF for text reading, transparently handling .gz (bgzf or plain gzip)."""
     if path.endswith(GZIP_SUFFIXES):
@@ -177,14 +197,21 @@ def ensure_bgzf(path, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, os.path.basename(path))
     target_gz = target + ".gz"
-    if os.path.exists(target_gz):
-        ensure_tabix_index(target_gz)
+    sidecar_path = target_gz + ".source.json"
+    source = _source_identity(path)
+    if (
+        os.path.exists(target_gz)
+        and os.path.exists(target_gz + ".tbi")
+        and _read_json(sidecar_path) == source
+    ):
         return target_gz
 
     print(f"  Input is plain text, block-gzipping {os.path.basename(path)} ...")
     with open(target_gz, "wb") as fh:
         subprocess.run(["bgzip", "-c", path], stdout=fh, check=True)
-    ensure_tabix_index(target_gz)
+    subprocess.run(["tabix", "-f", "-p", "vcf", target_gz], check=True)
+    with open(sidecar_path, "w") as stream:
+        json.dump(source, stream, indent=2)
     return target_gz
 
 
@@ -222,24 +249,19 @@ def normalize_vcf(vcf, out_dir):
     norm_vcf_gz = norm_vcf + ".gz"
     sidecar_path = os.path.join(out_dir, "normalized.source.json")
 
-    stat = os.stat(vcf)
-    source = {
-        "path": os.path.abspath(vcf),
-        "size": stat.st_size,
-        "mtime": stat.st_mtime,
-    }
+    source = _source_identity(vcf)
 
     if os.path.exists(norm_vcf_gz) and os.path.exists(sidecar_path):
-        with open(sidecar_path) as f:
-            previous = json.load(f)
+        previous = _read_json(sidecar_path)
         if previous == source:
             print(f"  Using existing {norm_vcf_gz}")
             ensure_tabix_index(norm_vcf_gz)
             return norm_vcf_gz
-        print(
-            f"  Source changed ({previous.get('path')} -> {source['path']}), "
-            "re-normalizing"
-        )
+        if previous is not None:
+            print(
+                f"  Source changed ({previous.get('path')} -> {source['path']}), "
+                "re-normalizing"
+            )
 
     print(f"  Normalizing {os.path.basename(vcf)} (bcftools norm -m -both) ...")
     result = subprocess.run(
@@ -266,19 +288,8 @@ def slice_contig(vcf_gz, chrom, out_dir, force=False):
     out_vcf = os.path.join(out_dir, f"input_{chrom}.vcf")
     out_gz = out_vcf + ".gz"
     sidecar_path = os.path.join(out_dir, f"input_{chrom}.source.json")
-    stat = os.stat(vcf_gz)
-    source = {
-        "path": os.path.abspath(vcf_gz),
-        "size": stat.st_size,
-        "mtime": stat.st_mtime,
-    }
-    previous = None
-    if os.path.exists(sidecar_path):
-        try:
-            with open(sidecar_path) as stream:
-                previous = json.load(stream)
-        except (OSError, json.JSONDecodeError):
-            previous = None
+    source = _source_identity(vcf_gz)
+    previous = _read_json(sidecar_path)
     if (
         not force
         and previous == source
@@ -327,19 +338,8 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.vcf")
     sidecar_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.source.json")
-    stat = os.stat(vep_vcf)
-    source = {
-        "path": os.path.abspath(vep_vcf),
-        "size": stat.st_size,
-        "mtime": stat.st_mtime,
-    }
-    previous = None
-    if os.path.exists(sidecar_path):
-        try:
-            with open(sidecar_path) as stream:
-                previous = json.load(stream)
-        except (OSError, json.JSONDecodeError):
-            previous = None
+    source = _source_identity(vep_vcf)
+    previous = _read_json(sidecar_path)
     if os.path.exists(out_path) and not force and previous == source:
         print(f"  Using existing {out_path}")
         return out_path
