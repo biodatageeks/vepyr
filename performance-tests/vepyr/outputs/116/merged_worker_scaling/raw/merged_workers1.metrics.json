@@ -1,0 +1,23 @@
+{
+  "annotation_seconds": 493.5772486900096,
+  "cache_dir": "/home/tgambin/workspace/vep_data/cache/116_GRCh38_merged",
+  "cache_type": "merged",
+  "finished_at_utc": "2026-07-30T22:06:04.812885+00:00",
+  "input_vcf": "/home/tgambin/workspace/vep_data/input/HG002_normalized.vcf.gz",
+  "max_rss_kb": 3325756,
+  "output_bytes": 29410585470,
+  "output_records": 4096123,
+  "output_vcf": "/home/tgambin/workspace/vep_data/output/116/vepyr_merged_worker_scaling/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers1.vcf",
+  "records_match_vep": true,
+  "reference_fasta": "/home/tgambin/workspace/vep_data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+  "returned_output_vcf": "/home/tgambin/workspace/vep_data/output/116/vepyr_merged_worker_scaling/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers1.vcf",
+  "started_at_utc": "2026-07-30T21:57:35.628007+00:00",
+  "status": "ok",
+  "system_cpu_seconds": 113.506041,
+  "total_script_seconds": 509.184878,
+  "user_cpu_seconds": 539.945349,
+  "vep_expected_records": 4096123,
+  "vepyr_module": "/home/tgambin/.pyenv/versions/3.12.8/lib/python3.12/site-packages/vepyr/__init__.py",
+  "vepyr_version": "0.3.0",
+  "workers": 1
+}

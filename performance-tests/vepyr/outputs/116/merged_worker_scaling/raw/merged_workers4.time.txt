@@ -1,0 +1,23 @@
+	Command being timed: "/home/tgambin/.pyenv/versions/3.12.8/bin/python3 -P /home/tgambin/workspace/vepyr/performance-tests/vepyr/scripts/benchmark_vepyr_once.py --input-vcf /home/tgambin/workspace/vep_data/input/HG002_normalized.vcf.gz --cache-dir /home/tgambin/workspace/vep_data/cache/116_GRCh38_merged --cache-type merged --reference-fasta /home/tgambin/workspace/vep_data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --output-vcf /home/tgambin/workspace/vep_data/output/116/vepyr_merged_worker_scaling/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers4.vcf --metrics-json /home/tgambin/workspace/vep_data/output/116/vepyr_merged_worker_scaling/merged_workers4.metrics.json --workers 4 --expected-records 4096123"
+	User time (seconds): 591.10
+	System time (seconds): 155.27
+	Percent of CPU this job got: 244%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 5:05.11
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5447044
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 54
+	Minor (reclaiming a frame) page faults: 34342261
+	Voluntary context switches: 2191044
+	Involuntary context switches: 4589
+	Swaps: 0
+	File system inputs: 91644568
+	File system outputs: 114886976
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
