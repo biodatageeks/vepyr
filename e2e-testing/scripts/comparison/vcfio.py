@@ -174,13 +174,29 @@ def validate_vep_reference_identity(identity, target):
         )
 
 
-def ensure_tabix_index(vcf_gz):
-    """Create a tabix index for `vcf_gz` if one is missing."""
+def ensure_tabix_index(vcf_gz, source_marker=None):
+    """Create or refresh the tabix index for `vcf_gz`.
+
+    Without a marker, an existing index is reusable only when it is at least as
+    new as the compressed VCF. ``ensure_bgzf`` additionally supplies a working
+    directory marker so an edited or replaced ``--no-normalize`` input cannot
+    retain a stale, newer-looking index.
+    """
     tbi = vcf_gz + ".tbi"
+    source = _source_identity(vcf_gz)
     if os.path.exists(tbi):
-        return
+        if source_marker is not None:
+            if _read_json(source_marker) == source:
+                return
+        elif os.stat(tbi).st_mtime_ns >= source["mtime_ns"]:
+            return
+
     print(f"  Indexing (tabix) {os.path.basename(vcf_gz)} ...")
-    subprocess.run(["tabix", "-p", "vcf", vcf_gz], check=True)
+    subprocess.run(["tabix", "-f", "-p", "vcf", vcf_gz], check=True)
+    if source_marker is not None:
+        os.makedirs(os.path.dirname(os.path.abspath(source_marker)), exist_ok=True)
+        with open(source_marker, "w") as stream:
+            json.dump(source, stream, indent=2)
 
 
 def ensure_bgzf(path, out_dir):
@@ -191,7 +207,12 @@ def ensure_bgzf(path, out_dir):
     written to. This is what lets --no-normalize accept an uncompressed VCF.
     """
     if path.endswith(GZIP_SUFFIXES):
-        ensure_tabix_index(path)
+        os.makedirs(out_dir, exist_ok=True)
+        source_marker = os.path.join(
+            out_dir,
+            os.path.basename(path) + ".tbi.source.json",
+        )
+        ensure_tabix_index(path, source_marker)
         return path
 
     os.makedirs(out_dir, exist_ok=True)

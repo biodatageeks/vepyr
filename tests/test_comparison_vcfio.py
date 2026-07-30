@@ -155,6 +155,33 @@ def test_ensure_bgzf_returns_an_already_compressed_file_unchanged(bgzf_vcf, tmp_
     assert vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir)) == str(bgzf_vcf)
 
 
+def test_ensure_bgzf_reindexes_an_edited_compressed_input(
+    bgzf_vcf, plain_vcf, tmp_path
+):
+    out_dir = tmp_path / "work"
+    result = vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir))
+    marker = out_dir / "sample_bgzf.vcf.gz.tbi.source.json"
+    first_source = json.loads(marker.read_text())
+
+    plain_vcf.write_text(
+        VCF_BODY + "chr1\t300\t.\tC\tG\t50\tPASS\tCSQ=G|intron_variant|ENST01\n"
+    )
+    with open(bgzf_vcf, "wb") as stream:
+        subprocess.run(["bgzip", "-c", str(plain_vcf)], stdout=stream, check=True)
+
+    second = vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir))
+
+    assert second == result
+    assert json.loads(marker.read_text()) != first_source
+    queried = subprocess.run(
+        ["tabix", second, "chr1:300-300"],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert queried.stdout.startswith("chr1\t300\t")
+
+
 MULTI_CONTIG_BODY = """##fileformat=VCFv4.2
 ##contig=<ID=chr1>
 ##contig=<ID=chr2>
