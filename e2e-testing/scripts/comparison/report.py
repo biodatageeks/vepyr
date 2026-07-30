@@ -166,8 +166,7 @@ def load_reports(report_dir, chroms, suffix, release):
                 "(predates the release axis; release attribution unverified)"
             )
         else:
-            print(f"  WARNING: no report for {chrom}, skipping")
-            continue
+            raise ValueError(f"missing requested report for {chrom}: expected {modern}")
         with open(path) as f:
             value = json.load(f)
         expected = {

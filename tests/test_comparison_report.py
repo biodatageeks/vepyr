@@ -119,6 +119,14 @@ def test_load_reports_rejects_legacy_identity_mismatches(tmp_path, field, value)
         report.load_reports(str(tmp_path), ["chr1"], "merged", "115")
 
 
+def test_load_reports_rejects_a_missing_requested_contig(tmp_path):
+    modern = tmp_path / "fast_chr1_merged_115_report.json"
+    modern.write_text(json.dumps(make_chrom_report("chr1")))
+
+    with pytest.raises(ValueError, match="missing requested report for chr2"):
+        report.load_reports(str(tmp_path), ["chr1", "chr2"], "merged", "115")
+
+
 def test_discover_report_contigs_uses_only_the_requested_release(tmp_path):
     for name in (
         "fast_chr10_merged_116_report.json",
