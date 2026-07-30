@@ -123,6 +123,17 @@ def test_verify_cache_rejects_manifest_footer_row_mismatch(tmp_path):
         rebuild.verify_cache(cache, "115", "merged")
 
 
+def test_verify_cache_rejects_empty_116_motif_entity(tmp_path):
+    cache = tmp_path / "116_GRCh38_merged"
+    _write_cache(cache)
+    motif_dir = cache / "motif"
+    (motif_dir / "chr1.parquet").unlink()
+    (motif_dir / "chrom_manifest.json").write_text("[]")
+
+    with pytest.raises(rebuild.VerificationError, match="at least one row"):
+        rebuild.verify_cache(cache, "116", "merged")
+
+
 def test_print_report_formats_entity_name_and_counts(capsys):
     report = rebuild.CacheReport(
         cache_dir=Path("/cache"),

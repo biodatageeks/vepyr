@@ -334,8 +334,10 @@ def verify_cache(
 
     if release == "116" and verify_motif_values:
         motif_rows = next(report.rows for report in reports if report.entity == "motif")
+        if motif_rows == 0:
+            raise VerificationError("VEP 116 motif cache must contain at least one row")
         for name, count in motif_non_empty.items():
-            if motif_rows and count == 0:
+            if count == 0:
                 raise VerificationError(
                     f"VEP 116 motif cache has {motif_rows:,} rows but no non-empty {name}"
                 )
