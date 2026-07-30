@@ -134,6 +134,75 @@ def test_verify_cache_rejects_empty_116_motif_entity(tmp_path):
         rebuild.verify_cache(cache, "116", "merged")
 
 
+def test_verify_cache_rejects_an_empty_required_entity(tmp_path):
+    cache = tmp_path / "115_GRCh38_merged"
+    _write_cache(cache, release="115")
+    transcript_dir = cache / "transcript"
+    (transcript_dir / "chr1.parquet").unlink()
+    (transcript_dir / "chrom_manifest.json").write_text("[]")
+
+    with pytest.raises(rebuild.VerificationError, match="transcript.*at least one row"):
+        rebuild.verify_cache(cache, "115", "merged")
+
+
+def test_verify_cache_allows_the_release_115_empty_motif_contract(tmp_path):
+    cache = tmp_path / "115_GRCh38_merged"
+    _write_cache(cache, release="115")
+    motif_dir = cache / "motif"
+    (motif_dir / "chr1.parquet").unlink()
+    (motif_dir / "chrom_manifest.json").write_text("[]")
+
+    report = rebuild.verify_cache(cache, "115", "merged")
+
+    assert report.rows_by_entity()["motif"] == 0
+
+
+@pytest.mark.parametrize(
+    ("column", "values"),
+    [
+        ("binding_matrix", ["MATRIX", None]),
+        ("transcription_factors", ["TF", ""]),
+    ],
+)
+def test_verify_cache_requires_every_116_motif_value(column, values, tmp_path):
+    cache = tmp_path / "116_GRCh38_merged"
+    _write_cache(cache)
+    motif_dir = cache / "motif"
+    populated = {
+        "binding_matrix": ["MATRIX1", "MATRIX2"],
+        "transcription_factors": ["TF1", "TF2"],
+    }
+    populated[column] = values
+    schema = pa.schema(
+        [
+            pa.field("value", pa.string(), nullable=True),
+            pa.field("binding_matrix", pa.string(), nullable=True),
+            pa.field("transcription_factors", pa.string(), nullable=True),
+        ],
+        metadata={
+            rebuild.CACHE_VERSION_METADATA_KEY: b"116",
+            rebuild.CACHE_SOURCE_METADATA_KEY: b"merged",
+        },
+    )
+    pq.write_table(
+        pa.Table.from_arrays(
+            [
+                pa.array(["x", "y"]),
+                pa.array(populated["binding_matrix"]),
+                pa.array(populated["transcription_factors"]),
+            ],
+            schema=schema,
+        ),
+        motif_dir / "chr1.parquet",
+    )
+    (motif_dir / "chrom_manifest.json").write_text(
+        json.dumps([{"chrom": "chr1", "dataset": "chr1.parquet", "rows": 2}])
+    )
+
+    with pytest.raises(rebuild.VerificationError, match=f"{column} in 1 of 2 rows"):
+        rebuild.verify_cache(cache, "116", "merged")
+
+
 def test_print_report_formats_entity_name_and_counts(capsys):
     report = rebuild.CacheReport(
         cache_dir=Path("/cache"),

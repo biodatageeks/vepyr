@@ -326,9 +326,12 @@ def verify_cache(
                 f"{entity_dir}: {len(unreferenced)} unreferenced Parquet shard(s), "
                 f"including {preview}"
             )
-        if entity == "variation" and not entries:
+        # VEP 115 raw caches do not carry motif-feature rows; the corresponding
+        # generated entity is intentionally empty. Every other release/entity
+        # pair is required to contain data before a fresh cache can be installed.
+        if entity_rows == 0 and not (release == "115" and entity == "motif"):
             raise VerificationError(
-                "variation manifest must contain at least one shard"
+                f"VEP {release} {entity} cache must contain at least one row"
             )
         reports.append(EntityReport(entity, len(entries), entity_rows))
 
@@ -337,9 +340,10 @@ def verify_cache(
         if motif_rows == 0:
             raise VerificationError("VEP 116 motif cache must contain at least one row")
         for name, count in motif_non_empty.items():
-            if count == 0:
+            if count != motif_rows:
                 raise VerificationError(
-                    f"VEP 116 motif cache has {motif_rows:,} rows but no non-empty {name}"
+                    f"VEP 116 motif cache has non-empty {name} in {count:,} of "
+                    f"{motif_rows:,} rows; every row must be populated"
                 )
 
     return CacheReport(root, release, source_type, tuple(reports), motif_non_empty)
