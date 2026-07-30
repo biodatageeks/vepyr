@@ -122,6 +122,30 @@ def _write_generic_entity(
     return shards
 
 
+def _rewrite_transcript_distribution(
+    entity_dir: Path, rows_by_chrom: dict[str, int]
+) -> None:
+    entity_dir.mkdir(parents=True, exist_ok=True)
+    for shard in entity_dir.glob("*.parquet"):
+        shard.unlink()
+    schema = _generic_table("transcript").schema
+    entries = []
+    for chrom, rows in rows_by_chrom.items():
+        dataset = f"{chrom}.parquet"
+        table = pa.Table.from_arrays(
+            [
+                pa.array(
+                    [f"transcript-{index}" for index in range(rows)],
+                    type=pa.string(),
+                )
+            ],
+            schema=schema,
+        )
+        pq.write_table(table, entity_dir / dataset)
+        entries.append({"chrom": chrom, "dataset": dataset, "rows": rows})
+    (entity_dir / "chrom_manifest.json").write_text(json.dumps(entries))
+
+
 @pytest.mark.parametrize(
     "entity",
     ["transcript", "exon", "translation_core", "translation_sift", "regulatory"],
@@ -135,6 +159,7 @@ def test_verify_generic_entity_checks_all_shards(entity, tmp_path):
     assert report.entity == entity
     assert report.shards == 2
     assert report.rows == 4
+    assert report.rows_by_chrom == {"chr1": 2, "chr2": 2}
     assert report.non_empty == {}
 
 
@@ -516,6 +541,53 @@ def test_main_rejects_empty_targeted_rebuild_before_swap(tmp_path, capsys):
     assert list(tmp_path.glob(".116_GRCh38_merged.transcript-rebuild-*"))
     captured = capsys.readouterr()
     assert "transcript entity must contain at least one row" in captured.out
+
+
+def test_main_rejects_targeted_cross_chrom_redistribution_with_equal_total(
+    tmp_path, capsys
+):
+    source = tmp_path / "raw" / "116_GRCh38"
+    source.mkdir(parents=True)
+    (source / "info.txt").write_text("cache_version 116\n")
+    target = tmp_path / "116_GRCh38_merged"
+    live_transcript = target / "transcript"
+    _rewrite_transcript_distribution(live_transcript, {"chr1": 1, "chr2": 1})
+
+    def fake_build_cache_entity(
+        _release: int,
+        cache_dir: str,
+        _entity: str,
+        **_kwargs,
+    ) -> list[tuple[str, int]]:
+        staged = Path(cache_dir) / "116_GRCh38_merged" / "transcript"
+        _rewrite_transcript_distribution(staged, {"chr1": 0, "chr2": 2})
+        return [
+            (str(staged / "chr1.parquet"), 0),
+            (str(staged / "chr2.parquet"), 2),
+        ]
+
+    with patch("vepyr.build_cache_entity", side_effect=fake_build_cache_entity):
+        result = rebuild.main(
+            [
+                "--run",
+                "--release",
+                "116",
+                "--entity",
+                "transcript",
+                "--target",
+                str(target),
+                "--local-cache",
+                str(source),
+            ]
+        )
+
+    assert result == 1
+    assert rebuild.verify_entity_dir(
+        live_transcript, "transcript", "116", "merged"
+    ).rows_by_chrom == {"chr1": 1, "chr2": 1}
+    error = capsys.readouterr().err
+    assert "transcript/chr1: old=1, new=0" in error
+    assert "transcript/chr2: old=1, new=2" in error
 
 
 def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):

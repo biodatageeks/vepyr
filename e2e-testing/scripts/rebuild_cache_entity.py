@@ -85,6 +85,7 @@ class EntityReport:
     entity: str
     shards: int
     rows: int
+    rows_by_chrom: dict[str, int]
     non_empty: dict[str, int]
 
     def detail(self) -> str:
@@ -204,6 +205,7 @@ def verify_entity_dir(
     seen_datasets: set[str] = set()
     baseline_schema: pa.Schema | None = None
     total_rows = 0
+    rows_by_chrom: dict[str, int] = {}
     non_empty = (
         {name: 0 for name in MOTIF_REQUIRED_COLUMNS} if entity == "motif" else {}
     )
@@ -285,6 +287,7 @@ def verify_entity_dir(
                 for name in MOTIF_REQUIRED_COLUMNS:
                     non_empty[name] += _non_empty_count(table[name])
         total_rows += actual_rows
+        rows_by_chrom[chrom] = actual_rows
 
     unreferenced = sorted(
         path.name for path in root.glob("*.parquet") if path.name not in seen_datasets
@@ -324,7 +327,7 @@ def verify_entity_dir(
                     f"VEP 116 motif identity columns are not fully populated: {detail}"
                 )
 
-    return EntityReport(entity, len(entries), total_rows, non_empty)
+    return EntityReport(entity, len(entries), total_rows, rows_by_chrom, non_empty)
 
 
 def verify_selected_entity(
@@ -347,17 +350,65 @@ def _reports_detail(reports: tuple[EntityReport, ...]) -> str:
     return "; ".join(f"{report.entity}: {report.detail()}" for report in reports)
 
 
-def _parquet_row_total(entity_dir: Path) -> int:
-    """Inventory all current Parquet rows when stricter verification fails."""
-    total = 0
-    for shard in sorted(entity_dir.glob("*.parquet")):
+def _footer_rows_by_chrom(entity_dir: Path) -> dict[str, int]:
+    """Inventory live footer rows when stricter release verification fails."""
+    entries = _read_manifest(entity_dir)
+    rows_by_chrom: dict[str, int] = {}
+    seen_datasets: set[str] = set()
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise VerificationError(f"current manifest entry {index} is not an object")
+        chrom = entry.get("chrom")
+        dataset = entry.get("dataset")
+        rows = entry.get("rows")
+        if not isinstance(chrom, str) or not chrom:
+            raise VerificationError(f"current manifest entry {index} has invalid chrom")
+        if (
+            not isinstance(dataset, str)
+            or not dataset
+            or Path(dataset).name != dataset
+            or Path(dataset).suffix != ".parquet"
+        ):
+            raise VerificationError(
+                f"current manifest entry {index} has unsafe dataset {dataset!r}"
+            )
+        if not isinstance(rows, int) or isinstance(rows, bool) or rows < 0:
+            raise VerificationError(
+                f"current manifest entry {index} has invalid rows {rows!r}"
+            )
+        if chrom in rows_by_chrom:
+            raise VerificationError(f"current manifest repeats chromosome {chrom!r}")
+        if dataset in seen_datasets:
+            raise VerificationError(f"current manifest repeats dataset {dataset!r}")
+        shard = entity_dir / dataset
+        if not shard.is_file():
+            raise VerificationError(
+                f"current manifest-referenced shard is missing: {shard}"
+            )
         try:
-            total += pq.ParquetFile(shard).metadata.num_rows
+            actual_rows = pq.ParquetFile(shard).metadata.num_rows
         except Exception as exc:
             raise VerificationError(
                 f"cannot read current Parquet footer {shard}: {exc}"
             ) from exc
-    return total
+        if actual_rows != rows:
+            raise VerificationError(
+                f"{shard}: current manifest declares {rows:,} rows, footer has "
+                f"{actual_rows:,}"
+            )
+        rows_by_chrom[chrom] = actual_rows
+        seen_datasets.add(dataset)
+    unreferenced = sorted(
+        path.name
+        for path in entity_dir.glob("*.parquet")
+        if path.name not in seen_datasets
+    )
+    if unreferenced:
+        raise VerificationError(
+            f"{entity_dir}: {len(unreferenced)} unreferenced current Parquet "
+            f"shard(s), including {', '.join(unreferenced[:3])}"
+        )
+    return rows_by_chrom
 
 
 def verify(
@@ -454,7 +505,7 @@ def main(argv: list[str] | None = None) -> int:
     existing_outputs = [
         entity for entity in generated_entities if (target / entity).is_dir()
     ]
-    live_totals: dict[str, int] = {}
+    live_rows: dict[str, dict[str, int]] = {}
     live_reports: list[EntityReport] = []
     live_errors: list[str] = []
     if existing_outputs:
@@ -472,13 +523,13 @@ def main(argv: list[str] | None = None) -> int:
                     release,
                     cache_type,
                 )
-                live_totals[entity] = entity_report.rows
+                live_rows[entity] = dict(entity_report.rows_by_chrom)
                 live_reports.append(entity_report)
             except VerificationError as exc:
                 live_errors.append(str(exc))
                 print(f"current {entity}: NEEDS REBUILD — {exc}")
                 try:
-                    live_totals[entity] = _parquet_row_total(target / entity)
+                    live_rows[entity] = _footer_rows_by_chrom(target / entity)
                 except VerificationError as inventory_exc:
                     problems.append(
                         f"cannot inventory current {entity}: {inventory_exc}"
@@ -532,19 +583,29 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"staged verification: OK — {_reports_detail(staged_reports)}")
 
-    staged_totals = {report.entity: report.rows for report in staged_reports}
-    changed = {
-        entity: (live_totals[entity], staged_totals[entity])
-        for entity in live_totals
-        if live_totals[entity] != staged_totals[entity]
+    staged_rows = {
+        report.entity: dict(report.rows_by_chrom) for report in staged_reports
     }
+    changed: list[tuple[str, str, int | None, int | None]] = []
+    for entity, old_entity in live_rows.items():
+        new_entity = staged_rows[entity]
+        for chrom in sorted(set(old_entity) | set(new_entity)):
+            old_count = old_entity.get(chrom)
+            new_count = new_entity.get(chrom)
+            if old_count != new_count:
+                changed.append((entity, chrom, old_count, new_count))
     if changed:
         print(
             "row-count reconciliation failed; staging retained and target unchanged:",
             file=sys.stderr,
         )
-        for entity, (old, new) in changed.items():
-            print(f"  {entity}: old={old:,}, new={new:,}", file=sys.stderr)
+        for entity, chrom, old, new in changed:
+            old_text = "(missing)" if old is None else f"{old:,}"
+            new_text = "(missing)" if new is None else f"{new:,}"
+            print(
+                f"  {entity}/{chrom}: old={old_text}, new={new_text}",
+                file=sys.stderr,
+            )
         return 1
 
     try:
