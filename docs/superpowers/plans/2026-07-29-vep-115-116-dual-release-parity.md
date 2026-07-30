@@ -43,12 +43,15 @@ writes an uncapped mismatch ledger and reproducible build provenance.
 | Generated release-115 caches | `~/workspace/data_vepyr/cache/115_GRCh38_{merged,ensembl,refseq}` |
 | Generated release-116 caches | `~/workspace/data_vepyr/cache/116_GRCh38_{merged,ensembl,refseq}` |
 
-The local-development absolute worktree patches have now been removed. vepyr
-commit `edd2995` pins the pushed PR heads listed below. Qualification revision
-`01350d6` was rebuilt natively from that durable graph and produced all six final
-chr1–22 parity gates.
+The local-development absolute worktree patches have been removed. The original
+six-profile qualification revision `01350d6` proved merged, Ensembl-only, and
+RefSeq-only parity for both releases. The final released dependency graph is
+vepyr `cb964bb16d2171187eaf066d3fbc01012bc49b2a`, bio-functions
+`b4996420cea2dc2d2b33b35ef75dcdafc553b376`, and bio-formats `v1.9.0` at
+`6564554619019535ffd3ace5aa650797a31eb8ed`. A native release extension built
+from that graph reran both merged chr1–22 gates with clean provenance.
 
-## Implementation snapshot — 2026-07-29
+## Implementation snapshot — 2026-07-30
 
 The checklist below remains the reviewable execution plan. Its current state is:
 
@@ -56,7 +59,7 @@ The checklist below remains the reviewable execution plan. Its current state is:
 |---|---|
 | Comparator, uncapped ledger, reference identity, and per-report build provenance | implemented |
 | OpenSpec release/cache contract | implemented and strictly validated |
-| bio-formats raw-release metadata | pushed to PR #224 at `c81adf1235984c984918ce5bd39d573476b62337` |
+| bio-formats raw-release metadata | PR #224 merged as `379894cad6d676cbc163402a8b88f0dff11455e2`; released as `v1.9.0` at `6564554619019535ffd3ace5aa650797a31eb8ed` |
 | bio-functions metadata preservation, strict resolver, and contig-lazy validation | implemented |
 | Python/native support-matrix and expected-version APIs | implemented |
 | Optional ClinVar reference allele and all three exact variants | implemented |
@@ -67,14 +70,16 @@ The checklist below remains the reviewable execution plan. Its current state is:
 | Machine release gate | implemented in `e2e-testing/scripts/verify_parity_gate.py` |
 | Rebuilt 115/116 merged cache artifacts | complete; all manifest-referenced footers and row counts verified |
 | Rebuilt 115/116 Ensembl and RefSeq cache artifacts | all four transactional builds complete and verified |
-| Full current-build chr1–22 merged parity | pinned [115](../../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116](../../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) gates exact |
-| Full current-build chr1–22 Ensembl/RefSeq parity | pinned [115 Ensembl](../../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [115 RefSeq](../../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [116 Ensembl](../../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md), and [116 RefSeq](../../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md) gates exact |
-| Durable upstream revisions and removal of absolute path patches | bio-formats `c81adf1235984c984918ce5bd39d573476b62337`, bio-functions `1c4671f6fed72123a89bc3c80b939f253f809bc0`, vepyr pin commit `07db8ff` |
+| Full released-dependency chr1–22 merged parity | clean strict [115](../../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260730_1206.md) and [116](../../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260730_1217.md) gates exact at vepyr `cb964bb`, bio-functions `b499642`, and bio-formats `v1.9.0`/`6564554` |
+| Full chr1–22 Ensembl/RefSeq parity | original pinned [115 Ensembl](../../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [115 RefSeq](../../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [116 Ensembl](../../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md), and [116 RefSeq](../../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md) gates exact |
+| Durable upstream revisions and removal of absolute path patches | bio-formats `v1.9.0`/`6564554619019535ffd3ace5aa650797a31eb8ed`, bio-functions `b4996420cea2dc2d2b33b35ef75dcdafc553b376`, vepyr qualification commit `cb964bb16d2171187eaf066d3fbc01012bc49b2a` |
+| Review state | PR #224: Claude safe to merge and Codex no major issues; PR #203: Claude no remaining blockers and Codex no major issues; zero unresolved threads |
 
 Verified suites at this snapshot: bio-formats 461 passed/1 ignored,
-bio-functions with all features 904 passed/1 ignored, pinned vepyr Python
-994 passed/2 skipped, and pinned vepyr Rust 4 passed. All six final profile
-gates compare 4,096,123 variants with every enforced mismatch counter at zero.
+bio-functions 906 executed passed/1 ignored, vepyr Python 1,032 passed/2
+skipped, and vepyr Rust 4 passed. All six original release/profile gates and
+both released-dependency merged gates compare 4,096,123 variants with every
+enforced mismatch counter at zero.
 
 ## Non-negotiable design decisions
 
@@ -1117,24 +1122,25 @@ an older cache.
 
 ## Review checklist
 
-- [ ] Searching for `VepSemantics`, `expected_cache_version`, or
+- [x] Searching for `VepSemantics`, `expected_cache_version`, or
   `partial_overlap_hgvs`
   finds no release conditional outside the resolver, stop policy and HGVS
   boundary policy.
-- [ ] Searching IMPACT/HGVSp code finds no independent release branch.
-- [ ] `clin_sig_ref_allele` is optional at raw schema, converted schema and
+- [x] Searching IMPACT/HGVSp code finds no independent release branch.
+- [x] `clin_sig_ref_allele` is optional at raw schema, converted schema and
   runtime lookup boundaries.
-- [ ] Metadata-less legacy V115/V116 shards are rejected when their contig is
+- [x] Metadata-less legacy V115/V116 shards are rejected when their contig is
   requested.
-- [ ] The final V115 and V116 caches were fully rebuilt from the matching raw
+- [x] The final V115 and V116 caches were fully rebuilt from the matching raw
   cache, and every manifest-referenced shard validates.
-- [ ] New cache schemas retain both `bio.vep.cache_source_type` and
+- [x] New cache schemas retain both `bio.vep.cache_source_type` and
   `bio.vep.cache_version`.
-- [ ] The chr11 fix is backed by a proven failed-edit fixture, not the original
+- [x] The chr11 fix is backed by a proven failed-edit fixture, not the original
   hypothesis alone.
-- [ ] Comparator ledgers are uncapped, release-qualified and hashed.
-- [ ] Final reports identify the exact clean source revisions and lockfile.
-- [ ] All six full release/profile gates pass from the same pinned binary.
+- [x] Comparator ledgers are uncapped, release-qualified and hashed.
+- [x] Final reports identify the exact clean source revisions and lockfile.
+- [x] All six full release/profile gates pass from the same pinned binary; both
+  merged gates also pass on the subsequently released dependency graph.
 
 ## Definition of done
 

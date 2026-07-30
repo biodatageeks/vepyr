@@ -69,27 +69,29 @@ The reference images and headers identify these source/data combinations:
 The behavioral conclusions below were checked against the shipped source from these images, not
 against `main`.
 
-### 2.2 Historical benchmark versus the current local implementation
+### 2.2 Historical benchmark versus the released dependency graph
 
 The `20260728_2105` benchmark summary records vepyr build `bb37297` and bio-functions revision
 `e551ccc4e256`. Those revisions identify the historical 734-mismatch input to this analysis; they
 do not identify the implementation used for the post-fix qualification runs.
 
-The current local implementation is split into reviewable commits. The distinction between the
-source tip and the installed native extension is explicit because a parity report is evidence for
-the binary that produced it, not for a later unbuilt source commit:
+The implementation is split into reviewable commits. The distinction between the source tip and
+the installed native extension is explicit because a parity report is evidence for the binary
+that produced it, not for a later documentation-only commit:
 
-| Repository | Current local revision | Qualification state |
+| Repository | Released/qualified revision | Qualification state |
 |---|---|---|
-| vepyr | `01350d6` | exact pinned qualification revision on `release-testing`; `edd2995` is the dependency-pin commit and the preceding implementation commits are `6a2191b`, `72c6a8a`, `3f2f5eb`, and `54f97fa` |
-| bio-functions PR [#203](https://github.com/biodatageeks/datafusion-bio-functions/pull/203) | `1c4671f6fed72123a89bc3c80b939f253f809bc0` | pushed dual-release/cache semantics and source-trace fixes, plus the exact bio-formats pin and builder release assertion |
-| bio-formats PR [#224](https://github.com/biodatageeks/datafusion-bio-formats/pull/224) | `c81adf1235984c984918ce5bd39d573476b62337` | pushed Parquet cache identity persistence, strict decimal/raw-release validation, and split-translation metadata |
+| vepyr | `cb964bb16d2171187eaf066d3fbc01012bc49b2a` | native-release qualification revision on `release-testing`; it pins bio-functions `b4996420cea2dc2d2b33b35ef75dcdafc553b376` and bio-formats tag `v1.9.0` |
+| bio-functions PR [#203](https://github.com/biodatageeks/datafusion-bio-functions/pull/203) | `b4996420cea2dc2d2b33b35ef75dcdafc553b376` | pushed dual-release/cache semantics, exact source-trace fixes, low-level builder version assertions, empty-input cache avoidance, the VEP-116-exact reverse-strand MNV regression, and the released bio-formats dependency |
+| bio-formats `v1.9.0` | `6564554619019535ffd3ace5aa650797a31eb8ed` | released tag consumed by both downstream lockfiles; PR [#224](https://github.com/biodatageeks/datafusion-bio-formats/pull/224) merged as `379894cad6d676cbc163402a8b88f0dff11455e2` after review of feature head `c81adf1235984c984918ce5bd39d573476b62337` |
 
-[Cargo.toml](../../Cargo.toml) now pins those exact pushed revisions. Commit `edd2995` removes all
-absolute worktree patches, and `Cargo.lock` records only durable Git sources for the VEP
-dependencies. The pre-pin reports remain valuable semantic qualification evidence. The final six
-release gates were regenerated from the clean native extension built at `01350d6`; every report
-records that revision, the exact two upstream revisions, and clean source provenance.
+[Cargo.toml](../../Cargo.toml) pins bio-functions by exact revision and bio-formats by the immutable
+`v1.9.0` tag. `Cargo.lock` resolves the tag to `6564554619019535ffd3ace5aa650797a31eb8ed`
+and contains no local dependency path. The original six-profile qualification at `01350d6`
+remains the complete merged/Ensembl/RefSeq semantic proof. After `v1.9.0` was released and
+bio-functions was advanced to `b499642`, both merged chr1–22 gates were re-annotated from the
+native release extension at `cb964bb` and their comparison reports were regenerated with clean,
+exact dependency provenance.
 
 ### 2.3 Reports
 
@@ -737,10 +739,10 @@ metadata-less generated caches rather than treating their directory names as ide
 | Legacy generated caches | **not release-ready** | the pre-rebuild artifacts are rejected at their first variation footer because `bio.vep.cache_version` is missing |
 | Rebuilt cache artifacts | complete | all six native-release merged/Ensembl/RefSeq caches passed full footer/schema/row verification and are live under `cache/`; exact totals are below |
 | Lazy live-cache identity | complete | chr1 resolves cache 115 → VEP 115.2 and cache 116 → VEP 116.0 from participating Parquet footers |
-| Whole-genome merged parity | both pinned gates exact | [115 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260729_2308.md) and [116 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260729_2317.md) each compare all 4,096,123 variants with zero structural, ordering, one-sided, field, field-order, or ledger mismatches |
-| Whole-genome single-source parity | all four pinned gates exact | [115 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [115 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [116 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md), and [116 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md) are exact across all shared fields; each compares 4,096,123 variants with empty per-contig ledgers |
+| Whole-genome merged parity on released dependencies | both clean strict gates exact | [115 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260730_1206.md) and [116 merged chr1–22](../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260730_1217.md) each compare all 4,096,123 variants and all 86 CSQ fields at `cb964bb`, bio-functions `b499642`, and bio-formats `v1.9.0`/`6564554`, with zero structural, ordering, one-sided, field, field-order, or ledger mismatches |
+| Whole-genome single-source parity | all four original pinned gates exact | [115 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md), [115 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md), [116 RefSeq chr1–22](../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md), and [116 Ensembl chr1–22](../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md) are exact across all shared fields at the original six-profile qualification revision; each compares 4,096,123 variants with empty per-contig ledgers |
 | Ensembl/RefSeq cache rebuilds | four of four complete | 115 RefSeq (1,251,658,968 verified rows), 115 Ensembl (1,251,754,252), 116 RefSeq (1,576,931,569), and 116 Ensembl (1,651,451,505) are live; the 116 Ensembl cache has 999,828 motif rows and every row has non-empty binding-matrix and transcription-factor values |
-| Durable dependencies | pinned, pushed upstream, and release-qualified | vepyr pin commit `07db8ff` pins bio-formats `c81adf1235984c984918ce5bd39d573476b62337` and bio-functions `1c4671f6fed72123a89bc3c80b939f253f809bc0`; both revisions are the remote heads of PR #224 and PR #203, and no absolute patch remains |
+| Durable dependencies | released, pinned, pushed, reviewed, and re-qualified | vepyr `cb964bb16d2171187eaf066d3fbc01012bc49b2a` pins bio-formats `v1.9.0` (`6564554619019535ffd3ace5aa650797a31eb8ed`) and bio-functions `b4996420cea2dc2d2b33b35ef75dcdafc553b376`; no absolute patch remains; Claude and Codex reported no remaining blocking/actionable findings on PRs #224 and #203 |
 | Google Drive publication | six of six complete | each exact local directory name exists under `gdrive-mw:/vepyr/cache`; local and remote file counts and byte totals match, all six one-way hash checks report zero differences, and all six local caches passed the metadata/footer verifier again after upload |
 
 The requested VEP 115 chromosome-by-chromosome burn-down is therefore unambiguous. Each value
@@ -863,16 +865,18 @@ API 116 / semantics 116, both with source `merged`.
 Verification across the implementation, rebuilt artifacts, and final qualification:
 
 - bio-formats: 461 passed, 1 ignored;
-- bio-functions with all features after the durable bio-formats pin: 904 passed, 1 ignored;
-- vepyr Python/integration at `01350d6`: 994 passed, 2 skipped;
-- vepyr Rust at `01350d6`: 4 passed with
+- bio-functions at `b499642`: 906 executed tests passed, 1 ignored; formatting and
+  `cargo clippy --all-targets --all-features -- -D warnings` passed;
+- vepyr Python/integration at `cb964bb`: 1,032 passed, 2 skipped;
+- vepyr Rust at `cb964bb`: 4 passed with
   `cargo test --locked --no-default-features` (the repository-prescribed
   non-extension test mode);
 - rebuild verifier: 6 passed;
 - machine parity gate: 9 passed;
-- all six authoritative chr1–22 machine release gates passed;
-- root `cargo check --locked`, all Rust formatting checks, and the native release extension build
-  passed.
+- all six original authoritative chr1–22 release/profile gates passed;
+- both released-dependency merged gates passed again with clean provenance at `cb964bb`;
+- vepyr formatting, Ruff, `cargo clippy --all-targets --all-features -- -D warnings`, all PR #41
+  platform/Python CI jobs, and the native release extension build passed.
 
 ### 10.4 Post-734 residuals and the source-exact VEP 116 stop replay
 
