@@ -326,7 +326,21 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
     """
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.vcf")
-    if os.path.exists(out_path) and not force:
+    sidecar_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.source.json")
+    stat = os.stat(vep_vcf)
+    source = {
+        "path": os.path.abspath(vep_vcf),
+        "size": stat.st_size,
+        "mtime": stat.st_mtime,
+    }
+    previous = None
+    if os.path.exists(sidecar_path):
+        try:
+            with open(sidecar_path) as stream:
+                previous = json.load(stream)
+        except (OSError, json.JSONDecodeError):
+            previous = None
+    if os.path.exists(out_path) and not force and previous == source:
         print(f"  Using existing {out_path}")
         return out_path
 
@@ -364,5 +378,7 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
                     fout.write(line)
                     n += 1
 
+    with open(sidecar_path, "w") as stream:
+        json.dump(source, stream, indent=2)
     print(f"  Extracted {n:,} VEP records for {chrom}")
     return out_path
