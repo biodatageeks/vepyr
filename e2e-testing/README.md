@@ -142,9 +142,12 @@ benchmark, and mismatch examples per field.
 
 The comparison runner produces evidence; the parity gate decides whether that
 evidence is complete and releasable. It requires every requested contig report,
-the exact compiled dependency provenance, matching VEP/cache identity, an empty
-uncapped mismatch ledger, and zero structural, ordering, one-sided, or field
-mismatches.
+the exact compiled dependency provenance, matching VEP/cache identity, the
+canonical full HG002 input VCF, GRCh38 FASTA, and profile/release VEP reference
+filesystem identities, an empty uncapped mismatch ledger, and zero structural,
+ordering, one-sided, or field mismatches. Explicit `--vcf`, `--fasta`, or
+`--vep` overrides remain useful for investigation, but cannot qualify a release
+unless they resolve to those canonical benchmark artifacts.
 
 ```bash
 uv run python verify_parity_gate.py \
@@ -157,8 +160,10 @@ uv run python verify_parity_gate.py \
 
 This is the only full-cache rebuild command. It is a dry run by default. A real
 run builds beside the live cache, verifies every manifest-referenced Parquet
-footer, schema, release/source metadata value, and row total, then swaps with
-rollback while retaining the previous cache as a timestamped backup.
+footer, schema, release/source metadata value, and row count, then reconciles
+the staged cache against the live cache for every entity and chromosome before
+swapping with rollback while retaining the previous cache as a timestamped
+backup.
 
 ```bash
 # Preflight only
@@ -181,10 +186,12 @@ Use this when a change is isolated to one raw entity: `variation`,
 `transcript`, `exon`, `translation`, `regulatory`, or `motif`. It invokes the
 public release-aware `vepyr.build_cache_entity()` API and validates every
 manifest shard, footer row count, schema, and Parquet identity value before
-swapping. Entity-specific checks enforce the release-116 variation and motif
-contracts. The raw `translation` entity produces `translation_core` and
-`translation_sift`; both are verified and swapped as one transaction. Previous
-generated directories are retained as hidden, timestamped sibling backups.
+swapping. Every generated entity must contain rows except the deliberately
+empty VEP 115 motif entity; entity-specific checks also enforce the release-116
+variation and motif contracts. The raw `translation` entity produces
+`translation_core` and `translation_sift`; both are verified and swapped as one
+transaction. Previous generated directories are retained as hidden,
+timestamped sibling backups.
 
 ```bash
 # Preflight and verify the current translation outputs
