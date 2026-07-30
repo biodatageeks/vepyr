@@ -38,7 +38,7 @@ ISSUES = {
     },
     "stop_lost_missing": {
         "title": "`stop_lost` missing on frameshift past stop codon",
-        "issues": [115],
+        "issues": [90],
         "prs": [],
     },
     "inframe_vs_frameshift": {
@@ -82,6 +82,11 @@ ISSUES = {
     "mirna_dedup": {
         "title": "miRNA dedup (stem repeated in VEP)",
         "issues": [100],
+        "prs": [],
+    },
+    "mirna_overlap": {
+        "title": "`mature_miRNA_variant` emitted outside a mature product",
+        "issues": [90],
         "prs": [],
     },
     "frameshift_missing": {
@@ -164,6 +169,27 @@ def common_build_info(reports):
     if any(build != builds[0] for build in builds[1:]):
         raise ValueError("build provenance differs across reports")
     return builds[0]
+
+
+def discover_report_contigs(report_dir, suffix, release):
+    """Discover release-qualified report contigs in natural chromosome order."""
+    prefix = "fast_"
+    ending = f"_{suffix}_{release}_report.json"
+    try:
+        names = os.listdir(report_dir)
+    except OSError:
+        return []
+    contigs = {
+        name[len(prefix) : -len(ending)]
+        for name in names
+        if name.startswith(prefix) and name.endswith(ending)
+    }
+
+    def chromosome_key(contig):
+        bare = contig.removeprefix("chr")
+        return (0, int(bare)) if bare.isdigit() else (1, bare)
+
+    return sorted(contigs, key=chromosome_key)
 
 
 # ── Aggregation ──────────────────────────────────────────────────────────
@@ -266,7 +292,7 @@ def classify_consequence_mismatches(examples):
         elif "incomplete_terminal_codon" in vepyr:
             classes["incomplete_terminal"].append(ex)
         elif "mature_miRNA_variant" in vepyr and "mature_miRNA_variant" not in vep:
-            classes["mirna_dedup"].append(ex)
+            classes["mirna_overlap"].append(ex)
         elif "synonymous_variant" in vepyr and "coding_sequence_variant" in vep:
             classes["incomplete_terminal"].append(ex)
         elif (

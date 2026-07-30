@@ -330,7 +330,7 @@ def main(argv=None):
             args.release,
             cache_dir=args.cache_dir,
             vep_vcf=args.vep,
-            require_reference=not args.skip_compare,
+            require_reference=not args.skip_compare and not args.skip_annotate,
         )
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -342,7 +342,7 @@ def main(argv=None):
             annotate.supported_vep_targets(),
         )
         reference_identity = None
-        if not args.skip_compare:
+        if not args.skip_compare and not args.skip_annotate:
             reference_identity = vcfio.parse_vep_header(resolved.vep_vcf)
             vcfio.validate_vep_reference_identity(
                 reference_identity,
@@ -381,7 +381,23 @@ def main(argv=None):
         else:
             input_vcf = vcfio.normalize_vcf(args.vcf, shared)
 
-    chroms = resolve_contigs(args, resolved, input_vcf)
+    if args.skip_annotate and args.chroms is None:
+        chroms = report.discover_report_contigs(
+            report_dir,
+            resolved.suffix,
+            resolved.release,
+        )
+        if not chroms:
+            print(
+                "Error: no release-qualified reports found; pass --chroms "
+                "to select legacy reports explicitly",
+                file=sys.stderr,
+            )
+            return 1
+    elif args.skip_annotate:
+        chroms = args.chroms
+    else:
+        chroms = resolve_contigs(args, resolved, input_vcf)
     print(f"  contigs:   {', '.join(chroms)}")
     build_info = None if args.skip_annotate else report.get_build_info()
 

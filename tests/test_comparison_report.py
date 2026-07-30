@@ -101,6 +101,24 @@ def test_load_reports_falls_back_to_the_legacy_name(tmp_path, capsys):
     assert "legacy" in capsys.readouterr().out.lower()
 
 
+def test_discover_report_contigs_uses_only_the_requested_release(tmp_path):
+    for name in (
+        "fast_chr10_merged_116_report.json",
+        "fast_chr2_merged_116_report.json",
+        "fast_chr1_merged_116_report.json",
+        "fast_chr3_merged_115_report.json",
+        "fast_chr4_refseq_116_report.json",
+        "fast_chr5_merged_report.json",
+    ):
+        (tmp_path / name).write_text("{}")
+
+    assert report.discover_report_contigs(str(tmp_path), "merged", "116") == [
+        "chr1",
+        "chr2",
+        "chr10",
+    ]
+
+
 def test_common_build_info_returns_the_reported_provenance():
     build = {"vepyr_rev": "abc", "dependencies": {"bio": {"revision": "def"}}}
     reports = [{"build": build}, {"build": dict(build)}]
@@ -166,6 +184,7 @@ def test_every_consequence_classifier_bucket_is_in_the_issue_registry():
     classes = report.classify_consequence_mismatches(examples)
 
     assert set(classes) <= set(report.ISSUES) | {"other"}
+    assert "mirna_overlap" in classes
 
 
 def test_generate_markdown_names_the_release_and_profile():
