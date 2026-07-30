@@ -22,8 +22,7 @@ Examples:
 
 
 def _normalise_chrom(value):
-    bare = value[3:] if value.lower().startswith("chr") else value
-    return f"chr{bare}"
+    return vcfio.canonical_contig(value)
 
 
 def parse_args(argv=None):

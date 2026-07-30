@@ -66,6 +66,19 @@ def test_compare_counts_field_mismatches(tmp_path):
     assert result["field_equality_counts"]["Consequence"]["both_nonempty_unequal"] == 1
 
 
+def test_compare_treats_chr_prefixed_and_bare_contigs_as_the_same_key(tmp_path):
+    bare_contigs = MATCHING.replace("\nchr1\t", "\n1\t")
+    a = _write(tmp_path, "vepyr.vcf", MATCHING, False)
+    b = _write(tmp_path, "vep.vcf", bare_contigs, False)
+
+    result = compare.compare_vcfs(a, b, "contig-alias")
+
+    assert result["variants_compared"] == 2
+    assert result["variants_only_in_vepyr"] == 0
+    assert result["variants_only_in_vep"] == 0
+    assert result["field_mismatch_counts"] == {}
+
+
 def test_compare_can_ignore_vep_hash_order_csq_order(tmp_path):
     two_entries = HEADER + (
         "chr1\t100\t.\tA\tT\t50\tPASS\t"

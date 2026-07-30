@@ -91,7 +91,12 @@ def _extract_keyed_csq(path):
             columns = line.rstrip("\r\n").split("\t", 9)
             match = _CSQ_RE.search(columns[7])
             csq = match.group(1) if match else ""
-            key = (columns[0], int(columns[1]), columns[3], columns[4])
+            key = (
+                vcfio.canonical_contig(columns[0]),
+                int(columns[1]),
+                columns[3],
+                columns[4],
+            )
             rows.append((key, csq))
     rows.sort()
     return rows

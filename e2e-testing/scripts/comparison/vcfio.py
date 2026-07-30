@@ -231,10 +231,16 @@ def detect_contigs(vcf):
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
+def canonical_contig(chrom):
+    """Return one canonical comparison spelling for a chr-prefixed alias."""
+    bare = chrom[3:] if chrom.lower().startswith("chr") else chrom
+    return f"chr{bare}"
+
+
 def contig_aliases(chrom):
     """Return {chrom, with-prefix, without-prefix} so 'chr22' also matches '22'."""
-    bare = chrom[3:] if chrom.startswith("chr") else chrom
-    return {chrom, bare, f"chr{bare}"}
+    canonical = canonical_contig(chrom)
+    return {chrom, canonical[3:], canonical}
 
 
 def normalize_vcf(vcf, out_dir):
