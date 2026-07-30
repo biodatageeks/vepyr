@@ -296,13 +296,14 @@ def verify_entity_dir(
             f"including {preview}"
         )
 
-    if entity == "variation" and not entries:
-        raise VerificationError("variation manifest must contain at least one shard")
+    empty_115_motif = release == "115" and entity == "motif"
+    if empty_115_motif and total_rows != 0:
+        raise VerificationError("VEP 115 motif entity must be empty")
+    if not empty_115_motif and total_rows == 0:
+        raise VerificationError(
+            f"VEP {release} {entity} entity must contain at least one row"
+        )
     if entity == "motif":
-        if release == "115" and total_rows != 0:
-            raise VerificationError("VEP 115 motif entity must be empty")
-        if release == "116" and total_rows == 0:
-            raise VerificationError("VEP 116 motif entity contains no rows")
         if total_rows:
             empty = [name for name, count in non_empty.items() if count == 0]
             if empty:

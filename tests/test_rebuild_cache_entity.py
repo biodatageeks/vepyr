@@ -138,6 +138,28 @@ def test_verify_generic_entity_checks_all_shards(entity, tmp_path):
     assert report.non_empty == {}
 
 
+@pytest.mark.parametrize(
+    "entity",
+    [
+        "variation",
+        "transcript",
+        "exon",
+        "translation_core",
+        "translation_sift",
+        "regulatory",
+    ],
+)
+def test_verify_rejects_empty_required_entity(entity, tmp_path):
+    entity_dir = tmp_path / entity
+    _write_generic_entity(entity_dir, entity, shard_count=0)
+
+    with pytest.raises(
+        rebuild.VerificationError,
+        match=rf"VEP 116 {entity} entity must contain at least one row",
+    ):
+        rebuild.verify_entity_dir(entity_dir, entity, "116", "merged")
+
+
 def test_verify_variation_requires_release_116_clin_sig_ref_allele(tmp_path):
     variation = tmp_path / "variation"
     shards = _write_generic_entity(variation, "variation", release="115")
@@ -492,7 +514,8 @@ def test_main_rejects_empty_targeted_rebuild_before_swap(tmp_path, capsys):
     )
     assert not list(tmp_path.glob(".116_GRCh38_merged.transcript-backup-*"))
     assert list(tmp_path.glob(".116_GRCh38_merged.transcript-rebuild-*"))
-    assert "row-count reconciliation failed" in capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert "transcript entity must contain at least one row" in captured.out
 
 
 def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):
