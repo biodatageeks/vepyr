@@ -33,6 +33,9 @@ dev = [
     # parquet-rs writer used by the golden-cache fixtures (tests/cache_metadata.py,
     # tests/data/golden/prepare.py) so shards keep an arrow-rs-readable page index.
     "datafusion>=50.0",
+    # figures for the scaling benchmarks
+    # (performance-tests/vepyr/scripts/plot_vepyr_worker_scaling.py).
+    "matplotlib>=3.8",
 ]
 
 [tool.maturin]
