@@ -30,7 +30,12 @@ test -f "$source_dir/summary.tsv"
 mkdir -p "$output_dir/raw"
 cp -p "$source_dir/summary.tsv" "$output_dir/summary.tsv"
 
-for workers in 16 8 4 2 1; do
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+benchmark_workers=(
+  $(grep -v '^[[:space:]]*#' "$script_dir/benchmark_workers.txt")
+)
+
+for workers in "${benchmark_workers[@]}"; do
   for suffix in metrics.json time.txt stderr.txt stdout.txt; do
     source_file="$source_dir/${cache_type}_workers${workers}.${suffix}"
     test -f "$source_file"

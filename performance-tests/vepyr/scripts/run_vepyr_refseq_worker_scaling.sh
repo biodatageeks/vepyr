@@ -3,16 +3,14 @@ set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
-vepyr_python=${VEPYR_PYTHON:-python3}
-data_vepyr_dir=${DATA_VEPYR_DIR:-/home/tgambin/workspace/vep_data}
-archive_root=${VEPYR_ARCHIVE_ROOT:-/home/tgambin/workspace/vep_data2}
-release=${RELEASE:-116}
+source "$script_dir/vepyr_benchmark_env.sh"
+
 expected_records=${VEP_EXPECTED_RECORDS:-4096123}
 
 if [[ $# -gt 0 ]]; then
   workers=("$@")
 else
-  workers=(16 8 4 2 1)
+  workers=("${benchmark_workers[@]}")
 fi
 
 exec "$vepyr_python" -P "$script_dir/run_vepyr_worker_scaling.py" \
@@ -23,4 +21,7 @@ exec "$vepyr_python" -P "$script_dir/run_vepyr_worker_scaling.py" \
   --ssd-output-dir "$data_vepyr_dir/output/$release/vepyr_refseq_worker_scaling" \
   --archive-dir "$archive_root/$release/vepyr_refseq_worker_scaling" \
   --expected-records "$expected_records" \
+  --compression "$vepyr_compression" \
+  ${force_flag:+"$force_flag"} \
+  ${require_separate_fs:+"$require_separate_fs"} \
   --workers "${workers[@]}"

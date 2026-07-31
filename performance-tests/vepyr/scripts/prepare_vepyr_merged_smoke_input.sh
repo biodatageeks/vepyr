@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-data_vepyr_dir=${DATA_VEPYR_DIR:-/home/tgambin/workspace/vep_data}
-archive_root=${VEPYR_ARCHIVE_ROOT:-/home/tgambin/workspace/vep_data2}
-release=${RELEASE:-116}
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+
+source "$script_dir/vepyr_benchmark_env.sh"
+
 smoke_chrom=${SMOKE_CHROM:-chr1}
 smoke_start=${SMOKE_START:-1}
 smoke_end=${SMOKE_END:-3000000}
@@ -15,9 +16,18 @@ smoke_vcf="$smoke_dir/HG002_normalized.${smoke_chrom}_${smoke_start}_${smoke_end
 expected_file="$smoke_dir/vep_merged.${smoke_chrom}_${smoke_start}_${smoke_end}.records.txt"
 region="${smoke_chrom}:${smoke_start}-${smoke_end}"
 
-test -f "$input_vcf"
-test -f "$input_vcf.tbi"
-test -f "$vep_vcf"
+require_file() {
+  if [[ ! -f "$1" ]]; then
+    printf '%s is missing: %s\n' "$2" "$1" >&2
+    exit 1
+  fi
+}
+
+require_file "$input_vcf" 'Input VCF'
+require_file "$input_vcf.tbi" 'Input VCF index'
+require_file "$vep_vcf" \
+  'Ensembl VEP reference output the smoke test compares against'
+
 mkdir -p "$smoke_dir"
 
 if [[ ! -f "$smoke_vcf" ]]; then

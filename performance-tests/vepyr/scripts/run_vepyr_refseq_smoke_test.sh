@@ -3,10 +3,8 @@ set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
-vepyr_python=${VEPYR_PYTHON:-python3}
-data_vepyr_dir=${DATA_VEPYR_DIR:-/home/tgambin/workspace/vep_data}
-archive_root=${VEPYR_ARCHIVE_ROOT:-/home/tgambin/workspace/vep_data2}
-release=${RELEASE:-116}
+source "$script_dir/vepyr_benchmark_env.sh"
+
 smoke_chrom=${SMOKE_CHROM:-chr1}
 smoke_start=${SMOKE_START:-1}
 smoke_end=${SMOKE_END:-3000000}
@@ -32,4 +30,7 @@ exec "$vepyr_python" -P "$script_dir/run_vepyr_worker_scaling.py" \
   --archive-dir "$archive_root/$release/vepyr_refseq_worker_scaling_smoke" \
   --expected-records "$expected_records" \
   --name-prefix "HG002_${smoke_chrom}_${smoke_start}_${smoke_end}" \
+  --compression "$vepyr_compression" \
+  ${force_flag:+"$force_flag"} \
+  ${require_separate_fs:+"$require_separate_fs"} \
   --workers "${workers[@]}"

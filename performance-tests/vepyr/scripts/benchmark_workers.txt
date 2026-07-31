@@ -1,0 +1,5 @@
+# Worker counts for the Vepyr scaling sweep, highest first.
+# This is the single declaration: the runner, the collector and the plotter
+# all read it, so adding or removing a point here changes the whole sweep.
+# 16 is every core on an M3 Max, 12 its performance cores.
+16 12 8 4 2 1

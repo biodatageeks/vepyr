@@ -15,7 +15,26 @@ import matplotlib.pyplot as plt
 
 
 DEFAULT_RECORDS = 4_096_123
-EXPECTED_WORKERS = (1, 2, 4, 8, 16)
+WORKERS_FILE = Path(__file__).resolve().parent / "benchmark_workers.txt"
+
+# Every bar is the same measurement at a different worker count, so colouring
+# them individually would encode rank rather than identity; the axis already
+# says which bar is which.
+BAR_COLOR = "#4c78a8"
+
+
+def read_worker_counts(path: Path = WORKERS_FILE) -> list[int]:
+    """Read the sweep's worker counts from their single declaration."""
+    return [
+        int(field)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+        for field in line.split()
+    ]
+
+
+def parse_worker_list(value: str) -> tuple[int, ...]:
+    return tuple(int(field) for field in value.replace(",", " ").split())
 
 
 @dataclass(frozen=True)
@@ -27,6 +46,7 @@ class RunRow:
     annotation_seconds: float
     output_records: int
     records_match_vep: bool
+    compression: str
 
 
 def parse_bool(value: str) -> bool:
@@ -46,6 +66,8 @@ def read_rows(summary: Path, cache_type: str) -> list[RunRow]:
             annotation_seconds=float(row["annotation_seconds"]),
             output_records=int(row["output_records"]),
             records_match_vep=parse_bool(row["records_match_vep"]),
+            # Summaries recorded before the knob existed were all plain.
+            compression=row.get("compression") or "plain",
         )
         for row in raw_rows
         if row["cache_type"] == cache_type
@@ -54,11 +76,13 @@ def read_rows(summary: Path, cache_type: str) -> list[RunRow]:
     return rows
 
 
-def validate_rows(rows: list[RunRow], records: int) -> None:
+def validate_rows(rows: list[RunRow], records: int, expected: tuple[int, ...]) -> None:
     workers = tuple(row.workers for row in rows)
-    if workers != EXPECTED_WORKERS:
+    if workers != expected:
         raise SystemExit(
-            f"Expected workers {EXPECTED_WORKERS}, found {workers}"
+            f"Expected workers {expected}, found {workers}. Pass "
+            "--expected-workers to plot a sweep with different points, such "
+            "as results recorded before a point was added."
         )
 
     for row in rows:
@@ -69,9 +93,7 @@ def validate_rows(rows: list[RunRow], records: int) -> None:
             or row.output_records != records
             or row.annotation_seconds <= 0
         ):
-            raise SystemExit(
-                f"Invalid benchmark row for workers={row.workers}: {row}"
-            )
+            raise SystemExit(f"Invalid benchmark row for workers={row.workers}: {row}")
 
 
 def seconds_to_label(seconds: float) -> str:
@@ -84,19 +106,30 @@ def seconds_to_label(seconds: float) -> str:
     return f"{minutes}m {secs:02d}s"
 
 
-def command_text(cache_type: str) -> str:
+def command_text(
+    cache_type: str, workers: tuple[int, ...], compression: str = "plain"
+) -> str:
+    """Render the caption showing how the benchmark was invoked.
+
+    Paths come from the same environment the run itself used, so the figure
+    never advertises another machine's directory layout.
+    """
+    worker_tuple = ", ".join(str(count) for count in reversed(workers))
+    data_dir = os.environ.get("DATA_VEPYR_DIR", "$DATA_VEPYR_DIR")
+    release = os.environ.get("RELEASE", "116")
+    extension = "vcf" if compression == "plain" else "vcf.gz"
     return textwrap.dedent(
         f"""\
-        Kod uruchomienia Vepyr 0.3.0 benchmark:
-        for workers in (16, 8, 4, 2, 1):
+        Kod uruchomienia Vepyr benchmark:
+        for workers in ({worker_tuple}):
             lf = vepyr.annotate(
-                vcf="/home/tgambin/workspace/vep_data/input/HG002_normalized.vcf.gz",
-                cache_dir="/home/tgambin/workspace/vep_data/cache/116_GRCh38_{cache_type}",
+                vcf="{data_dir}/input/HG002_normalized.vcf.gz",
+                cache_dir="{data_dir}/cache/{release}_GRCh38_{cache_type}",
                 everything=True,
-                reference_fasta="/home/tgambin/workspace/vep_data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+                reference_fasta="{data_dir}/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
                 workers=workers,
                 hgvs=True,
-                output_vcf=f"HG002_annotated_vepyr_{cache_type}_workers{{workers}}.vcf",
+                output_vcf=f"HG002_annotated_vepyr_{cache_type}_workers{{workers}}.{extension}",
             )"""
     )
 
@@ -111,7 +144,11 @@ def plot_rows(rows: list[RunRow], args: argparse.Namespace) -> None:
     fig.text(
         0.06,
         0.965,
-        command_text(args.cache_type),
+        command_text(
+            args.cache_type,
+            tuple(row.workers for row in rows),
+            rows[0].compression,
+        ),
         ha="left",
         va="top",
         family="monospace",
@@ -124,8 +161,7 @@ def plot_rows(rows: list[RunRow], args: argparse.Namespace) -> None:
     )
 
     ax = fig.add_axes([0.06, 0.10, 0.90, 0.48])
-    colors = ["#999999", "#7a68a6", "#4c78a8", "#59a14f", "#e15759"]
-    bars = ax.bar(labels, minutes, color=colors, width=0.62)
+    bars = ax.bar(labels, minutes, color=BAR_COLOR, width=0.62)
 
     for bar, row in zip(bars, rows):
         speedup = baseline.annotation_seconds / row.annotation_seconds
@@ -152,10 +188,7 @@ def plot_rows(rows: list[RunRow], args: argparse.Namespace) -> None:
     fig.text(
         0.06,
         0.035,
-        (
-            f"Summary: {args.summary} | records: {args.records} | "
-            "baseline: workers=1"
-        ),
+        (f"Summary: {args.summary} | records: {args.records} | baseline: workers=1"),
         ha="left",
         fontsize=9,
         color="#444444",
@@ -173,10 +206,19 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--title", required=True)
     parser.add_argument("--records", type=int, default=DEFAULT_RECORDS)
+    parser.add_argument(
+        "--expected-workers",
+        type=parse_worker_list,
+        help=(
+            "worker counts the summary must contain, comma or space "
+            "separated; defaults to the declared sweep"
+        ),
+    )
     args = parser.parse_args()
 
+    expected = args.expected_workers or tuple(sorted(read_worker_counts()))
     rows = read_rows(args.summary, args.cache_type)
-    validate_rows(rows, args.records)
+    validate_rows(rows, args.records, expected)
     plot_rows(rows, args)
 
 
