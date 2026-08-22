@@ -42,9 +42,14 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# Released bio-functions v0.15.0 and bio-formats v1.9.0 tags. These pins make
-# the vepyr 0.2.0 VEP 115.2/116.0 support contract reproducible without
-# machine-local patches.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.15.0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.9.0" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.9.0" }
+# Released bio-functions v0.17.0 and bio-formats v1.10.0 tags. v0.16.0 brought the
+# contig-context prefetch (bio-functions PR #210); v0.17.0 adds the matching
+# bio-formats bump (PR #211). These two MUST move together: bio-function-vep pins
+# its own bio-formats tag, and two different tags are two different sources to
+# cargo, so a mismatch compiles the formats crates twice and `CacheSourceType` /
+# the VCF writer types then fail to cross into `CacheBuilder` (E0308).
+# These pins make the vepyr 0.2.0 VEP 115.2/116.0 support contract reproducible
+# without machine-local patches.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.17.0", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.10.0" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.10.0" }
