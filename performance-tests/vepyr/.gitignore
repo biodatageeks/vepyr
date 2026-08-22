@@ -1,0 +1,6 @@
+outputs/**/*.vcf
+outputs/**/*.vcf.gz
+outputs/**/*.tbi
+outputs/**/*.csi
+outputs/**/.~lock.*#
+scripts/__pycache__/

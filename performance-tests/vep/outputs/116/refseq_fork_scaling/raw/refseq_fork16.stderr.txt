@@ -1,0 +1,86 @@
+WARNING: 195 : WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: Transcript-assembly mismatch in chr1_16053748_A/G
+WARNING: 286 : WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: Transcript-assembly mismatch in chr1_22893000_T/C
+WARNING: 321 : WARNING: Transcript-assembly mismatch in chr1_25317062_T/C
+WARNING: Transcript-assembly mismatch in chr1_25317062_T/C
+WARNING: 1540 : WARNING: Transcript-assembly mismatch in chr1_155324483_A/G
+WARNING: Transcript-assembly mismatch in chr1_155324483_A/G
+WARNING: 2865 : WARNING: Transcript-assembly mismatch in chr2_9904885_C/T
+WARNING: Transcript-assembly mismatch in chr2_9904885_C/T
+WARNING: 3628 : WARNING: Transcript-assembly mismatch in chr2_73385903_T/TGGA
+WARNING: Transcript-assembly mismatch in chr2_73385903_T/TGGA
+WARNING: 3999 : WARNING: Transcript-assembly mismatch in chr2_115768384_G/A
+WARNING: Transcript-assembly mismatch in chr2_115768384_G/A
+WARNING: 5217 : WARNING: Transcript-assembly mismatch in chr2_219248520_T/G
+WARNING: Transcript-assembly mismatch in chr2_219248520_T/G
+WARNING: 5607 : WARNING: Transcript-assembly mismatch in chr3_4725578_T/C
+WARNING: Transcript-assembly mismatch in chr3_4725578_T/C
+WARNING: 5608 : WARNING: Transcript-assembly mismatch in chr3_4775373_T/C
+WARNING: Transcript-assembly mismatch in chr3_4775373_T/C
+WARNING: Transcript-assembly mismatch in chr3_4814496_T/C
+WARNING: Transcript-assembly mismatch in chr3_4814496_T/C
+WARNING: 6042 : WARNING: Transcript-assembly mismatch in chr3_38698083_T/C
+WARNING: Transcript-assembly mismatch in chr3_38698083_T/C
+WARNING: Transcript-assembly mismatch in chr3_38722372_G/C
+WARNING: Transcript-assembly mismatch in chr3_38722372_G/C
+WARNING: Transcript-assembly mismatch in chr3_38726809_T/C
+WARNING: Transcript-assembly mismatch in chr3_38726809_T/C
+WARNING: 6947 : WARNING: Transcript-assembly mismatch in chr3_114171968_C/T
+WARNING: Transcript-assembly mismatch in chr3_114171968_C/T
+WARNING: 6946 : WARNING: Transcript-assembly mismatch in chr3_114139503_C/T
+WARNING: Transcript-assembly mismatch in chr3_114139503_C/T
+WARNING: 7748 : WARNING: Transcript-assembly mismatch in chr3_184319745_A/G
+WARNING: Transcript-assembly mismatch in chr3_184319745_A/G
+WARNING: Transcript-assembly mismatch in chr3_184321878_A/G
+WARNING: Transcript-assembly mismatch in chr3_184321878_A/G
+WARNING: 11998 : WARNING: Transcript-assembly mismatch in chr5_120686122_C/A
+WARNING: Transcript-assembly mismatch in chr5_120686122_C/A
+WARNING: Transcript-assembly mismatch in chr5_120686124_G/A
+WARNING: Transcript-assembly mismatch in chr5_120686124_G/A
+WARNING: 12992 : WARNING: Transcript-assembly mismatch in chr6_18138983_G/A
+WARNING: Transcript-assembly mismatch in chr6_18138983_G/A
+WARNING: 17367 : WARNING: Transcript-assembly mismatch in chr8_17628773_T/C
+WARNING: Transcript-assembly mismatch in chr8_17628773_T/C
+WARNING: 17368 : WARNING: Transcript-assembly mismatch in chr8_17642714_T/C
+WARNING: Transcript-assembly mismatch in chr8_17642714_T/C
+WARNING: 17633 : WARNING: Transcript-assembly mismatch in chr8_39223113_C/G
+WARNING: Transcript-assembly mismatch in chr8_39223113_C/G
+WARNING: 19408 : WARNING: Transcript-assembly mismatch in chr9_33798019_A/G
+WARNING: Transcript-assembly mismatch in chr9_33798019_A/G
+WARNING: 20221 : WARNING: Transcript-assembly mismatch in chr9_127868360_A/G
+WARNING: Transcript-assembly mismatch in chr9_127868360_A/G
+WARNING: 20227 : WARNING: Transcript-assembly mismatch in chr9_128473042_A/G
+WARNING: Transcript-assembly mismatch in chr9_128473042_A/G
+WARNING: 21010 : WARNING: Transcript-assembly mismatch in chr10_48174883_G/T
+WARNING: Transcript-assembly mismatch in chr10_48174883_G/T
+WARNING: Transcript-assembly mismatch in chr10_48180858_C/T
+WARNING: Transcript-assembly mismatch in chr10_48180858_C/T
+WARNING: 21716 : WARNING: Transcript-assembly mismatch in chr10_102399439_A/G
+WARNING: Transcript-assembly mismatch in chr10_102399439_A/G
+WARNING: Transcript-assembly mismatch in chr10_102400677_A/G
+WARNING: Transcript-assembly mismatch in chr10_102400677_A/G
+WARNING: 22999 : WARNING: Transcript-assembly mismatch in chr11_64243969_T/C
+WARNING: Transcript-assembly mismatch in chr11_64243969_T/C
+WARNING: 23284 : WARNING: Transcript-assembly mismatch in chr11_89490933_G/T
+WARNING: Transcript-assembly mismatch in chr11_89490933_G/T
+WARNING: 23282 : WARNING: Transcript-assembly mismatch in chr11_89400281_C/T
+WARNING: Transcript-assembly mismatch in chr11_89400281_C/T
+WARNING: 24615 : WARNING: Transcript-assembly mismatch in chr12_56236660_G/C
+WARNING: Transcript-assembly mismatch in chr12_56236660_G/C
+WARNING: 25755 : WARNING: Transcript-assembly mismatch in chr13_30462544_A/G
+WARNING: Transcript-assembly mismatch in chr13_30462544_A/G
+WARNING: 27414 : WARNING: Transcript-assembly mismatch in chr14_59596754_A/G
+WARNING: Transcript-assembly mismatch in chr14_59596754_A/G
+WARNING: 29485 : WARNING: Transcript-assembly mismatch in chr16_29697029_A/G
+WARNING: Transcript-assembly mismatch in chr16_29697029_A/G
+WARNING: 30195 : WARNING: Transcript-assembly mismatch in chr17_7101608_C/T
+WARNING: Transcript-assembly mismatch in chr17_7101608_C/T
+WARNING: 32081 : WARNING: Transcript-assembly mismatch in chr19_5844526_A/G
+WARNING: Transcript-assembly mismatch in chr19_5844526_A/G
+WARNING: 32699 : WARNING: Transcript-assembly mismatch in chr19_53805300_C/T
+WARNING: Transcript-assembly mismatch in chr19_53805300_C/T
+WARNING: 33165 : WARNING: Transcript-assembly mismatch in chr20_35496586_C/G
+WARNING: Transcript-assembly mismatch in chr20_35496586_C/G
+WARNING: 33472 : WARNING: Transcript-assembly mismatch in chr20_62306724_T/C
+WARNING: Transcript-assembly mismatch in chr20_62306724_T/C

@@ -560,9 +560,13 @@ dependencies = [
 
 [[package]]
 name = "bit-vec"
-version = "0.8.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+checksum = "5727b15fa97d4f4fee0a3b7c3d550ed0269f54329207b86388de918604e31269"
+dependencies = [
+ "borsh",
+ "serde",
+]
 
 [[package]]
 name = "bitflags"
@@ -635,6 +639,30 @@ dependencies = [
  "pkg-config",
  "snap",
  "zstd",
+]
+
+[[package]]
+name = "borsh"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a88b7ea17d208c4193f2c1e6de3c35fe71f98c96982d5ced308bdcc749ff6e1f"
+dependencies = [
+ "borsh-derive",
+ "bytes",
+ "cfg_aliases",
+]
+
+[[package]]
+name = "borsh-derive"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8f347189c62a579b8cd5f80714efa178f52e461dc2e6d701d264f5ff22e566c"
+dependencies = [
+ "once_cell",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1122,8 +1150,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-core"
-version = "1.9.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.9.0#6564554619019535ffd3ace5aa650797a31eb8ed"
+version = "1.10.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.10.0#0d9730c83f3ac936efa1595335caee0b0e538fa1"
 dependencies = [
  "async-compression",
  "bytes",
@@ -1131,12 +1159,13 @@ dependencies = [
  "datafusion-execution",
  "futures",
  "log",
- "noodles-bgzf 0.36.0",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db)",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
  "noodles-sam",
  "opendal",
  "serde",
  "serde_json",
+ "strum",
  "tokio",
  "tokio-util",
  "url",
@@ -1144,8 +1173,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-ensembl-cache"
-version = "1.9.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.9.0#6564554619019535ffd3ace5aa650797a31eb8ed"
+version = "1.10.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.10.0#0d9730c83f3ac936efa1595335caee0b0e538fa1"
 dependencies = [
  "async-trait",
  "datafusion",
@@ -1153,8 +1182,8 @@ dependencies = [
  "datafusion-execution",
  "flate2",
  "log",
- "noodles-bgzf 0.36.0",
- "noodles-csi 0.50.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
+ "noodles-bgzf 0.49.0",
+ "noodles-csi",
  "noodles-tabix",
  "serde_json",
  "tokio",
@@ -1162,8 +1191,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-vcf"
-version = "1.9.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.9.0#6564554619019535ffd3ace5aa650797a31eb8ed"
+version = "1.10.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.10.0#0d9730c83f3ac936efa1595335caee0b0e538fa1"
 dependencies = [
  "async-compression",
  "async-stream",
@@ -1177,14 +1206,15 @@ dependencies = [
  "futures",
  "log",
  "noodles",
- "noodles-bgzf 0.36.0",
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-csi 0.50.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
+ "noodles-bcf",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
  "noodles-tabix",
  "noodles-vcf",
  "opendal",
  "serde_json",
+ "smallvec",
  "tokio",
  "tokio-util",
  "zarrs",
@@ -1192,8 +1222,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-function-vep"
-version = "0.13.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.15.0#ddb1a67640e4e6c4601b97154ba23decb14ce9a2"
+version = "0.15.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.17.0#391f94bd94ff2ba815fc42e6114d71276b3dc54a"
 dependencies = [
  "ahash",
  "async-trait",
@@ -3110,11 +3140,27 @@ checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "noodles"
-version = "0.100.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1#086061d2ff5385f63a5bf0c500ebebb84a153af1"
+version = "0.113.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
+ "noodles-bgzf 0.49.0",
  "noodles-vcf",
+]
+
+[[package]]
+name = "noodles-bcf"
+version = "0.88.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
+dependencies = [
+ "futures",
+ "indexmap",
+ "memchr",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
+ "noodles-vcf",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -3127,36 +3173,22 @@ dependencies = [
  "bytes",
  "crossbeam-channel",
  "flate2",
- "futures",
- "libdeflater",
- "pin-project-lite",
- "tokio",
- "tokio-util",
 ]
 
 [[package]]
 name = "noodles-bgzf"
-version = "0.42.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1#086061d2ff5385f63a5bf0c500ebebb84a153af1"
+version = "0.49.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
  "bytes",
  "crossbeam-channel",
- "flate2",
  "futures",
  "libdeflater",
  "pin-project-lite",
+ "rayon",
  "tokio",
  "tokio-util",
-]
-
-[[package]]
-name = "noodles-bgzf"
-version = "0.42.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db#e2b53501afd9d327735355db68dfb33d3e6ce9db"
-dependencies = [
- "bytes",
- "crossbeam-channel",
- "flate2",
+ "zlib-rs",
 ]
 
 [[package]]
@@ -3170,42 +3202,25 @@ dependencies = [
 
 [[package]]
 name = "noodles-core"
-version = "0.18.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1#086061d2ff5385f63a5bf0c500ebebb84a153af1"
-dependencies = [
- "bstr",
-]
-
-[[package]]
-name = "noodles-core"
-version = "0.18.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db#e2b53501afd9d327735355db68dfb33d3e6ce9db"
+version = "0.20.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
  "bstr",
 ]
 
 [[package]]
 name = "noodles-csi"
-version = "0.50.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1#086061d2ff5385f63a5bf0c500ebebb84a153af1"
+version = "0.58.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
  "bit-vec",
  "bstr",
+ "futures",
  "indexmap",
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
-]
-
-[[package]]
-name = "noodles-csi"
-version = "0.50.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db#e2b53501afd9d327735355db68dfb33d3e6ce9db"
-dependencies = [
- "bit-vec",
- "bstr",
- "indexmap",
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db)",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db)",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -3223,43 +3238,43 @@ dependencies = [
 
 [[package]]
 name = "noodles-sam"
-version = "0.78.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db#e2b53501afd9d327735355db68dfb33d3e6ce9db"
+version = "0.87.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
  "bitflags",
  "bstr",
  "indexmap",
  "lexical-core",
  "memchr",
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db)",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db)",
- "noodles-csi 0.50.0 (git+https://github.com/biodatageeks/noodles.git?rev=e2b53501afd9d327735355db68dfb33d3e6ce9db)",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
 ]
 
 [[package]]
 name = "noodles-tabix"
-version = "0.56.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1#086061d2ff5385f63a5bf0c500ebebb84a153af1"
+version = "0.64.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
  "bstr",
  "indexmap",
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-csi 0.50.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
  "tokio",
 ]
 
 [[package]]
 name = "noodles-vcf"
-version = "0.80.0"
-source = "git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1#086061d2ff5385f63a5bf0c500ebebb84a153af1"
+version = "0.90.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
 dependencies = [
  "futures",
  "indexmap",
  "memchr",
- "noodles-bgzf 0.42.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-core 0.18.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
- "noodles-csi 0.50.0 (git+https://github.com/biodatageeks/noodles.git?rev=086061d2ff5385f63a5bf0c500ebebb84a153af1)",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
  "noodles-tabix",
  "percent-encoding",
  "pin-project-lite",
@@ -3858,6 +3873,15 @@ checksum = "479ca8adacdd7ce8f1fb39ce9ecccbfe93a3f1344b3d0d97f20bc0196208f62b"
 dependencies = [
  "proc-macro2",
  "syn",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e67ba7e9b2b56446f1d419b1d807906278ffa1a658a8a5d8a39dcb1f5a78614f"
+dependencies = [
+ "toml_edit 0.25.13+spec-1.1.0",
 ]
 
 [[package]]
@@ -4835,6 +4859,9 @@ name = "strum"
 version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
+dependencies = [
+ "strum_macros",
+]
 
 [[package]]
 name = "strum_macros"
@@ -5132,8 +5159,8 @@ checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
 dependencies = [
  "serde",
  "serde_spanned",
- "toml_datetime",
- "toml_edit",
+ "toml_datetime 0.6.11",
+ "toml_edit 0.22.27",
 ]
 
 [[package]]
@@ -5146,6 +5173,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml_datetime"
+version = "1.1.1+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
 name = "toml_edit"
 version = "0.22.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5154,9 +5190,30 @@ dependencies = [
  "indexmap",
  "serde",
  "serde_spanned",
- "toml_datetime",
+ "toml_datetime 0.6.11",
  "toml_write",
- "winnow",
+ "winnow 0.7.15",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.25.13+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6975367e4d2ef766d86af01ffad14b622fecc8d4357a998fbc4deb6e9bacaf9b"
+dependencies = [
+ "indexmap",
+ "toml_datetime 1.1.1+spec-1.1.0",
+ "toml_parser",
+ "winnow 1.0.4",
+]
+
+[[package]]
+name = "toml_parser"
+version = "1.1.3+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56"
+dependencies = [
+ "winnow 1.0.4",
 ]
 
 [[package]]
@@ -5351,7 +5408,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vepyr"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "arrow",
  "datafusion",
@@ -5866,6 +5923,15 @@ name = "winnow"
 version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df79d97927682d2fd8adb29682d1140b343be4ac0f08fd68b7765d9c059d3945"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "winnow"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 dependencies = [
  "memchr",
 ]
