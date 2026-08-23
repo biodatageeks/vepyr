@@ -50,10 +50,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from comparison import vcfio  # noqa: E402
 
-# VEP appends these to the input header; they carry run-specific provenance
-# (wall-clock time, absolute cache path, per-module git hashes), so they can
-# never match byte for byte and are excluded from the header digest.
-VOLATILE_HEADER_PREFIXES = ("##VEP=", "##VEP-command-line=")
+# Each tool appends its own provenance to the input header: wall-clock time,
+# absolute cache paths, tool and per-module versions. None of it can match byte
+# for byte, and none of it is meant to, so both sides' lines are excluded from
+# the header digest.
+VOLATILE_HEADER_PREFIXES = (
+    "##VEP=",
+    "##VEP-command-line=",
+    "##datafusion-bio-function-vep=",
+    "##datafusion-bio-function-vep-command-line=",
+)
 
 MISSING = (".", "")
 
@@ -333,7 +339,8 @@ def compare(pair: Pair, mode: str) -> Result:
     if not result.header_match:
         result.notes.append(
             f"header differs ({result.vep.header_lines} vs "
-            f"{result.vepyr.header_lines} lines, volatile ##VEP lines excluded)"
+            f"{result.vepyr.header_lines} lines, "
+            "each side's own provenance lines excluded)"
         )
     return result
 
