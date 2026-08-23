@@ -138,6 +138,57 @@ The aggregate summary contains a per-contig performance table, root cause
 classification with GitHub issue links, field-level delta vs the previous
 benchmark, and mismatch examples per field.
 
+### `md5_concordance.py` -- byte-level agreement with Ensembl VEP
+
+`run_comparison.py` answers "is the annotation content the same?" by comparing
+86 CSQ fields per record. This answers a narrower and stricter question: "are
+the bytes the same?" It hashes each file's header and record body separately
+and compares the digests, which is what qualifies vepyr's VCF output as a
+drop-in replacement for VEP's rather than merely an equivalent one.
+
+Two modes over the same digest pipeline:
+
+- `canonical` (default) normalizes the serialization differences that are known
+  to be cosmetic before hashing -- QUAL rendered numerically, INFO and FORMAT
+  keys sorted, FORMAT keys missing in every sample dropped. Two files with the
+  same canonical digest carry identical annotation content and differ only in
+  how they were written out.
+- `strict` hashes the record bytes as-is. This is the parity target: it passes
+  only once vepyr reproduces VEP's serialization exactly.
+
+```bash
+# One pair, with a breakdown of what differs
+uv run python md5_concordance.py \
+    --pair results/116/fast_chr21/vep_chr21_merged.vcf /tmp/vepyr_chr21.vcf \
+    --mode strict --explain
+
+# Every per-contig pair under a results directory
+uv run python md5_concordance.py --results-dir results/116 --mode strict
+
+# Narrow the pairing when a directory holds more than one output per side
+uv run python md5_concordance.py --results-dir results/116 \
+    --vepyr-glob 'vepyr_parquet_*.vcf'
+```
+
+Exit status is 0 when every pair concords in the selected mode and 1 otherwise;
+2 signals a usage or input error. `--explain` classifies each differing record
+by column, which is how a serialization gap gets named -- `INFO order`,
+`FORMAT KEYS (-['PS'] +[])` and `SAMPLE1 keys` were the three classes that the
+record-layout carry closed.
+
+**Reading the header column.** Header and body are hashed separately because
+each tool stamps its own run provenance -- wall-clock time, absolute cache
+paths, tool versions -- that can never match. Those lines are excluded from the
+header digest on both sides (`##VEP*` for VEP, `##datafusion-bio-function-vep*`
+for vepyr). A run that reports `PASS` with `HEADER DIFF` therefore has a real,
+non-provenance header difference worth reading: when both sides are annotated
+from the *same* normalized input the header should agree exactly, and a
+`##bcftools_normCommand` difference means they were not.
+
+Whole-genome runs need care about disk: a plain-text output is ~29 GB per
+worker-count and the parallel path needs roughly twice that while assembling,
+so compare one contig at a time and delete each output before the next.
+
 ### `verify_parity_gate.py` -- machine-enforced release gate
 
 The comparison runner produces evidence; the parity gate decides whether that
