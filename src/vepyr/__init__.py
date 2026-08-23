@@ -729,7 +729,7 @@ def annotate(
     flag_pick: bool = False,
     flag_pick_allele: bool = False,
     flag_pick_allele_gene: bool = False,
-    pick_order: str | None = None,
+    pick_order: str | list[str] | None = None,
     buffer_size: int = 5000,
     failed: int = 0,
     # Engine tuning
@@ -829,9 +829,12 @@ def annotate(
     flag_pick_allele_gene : bool
         Add a standalone ``PICK=1`` CSQ field for the selected transcript per
         allele and gene, matching VEP ``--flag_pick_allele_gene``.
-    pick_order : str or None
-        Comma-separated VEP pick ranking order, e.g.
-        ``"biotype,rank,mane_select,tsl,canonical,appris,ccds,length"``.
+    pick_order : str or list of str or None
+        VEP pick ranking order, either as a comma-separated string or as a
+        list of terms, e.g. ``"biotype,rank,mane_select,tsl,canonical,appris,ccds,length"``
+        or ``["biotype", "rank", "mane_select", "tsl", "canonical", "appris", "ccds", "length"]``.
+        A list is joined into the comma-separated form the engine parses. Any
+        other type raises ``TypeError`` rather than being silently ignored.
     buffer_size : int
         Number of input variants per VEP-style annotation buffer. Defaults to
         Ensembl VEP's ``--buffer_size`` default of ``5000``.
@@ -995,8 +998,26 @@ def annotate(
     }.items():
         if enabled:
             opts[key] = True
-    if pick_order:
-        opts["pick_order"] = pick_order
+    if pick_order is not None:
+        # VEP's ``--pick_order`` is a comma-separated list of terms. Accept the
+        # natural Python shape (a list/tuple of terms) and join it into the
+        # comma-string the engine parses; keep a plain string as-is. Anything
+        # else is rejected loudly instead of being silently dropped by the
+        # Rust boundary (`serde_json::Value::as_str()` returns ``None`` for a
+        # JSON array, which would fall back to the default order).
+        if isinstance(pick_order, str):
+            pick_order_str = pick_order
+        elif isinstance(pick_order, (list, tuple)) and all(
+            isinstance(term, str) for term in pick_order
+        ):
+            pick_order_str = ",".join(pick_order)
+        else:
+            raise TypeError(
+                "pick_order must be a comma-separated str or a list/tuple of "
+                f"str terms, got {type(pick_order).__name__}"
+            )
+        if pick_order_str:
+            opts["pick_order"] = pick_order_str
     if failed != 0:
         opts["failed"] = failed
     if distance is not None:
