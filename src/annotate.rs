@@ -185,117 +185,127 @@ pub fn annotate_to_vcf_file(
         )
     });
 
-    let config = AnnotateVcfConfig {
-        everything: opts
-            .get("everything")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        extended_probes: opts
-            .get("extended_probes")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true),
-        expected_cache_version: opts
-            .get("expected_cache_version")
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        reference_fasta_path: opts
-            .get("reference_fasta_path")
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        hgvs: opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false),
-        hgvsc: opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false),
-        hgvsp: opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false),
-        shift_hgvs: opts.get("shift_hgvs").and_then(|v| v.as_bool()),
-        no_escape: opts
-            .get("no_escape")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        remove_hgvsp_version: opts
-            .get("remove_hgvsp_version")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        hgvsp_use_prediction: opts
-            .get("hgvsp_use_prediction")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        merged: false,
-        refseq: false,
-        gencode_basic: opts
-            .get("gencode_basic")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        gencode_primary: opts
-            .get("gencode_primary")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        all_refseq: opts
-            .get("all_refseq")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        exclude_predicted: opts
-            .get("exclude_predicted")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        pick: opts.get("pick").and_then(|v| v.as_bool()).unwrap_or(false),
-        pick_allele: opts
-            .get("pick_allele")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        per_gene: opts
-            .get("per_gene")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        pick_allele_gene: opts
-            .get("pick_allele_gene")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        flag_pick: opts
-            .get("flag_pick")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        flag_pick_allele: opts
-            .get("flag_pick_allele")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        flag_pick_allele_gene: opts
-            .get("flag_pick_allele_gene")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-        pick_order: opts
-            .get("pick_order")
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        failed: opts.get("failed").and_then(|v| v.as_i64()),
-        distance: opts.get("distance").and_then(|v| {
-            v.as_str()
-                .map(String::from)
-                .or_else(|| v.as_i64().map(|n| n.to_string()))
-        }),
-        buffer_size: opts
-            .get("buffer_size")
-            .and_then(|v| v.as_u64())
-            .and_then(|n| usize::try_from(n).ok())
-            .filter(|n| *n > 0)
-            .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE),
-        // Single annotation-concurrency knob (vepyr `workers` -> engine `workers`).
-        // The engine derives its lookup parallelism from `workers`; the sink's
-        // DataFusion `target_partitions` stays 1 so the annotated VCF is written
-        // as a single ordered output (the streaming path, which polars drains in
-        // parallel, sets its own SessionConfig partitions from `workers`).
-        workers,
-        target_partitions: 1,
-        compression: vcf_compression,
-        show_progress,
-        on_batch_written: callback,
-        plugin_cache_root: opts
-            .get("plugin_cache_root")
-            .and_then(|v| v.as_str())
-            .map(std::path::PathBuf::from),
-        // Recorded as a `tool` attribute in the output header's provenance
-        // lines. The header key itself is fixed by the engine.
-        provenance_tool_name: Some(env!("CARGO_PKG_NAME").to_string()),
-        provenance_tool_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-    };
+    // `AnnotateVcfConfig` is `#[non_exhaustive]`, so it is built by assignment
+    // rather than a struct literal: a field the engine adds then defaults here
+    // instead of failing this crate's build.
+    #[allow(clippy::field_reassign_with_default)]
+    let mut config = AnnotateVcfConfig::default();
+    config.everything = opts
+        .get("everything")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.extended_probes = opts
+        .get("extended_probes")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    config.expected_cache_version = opts
+        .get("expected_cache_version")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    config.reference_fasta_path = opts
+        .get("reference_fasta_path")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    config.hgvs = opts.get("hgvs").and_then(|v| v.as_bool()).unwrap_or(false);
+    config.hgvsc = opts.get("hgvsc").and_then(|v| v.as_bool()).unwrap_or(false);
+    config.hgvsp = opts.get("hgvsp").and_then(|v| v.as_bool()).unwrap_or(false);
+    config.shift_hgvs = opts.get("shift_hgvs").and_then(|v| v.as_bool());
+    config.no_escape = opts
+        .get("no_escape")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.remove_hgvsp_version = opts
+        .get("remove_hgvsp_version")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.hgvsp_use_prediction = opts
+        .get("hgvsp_use_prediction")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.merged = false;
+    config.refseq = false;
+    config.gencode_basic = opts
+        .get("gencode_basic")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.gencode_primary = opts
+        .get("gencode_primary")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.all_refseq = opts
+        .get("all_refseq")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.exclude_predicted = opts
+        .get("exclude_predicted")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.pick = opts.get("pick").and_then(|v| v.as_bool()).unwrap_or(false);
+    config.pick_allele = opts
+        .get("pick_allele")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.per_gene = opts
+        .get("per_gene")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.pick_allele_gene = opts
+        .get("pick_allele_gene")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.flag_pick = opts
+        .get("flag_pick")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.flag_pick_allele = opts
+        .get("flag_pick_allele")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.flag_pick_allele_gene = opts
+        .get("flag_pick_allele_gene")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    config.pick_order = opts
+        .get("pick_order")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    config.failed = opts.get("failed").and_then(|v| v.as_i64());
+    config.distance = opts.get("distance").and_then(|v| {
+        v.as_str()
+            .map(String::from)
+            .or_else(|| v.as_i64().map(|n| n.to_string()))
+    });
+    config.buffer_size = opts
+        .get("buffer_size")
+        .and_then(|v| v.as_u64())
+        .and_then(|n| usize::try_from(n).ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE);
+    // Single annotation-concurrency knob (vepyr `workers` -> engine `workers`).
+    // The engine derives its lookup parallelism from `workers`; the sink's
+    // DataFusion `target_partitions` stays 1 so the annotated VCF is written
+    // as a single ordered output (the streaming path, which polars drains in
+    // parallel, sets its own SessionConfig partitions from `workers`).
+    config.workers = workers;
+    config.target_partitions = 1;
+    config.compression = vcf_compression;
+    config.show_progress = show_progress;
+    config.on_batch_written = callback;
+    config.plugin_cache_root = opts
+        .get("plugin_cache_root")
+        .and_then(|v| v.as_str())
+        .map(std::path::PathBuf::from);
+    // Recorded as a `tool` attribute in the output header's provenance
+    // lines. The header key itself is fixed by the engine.
+    config.provenance_tool_name = Some(env!("CARGO_PKG_NAME").to_string());
+    config.provenance_tool_version = Some(env!("CARGO_PKG_VERSION").to_string());
+    // Reproduce each input record's INFO key order and FORMAT key list in the
+    // output. On unless the caller opts out: byte agreement with Ensembl VEP is
+    // the point of the VCF path, and neither survives the typed columns.
+    config.preserve_record_layout = opts
+        .get("preserve_record_layout")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
 
     // Release the GIL so the Python background thread (in __init__.py) can
     // let Jupyter's main thread pump display updates for tqdm progress bars.

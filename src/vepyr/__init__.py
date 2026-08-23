@@ -740,6 +740,7 @@ def annotate(
     plugin_cache_root: str | None = None,
     # Output mode
     output_vcf: str | None = None,
+    preserve_record_layout: bool = True,
     show_progress: bool = True,
     compression: str | None = None,
     on_batch_written: "Callable[[int, int, int], None] | None" = None,
@@ -858,6 +859,14 @@ def annotate(
         Compression is auto-detected from the file extension: ``.vcf`` for
         plain text, ``.vcf.gz`` or ``.vcf.bgz`` for block-gzipped (bgzf).
         Override with the ``compression`` parameter.
+    preserve_record_layout : bool
+        Write each record's INFO fields in the order the input wrote them, and
+        its own FORMAT keys (default: True). Both are per record and neither
+        survives the typed columns, so turning this off reorders INFO to schema
+        order and drops any FORMAT key whose value is missing in every sample.
+        Ensembl VEP keeps both by copying the input line and only appending to
+        INFO, so byte agreement with it needs this on. Only used when
+        ``output_vcf`` is set.
     show_progress : bool
         Show a progress bar on stderr during VCF output (default: True).
         Only used when ``output_vcf`` is set.
@@ -1012,6 +1021,8 @@ def annotate(
         opts["workers"] = workers
     if plugin_cache_root is not None:
         opts["plugin_cache_root"] = plugin_cache_root
+    if not preserve_record_layout:
+        opts["preserve_record_layout"] = False
 
     options_json = json.dumps(opts)
 

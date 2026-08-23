@@ -42,14 +42,16 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# Released bio-functions v0.17.0 and bio-formats v1.10.0 tags. v0.16.0 brought the
-# contig-context prefetch (bio-functions PR #210); v0.17.0 adds the matching
-# bio-formats bump (PR #211). These two MUST move together: bio-function-vep pins
-# its own bio-formats tag, and two different tags are two different sources to
-# cargo, so a mismatch compiles the formats crates twice and `CacheSourceType` /
-# the VCF writer types then fail to cross into `CacheBuilder` (E0308).
-# These pins make the vepyr 0.2.0 VEP 115.2/116.0 support contract reproducible
-# without machine-local patches.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "21a65f439766daa60658c2031bbd5c820ac51f9b", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "917962818b6a83179bd34b1ef9237000014ca250" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "917962818b6a83179bd34b1ef9237000014ca250" }
+# Byte-parity revisions: bio-formats PR #243 carries each record's INFO and
+# FORMAT key order through a read/write round trip, and bio-functions PR #216
+# turns that on for annotation output. Together with the merged header and QUAL
+# work they make vepyr's VCF output byte-identical to Ensembl VEP 116.0.
+# The two MUST move together: bio-function-vep pins its own bio-formats rev, and
+# two different revs are two different sources to cargo, so a mismatch compiles
+# the formats crates twice and `CacheSourceType` / the VCF writer types then fail
+# to cross into `CacheBuilder` (E0308).
+# Revisions, not tags, until those PRs merge and the engines cut releases.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "fe3735e05cb2eaf48f8aaa56d8df9163e0e1c0dd", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "cdeb3d7f6676b32fdabd1682fb226b90638dcc14" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "cdeb3d7f6676b32fdabd1682fb226b90638dcc14" }
+
