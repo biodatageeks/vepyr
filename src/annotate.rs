@@ -291,6 +291,10 @@ pub fn annotate_to_vcf_file(
             .get("plugin_cache_root")
             .and_then(|v| v.as_str())
             .map(std::path::PathBuf::from),
+        // Recorded as a `tool` attribute in the output header's provenance
+        // lines. The header key itself is fixed by the engine.
+        provenance_tool_name: Some(env!("CARGO_PKG_NAME").to_string()),
+        provenance_tool_version: Some(env!("CARGO_PKG_VERSION").to_string()),
     };
 
     // Release the GIL so the Python background thread (in __init__.py) can

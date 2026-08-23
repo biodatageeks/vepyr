@@ -50,6 +50,6 @@ serde_json = "1"
 # the VCF writer types then fail to cross into `CacheBuilder` (E0308).
 # These pins make the vepyr 0.2.0 VEP 115.2/116.0 support contract reproducible
 # without machine-local patches.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.17.0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.10.0" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.10.0" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "21a65f439766daa60658c2031bbd5c820ac51f9b", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "917962818b6a83179bd34b1ef9237000014ca250" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "917962818b6a83179bd34b1ef9237000014ca250" }
