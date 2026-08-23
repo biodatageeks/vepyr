@@ -46,6 +46,18 @@ def open_text(path):
     return open(path)
 
 
+def open_binary(path):
+    """Open a VCF for byte reading, transparently handling .gz (bgzf or plain gzip).
+
+    Text mode decodes universal newlines, which silently turns CRLF into LF. A
+    caller comparing files byte for byte has to read bytes, or two files that
+    differ in line-ending style compare equal.
+    """
+    if path.endswith(GZIP_SUFFIXES):
+        return gzip.open(path, "rb")
+    return open(path, "rb")
+
+
 def is_bgzf(path):
     """Return True if `path` is BGZF (block-gzip): gzip magic plus a 'BC' subfield."""
     with open(path, "rb") as f:

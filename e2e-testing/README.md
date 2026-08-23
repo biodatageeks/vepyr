@@ -176,14 +176,25 @@ by column, which is how a serialization gap gets named -- `INFO order`,
 `FORMAT KEYS (-['PS'] +[])` and `SAMPLE1 keys` were the three classes that the
 record-layout carry closed.
 
-**Reading the header column.** Header and body are hashed separately because
-each tool stamps its own run provenance -- wall-clock time, absolute cache
-paths, tool versions -- that can never match. Those lines are excluded from the
-header digest on both sides (`##VEP*` for VEP, `##datafusion-bio-function-vep*`
-for vepyr). A run that reports `PASS` with `HEADER DIFF` therefore has a real,
-non-provenance header difference worth reading: when both sides are annotated
-from the *same* normalized input the header should agree exactly, and a
-`##bcftools_normCommand` difference means they were not.
+**Reading the three verdict columns.** `BODY` is the record digest. `DECL`
+covers the header lines that define how a record is to be read -- `##INFO`,
+`##FORMAT`, `##FILTER`, `##ALT`, `##contig`, `##reference`, `##fileformat`, the
+`#CHROM` line, and any key the comparator does not recognise. **Concordance
+requires both**: two files whose records match byte for byte are still not
+interchangeable if an `##INFO` definition disagrees about how to read them.
+
+`HEADER` is wider than `DECL` and is reported rather than gated. It excludes
+each tool's own run provenance (`##VEP*`, `##datafusion-bio-function-vep*`),
+which carries wall-clock time and absolute paths and can never match, but it
+does include lines describing how the *input* was produced -- `##bcftools_*`,
+`##source`, `##fileDate`. A `PASS` alongside `HEADER DIFF` and `DECL ok` means
+exactly one thing: the two sides were prepared from differently normalized
+inputs. That is worth seeing, and worth fixing by annotating both sides from
+the same normalized VCF, but it does not change how any record is interpreted.
+
+A run directory holding only one side is an error, not a skip -- otherwise the
+gate could report `PASS` while quietly leaving out the contig whose run did not
+finish.
 
 Whole-genome runs need care about disk: a plain-text output is ~29 GB per
 worker-count and the parallel path needs roughly twice that while assembling,

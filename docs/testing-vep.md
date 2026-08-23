@@ -462,11 +462,16 @@ FORMAT keys missing in every sample dropped — so a matching canonical digest m
 two files carry identical annotation content and differ only in how they were written.
 `--mode strict` hashes the record bytes as-is.
 
-Each tool stamps the header with run provenance that can never match (wall-clock time,
-absolute cache paths, tool versions), so those lines are excluded from the header digest
-on both sides. A `HEADER DIFF` alongside a passing body is therefore a real difference
-worth reading — most often a `##bcftools_normCommand` showing that the two sides were
-annotated from differently normalized inputs.
+The report carries three verdict columns. `BODY` is the record digest and `DECL` covers
+the header lines that define how a record is read (`##INFO`, `##FORMAT`, `##contig`,
+`##reference`, the `#CHROM` line, and anything unrecognised); **a pair concords only when
+both match**, because records that agree byte for byte are still not interchangeable if
+an `##INFO` definition disagrees. `HEADER` is wider and is reported rather than gated: it
+excludes each tool's own run provenance, which can never match, but includes lines
+describing how the *input* was produced. `PASS` with `HEADER DIFF` and `DECL ok`
+therefore means the two sides were prepared from differently normalized inputs — worth
+fixing by annotating both from the same normalized VCF, but not a difference in how any
+record is interpreted.
 
 !!! note "Whole-genome runs are disk-hungry"
     A plain-text annotated WGS output is ~29 GB, and the parallel path needs roughly

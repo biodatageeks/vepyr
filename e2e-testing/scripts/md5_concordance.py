@@ -61,6 +61,25 @@ VOLATILE_HEADER_PREFIXES = (
     "##datafusion-bio-function-vep-command-line=",
 )
 
+# Header lines describing how the *input* was produced rather than how a record
+# is to be read. They are hashed into the header digest and reported when they
+# differ -- a difference means the two sides were prepared differently, which is
+# worth seeing -- but they do not decide concordance, because nothing about
+# interpreting the records depends on them.
+#
+# Everything not listed here counts as a declaration: `##INFO`, `##FORMAT`,
+# `##FILTER`, `##ALT`, `##contig`, `##reference`, `##fileformat` and the
+# `#CHROM` line define how the record bytes are to be read, and so does any key
+# this list does not recognise. Unknown keys gate deliberately: a header the
+# comparator does not understand should fail loudly, not pass silently.
+INPUT_HISTORY_PREFIXES = (
+    "##bcftools_",
+    "##GATKCommandLine",
+    "##source=",
+    "##fileDate=",
+    "##commandline=",
+)
+
 MISSING = (".", "")
 
 # Default per-chromosome layout under e2e-testing/results/<release>/:
@@ -129,36 +148,53 @@ def canonical_record(line: str) -> str:
 
 @dataclass
 class Digest:
-    """Header and body digests for one VCF, plus a record count."""
+    """Header, declaration and body digests for one VCF, plus a record count."""
 
     header: str
+    declarations: str
     body: str
     records: int
     header_lines: int
 
 
 def digest_vcf(path: str, mode: str) -> Digest:
-    """Hash a VCF's header and body separately under `mode`."""
+    """Hash a VCF's header, its declarations and its body under `mode`.
+
+    Read as bytes, not text: universal-newline decoding rewrites CRLF to LF, and
+    strict mode's whole claim is that it compares the record bytes as they were
+    written.
+    """
     header = hashlib.md5()
+    declarations = hashlib.md5()
     body = hashlib.md5()
     records = 0
     header_lines = 0
 
-    with vcfio.open_text(path) as handle:
-        for line in handle:
-            if line.startswith("#"):
+    with vcfio.open_binary(path) as handle:
+        for raw in handle:
+            if raw.startswith(b"#"):
+                line = raw.decode("utf-8", "surrogateescape")
                 if line.startswith(VOLATILE_HEADER_PREFIXES):
                     continue
                 header_lines += 1
-                header.update(line.encode())
+                header.update(raw)
+                if not line.startswith(INPUT_HISTORY_PREFIXES):
+                    declarations.update(raw)
                 continue
             records += 1
             if mode == "strict":
-                body.update(line.encode())
+                body.update(raw)
             else:
-                body.update((canonical_record(line.rstrip("\n")) + "\n").encode())
+                line = raw.decode("utf-8", "surrogateescape").rstrip("\r\n")
+                body.update((canonical_record(line) + "\n").encode())
 
-    return Digest(header.hexdigest(), body.hexdigest(), records, header_lines)
+    return Digest(
+        header.hexdigest(),
+        declarations.hexdigest(),
+        body.hexdigest(),
+        records,
+        header_lines,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -281,6 +317,17 @@ class Result:
         return self.vep.header == self.vepyr.header
 
     @property
+    def declarations_match(self) -> bool:
+        """Whether both sides declare the same way to read a record."""
+        return self.vep.declarations == self.vepyr.declarations
+
+    @property
+    def concordant(self) -> bool:
+        """Two files are interchangeable only if the records match *and* the
+        declarations that say how to read them do."""
+        return self.body_match and self.declarations_match
+
+    @property
     def count_match(self) -> bool:
         return self.vep.records == self.vepyr.records
 
@@ -310,8 +357,19 @@ def discover_pairs(results_dir: Path, vep_glob: str, vepyr_glob: str) -> list[Pa
     for directory in candidates:
         vep = sorted(directory.glob(vep_glob))
         vepyr = sorted(directory.glob(vepyr_glob))
-        if not vep or not vepyr:
+        if not vep and not vepyr:
+            # Not a run directory at all -- `_shared/` and friends hold inputs.
             continue
+        if not vep or not vepyr:
+            # One side only. Skipping it would let the gate pass while leaving
+            # out the very contig whose run did not finish.
+            missing, pattern = ("vepyr", vepyr_glob) if vep else ("VEP", vep_glob)
+            present = (vep or vepyr)[0].name
+            raise ConcordanceError(
+                f"{directory}: has {present} but no {missing} output matching "
+                f"{pattern!r}. Finish or remove that run; a half-finished "
+                "contig cannot be silently skipped."
+            )
         if len(vep) > 1 or len(vepyr) > 1:
             raise ConcordanceError(
                 f"{directory}: ambiguous match — "
@@ -337,10 +395,15 @@ def compare(pair: Pair, mode: str) -> Result:
             f"record count {result.vep.records} vs {result.vepyr.records}"
         )
     if not result.header_match:
+        scope = (
+            "declarations differ"
+            if not result.declarations_match
+            else "input-provenance lines only"
+        )
         result.notes.append(
             f"header differs ({result.vep.header_lines} vs "
             f"{result.vepyr.header_lines} lines, "
-            "each side's own provenance lines excluded)"
+            f"each side's own provenance lines excluded; {scope})"
         )
     return result
 
@@ -348,15 +411,17 @@ def compare(pair: Pair, mode: str) -> Result:
 def print_table(results: list[Result], mode: str) -> None:
     width = max((len(r.pair.label) for r in results), default=5)
     print(f"\n  mode: {mode}    body digest over {len(results)} pair(s)\n")
-    print(f"  {'':<{width}}  {'RECORDS':>10}  {'BODY MD5':<34}  BODY  HEADER")
-    print(f"  {'-' * width}  {'-' * 10}  {'-' * 34}  ----  ------")
+    print(f"  {'':<{width}}  {'RECORDS':>10}  {'BODY MD5':<34}  BODY  DECL  HEADER")
+    print(f"  {'-' * width}  {'-' * 10}  {'-' * 34}  ----  ----  ------")
     for r in results:
         digest = (
             r.vep.body if r.body_match else f"{r.vep.body[:12]}…/{r.vepyr.body[:12]}…"
         )
         print(
             f"  {r.pair.label:<{width}}  {r.vep.records:>10,}  {digest:<34}  "
-            f"{'ok' if r.body_match else 'DIFF':<4}  {'ok' if r.header_match else 'DIFF'}"
+            f"{'ok' if r.body_match else 'DIFF':<4}  "
+            f"{'ok' if r.declarations_match else 'DIFF':<4}  "
+            f"{'ok' if r.header_match else 'DIFF'}"
         )
 
 
@@ -423,7 +488,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print_table(results, args.mode)
 
-    mismatched = [r for r in results if not r.body_match]
+    mismatched = [r for r in results if not r.concordant]
 
     for r in results:
         if r.notes:
@@ -438,7 +503,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"      vepyr only: {line[:110]}")
 
     if args.explain and mismatched:
-        for r in mismatched:
+        for r in (r for r in mismatched if not r.body_match):
             print(f"\n  {r.pair.label} — record differences:")
             for kind, count in explain(
                 r.pair.vep, r.pair.vepyr, args.explain_limit
