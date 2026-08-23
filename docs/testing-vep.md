@@ -437,6 +437,42 @@ inputs. Both plain and block-gzipped VCFs are accepted on the vepyr and VEP side
 when the reference is bgzipped and indexed, the per-contig slice is a tabix seek
 rather than a full scan.
 
+## Checking byte-level agreement
+
+The field-by-field comparison above answers whether the annotation *content* matches.
+`md5_concordance.py` answers the stricter question of whether the *bytes* match, which
+is what makes vepyr's output a drop-in replacement for VEP's rather than an equivalent
+one. It hashes each file's header and record body separately and compares the digests.
+
+```bash
+cd e2e-testing/scripts
+
+# One pair, with a breakdown of what differs
+uv run python md5_concordance.py \
+    --pair ../results/116/fast_chr21/vep_chr21_merged.vcf /tmp/vepyr_chr21.vcf \
+    --mode strict --explain
+
+# Every per-contig pair under a results directory
+uv run python md5_concordance.py --results-dir ../results/116 --mode strict
+```
+
+`--mode canonical` (the default) normalizes the differences that are known to be
+cosmetic before hashing — QUAL rendered numerically, INFO and FORMAT keys sorted,
+FORMAT keys missing in every sample dropped — so a matching canonical digest means the
+two files carry identical annotation content and differ only in how they were written.
+`--mode strict` hashes the record bytes as-is.
+
+Each tool stamps the header with run provenance that can never match (wall-clock time,
+absolute cache paths, tool versions), so those lines are excluded from the header digest
+on both sides. A `HEADER DIFF` alongside a passing body is therefore a real difference
+worth reading — most often a `##bcftools_normCommand` showing that the two sides were
+annotated from differently normalized inputs.
+
+!!! note "Whole-genome runs are disk-hungry"
+    A plain-text annotated WGS output is ~29 GB, and the parallel path needs roughly
+    twice that while it assembles worker shards. Compare one contig at a time and
+    delete each output before starting the next.
+
 See [`e2e-testing/README.md`](https://github.com/biodatageeks/vepyr/blob/master/e2e-testing/README.md)
 for the full flag reference, the profile-to-reference-file mapping, the expected data
 directory layout, and the dependency-bump workflow.

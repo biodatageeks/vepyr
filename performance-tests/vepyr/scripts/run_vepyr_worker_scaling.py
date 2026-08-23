@@ -35,6 +35,7 @@ SUMMARY_FIELDS = [
     "cache_type",
     "workers",
     "compression",
+    "preserve_record_layout",
     "status",
     "exit_status",
     "annotation_seconds",
@@ -64,6 +65,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", nargs="+", type=int, default=read_worker_counts())
     parser.add_argument("--name-prefix", default="HG002")
     parser.add_argument("--minimum-free-gib", type=float, default=40.0)
+    parser.add_argument(
+        "--preserve-record-layout",
+        choices=("on", "off"),
+        default="on",
+        help="Passed through to each measured run; 'off' is the ablation arm",
+    )
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
         "--compression",
@@ -310,6 +317,8 @@ def main() -> int:
             str(args.expected_records),
             "--compression",
             args.compression,
+            "--preserve-record-layout",
+            args.preserve_record_layout,
         ]
 
         print(

@@ -1150,8 +1150,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-core"
-version = "1.10.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.10.0#0d9730c83f3ac936efa1595335caee0b0e538fa1"
+version = "1.11.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=80f3a6c043899f8ded44eaab204b42735f805272#80f3a6c043899f8ded44eaab204b42735f805272"
 dependencies = [
  "async-compression",
  "bytes",
@@ -1173,8 +1173,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-ensembl-cache"
-version = "1.10.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.10.0#0d9730c83f3ac936efa1595335caee0b0e538fa1"
+version = "1.11.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=80f3a6c043899f8ded44eaab204b42735f805272#80f3a6c043899f8ded44eaab204b42735f805272"
 dependencies = [
  "async-trait",
  "datafusion",
@@ -1191,8 +1191,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-format-vcf"
-version = "1.10.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.10.0#0d9730c83f3ac936efa1595335caee0b0e538fa1"
+version = "1.11.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?rev=80f3a6c043899f8ded44eaab204b42735f805272#80f3a6c043899f8ded44eaab204b42735f805272"
 dependencies = [
  "async-compression",
  "async-stream",
@@ -1222,8 +1222,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-function-vep"
-version = "0.15.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.17.0#391f94bd94ff2ba815fc42e6114d71276b3dc54a"
+version = "0.16.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=e937e49ace4b4ba997a53be05da7bd7d6db0d399#e937e49ace4b4ba997a53be05da7bd7d6db0d399"
 dependencies = [
  "ahash",
  "async-trait",
@@ -1231,6 +1231,7 @@ dependencies = [
  "chrono",
  "coitrees",
  "datafusion",
+ "datafusion-bio-format-core",
  "datafusion-bio-format-ensembl-cache",
  "datafusion-bio-format-vcf",
  "flate2",
