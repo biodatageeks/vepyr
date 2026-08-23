@@ -45,6 +45,16 @@ def parse_args() -> argparse.Namespace:
             "with the published plain-output numbers"
         ),
     )
+    parser.add_argument(
+        "--preserve-record-layout",
+        choices=("on", "off"),
+        default="on",
+        help=(
+            "Write each record's own INFO and FORMAT key order (annotate()'s "
+            "default). 'off' is the ablation arm: same binary, one flag, so a "
+            "cost can be attributed to the carry rather than to the build"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -92,6 +102,7 @@ def main() -> int:
         "cache_type": args.cache_type,
         "reference_fasta": str(args.reference_fasta),
         "compression": args.compression,
+        "preserve_record_layout": args.preserve_record_layout == "on",
         "output_vcf": str(args.output_vcf),
         "workers": args.workers,
         "vep_expected_records": args.expected_records,
@@ -135,6 +146,7 @@ def main() -> int:
             workers=args.workers,
             hgvs=True,
             output_vcf=str(args.output_vcf),
+            preserve_record_layout=args.preserve_record_layout == "on",
         )
 
         annotation_seconds = time.perf_counter() - annotation_started
