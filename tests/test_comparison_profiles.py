@@ -184,3 +184,66 @@ def test_default_input_returns_the_preferred_path_when_neither_exists(
 ):
     monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     assert profiles.default_input("ref.fa") == str(tmp_path / "input" / "ref.fa")
+
+
+def test_plugin_profile_resolves_and_injects_the_plugin_cache_root(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    plugin_cache = tmp_path / "cache" / "plugin_cache_116"
+    plugin_cache.mkdir(parents=True)
+    ref_dir = tmp_path / "output" / "116"
+    ref_dir.mkdir(parents=True)
+    basename = profiles.PROFILES["merged_plugins"].vep_basename
+    (ref_dir / f"{basename}.vcf.gz").write_text("")
+
+    resolved = profiles.resolve("merged_plugins", "116")
+
+    assert resolved.plugin_cache_root == str(plugin_cache)
+    assert resolved.annotate_kwargs["plugin_cache_root"] == str(plugin_cache)
+
+
+def test_plugin_profile_fails_when_the_plugin_cache_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    ref_dir = tmp_path / "output" / "116"
+    ref_dir.mkdir(parents=True)
+    basename = profiles.PROFILES["merged_plugins"].vep_basename
+    (ref_dir / f"{basename}.vcf.gz").write_text("")
+
+    with pytest.raises(profiles.ProfileUnavailable) as excinfo:
+        profiles.resolve("merged_plugins", "116")
+    assert "plugin_cache_116" in str(excinfo.value)
+
+
+def test_plugin_base_profile_shares_the_reference_but_attaches_no_plugins(
+    tmp_path, monkeypatch
+):
+    """The base variant isolates core-field differences against the same reference."""
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    ref_dir = tmp_path / "output" / "116"
+    ref_dir.mkdir(parents=True)
+    basename = profiles.PROFILES["merged_plugins_base"].vep_basename
+    (ref_dir / f"{basename}.vcf.gz").write_text("")
+
+    assert basename == profiles.PROFILES["merged_plugins"].vep_basename
+
+    resolved = profiles.resolve("merged_plugins_base", "116")
+    assert resolved.plugin_cache_root is None
+    assert "plugin_cache_root" not in resolved.annotate_kwargs
+
+
+def test_explicit_plugin_cache_override_skips_derivation(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    custom = tmp_path / "elsewhere"
+    custom.mkdir()
+    ref = tmp_path / "custom.vcf.gz"
+    ref.write_text("")
+
+    resolved = profiles.resolve(
+        "merged_plugins", "116", vep_vcf=str(ref), plugin_cache_root=str(custom)
+    )
+    assert resolved.annotate_kwargs["plugin_cache_root"] == str(custom)

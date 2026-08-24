@@ -228,3 +228,99 @@ def test_mismatch_ledger_closes_when_comparison_raises(monkeypatch):
         )
 
     assert closed == [True]
+
+
+PLUGIN_HEADER = (
+    "##fileformat=VCFv4.2\n"
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations. '
+    'Format: Allele|Feature|CADD_RAW|DS_AG|CLNSIG">\n'
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+)
+
+
+@pytest.mark.parametrize(
+    "vepyr_value,vep_value",
+    [
+        ("0", "0.00"),
+        ("0.57985", "0.579850"),
+        ("1e-05", "0.00001"),
+        ("0.1&0.25", "0.10&0.250"),
+        ("", "."),
+    ],
+)
+def test_representation_only_differences_are_not_mismatches(
+    tmp_path, vepyr_value, vep_value
+):
+    """Decimal padding and VEP's '.' marker are the same datum, not a mismatch."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vepyr_value}||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vep_value}||\n",
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "format")
+
+    assert result["field_mismatch_counts"] == {}
+    assert result["field_format_mismatch_counts"] == {"CADD_RAW": 1}
+    assert result["field_match_rates"]["CADD_RAW"] == 100.0
+    # Absorbed into the match rate, but the equality buckets stay strict so the
+    # parity gate can still see the difference.
+    assert result["field_equality_counts"]["CADD_RAW"]["both_nonempty_equal"] == 0
+    assert result["mismatch_ledger"]["rows"] == 0
+
+
+@pytest.mark.parametrize(
+    "vepyr_value,vep_value",
+    [
+        ("0.5", "0.6"),
+        ("0", "0.000001"),
+        ("0.1&0.2", "0.1&0.2&0.3"),
+        ("PATHOGENIC", "BENIGN"),
+        ("0.1", "high"),
+    ],
+)
+def test_real_value_differences_are_still_mismatches(tmp_path, vepyr_value, vep_value):
+    """Equivalence is exact-after-parsing: no numeric tolerance is admitted."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vepyr_value}||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vep_value}||\n",
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "real")
+
+    assert result["field_mismatch_counts"] == {"CADD_RAW": 1}
+    assert result["field_format_mismatch_counts"] == {}
+    assert result["mismatch_ledger"]["rows"] == 1
+
+
+def test_ampersand_order_still_wins_over_format_equivalence(tmp_path):
+    """An order-only difference keeps its own counter rather than being reclassified."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|0.1&0.2||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|0.2&0.1||\n",
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "order")
+
+    assert result["field_order_mismatch_counts"] == {"CADD_RAW": 1}
+    assert result["field_format_mismatch_counts"] == {}

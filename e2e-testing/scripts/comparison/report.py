@@ -226,6 +226,7 @@ def aggregate_mismatches(reports):
     all_fields = set()
     field_mm = defaultdict(int)
     field_order = defaultdict(int)
+    field_format = defaultdict(int)
     field_examples = defaultdict(list)
 
     total_compared = 0
@@ -263,6 +264,8 @@ def aggregate_mismatches(reports):
             field_mm[f] += c
         for f, c in comp.get("field_order_mismatch_counts", {}).items():
             field_order[f] += c
+        for f, c in comp.get("field_format_mismatch_counts", {}).items():
+            field_format[f] += c
         for f, exs in comp.get("field_mismatch_examples", {}).items():
             for ex in exs:
                 ex["source_chrom"] = r["chrom"]
@@ -272,6 +275,7 @@ def aggregate_mismatches(reports):
         "all_fields": all_fields,
         "field_mm": field_mm,
         "field_order": field_order,
+        "field_format": field_format,
         "field_examples": field_examples,
         "total_compared": total_compared,
         "total_csq_match": total_csq_match,

@@ -38,7 +38,9 @@ class Profile:
     is the reference filename inside output/{release_dir}/, without extension.
     `suffix` is stored without a leading underscore; filename templates add the
     separators. `ignore_csq_order` marks profiles where Ensembl VEP emits already
-    selected CSQ entries in Perl hash order, which carries no meaning.
+    selected CSQ entries in Perl hash order, which carries no meaning. `plugins`
+    names the VEP plugins the reference was produced with; a non-empty tuple makes
+    resolve() require the plugin cache and pass its root to vepyr.annotate().
     """
 
     flavour: str
@@ -46,9 +48,17 @@ class Profile:
     suffix: str
     annotate_kwargs: dict = field(default_factory=dict)
     ignore_csq_order: bool = False
+    plugins: tuple = ()
 
 
 _PICK = {"pick_order": VEP_PICK_ORDER}
+
+# The five plugins the release-116 plugin reference was produced with, in the
+# order they appear in that reference's filename.
+_ALL_PLUGINS = ("ClinVar", "SpliceAI", "CADD", "AlphaMissense", "dbNSFP")
+_PLUGIN_REFERENCE = (
+    "HG002_annotated_wgs_everything_hgvs_merged_clinvar_spliceai_cadd_am_dbnsfp"
+)
 
 PROFILES = {
     "ensembl": Profile(
@@ -105,6 +115,22 @@ PROFILES = {
         annotate_kwargs={"per_gene": True, **_PICK},
         ignore_csq_order=True,
     ),
+    # Both profiles below read the same five-plugin VEP reference. "merged_plugins"
+    # attaches the plugin cache, so every plugin CSQ field is comparable.
+    # "merged_plugins_base" attaches nothing: compare_vcfs() then restricts to the
+    # shared fields, which isolates whether a core-field difference comes from the
+    # plugin machinery or predates it.
+    "merged_plugins": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_plugins",
+        plugins=_ALL_PLUGINS,
+    ),
+    "merged_plugins_base": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_plugins_base",
+    ),
     "merged_pick_allele_gene": Profile(
         flavour="merged",
         vep_basename="HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene",
@@ -124,6 +150,7 @@ class Resolved:
     annotate_kwargs: dict
     suffix: str
     ignore_csq_order: bool
+    plugin_cache_root: str | None = None
 
 
 def data_dir():
@@ -177,6 +204,17 @@ def cache_dir_for(profile_name, release, warn=True):
     return _resolve_with_legacy_fallback("cache", name, os.path.isdir, warn=warn)
 
 
+def plugin_cache_dir_for(release, warn=True):
+    """Resolve the plugin cache built for one release.
+
+    Plugin caches are per-release like the Parquet cache is, and live beside it
+    under $DATA/cache/, so the same legacy fallback applies.
+    """
+    return _resolve_with_legacy_fallback(
+        "cache", f"plugin_cache_{release}", os.path.isdir, warn=warn
+    )
+
+
 def raw_cache_dir_for(cache_type, release):
     """Resolve an extracted raw cache directory containing ``info.txt``.
 
@@ -226,7 +264,12 @@ def availability_table():
         for release in RELEASES:
             has_cache = os.path.isdir(cache_dir_for(name, release, warn=False))
             has_ref = vep_vcf_for(name, release) is not None
-            if has_cache and has_ref:
+            has_plugins = not PROFILES[name].plugins or os.path.isdir(
+                plugin_cache_dir_for(release, warn=False)
+            )
+            if has_cache and has_ref and not has_plugins:
+                cells.append("no plugins")
+            elif has_cache and has_ref:
                 cells.append("ok")
             elif has_cache:
                 cells.append("no reference")
@@ -243,6 +286,7 @@ def resolve(
     release,
     cache_dir=None,
     vep_vcf=None,
+    plugin_cache_root=None,
     *,
     require_cache=True,
     require_reference=True,
@@ -267,10 +311,22 @@ def resolve(
     profile = PROFILES[profile_name]
     resolved_cache = cache_dir or cache_dir_for(profile_name, release)
     resolved_ref = vep_vcf or vep_vcf_for(profile_name, release)
+    resolved_plugin_cache = None
+    if profile.plugins:
+        resolved_plugin_cache = plugin_cache_root or plugin_cache_dir_for(release)
 
     problems = []
     if require_cache and not os.path.isdir(resolved_cache):
         problems.append(f"no Parquet cache at {resolved_cache}")
+    if (
+        require_cache
+        and resolved_plugin_cache is not None
+        and not os.path.isdir(resolved_plugin_cache)
+    ):
+        problems.append(
+            f"no plugin cache at {resolved_plugin_cache} for plugins "
+            f"{', '.join(profile.plugins)}"
+        )
     if require_reference and resolved_ref is None:
         problems.append(
             f"no VEP reference {profile.vep_basename}.vcf[.gz] under "
@@ -284,12 +340,17 @@ def resolve(
             + availability_table()
         )
 
+    annotate_kwargs = dict(profile.annotate_kwargs)
+    if resolved_plugin_cache is not None:
+        annotate_kwargs["plugin_cache_root"] = resolved_plugin_cache
+
     return Resolved(
         profile=profile_name,
         release=release,
         cache_dir=resolved_cache,
         vep_vcf=resolved_ref,
-        annotate_kwargs=dict(profile.annotate_kwargs),
+        annotate_kwargs=annotate_kwargs,
         suffix=profile.suffix,
         ignore_csq_order=profile.ignore_csq_order,
+        plugin_cache_root=resolved_plugin_cache,
     )

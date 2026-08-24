@@ -108,6 +108,12 @@ def parse_args(argv=None):
         default=None,
         help="Parquet cache (default: from profile x release)",
     )
+    p.add_argument(
+        "--plugin-cache",
+        default=None,
+        help="Plugin cache root, used only by plugin profiles "
+        "(default: $DATA/cache/plugin_cache_<release>)",
+    )
 
     args = p.parse_args(argv)
     if args.workers <= 0:
@@ -305,6 +311,9 @@ def run_contig(
     }
     if reference_identity is not None:
         result["reference_identity"] = reference_identity
+    # Only for plugin profiles, so a non-plugin report keeps its exact shape.
+    if resolved.plugin_cache_root is not None:
+        result["plugin_cache_path"] = resolved.plugin_cache_root
 
     path = report.report_json_path(report_dir, chrom, resolved.suffix, resolved.release)
     with open(path, "w") as f:
@@ -347,6 +356,8 @@ def _run_contig_isolated(chrom, args):
         cmd += ["--vep", args.vep]
     if args.cache_dir:
         cmd += ["--cache-dir", args.cache_dir]
+    if args.plugin_cache:
+        cmd += ["--plugin-cache", args.plugin_cache]
     return subprocess.run(cmd).returncode == 0
 
 
@@ -359,6 +370,7 @@ def main(argv=None):
             args.release,
             cache_dir=args.cache_dir,
             vep_vcf=args.vep,
+            plugin_cache_root=args.plugin_cache,
             require_cache=not args.skip_annotate,
             require_reference=not args.skip_compare and not args.skip_annotate,
         )
@@ -404,6 +416,8 @@ def main(argv=None):
     print(f"  profile:   {resolved.profile}")
     print(f"  release:   {resolved.release}")
     print(f"  cache_dir: {resolved.cache_dir}")
+    if resolved.plugin_cache_root:
+        print(f"  plugins:   {resolved.plugin_cache_root}")
     print(f"  vep_vcf:   {resolved.vep_vcf}")
     print(f"  results:   {results_dir}")
     print("=" * 60)

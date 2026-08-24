@@ -3,6 +3,14 @@
 This module remains pure with respect to vepyr: it accepts paths, emits an
 optional JSONL mismatch ledger, and returns JSON-serialisable counters. It does
 not import the native extension or infer release identity from directory names.
+
+Byte equality is the only thing counted as a plain match. Two weaker forms of
+agreement are absorbed into the match rate but counted separately so they stay
+visible: '&'-list order differences (``field_order_mismatch_counts``) and
+representation-only differences such as decimal padding or VEP's "." missing
+marker (``field_format_mismatch_counts``). Both keep the parity gate honest --
+it fails on either total being non-zero -- while keeping a plugin comparison
+readable instead of drowned in formatting noise.
 """
 
 import hashlib
@@ -218,6 +226,46 @@ def _equality_bucket(vepyr_value, vep_value):
     return "both_nonempty_unequal"
 
 
+def _tokens_equivalent(vepyr_token, vep_token):
+    """True when two unequal single values encode the same datum.
+
+    Exact float equality after parsing, not a tolerance: it absorbs decimal
+    padding and shortest-round-trip formatting without ever calling two
+    different numbers equal.
+    """
+    if {vepyr_token, vep_token} == {"", "."}:
+        return True
+    try:
+        return float(vepyr_token) == float(vep_token)
+    except ValueError:
+        return False
+
+
+def _values_equivalent(vepyr_value, vep_value):
+    """True when two byte-unequal CSQ values carry the same data.
+
+    Two representations differ here without the data differing:
+
+    - Float formatting. vepyr prints Rust's shortest round-trip form ("0",
+      "0.57985"); the plugin sources Ensembl VEP passes through print a fixed
+      number of decimals ("0.00", "0.579850"). Same number, different string.
+    - Missing-value marker. VEP emits the VCF "." for a field it has no value
+      for, where vepyr emits the empty string.
+
+    '&'-joined multi-value fields are compared token-wise so one padded float
+    does not condemn the whole field. Differing token counts are a real
+    difference, never a formatting one.
+    """
+    vepyr_tokens = vepyr_value.split("&")
+    vep_tokens = vep_value.split("&")
+    if len(vepyr_tokens) != len(vep_tokens):
+        return False
+    return all(
+        _tokens_equivalent(vepyr_token, vep_token)
+        for vepyr_token, vep_token in zip(vepyr_tokens, vep_tokens)
+    )
+
+
 def compare_vcfs(
     vepyr_vcf,
     vep_vcf,
@@ -285,6 +333,8 @@ def _compare_vcfs(
     field_mismatch_examples = {field: [] for field in shared_fields}
     field_order_mismatches = {field: 0 for field in shared_fields}
     field_order_mismatch_examples = {field: [] for field in shared_fields}
+    field_format_mismatches = {field: 0 for field in shared_fields}
+    field_format_mismatch_examples = {field: [] for field in shared_fields}
     field_equality_counts = {
         field: {bucket: 0 for bucket in _EQUALITY_BUCKETS} for field in shared_fields
     }
@@ -405,6 +455,20 @@ def _compare_vcfs(
                             )
                         continue
 
+                if _values_equivalent(vepyr_value, vep_value):
+                    field_matches[field] += 1
+                    field_format_mismatches[field] += 1
+                    if len(field_format_mismatch_examples[field]) < 10:
+                        field_format_mismatch_examples[field].append(
+                            {
+                                "variant": key_str,
+                                "vepyr": vepyr_value,
+                                "vep": vep_value,
+                                **identity_fields,
+                            }
+                        )
+                    continue
+
                 field_mismatches[field] += 1
                 record = {
                     "kind": "field_mismatch",
@@ -455,19 +519,29 @@ def _compare_vcfs(
     print(f"\n  Per-field match rates ({n_compared:,} variants):")
     print(
         f"  {'Field':<30} {'Match%':>8} {'Matches':>10} "
-        f"{'Mismatches':>10} {'OrderOnly':>10} {'Total':>10}"
+        f"{'Mismatches':>10} {'OrderOnly':>10} {'FormatOnly':>10} {'Total':>10}"
     )
-    print(f"  {'-' * 30} {'-' * 8} {'-' * 10} {'-' * 10} {'-' * 10} {'-' * 10}")
+    print(
+        f"  {'-' * 30} {'-' * 8} {'-' * 10} {'-' * 10} {'-' * 10} {'-' * 10} {'-' * 10}"
+    )
     for field in shared_fields:
         total = field_total[field]
         matches = field_matches[field]
         mismatches = field_mismatches[field]
         order_only = field_order_mismatches[field]
+        format_only = field_format_mismatches[field]
         rate = (matches / total * 100) if total > 0 else 0
-        flag = " <--" if mismatches > 0 else " (order)" if order_only > 0 else ""
+        if mismatches > 0:
+            flag = " <--"
+        elif order_only > 0:
+            flag = " (order)"
+        elif format_only > 0:
+            flag = " (format)"
+        else:
+            flag = ""
         print(
-            f"  {field:<30} {rate:>7.2f}% {matches:>10,} "
-            f"{mismatches:>10,} {order_only:>10,} {total:>10,}{flag}"
+            f"  {field:<30} {rate:>7.2f}% {matches:>10,} {mismatches:>10,} "
+            f"{order_only:>10,} {format_only:>10,} {total:>10,}{flag}"
         )
 
     fields_with_mismatches = [
@@ -525,6 +599,16 @@ def _compare_vcfs(
             field: field_order_mismatch_examples[field]
             for field in shared_fields
             if field_order_mismatch_examples[field]
+        },
+        "field_format_mismatch_counts": {
+            field: field_format_mismatches[field]
+            for field in shared_fields
+            if field_format_mismatches[field] > 0
+        },
+        "field_format_mismatch_examples": {
+            field: field_format_mismatch_examples[field]
+            for field in shared_fields
+            if field_format_mismatch_examples[field]
         },
         "field_equality_counts": field_equality_counts,
         "equality_bucket_counts": {
