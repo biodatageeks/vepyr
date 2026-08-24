@@ -18,6 +18,7 @@ import json
 import os
 import re
 from collections import defaultdict
+from decimal import Decimal, InvalidOperation
 
 from . import vcfio
 
@@ -32,6 +33,13 @@ VEP_HASH_ORDER_PICK_IGNORE_REASON = (
 )
 
 _CSQ_RE = re.compile(r"(?:^|;)CSQ=([^;\t]+)")
+# A token we will treat as a number rather than as an opaque string. Narrower
+# than what Decimal() itself accepts: no whitespace, no 'Infinity'/'NaN', and
+# no leading zero on the integer part, so "01" stays distinct from "1" the way
+# a zero-padded identifier must.
+_NUMERIC_RE = re.compile(
+    r"^[+-]?(?:(?:0|[1-9][0-9]*)(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$"
+)
 _EQUALITY_BUCKETS = (
     "both_empty",
     "both_nonempty_equal",
@@ -229,15 +237,24 @@ def _equality_bucket(vepyr_value, vep_value):
 def _tokens_equivalent(vepyr_token, vep_token):
     """True when two unequal single values encode the same datum.
 
-    Exact float equality after parsing, not a tolerance: it absorbs decimal
-    padding and shortest-round-trip formatting without ever calling two
-    different numbers equal.
+    Exact Decimal equality over canonical numeric literals -- not a tolerance,
+    and deliberately not float(). float() would absorb genuine differences:
+    it accepts whitespace and '_' separators, collapses integers past 2**53
+    ("12345678901234567" == "...568"), turns any large exponent into inf, and
+    reads "01" as 1 -- so a zero-padded code or a long numeric identifier
+    would be written off as formatting. Decimal over _NUMERIC_RE absorbs
+    decimal padding and shortest-round-trip forms and nothing else.
     """
-    if {vepyr_token, vep_token} == {"", "."}:
+    # One direction only: VEP writes the VCF missing marker where it has no
+    # value, vepyr writes the empty string. A "." coming FROM vepyr is an
+    # output defect, not a way of representing absence.
+    if vepyr_token == "" and vep_token == ".":
         return True
+    if not (_NUMERIC_RE.match(vepyr_token) and _NUMERIC_RE.match(vep_token)):
+        return False
     try:
-        return float(vepyr_token) == float(vep_token)
-    except ValueError:
+        return Decimal(vepyr_token) == Decimal(vep_token)
+    except InvalidOperation:
         return False
 
 
@@ -250,7 +267,8 @@ def _values_equivalent(vepyr_value, vep_value):
       "0.57985"); the plugin sources Ensembl VEP passes through print a fixed
       number of decimals ("0.00", "0.579850"). Same number, different string.
     - Missing-value marker. VEP emits the VCF "." for a field it has no value
-      for, where vepyr emits the empty string.
+      for, where vepyr emits the empty string. Absorbed in that direction
+      only -- a "." from vepyr is a defect, not a representation of absence.
 
     '&'-joined multi-value fields are compared token-wise so one padded float
     does not condemn the whole field. Differing token counts are a real
@@ -547,6 +565,11 @@ def _compare_vcfs(
     fields_with_mismatches = [
         field for field in shared_fields if field_mismatches[field] > 0
     ]
+    fields_absorbed = [
+        field
+        for field in shared_fields
+        if field_order_mismatches[field] or field_format_mismatches[field]
+    ]
     if fields_with_mismatches:
         print("\n  Mismatch examples (display capped; JSONL ledger is uncapped):")
         for field in fields_with_mismatches:
@@ -555,6 +578,20 @@ def _compare_vcfs(
                 print(f"      {example['variant']}")
                 print(f"        vepyr: {example['vepyr']!r}")
                 print(f"        VEP:   {example['vep']!r}")
+    elif fields_absorbed:
+        # Never print the all-match banner here: these fields DO differ byte
+        # for byte, and the parity gate fails on either count. Saying "100%"
+        # is the one sentence an operator reads as parity.
+        print(
+            f"\n  No field mismatches, but {len(fields_absorbed)} shared CSQ "
+            "field(s) differ byte-wise and were absorbed:"
+        )
+        for field in fields_absorbed:
+            print(
+                f"    {field:<30} {field_order_mismatches[field]:>10,} order-only "
+                f"{field_format_mismatches[field]:>10,} format-only"
+            )
+        print("  This is not byte parity; the parity gate rejects both counts.")
     else:
         print(f"\n  ALL {len(shared_fields)} shared CSQ fields match at 100%!")
 
