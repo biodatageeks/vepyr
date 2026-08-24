@@ -351,6 +351,7 @@ def main() -> int:
             "cache_type": args.cache_type,
             "workers": workers,
             "compression": args.compression,
+            "preserve_record_layout": metrics.get("preserve_record_layout", ""),
             "status": metrics.get("status", "failed"),
             "exit_status": measurement.exit_status,
             "annotation_seconds": metrics.get("annotation_seconds", ""),
