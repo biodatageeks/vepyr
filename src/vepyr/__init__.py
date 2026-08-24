@@ -664,7 +664,7 @@ def build_plugin_cache(
     plugin: str,
     version: str,
     *,
-    source_path: str,
+    source_path: str | dict[str, str],
     cache_dir: str,
     plugin_cache_root: str,
     chroms: list[str] | None = None,
@@ -677,6 +677,21 @@ def build_plugin_cache(
     the public vepyr-plugins repo at that git tag (or ``plugins_repo`` for
     offline). Tiering is inherited from the variation cache at ``cache_dir``.
     Returns per-chrom ``(chrom, rows, warm, cold)`` tuples.
+
+    ``source_path`` points each ``[[source]]`` at a real file, since the paths a
+    manifest ships are placeholders. A single-source manifest takes a plain path;
+    a manifest that declares several sources (each with a ``part``) takes a
+    ``{part: path}`` mapping, and every part must be mapped::
+
+        build_plugin_cache(
+            "cadd", "v1.0",
+            source_path={"snv": ".../whole_genome_SNVs.tsv.gz",
+                         "indel": ".../gnomad.genomes.r4.0.indel.tsv.gz"},
+            ...
+        )
+
+    The sources are registered as ``plugin_<name>_src_<part>`` and combined by the
+    manifest's own ``ingest_sql`` -- there is no need to concatenate them first.
     """
     with _resolve_plugin_manifest(
         plugin, version, plugins_repo=plugins_repo

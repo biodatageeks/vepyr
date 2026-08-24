@@ -34,6 +34,13 @@ csq_field = "DEMO"
 type = "Float32"
 """
 
+# A manifest whose sole [[source]] carries a part -- the shape a {part: path}
+# mapping addresses.
+_PARTED_MANIFEST = _FULL_MANIFEST.replace(
+    '[[source]]\nprovider = "csv"\npath = "placeholder.tsv.gz"',
+    '[[source]]\npart = "a"\nprovider = "csv"\npath = "placeholder_a.tsv.gz"',
+).replace("FROM plugin_demo_src", "FROM plugin_demo_src_a")
+
 # A second `[[source]]` block making the manifest multi-part.
 _SECOND_SOURCE = """
 [[source]]
@@ -53,11 +60,14 @@ path = "placeholder_b.tsv.gz"
 """
 
 
-def _init_full_repo(root: Path, *, multi_source: bool = False) -> Path:
+def _init_full_repo(
+    root: Path, *, multi_source: bool = False, parted: bool = False
+) -> Path:
     """A plugins repo whose demo manifest the Rust builder can load."""
     repo = root / "vepyr-plugins-full"
     (repo / "plugins" / "demo").mkdir(parents=True)
-    body = _FULL_MANIFEST + (_SECOND_SOURCE if multi_source else "")
+    base = _PARTED_MANIFEST if parted else _FULL_MANIFEST
+    body = base + (_SECOND_SOURCE if multi_source else "")
     (repo / "plugins" / "demo" / "demo.source.toml").write_text(body)
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
@@ -195,18 +205,78 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch):
     assert '"plugin_cache_root": "/tmp/pc"' in captured["options_json"]
 
 
-def test_build_rejects_multi_source_manifest(tmp_path):
-    """A manifest with >1 [[source]] can't be mapped by a single source_path."""
-    repo = _init_full_repo(tmp_path, multi_source=True)
-    with pytest.raises(ValueError, match="multi-part sources"):
-        vepyr.build_plugin_cache(
-            "demo",
-            "v0.1.0",
-            source_path=str(tmp_path / "src.tsv.gz"),
-            cache_dir=str(tmp_path / "cache"),
-            plugin_cache_root=str(tmp_path / "pc"),
-            plugins_repo=str(repo),
+def _build(repo, tmp_path, source_path, **kw):
+    """Drive a build far enough to prove source_path was applied.
+
+    Every call here fails on the absent variation cache -- that is the point: it
+    means path mapping succeeded and the build reached the join. A mapping error
+    raises earlier, with its own message.
+    """
+    return vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=source_path,
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(tmp_path / "pc"),
+        plugins_repo=str(repo),
+        chroms=["1"],
+        **kw,
+    )
+
+
+def test_multi_source_manifest_maps_a_path_per_part(tmp_path):
+    """The CADD shape: two [[source]] parts, one path each, combined in SQL."""
+    repo = _init_full_repo(tmp_path, multi_source=True, parted=True)
+    with pytest.raises(Exception) as exc:
+        _build(
+            repo,
+            tmp_path,
+            {"a": str(tmp_path / "a.tsv.gz"), "b": str(tmp_path / "b.tsv.gz")},
         )
+    # Reached the build itself -- both parts resolved.
+    assert "variation shard" in str(exc.value)
+
+
+def test_multi_source_manifest_rejects_a_bare_path(tmp_path):
+    """One path cannot address two sources; the others would read placeholders."""
+    repo = _init_full_repo(tmp_path, multi_source=True, parted=True)
+    with pytest.raises(ValueError, match="pass a dict mapping each part"):
+        _build(repo, tmp_path, str(tmp_path / "src.tsv.gz"))
+
+
+def test_missing_part_is_an_error_not_a_placeholder_read(tmp_path):
+    """An unmapped source would silently read its placeholder path."""
+    repo = _init_full_repo(tmp_path, multi_source=True, parted=True)
+    with pytest.raises(ValueError, match="missing an entry for part"):
+        _build(repo, tmp_path, {"a": str(tmp_path / "a.tsv.gz")})
+
+
+def test_unknown_part_is_an_error(tmp_path):
+    """A typo'd part would otherwise leave the real source on its placeholder."""
+    repo = _init_full_repo(tmp_path, multi_source=True, parted=True)
+    with pytest.raises(ValueError, match="does not declare"):
+        _build(repo, tmp_path, {"a": "x", "b": "y", "snv": "z"})
+
+
+def test_dict_requires_every_source_to_declare_a_part(tmp_path):
+    """Without a part there is no key to address the source by."""
+    repo = _init_full_repo(tmp_path, multi_source=True)  # first source has no part
+    with pytest.raises(ValueError, match="declares\\s+no `part`|no `part`"):
+        _build(repo, tmp_path, {"b": str(tmp_path / "b.tsv.gz")})
+
+
+def test_single_source_still_takes_a_plain_path(tmp_path):
+    """Back-compat: the common case is unchanged."""
+    repo = _init_full_repo(tmp_path)
+    with pytest.raises(Exception) as exc:
+        _build(repo, tmp_path, str(tmp_path / "src.tsv.gz"))
+    assert "variation shard" in str(exc.value)
+
+
+def test_source_path_rejects_a_nonsense_type(tmp_path):
+    repo = _init_full_repo(tmp_path)
+    with pytest.raises(ValueError, match="must be a str or a dict"):
+        _build(repo, tmp_path, 42)
 
 
 def test_full_rebuild_refuses_existing_cache_without_overwrite(tmp_path):
