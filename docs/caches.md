@@ -6,6 +6,10 @@ point-lookup-optimized, per-chromosome Parquet layout by
 Ensembl releases, the entities a converted cache contains, and their on-disk
 sizes.
 
+!!! tip "Don't want to build one?"
+    Prebuilt release 116 caches are published for download — see
+    [Download prebuilt caches](downloads.md).
+
 ## Cache types
 
 VEP ships three flavours of the GRCh38 cache, differing only in which transcript

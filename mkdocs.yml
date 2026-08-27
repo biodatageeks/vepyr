@@ -9,6 +9,7 @@ nav:
       - Quick start: quickstart.md
       - Architecture: architecture.md
       - Caches: caches.md
+      - Download caches: downloads.md
       - API: api.md
       - Plugins: plugins.md
       - Performance: performance.md
