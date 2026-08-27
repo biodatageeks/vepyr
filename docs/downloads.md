@@ -22,14 +22,13 @@ fields, and how the three cache types differ.
 
 ## Mirrors
 
-Three mirrors carry the same data. **Hugging Face is recommended** — it is the
-only one that is anonymous, resumable, and lets you fetch part of a cache.
+Two mirrors carry the same data. **Hugging Face is recommended** — it is the
+only one that lets you fetch part of a cache, and it needs no extraction step.
 
 | Mirror | Access | Resumable | Partial download |
 |---|---|---|---|
-| [Hugging Face](#hugging-face-recommended) | Anonymous | Yes | Yes — per entity or contig |
+| [Hugging Face](#hugging-face-recommended) | Anonymous | Yes | Yes — per contig |
 | [WUT OneDrive](#wut-onedrive) | Anonymous | Yes — HTTP range | No — whole `.tar` |
-| [Google Drive](#google-drive) | **On request** | Browser-dependent | No — whole `.tar` |
 
 ## Hugging Face (recommended)
 
@@ -124,24 +123,10 @@ curl -L -c cookies.txt -b cookies.txt -C - -o 116_GRCh38_merged.tar "$URL"
 `-C -` resumes an interrupted transfer; the server supports HTTP range
 requests, so a partial file continues rather than restarting.
 
-## Google Drive
-
-!!! warning "Access on request"
-    The Google Drive copies are **not public**. Opening a link while signed in
-    to a Google account shows a request-access prompt; a maintainer has to
-    approve it before the download works. Use Hugging Face unless you have a
-    specific reason not to.
-
-| Cache | Archive | Checksum |
-|---|---|---|
-| merged | [`116_GRCh38_merged.tar`](https://drive.google.com/file/d/1L9LlyQmj9RquRANqHNoZi2M4fH1Fp2Uw/view?usp=drive_link) | [`.md5`](https://drive.google.com/file/d/174WswJK8NUoTMgG7BQapF2sT6ZbiqYLg/view?usp=drive_link) |
-| ensembl | [`116_GRCh38_ensembl.tar`](https://drive.google.com/file/d/1SKAXCPvoTxMJ9nbn0i9OcM5oXmAxB-0u/view?usp=drive_link) | [`.md5`](https://drive.google.com/file/d/1iusLZcuGSmkBmEFbL4vo3Vl1SLWgvXlS/view?usp=drive_link) |
-| refseq | [`116_GRCh38_refseq.tar`](https://drive.google.com/file/d/1xnaSsApjNNOpyTxRiAQq8OISwOQSt8QD/view?usp=drive_link) | [`.md5`](https://drive.google.com/file/d/1ECzhUW5Nqdk01K45m_ci51ZJ7j1kor5K/view?usp=drive_link) |
-
 ## Verifying and extracting a `.tar` download
 
-Applies to the OneDrive and Google Drive mirrors only — the Hugging Face client
-verifies downloads itself.
+Applies to the OneDrive mirror only — the Hugging Face client verifies
+downloads itself.
 
 ```bash
 cd ~/Downloads
