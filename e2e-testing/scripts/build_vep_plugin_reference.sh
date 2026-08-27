@@ -31,6 +31,64 @@ PLUGIN_DIR="${VEP_PLUGIN_DIR:-$WORK/plugins}"
 SLICES="$WORK/slices"
 mkdir -p "$WORK/input" "$WORK/output" "$WORK/plugins" "$SLICES"
 
+# Optionally materialise chromosome slices directly from a range-readable
+# bgzip/tabix source tree. This keeps the 168 GB source corpus remote while VEP
+# still receives ordinary local indexed files. Existing complete slices are
+# reused, making an interrupted build resumable.
+SOURCE_BASE="${VEP_PLUGIN_SOURCE_URL:-}"
+
+fetch_slice() {
+  local remote_path="$1"
+  local region="$2"
+  local output="$3"
+  local kind="$4"
+
+  if [[ -s "$output" && -s "$output.tbi" ]] && \
+      tabix -l "$output" | grep -Fxq "$region"; then
+    echo "Reusing slice: $output"
+    return
+  fi
+
+  if [[ -z "$SOURCE_BASE" ]]; then
+    echo "ERROR: missing slice $output and VEP_PLUGIN_SOURCE_URL is unset" >&2
+    exit 1
+  fi
+
+  local partial="${output}.partial.$$.gz"
+  echo "Slicing ${SOURCE_BASE%/}/${remote_path} region $region"
+  tabix -h "${SOURCE_BASE%/}/${remote_path}" "$region" | bgzip -c > "$partial"
+  mv "$partial" "$output"
+
+  case "$kind" in
+    vcf) tabix -f -p vcf "$output" ;;
+    tsv) tabix -f -s 1 -b 2 -e 2 "$output" ;;
+    *)
+      echo "ERROR: unsupported slice kind: $kind" >&2
+      exit 1
+      ;;
+  esac
+
+  if ! tabix -l "$output" | grep -Fxq "$region"; then
+    echo "ERROR: slice $output contains no indexed region $region" >&2
+    exit 1
+  fi
+}
+
+if [[ -n "$SOURCE_BASE" ]]; then
+  fetch_slice "clinvar/clinvar.vcf.gz" "$CHROM" \
+    "$SLICES/clinvar_chr${CHROM}.vcf.gz" vcf
+  fetch_slice "spliceai/spliceai_scores.masked.snv.ensembl_mane.grch38.110.vcf.gz" \
+    "$CHROM" "$SLICES/spliceai_chr${CHROM}.vcf.gz" vcf
+  fetch_slice "alphamissense/AlphaMissense_hg38.bgz.tsv.gz" "chr${CHROM}" \
+    "$SLICES/alphamissense_chr${CHROM}.tsv.gz" tsv
+  fetch_slice "dbnsfp/dbNSFP5.3.1a_grch38.gz" "$CHROM" \
+    "$SLICES/dbNSFP5.3.1a_grch38_chr${CHROM}.gz" tsv
+  fetch_slice "cadd/whole_genome_SNVs.tsv.gz" "$CHROM" \
+    "$SLICES/cadd_snv_chr${CHROM}.tsv.gz" tsv
+  fetch_slice "cadd/gnomad.genomes.r4.0.indel.tsv.gz" "$CHROM" \
+    "$SLICES/cadd_indel_chr${CHROM}.tsv.gz" tsv
+fi
+
 # ---------------------------------------------------------------------------
 # 1. Normalized input
 # ---------------------------------------------------------------------------
@@ -156,3 +214,7 @@ if [[ "$n_plugin" -ne 38 ]]; then
 fi
 echo "OK: chr${CHROM} — $(grep -vc '^#' "$OUT") records, $n_plugin plugin CSQ fields"
 echo "     $OUT.gz"
+
+if [[ "${VEP_KEEP_PLAIN:-1}" == "0" ]]; then
+  rm -f "$OUT"
+fi
