@@ -1186,3 +1186,64 @@ Recorded so they are not silently dropped:
 - **Ensembl's shifted-coordinate clauses in `_intron_effects`.** Task 5 implements the unshifted pair only; see its limitation note.
 - **An ablated transcript that produces no other term** emits no CSQ entry, because the gate sits inside the `if !terms.is_empty()` guard. The case does not arise for a deletion covering a whole transcript.
 - **Porting Ensembl's full 31-predicate table.** Analysed and rejected in the spec's "Scope and non-goals"; recorded there as a future direction.
+
+---
+
+## Task 6 findings (2026-08-28)
+
+**Candidate (b) is eliminated.** `original_terms_allow_protein_hgvs` includes
+`SoTerm::CodingSequenceVariant`, which is exactly the term this transcript carries, so the
+`!original_allows_protein_hgvs` early return is not the drop site.
+
+**Candidate (a) is eliminated.** vepyr already reproduces VEP's `Consequence`
+(`coding_sequence_variant`), `HGVSc` (`NM_015691.5:c.96-1dup`) and the empty
+`cDNA_position`/`CDS_position`/`Protein_position` for this entry. It therefore does enter the
+coding branch; `classify_coding_change` returns `None` (mapper gap through the frameshift
+intron), so `coding_class` is `None` and control reaches the `else` arm at
+`transcript_consequence.rs:1402-1417`, which calls
+`protein_hgvs_for_output_with_semantics(..., original_allows_protein_hgvs, None, None, ...)`.
+
+**The drop is candidate (c), inside `protein_hgvs_for_output_with_semantics`, with `fallback = None`.**
+That function is reached, and it does *not* require a fallback to synthesise protein HGVS —
+`shifted_tva_protein_hgvs_data` builds peptides from the shifted mapper coordinates and the
+translation alone. Walking the guards with `fallback = None`:
+
+| guard | outcome for this variant |
+|---|---|
+| `!original_allows_protein_hgvs` | passes (`CodingSequenceVariant` allows) |
+| `!shift_hgvs` | passes (shifting is on) |
+| `let Some(shift) = shift else { return fallback.cloned() }` | **needs checking** — returns `None` if no shift |
+| `if shift.shift_length == 0 { return fallback.map(...) }` | **needs checking** — returns `None` if zero |
+| `if ref_norm.len() == alt_norm.len()` | passes (0 vs 1, an insertion) |
+| `shifted_tva_protein_hgvs_data(...)` | can return `Some`; returns `None` if the mapper fails |
+| `shifted_tva_coords_from_mapper(...)?` under `shift.shift_length > 0` | **`?` propagates `None` out of the whole function** |
+
+The reference FASTA settles the shift: genomic 10015674=G, 10015675=C, 10015676=G. Inserting `C`
+at 10015675 duplicates the base already there, so it 3'-shifts one position to 10015676 and stops
+(10015676 is `G`). **`shift` is therefore `Some` with `shift_length == 1`**, which rules out both
+early returns.
+
+That leaves two candidate lines, both of which resolve genomic coordinates through a mapper whose
+CDS view has to span the 2 bp frameshift intron:
+
+1. `shifted_tva_coords_from_mapper(tx, tx_exons, translation, &shifted_variant)?` — the guard
+   under `if shift.shift_length > 0`. Note it maps `variant.parser_start`/`parser_end`, not
+   `variant.start`/`end`.
+2. `shifted_tva_protein_hgvs_data(...)` returning `None` from its own
+   `shifted_tva_coords_from_mapper(...)?`.
+
+The shifted position 10015676 is the first base of exon 2 (`c.97`) and is inside the CDS, so a
+correct mapper should resolve it. The likely cause is the mapper's treatment of the frameshift
+intron, or the `parser_start` vs `start` coordinate basis.
+
+**Proposed next step, and why it is not a synthetic unit test.** A synthetic fixture cannot
+faithfully exercise this path — it needs the real `cdna_seq`, `translateable_seq` and
+`cdna_mapper_segments` for `NM_015691.5`, and a hand-built approximation risks a false negative
+that would send Task 7 after the wrong mapper. Task 8 runs the real chrX comparison against the
+real cache anyway, so the cheap decisive move is to instrument these two call sites during that
+run and observe which returns `None` for `chrX:10015674 / NM_015691.5`. **Task 7 should be planned
+from that observation.**
+
+No `#[ignore]`d stub test was added: with the drop site still ambiguous between two lines, the
+only test that could be written would assert `hgvsp.is_some()` against a fixture whose fidelity is
+the very thing in question.
