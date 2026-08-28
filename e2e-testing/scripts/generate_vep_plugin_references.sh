@@ -10,6 +10,8 @@ SOURCE_URL="${VEP_PLUGIN_SOURCE_URL:-http://localhost:18080}"
 JOBS="${VEP_REFERENCE_JOBS:-2}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILDER="$SCRIPT_DIR/build_vep_plugin_reference.sh"
+# shellcheck source=lib/source_identity.sh
+. "$SCRIPT_DIR/lib/source_identity.sh"
 WORK_ROOT="$TARGET/.work"
 LOG_DIR="$TARGET/logs"
 
@@ -25,7 +27,18 @@ mkdir -p "$TARGET" "$WORK_ROOT" "$LOG_DIR"
 # count alone cannot distinguish a current reference from one built with an
 # older CADD.pm -- and a stale golden reference reads as a vepyr mismatch.
 expected_plugin_provenance() {
-  sed -n 's/^verify_plugin \([A-Za-z]*\) \([0-9a-f]\{64\}\)$/\1 \2/p' "$BUILDER"
+  sed -n 's/^verify_plugin \([A-Za-z]*\) \([0-9a-f]\{64\}\)$/PLUGIN \1 \2/p' "$BUILDER"
+  # Plugin code is only half of it: the reference bytes also depend on the
+  # source data, and rolling sources keep their filenames. Ask the server what
+  # it holds now, and treat a changed answer as a stale reference.
+  if [[ -n "$SOURCE_URL" ]]; then
+    all_source_identities "$SOURCE_URL" || {
+      echo "WARN: cannot reach $SOURCE_URL; reusing references on plugin code alone" >&2
+      grep '^SOURCE ' "$1" 2>/dev/null || true
+    }
+  else
+    grep '^SOURCE ' "$1" 2>/dev/null || true
+  fi
 }
 
 is_complete() {
@@ -42,8 +55,8 @@ is_complete() {
     echo "STALE chr${chrom}: no plugin provenance recorded; rebuilding" >&2
     return 1
   fi
-  if ! diff -q <(sort "$output.plugins") <(expected_plugin_provenance | sort) >/dev/null; then
-    echo "STALE chr${chrom}: built with different plugin code; rebuilding" >&2
+  if ! diff -q <(sort "$output.plugins") <(expected_plugin_provenance "$output.plugins" | sort) >/dev/null; then
+    echo "STALE chr${chrom}: plugin code or source data changed since it was built; rebuilding" >&2
     return 1
   fi
 }

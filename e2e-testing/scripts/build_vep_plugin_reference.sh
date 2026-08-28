@@ -36,6 +36,8 @@ mkdir -p "$WORK/input" "$WORK/output" "$WORK/plugins" "$SLICES"
 # still receives ordinary local indexed files. Existing complete slices are
 # reused, making an interrupted build resumable.
 SOURCE_BASE="${VEP_PLUGIN_SOURCE_URL:-}"
+# shellcheck source=lib/source_identity.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/source_identity.sh"
 
 fetch_slice() {
   local remote_path="$1"
@@ -193,8 +195,19 @@ verify_plugin dbNSFP 1574736e0371b12378211914db6f5de720eeba395cd42517fbe689ceded
 plugin_provenance() {
   local plugin
   for plugin in AlphaMissense CADD SpliceAI dbNSFP; do
-    printf '%s %s\n' "$plugin" "$(sha256_file "$PLUGIN_DIR/${plugin}.pm")"
+    printf 'PLUGIN %s %s\n' "$plugin" "$(sha256_file "$PLUGIN_DIR/${plugin}.pm")"
   done
+  # The reference also depends on the plugin *data*, and several sources roll
+  # under a fixed filename (ClinVar above all). Record what the server reported
+  # for each, so a data refresh invalidates the reference too.
+  if [[ -n "$SOURCE_BASE" ]]; then
+    all_source_identities "$SOURCE_BASE" || {
+      echo "ERROR: could not read source identities from $SOURCE_BASE" >&2
+      exit 1
+    }
+  else
+    echo "SOURCE unavailable (slices reused; VEP_PLUGIN_SOURCE_URL unset)"
+  fi
 }
 
 if ! grep -q 'my \$alt_alleles = \$bvf->alt_alleles' "$PLUGIN_DIR/CADD.pm"; then

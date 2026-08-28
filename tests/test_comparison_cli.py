@@ -328,3 +328,38 @@ def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
     quarantined_ledger = report_dir / (stale_ledger.name + ".stale")
     assert json.loads(quarantined_report.read_text()) == {"attempt": "failed"}
     assert quarantined_ledger.read_text() == '{"kind":"partial"}\n'
+
+
+def test_main_forwards_the_sole_contig_to_profile_resolution(monkeypatch):
+    """Per-contig plugin references need the contig at resolution time.
+
+    resolve() grew a `chrom` parameter, but main() did not forward it -- so the
+    per-contig lookup was unreachable from the CLI and every plugin run was
+    rejected, including the single-contig form the rejection recommends.
+    """
+    seen = {}
+
+    def fake_resolve(*args, **kwargs):
+        seen.update(kwargs)
+        raise profiles.ProfileUnavailable("stop here")
+
+    monkeypatch.setattr(profiles, "resolve", fake_resolve)
+
+    rc = cli.main(["--release", "116", "--profile", "merged_plugins", "--chroms", "22"])
+
+    assert rc == 2
+    assert seen["chrom"] == "chr22"
+
+
+def test_main_passes_no_contig_when_several_are_requested(monkeypatch):
+    seen = {}
+
+    def fake_resolve(*args, **kwargs):
+        seen.update(kwargs)
+        raise profiles.ProfileUnavailable("stop here")
+
+    monkeypatch.setattr(profiles, "resolve", fake_resolve)
+
+    cli.main(["--release", "116", "--profile", "merged_plugins", "--chroms", "1", "22"])
+
+    assert seen["chrom"] is None

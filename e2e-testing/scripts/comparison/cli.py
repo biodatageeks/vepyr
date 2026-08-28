@@ -365,6 +365,15 @@ def main(argv=None):
     args = parse_args(argv)
 
     try:
+        # Per-contig plugin references resolve one file at a time, so hand the
+        # sole requested contig to resolution. Without it the per-contig lookup
+        # is unreachable from here and every plugin run is rejected -- including
+        # the single-contig form the rejection itself recommends.
+        sole_chrom = (
+            args.chroms[0]
+            if args.chroms is not None and len(args.chroms) == 1
+            else None
+        )
         resolved = profiles.resolve(
             args.profile,
             args.release,
@@ -373,6 +382,7 @@ def main(argv=None):
             plugin_cache_root=args.plugin_cache,
             require_cache=not args.skip_annotate,
             require_reference=not args.skip_compare and not args.skip_annotate,
+            chrom=sole_chrom,
         )
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
