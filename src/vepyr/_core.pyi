@@ -41,13 +41,17 @@ def build_cache_entity(
 
 def build_plugin_cache(
     manifest_path: str,
-    source_path: str,
+    source_path: str | dict[str, str],
     variation_cache_dir: str,
     plugin_cache_root: str,
     chroms: list[str] | None = None,
     overwrite: bool = False,
 ) -> list[tuple[str, int, int, int]]:
-    """Build a plugin cache from a source manifest. Returns (chrom, rows, warm, cold)."""
+    """Build a plugin cache from a source manifest. Returns (chrom, rows, warm, cold).
+
+    ``source_path`` is a path for a single-source manifest, or ``{part: path}``
+    for a manifest declaring several ``[[source]]`` entries.
+    """
     ...
 
 def annotate_vcf(

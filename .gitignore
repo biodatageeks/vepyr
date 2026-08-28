@@ -222,3 +222,6 @@ e2e-testing/results/
 e2e-testing/reports/
 
 .codex
+
+# Tabix indexes belong beside their source data, never at the repo root.
+/*.tbi

@@ -230,12 +230,86 @@ fn build_cache_entity(
 
 /// Build a plugin cache (all chroms, or a filtered set) from a source manifest.
 /// Returns per-chrom `(chrom, rows, warm, cold)` tuples.
+/// Point each `[[source]]` in the manifest at a real file.
+///
+/// `source_path` is either a single path (for a one-source manifest) or a
+/// `{part: path}` mapping. A manifest's shipped `path` values are placeholders,
+/// so anything left unmapped would silently read the wrong file — every source
+/// must be assigned exactly once, and the mapping must not name a part the
+/// manifest does not declare.
+fn apply_source_paths(
+    manifest: &mut SourceManifest,
+    source_path: &Bound<'_, PyAny>,
+) -> PyResult<()> {
+    let err = pyo3::exceptions::PyValueError::new_err;
+
+    if let Ok(single) = source_path.extract::<String>() {
+        if manifest.sources.len() > 1 {
+            let parts: Vec<&str> = manifest
+                .sources
+                .iter()
+                .map(|s| s.part.as_deref().unwrap_or("<no part>"))
+                .collect();
+            return Err(err(format!(
+                "manifest declares {} [[source]] entries ({}); pass a dict mapping each \
+                 part to its path, e.g. source_path={{{}}}",
+                manifest.sources.len(),
+                parts.join(", "),
+                parts
+                    .iter()
+                    .map(|p| format!("{p:?}: \"...\""))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
+        if let Some(only) = manifest.sources.first_mut() {
+            only.path = single;
+        }
+        return Ok(());
+    }
+
+    let mut mapping: std::collections::HashMap<String, String> = source_path
+        .extract()
+        .map_err(|_| err("source_path must be a str or a dict of {part: path}".to_string()))?;
+
+    for source in manifest.sources.iter_mut() {
+        let part = source.part.clone().ok_or_else(|| {
+            err(format!(
+                "source_path was given as a dict, but a [[source]] in plugin {:?} declares \
+                 no `part` to key it by",
+                manifest.plugin_name
+            ))
+        })?;
+        let path = mapping.remove(&part).ok_or_else(|| {
+            err(format!(
+                "source_path is missing an entry for part {part:?}; every [[source]] must \
+                 be mapped or it would read its placeholder path"
+            ))
+        })?;
+        source.path = path;
+    }
+    if !mapping.is_empty() {
+        let mut unknown: Vec<String> = mapping.into_keys().collect();
+        unknown.sort();
+        let declared: Vec<&str> = manifest
+            .sources
+            .iter()
+            .filter_map(|s| s.part.as_deref())
+            .collect();
+        return Err(err(format!(
+            "source_path names part(s) {unknown:?} that the manifest does not declare \
+             (it declares {declared:?})"
+        )));
+    }
+    Ok(())
+}
+
 #[pyfunction]
 #[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false))]
 fn build_plugin_cache(
     py: Python<'_>,
     manifest_path: &str,
-    source_path: &str,
+    source_path: &Bound<'_, PyAny>,
     variation_cache_dir: &str,
     plugin_cache_root: &str,
     chroms: Option<Vec<String>>,
@@ -243,20 +317,7 @@ fn build_plugin_cache(
 ) -> PyResult<Vec<(String, usize, usize, usize)>> {
     let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
-    // The public API takes a single `source_path`, so it can only override one
-    // source. A multi-part manifest (multiple `[[source]]` blocks) would leave
-    // later sources on their stale placeholder paths — fail fast instead of
-    // silently reading the wrong file.
-    if manifest.sources.len() > 1 {
-        return Err(pyo3::exceptions::PyValueError::new_err(format!(
-            "manifest declares {} [[source]] entries; build_plugin_cache takes a single \
-             source_path and cannot map multi-part sources (not yet supported)",
-            manifest.sources.len()
-        )));
-    }
-    if let Some(first) = manifest.sources.first_mut() {
-        first.path = source_path.to_string();
-    }
+    apply_source_paths(&mut manifest, source_path)?;
     // The builder always rewrites each chrom shard (its `with_overwrite` is a
     // no-op in v0.14.0), so guard here against an accidental FULL rebuild. A build
     // is "full" when no chromosome filter narrows it — either `chroms=None` or an
