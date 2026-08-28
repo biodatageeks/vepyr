@@ -9,6 +9,11 @@ Plugin manifests live in the public [vepyr-plugins](https://github.com/biodatage
 repository and are selected by **plugin name + git tag**, so different plugins can
 be pinned to different releases.
 
+!!! tip "Don't want to build one?"
+    Prebuilt release-116 plugin caches for CADD, SpliceAI, AlphaMissense and
+    ClinVar are published for download — see
+    [Plugin caches](downloads.md#plugin-caches).
+
 ## Building a plugin cache
 
 ```python

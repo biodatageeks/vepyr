@@ -10,9 +10,9 @@ See [Caches](caches.md) for what a cache contains, how the entities map to CSQ
 fields, and how the three cache types differ.
 
 !!! info "Currently available: release 116, GRCh38"
-    All three cache types are published for **Ensembl release 116 / GRCh38**.
-    Release 115 caches and plugin caches are not yet mirrored — build those
-    locally for now.
+    All three cache types are published for **Ensembl release 116 / GRCh38**,
+    along with four [plugin caches](#plugin-caches). Release 115 caches and the
+    dbNSFP plugin cache are not yet mirrored — build those locally for now.
 
 | Cache | Transcript set | Size |
 |---|---|--:|
@@ -180,7 +180,109 @@ print(lf.head().collect())
 
 ## Plugin caches
 
-Plugin caches (CADD, ClinVar, dbNSFP, AlphaMissense, …) are **not mirrored
-yet** — build them locally with
-[`build_plugin_cache`](api.md#vepyr.build_plugin_cache), as described in
-[Plugins](plugins.md). They will be published here once available.
+Four plugin caches are published on Hugging Face, built against the release-116
+GRCh38 variation cache above. They are the exact output
+[`build_plugin_cache`](api.md#vepyr.build_plugin_cache) would have produced —
+see [Plugins](plugins.md) for what a plugin cache is and how the values reach
+the CSQ output.
+
+| Plugin | Dataset | Size | Source version |
+|---|---|--:|---|
+| CADD | [`vepyr_116_GRCh38_plugin_cadd`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_cadd) | 69 G | v1.7 SNVs + gnomAD r4.0 indels |
+| SpliceAI | [`vepyr_116_GRCh38_plugin_spliceai`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_spliceai) | 24 G | Ensembl 110 masked SNV MANE (model v1.3.1) |
+| AlphaMissense | [`vepyr_116_GRCh38_plugin_alphamissense`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_alphamissense) | 545 M | hg38 canonical, 2023 release |
+| ClinVar | [`vepyr_116_GRCh38_plugin_clinvar`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_clinvar) | 77 M | GRCh38 weekly, `fileDate=2026-07-06` |
+
+Each repository holds `chr1.parquet` … `chr22.parquet` plus the plugin
+`manifest.json`. **Autosomes only** — chrX, chrY and chrM are not covered. Every
+dataset card documents its full source provenance, schema, CSQ field mapping and
+licence.
+
+!!! warning "Three of the four are non-commercial only"
+    **CADD**, **SpliceAI** and **AlphaMissense** restrict use to academic /
+    non-profit research; commercial use needs a licence from the respective
+    provider. Only the ClinVar cache is unrestricted (NCBI public domain). Each
+    dataset card carries the specific terms — check them before use.
+
+### Downloading
+
+`annotate()` takes a `plugin_cache_root`, and looks for each plugin under
+`<root>/plugin/<name>/`. Download each cache **into that layout** — the
+`plugin/` path component is required:
+
+=== "clinvar"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_plugin_clinvar \
+      --repo-type dataset \
+      --local-dir ~/vepyr_plugin_cache/plugin/clinvar
+    ```
+
+=== "alphamissense"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_plugin_alphamissense \
+      --repo-type dataset \
+      --local-dir ~/vepyr_plugin_cache/plugin/alphamissense
+    ```
+
+=== "spliceai"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_plugin_spliceai \
+      --repo-type dataset \
+      --local-dir ~/vepyr_plugin_cache/plugin/spliceai
+    ```
+
+=== "cadd"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_plugin_cadd \
+      --repo-type dataset \
+      --local-dir ~/vepyr_plugin_cache/plugin/cadd
+    ```
+
+Download several into the **same** root to combine them — this is the same rule
+as building, where repeated `build_plugin_cache` calls share one
+`plugin_cache_root`.
+
+A single chromosome works here too, and unlike the variation cache there is no
+root table to preserve — the plugin `manifest.json` is the only companion file:
+
+```bash
+hf download biodatageeks/vepyr_116_GRCh38_plugin_cadd \
+  --repo-type dataset \
+  --include 'chr22.parquet' \
+  --include 'manifest.json' \
+  --local-dir ~/vepyr_plugin_cache/plugin/cadd
+```
+
+!!! note "The manifest lists every chromosome, downloaded or not"
+    `manifest.json` is published whole, so it advertises all 22 shards even in a
+    partial download. Keep the plugin cache's contig coverage at least as wide
+    as the contigs you annotate.
+
+### Annotating with a downloaded plugin cache
+
+```python
+import os
+import vepyr
+
+lf = vepyr.annotate(
+    vcf="sample.vcf.gz",
+    cache_dir=os.path.expanduser("~/vepyr_cache/116_GRCh38_merged"),
+    everything=True,
+    reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+    plugin_cache_root=os.path.expanduser("~/vepyr_plugin_cache"),
+)
+```
+
+Note `plugin_cache_root` points at the root that *contains* `plugin/`, not at
+an individual plugin directory.
+
+!!! tip "Tiering is inherited, so match the releases"
+    A plugin cache's warm/cold `tier` is copied row-for-row from the variation
+    cache it was built against (rows with no variation-cache match are cold).
+    These four were built against the release-116 GRCh38 cache, so pair them
+    with a 116 cache. Pairing with a different release still annotates
+    correctly — `tier` only affects lookup locality, not values.
