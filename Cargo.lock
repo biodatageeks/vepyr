@@ -1245,8 +1245,8 @@ dependencies = [
 
 [[package]]
 name = "datafusion-bio-function-vep"
-version = "0.16.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=1345fd5ca5b7dc097825813b05856ad8c3bca578#1345fd5ca5b7dc097825813b05856ad8c3bca578"
+version = "0.17.0"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=01fa21f8533de17aeffa5ee9042381c4171ef02b#01fa21f8533de17aeffa5ee9042381c4171ef02b"
 dependencies = [
  "ahash",
  "async-trait",
@@ -1266,7 +1266,10 @@ dependencies = [
  "log",
  "nohash-hasher",
  "noodles-core 0.16.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
  "noodles-fasta",
+ "noodles-tabix",
  "parquet",
  "rapidhash",
  "serde",
