@@ -345,3 +345,46 @@ def test_generate_markdown_omits_the_format_line_when_there_are_none():
     )
 
     assert "representation-only differences" not in md
+
+
+def test_generate_markdown_surfaces_order_only_differences():
+    """Order-only differences break byte parity as surely as format-only ones.
+
+    The first pass at this threaded field_format into the headline but left
+    field_order behind, so a run whose only differences were &-list ordering
+    still summarised as every field at 100% with zero mismatches -- while the
+    parity gate rejected it.
+    """
+    rep = make_chrom_report("chr1")
+    rep["comparison"]["field_order_mismatch_counts"] = {"Consequence": 3}
+
+    agg = report.aggregate_mismatches([rep])
+    md = report.generate_markdown(
+        [rep],
+        agg,
+        report.classify_consequence_mismatches([]),
+        None,
+        {"branch": "main", "vepyr_rev": "abc1234", "bio_functions_rev": "def5678"},
+        release="115",
+        profile="merged",
+    )
+
+    assert "order-only differences" in md
+    assert "**3 total**" in md
+    assert "not** byte-identical" in md
+
+
+def test_generate_markdown_omits_the_order_line_when_there_are_none():
+    reports = [make_chrom_report("chr1")]
+    agg = report.aggregate_mismatches(reports)
+    md = report.generate_markdown(
+        reports,
+        agg,
+        report.classify_consequence_mismatches([]),
+        None,
+        {"branch": "main", "vepyr_rev": "abc1234", "bio_functions_rev": "def5678"},
+        release="115",
+        profile="merged",
+    )
+
+    assert "order-only differences" not in md

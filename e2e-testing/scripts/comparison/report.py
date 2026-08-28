@@ -519,6 +519,12 @@ def generate_markdown(
     # per-contig comparison had already called non-byte-identical.
     n_format = len([f for f in all_fields if field_format.get(f, 0) > 0])
     total_format = sum(field_format.values())
+    # Order-only differences are absorbed the same way and were invisible here
+    # for the same reason: the gate rejects the run while this summary claimed
+    # every field at 100%.
+    field_order = agg["field_order"]
+    n_order = len([f for f in all_fields if field_order.get(f, 0) > 0])
+    total_order = sum(field_order.values())
 
     bi = build_info or {}
     span = contig_span([r["chrom"] for r in reports])
@@ -623,6 +629,12 @@ def generate_markdown(
         lines.append(
             f"- **{n_format} fields** with representation-only differences, "
             f"**{total_format:,} total** — absorbed into the match rates above, "
+            f"so the output is **not** byte-identical"
+        )
+    if total_order:
+        lines.append(
+            f"- **{n_order} fields** with order-only differences, "
+            f"**{total_order:,} total** — absorbed into the match rates above, "
             f"so the output is **not** byte-identical"
         )
     if old_mm is not None:
