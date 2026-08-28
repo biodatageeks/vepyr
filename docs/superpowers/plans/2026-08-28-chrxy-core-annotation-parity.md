@@ -1360,3 +1360,59 @@ in Perl key order. Both runs log `BAM-edited cache detected`, and `ENST000003810
 4. Independently: the comparison summary should surface `field_order_mismatch_counts`. A run that
    prints "Fields at 100%: 123/124, Total mismatches: 1" while five records differ on disk is
    actively misleading, and is why this class went unnoticed in the original handover.
+
+---
+
+## Defect E — CORRECTION (2026-08-28)
+
+**The previous section's conclusion was wrong.** The chrX reference was regenerated with the same
+script, image and flags, and is **byte-identical** to the original:
+
+```
+original     body MD5  2ec98ed8efc86e3f42a996117f7009cc
+regenerated  body MD5  2ec98ed8efc86e3f42a996117f7009cc
+```
+
+`ENST00000381077` still carries `SFLD:SFLDG01135&SFLD:SFLDS00003&Gene3D:...` — SFLD first.
+
+So VEP is **deterministic at full-chromosome scale**, and the stored reference is not stale, not
+anomalous, and not an artifact. The recommendation to regenerate it was based on a bad inference.
+
+### What was actually right and wrong
+
+Still correct:
+
+- Neither VEP nor vepyr sorts `DOMAINS`; both preserve the order of the list they are given.
+- The Ensembl cache's serialized `protein_features` array has SFLD at 8-9.
+- vepyr faithfully reproduces that cache order.
+- Five small-scale VEP runs (4 variants; 423 variants over 1 Mb; with and without the plugin set)
+  all emit SFLD at 8-9.
+
+Wrong:
+
+- Concluding from those small runs that the reference deviated from "real" VEP behaviour. The
+  discriminating variable is **input scale**, not the reference artifact. Small-scale runs are
+  simply not representative for this field.
+
+### Where that leaves defect E
+
+It is a **genuine vepyr-side parity gap**, not a reference problem. At production scale VEP
+reproducibly emits the analysis-grouped, SFLD-first order, and vepyr emits cache order.
+
+The mechanism remains the `AnnotationType/Transcript.pm:583-593` deletion of
+`_variation_effect_feature_cache->{protein_features}`, forcing regeneration through
+`Translation::get_all_ProteinFeatures`, whose `foreach my $type (keys %hash)` flattens analysis
+groups in Perl hash-key order. Both full-scale runs producing identical output means that hash
+order is stable in the container, not randomized.
+
+**This is expensive to match.** Reproducing it means emulating the group order Perl's hash
+iteration yields for a given key set. Before any engine change, establish:
+
+1. What minimal input reproduces the flip (bisect between 423 variants and 157,690). Without this,
+   any fix is unverifiable at reasonable cost.
+2. Whether the group order is a stable function of the analysis key set across transcripts, or
+   per-transcript incidental. Sample every transcript in the chrX reference whose `DOMAINS` spans
+   two or more analysis sources and compare group order against the cache array order.
+
+Only 4 of 157,690 chrX records are affected, and 0 of 4,096,123 autosome records. Weigh the cost
+of emulating Perl hash ordering against recording this as an accepted difference.
