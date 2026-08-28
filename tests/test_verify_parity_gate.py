@@ -367,5 +367,16 @@ def test_gate_refuses_plugin_profiles():
         gate.expected_csq_fields("merged_plugins")
 
 
-def test_gate_still_accepts_the_plugin_free_base_profile():
-    assert "Consequence" in gate.expected_csq_fields("merged_plugins_base")
+def test_gate_refuses_the_plugin_base_profile_too():
+    """Attaching no plugins is not the same as a plugin-free comparison.
+
+    This test previously asserted the opposite. "merged_plugins_base" attaches
+    nothing, so it slipped past the `profile.plugins` guard -- but it reads the
+    five-plugin reference, so its report always lists that reference's plugin
+    fields in fields_only_in_vep, which the gate rejects outright. Gating on it
+    could therefore never pass; it just failed later with "CSQ fields exist only
+    in VEP", which reads as a parity defect rather than as the wrong profile.
+    Refuse it upfront, for the same reason "merged_plugins" is refused.
+    """
+    with pytest.raises(gate.GateError, match="five-plugin reference"):
+        gate.expected_csq_fields("merged_plugins_base")

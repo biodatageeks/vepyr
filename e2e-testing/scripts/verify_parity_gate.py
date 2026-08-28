@@ -68,6 +68,18 @@ def expected_csq_fields(profile_name: str) -> frozenset[str]:
             "contract only. Plugin profiles are comparison scenarios, not release "
             "gates, until their field contract is pinned here."
         )
+    # Attaching no plugins is not the same as reading a plugin-free reference.
+    # "merged_plugins_base" deliberately attaches nothing while reading the
+    # five-plugin reference, so its report always carries that reference's
+    # plugin fields in fields_only_in_vep. Without this it slipped past the
+    # guard above and failed later, deep in validation, instead of saying why.
+    if profile.vep_basename == profiles.plugin_reference_basename():
+        raise GateError(
+            f"profile {profile_name!r} reads the five-plugin reference "
+            f"({profile.vep_basename}); this gate pins the Ensembl core CSQ "
+            "contract only. Plugin profiles are comparison scenarios, not release "
+            "gates, until their field contract is pinned here."
+        )
     fields = set(_ENSEMBL_CSQ_FIELDS)
     if profile.flavour in {"refseq", "merged"}:
         fields.update(_REFSEQ_CSQ_FIELDS)
