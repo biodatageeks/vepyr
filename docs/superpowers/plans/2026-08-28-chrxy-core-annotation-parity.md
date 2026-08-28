@@ -1247,3 +1247,46 @@ from that observation.**
 No `#[ignore]`d stub test was added: with the drop site still ambiguous between two lines, the
 only test that could be written would assert `hgvsp.is_some()` against a fixture whose fidelity is
 the very thing in question.
+
+---
+
+## Task 8 partial results — chrX/chrY verification (2026-08-28)
+
+Run against the worktree build (engine `bd04392`, Tasks 1–5) via a temporary path dependency in
+`Cargo.toml`; nothing pushed.
+
+| | chrX | chrY |
+|---|---:|---:|
+| variants compared | 157,690 | 63,736 |
+| variants on one side only | 0 | 0 |
+| CSQ entry count / order mismatches | 0 / 0 | 0 / 0 |
+| **value mismatches** (`field_mismatch_counts`) | **1** (was 148) | **0** (was 216) |
+| order mismatches (`field_order_mismatch_counts`) | 4 (`DOMAINS`) | 0 |
+| fields at 100% | 123/124 | **124/124** |
+| strict body MD5 | FAIL — 5 of 157,690 records differ | **PASS — `4ed4691a20af77c3e0bb938762237491`** |
+
+Tasks 1–5 removed exactly the predicted 147 value mismatches on chrX (34 `Consequence` + 59 `EXON`
++ 54 `INTRON`) and all 216 on chrY. **chrY is byte-identical to Ensembl VEP 116.**
+
+### Defect E (new): `DOMAINS` ordering — 4 records, pre-existing
+
+The 5 differing chrX records are **not** all defect D:
+
+- 1 record — `chrX:10015674 / NM_015691.5`, the known defect D `HGVSp`.
+- 4 records — `chrX:7077274`, `7077376`, `7077397`, `7105637`, all on `ENST00000381077`, all a
+  `DOMAINS` **ordering** difference with an identical member set. VEP emits the two `SFLD:` entries
+  first; vepyr emits them between `PANTHER:` and `Superfamily:`. Everything else is in the same
+  order.
+
+**This is pre-existing, not a regression.** The pre-change report in the investigation directory
+carries the identical `field_order_mismatch_counts: {'DOMAINS': 4}`.
+
+**Why the handover's 364-row inventory missed it.** The comparator sorts multi-valued fields before
+comparing, so an order-only difference lands in `field_order_mismatch_counts`, not
+`field_mismatch_counts`. The console summary and the "Total mismatches" line count only the latter
+— so the run prints "Fields at 100%: 123/124, Total mismatches: 1" while five records differ on
+disk. Reading only the summary hides this class entirely.
+
+**Consequence for the definition of done:** chrX byte-identity needs defect E fixed as well as
+defect D. Neither the spec nor Tasks 1–7 cover it. It needs its own diagnosis of how the engine
+orders `DOMAINS` sources against VEP's `ProteinFunctionPredictions`/domain assembly order.
