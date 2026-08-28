@@ -299,3 +299,49 @@ def test_git_checkout_info_ignores_only_cargo_bookkeeping(monkeypatch, status, d
         "revision": "abc123",
         "dirty": dirty,
     }
+
+
+def test_generate_markdown_surfaces_format_only_differences():
+    """A run whose only differences are representation-only is not byte parity.
+
+    aggregate_mismatches() collected field_format_mismatch_counts, but the
+    headline derived every number from field_mismatch_counts alone -- so a
+    summary could claim all fields at 100% with zero mismatches for a run the
+    per-contig comparison had already reported as not byte-identical.
+    """
+    rep = make_chrom_report("chr1")
+    rep["comparison"]["field_format_mismatch_counts"] = {"CADD_RAW": 7}
+
+    agg = report.aggregate_mismatches([rep])
+    md = report.generate_markdown(
+        [rep],
+        agg,
+        report.classify_consequence_mismatches([]),
+        None,
+        {"branch": "main", "vepyr_rev": "abc1234", "bio_functions_rev": "def5678"},
+        release="115",
+        profile="merged",
+    )
+
+    assert "representation-only differences" in md
+    assert "**7 total**" in md
+    assert "not** byte-identical" in md
+    # The absorbed count must not be silently folded into the value-mismatch
+    # headline, which stays about byte-unequal values only.
+    assert "(0 value mismatches)" in md
+
+
+def test_generate_markdown_omits_the_format_line_when_there_are_none():
+    reports = [make_chrom_report("chr1")]
+    agg = report.aggregate_mismatches(reports)
+    md = report.generate_markdown(
+        reports,
+        agg,
+        report.classify_consequence_mismatches([]),
+        None,
+        {"branch": "main", "vepyr_rev": "abc1234", "bio_functions_rev": "def5678"},
+        release="115",
+        profile="merged",
+    )
+
+    assert "representation-only differences" not in md

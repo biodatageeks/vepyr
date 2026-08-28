@@ -507,11 +507,18 @@ def generate_markdown(
     total_in = sum(r["input_variants"] for r in reports)
     total_time = sum(r["annotation"]["time_s"] or 0 for r in reports)
     field_mm = agg["field_mm"]
+    field_format = agg["field_format"]
     all_fields = agg["all_fields"]
 
     n_perfect = len([f for f in all_fields if field_mm.get(f, 0) == 0])
     n_imperfect = len([f for f in all_fields if field_mm.get(f, 0) > 0])
     total_mm = sum(field_mm.values())
+    # Representation-only differences are absorbed into the match rates, so they
+    # do not move n_perfect -- but they do mean the output is not byte-identical.
+    # Reporting only field_mm here let a summary claim full parity for a run the
+    # per-contig comparison had already called non-byte-identical.
+    n_format = len([f for f in all_fields if field_format.get(f, 0) > 0])
+    total_format = sum(field_format.values())
 
     bi = build_info or {}
     span = contig_span([r["chrom"] for r in reports])
@@ -605,12 +612,19 @@ def generate_markdown(
     lines.append("## Headline")
     lines.append("")
     lines.append(
-        f"- **{n_perfect} / {len(all_fields)} CSQ fields at 100% match** (0 mismatches)"
+        f"- **{n_perfect} / {len(all_fields)} CSQ fields at 100% match** "
+        f"(0 value mismatches)"
     )
     lines.append(
         f"- **{n_imperfect} fields** with mismatches, "
         f"**{total_mm:,} total** across CSQ entries"
     )
+    if total_format:
+        lines.append(
+            f"- **{n_format} fields** with representation-only differences, "
+            f"**{total_format:,} total** — absorbed into the match rates above, "
+            f"so the output is **not** byte-identical"
+        )
     if old_mm is not None:
         old_total = sum(old_mm.values())
         n_fixed = len([f for f in old_mm if f not in field_mm or field_mm[f] == 0])
