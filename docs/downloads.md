@@ -11,8 +11,10 @@ fields, and how the three cache types differ.
 
 !!! info "Currently available: release 116, GRCh38"
     All three cache types are published for **Ensembl release 116 / GRCh38**,
-    along with four [plugin caches](#plugin-caches). Release 115 caches and the
-    dbNSFP plugin cache are not yet mirrored — build those locally for now.
+    along with four [plugin caches](#plugin-caches). Release 115 caches are not
+    mirrored yet — build those locally for now. The **dbNSFP** plugin cache is
+    a different case: it is supported but cannot be published at all, see
+    [dbNSFP](#dbnsfp-supported-but-not-published).
 
 | Cache | Transcript set | Size |
 |---|---|--:|
@@ -261,6 +263,42 @@ hf download biodatageeks/vepyr_116_GRCh38_plugin_cadd \
     `manifest.json` is published whole, so it advertises all 22 shards even in a
     partial download. Keep the plugin cache's contig coverage at least as wide
     as the contigs you annotate.
+
+### dbNSFP: supported, but not published
+
+vepyr supports **dbNSFP** as a plugin — the manifest lives at
+[`plugins/dbnsfp`](https://github.com/biodatageeks/vepyr-plugins/blob/master/plugins/dbnsfp/dbnsfp.source.toml)
+and was developed against dbNSFP 5.3.1a for GRCh38. Its cache is **not mirrored
+here, and will not be**: unlike the four above, the upstream data cannot be
+redistributed.
+
+- The academic download is gated — it needs registration with an institutional
+  email plus an access code.
+- It is licensed **CC BY-NC-ND 4.0**. The *no-derivatives* term is the blocker:
+  a converted Parquet cache is a derivative work, so even a registered academic
+  user may not pass one on. Registration is not the only obstacle.
+- Commercial use requires a paid licence.
+
+So dbNSFP is the one plugin you have to build yourself. Fetch the source from
+[dbnsfp.org/download](https://www.dbnsfp.org/download/) under whichever licence
+applies to you, then build into the **same** `plugin_cache_root` as the
+downloaded caches so they combine:
+
+```python
+import os
+import vepyr
+
+vepyr.build_plugin_cache(
+    plugin="dbnsfp",
+    version="v0.2.0",                       # vepyr-plugins tag for this manifest
+    source_path="dbNSFP5.3.1a_grch38.gz",   # your registered download
+    cache_dir=os.path.expanduser("~/vepyr_cache/116_GRCh38_merged"),
+    plugin_cache_root=os.path.expanduser("~/vepyr_plugin_cache"),
+)
+```
+
+That writes `~/vepyr_plugin_cache/plugin/dbnsfp/`, alongside the plugins you
+downloaded. See [Plugins](plugins.md) for the build in full.
 
 ### Annotating with a downloaded plugin cache
 
