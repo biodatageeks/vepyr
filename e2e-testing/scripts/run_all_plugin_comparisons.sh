@@ -71,8 +71,34 @@ CURRENT_CHROM=""
 CURRENT_WORK=""
 CURRENT_TRANSIENT=0
 CURRENT_KEEP=""
+CURRENT_PIDS=""
+
+# A signal arriving while build_transient_caches()' background builders are
+# running must reap them BEFORE anything is deleted. Otherwise a builder
+# recreates its shard or manifest after cleanup has run, which is precisely the
+# orphaned state the cleanup exists to prevent.
+terminate_builders() {
+  local pid
+  [[ -z "$CURRENT_PIDS" ]] && return 0
+  for pid in $CURRENT_PIDS; do kill "$pid" 2>/dev/null || true; done
+  for pid in $CURRENT_PIDS; do wait "$pid" 2>/dev/null || true; done
+  CURRENT_PIDS=""
+  return 0
+}
+
+# Bash resumes the interrupted command after an INT/TERM handler returns, so
+# the handler must exit rather than fall through -- the EXIT trap then performs
+# the actual cleanup, once, with no builders still alive.
+on_signal() {
+  local name="$1" num="$2"
+  echo "SIGNAL $name received; terminating builders and cleaning up" >&2
+  terminate_builders
+  trap - INT TERM
+  exit $((128 + num))
+}
 
 cleanup_on_exit() {
+  terminate_builders
   if [[ "$CURRENT_TRANSIENT" -eq 1 && -n "$CURRENT_CHROM" ]]; then
     echo "CLEANUP chr$CURRENT_CHROM removing transient artifacts" >&2
     remove_transient_caches "$CURRENT_CHROM" "$CURRENT_KEEP" || true
@@ -83,7 +109,9 @@ cleanup_on_exit() {
   fi
   restore_manifests
 }
-trap cleanup_on_exit EXIT INT TERM
+trap cleanup_on_exit EXIT
+trap 'on_signal INT 2' INT
+trap 'on_signal TERM 15' TERM
 
 plugin_version() {
   case "$1" in
@@ -231,8 +259,10 @@ build_transient_caches() {
   build_clinvar "$chrom" "$work" & pids="$pids $!"
   build_alphamissense "$chrom" "$work" & pids="$pids $!"
   build_dbnsfp "$chrom" "$work" & pids="$pids $!"
+  CURRENT_PIDS="$pids"
   failed=0
   for pid in $pids; do wait "$pid" || failed=1; done
+  CURRENT_PIDS=""
   [[ "$failed" -eq 0 ]] || return 1
 
   # SpliceAI and CADD are each memory-heavy; keep them sequential.
