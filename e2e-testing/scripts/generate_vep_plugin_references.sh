@@ -10,8 +10,8 @@ SOURCE_URL="${VEP_PLUGIN_SOURCE_URL:-http://localhost:18080}"
 JOBS="${VEP_REFERENCE_JOBS:-2}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILDER="$SCRIPT_DIR/build_vep_plugin_reference.sh"
-# shellcheck source=lib/source_identity.sh
-. "$SCRIPT_DIR/lib/source_identity.sh"
+# shellcheck source=source_identity.sh
+. "$SCRIPT_DIR/source_identity.sh"
 WORK_ROOT="$TARGET/.work"
 LOG_DIR="$TARGET/logs"
 

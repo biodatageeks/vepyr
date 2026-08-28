@@ -36,8 +36,8 @@ mkdir -p "$WORK/input" "$WORK/output" "$WORK/plugins" "$SLICES"
 # still receives ordinary local indexed files. Existing complete slices are
 # reused, making an interrupted build resumable.
 SOURCE_BASE="${VEP_PLUGIN_SOURCE_URL:-}"
-# shellcheck source=lib/source_identity.sh
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/source_identity.sh"
+# shellcheck source=source_identity.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/source_identity.sh"
 
 fetch_slice() {
   local remote_path="$1"
