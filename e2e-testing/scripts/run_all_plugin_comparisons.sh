@@ -26,6 +26,9 @@ LOG_DIR="${VEP_COMPARISON_LOG_DIR:-$DATA_ROOT/output/116/plugins/comparison_logs
 CHROMS="${VEP_COMPARISON_CHROMS:-1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22}"
 WORKERS="${VEP_COMPARISON_WORKERS:-4}"
 
+# shellcheck source=source_identity.sh
+. "$SCRIPT_DIR/source_identity.sh"
+
 PLUGINS="clinvar alphamissense dbnsfp spliceai cadd"
 mkdir -p "$WORK_ROOT" "$LOG_DIR"
 
@@ -165,6 +168,32 @@ plugin_version() {
     alphamissense|cadd|spliceai) echo f9cfa30 ;;
     *) echo "ERROR: unknown plugin: $1" >&2; return 1 ;;
   esac
+}
+
+# A reference carries a .plugins sidecar naming the plugin code and the source
+# data it was built from. Compare the recorded source identities against what
+# the server holds now. Absent sidecar or unreachable server means "cannot
+# tell", which warns rather than blocks -- references built before the sidecar
+# existed are still usable.
+reference_sources_current() {
+  # Declared separately: under `set -u` a single `local` cannot reference a
+  # name being assigned in the same statement.
+  local reference="$1"
+  local sidecar="$reference.plugins"
+  local current
+  [[ -s "$sidecar" ]] || {
+    echo "NOTE: $(basename "$reference") has no provenance sidecar; source currency unverified" >&2
+    return 0
+  }
+  grep -q '^SOURCE ' "$sidecar" || {
+    echo "NOTE: $(basename "$reference") records no source identities; unverified" >&2
+    return 0
+  }
+  current="$(all_source_identities "$SOURCE_BASE" 2>/dev/null)" || {
+    echo "NOTE: cannot reach $SOURCE_BASE; source currency unverified" >&2
+    return 0
+  }
+  diff -q <(grep '^SOURCE ' "$sidecar" | sort) <(printf '%s\n' "$current" | sort) >/dev/null
 }
 
 cache_complete() {
@@ -370,6 +399,18 @@ run_comparison() {
     echo "ERROR: missing reference or index for chr$chrom: $reference" >&2
     return 1
   }
+
+  # Shards may be rebuilt here from the current source server while the golden
+  # reference predates a rolling source such as ClinVar. Comparing the two would
+  # report a source-version difference as a vepyr mismatch. The generator
+  # records the identities each reference was built from; check them.
+  if ! reference_sources_current "$reference"; then
+    echo "ERROR: chr$chrom reference was built from different source data" >&2
+    echo "       $reference" >&2
+    echo "       Regenerate it, or set VEP_ALLOW_STALE_REFERENCE=1 to compare anyway." >&2
+    [[ "${VEP_ALLOW_STALE_REFERENCE:-0}" == "1" ]] || return 1
+    echo "WARN: continuing against a stale reference on request" >&2
+  fi
 
   echo "COMPARE_START chr$chrom"
   (
