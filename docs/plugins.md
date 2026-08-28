@@ -101,8 +101,19 @@ Two rules are in use upstream:
 
 | rule | what Ensembl does | plugins |
 |---|---|---|
-| `minimised` | calls `get_matched_variant_alleles()`, which runs `trim_sequences()` over **both** the variant and the data row — trimming shared prefix *and* suffix, in both orders — then compares `(ref, alt, pos)` | CADD, AlphaMissense |
-| `exact` | compares `(start, ref, alt)` verbatim | SpliceAI, dbNSFP, and core `--custom ...,exact` (ClinVar) |
+| `minimised` | calls `get_matched_variant_alleles()`, which runs `trim_sequences()` over **both** the variant and the data row — trimming shared prefix *and* suffix, in both orders — then compares `(ref, alt, pos)` | CADD, AlphaMissense, ClinVar |
+| `exact` | compares `(start, ref, alt)` verbatim | SpliceAI, dbNSFP |
+
+**ClinVar is `minimised`, despite being loaded with `--custom ...,exact`.** The
+`exact` there names the *overlap mode*, not the allele rule — core still
+minimises the alleles first, then requires exact overlap. The golden VEP 116
+reference settles it: `chr1:65364614 GT>TT` is annotated `ClinVar=1258041`,
+whose source record is the 1 bp SNV `G>T` at the same position. Reaching it
+from `GT/TT` needs the shared trailing `T` trimmed, so this is full
+`trim_sequences()` behaviour — a suffix trim, not just the narrower
+leading-anchor-base shift. A verbatim comparison would emit nothing, and a
+1 bp feature could not have exactly overlapped the 2 bp unminimised variant
+either.
 
 The distinction bites whenever a record is **not in minimal form**. `bcftools
 norm -m -both` splits a multi-allelic record without re-trimming its halves, so
