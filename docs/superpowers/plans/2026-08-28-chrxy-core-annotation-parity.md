@@ -1416,3 +1416,68 @@ iteration yields for a given key set. Before any engine change, establish:
 
 Only 4 of 157,690 chrX records are affected, and 0 of 4,096,123 autosome records. Weigh the cost
 of emulating Perl hash ordering against recording this as an accepted difference.
+
+---
+
+## Defect D — FIXED (2026-08-28), engine `f81f442`
+
+**Root cause, traced not guessed.** Instrumenting `protein_hgvs_for_output_with_semantics` on the
+real variant produced:
+
+```
+tx=NM_015691.5 allows=true shift_hgvs=true fallback=false bounds=None
+existing=Some(1) refseq=None
+shift_length=1
+shifted_tva_protein_hgvs_data -> false
+mapper guard (10015676,10015675) -> false
+```
+
+Both exits are the same call. `shifted_tva_coords_from_mapper` maps an insertion's two flanks and
+required **both** via `?`. For `NM_015691.5` (exon 1 ends 10015673, exon 2 starts 10015676, so
+intron 1 is 2 bp) the HGVS-shifted insertion sits at 10015676 — the first base of exon 2 — with its
+upstream flank at 10015675, inside the intron. The intronic flank returned `None` and aborted the
+whole lookup.
+
+Ensembl does not do this. `Mapper::map_insert` maps the swapped 2 bp interval and then keeps only
+the flanks that resolve to a `Coordinate`, silently dropping `Gap` flanks:
+
+```perl
+if(ref($m1) eq 'Bio::EnsEMBL::Mapper::Coordinate') { ... push @coords, $m1 }
+if(ref($m2) eq 'Bio::EnsEMBL::Mapper::Coordinate') { ... push @coords, $m2 }
+```
+
+**Fix:** tolerate a dropped flank in both the cDNA and peptide windows of
+`shifted_tva_coords_from_mapper`, following `map_insert`'s adjustments.
+
+**Verified end-to-end:** vepyr now emits `NP_056506.3:p.Pro33AlafsTer47` with an empty
+`Protein_position`, matching VEP. `ENST00000380861` at the same position correctly still has no
+HGVSp — its shifted position stays intronic so neither flank maps, which is also what VEP does.
+978 unit tests pass; the new test guards its own premise (asserts the upstream flank is genuinely
+unmappable, so it cannot pass under both-flanks-required logic).
+
+## Defect E — NOT FIXED, and should not be
+
+Measured across the whole chrX reference, 2,411 distinct (transcript, DOMAINS) pairs:
+
+| | count |
+|---|---:|
+| DOMAINS order matches cache order exactly | 1,015 |
+| **pure reordering (same set, different order)** | **2, both `ENST00000381077`** |
+| set differs (protein-position filtering, not ordering) | 1,394 |
+
+**There is no systematic ordering rule.** 1,015 multi-source transcripts follow the cache's
+`protein_features` order exactly; exactly one transcript does not. The earlier note suggesting a
+fix would mean emulating Perl hash iteration order is superseded: no global hash-order effect
+exists, or those 1,015 would not agree.
+
+Nor is VEP's order for this transcript derivable. It is the cache order with the SFLD group hoisted
+to the front, and is not sorted by start, end, analysis name, or hseqname.
+
+**Recommendation: do not implement a fix.** Any change able to reproduce this one transcript would
+be a rule invented to fit a single observation, with no upstream basis, and it would put the 1,015
+currently-correct transcripts at risk. The residue is 4 of 157,690 chrX records and 0 of 4,096,123
+autosome records.
+
+If it must be closed, the only sound route is to determine why VEP regenerates this transcript's
+`protein_features` at full-chromosome scale but not at 423-variant scale — the input-scale
+threshold identified above — and reproduce that mechanism rather than its output.
