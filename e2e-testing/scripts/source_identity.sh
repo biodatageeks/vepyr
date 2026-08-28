@@ -38,10 +38,18 @@ source_identity() {
 }
 
 # all_source_identities <base_url> -- one "SOURCE <path> <identity>" per line.
+#
+# All or nothing: a caller that fails partway must not have already emitted
+# lines for the sources it did reach. Callers use this in an `|| fallback`
+# without a command substitution, so partial output would be concatenated with
+# whatever the fallback prints -- producing duplicate, conflicting entries for
+# the paths that succeeded before a mid-loop network blip.
 all_source_identities() {
   local base="$1" path line
+  local -a lines=()
   for path in "${PLUGIN_SOURCE_PATHS[@]}"; do
     line="$(source_identity "$base" "$path")" || return 1
-    printf 'SOURCE %s\n' "$line"
+    lines+=("SOURCE $line")
   done
+  printf '%s\n' "${lines[@]}"
 }
