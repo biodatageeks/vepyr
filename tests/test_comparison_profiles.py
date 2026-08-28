@@ -274,3 +274,24 @@ def test_plugin_reference_resolves_from_the_generated_location(tmp_path, monkeyp
     # With no contig, availability still answers truthfully.
     assert profiles.vep_vcf_for("merged_plugins", "116") == str(written)
     assert profiles.vep_vcf_for("merged_plugins", "116", chrom=9) is None
+
+
+def test_plugin_profile_without_a_contig_is_allowed_when_no_reference_is_needed(
+    tmp_path, monkeypatch
+):
+    """Reference-free modes must not be blocked by a missing reference.
+
+    The per-contig rejection was unconditional, so `--skip-annotate` aggregation
+    of stored reports -- which reads no reference at all -- was refused for want
+    of something it never opens.
+    """
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+
+    resolved = profiles.resolve(
+        "merged_plugins",
+        "116",
+        require_cache=False,
+        require_reference=False,
+    )
+
+    assert resolved.vep_vcf is None

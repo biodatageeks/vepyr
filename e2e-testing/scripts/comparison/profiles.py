@@ -364,13 +364,18 @@ def resolve(
         resolved_ref = vep_vcf
     elif profile.vep_per_contig and chrom is None:
         # Each contig is a separate file, so there is nothing to slice a
-        # multi-contig run out of. Say so instead of reporting "unavailable".
-        raise ProfileUnavailable(
-            f"profile {profile_name!r} uses per-contig references "
-            f"({profile.vep_per_contig.format(chrom='N')}.vcf.gz under "
-            f"output/{RELEASE_DIRS[release]}/{profile.vep_subdir}/). "
-            "Request a single contig with --chroms, or pass --vep explicitly."
-        )
+        # multi-contig run out of. Say so instead of reporting "unavailable" --
+        # but only when a reference is actually needed. Modes that just
+        # aggregate stored reports need none, and must not be blocked by the
+        # absence of something they never read.
+        if require_reference:
+            raise ProfileUnavailable(
+                f"profile {profile_name!r} uses per-contig references "
+                f"({profile.vep_per_contig.format(chrom='N')}.vcf.gz under "
+                f"output/{RELEASE_DIRS[release]}/{profile.vep_subdir}/). "
+                "Request a single contig with --chroms, or pass --vep explicitly."
+            )
+        resolved_ref = None
     else:
         resolved_ref = vep_vcf_for(profile_name, release, chrom)
     resolved_plugin_cache = None

@@ -398,9 +398,17 @@ uv run python run_comparison.py --release 115
 # A specific pick-mode profile
 uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
 
-# Plugin fields, against a VEP reference built with the same five plugins
-uv run python run_comparison.py --release 116 --profile merged_plugins
+# Plugin fields, against a VEP reference built with the same five plugins.
+# Plugin references are written one file per contig, so name the contig.
+uv run python run_comparison.py --release 116 --profile merged_plugins --chroms 22
 ```
+
+!!! note "Plugin profiles need a contig"
+    `generate_vep_plugin_references.sh` writes one reference per contig under
+    `output/{release}/plugins/`, so unlike the whole-genome profiles there is no
+    single file to slice. Pass a single `--chroms` value, or `--vep` explicitly.
+    Modes that read no reference at all, such as `--skip-annotate` aggregation
+    of stored reports, do not need either.
 
 !!! note "Plugin profiles"
     `merged_plugins` attaches the plugin cache
