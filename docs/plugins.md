@@ -75,10 +75,29 @@ source and map it to CSQ fields.
   but not yet wired). `path` is overridden at build time by `source_path`. A
   `[source.csv]` block (for `csv`/`tsv`) declares `delimiter`, `has_header`,
   `comment`, `compression`, and an ordered `schema` of `{name, type}`.
-  The cache format reserves `part`-suffixed `[[source]]` blocks
-  (`plugin_<name>_src_<part>`) for multi-file plugins, but vepyr's public
-  `build_plugin_cache()` takes a single `source_path` and **rejects manifests
-  with more than one `[[source]]`** — multi-source builds are not yet supported.
+  A manifest may declare several `[[source]]` blocks, each with its own `part`.
+  They are registered as `plugin_<name>_src_<part>` and combined by the
+  manifest's own `ingest_sql`, so there is no need to concatenate the files
+  first — CADD's separate SNV and indel sources are the worked example.
+  `build_plugin_cache()` takes a plain path for a single-source manifest, and a
+  `{part: path}` mapping for a multi-source one:
+
+  ```python
+  vepyr.build_plugin_cache(
+      "cadd", version,
+      source_path={
+          "snv": ".../whole_genome_SNVs.tsv.gz",
+          "indel": ".../gnomad.genomes.r4.0.indel.tsv.gz",
+      },
+      ...
+  )
+  ```
+
+  The mapping must cover every declared part and name no unknown one. A bare
+  path against a multi-source manifest is rejected — one path cannot address two
+  sources, and the unmapped ones would silently read their placeholders. A
+  mapping is likewise rejected when a `[[source]]` declares no `part`, since
+  there is then no key to address it by.
 - **`[[match_column]]`** *(optional, 0+)* — a per-transcript discriminator:
   `column` (the stored discriminator column) + `template` (built at runtime from
   the engine-attribute namespace, see below). Omit entirely for per-variant

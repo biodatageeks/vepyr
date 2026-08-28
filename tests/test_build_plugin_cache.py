@@ -375,3 +375,14 @@ def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
     # The stale shard + manifest were removed before the (failing) build.
     assert not (pc / "plugin" / "demo" / "chrZZ.parquet").exists()
     assert not (pc / "plugin" / "demo" / "manifest.json").exists()
+
+
+def test_single_source_manifest_rejects_a_mapping(tmp_path):
+    """A dict needs a `part` to key each source by; a lone source declares none.
+
+    Documented in docs/plugins.md alongside the multi-source shape, but the
+    direction was previously only covered for multi-source manifests.
+    """
+    repo = _init_full_repo(tmp_path)
+    with pytest.raises(ValueError, match="no `part`"):
+        _build(repo, tmp_path, {"snv": str(tmp_path / "src.tsv.gz")})
