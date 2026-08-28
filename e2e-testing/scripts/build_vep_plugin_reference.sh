@@ -185,6 +185,18 @@ verify_plugin CADD f0bbe7ab1d4aff0de9e45aeedd4e112824394e81cc3e201ea1b8f001dd9e5
 verify_plugin SpliceAI d08ce7d8c2e6b3229cef638beff145e465e224f0e3fcd43fd49d501ebc2740b1
 verify_plugin dbNSFP 1574736e0371b12378211914db6f5de720eeba395cd42517fbe689cededb9f67
 
+# The checks above run only when this script runs. A reference already on disk
+# carries no record of which plugin bytes produced it -- VEP's header does not
+# name them -- so a generator that reuses it cannot tell a current reference
+# from one built with an older CADD.pm. Emit the provenance beside the output
+# so reuse can be gated on it.
+plugin_provenance() {
+  local plugin
+  for plugin in AlphaMissense CADD SpliceAI dbNSFP; do
+    printf '%s %s\n' "$plugin" "$(sha256_file "$PLUGIN_DIR/${plugin}.pm")"
+  done
+}
+
 if ! grep -q 'my \$alt_alleles = \$bvf->alt_alleles' "$PLUGIN_DIR/CADD.pm"; then
   echo "ERROR: CADD.pm lacks the HGVS-shift fix from VEP_plugins 7a1f6450fd12" >&2
   exit 1
@@ -199,12 +211,55 @@ phyloP100way_vertebrate,phastCons100way_vertebrate,CADD_raw,CADD_phred"
 # invisible to VEP. Stripping the prefix off such a path is a no-op and yields
 # "/data//abs/host/path", which VEP reports as a missing input rather than as
 # the configuration error it is. Translate through here and fail loudly.
+# Collapse "." and ".." lexically. Needed because the target directory may not
+# exist yet, and `cd`-based resolution silently leaves such a path untouched --
+# which would let "$DATA/../scratch" keep matching a "$DATA/" prefix test.
+normalize_lexical() {
+  local path="$1" part
+  local -a out=()
+  [[ "$path" != /* ]] && path="$PWD/$path"
+  local IFS=/
+  for part in $path; do
+    case "$part" in
+      ''|.) ;;
+      ..) [[ ${#out[@]} -gt 0 ]] && unset "out[$((${#out[@]} - 1))]" && out=("${out[@]}") ;;
+      *) out+=("$part") ;;
+    esac
+  done
+  printf '/%s\n' "${out[*]}"
+}
+
+# Absolute, symlink-free where the path exists, ".."-free always. The leaf need
+# not exist yet.
+canonical_path() {
+  local path dir base
+  path="$(normalize_lexical "$1")"
+  if [[ -d "$path" ]]; then
+    ( cd "$path" 2>/dev/null && pwd -P )
+    return
+  fi
+  dir="$(dirname "$path")"
+  base="$(basename "$path")"
+  if [[ -d "$dir" ]]; then
+    printf '%s/%s\n' "$( cd "$dir" 2>/dev/null && pwd -P )" "$base"
+  else
+    printf '%s\n' "$path"
+  fi
+}
+
 docker_path() {
-  local label="$1" path="$2" rel
-  rel="${path#"$DATA/"}"
-  if [[ "$rel" == "$path" ]]; then
-    echo "ERROR: $label must live under \$DATA ($DATA) so the VEP container can reach it." >&2
+  local label="$1" path="$2" rel canon data_canon
+  # A lexical prefix test is not containment: "$DATA/../scratch" passes it and
+  # becomes /data/../scratch, which resolves inside the container to /scratch --
+  # outside the only bind mount. Canonicalise both sides first, so `..` and
+  # escaping symlinks are rejected rather than silently redirected.
+  canon="$(canonical_path "$path")"
+  data_canon="$(canonical_path "$DATA")"
+  rel="${canon#"$data_canon/"}"
+  if [[ "$rel" == "$canon" ]]; then
+    echo "ERROR: $label must live under \$DATA ($data_canon) so the VEP container can reach it." >&2
     echo "       got: $path" >&2
+    [[ "$canon" != "$path" ]] && echo "       resolves to: $canon" >&2
     return 1
   fi
   printf '/data/%s\n' "$rel"
@@ -255,6 +310,7 @@ if [[ "$n_plugin" -ne 38 ]]; then
   grep -i 'failed to instantiate' "${OUT}_warnings.txt" >&2 || true
   exit 1
 fi
+plugin_provenance > "$OUT.gz.plugins"
 echo "OK: chr${CHROM} — $(grep -vc '^#' "$OUT") records, $n_plugin plugin CSQ fields"
 echo "     $OUT.gz"
 

@@ -20,6 +20,14 @@ fi
 
 mkdir -p "$TARGET" "$WORK_ROOT" "$LOG_DIR"
 
+# The plugin .pm SHA-256s the builder pins. A reference is only reusable if it
+# records the same ones: VEP's header does not name the plugin code, so field
+# count alone cannot distinguish a current reference from one built with an
+# older CADD.pm -- and a stale golden reference reads as a vepyr mismatch.
+expected_plugin_provenance() {
+  sed -n 's/^verify_plugin \([A-Za-z]*\) \([0-9a-f]\{64\}\)$/\1 \2/p' "$BUILDER"
+}
+
 is_complete() {
   local chrom="$1"
   local output="$TARGET/HG002_chr${chrom}_5plugins_vep116_caddfix.vcf.gz"
@@ -28,7 +36,16 @@ is_complete() {
   local n_plugin
   n_plugin=$(tabix -H "$output" | grep -m1 '^##INFO=<ID=CSQ' | tr '|' '\n' | grep -cE \
     'SpliceAI_pred|CADD_(RAW|PHRED|raw|phred)|am_(class|pathogenicity)|ClinVar|SIFT4G|Polyphen2|MutationTaster|PROVEAN|VEST4|MetaSVM|MetaLR|REVEL|GERP|phyloP|phastCons')
-  [[ "$n_plugin" -eq 38 ]]
+  [[ "$n_plugin" -eq 38 ]] || return 1
+
+  if [[ ! -s "$output.plugins" ]]; then
+    echo "STALE chr${chrom}: no plugin provenance recorded; rebuilding" >&2
+    return 1
+  fi
+  if ! diff -q <(sort "$output.plugins") <(expected_plugin_provenance | sort) >/dev/null; then
+    echo "STALE chr${chrom}: built with different plugin code; rebuilding" >&2
+    return 1
+  fi
 }
 
 run_one() {
