@@ -102,15 +102,30 @@ terminate_builders() {
     kill -TERM -- "-$pid" 2>/dev/null || kill_tree "$pid"
   done
   for pid in $CURRENT_PIDS; do
+    # Reap the builder itself BEFORE asking whether its group is empty. `wait`
+    # is the only thing that can clear this child, and an unreaped one is still
+    # a member of its own process group -- so checking the group first would
+    # make the leader's own corpse the reason the group never looks empty.
+    # Both loops are bounded and break after escalating, so neither can spin.
     deadline=$((SECONDS + 10))
-    while kill -0 -- "-$pid" 2>/dev/null; do
+    while kill -0 "$pid" 2>/dev/null; do
       if (( SECONDS >= deadline )); then
-        kill -KILL -- "-$pid" 2>/dev/null || true
-        deadline=$((SECONDS + 5))
+        kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+        break
       fi
       sleep 0.2
     done
     wait "$pid" 2>/dev/null || true
+
+    # With the leader reaped, anything left in the group is a real survivor.
+    deadline=$((SECONDS + 10))
+    while kill -0 -- "-$pid" 2>/dev/null; do
+      if (( SECONDS >= deadline )); then
+        kill -KILL -- "-$pid" 2>/dev/null || true
+        break
+      fi
+      sleep 0.2
+    done
   done
   CURRENT_PIDS=""
   return 0
