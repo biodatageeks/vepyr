@@ -278,10 +278,34 @@ def _values_equivalent(vepyr_value, vep_value):
     vep_tokens = vep_value.split("&")
     if len(vepyr_tokens) != len(vep_tokens):
         return False
-    return all(
+    if all(
         _tokens_equivalent(vepyr_token, vep_token)
         for vepyr_token, vep_token in zip(vepyr_tokens, vep_tokens)
-    )
+    ):
+        return True
+    # Order and representation can differ at once: "0.10&0.20" vs "0.2&0.1".
+    # The caller's order check compares raw strings, so the padding defeats it;
+    # the position-wise pass above is defeated by the reordering. Neither
+    # difference is a value difference, so pair the tokens as a multiset.
+    return _tokens_equivalent_as_multiset(vepyr_tokens, vep_tokens)
+
+
+def _tokens_equivalent_as_multiset(vepyr_tokens, vep_tokens):
+    """True when the two token bags pair up one-to-one under equivalence.
+
+    Greedy pairing is safe here: numeric equality is transitive, so equivalent
+    tokens are interchangeable and consuming any one of them cannot strand a
+    later match that a different choice would have found.
+    """
+    remaining = list(vep_tokens)
+    for vepyr_token in vepyr_tokens:
+        for i, vep_token in enumerate(remaining):
+            if vepyr_token == vep_token or _tokens_equivalent(vepyr_token, vep_token):
+                del remaining[i]
+                break
+        else:
+            return False
+    return not remaining
 
 
 def compare_vcfs(

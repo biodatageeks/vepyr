@@ -365,3 +365,27 @@ def test_the_all_match_banner_still_prints_on_real_parity(tmp_path, capsys):
     compare.compare_vcfs(a, b, "parity")
 
     assert "match at 100%!" in capsys.readouterr().out
+
+
+def test_values_equivalent_absorbs_order_and_format_together():
+    """A field can differ in token order AND numeric padding at once.
+
+    The caller's order check compares raw strings, so padding defeats it, and
+    the position-wise equivalence pass is defeated by the reordering. Neither
+    difference is a value difference, so the pair must still be equivalent.
+    """
+    assert compare._values_equivalent("0.10&0.20", "0.2&0.1")
+    assert compare._values_equivalent("1.0&2.00&3", "3.000&1&2")
+
+
+def test_multiset_equivalence_still_rejects_real_differences():
+    # A genuinely different value must not be absorbed by the multiset pairing.
+    assert not compare._values_equivalent("0.10&0.20", "0.2&0.3")
+    # Differing token counts stay a real difference.
+    assert not compare._values_equivalent("0.1&0.2", "0.2&0.1&0.1")
+    # Duplicates must pair one-to-one, not collapse.
+    assert not compare._values_equivalent("0.1&0.1", "0.1&0.2")
+    assert compare._values_equivalent("0.1&0.10", "0.100&0.1")
+    # Non-numeric tokens still compare by identity only.
+    assert not compare._values_equivalent("foo&bar", "foo&baz")
+    assert compare._values_equivalent("bar&foo", "foo&bar") is True
