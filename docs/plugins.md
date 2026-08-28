@@ -85,8 +85,83 @@ source and map it to CSQ fields.
   plugins (the value is emitted on every transcript line).
 - **`[[value_columns]]`** *(1+)* — `column`, `csq_field` (output field name),
   `type` (`Utf8` / `Float32` / `Int32`). **Declaration order = CSQ output order.**
+- **`allele_match`** *(optional)* — `"exact"` (default) or `"minimised"`. Which
+  one is correct is decided by the plugin's own Ensembl implementation, not by
+  preference; see [Allele matching](#allele-matching-exact-vs-minimised).
 
 There is **no `[tier]` block** — tiering is inherited from the variation cache.
+
+## Allele matching: `exact` vs `minimised`
+
+Ensembl's plugins do **not** agree on how a variant is compared to a row of
+their data file, so neither can vepyr. Getting this wrong is silent: the wrong
+setting either drops annotations Ensembl reports, or invents ones it does not.
+
+Two rules are in use upstream:
+
+| rule | what Ensembl does | plugins |
+|---|---|---|
+| `minimised` | calls `get_matched_variant_alleles()`, which runs `trim_sequences()` over **both** the variant and the data row — trimming shared prefix *and* suffix, in both orders — then compares `(ref, alt, pos)` | CADD, AlphaMissense, ClinVar |
+| `exact` | compares `(start, ref, alt)` verbatim | SpliceAI, dbNSFP |
+
+**ClinVar is `minimised`, despite being loaded with `--custom ...,exact`.** The
+`exact` there names the *overlap mode*, not the allele rule — core still
+minimises the alleles first, then requires exact overlap. The golden VEP 116
+reference settles it: `chr1:65364614 GT>TT` is annotated `ClinVar=1258041`,
+whose source record is the 1 bp SNV `G>T` at the same position. Reaching it
+from `GT/TT` needs the shared trailing `T` trimmed, so this is full
+`trim_sequences()` behaviour — a suffix trim, not just the narrower
+leading-anchor-base shift. A verbatim comparison would emit nothing, and a
+1 bp feature could not have exactly overlapped the 2 bp unminimised variant
+either.
+
+The distinction bites whenever a record is **not in minimal form**. `bcftools
+norm -m -both` splits a multi-allelic record without re-trimming its halves, so
+this is routine rather than exotic:
+
+```text
+chr21:13973877  REF=TTGTGTGTGTGTG  ALT=GTGTGTGTGTGTG   # really just T>G
+chr21:26062230  REF=AAC            ALT=ACAC            # really just an inserted C
+```
+
+CADD keys the first as `T/G` in its per-base file. Under `minimised` Ensembl
+reduces the variant and matches; under `exact` it does not — and SpliceAI, whose
+rows at that position are plain SNVs, reports nothing. Both are correct *for
+their own plugin*.
+
+### Trim order is load-bearing
+
+`trim_sequences()` can trim prefix-first or suffix-first, and for a non-minimal
+indel **the two orders land on different coordinates — and therefore different
+variants**. Ensembl's VCF parser builds the `VariationFeature` prefix-first
+(left-first), so that is the only order that reproduces its output:
+
+| VCF record | left-first (Ensembl) | right-first |
+|---|---|---|
+| `CGTGTGT/CGTGT` | `GT/-` at 13836153 — no row there, so empty, as VEP reports | `GT/-` at 13836149 — a **different variant's** score |
+| `AAC/ACAC` | `-/C` at 26062231 — the row VEP reports | same |
+
+Getting this backwards is silent and produces confident wrong answers: on chr21
+a right-first reduction invented 5,288 CADD scores VEP does not emit, and
+regressed ClinVar and SpliceAI from clean.
+
+!!! warning "Never set `minimised` to gain hits"
+    Reducing alleles for an `exact` plugin produces annotations Ensembl does not
+    emit — SpliceAI gained 68 spurious hits on chr21 that way. The setting is a
+    statement about what upstream does, not a tuning knob.
+
+To decide the setting for a new plugin, read its `.pm`: if `run()` calls
+`get_matched_variant_alleles`, use `minimised`; if it compares `$vf->{start}`
+and the allele strings with `==`/`eq`, use `exact`.
+
+!!! note "Ensembl's fetch window"
+    `get_matched_variant_alleles` is not the whole story upstream. CADD.pm first
+    fetches `[VF.start - 2, VF.end]` from the tabix file, so a row whose *file*
+    position falls outside that window is never even considered — which is why
+    VEP reports nothing for `CGTGTGT/CGTGT` even though a `GT/-` row exists
+    nearby. Left-first reduction happens to land outside that row's reach too,
+    so vepyr agrees without emulating the window; if a future mismatch traces
+    back here, this is the mechanism to check.
 
 ### Example: AlphaMissense (per-transcript)
 

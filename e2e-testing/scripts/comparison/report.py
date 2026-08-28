@@ -226,6 +226,7 @@ def aggregate_mismatches(reports):
     all_fields = set()
     field_mm = defaultdict(int)
     field_order = defaultdict(int)
+    field_format = defaultdict(int)
     field_examples = defaultdict(list)
 
     total_compared = 0
@@ -263,6 +264,8 @@ def aggregate_mismatches(reports):
             field_mm[f] += c
         for f, c in comp.get("field_order_mismatch_counts", {}).items():
             field_order[f] += c
+        for f, c in comp.get("field_format_mismatch_counts", {}).items():
+            field_format[f] += c
         for f, exs in comp.get("field_mismatch_examples", {}).items():
             for ex in exs:
                 ex["source_chrom"] = r["chrom"]
@@ -272,6 +275,7 @@ def aggregate_mismatches(reports):
         "all_fields": all_fields,
         "field_mm": field_mm,
         "field_order": field_order,
+        "field_format": field_format,
         "field_examples": field_examples,
         "total_compared": total_compared,
         "total_csq_match": total_csq_match,
@@ -503,11 +507,24 @@ def generate_markdown(
     total_in = sum(r["input_variants"] for r in reports)
     total_time = sum(r["annotation"]["time_s"] or 0 for r in reports)
     field_mm = agg["field_mm"]
+    field_format = agg["field_format"]
     all_fields = agg["all_fields"]
 
     n_perfect = len([f for f in all_fields if field_mm.get(f, 0) == 0])
     n_imperfect = len([f for f in all_fields if field_mm.get(f, 0) > 0])
     total_mm = sum(field_mm.values())
+    # Representation-only differences are absorbed into the match rates, so they
+    # do not move n_perfect -- but they do mean the output is not byte-identical.
+    # Reporting only field_mm here let a summary claim full parity for a run the
+    # per-contig comparison had already called non-byte-identical.
+    n_format = len([f for f in all_fields if field_format.get(f, 0) > 0])
+    total_format = sum(field_format.values())
+    # Order-only differences are absorbed the same way and were invisible here
+    # for the same reason: the gate rejects the run while this summary claimed
+    # every field at 100%.
+    field_order = agg["field_order"]
+    n_order = len([f for f in all_fields if field_order.get(f, 0) > 0])
+    total_order = sum(field_order.values())
 
     bi = build_info or {}
     span = contig_span([r["chrom"] for r in reports])
@@ -601,12 +618,25 @@ def generate_markdown(
     lines.append("## Headline")
     lines.append("")
     lines.append(
-        f"- **{n_perfect} / {len(all_fields)} CSQ fields at 100% match** (0 mismatches)"
+        f"- **{n_perfect} / {len(all_fields)} CSQ fields at 100% match** "
+        f"(0 value mismatches)"
     )
     lines.append(
         f"- **{n_imperfect} fields** with mismatches, "
         f"**{total_mm:,} total** across CSQ entries"
     )
+    if total_format:
+        lines.append(
+            f"- **{n_format} fields** with representation-only differences, "
+            f"**{total_format:,} total** — absorbed into the match rates above, "
+            f"so the output is **not** byte-identical"
+        )
+    if total_order:
+        lines.append(
+            f"- **{n_order} fields** with order-only differences, "
+            f"**{total_order:,} total** — absorbed into the match rates above, "
+            f"so the output is **not** byte-identical"
+        )
     if old_mm is not None:
         old_total = sum(old_mm.values())
         n_fixed = len([f for f in old_mm if f not in field_mm or field_mm[f] == 0])

@@ -397,7 +397,31 @@ uv run python run_comparison.py --release 115
 
 # A specific pick-mode profile
 uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
+
+# Plugin fields, against a VEP reference built with the same five plugins.
+# Plugin references are written one file per contig, so name the contig.
+uv run python run_comparison.py --release 116 --profile merged_plugins --chroms 22
 ```
+
+!!! note "Plugin profiles need a contig"
+    `generate_vep_plugin_references.sh` writes one reference per contig under
+    `output/{release}/plugins/`, so unlike the whole-genome profiles there is no
+    single file to slice. Pass a single `--chroms` value, or `--vep` explicitly.
+    Modes that read no reference at all, such as `--skip-annotate` aggregation
+    of stored reports, do not need either.
+
+!!! note "Plugin profiles"
+    `merged_plugins` attaches the plugin cache
+    (`cache/plugin_cache_{release}/`, or `--plugin-cache`) so ClinVar, SpliceAI,
+    CADD, AlphaMissense, and dbNSFP CSQ fields are comparable against a VEP
+    reference produced with the same five plugins. `merged_plugins_base` reads
+    that same reference with no plugin cache attached: the comparison then
+    restricts itself to the shared fields, which separates a core-field
+    difference from anything the plugin machinery introduced.
+
+    These are comparison scenarios, not release gates. `verify_parity_gate.py`
+    pins the Ensembl core CSQ contract and refuses a plugin profile outright
+    rather than silently gating a field set it does not describe.
 
 !!! note "`--release` is required"
     It selects both the Parquet cache (`cache/{release}_GRCh38_{flavour}`) and the VEP
@@ -416,6 +440,7 @@ uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
     merged                                     ok           ok
     refseq                                     ok           ok
     merged_pick_allele                         ok no reference
+    merged_plugins                              -  no plugins
     ```
 
 Contigs default to whatever the reference's tabix index contains, intersected with the

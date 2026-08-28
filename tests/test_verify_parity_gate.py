@@ -106,6 +106,7 @@ def _write_report(report_dir: Path, contig: str = "chr1") -> dict:
             "field_match_rates": {field: 100.0 for field in fields},
             "field_mismatch_counts": {},
             "field_order_mismatch_counts": {},
+            "field_format_mismatch_counts": {},
             "field_equality_counts": equality,
             "equality_bucket_counts": {
                 "both_empty": 2 * len(fields),
@@ -327,3 +328,55 @@ def test_gate_rejects_cross_contig_identity_or_cache_drift(
 def test_exact_loader_rejects_missing_release_qualified_report(tmp_path):
     with pytest.raises(gate.GateError, match="missing release-qualified"):
         gate._load_exact_reports(tmp_path, ["chr1"], "merged", "116")
+
+
+def test_gate_rejects_format_only_differences(tmp_path):
+    """Absorbed into the reported match rate, still not release parity."""
+    value = _write_report(tmp_path)
+    comparison = value["comparison"]
+    comparison["field_format_mismatch_counts"]["Allele"] = 1
+    comparison["field_equality_counts"]["Allele"]["both_nonempty_equal"] = 7
+    comparison["field_equality_counts"]["Allele"]["both_nonempty_unequal"] = 1
+    comparison["equality_bucket_counts"]["both_nonempty_equal"] -= 1
+    comparison["equality_bucket_counts"]["both_nonempty_unequal"] += 1
+
+    with pytest.raises(gate.GateError, match="field_format_mismatch_total=1"):
+        _validate(value, tmp_path)
+
+
+def test_gate_rejects_a_report_without_format_only_counts(tmp_path):
+    """A report predating the counter cannot be silently read as zero."""
+    value = _write_report(tmp_path)
+    value["comparison"].pop("field_format_mismatch_counts")
+
+    with pytest.raises(gate.GateError, match="field_format_mismatch_counts"):
+        _validate(value, tmp_path)
+
+
+def test_gate_rejects_format_only_counts_for_unexpected_fields(tmp_path):
+    value = _write_report(tmp_path)
+    value["comparison"]["field_format_mismatch_counts"]["CADD_RAW"] = 1
+
+    with pytest.raises(gate.GateError, match="unexpected CSQ fields"):
+        _validate(value, tmp_path)
+
+
+def test_gate_refuses_plugin_profiles():
+    """Plugin profiles are comparison scenarios; the gate pins the core contract."""
+    with pytest.raises(gate.GateError, match="plugins"):
+        gate.expected_csq_fields("merged_plugins")
+
+
+def test_gate_refuses_the_plugin_base_profile_too():
+    """Attaching no plugins is not the same as a plugin-free comparison.
+
+    This test previously asserted the opposite. "merged_plugins_base" attaches
+    nothing, so it slipped past the `profile.plugins` guard -- but it reads the
+    five-plugin reference, so its report always lists that reference's plugin
+    fields in fields_only_in_vep, which the gate rejects outright. Gating on it
+    could therefore never pass; it just failed later with "CSQ fields exist only
+    in VEP", which reads as a parity defect rather than as the wrong profile.
+    Refuse it upfront, for the same reason "merged_plugins" is refused.
+    """
+    with pytest.raises(gate.GateError, match="five-plugin reference"):
+        gate.expected_csq_fields("merged_plugins_base")

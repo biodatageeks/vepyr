@@ -61,6 +61,25 @@ _REFSEQ_CSQ_FIELDS = frozenset(
 def expected_csq_fields(profile_name: str) -> frozenset[str]:
     """Return the exact Ensembl VEP CSQ contract for one comparison profile."""
     profile = profiles.PROFILES[profile_name]
+    if profile.plugins:
+        raise GateError(
+            f"profile {profile_name!r} attaches plugins "
+            f"({', '.join(profile.plugins)}); this gate pins the Ensembl core CSQ "
+            "contract only. Plugin profiles are comparison scenarios, not release "
+            "gates, until their field contract is pinned here."
+        )
+    # Attaching no plugins is not the same as reading a plugin-free reference.
+    # "merged_plugins_base" deliberately attaches nothing while reading the
+    # five-plugin reference, so its report always carries that reference's
+    # plugin fields in fields_only_in_vep. Without this it slipped past the
+    # guard above and failed later, deep in validation, instead of saying why.
+    if profile.vep_basename == profiles.plugin_reference_basename():
+        raise GateError(
+            f"profile {profile_name!r} reads the five-plugin reference "
+            f"({profile.vep_basename}); this gate pins the Ensembl core CSQ "
+            "contract only. Plugin profiles are comparison scenarios, not release "
+            "gates, until their field contract is pinned here."
+        )
     fields = set(_ENSEMBL_CSQ_FIELDS)
     if profile.flavour in {"refseq", "merged"}:
         fields.update(_REFSEQ_CSQ_FIELDS)
@@ -184,6 +203,7 @@ def _validate_equality_counts(
     calculated = {bucket: 0 for bucket in EQUALITY_BUCKETS}
     mismatch_counts = comparison.get("field_mismatch_counts", {})
     order_counts = comparison.get("field_order_mismatch_counts", {})
+    format_counts = comparison.get("field_format_mismatch_counts", {})
     for field, counts in per_field.items():
         if not isinstance(counts, dict) or set(counts) != set(EQUALITY_BUCKETS):
             raise GateError(f"{contig}/{field}: incomplete equality buckets")
@@ -206,10 +226,15 @@ def _validate_equality_counts(
         order_only = _require_nonnegative_int(
             order_counts.get(field, 0), f"{contig}/{field}/order-only"
         )
-        if mismatches + order_only != strict_unequal:
+        format_only = _require_nonnegative_int(
+            format_counts.get(field, 0), f"{contig}/{field}/format-only"
+        )
+        accounted = mismatches + order_only + format_only
+        if accounted != strict_unequal:
             raise GateError(
                 f"{contig}/{field}: equality buckets imply {strict_unequal} unequal "
-                f"values but mismatch + order-only counts are {mismatches + order_only}"
+                f"values but mismatch + order-only + format-only counts are "
+                f"{accounted}"
             )
 
     for bucket in EQUALITY_BUCKETS:
@@ -347,6 +372,9 @@ def validate_reports(
     totals = {key: 0 for key in ZERO_KEYS}
     totals["field_mismatch_total"] = 0
     totals["field_order_mismatch_total"] = 0
+    # Absorbed into the reported match rate, but a released build must be
+    # byte-identical to Ensembl VEP, so a non-zero total still fails the gate.
+    totals["field_format_mismatch_total"] = 0
     totals["mismatch_ledger_rows"] = 0
     common_target: dict[str, Any] | None = None
     common_reference: dict[str, Any] | None = None
@@ -410,6 +438,19 @@ def validate_reports(
         totals["field_order_mismatch_total"] += sum(
             _require_nonnegative_int(count, f"{expected_contig}/{field}/order-only")
             for field, count in field_order.items()
+        )
+        field_format = comparison.get("field_format_mismatch_counts")
+        if not isinstance(field_format, dict):
+            raise GateError(f"{expected_contig}: missing field_format_mismatch_counts")
+        unexpected_format_fields = set(field_format) - expected_fields
+        if unexpected_format_fields:
+            raise GateError(
+                f"{expected_contig}: format counts contain unexpected CSQ fields "
+                f"{sorted(unexpected_format_fields)}"
+            )
+        totals["field_format_mismatch_total"] += sum(
+            _require_nonnegative_int(count, f"{expected_contig}/{field}/format-only")
+            for field, count in field_format.items()
         )
         annotation = value.get("annotation")
         input_variants = _require_nonnegative_int(

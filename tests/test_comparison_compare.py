@@ -228,3 +228,164 @@ def test_mismatch_ledger_closes_when_comparison_raises(monkeypatch):
         )
 
     assert closed == [True]
+
+
+PLUGIN_HEADER = (
+    "##fileformat=VCFv4.2\n"
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations. '
+    'Format: Allele|Feature|CADD_RAW|DS_AG|CLNSIG">\n'
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+)
+
+
+@pytest.mark.parametrize(
+    "vepyr_value,vep_value",
+    [
+        ("0", "0.00"),
+        ("0.57985", "0.579850"),
+        ("1e-05", "0.00001"),
+        ("0.1&0.25", "0.10&0.250"),
+        ("", "."),
+    ],
+)
+def test_representation_only_differences_are_not_mismatches(
+    tmp_path, vepyr_value, vep_value
+):
+    """Decimal padding and VEP's '.' marker are the same datum, not a mismatch."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vepyr_value}||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vep_value}||\n",
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "format")
+
+    assert result["field_mismatch_counts"] == {}
+    assert result["field_format_mismatch_counts"] == {"CADD_RAW": 1}
+    assert result["field_match_rates"]["CADD_RAW"] == 100.0
+    # Absorbed into the match rate, but the equality buckets stay strict so the
+    # parity gate can still see the difference.
+    assert result["field_equality_counts"]["CADD_RAW"]["both_nonempty_equal"] == 0
+    assert result["mismatch_ledger"]["rows"] == 0
+
+
+@pytest.mark.parametrize(
+    "vepyr_value,vep_value",
+    [
+        ("0.5", "0.6"),
+        ("0", "0.000001"),
+        ("0.1&0.2", "0.1&0.2&0.3"),
+        ("PATHOGENIC", "BENIGN"),
+        ("0.1", "high"),
+        # Everything below is absorbed by float() and must not be: two
+        # integers past 2**53 that share a double, a zero-padded identifier,
+        # stray whitespace, Python's '_' digit separator, and two distinct
+        # large exponents that both become inf.
+        ("12345678901234567", "12345678901234568"),
+        ("01", "1"),
+        (" 1", "1"),
+        ("1_0", "10"),
+        ("1e400", "1e999"),
+        # VEP's "." marks absence; a "." from vepyr is an output defect.
+        (".", ""),
+    ],
+)
+def test_real_value_differences_are_still_mismatches(tmp_path, vepyr_value, vep_value):
+    """Equivalence is exact Decimal over canonical numerics, nothing looser."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vepyr_value}||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + f"chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|{vep_value}||\n",
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "real")
+
+    assert result["field_mismatch_counts"] == {"CADD_RAW": 1}
+    assert result["field_format_mismatch_counts"] == {}
+    assert result["mismatch_ledger"]["rows"] == 1
+
+
+def test_ampersand_order_still_wins_over_format_equivalence(tmp_path):
+    """An order-only difference keeps its own counter rather than being reclassified."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|0.1&0.2||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|0.2&0.1||\n",
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "order")
+
+    assert result["field_order_mismatch_counts"] == {"CADD_RAW": 1}
+    assert result["field_format_mismatch_counts"] == {}
+
+
+def test_absorbed_differences_never_print_the_all_match_banner(tmp_path, capsys):
+    """'100%' is what an operator greps for; byte differences must not claim it."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        PLUGIN_HEADER + "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|0||\n",
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        PLUGIN_HEADER + "chr1\t100\t.\tA\tT\t50\tPASS\tCSQ=T|ENST01|0.00||\n",
+        False,
+    )
+    compare.compare_vcfs(a, b, "banner")
+
+    out = capsys.readouterr().out
+    assert "match at 100%!" not in out
+    assert "not byte parity" in out
+    assert "CADD_RAW" in out
+
+
+def test_the_all_match_banner_still_prints_on_real_parity(tmp_path, capsys):
+    a = _write(tmp_path, "vepyr.vcf", MATCHING, False)
+    b = _write(tmp_path, "vep.vcf", MATCHING, False)
+    compare.compare_vcfs(a, b, "parity")
+
+    assert "match at 100%!" in capsys.readouterr().out
+
+
+def test_values_equivalent_absorbs_order_and_format_together():
+    """A field can differ in token order AND numeric padding at once.
+
+    The caller's order check compares raw strings, so padding defeats it, and
+    the position-wise equivalence pass is defeated by the reordering. Neither
+    difference is a value difference, so the pair must still be equivalent.
+    """
+    assert compare._values_equivalent("0.10&0.20", "0.2&0.1")
+    assert compare._values_equivalent("1.0&2.00&3", "3.000&1&2")
+
+
+def test_multiset_equivalence_still_rejects_real_differences():
+    # A genuinely different value must not be absorbed by the multiset pairing.
+    assert not compare._values_equivalent("0.10&0.20", "0.2&0.3")
+    # Differing token counts stay a real difference.
+    assert not compare._values_equivalent("0.1&0.2", "0.2&0.1&0.1")
+    # Duplicates must pair one-to-one, not collapse.
+    assert not compare._values_equivalent("0.1&0.1", "0.1&0.2")
+    assert compare._values_equivalent("0.1&0.10", "0.100&0.1")
+    # Non-numeric tokens still compare by identity only.
+    assert not compare._values_equivalent("foo&bar", "foo&baz")
+    assert compare._values_equivalent("bar&foo", "foo&bar") is True
