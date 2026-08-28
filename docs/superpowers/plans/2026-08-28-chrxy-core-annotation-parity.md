@@ -1290,3 +1290,73 @@ disk. Reading only the summary hides this class entirely.
 **Consequence for the definition of done:** chrX byte-identity needs defect E fixed as well as
 defect D. Neither the spec nor Tasks 1–7 cover it. It needs its own diagnosis of how the engine
 orders `DOMAINS` sources against VEP's `ProteinFunctionPredictions`/domain assembly order.
+
+---
+
+## Defect E diagnosis (2026-08-28): vepyr is correct; the stored chrX reference is the outlier
+
+**Conclusion: this is not a vepyr defect, and it should not be "fixed" in the engine.**
+
+### What the code does
+
+Nothing on either side sorts `DOMAINS`:
+
+- VEP `OutputFactory.pm:1449-1466` iterates `$tv->get_overlapping_ProteinFeatures` and pushes
+  `analysis->display_label:hseqname` in encounter order.
+- `BaseTranscriptVariation::get_overlapping_ProteinFeatures` (`:618-648`) filters
+  `$tr->{_variation_effect_feature_cache}->{protein_features}` by overlap, preserving order.
+- vepyr `annotate_provider.rs:7784` `lookup_domains` iterates `tl.protein_features` and joins with
+  `&`, preserving order.
+- The cache readers (`bio-format-ensembl-cache/src/translation.rs:605`, `:641`) read
+  `vef_cache["protein_features"]` as an ordered array. No sort in the write path.
+
+### What the data says
+
+The Ensembl cache's own serialized array, read back from `raw_object_json` in
+`cache/116_GRCh38_merged/transcript/chrX.parquet` for `ENST00000381077`:
+
+```
+ 0 Gene3D 1.10.150.240      4 PDB-ENSP mappings 9m7m.A    8 SFLD SFLDG01135
+ 1 Gene3D 3.40.50.1000      5 AFDB-ENSP mappings AF-...   9 SFLD SFLDS00003
+ 2 PDB-ENSP mappings 3l5k.A 6 Pfam PF13419              10 Superfamily SSF56784
+ 3 PDB-ENSP mappings 9m7l.A 7 PANTHER PTHR18901         11 NCBIFAM TIGR01509
+                                                        12 CDD cd07529
+```
+
+**SFLD sits at 8-9 — exactly what vepyr emits.** The stored reference emits it at 0-1.
+
+### Five fresh VEP 116.0 runs all agree with vepyr
+
+| run | invocation | SFLD position |
+|---|---|---|
+| 1, 2, 3 | `--cache --merged --everything`, 4 variants, separate processes | 8-9 |
+| 4 | identical to the reference build: same image, `--dir_plugins`, `--custom` ClinVar, SpliceAI + CADD + AlphaMissense + dbNSFP | 8-9 |
+| 5 | 423 real input variants spanning `chrX:7,000,000-8,000,000` | 8-9 |
+| — | **stored `HG002_chrX_5plugins_vep116_caddfix.vcf.gz`** | **0-1** |
+
+So vepyr agrees with the cache *and* with reproducible VEP 116.0 behaviour on the same image with
+the same flags. The three plain runs also rule out Perl hash-order nondeterminism as an active
+factor here: the order was stable across separate processes.
+
+### What is not established
+
+Why the stored reference differs. The only VEP code path that produces exactly this signature —
+one whole analysis group relocated, every other group in identical relative order — is
+`AnnotationType/Transcript.pm:583-593`, which on a BAM-edited transcript deletes
+`_variation_effect_feature_cache->{protein_features}`, forcing regeneration through
+`Translation::get_all_ProteinFeatures` (`ensembl/modules/Bio/EnsEMBL/Translation.pm:816-820`),
+whose `foreach my $type (keys %{$self->{'protein_features'}})` flattens a hash of analysis groups
+in Perl key order. Both runs log `BAM-edited cache detected`, and `ENST00000381077` has
+`bam_edit_status = None` in the cache, so the trigger was not reproduced at these input sizes.
+
+### Recommended action
+
+1. **Do not change the engine.** Any change would move vepyr away from both the cache and
+   reproducible VEP output.
+2. Re-generate the chrX reference and re-compare. If the regenerated reference puts SFLD at 8-9,
+   chrX reaches 0 order mismatches and the only remaining gap is defect D.
+3. If a regenerated reference still differs, the DOMAINS order for such transcripts is not
+   reproducible from the cache and should be recorded as an accepted difference, not chased.
+4. Independently: the comparison summary should surface `field_order_mismatch_counts`. A run that
+   prints "Fields at 100%: 123/124, Total mismatches: 1" while five records differ on disk is
+   actively misleading, and is why this class went unnoticed in the original handover.
