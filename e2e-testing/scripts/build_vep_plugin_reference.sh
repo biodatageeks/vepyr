@@ -58,7 +58,20 @@ fetch_slice() {
   if [[ -s "$output" && -s "$output.tbi" ]] && \
       tabix -l "$output" | grep -Fxq "$region"; then
     if [[ -z "$want" ]]; then
-      echo "Reusing slice (source identity unavailable): $output"
+      # No SOURCE_BASE at all means slices were supplied by hand and there is
+      # nothing to verify against -- that is a declared mode, and the sidecar
+      # records "unavailable". A configured server that merely failed to answer
+      # is different: reusing blind would let connectivity recover before
+      # plugin_provenance() runs, which would then stamp the current identity
+      # onto output cut from a stale slice -- exactly the false witness the
+      # identity record exists to prevent.
+      if [[ -n "$SOURCE_BASE" ]]; then
+        echo "ERROR: cannot reach $SOURCE_BASE to verify $output" >&2
+        echo "       Refusing to reuse a slice whose currency cannot be established." >&2
+        echo "       Retry when the source server is reachable, or delete the slice." >&2
+        exit 1
+      fi
+      echo "Reusing slice (no source server configured): $output"
       return
     fi
     if [[ -s "$output.identity" && "$(cat "$output.identity")" == "$want" ]]; then
