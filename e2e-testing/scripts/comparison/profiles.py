@@ -49,6 +49,12 @@ class Profile:
     annotate_kwargs: dict = field(default_factory=dict)
     ignore_csq_order: bool = False
     plugins: tuple = ()
+    # Plugin references are generated one file per contig, under output/
+    # {release_dir}/plugins/, rather than as a single WGS reference. When set,
+    # this template (with {chrom}) and subdir locate them; vep_basename stays
+    # as the profile's identity for reports and summaries.
+    vep_per_contig: str = ""
+    vep_subdir: str = ""
 
 
 _PICK = {"pick_order": VEP_PICK_ORDER}
@@ -59,6 +65,14 @@ _ALL_PLUGINS = ("ClinVar", "SpliceAI", "CADD", "AlphaMissense", "dbNSFP")
 _PLUGIN_REFERENCE = (
     "HG002_annotated_wgs_everything_hgvs_merged_clinvar_spliceai_cadd_am_dbnsfp"
 )
+# What generate_vep_plugin_references.sh actually writes, per contig.
+_PLUGIN_PER_CONTIG = "HG002_chr{chrom}_5plugins_vep116_caddfix"
+
+
+def plugin_reference_basename():
+    """The reference basename shared by every plugin comparison profile."""
+    return _PLUGIN_REFERENCE
+
 
 PROFILES = {
     "ensembl": Profile(
@@ -125,11 +139,15 @@ PROFILES = {
         vep_basename=_PLUGIN_REFERENCE,
         suffix="merged_plugins",
         plugins=_ALL_PLUGINS,
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
     ),
     "merged_plugins_base": Profile(
         flavour="merged",
         vep_basename=_PLUGIN_REFERENCE,
         suffix="merged_plugins_base",
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
     ),
     "merged_pick_allele_gene": Profile(
         flavour="merged",
@@ -242,18 +260,49 @@ def raw_cache_dir_for(cache_type, release):
     return candidates[0]
 
 
-def vep_vcf_for(profile_name, release):
-    """Return the reference path, preferring .vcf.gz, or None if neither exists."""
-    base = os.path.join(
-        data_dir(),
-        "output",
-        RELEASE_DIRS[release],
-        PROFILES[profile_name].vep_basename,
-    )
+def _first_existing(base):
     for candidate in (base + ".vcf.gz", base + ".vcf"):
         if os.path.exists(candidate):
             return candidate
     return None
+
+
+def vep_per_contig_vcf_for(profile_name, release, chrom):
+    """Return one contig's plugin reference, or None when it does not exist."""
+    profile = PROFILES[profile_name]
+    if not profile.vep_per_contig:
+        return None
+    bare = str(chrom)[3:] if str(chrom).startswith("chr") else str(chrom)
+    return _first_existing(
+        os.path.join(
+            data_dir(),
+            "output",
+            RELEASE_DIRS[release],
+            profile.vep_subdir,
+            profile.vep_per_contig.format(chrom=bare),
+        )
+    )
+
+
+def vep_vcf_for(profile_name, release, chrom=None):
+    """Return the reference path, preferring .vcf.gz, or None if neither exists.
+
+    Plugin profiles have no single WGS reference: generate_vep_plugin_references.sh
+    writes one file per contig. With a contig, resolve that file; without one,
+    report the first contig that exists so availability still answers truthfully.
+    """
+    profile = PROFILES[profile_name]
+    if profile.vep_per_contig:
+        if chrom is not None:
+            return vep_per_contig_vcf_for(profile_name, release, chrom)
+        for candidate_chrom in range(1, 23):
+            found = vep_per_contig_vcf_for(profile_name, release, candidate_chrom)
+            if found:
+                return found
+        return None
+    return _first_existing(
+        os.path.join(data_dir(), "output", RELEASE_DIRS[release], profile.vep_basename)
+    )
 
 
 def availability_table():
@@ -290,6 +339,7 @@ def resolve(
     *,
     require_cache=True,
     require_reference=True,
+    chrom=None,
 ):
     """Resolve a profile and release to concrete paths, or raise ProfileUnavailable.
 
@@ -310,7 +360,19 @@ def resolve(
 
     profile = PROFILES[profile_name]
     resolved_cache = cache_dir or cache_dir_for(profile_name, release)
-    resolved_ref = vep_vcf or vep_vcf_for(profile_name, release)
+    if vep_vcf:
+        resolved_ref = vep_vcf
+    elif profile.vep_per_contig and chrom is None:
+        # Each contig is a separate file, so there is nothing to slice a
+        # multi-contig run out of. Say so instead of reporting "unavailable".
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} uses per-contig references "
+            f"({profile.vep_per_contig.format(chrom='N')}.vcf.gz under "
+            f"output/{RELEASE_DIRS[release]}/{profile.vep_subdir}/). "
+            "Request a single contig with --chroms, or pass --vep explicitly."
+        )
+    else:
+        resolved_ref = vep_vcf_for(profile_name, release, chrom)
     resolved_plugin_cache = None
     if profile.plugins:
         resolved_plugin_cache = plugin_cache_root or plugin_cache_dir_for(release)

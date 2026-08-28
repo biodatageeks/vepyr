@@ -186,6 +186,15 @@ def test_default_input_returns_the_preferred_path_when_neither_exists(
     assert profiles.default_input("ref.fa") == str(tmp_path / "input" / "ref.fa")
 
 
+def _write_plugin_reference(tmp_path, chrom=22):
+    """Create the per-contig plugin reference generate_vep_plugin_references.sh writes."""
+    ref_dir = tmp_path / "output" / "116" / "plugins"
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    name = profiles.PROFILES["merged_plugins"].vep_per_contig.format(chrom=chrom)
+    (ref_dir / f"{name}.vcf.gz").write_text("")
+    return ref_dir / f"{name}.vcf.gz"
+
+
 def test_plugin_profile_resolves_and_injects_the_plugin_cache_root(
     tmp_path, monkeypatch
 ):
@@ -193,12 +202,9 @@ def test_plugin_profile_resolves_and_injects_the_plugin_cache_root(
     (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
     plugin_cache = tmp_path / "cache" / "plugin_cache_116"
     plugin_cache.mkdir(parents=True)
-    ref_dir = tmp_path / "output" / "116"
-    ref_dir.mkdir(parents=True)
-    basename = profiles.PROFILES["merged_plugins"].vep_basename
-    (ref_dir / f"{basename}.vcf.gz").write_text("")
+    _write_plugin_reference(tmp_path)
 
-    resolved = profiles.resolve("merged_plugins", "116")
+    resolved = profiles.resolve("merged_plugins", "116", chrom=22)
 
     assert resolved.plugin_cache_root == str(plugin_cache)
     assert resolved.annotate_kwargs["plugin_cache_root"] == str(plugin_cache)
@@ -207,13 +213,10 @@ def test_plugin_profile_resolves_and_injects_the_plugin_cache_root(
 def test_plugin_profile_fails_when_the_plugin_cache_is_missing(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
-    ref_dir = tmp_path / "output" / "116"
-    ref_dir.mkdir(parents=True)
-    basename = profiles.PROFILES["merged_plugins"].vep_basename
-    (ref_dir / f"{basename}.vcf.gz").write_text("")
+    _write_plugin_reference(tmp_path)
 
     with pytest.raises(profiles.ProfileUnavailable) as excinfo:
-        profiles.resolve("merged_plugins", "116")
+        profiles.resolve("merged_plugins", "116", chrom=22)
     assert "plugin_cache_116" in str(excinfo.value)
 
 
@@ -223,14 +226,12 @@ def test_plugin_base_profile_shares_the_reference_but_attaches_no_plugins(
     """The base variant isolates core-field differences against the same reference."""
     monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
-    ref_dir = tmp_path / "output" / "116"
-    ref_dir.mkdir(parents=True)
+    _write_plugin_reference(tmp_path)
     basename = profiles.PROFILES["merged_plugins_base"].vep_basename
-    (ref_dir / f"{basename}.vcf.gz").write_text("")
 
     assert basename == profiles.PROFILES["merged_plugins"].vep_basename
 
-    resolved = profiles.resolve("merged_plugins_base", "116")
+    resolved = profiles.resolve("merged_plugins_base", "116", chrom=22)
     assert resolved.plugin_cache_root is None
     assert "plugin_cache_root" not in resolved.annotate_kwargs
 
@@ -247,3 +248,29 @@ def test_explicit_plugin_cache_override_skips_derivation(tmp_path, monkeypatch):
         "merged_plugins", "116", vep_vcf=str(ref), plugin_cache_root=str(custom)
     )
     assert resolved.annotate_kwargs["plugin_cache_root"] == str(custom)
+
+
+def test_plugin_profile_without_a_contig_explains_the_per_contig_layout():
+    """Plugin references are one file per contig, so there is nothing to slice.
+
+    Previously the profile declared a single WGS basename that the generator
+    never writes, so the documented command reported the profile "unavailable"
+    even with every generated reference present.
+    """
+    with pytest.raises(profiles.ProfileUnavailable) as excinfo:
+        profiles.resolve("merged_plugins", "116")
+
+    message = str(excinfo.value)
+    assert "per-contig" in message
+    assert "--chroms" in message and "--vep" in message
+
+
+def test_plugin_reference_resolves_from_the_generated_location(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    written = _write_plugin_reference(tmp_path, chrom=7)
+
+    assert profiles.vep_vcf_for("merged_plugins", "116", chrom=7) == str(written)
+    assert profiles.vep_vcf_for("merged_plugins", "116", chrom="chr7") == str(written)
+    # With no contig, availability still answers truthfully.
+    assert profiles.vep_vcf_for("merged_plugins", "116") == str(written)
+    assert profiles.vep_vcf_for("merged_plugins", "116", chrom=9) is None
