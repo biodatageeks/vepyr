@@ -89,11 +89,29 @@ kill_tree() {
   kill "$pid" 2>/dev/null || true
 }
 
+# Builders are launched under `set -m`, so each is its own process-group
+# leader and one signal reaches the whole tree. `wait` cannot help confirm
+# that: it reaps only the recorded child, never its descendants, so a
+# descendant that handles TERM slowly -- or forks during the kill_tree walk --
+# could outlive the call and write a shard after cleanup. Poll the group until
+# it is genuinely gone, escalating to KILL.
 terminate_builders() {
-  local pid
+  local pid deadline
   [[ -z "$CURRENT_PIDS" ]] && return 0
-  for pid in $CURRENT_PIDS; do kill_tree "$pid"; done
-  for pid in $CURRENT_PIDS; do wait "$pid" 2>/dev/null || true; done
+  for pid in $CURRENT_PIDS; do
+    kill -TERM -- "-$pid" 2>/dev/null || kill_tree "$pid"
+  done
+  for pid in $CURRENT_PIDS; do
+    deadline=$((SECONDS + 10))
+    while kill -0 -- "-$pid" 2>/dev/null; do
+      if (( SECONDS >= deadline )); then
+        kill -KILL -- "-$pid" 2>/dev/null || true
+        deadline=$((SECONDS + 5))
+      fi
+      sleep 0.2
+    done
+    wait "$pid" 2>/dev/null || true
+  done
   CURRENT_PIDS=""
   return 0
 }
@@ -277,28 +295,48 @@ build_transient_caches() {
   local chrom="$1" work="$2" pid failed plugin
   local pids=""
 
+  CURRENT_PIDS=""
   # These three builders have low measured peak RSS and write independent
   # manifests, so running them together is safe on the 64 GiB host.
+  # `set -m` puts each in its own process group; see terminate_builders().
+  set -m
   for plugin in clinvar alphamissense dbnsfp; do
     if shard_present "$chrom" "$plugin"; then
       echo "SKIP_BUILD chr$chrom $plugin (already cached)"
       continue
     fi
-    "build_$plugin" "$chrom" "$work" & pids="$pids $!"
+    "build_$plugin" "$chrom" "$work" &
+    # Publish before starting the next one: a signal arriving mid-loop would
+    # otherwise find CURRENT_PIDS still holding the pre-loop value and reap
+    # nothing, leaving a live builder to write after cleanup.
+    CURRENT_PIDS="$CURRENT_PIDS $!"
+    pids="$pids $!"
   done
-  CURRENT_PIDS="$pids"
+  set +m
   failed=0
   for pid in $pids; do wait "$pid" || failed=1; done
   CURRENT_PIDS=""
   [[ "$failed" -eq 0 ]] || return 1
 
-  # SpliceAI and CADD are each memory-heavy; keep them sequential.
+  # SpliceAI and CADD are each memory-heavy; keep them sequential. They run
+  # backgrounded-then-waited rather than in the foreground so they are tracked
+  # like the others, and so a signal during a long CADD build is handled at
+  # once instead of after it finishes.
   for plugin in spliceai cadd; do
     if shard_present "$chrom" "$plugin"; then
       echo "SKIP_BUILD chr$chrom $plugin (already cached)"
       continue
     fi
-    "build_$plugin" "$chrom" "$work"
+    set -m
+    "build_$plugin" "$chrom" "$work" &
+    pid=$!
+    CURRENT_PIDS="$pid"
+    set +m
+    if ! wait "$pid"; then
+      CURRENT_PIDS=""
+      return 1
+    fi
+    CURRENT_PIDS=""
   done
 }
 
