@@ -116,8 +116,16 @@ if [[ ! -f "$NORM" ]]; then
   fi
   [[ -f "$BENCHMARK" ]] || { echo "ERROR: benchmark VCF not found: $BENCHMARK" >&2; exit 1; }
   mkdir -p "$(dirname "$NORM")"
-  bcftools norm -m -both -Oz -o "$NORM" "$BENCHMARK"
-  tabix -f -p vcf "$NORM"
+  # generate_vep_plugin_references.sh runs VEP_REFERENCE_JOBS chromosomes at
+  # once, and on a fresh data root every one of them reaches this branch. Build
+  # under a unique name and publish atomically so concurrent jobs cannot write
+  # the same file, or read a half-written one. The index is moved into place
+  # first: $NORM appearing is what the existence check above keys on.
+  norm_tmp="${NORM}.tmp.$$"
+  bcftools norm -m -both -Oz -o "$norm_tmp" "$BENCHMARK"
+  tabix -f -p vcf "$norm_tmp"
+  mv -f "$norm_tmp.tbi" "$NORM.tbi"
+  mv -f "$norm_tmp" "$NORM"
 fi
 IN="$WORK/input/HG002_norm_chr${CHROM}.vcf.gz"
 { tabix -H "$NORM"; tabix "$NORM" "chr${CHROM}"; } | bgzip -c > "$IN"
@@ -187,6 +195,21 @@ MutationTaster_score,MutationTaster_pred,PROVEAN_score,PROVEAN_pred,VEST4_score,
 MetaSVM_score,MetaSVM_pred,MetaLR_score,MetaLR_pred,REVEL_score,GERP++_RS,\
 phyloP100way_vertebrate,phastCons100way_vertebrate,CADD_raw,CADD_phred"
 
+# Only $DATA is mounted at /data, so a work/output directory outside it is
+# invisible to VEP. Stripping the prefix off such a path is a no-op and yields
+# "/data//abs/host/path", which VEP reports as a missing input rather than as
+# the configuration error it is. Translate through here and fail loudly.
+docker_path() {
+  local label="$1" path="$2" rel
+  rel="${path#"$DATA/"}"
+  if [[ "$rel" == "$path" ]]; then
+    echo "ERROR: $label must live under \$DATA ($DATA) so the VEP container can reach it." >&2
+    echo "       got: $path" >&2
+    return 1
+  fi
+  printf '/data/%s\n' "$rel"
+}
+
 OUT="${VEP_OUTPUT_VCF:-$WORK/output/HG002_chr${CHROM}_5plugins_vep116_caddfix.vcf}"
 
 # ---------------------------------------------------------------------------
@@ -199,19 +222,23 @@ OUT="${VEP_OUTPUT_VCF:-$WORK/output/HG002_chr${CHROM}_5plugins_vep116_caddfix.vc
 #
 # NOTE: `--database 0` appears in VEP's own ##VEP-command-line header but is
 # NOT valid input (it parses as a stray positional). `--offline` covers it.
+IN_C="$(docker_path "the input VCF (work dir / VEP_NORMALIZED_VCF)" "$IN")"
+OUT_C="$(docker_path "the output VCF (VEP_OUTPUT_VCF)" "$OUT")"
+SLICES_C="$(docker_path "the plugin slices directory (work dir)" "$SLICES")"
+
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$DATA":/data -v "$PLUGIN_DIR":/plugins:ro "$IMAGE" \
   vep --cache --cache_version 116 --dir_cache /data --offline --merged \
       --everything --no_stats --force_overwrite --vcf \
       --fasta /data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
-      --input_file "/data/${IN#"$DATA/"}" \
-      --output_file "/data/${OUT#"$DATA/"}" \
+      --input_file "$IN_C" \
+      --output_file "$OUT_C" \
       --dir_plugins /plugins \
-      --custom "/data/${SLICES#"$DATA/"}/clinvar_chr${CHROM}.vcf.gz,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN,CLNVC,CLNVI" \
-      --plugin "SpliceAI,snv=/data/${SLICES#"$DATA/"}/spliceai_chr${CHROM}.vcf.gz,indel=/data/${SLICES#"$DATA/"}/spliceai_chr${CHROM}.vcf.gz" \
-      --plugin "CADD,snv=/data/${SLICES#"$DATA/"}/cadd_snv_chr${CHROM}.tsv.gz,indels=/data/${SLICES#"$DATA/"}/cadd_indel_chr${CHROM}.tsv.gz" \
-      --plugin "AlphaMissense,file=/data/${SLICES#"$DATA/"}/alphamissense_chr${CHROM}.tsv.gz" \
-      --plugin "dbNSFP,/data/${SLICES#"$DATA/"}/dbNSFP5.3.1a_grch38_chr${CHROM}.gz,$DBNSFP_COLS"
+      --custom "$SLICES_C/clinvar_chr${CHROM}.vcf.gz,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN,CLNVC,CLNVI" \
+      --plugin "SpliceAI,snv=$SLICES_C/spliceai_chr${CHROM}.vcf.gz,indel=$SLICES_C/spliceai_chr${CHROM}.vcf.gz" \
+      --plugin "CADD,snv=$SLICES_C/cadd_snv_chr${CHROM}.tsv.gz,indels=$SLICES_C/cadd_indel_chr${CHROM}.tsv.gz" \
+      --plugin "AlphaMissense,file=$SLICES_C/alphamissense_chr${CHROM}.tsv.gz" \
+      --plugin "dbNSFP,$SLICES_C/dbNSFP5.3.1a_grch38_chr${CHROM}.gz,$DBNSFP_COLS"
 
 # ---------------------------------------------------------------------------
 # 4. Index, and check the plugin fields actually landed
