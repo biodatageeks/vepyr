@@ -189,6 +189,20 @@ reference_sources_current() {
     echo "NOTE: $(basename "$reference") records no source identities; unverified" >&2
     return 0
   }
+  # The sidecar records the plugin code as well as the data. Checking only the
+  # SOURCE half would accept a reference built with the wrong CADD.pm whenever
+  # the corpus happened to be unchanged -- an artifact the generator refuses.
+  local expected_plugins
+  expected_plugins="$(sed -n 's/^verify_plugin \([A-Za-z]*\) \([0-9a-f]\{64\}\)$/PLUGIN \1 \2/p' \
+    "$SCRIPT_DIR/build_vep_plugin_reference.sh")"
+  if [[ -n "$expected_plugins" ]]; then
+    if ! diff -q <(grep '^PLUGIN ' "$sidecar" | sort) \
+        <(printf '%s\n' "$expected_plugins" | sort) >/dev/null; then
+      echo "ERROR: $(basename "$reference") was built with different plugin code" >&2
+      return 1
+    fi
+  fi
+
   current="$(all_source_identities "$SOURCE_BASE" 2>/dev/null)" || {
     echo "NOTE: cannot reach $SOURCE_BASE; source currency unverified" >&2
     return 0
@@ -196,10 +210,44 @@ reference_sources_current() {
   diff -q <(grep '^SOURCE ' "$sidecar" | sort) <(printf '%s\n' "$current" | sort) >/dev/null
 }
 
+# A shard is reusable only while the sources it was built from are still what
+# the server holds. Without this, a chromosome whose five shards predate a
+# rolling ClinVar takes the CACHE_REUSE path and the comparison reports
+# stale-cache data as a vepyr mismatch. The reference check covers the golden
+# side only; this covers ours.
+#
+# No record means a shard built before this existed -- including the whole
+# published cache -- so that warns rather than forces a 97 GiB rebuild. A
+# record that no longer matches is stale, and the shard is rebuilt.
+shard_current() {
+  local chrom="$1" plugin="$2"
+  local shard="$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet"
+  local record="$shard.sources"
+  local current
+  [[ -s "$record" ]] || {
+    echo "NOTE: $plugin chr$chrom has no source record; currency unverified" >&2
+    return 0
+  }
+  current="$(plugin_source_identities "$SOURCE_BASE" "$plugin" 2>/dev/null)" || {
+    echo "NOTE: cannot reach $SOURCE_BASE; $plugin chr$chrom currency unverified" >&2
+    return 0
+  }
+  diff -q <(sort "$record") <(printf '%s\n' "$current" | sort) >/dev/null
+}
+
+shard_present() {
+  local chrom="$1" plugin="$2"
+  [[ -s "$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet" ]] || return 1
+  shard_current "$chrom" "$plugin" || {
+    echo "STALE $plugin chr$chrom: built from different source data; rebuilding" >&2
+    return 1
+  }
+}
+
 cache_complete() {
   local chrom="$1" plugin
   for plugin in $PLUGINS; do
-    [[ -s "$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet" ]] || return 1
+    shard_present "$chrom" "$plugin" || return 1
   done
 }
 
@@ -273,6 +321,14 @@ result = vepyr.build_plugin_cache(
 print(result)
 ' "$plugin" "$version" "$source" "$CACHE_DIR" "$PLUGIN_CACHE" "$chrom" "$PLUGIN_REPO"
   ) >"$log" 2>&1
+  # Record what this shard was built from, so a later run can tell whether it
+  # is still current rather than assuming a file on disk is.
+  local record="$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet.sources"
+  if [[ -n "$SOURCE_BASE" ]] && plugin_source_identities "$SOURCE_BASE" "$plugin" > "$record.tmp.$$" 2>/dev/null; then
+    mv -f "$record.tmp.$$" "$record"
+  else
+    rm -f "$record.tmp.$$" "$record"
+  fi
   echo "CACHE_DONE chr$chrom $plugin $(tail -1 "$log")"
 }
 
@@ -322,11 +378,6 @@ build_cadd() {
   mv "$partial" "$source"
   build_cache "$chrom" cadd "$source"
   unlink "$source"
-}
-
-shard_present() {
-  local chrom="$1" plugin="$2"
-  [[ -s "$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet" ]]
 }
 
 # cache_complete() is all-or-nothing, so one missing plugin used to rebuild all

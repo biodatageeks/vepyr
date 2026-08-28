@@ -53,3 +53,35 @@ all_source_identities() {
   done
   printf '%s\n' "${lines[@]}"
 }
+
+# Which remote sources each plugin's cache shard is built from. A shard is only
+# reusable while these still match, so the mapping lives beside the identity
+# helper rather than being restated per script.
+plugin_source_paths() {
+  case "$1" in
+    clinvar) printf '%s\n' "clinvar/clinvar.vcf.gz" ;;
+    spliceai) printf '%s\n' "spliceai/spliceai_scores.masked.snv.ensembl_mane.grch38.110.vcf.gz" ;;
+    alphamissense) printf '%s\n' "alphamissense/AlphaMissense_hg38.bgz.tsv.gz" ;;
+    dbnsfp) printf '%s\n' "dbnsfp/dbNSFP5.3.1a_grch38.gz" ;;
+    cadd)
+      printf '%s\n' "cadd/whole_genome_SNVs.tsv.gz"
+      printf '%s\n' "cadd/gnomad.genomes.r4.0.indel.tsv.gz"
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+# plugin_source_identities <base_url> <plugin> -- all or nothing, as above.
+plugin_source_identities() {
+  local base="$1" plugin="$2" path line
+  local -a paths=() lines=()
+  while IFS= read -r path; do
+    paths+=("$path")
+  done < <(plugin_source_paths "$plugin") || return 1
+  [[ ${#paths[@]} -gt 0 ]] || return 1
+  for path in "${paths[@]}"; do
+    line="$(source_identity "$base" "$path")" || return 1
+    lines+=("SOURCE $line")
+  done
+  printf '%s\n' "${lines[@]}"
+}
