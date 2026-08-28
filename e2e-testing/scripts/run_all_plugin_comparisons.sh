@@ -25,12 +25,24 @@ WORKERS="${VEP_COMPARISON_WORKERS:-4}"
 PLUGINS="clinvar alphamissense dbnsfp spliceai cadd"
 mkdir -p "$WORK_ROOT" "$LOG_DIR"
 
-for tool in bgzip curl git tabix uv; do
+for tool in git uv; do
   command -v "$tool" >/dev/null || { echo "ERROR: missing required tool: $tool" >&2; exit 1; }
 done
 [[ -d "$CACHE_DIR/variation" ]] || { echo "ERROR: missing variation cache: $CACHE_DIR" >&2; exit 1; }
 [[ -d "$PLUGIN_REPO/.git" ]] || { echo "ERROR: missing plugin repo: $PLUGIN_REPO" >&2; exit 1; }
-curl --fail --silent --show-error --head "$SOURCE_BASE/clinvar/clinvar.vcf.gz" >/dev/null
+
+# Validate the requested chromosomes before anything reads them, so a typo
+# reports itself rather than surfacing as a missing-shard or source-server
+# error further down.
+for chrom in $CHROMS; do
+  case "$chrom" in
+    ''|*[!0-9]*) echo "ERROR: invalid chromosome: $chrom" >&2; exit 1 ;;
+  esac
+  if (( chrom < 1 || chrom > 22 )); then
+    echo "ERROR: chromosome out of range: $chrom" >&2
+    exit 1
+  fi
+done
 
 manifest_snapshot="$(mktemp -d "$WORK_ROOT/manifests.XXXXXX")"
 for plugin in $PLUGINS; do
@@ -64,6 +76,23 @@ cache_complete() {
     [[ -s "$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet" ]] || return 1
   done
 }
+
+# Slicing tools and the source server are needed only when a requested
+# chromosome is missing from the cache.  With a complete cache every iteration
+# takes the CACHE_REUSE path and never opens a source, so probing for them up
+# front would fail a run that needs nothing they provide.
+needs_sources=0
+for chrom in $CHROMS; do
+  cache_complete "$chrom" || { needs_sources=1; break; }
+done
+if (( needs_sources )); then
+  for tool in bgzip curl tabix; do
+    command -v "$tool" >/dev/null || { echo "ERROR: missing required tool: $tool" >&2; exit 1; }
+  done
+  curl --fail --silent --show-error --head "$SOURCE_BASE/clinvar/clinvar.vcf.gz" >/dev/null
+else
+  echo "PREFLIGHT all requested chromosomes cached; skipping source-server checks"
+fi
 
 slice_bgzf() {
   local work="$1" remote="$2" region="$3" output="$4" preset="$5"
@@ -246,14 +275,6 @@ remove_transient_caches() {
 }
 
 for chrom in $CHROMS; do
-  case "$chrom" in
-    ''|*[!0-9]*) echo "ERROR: invalid chromosome: $chrom" >&2; exit 1 ;;
-  esac
-  if (( chrom < 1 || chrom > 22 )); then
-    echo "ERROR: chromosome out of range: $chrom" >&2
-    exit 1
-  fi
-
   echo "CHROM_START chr$chrom $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   transient=0
   work=""
