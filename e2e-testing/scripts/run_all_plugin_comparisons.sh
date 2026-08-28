@@ -11,7 +11,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-DATA_ROOT="${VEPYR_DATA_ROOT:-/Users/mwiewior/workspace/data_vepyr}"
+DATA_ROOT="${VEPYR_DATA_ROOT:-${DATA_VEPYR_DIR:-/Users/mwiewior/workspace/data_vepyr}}"
+# The comparison CLI resolves its input VCF, FASTA and core cache from
+# DATA_VEPYR_DIR, not from this script's variable.  Export it so overriding the
+# runner's root moves every path, not only the two passed as explicit flags.
+export DATA_VEPYR_DIR="$DATA_ROOT"
 CACHE_DIR="${VEPYR_CACHE_DIR:-$DATA_ROOT/cache/116_GRCh38_merged}"
 PLUGIN_CACHE="${VEPYR_PLUGIN_CACHE:-$DATA_ROOT/plugin_cache}"
 PLUGIN_REPO="${VEPYR_PLUGIN_REPO:-/Users/mwiewior/workspace/vepyr-plugins}"
@@ -59,7 +63,27 @@ restore_manifests() {
     fi
   done
 }
-trap restore_manifests EXIT INT TERM
+# State for the chromosome currently in flight, so an early exit under `set -e`
+# cleans up after it.  Restoring manifests alone would leave orphaned shards
+# that a later cache_complete() -- which only tests file existence -- would
+# happily reuse against a manifest that no longer describes them.
+CURRENT_CHROM=""
+CURRENT_WORK=""
+CURRENT_TRANSIENT=0
+CURRENT_KEEP=""
+
+cleanup_on_exit() {
+  if [[ "$CURRENT_TRANSIENT" -eq 1 && -n "$CURRENT_CHROM" ]]; then
+    echo "CLEANUP chr$CURRENT_CHROM removing transient artifacts" >&2
+    remove_transient_caches "$CURRENT_CHROM" "$CURRENT_KEEP" || true
+    if [[ -n "$CURRENT_WORK" && -d "$CURRENT_WORK" ]]; then
+      find "$CURRENT_WORK" -depth -delete || true
+    fi
+    CURRENT_TRANSIENT=0
+  fi
+  restore_manifests
+}
+trap cleanup_on_exit EXIT INT TERM
 
 plugin_version() {
   case "$1" in
@@ -265,11 +289,30 @@ run_comparison() {
   return 0
 }
 
-remove_transient_caches() {
+# cache_complete() demands all five shards, so a chromosome missing even one
+# rebuilds all five with overwrite=True.  Deleting all five afterwards would
+# destroy the four that were already there -- expensive, and the opposite of
+# what this script's header promises.  Record what existed at startup and keep
+# exactly those paths.
+preexisting_shards() {
   local chrom="$1" plugin shard
   for plugin in $PLUGINS; do
     shard="$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet"
-    [[ -f "$shard" ]] && unlink "$shard"
+    [[ -f "$shard" ]] && printf '%s\n' "$shard"
+  done
+  return 0
+}
+
+remove_transient_caches() {
+  local chrom="$1" keep="${2:-}" plugin shard
+  for plugin in $PLUGINS; do
+    shard="$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet"
+    [[ -f "$shard" ]] || continue
+    if [[ -n "$keep" && -f "$keep" ]] && grep -qxF "$shard" "$keep"; then
+      echo "KEEP_PREEXISTING $shard"
+      continue
+    fi
+    unlink "$shard"
   done
   restore_manifests
 }
@@ -278,10 +321,20 @@ for chrom in $CHROMS; do
   echo "CHROM_START chr$chrom $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   transient=0
   work=""
+  keep=""
+  CURRENT_CHROM="$chrom"
+  CURRENT_WORK=""
+  CURRENT_TRANSIENT=0
+  CURRENT_KEEP=""
   if ! cache_complete "$chrom"; then
     transient=1
     work="$(mktemp -d "$WORK_ROOT/chr${chrom}.XXXXXX")"
-    echo "WORK chr$chrom $work"
+    keep="$work/preexisting_shards.txt"
+    preexisting_shards "$chrom" > "$keep"
+    CURRENT_WORK="$work"
+    CURRENT_KEEP="$keep"
+    CURRENT_TRANSIENT=1
+    echo "WORK chr$chrom $work (preserving $(wc -l < "$keep" | tr -d ' ') pre-existing shard(s))"
     build_transient_caches "$chrom" "$work"
   else
     echo "CACHE_REUSE chr$chrom"
@@ -290,9 +343,11 @@ for chrom in $CHROMS; do
   run_comparison "$chrom"
 
   if [[ "$transient" -eq 1 ]]; then
-    remove_transient_caches "$chrom"
+    remove_transient_caches "$chrom" "$keep"
     find "$work" -depth -delete
+    CURRENT_TRANSIENT=0
   fi
+  CURRENT_CHROM=""
   echo "CHROM_DONE chr$chrom $(date -u '+%Y-%m-%dT%H:%M:%SZ') free=$(df -h "$DATA_ROOT" | awk 'NR==2 {print $4}')"
 done
 
