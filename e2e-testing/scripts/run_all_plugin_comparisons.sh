@@ -77,10 +77,22 @@ CURRENT_PIDS=""
 # running must reap them BEFORE anything is deleted. Otherwise a builder
 # recreates its shard or manifest after cleanup has run, which is precisely the
 # orphaned state the cleanup exists to prevent.
+# A builder PID is the outer `build_x ... &` subshell; the work happens in
+# nested subshells running tabix, bgzip and `uv run python`. Killing only the
+# outer shell orphans those, and an orphan can still write a shard after
+# cleanup. Walk the tree depth-first so children die before their parent.
+kill_tree() {
+  local pid="$1" child
+  for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+    kill_tree "$child"
+  done
+  kill "$pid" 2>/dev/null || true
+}
+
 terminate_builders() {
   local pid
   [[ -z "$CURRENT_PIDS" ]] && return 0
-  for pid in $CURRENT_PIDS; do kill "$pid" 2>/dev/null || true; done
+  for pid in $CURRENT_PIDS; do kill_tree "$pid"; done
   for pid in $CURRENT_PIDS; do wait "$pid" 2>/dev/null || true; done
   CURRENT_PIDS=""
   return 0
@@ -250,15 +262,30 @@ build_cadd() {
   unlink "$source"
 }
 
+shard_present() {
+  local chrom="$1" plugin="$2"
+  [[ -s "$PLUGIN_CACHE/plugin/$plugin/chr${chrom}.parquet" ]]
+}
+
+# cache_complete() is all-or-nothing, so one missing plugin used to rebuild all
+# five -- overwriting the four already on disk. Recording their paths does not
+# save them: preservation keeps the path, so what survives cleanup is the
+# rebuilt file, left paired with the metadata restore_manifests() puts back.
+# Build only what is genuinely absent; then the kept shard really is the
+# original, and it still matches its manifest.
 build_transient_caches() {
-  local chrom="$1" work="$2" pid failed
+  local chrom="$1" work="$2" pid failed plugin
   local pids=""
 
   # These three builders have low measured peak RSS and write independent
   # manifests, so running them together is safe on the 64 GiB host.
-  build_clinvar "$chrom" "$work" & pids="$pids $!"
-  build_alphamissense "$chrom" "$work" & pids="$pids $!"
-  build_dbnsfp "$chrom" "$work" & pids="$pids $!"
+  for plugin in clinvar alphamissense dbnsfp; do
+    if shard_present "$chrom" "$plugin"; then
+      echo "SKIP_BUILD chr$chrom $plugin (already cached)"
+      continue
+    fi
+    "build_$plugin" "$chrom" "$work" & pids="$pids $!"
+  done
   CURRENT_PIDS="$pids"
   failed=0
   for pid in $pids; do wait "$pid" || failed=1; done
@@ -266,8 +293,13 @@ build_transient_caches() {
   [[ "$failed" -eq 0 ]] || return 1
 
   # SpliceAI and CADD are each memory-heavy; keep them sequential.
-  build_spliceai "$chrom" "$work"
-  build_cadd "$chrom" "$work"
+  for plugin in spliceai cadd; do
+    if shard_present "$chrom" "$plugin"; then
+      echo "SKIP_BUILD chr$chrom $plugin (already cached)"
+      continue
+    fi
+    "build_$plugin" "$chrom" "$work"
+  done
 }
 
 run_comparison() {
