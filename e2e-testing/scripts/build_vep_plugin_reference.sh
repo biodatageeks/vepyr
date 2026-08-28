@@ -45,10 +45,27 @@ fetch_slice() {
   local output="$3"
   local kind="$4"
 
+  # A slice indexed for the right contig is not necessarily current: rolling
+  # sources keep their filename. Reusing a stale one would be recorded by
+  # plugin_provenance() as having been built from the *current* corpus, so the
+  # sidecar would vouch for data the reference never saw. Bind reuse to the
+  # identity the slice was actually cut from.
+  local want=""
+  if [[ -n "$SOURCE_BASE" ]]; then
+    want="$(source_identity "$SOURCE_BASE" "$remote_path" 2>/dev/null || true)"
+  fi
+
   if [[ -s "$output" && -s "$output.tbi" ]] && \
       tabix -l "$output" | grep -Fxq "$region"; then
-    echo "Reusing slice: $output"
-    return
+    if [[ -z "$want" ]]; then
+      echo "Reusing slice (source identity unavailable): $output"
+      return
+    fi
+    if [[ -s "$output.identity" && "$(cat "$output.identity")" == "$want" ]]; then
+      echo "Reusing slice: $output"
+      return
+    fi
+    echo "Re-slicing $output: source changed since it was cut"
   fi
 
   if [[ -z "$SOURCE_BASE" ]]; then
@@ -73,6 +90,12 @@ fetch_slice() {
   if ! tabix -l "$output" | grep -Fxq "$region"; then
     echo "ERROR: slice $output contains no indexed region $region" >&2
     exit 1
+  fi
+
+  if [[ -n "$want" ]]; then
+    printf '%s\n' "$want" > "$output.identity"
+  else
+    rm -f "$output.identity"
   fi
 }
 
@@ -245,16 +268,35 @@ normalize_lexical() {
 # Absolute, symlink-free where the path exists, ".."-free always. The leaf need
 # not exist yet.
 canonical_path() {
-  local path dir base
+  local path dir rest resolved
   path="$(normalize_lexical "$1")"
   if [[ -d "$path" ]]; then
     ( cd "$path" 2>/dev/null && pwd -P )
     return
   fi
-  dir="$(dirname "$path")"
-  base="$(basename "$path")"
+  # Walk up to the longest existing ancestor and resolve that, then re-append
+  # the components that do not exist yet. Looking only at the immediate parent
+  # is not enough: with several missing components the parent is absent too,
+  # and returning the lexical path would leave a symlinked ancestor unresolved
+  # -- so "$DATA/link/new/sub", where link points outside $DATA, would still
+  # pass the containment test below.
+  rest=""
+  dir="$path"
+  while [[ "$dir" != "/" && ! -d "$dir" ]]; do
+    if [[ -z "$rest" ]]; then
+      rest="$(basename "$dir")"
+    else
+      rest="$(basename "$dir")/$rest"
+    fi
+    dir="$(dirname "$dir")"
+  done
   if [[ -d "$dir" ]]; then
-    printf '%s/%s\n' "$( cd "$dir" 2>/dev/null && pwd -P )" "$base"
+    resolved="$( cd "$dir" 2>/dev/null && pwd -P )"
+    if [[ "$resolved" == "/" ]]; then
+      printf '/%s\n' "$rest"
+    else
+      printf '%s/%s\n' "$resolved" "$rest"
+    fi
   else
     printf '%s\n' "$path"
   fi
