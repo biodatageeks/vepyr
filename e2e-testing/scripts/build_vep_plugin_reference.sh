@@ -98,9 +98,25 @@ fi
 # here keeps this reference consistent with the rest of the set.
 NORM="${VEP_NORMALIZED_VCF:-$DATA/input/HG002_norm.vcf.gz}"
 if [[ ! -f "$NORM" ]]; then
+  # The documented layout keeps the downloaded benchmark under $DATA/input/;
+  # older data roots have it beside it. Mirror the comparison profiles'
+  # legacy fallback so a fresh standard layout works on the first build.
+  BENCHMARK_NAME="HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
+  BENCHMARK="${VEP_BENCHMARK_VCF:-}"
+  if [[ -z "$BENCHMARK" ]]; then
+    if [[ -f "$DATA/input/$BENCHMARK_NAME" ]]; then
+      BENCHMARK="$DATA/input/$BENCHMARK_NAME"
+    elif [[ -f "$DATA/$BENCHMARK_NAME" ]]; then
+      BENCHMARK="$DATA/$BENCHMARK_NAME"
+      echo "Note: using legacy location $BENCHMARK; move it under input/" >&2
+    else
+      # Name the documented path in the failure, not the legacy one.
+      BENCHMARK="$DATA/input/$BENCHMARK_NAME"
+    fi
+  fi
+  [[ -f "$BENCHMARK" ]] || { echo "ERROR: benchmark VCF not found: $BENCHMARK" >&2; exit 1; }
   mkdir -p "$(dirname "$NORM")"
-  bcftools norm -m -both -Oz -o "$NORM" \
-    "$DATA/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
+  bcftools norm -m -both -Oz -o "$NORM" "$BENCHMARK"
   tabix -f -p vcf "$NORM"
 fi
 IN="$WORK/input/HG002_norm_chr${CHROM}.vcf.gz"
