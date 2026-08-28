@@ -261,7 +261,7 @@ def test_unknown_part_is_an_error(tmp_path):
 def test_dict_requires_every_source_to_declare_a_part(tmp_path):
     """Without a part there is no key to address the source by."""
     repo = _init_full_repo(tmp_path, multi_source=True)  # first source has no part
-    with pytest.raises(ValueError, match="declares\\s+no `part`|no `part`"):
+    with pytest.raises(ValueError, match="no `part`"):
         _build(repo, tmp_path, {"b": str(tmp_path / "b.tsv.gz")})
 
 
