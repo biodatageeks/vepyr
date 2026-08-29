@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import threading
+import warnings
 import tempfile
 import types
 from pathlib import Path
@@ -648,3 +649,226 @@ class TestAnnotate:
             assert bars[0].closed is True
         finally:
             os.unlink(out_path)
+
+
+class _Stop(Exception):
+    """Abort annotate() once the options have been captured."""
+
+
+# --- plugin subset selection ---------------------------------------------
+
+
+def _fake_plugin_root(tmp_path: Path, names: list[str]) -> str:
+    """A plugin cache root with `names` as manifest-bearing directories."""
+    root = tmp_path / "plugin_cache"
+    for name in names:
+        d = root / "plugin" / name
+        d.mkdir(parents=True)
+        (d / "manifest.json").write_text("{}")
+    # A directory without a manifest is not a plugin and must be ignored.
+    (root / "plugin" / "not_a_plugin").mkdir(parents=True)
+    return str(root)
+
+
+def test_plugin_subset_root_links_only_selected(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd", "clinvar", "spliceai"])
+
+    with vepyr._plugin_subset_root(root, ["clinvar", "cadd"]) as subset:
+        plugin_dir = Path(subset) / "plugin"
+        assert sorted(p.name for p in plugin_dir.iterdir()) == ["cadd", "clinvar"]
+        for name in ("cadd", "clinvar"):
+            manifest = plugin_dir / name / "manifest.json"
+            assert manifest.is_file()
+            # Files are hard-linked, not copied and not symlinked: a directory
+            # symlink would need target_is_directory plus a privilege that
+            # non-elevated Windows sessions do not have.
+            assert not (plugin_dir / name).is_symlink()
+            assert not manifest.is_symlink()
+            assert (
+                manifest.stat().st_ino
+                == (Path(root) / "plugin" / name / "manifest.json").stat().st_ino
+            )
+
+
+def test_plugin_subset_root_falls_back_when_link_unavailable(tmp_path, monkeypatch):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+
+    def no_hardlinks(src, dst):
+        raise OSError("cross-device link")
+
+    monkeypatch.setattr(os, "link", no_hardlinks)
+    with vepyr._plugin_subset_root(root, ["cadd"]) as subset:
+        manifest = Path(subset) / "plugin" / "cadd" / "manifest.json"
+        assert manifest.is_symlink()
+        assert manifest.read_text() == "{}"
+
+
+def test_plugin_subset_root_reports_when_no_link_method_works(tmp_path, monkeypatch):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    monkeypatch.setattr(os, "link", lambda s, d: (_ for _ in ()).throw(OSError("nope")))
+    monkeypatch.setattr(
+        os, "symlink", lambda s, d: (_ for _ in ()).throw(OSError("nope either"))
+    )
+    with pytest.raises(OSError, match="Developer Mode"):
+        vepyr._plugin_subset_root(root, ["cadd"])
+
+
+def test_plugin_subset_root_empty_list_selects_nothing(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with vepyr._plugin_subset_root(root, []) as subset:
+        assert list((Path(subset) / "plugin").iterdir()) == []
+
+
+def test_plugin_subset_root_deduplicates(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with vepyr._plugin_subset_root(root, ["cadd", "cadd"]) as subset:
+        assert [p.name for p in (Path(subset) / "plugin").iterdir()] == ["cadd"]
+
+
+def test_plugin_subset_root_rejects_unknown_name(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd", "clinvar"])
+    with pytest.raises(ValueError, match="Unknown plugin 'nope'") as exc:
+        vepyr._plugin_subset_root(root, ["nope"])
+    # The message must list the real plugins, not stray directories.
+    assert "cadd, clinvar" in str(exc.value)
+    assert "not_a_plugin" not in str(exc.value)
+
+
+def test_plugin_subset_root_rejects_bare_string(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with pytest.raises(TypeError, match="must be a list"):
+        vepyr._plugin_subset_root(root, "cadd")
+
+
+def test_plugin_subset_root_rejects_non_string_element(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with pytest.raises(TypeError, match="must be strings"):
+        vepyr._plugin_subset_root(root, [1])
+
+
+def test_plugin_subset_root_missing_plugin_dir(tmp_path):
+    import vepyr
+
+    (tmp_path / "empty").mkdir()
+    with pytest.raises(FileNotFoundError, match="No plugin directory"):
+        vepyr._plugin_subset_root(str(tmp_path / "empty"), ["cadd"])
+
+
+def test_annotate_plugins_requires_plugin_cache_root():
+    import vepyr
+
+    with pytest.raises(ValueError, match="plugins requires plugin_cache_root"):
+        vepyr.annotate("input.vcf", CACHE_DIR, plugins=["cadd"])
+
+
+def test_annotate_plugins_is_accepted_in_signature():
+    import vepyr
+
+    params = inspect.signature(vepyr.annotate).parameters
+    assert "plugins" in params
+    assert params["plugins"].default is None
+
+
+def test_plugin_subset_root_rejects_a_nested_plugin_layout(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    (Path(root) / "plugin" / "cadd" / "shards").mkdir()
+
+    # Silently skipping the directory would drop shards from the subset and the
+    # engine would only report missing files, never the reason.
+    with pytest.raises(NotImplementedError, match="nested directory"):
+        vepyr._plugin_subset_root(root, ["cadd"])
+
+
+def test_annotate_empty_plugins_selects_no_plugin_root(tmp_path, monkeypatch):
+    """plugins=[] must be a plugin-free run, not an empty subset tree."""
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    seen = {}
+
+    def fake(vcf, cache_dir, options_json, skip_csq, limit):
+        seen["opts"] = json.loads(options_json)
+        raise _Stop()
+
+    monkeypatch.setattr(vepyr, "_create_annotator", fake)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with pytest.raises(_Stop):
+            vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=[])
+
+    assert "plugin_cache_root" not in seen["opts"]
+    assert [w for w in caught if "skip_csq" in str(w.message)] == []
+
+
+def test_annotate_nonempty_plugins_warns_only_when_csq_is_dropped(
+    tmp_path, monkeypatch
+):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+
+    def fake(vcf, cache_dir, options_json, skip_csq, limit):
+        raise _Stop()
+
+    monkeypatch.setattr(vepyr, "_create_annotator", fake)
+    for skip_csq, expected in ((True, 1), (False, 0)):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            with pytest.raises(_Stop):
+                vepyr.annotate(
+                    "in.vcf",
+                    CACHE_DIR,
+                    plugin_cache_root=root,
+                    plugins=["cadd"],
+                    skip_csq=skip_csq,
+                )
+        hits = [w for w in caught if "skip_csq" in str(w.message)]
+        assert len(hits) == expected, f"skip_csq={skip_csq}"
+
+
+def test_annotate_releases_the_subset_when_the_probe_fails(tmp_path, monkeypatch):
+    """A failure before the closure owns the tree must not leak it."""
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    created = []
+    real = vepyr._plugin_subset_root
+
+    def spy(cache_root, names):
+        sub = real(cache_root, names)
+        created.append(sub.name)
+        return sub
+
+    monkeypatch.setattr(vepyr, "_plugin_subset_root", spy)
+    monkeypatch.setattr(
+        vepyr, "_create_annotator", lambda *a, **k: (_ for _ in ()).throw(_Stop())
+    )
+    with pytest.raises(_Stop):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            plugin_cache_root=root,
+            plugins=["cadd"],
+            skip_csq=False,
+        )
+
+    assert created, "the subset root was never built"
+    assert not os.path.exists(created[0]), "subset tree outlived the failed call"
