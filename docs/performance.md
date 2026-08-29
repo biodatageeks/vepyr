@@ -2,7 +2,7 @@
 
 ## Design goals
 
-vepyr targets a **50x+ speedup** over the reference Ensembl VEP Perl implementation while maintaining **zero mismatches** for the supported annotation scope.
+vepyr targets a **30x+ speedup** over the reference Ensembl VEP Perl implementation while maintaining **zero mismatches** for the supported annotation scope.
 
 ## Why it's fast
 

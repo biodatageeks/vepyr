@@ -15,7 +15,7 @@ vepyr is a Python library backed by a native Rust engine that provides:
 - **Cache conversion** — download and convert Ensembl VEP offline caches to an optimized partitioned Parquet cache
 - **Variant annotation** — annotate VCF files with transcript consequences, HGVS notation, allele frequencies, and more
 - **Full `--everything` parity** — aims for zero mismatches against Ensembl VEP for the supported scope
-- **50x+ speedup** — dramatically faster than the reference Perl implementation
+- **30x+ speedup** — dramatically faster than the reference Perl implementation
 
 ## Key features
 
@@ -35,7 +35,7 @@ vepyr is a Python library backed by a native Rust engine that provides:
 | Cache types | `ensembl`, `merged`, `refseq` |
 | Ensembl releases | 115+ |
 | Python | 3.10 — 3.14 |
-| Platforms | Linux (x86_64), macOS (x86_64, aarch64) |
+| Platforms | Linux (x86_64), macOS (x86_64, aarch64), Windows (x64) |
 
 ## Quick example
 

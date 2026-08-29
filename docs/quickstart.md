@@ -2,7 +2,13 @@
 
 ## Installation
 
-### From source (recommended during development)
+### From PyPI
+
+```bash
+pip install vepyr
+```
+
+### From source (for development)
 
 vepyr requires a Rust toolchain and Python 3.10+.
 
@@ -28,11 +34,71 @@ uv run python -c "import vepyr; print('build_cache_entity' in vepyr.__all__)"
 # True
 ```
 
-## Building a cache
+## Getting a cache
 
-Before annotating variants you need to convert an Ensembl VEP offline cache to vepyr's optimized format.
+Annotation needs an Ensembl VEP cache in vepyr's optimized Parquet format. You
+have two options: **download a prebuilt one** (minutes, recommended) or **build
+your own** from an Ensembl VEP offline cache (hours of CPU).
 
-### Download and convert automatically
+### Option A — download a prebuilt cache (recommended)
+
+Release-116 GRCh38 caches for all three transcript sets are published on
+Hugging Face. Install the client once:
+
+```bash
+pip install -U "huggingface_hub[cli]"
+```
+
+Then pull the cache type you want:
+
+=== "merged"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_merged \
+      --repo-type dataset \
+      --local-dir ~/vepyr_cache/116_GRCh38_merged
+    ```
+
+=== "ensembl"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_ensembl \
+      --repo-type dataset \
+      --local-dir ~/vepyr_cache/116_GRCh38_ensembl
+    ```
+
+=== "refseq"
+
+    ```bash
+    hf download biodatageeks/vepyr_116_GRCh38_refseq \
+      --repo-type dataset \
+      --local-dir ~/vepyr_cache/116_GRCh38_refseq
+    ```
+
+The download is resumable and the client verifies integrity, so there is no
+separate checksum step. Budget 31–36 G of disk per cache.
+
+Confirm the cache reports the release you expect before annotating — this opens
+only the named contig's shards, so it is fast:
+
+```python
+import os
+import vepyr
+
+cache = os.path.expanduser("~/vepyr_cache/116_GRCh38_merged")
+print(vepyr.cache_contig_identity(cache, "chr22", expected_cache_version="116"))
+```
+
+For a second mirror, per-contig partial downloads, and the four prebuilt plugin
+caches, see [Download Ensembl VEP and plugin
+caches](downloads.md).
+
+### Option B — build your own cache
+
+Use this for release 115, for a cache type or assembly that is not mirrored, or
+when you want to convert a VEP cache you already hold.
+
+#### Download and convert automatically
 
 ```python
 import vepyr
@@ -48,7 +114,7 @@ for path, rows in results:
 
 This downloads the Ensembl VEP 115 cache for `homo_sapiens` / `GRCh38` and converts it to a partitioned Parquet cache.
 
-### Convert a local cache
+#### Convert a local cache
 
 If you already have the Ensembl VEP cache unpacked locally:
 
@@ -76,7 +142,7 @@ results = vepyr.build_cache_entity(
 
 This uses the same strict release/source validation as `build_cache()`.
 
-### Options
+#### Options
 
 | Parameter | Default | Description |
 |---|---|---|

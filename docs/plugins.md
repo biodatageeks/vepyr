@@ -3,7 +3,8 @@
 vepyr supports external per-variant annotation databases as **plugins**: a raw
 source (TSV/CSV/Parquet) is converted into a frequency-tiered, per-chromosome
 Parquet cache whose values are emitted as extra VEP CSQ output fields.
-AlphaMissense is supported today; more are planned.
+Five plugins are implemented today: **CADD**, **SpliceAI**, **AlphaMissense**,
+**ClinVar** and **dbNSFP**.
 
 Plugin manifests live in the public [vepyr-plugins](https://github.com/biodatageeks/vepyr-plugins)
 repository and are selected by **plugin name + git tag**, so different plugins can
@@ -372,12 +373,40 @@ a short chain of SQL objects:
 | `vcf` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
 | `bed` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
 
-## Planned plugins
+## Supported plugins
 
-| Plugin | Description | Source |
-|---|---|---|
-| **AlphaMissense** | Protein pathogenicity predictions (DeepMind) | [Zenodo](https://zenodo.org/records/8208688) |
-| **CADD v1.7** | Combined Annotation Dependent Depletion scores (SNVs + indels) | [cadd.gs.washington.edu](https://cadd.gs.washington.edu/) |
-| **SpliceAI** | Deep-learning splice variant predictions | [Illumina/SpliceAI](https://github.com/Illumina/SpliceAI) |
-| **ClinVar** | NCBI clinical variant classifications | [ncbi.nlm.nih.gov/clinvar](https://www.ncbi.nlm.nih.gov/clinvar/) |
-| **dbNSFP v4.x** | Aggregated functional prediction scores (30+ predictors) | [dbNSFP](https://sites.google.com/site/jpaborern/dbNSFP) |
+All five plugins below are implemented and validated against the golden Ensembl
+VEP 116 reference. Four have a **prebuilt cache** published on Hugging Face —
+see [Plugin caches](downloads.md#plugin-caches) for the download commands.
+
+| Plugin | CSQ fields | Discriminator | Allele match | Prebuilt cache | Source |
+|---|--:|---|---|---|---|
+| **CADD** v1.7 | 2 | — (per variant) | `minimised` | [`…plugin_cadd`](downloads.md#plugin-caches) | [cadd.gs.washington.edu](https://cadd.gs.washington.edu/) |
+| **SpliceAI** | 9 | `{SYMBOL}` | `exact` | [`…plugin_spliceai`](downloads.md#plugin-caches) | [Illumina/SpliceAI](https://github.com/Illumina/SpliceAI) |
+| **AlphaMissense** | 2 | `{ref_aa}{Protein_position}{alt_aa}` | `minimised` | [`…plugin_alphamissense`](downloads.md#plugin-caches) | [Zenodo](https://zenodo.org/records/8208688) |
+| **ClinVar** | 6 | — (per variant) | `minimised` | [`…plugin_clinvar`](downloads.md#plugin-caches) | [ncbi.nlm.nih.gov/clinvar](https://www.ncbi.nlm.nih.gov/clinvar/) |
+| **dbNSFP** | 19 | `{ref_aa}/{alt_aa}` | `exact` | **not published** — build locally | [dbNSFP](https://www.dbnsfp.org/) |
+
+The CSQ fields each plugin emits, in output order:
+
+| Plugin | Fields |
+|---|---|
+| CADD | `CADD_RAW`, `CADD_PHRED` |
+| SpliceAI | `SpliceAI_pred_SYMBOL`, `SpliceAI_pred_DS_AG`, `SpliceAI_pred_DS_AL`, `SpliceAI_pred_DS_DG`, `SpliceAI_pred_DS_DL`, `SpliceAI_pred_DP_AG`, `SpliceAI_pred_DP_AL`, `SpliceAI_pred_DP_DG`, `SpliceAI_pred_DP_DL` |
+| AlphaMissense | `am_class`, `am_pathogenicity` |
+| ClinVar | `ClinVar`, `ClinVar_CLNSIG`, `ClinVar_CLNREVSTAT`, `ClinVar_CLNDN`, `ClinVar_CLNVC`, `ClinVar_CLNVI` |
+| dbNSFP | 19 predictor score/prediction pairs (`SIFT4G_*`, `Polyphen2_HDIV_*`, `Polyphen2_HVAR_*`, `MutationTaster_*`, …) |
+
+!!! note "dbNSFP is supported but cannot be mirrored"
+    The dbNSFP licence permits academic use of the data but not redistribution
+    of a converted copy, so no prebuilt cache is published. Register for and
+    download the source yourself, then build the cache with
+    [`build_plugin_cache`](api.md#vepyr.build_plugin_cache) as above — the
+    manifest in [vepyr-plugins](https://github.com/biodatageeks/vepyr-plugins)
+    is public.
+
+!!! warning "Licence terms differ per plugin"
+    **CADD**, **SpliceAI** and **AlphaMissense** restrict use to academic /
+    non-profit research; commercial use needs a licence from the respective
+    provider. **ClinVar** is unrestricted (NCBI public domain). Each Hugging
+    Face dataset card carries the specific terms.
