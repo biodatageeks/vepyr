@@ -2,7 +2,7 @@
 
 ![PyPI - Version](https://img.shields.io/pypi/v/vepyr)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue?logo=python&logoColor=white)](https://pypi.org/project/vepyr/)
-[![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macOS-lightgrey)](https://pypi.org/project/vepyr/#files)
+[![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://pypi.org/project/vepyr/#files)
 ![GitHub License](https://img.shields.io/github/license/biodatageeks/vepyr)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/vepyr)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/biodatageeks/vepyr)
