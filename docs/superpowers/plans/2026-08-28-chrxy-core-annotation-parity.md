@@ -1691,3 +1691,29 @@ start region *is* the earliest, so the stored copy is already correct.
 **Limitation no build-time fix removes:** VEP's answer is input-dependent (annotating only
 chrX:7-8 Mb, VEP itself emits SFLD at 8-9). Storing one row per transcript bakes in the
 whole-chromosome answer. That is a reasonable default but should be recorded as a decision.
+
+---
+
+## FINAL — all defects closed (2026-08-29), engine `b665cc9`
+
+Defect E fixed at `d2e8fd2`: the `translation_core` dedup now prefers the lowest cache region,
+matching VEP's `merge_features` first-wins over a region-ordered feature list. `translation`
+rebuilt for all 24 contigs (926 s for chr1-22; ~30 s per contig), row counts identical.
+
+| | records | value mm | order mm | strict body |
+|---|---:|---:|---:|---|
+| chr1-22 | 4,096,123 | 0 | 0 | **22/22 body=ok** |
+| chrX | 157,690 | 0 | 0 | **PASS** `2ec98ed8efc86e3f42a996117f7009cc` |
+| chrY | 63,736 | 0 | 0 | **PASS** `4ed4691a20af77c3e0bb938762237491` |
+
+CSQ entries 69,299,753 — both totals match the baseline exactly.
+
+**vepyr now reproduces Ensembl VEP 116 byte-identically on chr1-22, chrX and chrY.** All 368
+original chrX/chrY field-value mismatches and the 4 DOMAINS ordering rows are closed.
+
+chr21's `ENST00000348990` — the one autosome transcript whose translation copies differ — changed
+copy in the rebuild and produced no output change, as predicted from its 605 CSQ entries all
+having an empty `DOMAINS`.
+
+Only the `translation` entity needs rebuilding for this fix; the other entities are untouched.
+Pre-fix shards are backed up at `data_vepyr/cache/pre_dedupfix_backup_20260829/`.

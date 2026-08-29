@@ -55,6 +55,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "f81f44210ffb42704aaab06a4a382bbd1139998c", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b665cc95011c473d713dedecd4465e03f1b35b74", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
