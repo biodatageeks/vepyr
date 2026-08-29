@@ -200,8 +200,40 @@ Two rules are in use upstream:
 
 | rule | what Ensembl does | plugins |
 |---|---|---|
-| `minimised` | calls `get_matched_variant_alleles()`, which runs `trim_sequences()` over **both** the variant and the data row — trimming shared prefix *and* suffix, in both orders — then compares `(ref, alt, pos)` | CADD, AlphaMissense, ClinVar |
-| `exact` | compares `(start, ref, alt)` verbatim | SpliceAI, dbNSFP |
+| `minimised` | calls `get_matched_variant_alleles()`, which runs `trim_sequences()` over **both** the variant and the data row before comparing | CADD, AlphaMissense, ClinVar |
+| `exact` | compares position and allele strings verbatim | SpliceAI, dbNSFP |
+
+Both rules compare the same three things — position, REF, ALT. The setting does
+not change the shape of the key, and it does not change the first lookup: every
+plugin is probed with the parser-level `(start, allele_string)`. What `minimised`
+adds is a **second lookup on a miss**, against the fully reduced key. `exact`
+plugins get one probe and stop.
+
+Because the fallback is only consulted after a miss, `minimised` can add hits
+but can never change one the primary probe already found.
+
+### A locus where both rules fire
+
+`chr21:26032805 AAT>TAT` — a real HG002 record that `bcftools norm -m -both`
+left un-trimmed. It is really an `A>T` SNV: trimming the shared trailing `AT`
+gives `A/T`, and since nothing is trimmed from the front the position does not
+move.
+
+Both plugins are probed with the same primary key and both miss; only the rule
+differs after that:
+
+| | primary probe `(26032805, AAT/TAT)` | fallback `(26032805, A/T)` | emitted |
+|---|---|---|---|
+| **CADD** — `minimised` | miss | **hit** — `CADD_PHRED=0.239`, `CADD_RAW=-0.380109` | the scores |
+| **SpliceAI** — `exact` | miss | *not attempted* — a row **does** exist there (`ds_ag=0.00`, `symbol=APP`) | nothing |
+
+Ensembl VEP 116 emits exactly this at that locus: `CADD_PHRED=0.239`,
+`CADD_RAW=-0.380109`, and empty SpliceAI fields.
+
+That SpliceAI row is the point. The data is present and the reduced key would
+reach it — `exact` is what stops vepyr from claiming it, because Ensembl's
+`SpliceAI.pm` never reduces. Flipping SpliceAI to `minimised` turns loci like this
+one into annotations VEP does not emit — 68 of them on chr21.
 
 **ClinVar is `minimised`, despite being loaded with `--custom ...,exact`.** The
 `exact` there names the *overlap mode*, not the allele rule — core still
@@ -224,9 +256,11 @@ chr21:26062230  REF=AAC            ALT=ACAC            # really just an inserted
 ```
 
 CADD keys the first as `T/G` in its per-base file. Under `minimised` Ensembl
-reduces the variant and matches; under `exact` it does not — and SpliceAI, whose
-rows at that position are plain SNVs, reports nothing. Both are correct *for
-their own plugin*.
+reduces the variant and matches; under `exact` it would not. SpliceAI is also
+empty here, but for an unrelated reason — it carries no rows anywhere near
+`chr21:13973877`, since it only covers splice regions. For a locus where the
+*rule* is what separates the two, see
+[the worked example above](#a-locus-where-both-rules-fire).
 
 ### Trim order is load-bearing
 
@@ -235,10 +269,20 @@ indel **the two orders land on different coordinates — and therefore different
 variants**. Ensembl's VCF parser builds the `VariationFeature` prefix-first
 (left-first), so that is the only order that reproduces its output:
 
-| VCF record | left-first (Ensembl) | right-first |
-|---|---|---|
-| `CGTGTGT/CGTGT` | `GT/-` at 13836153 — no row there, so empty, as VEP reports | `GT/-` at 13836149 — a **different variant's** score |
-| `AAC/ACAC` | `-/C` at 26062231 — the row VEP reports | same |
+Reduction runs on the **anchor-trimmed** pair the VCF parser produces, not on
+the raw record — a leading base shared by REF and ALT is already gone, and the
+position already advanced, before any of this. Quoting a raw record against a
+post-trim coordinate is how you get an off-by-one:
+
+| chr21 VCF record | parser hands over | left-first (Ensembl) | right-first |
+|---|---|---|---|
+| `13836148 CGTGTGT/CGTGT` | `13836149 GTGTGT/GTGT` | `GT/-` at 13836153 — no row there, so empty, as VEP reports | `GT/-` at 13836149 — a **different variant's** score |
+| `26062230 AAC/ACAC` | `26062231 AC/CAC` | `-/C` at 26062231 — the row VEP reports | same |
+
+Only the **prefix** loop moves the coordinate; the suffix loop trims bases
+without touching it. That is the whole reason the two orders disagree: trimming
+the suffix first consumes bases the prefix loop would otherwise have consumed
+*while advancing `start`*, so the position ends up short.
 
 Getting this backwards is silent and produces confident wrong answers: on chr21
 a right-first reduction invented 5,288 CADD scores VEP does not emit, and
