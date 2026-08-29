@@ -1521,3 +1521,38 @@ of `DOMAINS` ordering on a single transcript (defect E), deliberately not fixed 
 
 978 unit tests, clippy clean, `cargo fmt` clean. vepyr pins `f81f442`; the two later engine
 commits only add and remove a stray doc and leave the code identical.
+
+---
+
+## Defect E — three hypotheses falsified, cause still unknown (2026-08-29)
+
+Investigation carved out to `data_vepyr/debug/domains-ordering-2026-08-29/HANDOVER.md`, which is
+the live document. Summary of what changed:
+
+**New hard facts.** VEP's own cache blob was dumped directly
+(`homo_sapiens_merged/116_GRCh38/X/7000001-8000000.gz`):
+`_variation_effect_feature_cache->{protein_features}` is an `ARRAY` of 13 with SFLD at indices 8-9
+— cache order, exactly what vepyr emits — and there is exactly one copy of the transcript in that
+region file.
+
+**The hash-flatten hypothesis is dead.** The translation object's `protein_features` is `UNDEF` in
+the blob, so offline `get_all_ProteinFeatures` would hit
+`return [] if (!$adaptor || !$dbID)` and return **empty**. Deleting the cached array would make
+DOMAINS vanish, not reorder. It was also never consistent with only one analysis group moving.
+
+**Input format is not the variable.** A real `bcftools` slice — 242 variants with the original
+header and sample column — still yields cache order. This also exposed a flaw in the earlier
+probes: all of them used a hand-written minimal VCF, conflating "small input" with "reformatted
+input".
+
+**Falsified so far:** stale reference; hash-flatten regeneration; input format; Perl hash-order
+randomisation; plugins/`--custom`.
+
+**Remaining contradiction:** the blob says 8-9, nothing in offline VEP writes to that array, small
+runs emit 8-9, full-chromosome runs reproducibly emit SFLD first.
+
+**In flight:** full chrX, real input, no plugins — splits "scale alone" from "scale + plugins".
+It only needs to write past `chrX:7,105,637` to answer; see §7 of the handover.
+
+The recommendation is unchanged: do not implement a fix. 1,015 multi-source transcripts follow
+cache order and one does not, so there is still no rule to implement.
