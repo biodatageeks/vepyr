@@ -1066,7 +1066,11 @@ class TestBuildCacheIntegration:
             assert all(
                 isinstance(path, str) and isinstance(rows, int) for path, rows in result
             )
-            assert all("/transcript/" in path for path, _rows in result)
+            # os.sep, not "/": the engine returns native paths, so this
+            # reads "\\transcript\\" on Windows.
+            assert all(
+                os.path.join("", "transcript", "") in path for path, _rows in result
+            )
             assert sum(rows for _path, rows in result) > 0
 
     def test_output_directory_layout(self, skip_if_no_ensembl_cache):

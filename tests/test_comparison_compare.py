@@ -1,9 +1,9 @@
-import json
 import itertools
+import json
+import shutil
 import subprocess
 
 import pytest
-
 from comparison import compare
 
 HEADER = (
@@ -35,6 +35,13 @@ def _write(tmp_path, name, body, compressed):
     return str(gz)
 
 
+# The compressed combinations shell out to htslib's bgzip, which is installed
+# on the Linux CI runner but has no supported Windows build. Skipped there
+# rather than failing with `[WinError 2] The system cannot find the file
+# specified`; the uncompressed combination still runs everywhere.
+@pytest.mark.skipif(
+    shutil.which("bgzip") is None, reason="bgzip not on PATH (Windows runner)"
+)
 @pytest.mark.parametrize(
     "vepyr_gz,vep_gz", list(itertools.product([False, True], repeat=2))
 )
