@@ -30,8 +30,14 @@ vepyr.build_plugin_cache(
     plugin_cache_root="/data/plugin_cache",   # output: plugin/<name>/chr*.parquet + manifest.json
     chroms=None,                     # None = all chroms present under <cache_dir>/variation/
     plugins_repo=None,               # optional local clone of vepyr-plugins for OFFLINE builds
+    overwrite=False,                 # True replaces an existing plugin/<name>/ tree
 )
 ```
+
+`source_path` also accepts a `dict[str, str]` for a manifest whose `[[source]]`
+entries are split across several files, keyed by part name — those register as
+`plugin_<name>_src_<part>`. The call returns one
+`(chrom, rows, warm, cold)` tuple per chromosome written.
 
 One call builds one plugin at one version. To combine plugins at different
 versions (e.g. AlphaMissense `v0.2.0` + ClinVar `v0.3.0`), call
@@ -67,9 +73,12 @@ vepyr.annotate(
     discarded.
 
     Pass `skip_csq=False` to keep them. The values are correct and identical
-    to the VCF path, but unnamed: you have to know that, say, a CADD-only
-    subset appends `CADD_PHRED` then `CADD_RAW` at positions 80 and 81 of an
-    81-field `CSQ`. Plugin values are not broken out as DataFrame columns.
+    to the VCF path, but unnamed — you have to count positions yourself, and
+    the base field count varies (74–86, by cache type and `everything`), so
+    the offsets are not fixed. A CADD-only subset on a **merged** cache at
+    default flags appends `CADD_PHRED` then `CADD_RAW` at positions 80 and 81
+    of an 81-field `CSQ`; with `everything=True` the same two land at 87 and
+    88. Plugin values are not broken out as DataFrame columns.
 
     Passing [`plugins`](#choosing-which-plugins-run) without `output_vcf` and
     with `skip_csq` left at its default warns for this reason.
@@ -447,6 +456,7 @@ missense-only gating works (a non-missense consequence has no amino-acid change)
 |---|---|
 | `Consequence` | Consequence type(s) for the transcript (e.g. `missense_variant`). |
 | `Gene` | Ensembl gene stable ID. |
+| `SYMBOL` | Gene symbol (e.g. `APP`) — SpliceAI's discriminator. |
 | `Feature_type` | Feature type (e.g. `Transcript`). |
 | `Feature` | Transcript stable ID — the transcript-id discriminator (e.g. dbNSFP). |
 | `BIOTYPE` | Transcript biotype (e.g. `protein_coding`). |
@@ -528,13 +538,17 @@ a short chain of SQL objects:
 
 **Table providers** (`[[source]].provider`):
 
-| Provider | Status | Notes |
-|---|---|---|
-| `csv` | ✅ implemented | Built-in DataFusion CSV reader. |
-| `tsv` | ✅ implemented | CSV reader with tab delimiter. gzip inputs are decompressed to a temp file first (DataFusion is built without the `compression` feature, so `register_csv` can't read `.gz` directly). |
-| `parquet` | ✅ implemented | Built-in DataFusion Parquet reader. |
-| `vcf` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
-| `bed` | ⛔ not implemented | Reserved for a future bio-formats-backed provider. |
+| Provider | Notes |
+|---|---|
+| `csv` | Built-in DataFusion CSV reader. |
+| `tsv` | CSV reader with tab delimiter. gzip inputs are decompressed to a temp file first (DataFusion is built without the `compression` feature, so `register_csv` can't read `.gz` directly). |
+| `parquet` | Built-in DataFusion Parquet reader. |
+| `vcf` | `VcfTableProvider` from bio-formats. Every INFO field the header declares is exposed and `ingest_sql` projects down to what it needs; set `record_layout` on the source to carry the raw record through. |
+| `bed` | `BedTableProvider` from bio-formats, BED4 only — `chrom`, `start`, `end`, `name`, whatever the file's variant. |
+
+All five are implemented. `vcf` and `bed` take their zero/one-based
+interpretation from the manifest's `coordinate_system` rather than the file's
+own convention, so `ingest_sql` always sees the system the manifest declares.
 
 ## Supported plugins
 
@@ -550,15 +564,30 @@ see [Plugin caches](downloads.md#plugin-caches) for the download commands.
 | **ClinVar** | 6 | — (per variant) | `minimised` | [`…plugin_clinvar`](downloads.md#plugin-caches) | [ncbi.nlm.nih.gov/clinvar](https://www.ncbi.nlm.nih.gov/clinvar/) |
 | **dbNSFP** | 19 | `{ref_aa}/{alt_aa}` | `exact` | **not published** — build locally | [dbNSFP](https://www.dbnsfp.org/) |
 
-The CSQ fields each plugin emits, in output order:
+The CSQ fields each plugin emits, **in emitted order**:
 
 | Plugin | Fields |
 |---|---|
-| CADD | `CADD_RAW`, `CADD_PHRED` |
-| SpliceAI | `SpliceAI_pred_SYMBOL`, `SpliceAI_pred_DS_AG`, `SpliceAI_pred_DS_AL`, `SpliceAI_pred_DS_DG`, `SpliceAI_pred_DS_DL`, `SpliceAI_pred_DP_AG`, `SpliceAI_pred_DP_AL`, `SpliceAI_pred_DP_DG`, `SpliceAI_pred_DP_DL` |
+| CADD | `CADD_PHRED`, `CADD_RAW` |
+| SpliceAI | `SpliceAI_pred_DP_AG`, `SpliceAI_pred_DP_AL`, `SpliceAI_pred_DP_DG`, `SpliceAI_pred_DP_DL`, `SpliceAI_pred_DS_AG`, `SpliceAI_pred_DS_AL`, `SpliceAI_pred_DS_DG`, `SpliceAI_pred_DS_DL`, `SpliceAI_pred_SYMBOL` |
 | AlphaMissense | `am_class`, `am_pathogenicity` |
 | ClinVar | `ClinVar`, `ClinVar_CLNSIG`, `ClinVar_CLNREVSTAT`, `ClinVar_CLNDN`, `ClinVar_CLNVC`, `ClinVar_CLNVI` |
-| dbNSFP | 19 predictor score/prediction pairs (`SIFT4G_*`, `Polyphen2_HDIV_*`, `Polyphen2_HVAR_*`, `MutationTaster_*`, …) |
+| dbNSFP | `CADD_phred`, `CADD_raw`, `GERP++_RS`, `MetaLR_pred`, `MetaLR_score`, `MetaSVM_pred`, `MetaSVM_score`, `MutationTaster_pred`, `MutationTaster_score`, `PROVEAN_pred`, `PROVEAN_score`, `Polyphen2_HDIV_score`, `Polyphen2_HVAR_score`, `REVEL_score`, `SIFT4G_pred`, `SIFT4G_score`, `VEST4_score`, `phastCons100way_vertebrate`, `phyloP100way_vertebrate` |
+
+!!! note "Emitted order is not manifest order"
+    A manifest's `field_order` decides this, and it is not the order the
+    `[[value_columns]]` happen to be written in:
+
+    | `field_order` | Emits | Mirrors |
+    |---|---|---|
+    | `declared` (default) | manifest declaration order | Ensembl `--custom` |
+    | `alphabetical` | sorted by CSQ field name | Ensembl `--plugin` |
+
+    Four of the five are `alphabetical`, because Ensembl loads them with
+    `--plugin`. ClinVar is `declared`, because it is loaded with `--custom` —
+    which is why it is the one plugin whose emitted order matches how its
+    manifest reads. `dbNSFP` carries its own `CADD_phred`/`CADD_raw`, distinct
+    from the CADD plugin's upper-case `CADD_PHRED`/`CADD_RAW`.
 
 !!! note "dbNSFP is supported but cannot be mirrored"
     The dbNSFP licence permits academic use of the data but not redistribution
