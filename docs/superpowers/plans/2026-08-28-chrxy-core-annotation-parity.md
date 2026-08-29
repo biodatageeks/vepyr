@@ -1629,3 +1629,41 @@ the old ordering. That is a data-versioning decision.
 Prerequisites before implementing: read what vepyr's builder does today (its "keeps the later copy"
 behaviour is inferred, not read); scan the remaining chromosomes; then scope the rule and re-run
 chrX + chr1-22. Detail and scripts in `data_vepyr/debug/domains-ordering-2026-08-29/`.
+
+---
+
+## Defect E — mechanism confirmed in the VEP source (2026-08-29)
+
+Verified against `ensembl-vep` @ `2beada0d`, with two corrections to the earlier write-up.
+
+**The chain.** `AnnotationSource.pm:109-145` builds the feature list as *already-cached regions
+first (in region order), then newly loaded regions*, and hands it to `merge_features`. Region
+indices are walked ascending (`:193-200`) over the buffer's variants in input order (`:243-246`).
+`AnnotationType/Transcript.pm:264-277` then keeps the **first** occurrence:
+
+```perl
+my $dbID = $tr->dbID;
+if($seen_trs{$dbID}) { next; }
+$seen_trs{$dbID} = 1;
+push @return, $tr;
+```
+
+**Correction 1 — the key is `dbID`, not `stable_id`.** `ENST00000381077`'s two copies share a
+`dbID` (only `translation` and `protein_features` differ), so they are merged, first-wins, and
+region order decides. Mechanism unchanged; the key was misnamed.
+
+**Correction 2 — merged/refseq caches run a second stage that is region-order independent**
+(`:293-322`): per `stable_id`, prefer `source eq 'ensembl'`, else the **lowest `dbID`**.
+
+The second correction **relaxes the risk assessment**. The `compmerge.*` stable_id collisions have
+differing `dbID`s, so stage 1 never merges them and stage 2 resolves them deterministically by
+source/lowest-dbID — independent of region order and input scale. A fix scoped to same-`dbID`
+duplicates therefore **cannot** affect those 12/45 cases, so the earlier "a blanket change could
+break all 12" warning was too pessimistic.
+
+**The contract vepyr's builder should implement**, now quoted rather than inferred:
+
+1. duplicates sharing a `dbID` -> keep the copy from the earliest region;
+2. stable_id collisions with differing `dbID`s -> prefer `source == 'ensembl'`, else lowest `dbID`.
+
+The cache-rebuild cost from the previous section still stands unchanged.
