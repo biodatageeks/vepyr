@@ -1,4 +1,4 @@
-# Download prebuilt caches
+# Download Ensembl VEP and plugin caches
 
 Building a cache from an Ensembl VEP tarball with
 [`build_cache`](api.md#vepyr.build_cache) takes hours of CPU and needs the raw

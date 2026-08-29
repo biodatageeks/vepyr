@@ -8,7 +8,7 @@ sizes.
 
 !!! tip "Don't want to build one?"
     Prebuilt release 116 caches are published for download — see
-    [Download prebuilt caches](downloads.md).
+    [Download Ensembl VEP and plugin caches](downloads.md).
 
 ## Cache types
 
