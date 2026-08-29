@@ -73,6 +73,36 @@ jobs:
           uv sync --python ${{ matrix.python-version }}
           uv run pytest -v
 
+  # Windows x64 wheels are published and documented as supported, but until
+  # this job existed nothing ever ran the suite on Windows — only the wheel
+  # build. Path handling, temp files and link creation all differ there.
+  #
+  # One interpreter rather than the full matrix: the wheel is abi3, so
+  # Windows-specific breakage is generally interpreter-independent, and a
+  # five-way matrix on a slower runner is not worth the minutes.
+  #
+  # bcftools/tabix are not installed (no apt on Windows). Nothing in the suite
+  # shells out to them; the tests that want tabix input go through pysam, which
+  # is not a dependency and is skipped when missing.
+  windows-tests:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v5
+      - name: Build and test
+        run: |
+          uv python install ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }}
+          uv run pytest -v
+
   linux:
     runs-on: ubuntu-latest
     strategy:
