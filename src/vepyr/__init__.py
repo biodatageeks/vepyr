@@ -769,10 +769,34 @@ def _plugin_subset_root(
     subset_root = os.path.join(tmp.name, "plugin")
     os.makedirs(subset_root)
     for name in selected:
-        os.symlink(
-            os.path.abspath(os.path.join(source_root, name)),
-            os.path.join(subset_root, name),
-        )
+        src_dir = os.path.abspath(os.path.join(source_root, name))
+        dst_dir = os.path.join(subset_root, name)
+        os.makedirs(dst_dir)
+        # Link the files rather than the directory. A directory symlink would
+        # need `target_is_directory=True` on Windows and, more awkwardly, the
+        # SeCreateSymbolicLinkPrivilege that non-elevated Windows sessions lack
+        # unless Developer Mode is on. Hard links to files need no privilege on
+        # NTFS, and a plugin directory is ~25 files, so this costs nothing.
+        for entry in os.listdir(src_dir):
+            src = os.path.join(src_dir, entry)
+            if not os.path.isfile(src):
+                continue
+            dst = os.path.join(dst_dir, entry)
+            try:
+                os.link(src, dst)
+            except OSError:
+                # Different volume (temp dir and cache on separate drives), or
+                # a filesystem without hard links. Symlinking a *file* still
+                # avoids the directory-symlink pitfalls above.
+                try:
+                    os.symlink(src, dst)
+                except OSError as exc:
+                    raise OSError(
+                        f"Cannot link plugin file {src!r} into a subset cache "
+                        f"root: {exc}. On Windows, either enable Developer "
+                        f"Mode or set TMPDIR to the same volume as "
+                        f"plugin_cache_root."
+                    ) from exc
 
     log.info(
         "Plugin subset: %s (of %d available)",

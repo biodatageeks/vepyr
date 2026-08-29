@@ -665,7 +665,7 @@ def _fake_plugin_root(tmp_path: Path, names: list[str]) -> str:
     return str(root)
 
 
-def test_plugin_subset_root_symlinks_only_selected(tmp_path):
+def test_plugin_subset_root_links_only_selected(tmp_path):
     import vepyr
 
     root = _fake_plugin_root(tmp_path, ["cadd", "clinvar", "spliceai"])
@@ -674,8 +674,44 @@ def test_plugin_subset_root_symlinks_only_selected(tmp_path):
         plugin_dir = Path(subset) / "plugin"
         assert sorted(p.name for p in plugin_dir.iterdir()) == ["cadd", "clinvar"]
         for name in ("cadd", "clinvar"):
-            assert (plugin_dir / name).is_symlink()
-            assert (plugin_dir / name / "manifest.json").is_file()
+            manifest = plugin_dir / name / "manifest.json"
+            assert manifest.is_file()
+            # Files are hard-linked, not copied and not symlinked: a directory
+            # symlink would need target_is_directory plus a privilege that
+            # non-elevated Windows sessions do not have.
+            assert not (plugin_dir / name).is_symlink()
+            assert not manifest.is_symlink()
+            assert (
+                manifest.stat().st_ino
+                == (Path(root) / "plugin" / name / "manifest.json").stat().st_ino
+            )
+
+
+def test_plugin_subset_root_falls_back_when_link_unavailable(tmp_path, monkeypatch):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+
+    def no_hardlinks(src, dst):
+        raise OSError("cross-device link")
+
+    monkeypatch.setattr(os, "link", no_hardlinks)
+    with vepyr._plugin_subset_root(root, ["cadd"]) as subset:
+        manifest = Path(subset) / "plugin" / "cadd" / "manifest.json"
+        assert manifest.is_symlink()
+        assert manifest.read_text() == "{}"
+
+
+def test_plugin_subset_root_reports_when_no_link_method_works(tmp_path, monkeypatch):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    monkeypatch.setattr(os, "link", lambda s, d: (_ for _ in ()).throw(OSError("nope")))
+    monkeypatch.setattr(
+        os, "symlink", lambda s, d: (_ for _ in ()).throw(OSError("nope either"))
+    )
+    with pytest.raises(OSError, match="Developer Mode"):
+        vepyr._plugin_subset_root(root, ["cadd"])
 
 
 def test_plugin_subset_root_empty_list_selects_nothing(tmp_path):
