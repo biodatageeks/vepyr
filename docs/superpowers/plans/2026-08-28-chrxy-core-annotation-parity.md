@@ -1556,3 +1556,43 @@ It only needs to write past `chrX:7,105,637` to answer; see §7 of the handover.
 
 The recommendation is unchanged: do not implement a fix. 1,015 multi-source transcripts follow
 cache order and one does not, so there is still no rule to implement.
+
+---
+
+## Defect E — ROOT CAUSE FOUND (2026-08-29). Supersedes the "do not fix" recommendation.
+
+`ENST00000381077` is stored in **two** Ensembl VEP cache region files with **different
+`protein_features` array orders**:
+
+| region file | order |
+|---|---|
+| `X/6000001-7000000.gz` | **SFLD first** |
+| `X/7000001-8000000.gz` | SFLD at 8-9 |
+
+VEP de-duplicates transcripts by stable_id across regions and keeps the **first copy loaded**. Any
+input spanning 6-7 Mb gives VEP the SFLD-first copy, which it then uses for the variants at
+7.07-7.11 Mb. vepyr's cache keeps the 7-8 Mb copy, so it emits SFLD at 8-9.
+
+Bisect:
+
+| input | variants | regions | SFLD first? |
+|---|---:|---:|---|
+| `chrX:7000001-8000000` | 423 | 1 | no |
+| **`chrX:6000001-8000000`** | **1,162** | **2** | **YES** |
+| `chrX:1-8000000` | 15,768 | 8 | yes |
+| full chrX, no plugins | 157,690 | ~156 | yes |
+
+This explains everything previously unexplained: the scale dependence (large inputs span 6-7 Mb),
+why plugins and `--buffer_size` were irrelevant, and why exactly one transcript is affected.
+
+**The fix belongs in the cache builder, not the consequence engine:** when a transcript appears in
+several region files, keep the copy from the lowest-coordinate region, matching VEP's
+first-seen-wins de-duplication.
+
+**This supersedes the earlier "no rule exists, do not fix" recommendation** — that conclusion was
+drawn before the mechanism was known. Scope must be measured first: count transcripts appearing in
+multiple region files with differing `protein_features` order genome-wide, and keep chr1-22 at
+22/22 `body=ok`.
+
+Live document: `data_vepyr/debug/domains-ordering-2026-08-29/HANDOVER.md`.
+Cheap reproducer: `chrX:6000001-8000000`, 1,162 variants, no plugins, ~1 minute.
