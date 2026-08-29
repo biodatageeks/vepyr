@@ -1667,3 +1667,27 @@ break all 12" warning was too pessimistic.
 2. stable_id collisions with differing `dbID`s -> prefer `source == 'ensembl'`, else lowest `dbID`.
 
 The cache-rebuild cost from the previous section still stands unchanged.
+
+---
+
+## Defect E — why a rebuild is needed, and the one-line fix (2026-08-29)
+
+The cache build is not a lossless translation: `export_query.rs::transcript_dedup_order_expr`
+collapses duplicates with `ROW_NUMBER() ... PARTITION BY chrom, stable_id ... WHERE _rn = 1`.
+`ENST00000381077` has **1** parquet row, from `7000001-8000000.gz`; the 6-7 Mb copy is discarded at
+build time, so **no runtime rule can recover it** — a rebuild is required wherever the logic lives.
+
+Ordering terms 1-2 (`source = 'Ensembl'`, then lowest `db_id`) already implement VEP's stage 2
+correctly. Both copies of this transcript share `db_id=651704`, so those tie and **term 3 decides**:
+it prefers the region containing the transcript `start`, while VEP takes the earliest region loaded.
+
+**Fix: change term 3 from "region containing start" to "lowest region start".** It fires only when
+source and `db_id` tie, so it cannot disturb stable_id collisions. It also explains chr21: there the
+start region *is* the earliest, so the stored copy is already correct.
+
+`compmerge.*` transcripts have **0 parquet rows** — filtered out by the builder — so the earlier
+"could break 12 transcripts" warning was wrong twice over.
+
+**Limitation no build-time fix removes:** VEP's answer is input-dependent (annotating only
+chrX:7-8 Mb, VEP itself emits SFLD at 8-9). Storing one row per transcript bakes in the
+whole-chromosome answer. That is a reasonable default but should be recorded as a decision.
