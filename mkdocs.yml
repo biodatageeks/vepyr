@@ -87,3 +87,8 @@ markdown_extensions:
       custom_checkbox: true
   - toc:
       permalink: true
+
+extra:
+  analytics:
+    provider: google
+    property: G-X2YYYSXDCD
