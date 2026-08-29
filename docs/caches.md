@@ -139,6 +139,41 @@ Valid raw entities are `variation`, `transcript`, `exon`, `translation`,
 version from `release` and rejects a conflicting raw-cache release/source
 before writing output, exactly like the full builder.
 
+### Rebuilding a single contig
+
+`chroms` restricts the rebuild to named contigs; omit it to rebuild every
+contig, scaffolds included. One contig of one entity takes seconds rather than
+the hours a full conversion needs, which is what makes a targeted cache fix
+practical to iterate on:
+
+```python
+vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/Users/mwiewior/workspace/data_vepyr",
+    entity="translation",
+    cache_type="merged",
+    local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+    chroms=["chrX"],
+)
+```
+
+Indicative timings for `translation` on the 116 merged cache: about 30 s for a
+single contig, 926 s for chr1–22, and roughly 26 min for every contig including
+scaffolds.
+
+Two cautions when using this to patch a cache you intend to publish:
+
+- **Restricting `chroms` leaves every other contig at its previous build.** The
+  result is a cache of mixed generations. A published cache holds far more than
+  the 24 main contigs — 1,744 `translation_core` files for 116 merged — so
+  rebuild every contig before uploading, or the scaffolds silently stay stale.
+- **The entity is the unit of rebuild, not the output.** Raw `translation`
+  always writes both `translation_core` and `translation_sift`, but a given fix
+  may only change one of them. Compare the rebuilt shards against the previous
+  ones and upload only what differs; that is often the difference between
+  shipping a few hundred MB and many GB.
+
 See the [API reference](api.md#vepyr.build_cache) for the full signature. Plugin
 caches (e.g. AlphaMissense) are built separately and layered on top — see
 [Plugins](plugins.md).
