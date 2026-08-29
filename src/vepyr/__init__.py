@@ -872,6 +872,14 @@ def annotate(
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
+    plugin_cache_root : str or None
+        Root of a plugin cache tree built by :func:`build_plugin_cache`, e.g.
+        ``"/data/plugin_cache"`` holding ``plugin/<name>/`` directories. Every
+        plugin found under the root is applied and its CSQ fields are added to
+        the header and to each transcript. There is no per-call plugin
+        selection: which plugins run, and at which version, is decided by what
+        was built into this directory. ``None`` (default) applies no plugins
+        and is byte-identical to a plugin-free run.
     output_vcf : str or None
         Path to write annotated VCF output. When set, annotation results are
         written directly to a VCF file and the output path is returned.
