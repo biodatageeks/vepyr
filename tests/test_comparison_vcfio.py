@@ -1,11 +1,24 @@
 import json
 import os
+import shutil
 import subprocess
 from types import SimpleNamespace
 
 import pytest
-
 from comparison import vcfio
+
+# These exercise the e2e comparison harness, which shells out to htslib's
+# bgzip/tabix/bcftools. Those are installed on the Linux CI runner but have no
+# supported Windows build, so the module is skipped there rather than failing
+# with `[WinError 2] The system cannot find the file specified`. Coverage is
+# unaffected on Linux and macOS, where the tools are present.
+_HTSLIB_TOOLS = ("bgzip", "tabix", "bcftools")
+_MISSING = [t for t in _HTSLIB_TOOLS if shutil.which(t) is None]
+pytestmark = pytest.mark.skipif(
+    bool(_MISSING),
+    reason=f"htslib tools not on PATH: {', '.join(_MISSING)}",
+)
+
 
 VCF_BODY = """##fileformat=VCFv4.2
 ##contig=<ID=chr1>

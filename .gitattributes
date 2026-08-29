@@ -1,2 +1,12 @@
 tests/data/golden/cache/**/*.parquet filter=lfs diff=lfs merge=lfs -text
 tests/data/golden_merged/cache/**/*.parquet filter=lfs diff=lfs merge=lfs -text
+
+# Genomic test fixtures must keep LF endings on every platform. A .fai index
+# stores byte offsets into its .fa, so a CRLF checkout on Windows both breaks
+# those offsets and leaves a trailing \r in the index's last column — which
+# surfaces as `failed to open indexed reference FASTA ...: invalid field:
+# LineWidth`. The same applies to the VCFs their offsets and digests describe.
+tests/data/** -text
+e2e-testing/**/*.vcf -text
+e2e-testing/**/*.fa -text
+e2e-testing/**/*.fai -text

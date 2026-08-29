@@ -1,7 +1,7 @@
 import json
+import os
 
 import pytest
-
 from comparison import cli, profiles
 
 
@@ -254,7 +254,9 @@ def test_summary_only_auto_discovers_release_qualified_reports(monkeypatch, tmp_
     assert result == 1
     assert observed["suffix"] == "merged"
     assert observed["release"] == "116"
-    assert observed["report_dir"].endswith("e2e-testing/reports")
+    # os.path.join, not a literal "/": report_dir is a native path, so this
+    # ends with "e2e-testing\\reports" on Windows.
+    assert observed["report_dir"].endswith(os.path.join("e2e-testing", "reports"))
 
 
 def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
