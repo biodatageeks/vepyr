@@ -779,6 +779,15 @@ def _plugin_subset_root(
         # NTFS, and a plugin directory is ~25 files, so this costs nothing.
         for entry in os.listdir(src_dir):
             src = os.path.join(src_dir, entry)
+            if os.path.isdir(src):
+                # A plugin cache is flat today: chr*.parquet plus manifest.json.
+                # Skipping a directory would drop shards from the subset and the
+                # engine would only report the missing files, not the reason.
+                raise NotImplementedError(
+                    f"plugin {name!r} has a nested directory {entry!r}; the "
+                    f"subset root only mirrors flat plugin caches. Drop "
+                    f"`plugins` and pass the whole plugin_cache_root instead."
+                )
             if not os.path.isfile(src):
                 continue
             dst = os.path.join(dst_dir, entry)
@@ -1162,19 +1171,25 @@ def annotate(
     if plugins is not None:
         if plugin_cache_root is None:
             raise ValueError("plugins requires plugin_cache_root")
-        if output_vcf is None and skip_csq:
-            # Plugin values reach a LazyFrame only inside the CSQ string, which
-            # `skip_csq=True` (the default) drops — so the plugins would be
-            # built and then silently discarded. The VCF path is unaffected: it
-            # writes a header naming the fields.
-            warnings.warn(
-                "plugin fields are emitted inside CSQ, which skip_csq=True "
-                "discards; pass skip_csq=False to keep them, or output_vcf= "
-                "for a header that names them",
-                stacklevel=2,
-            )
-        _plugin_subset = _plugin_subset_root(plugin_cache_root, plugins)
-        opts["plugin_cache_root"] = _plugin_subset.name
+        if isinstance(plugins, str) or not isinstance(plugins, (list, tuple)):
+            raise TypeError("plugins must be a list of plugin names, or None")
+        if plugins:
+            if output_vcf is None and skip_csq:
+                # Plugin values reach a LazyFrame only inside the CSQ string,
+                # which `skip_csq=True` (the default) drops — so the plugins
+                # would be built and then silently discarded. The VCF path is
+                # unaffected: it writes a header naming the fields.
+                warnings.warn(
+                    "plugin fields are emitted inside CSQ, which skip_csq=True "
+                    "discards; pass skip_csq=False to keep them, or output_vcf= "
+                    "for a header that names them",
+                    stacklevel=2,
+                )
+            _plugin_subset = _plugin_subset_root(plugin_cache_root, plugins)
+            opts["plugin_cache_root"] = _plugin_subset.name
+        # An empty selection is exactly a plugin-free run: leave
+        # plugin_cache_root out of the options entirely rather than handing the
+        # engine an empty tree, and do not warn about fields that cannot exist.
     elif plugin_cache_root is not None:
         opts["plugin_cache_root"] = plugin_cache_root
     if not preserve_record_layout:
@@ -1240,6 +1255,17 @@ def annotate(
                     )
                 except Exception as exc:
                     _error[0] = exc
+                finally:
+                    # The worker owns the subset tree. Cleaning up in the
+                    # caller instead would race this thread: it is a daemon and
+                    # keeps annotating after an interrupt or a raising progress
+                    # drain unwinds annotate(), and it holds only the path (via
+                    # options_json), not the TemporaryDirectory — so a caller
+                    # -side release could remove plugin shards still to be read
+                    # for later contigs. Joining before cleanup would fix that
+                    # too, but would make Ctrl-C block for the rest of the run.
+                    if _plugin_subset is not None:
+                        _plugin_subset.cleanup()
 
             def _drain_progress_updates() -> None:
                 if _pbar is None or _pending_updates is None:
@@ -1270,23 +1296,29 @@ def annotate(
                 _pbar.close()
 
         log.info("Wrote %d rows to %s", rows, output_vcf)
-        # The write is complete, so nothing will read the symlink tree again.
-        if _plugin_subset is not None:
-            _plugin_subset.cleanup()
         return output_vcf
 
     import polars as pl
     import pyarrow as pa
 
-    # Get schema from a probe annotator (doesn't consume data)
-    probe = _create_annotator(
-        vcf,
-        cache_dir,
-        options_json,
-        skip_csq,
-        None,
-    )
-    pa_schema = probe.schema
+    # Get schema from a probe annotator (doesn't consume data). Nothing owns
+    # the subset tree until it is parked on the closure below, so a failure
+    # here has to release it rather than leave it to the collector — an
+    # exception's traceback keeps this frame, and the tree, alive for as long
+    # as the caller holds the exception.
+    try:
+        probe = _create_annotator(
+            vcf,
+            cache_dir,
+            options_json,
+            skip_csq,
+            None,
+        )
+        pa_schema = probe.schema
+    except BaseException:
+        if _plugin_subset is not None:
+            _plugin_subset.cleanup()
+        raise
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
     del probe
