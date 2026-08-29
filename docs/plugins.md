@@ -59,6 +59,71 @@ vepyr.annotate(
 )
 ```
 
+!!! warning "Plugins apply to VCF output only"
+    `plugin_cache_root` is read on the `output_vcf` path. The streaming
+    annotator behind a returned `LazyFrame` ignores it, so a `LazyFrame` result
+    carries no plugin fields — not as columns, and not inside `CSQ` even with
+    `skip_csq=False`. Passing [`plugins`](#choosing-which-plugins-run) without
+    `output_vcf` warns for this reason; `plugin_cache_root` on its own is
+    silently ignored.
+
+### Choosing which plugins run
+
+Selection is **directory-shaped**: every plugin under
+`<plugin_cache_root>/plugin/` is applied. There is no per-call version
+argument — a plugin's version is fixed when
+[`build_plugin_cache`](api.md#vepyr.build_plugin_cache) writes it.
+
+`plugins` narrows that set to a subset of the directories present:
+
+```python
+vepyr.annotate(
+    "sample.vcf",
+    "/data/116_GRCh38_merged",
+    plugin_cache_root="/data/plugin_cache",
+    plugins=["clinvar", "cadd"],   # only these two
+    output_vcf="sample.annotated.vcf",
+)
+```
+
+| `plugins=` | Effect |
+|---|---|
+| omitted / `None` | every plugin under the root — the default |
+| `["clinvar", "cadd"]` | only those two |
+| `[]` | none; equivalent to a plugin-free run |
+| `["nope"]` | `ValueError`, listing the plugins that *are* available |
+
+Order is irrelevant — the engine sorts discovered plugins by
+`(csq_rank, plugin_name)`, so the CSQ layout does not depend on how you list
+them. `plugins` requires `plugin_cache_root`.
+
+The three alternatives to `plugins` all still work, and are what you want when
+a selection is permanent rather than per-call: pass `plugin_cache_root=None`
+for no plugins, build separate roots for separate combinations, or add and
+remove plugin directories under an existing root.
+
+??? note "How the subset is materialised"
+
+    The engine has no plugin filter. Both the CSQ header and the per-transcript
+    body discover `<root>/plugin/` independently, so filtering one and not the
+    other would leave the header advertising fields the body never fills,
+    shifting every later value.
+
+    `plugins` therefore hands the engine a root that already contains only the
+    selected plugins — a temporary directory whose files are hard-linked to the
+    originals. The two discovery passes then cannot disagree, and nothing is
+    copied.
+
+    Files are linked individually rather than the plugin directory being
+    symlinked, because a directory symlink needs `target_is_directory=True` on
+    Windows plus a privilege non-elevated sessions lack. Where hard links are
+    unavailable — a temporary directory on a different volume — it falls back
+    to per-file symlinks, then to an error naming `TMPDIR`.
+
+    The subset lives as long as it is needed: released when the annotation
+    finishes for `output_vcf`, and tied to the `LazyFrame` otherwise, since a
+    frame re-opens the cache on every `collect()`.
+
 ## Manifest structure
 
 A plugin's `plugins/<name>/<name>.source.toml` declares how to ingest the raw
