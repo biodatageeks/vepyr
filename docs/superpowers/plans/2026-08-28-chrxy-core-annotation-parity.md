@@ -1717,3 +1717,51 @@ having an empty `DOMAINS`.
 
 Only the `translation` entity needs rebuilding for this fix; the other entities are untouched.
 Pre-fix shards are backed up at `data_vepyr/cache/pre_dedupfix_backup_20260829/`.
+
+---
+
+## Latent: the same tie-breaker still exists in bio-formats (2026-08-29)
+
+Two dedup sites carry the identical start-region tie-breaker. Only one was fixed:
+
+| table | dedup lives in | status |
+|---|---|---|
+| `translation_core` | engine, `cache/build.rs::build_translation_dedup_query_with_where_clause` | **fixed** (`d2e8fd2`) |
+| `transcript` | bio-formats, `export_query.rs::transcript_dedup_order_expr` | **unchanged** |
+
+The transcript row for `ENST00000381077` still comes from `7000001-8000000.gz` — the later region,
+still the "wrong" copy by VEP's rule.
+
+**Why that is currently harmless.** A deep compare of the two cache copies
+(`debug/domains-ordering-2026-08-29/scripts/cmp_copies.pl`) shows they differ *only* in
+`translation` and `_variation_effect_feature_cache->{protein_features}`. Every transcript-level
+field — `start`, `end`, `strand`, `biotype`, `dbID`, CDS bounds — is identical, so which copy the
+transcript dedup picks makes no observable difference. That is why fixing only the translation side
+produced full byte-identity.
+
+This generalises across what was scanned. On chr21 and chrX, cross-region duplicates split cleanly:
+
+- **same `dbID`** -> differ only in translation-side fields (1 per chromosome);
+- **different `dbID`** -> all `compmerge.*` stable_id collisions, resolved by the earlier
+  `source`/`db_id` ordering terms and filtered out of the parquet entirely.
+
+So no transcript in the scanned data has same-`dbID` copies differing in transcript-level fields.
+
+**Recommendation: leave it.** Changing `transcript_dedup_order_expr` would be a consistency-only
+edit with no observable effect — no test would change, and 4,096,123 autosome plus 221,426 chrX/chrY
+records already pass byte-identically without it. It would also drag a third repository into the
+change for no measurable gain.
+
+**The limitation to remember.** Only chr21 and chrX were scanned for this, and the gate exercises
+only transcripts that HG002 variants actually hit. A transcript could differ across regions in a
+transcript-level field that no benchmark variant touches. If that ever surfaces it will look exactly
+like defect E did — a single field differing on a handful of records, invisible in the summary line
+because it lands in `field_order_mismatch_counts`. The fix would be the same one-term change,
+applied to `transcript_dedup_order_expr` instead:
+
+```rust
+// bio-formats export_query.rs, term 3 of transcript_dedup_order_expr
+order.push(source_region_preference_expr("start", "source_file"));   // <- prefers the START region
+// should become: order by the numeric region start parsed from source_file, ascending,
+// keeping the above as a TRY_CAST fallback (see cache/build.rs for the working form).
+```
