@@ -1596,3 +1596,36 @@ multiple region files with differing `protein_features` order genome-wide, and k
 
 Live document: `data_vepyr/debug/domains-ordering-2026-08-29/HANDOVER.md`.
 Cheap reproducer: `chrX:6000001-8000000`, 1,162 variants, no plugins, ~1 minute.
+
+---
+
+## Defect E — regression risk of the fix, measured (2026-08-29)
+
+| | chr21 | chrX |
+|---|---:|---:|
+| transcripts in >1 region file | 997 | 2,973 |
+| copies differing at all | 13 | 46 |
+| differ **only** in `protein_features`/`translation` | 1 | 1 |
+| differ in coordinates/`dbID`/exons/introns/mapper | 12 | 45 |
+
+Two distinct kinds hide behind "duplicate":
+
+1. **stable_id collisions** — all `compmerge.*.chrNN`, the same id at different loci with different
+   `dbID` and coordinates, no protein features. chr1-22 is byte-identical today, so vepyr already
+   picks the copy VEP picks. **A blanket de-dup change could break these 12.**
+2. **same transcript, different `protein_features` order** — identical `dbID` and coordinates.
+   One per chromosome: `ENST00000381077` (chrX), `ENST00000348990` (chr21). This is defect E.
+
+The autosomes are clean because the chr21 case is unexercised: `ENST00000348990` yields 605 CSQ
+entries in the reference and **0** with a non-empty `DOMAINS`.
+
+**So a rule scoped to same-identity duplicates only is low risk** — it cannot touch the collisions,
+leaves chr21's output unchanged, and should make chrX byte-identical.
+
+**The real cost is the cache rebuild.** The fix changes cache content, so every cache must be
+rebuilt, including those published on Hugging Face; an old cache with a new engine still produces
+the old ordering. That is a data-versioning decision.
+
+Prerequisites before implementing: read what vepyr's builder does today (its "keeps the later copy"
+behaviour is inferred, not read); scan the remaining chromosomes; then scope the rule and re-run
+chrX + chr1-22. Detail and scripts in `data_vepyr/debug/domains-ordering-2026-08-29/`.
