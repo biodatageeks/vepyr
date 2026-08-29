@@ -214,7 +214,12 @@ but can never change one the primary probe already found.
 
 ### The two keys
 
-| | `allele_string` (primary key) | fully reduced (fallback key) |
+A key is the **pair** `(start, allele_string)` — two separate shard columns, and
+two separate arguments to the probe. `allele_string` holds only `REF/ALT`
+(`"A/T"`, `"GT/-"`); it never carries the position. Below, `A/T @ 26032805` is
+shorthand for that pair, not for the string itself.
+
+| | primary key `(start, allele_string)` | fully reduced (fallback key) |
 |---|---|---|
 | **Built by** | `vcf_to_vep_input_allele()` | `plugin_probe_allele()` |
 | **Mirrors** | Ensembl's VCF → `VariationFeature` parse | Ensembl's `trim_sequences()` |
@@ -227,7 +232,7 @@ but can never change one the primary probe already found.
 
 The same variants through both:
 
-| VCF record | `allele_string` | fully reduced | differ? |
+| VCF record | primary `(start, allele_string)` | fully reduced | differ? |
 |---|---|---|---|
 | `100 A/G` | `A/G` @ 100 | `A/G` @ 100 | no |
 | `200 CA/C` | `A/-` @ 201 | `A/-` @ 201 | no |
@@ -238,7 +243,7 @@ The same variants through both:
 
 Which key each rule reaches for:
 
-| | probes `allele_string` | probes fully reduced |
+| | probes the primary key | probes the fully reduced key |
 |---|---|---|
 | `exact` — SpliceAI, dbNSFP | yes | never |
 | `minimised` — CADD, AlphaMissense, ClinVar | yes | only if the first missed **and** the two keys differ |
