@@ -976,6 +976,10 @@ def annotate(
         transcript. A plugin's version is fixed when its cache is built, not
         chosen here. ``None`` (default) applies no plugins and is
         byte-identical to a plugin-free run.
+
+        Plugin values are appended to the ``CSQ`` field. With ``output_vcf``
+        the header names them; in a ``LazyFrame`` they are only inside the
+        ``CSQ`` string, which the default ``skip_csq=True`` drops.
     plugins : list of str or None
         Restrict annotation to these plugin names, a subset of the directories
         under ``<plugin_cache_root>/plugin/``. ``None`` (default) applies every
@@ -1158,13 +1162,15 @@ def annotate(
     if plugins is not None:
         if plugin_cache_root is None:
             raise ValueError("plugins requires plugin_cache_root")
-        if output_vcf is None:
-            # Only `annotate_to_vcf_file` reads plugin_cache_root; the streaming
-            # annotator behind the LazyFrame ignores it, so plugin fields would
-            # be silently absent. Warn rather than no-op quietly.
+        if output_vcf is None and skip_csq:
+            # Plugin values reach a LazyFrame only inside the CSQ string, which
+            # `skip_csq=True` (the default) drops — so the plugins would be
+            # built and then silently discarded. The VCF path is unaffected: it
+            # writes a header naming the fields.
             warnings.warn(
-                "plugins are only applied when writing VCF output; the "
-                "returned LazyFrame will not contain plugin fields",
+                "plugin fields are emitted inside CSQ, which skip_csq=True "
+                "discards; pass skip_csq=False to keep them, or output_vcf= "
+                "for a header that names them",
                 stacklevel=2,
             )
         _plugin_subset = _plugin_subset_root(plugin_cache_root, plugins)

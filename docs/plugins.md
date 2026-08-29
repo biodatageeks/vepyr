@@ -59,13 +59,20 @@ vepyr.annotate(
 )
 ```
 
-!!! warning "Plugins apply to VCF output only"
-    `plugin_cache_root` is read on the `output_vcf` path. The streaming
-    annotator behind a returned `LazyFrame` ignores it, so a `LazyFrame` result
-    carries no plugin fields — not as columns, and not inside `CSQ` even with
-    `skip_csq=False`. Passing [`plugins`](#choosing-which-plugins-run) without
-    `output_vcf` warns for this reason; `plugin_cache_root` on its own is
-    silently ignored.
+!!! warning "In a LazyFrame, plugin values hide inside `CSQ`"
+    Plugin fields are appended to the `CSQ` field, after the base fields, in
+    `(csq_rank, plugin_name)` order. Writing a VCF gives you a header naming
+    them. A `LazyFrame` has no header, and its default `skip_csq=True` drops
+    the `CSQ` column outright — so plugins are applied and then silently
+    discarded.
+
+    Pass `skip_csq=False` to keep them. The values are correct and identical
+    to the VCF path, but unnamed: you have to know that, say, a CADD-only
+    subset appends `CADD_PHRED` then `CADD_RAW` at positions 80 and 81 of an
+    81-field `CSQ`. Plugin values are not broken out as DataFrame columns.
+
+    Passing [`plugins`](#choosing-which-plugins-run) without `output_vcf` and
+    with `skip_csq` left at its default warns for this reason.
 
 ### Choosing which plugins run
 
