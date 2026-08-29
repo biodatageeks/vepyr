@@ -78,7 +78,7 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 - **Product surface**: Python-first library API — that is the primary user interface for v1
 - **Stack**: Existing Rust + PyO3 + DataFusion architecture — new work should build on the current engine rather than replacing it
 - **Correctness**: Zero mismatches vs Ensembl VEP `--everything` for the supported scope — this is the short-term quality bar
-- **Performance**: `50x+` speedup over Ensembl VEP — performance work must be measured against the reference tool
+- **Performance**: `30x+` speedup over Ensembl VEP — performance work must be measured against the reference tool
 - **Scope**: `homo_sapiens`, `GRCh38`, pinned VEP 115.2 and 116.0 code/cache pairs — keeps the validation surface explicit so parity can be achieved rigorously
 - **Outputs**: Basic Polars plus VCF-compatible results — output work should serve those two paths first
 <!-- GSD:project-end -->
