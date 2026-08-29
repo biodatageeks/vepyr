@@ -212,6 +212,48 @@ plugins get one probe and stop.
 Because the fallback is only consulted after a miss, `minimised` can add hits
 but can never change one the primary probe already found.
 
+### The two keys
+
+| | `allele_string` (primary key) | fully reduced (fallback key) |
+|---|---|---|
+| **Built by** | `vcf_to_vep_input_allele()` | `plugin_probe_allele()` |
+| **Mirrors** | Ensembl's VCF → `VariationFeature` parse | Ensembl's `trim_sequences()` |
+| **Trims prefix** | one base only, the VCF anchor | the whole shared prefix |
+| **Trims suffix** | never | the whole shared suffix |
+| **Applies to** | indels only; SNV/MNV untouched | every variant class |
+| **Moves position** | `+1` when the anchor is stripped | `+1` per prefix base; suffix never moves it |
+| **Empty side** | `-` | `-` |
+| **Used by** | every plugin, always | `minimised` plugins, and only after a miss |
+
+The same variants through both:
+
+| VCF record | `allele_string` | fully reduced | differ? |
+|---|---|---|---|
+| `100 A/G` | `A/G` @ 100 | `A/G` @ 100 | no |
+| `200 CA/C` | `A/-` @ 201 | `A/-` @ 201 | no |
+| `26032805 AAT/TAT` | `AAT/TAT` @ 26032805 | `A/T` @ 26032805 | **yes** |
+| `13973877 TTGTGTGTGTGTG/GTGTGTGTGTGTG` | unchanged @ 13973877 | `T/G` @ 13973877 | **yes** |
+| `26062230 AAC/ACAC` | `AC/CAC` @ 26062231 | `-/C` @ 26062231 | **yes** |
+| `13836148 CGTGTGT/CGTGT` | `GTGTGT/GTGT` @ 13836149 | `GT/-` @ 13836153 | **yes** |
+
+Which key each rule reaches for:
+
+| | probes `allele_string` | probes fully reduced |
+|---|---|---|
+| `exact` — SpliceAI, dbNSFP | yes | never |
+| `minimised` — CADD, AlphaMissense, ClinVar | yes | only if the first missed **and** the two keys differ |
+
+The first two rows are the common case: the keys are identical, so `minimised`
+does a single lookup exactly like `exact` — it costs nothing on well-formed
+input. The rest are equal-length MNVs and `bcftools norm -m -both` leftovers,
+where the parser keeps a shared suffix it never trims. That is the class where
+the rule decides the answer.
+
+!!! note "Why MNVs dominate these examples"
+    The parser suffix-trims **indels only**, never same-length substitutions.
+    So an untrimmed MNV keeps its entire shared suffix in `allele_string`, and
+    the reduced key is genuinely a different lookup.
+
 ### A locus where both rules fire
 
 `chr21:26032805 AAT>TAT` — a real HG002 record that `bcftools norm -m -both`
