@@ -648,3 +648,97 @@ class TestAnnotate:
             assert bars[0].closed is True
         finally:
             os.unlink(out_path)
+
+
+# --- plugin subset selection ---------------------------------------------
+
+
+def _fake_plugin_root(tmp_path: Path, names: list[str]) -> str:
+    """A plugin cache root with `names` as manifest-bearing directories."""
+    root = tmp_path / "plugin_cache"
+    for name in names:
+        d = root / "plugin" / name
+        d.mkdir(parents=True)
+        (d / "manifest.json").write_text("{}")
+    # A directory without a manifest is not a plugin and must be ignored.
+    (root / "plugin" / "not_a_plugin").mkdir(parents=True)
+    return str(root)
+
+
+def test_plugin_subset_root_symlinks_only_selected(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd", "clinvar", "spliceai"])
+
+    with vepyr._plugin_subset_root(root, ["clinvar", "cadd"]) as subset:
+        plugin_dir = Path(subset) / "plugin"
+        assert sorted(p.name for p in plugin_dir.iterdir()) == ["cadd", "clinvar"]
+        for name in ("cadd", "clinvar"):
+            assert (plugin_dir / name).is_symlink()
+            assert (plugin_dir / name / "manifest.json").is_file()
+
+
+def test_plugin_subset_root_empty_list_selects_nothing(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with vepyr._plugin_subset_root(root, []) as subset:
+        assert list((Path(subset) / "plugin").iterdir()) == []
+
+
+def test_plugin_subset_root_deduplicates(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with vepyr._plugin_subset_root(root, ["cadd", "cadd"]) as subset:
+        assert [p.name for p in (Path(subset) / "plugin").iterdir()] == ["cadd"]
+
+
+def test_plugin_subset_root_rejects_unknown_name(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd", "clinvar"])
+    with pytest.raises(ValueError, match="Unknown plugin 'nope'") as exc:
+        vepyr._plugin_subset_root(root, ["nope"])
+    # The message must list the real plugins, not stray directories.
+    assert "cadd, clinvar" in str(exc.value)
+    assert "not_a_plugin" not in str(exc.value)
+
+
+def test_plugin_subset_root_rejects_bare_string(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with pytest.raises(TypeError, match="must be a list"):
+        vepyr._plugin_subset_root(root, "cadd")
+
+
+def test_plugin_subset_root_rejects_non_string_element(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    with pytest.raises(TypeError, match="must be strings"):
+        vepyr._plugin_subset_root(root, [1])
+
+
+def test_plugin_subset_root_missing_plugin_dir(tmp_path):
+    import vepyr
+
+    (tmp_path / "empty").mkdir()
+    with pytest.raises(FileNotFoundError, match="No plugin directory"):
+        vepyr._plugin_subset_root(str(tmp_path / "empty"), ["cadd"])
+
+
+def test_annotate_plugins_requires_plugin_cache_root():
+    import vepyr
+
+    with pytest.raises(ValueError, match="plugins requires plugin_cache_root"):
+        vepyr.annotate("input.vcf", CACHE_DIR, plugins=["cadd"])
+
+
+def test_annotate_plugins_is_accepted_in_signature():
+    import vepyr
+
+    params = inspect.signature(vepyr.annotate).parameters
+    assert "plugins" in params
+    assert params["plugins"].default is None
