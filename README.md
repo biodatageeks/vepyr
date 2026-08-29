@@ -77,6 +77,31 @@ results = vepyr.build_cache_entity(
 )
 ```
 
+Pass `chroms` to restrict the rebuild to specific contigs; omit it to rebuild
+every contig, including scaffolds. Rebuilding one contig of one entity takes
+seconds rather than the hours a full cache conversion needs, which makes
+targeted cache fixes practical:
+
+```python
+results = vepyr.build_cache_entity(
+    release=116,
+    cache_dir="/tmp/vepyr_cache",
+    entity="translation",
+    cache_type="merged",
+    local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
+    overwrite=True,
+    chroms=["chrX"],          # one contig; ~30 s for translation
+)
+```
+
+Two things to know when using this to patch a published cache. Restricting
+`chroms` leaves every other contig at its previous build, so a cache rebuilt
+this way is a mix of generations — rebuild **all** contigs before publishing,
+or the scaffolds silently stay stale. And the entity is the unit of rebuild:
+raw `translation` always writes both `translation_core` and
+`translation_sift`, so check which outputs actually changed before uploading
+(comparing the two is often much cheaper than shipping both).
+
 For an existing converted cache,
 `e2e-testing/scripts/rebuild_cache_entity.py` wraps this API in an all-shard
 verification, backup, transactional swap, and rollback workflow:

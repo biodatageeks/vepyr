@@ -298,6 +298,7 @@ class TestBuildCacheEntityValidation:
             "merged",
             True,
             "116",
+            None,
         )
 
     @pytest.mark.parametrize("entity", ["translation_core", "translation_sift", "bad"])
