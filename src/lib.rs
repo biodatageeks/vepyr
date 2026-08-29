@@ -187,7 +187,7 @@ fn build_cache(
 /// Returns the same `(entity, [(parquet_path, rows)], None)` shape as
 /// [`build_cache`].
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, entity, partitions=8, cache_source_type="ensembl", overwrite=true, expected_cache_version=None))]
+#[pyo3(signature = (cache_root, output_dir, entity, partitions=8, cache_source_type="ensembl", overwrite=true, expected_cache_version=None, chroms=None))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache_entity(
     py: Python<'_>,
@@ -198,6 +198,7 @@ fn build_cache_entity(
     cache_source_type: &str,
     overwrite: bool,
     expected_cache_version: Option<String>,
+    chroms: Option<Vec<String>>,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
 
@@ -208,6 +209,11 @@ fn build_cache_entity(
         .with_overwrite(overwrite);
     if let Some(expected_cache_version) = expected_cache_version {
         builder = builder.with_expected_cache_version(expected_cache_version);
+    }
+    // Restrict the rebuild to specific contigs. An empty list means no filter,
+    // matching `CacheBuilder::with_chrom_filter`.
+    if let Some(chroms) = chroms {
+        builder = builder.with_chrom_filter(chroms);
     }
 
     let rt = tokio::runtime::Builder::new_multi_thread()

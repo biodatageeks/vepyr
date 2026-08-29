@@ -536,6 +536,7 @@ def build_cache_entity(
     local_cache: str | None = None,
     download_retries: int = 10,
     overwrite: bool = False,
+    chroms: list[str] | None = None,
 ) -> list[tuple[str, int]]:
     """Download or open an Ensembl VEP cache and convert one raw entity.
 
@@ -545,6 +546,9 @@ def build_cache_entity(
     one of ``variation``, ``transcript``, ``exon``, ``translation``,
     ``regulatory``, or ``motif``. The raw ``translation`` entity produces the
     ``translation_core`` and ``translation_sift`` Parquet datasets.
+
+    ``chroms`` restricts the rebuild to specific contigs (e.g. ``["chrX"]``);
+    ``None`` rebuilds every contig.
 
     Returns a flattened list of ``(parquet_file_path, row_count)`` pairs.
     """
@@ -572,6 +576,7 @@ def build_cache_entity(
         cache_type,
         overwrite,
         expected_cache_version,
+        chroms,
     )
 
     results = [
