@@ -80,6 +80,8 @@ body:
         - "116.1"
         - "116.0"
         - "115.2"
+        - "115.1"
+        - "115.0"
         - "Other (state it in the description)"
         - "Not applicable — not comparing against Ensembl VEP"
     validations:
