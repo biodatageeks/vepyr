@@ -52,16 +52,36 @@ body:
       required: true
 
   - type: dropdown
-    id: vep-release
+    id: cache-release
     attributes:
-      label: VEP release
+      label: Cache release
       description: >-
-        Which cache release was vepyr run against? vepyr supports cache 115 with VEP
-        115.2 semantics and cache 116 with VEP 116.0 semantics.
+        Which cache release did vepyr annotate against? This is the integer embedded as
+        `bio.vep.cache_version` in every Parquet shard — point releases such as 116.1
+        share cache 116.
       options:
-        - "116 (VEP 116.0 semantics)"
-        - "115 (VEP 115.2 semantics)"
+        - "116"
+        - "115"
         - "Other / not sure (describe below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: vep-version
+    attributes:
+      label: Ensembl VEP version used as the reference
+      description: >-
+        Which `ensemblorg/ensembl-vep` image produced the output you are comparing
+        against? vepyr implements **115.2** and **116.0** semantics exactly; against a
+        different point release some differences are expected rather than bugs, so we
+        need to know which one you ran. Pick "Not applicable" if you are not comparing
+        against Ensembl VEP.
+      options:
+        - "116.1"
+        - "116.0"
+        - "115.2"
+        - "Other (state it in the description)"
+        - "Not applicable — not comparing against Ensembl VEP"
     validations:
       required: true
 
