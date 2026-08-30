@@ -1,0 +1,238 @@
+name: Data problem report
+description: Report wrong, missing, or unexpected annotation output from vepyr
+title: "[data] "
+labels: ["bug", "data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a data problem — a wrong consequence, a missing field, a
+        value that disagrees with Ensembl VEP.
+
+        **Please attach the real files.** A data issue is only actionable if we can
+        replay it byte for byte; a pasted excerpt is almost never enough.
+
+        Two upload notes:
+
+        - GitHub rejects a bare `.vcf` attachment. Attach `.vcf.gz`, or zip it.
+        - Attachments are capped at 25 MB. If your file is bigger, slice it to the
+          affected region and attach the slice:
+
+          ```bash
+          bcftools view -r chr1:1000000-1010000 -Oz -o slice.vcf.gz input.vcf.gz
+          ```
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: >-
+        What is wrong? Name the affected variant(s) and field(s) — e.g.
+        "chr1:69511 A>G gets `missense_variant` but the CSQ `IMPACT` is empty".
+      placeholder: |
+        At chr7:117559590 C>T, vepyr reports Consequence=intron_variant for
+        transcript ENST00000003084, but Ensembl VEP 116.0 reports
+        splice_donor_5th_base_variant for the same record.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected output
+      description: >-
+        What should the output have been, and how do you know? If Ensembl VEP is your
+        reference, paste its record and say which release and cache produced it.
+      placeholder: |
+        Expected CSQ for ENST00000003084:
+        T|splice_donor_5th_base_variant|LOW|...
+
+        Source: ensemblorg/ensembl-vep:release_116.0, --everything, merged cache.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cache-release
+    attributes:
+      label: Cache release
+      description: >-
+        Which cache release did vepyr annotate against? This is the integer embedded as
+        `bio.vep.cache_version` in every Parquet shard — point releases such as 116.1
+        share cache 116.
+      options:
+        - "116"
+        - "115"
+        - "Other / not sure (describe below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: vep-version
+    attributes:
+      label: Ensembl VEP version used as the reference
+      description: >-
+        Which `ensemblorg/ensembl-vep` image produced the output you are comparing
+        against? vepyr implements **115.2** and **116.0** semantics exactly; against a
+        different point release some differences are expected rather than bugs, so we
+        need to know which one you ran. Pick "Not applicable" if you are not comparing
+        against Ensembl VEP.
+      options:
+        - "116.1"
+        - "116.0"
+        - "115.2"
+        - "115.1"
+        - "115.0"
+        - "Other (state it in the description)"
+        - "Not applicable — not comparing against Ensembl VEP"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cache-source
+    attributes:
+      label: Cache source type
+      options:
+        - merged
+        - ensembl
+        - refseq
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: vepyr-version
+    attributes:
+      label: vepyr tag or commit SHA
+      description: >-
+        A release tag (`v0.4.0`) or the exact commit SHA you built from. Get it with
+        `python -c "import vepyr; print(vepyr.__version__)"`, or `git rev-parse HEAD`
+        for a source build.
+      placeholder: "v0.4.0  —  or  306926d4126cbaf75b0ac762a267d2e8b2b157ef"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Normalization
+
+        VEP consequence calls are per-allele, so multiallelic sites must be decomposed
+        into one record per ALT allele before annotation. Un-normalized input is the
+        single most common cause of an apparent mismatch, so we ask about it first.
+
+        **This is the command vepyr's own test suite uses:**
+
+        ```bash
+        bcftools norm -m -both -o normalized.vcf input.vcf.gz
+        bgzip -f normalized.vcf
+        tabix -f -p vcf normalized.vcf.gz
+        ```
+
+        Note it is `-m -both` **only** — no `-f` / left-alignment against the reference,
+        so the step is deterministic and needs no FASTA. If you used `-f`, say so below:
+        left-aligned input can legitimately shift positions and change the answer.
+
+  - type: dropdown
+    id: normalized
+    attributes:
+      label: Was the input VCF normalized?
+      description: Compare against the command shown just above.
+      options:
+        - "Yes — exactly the command above"
+        - "Yes — but a different command (given below)"
+        - "No, the input is not normalized"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: normalization-command
+    attributes:
+      label: Normalization command actually used
+      description: >-
+        Paste the exact command, including any `-f`/`--fasta-ref` and the bcftools
+        version (`bcftools --version`). Leave blank only if you answered "exactly the
+        command above".
+      render: shell
+
+  - type: textarea
+    id: input-vcf
+    attributes:
+      label: Input VCF (normalized) — attach the file
+      description: >-
+        **Attach the normalized `.vcf.gz` you actually fed to vepyr** by dragging it into
+        this box. Not a rewritten excerpt — the real file, sliced to the affected region
+        if it is large.
+      placeholder: Drag and drop the .vcf.gz here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: vepyr-command
+    attributes:
+      label: vepyr call that produced the output
+      description: >-
+        The full `vepyr.annotate(...)` call or CLI invocation, with every flag, the cache
+        directory, and the reference FASTA if one was passed.
+      render: python
+      placeholder: |
+        import vepyr
+        df = vepyr.annotate(
+            "normalized.vcf.gz",
+            "/data/cache/116_GRCh38_merged",
+            everything=True,
+            reference_fasta="/data/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+            expected_cache_version="116",
+        ).collect()
+    validations:
+      required: true
+
+  - type: textarea
+    id: output-vcf
+    attributes:
+      label: Output VCF — attach the file
+      description: >-
+        **Attach the output vepyr produced** (`.vcf.gz`, or zip it). If you have the
+        Ensembl VEP output you are comparing against, attach that too — it makes the
+        diff immediate.
+      placeholder: Drag and drop the output .vcf.gz here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Plugins enabled
+      description: >-
+        Which plugins were active (CADD, ClinVar, dbNSFP, AlphaMissense, SpliceAI, ...)
+        and how the plugin caches were built. Write "none" if the run was plugin-free.
+      placeholder: "none"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >-
+        OS and version, Python version, how vepyr was installed (wheel from PyPI, or
+        built locally with maturin), and how the cache was obtained (`build_cache()`
+        from a raw Ensembl cache, or downloaded from Hugging Face).
+      placeholder: |
+        macOS 15.6 (arm64), Python 3.12
+        vepyr installed from PyPI wheel
+        Cache: build_cache() from ensembl-vep release_116.0 merged cache
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: >-
+            I attached the actual input and output files (not just pasted excerpts).
+          required: true
+        - label: >-
+            I searched existing issues for this variant, field, or consequence term.
+          required: true
