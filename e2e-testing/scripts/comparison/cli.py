@@ -277,13 +277,18 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
     print(header)
     print("  " + "-" * (len(header) - 2))
     differing = []
+    incomplete = []
     for chrom, payload in rows:
         first = payload.get(modes[0], {})
         cells = []
         for mode in modes:
             entry = payload.get(mode)
             if entry is None:
+                # A requested mode with no stored digest is unevaluated, not
+                # passing -- happens when the report was written by a run with
+                # a narrower --md5-mode.
                 cells.append(f"{'-':<9}")
+                incomplete.append(chrom)
                 continue
             cells.append(f"{'ok' if entry['body_match'] else 'DIFFER':<9}")
             if not entry["body_match"]:
@@ -293,17 +298,25 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
         print(f"  {chrom:<8} {shown:>12}  " + "  ".join(cells))
 
     differing = sorted(set(differing))
+    incomplete = sorted(set(incomplete) - set(differing))
     total = sum(
         payload.get(modes[0], {}).get("vep_records") or 0 for _, payload in rows
     )
     if missing:
         print(f"  no md5 evidence for: {', '.join(missing)}")
+    if incomplete:
+        print(
+            f"  no digest for every requested mode on: {', '.join(incomplete)}"
+            " -- re-run without --skip-annotate, or narrow --md5-mode"
+        )
     if differing:
         print(f"\n  FAIL: body digest differs on {', '.join(differing)}")
+    elif missing or incomplete:
+        print("\n  FAIL: incomplete md5 evidence -- nothing was verified above")
     else:
         print(f"\n  PASS: {len(rows)} contig(s) concord ({total:,} records)")
     print("=" * 60)
-    return differing + missing
+    return differing + missing + incomplete
 
 
 def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested):
@@ -654,7 +667,11 @@ def main(argv=None):
                 failures.append(chrom)
 
     md5_failures = []
-    if args.comparison_mode == "md5" and not args.skip_annotate:
+    # No `not args.skip_annotate` guard: md5_summary reads the per-contig report
+    # JSONs back off disk, exactly as load_reports does for field mode, so
+    # --skip-annotate re-summarises existing evidence instead of silently
+    # printing nothing and exiting 0.
+    if args.comparison_mode == "md5":
         md5_failures = md5_summary(
             report_dir,
             [chrom for chrom in chroms if chrom not in failures],

@@ -107,12 +107,12 @@ Column counts (merged cache, release 116):
 | Entity | Columns | of which provenance | Cross-type delta |
 |---|--:|--:|---|
 | `variation` | 25 | 0 | — |
-| `transcript` | 79 | 20 | `source_refseq` |
-| `exon` | 36 | 20 | `source_refseq` |
+| `transcript` | 77 | 20 | `source_refseq` |
+| `exon` | 33 | 20 | `source_refseq` |
 | `translation_core` | 10 | 0 | — |
 | `translation_sift` | 3 | 0 | — |
-| `regulatory` | 32 | 20 | `source_refseq` |
-| `motif` | 37 | 20 | `source_refseq` |
+| `regulatory` | 30 | 20 | `source_refseq` |
+| `motif` | 35 | 20 | `source_refseq` |
 
 ### The provenance block
 
