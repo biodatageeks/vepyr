@@ -107,12 +107,12 @@ Column counts (merged cache, release 116):
 | Entity | Columns | of which provenance | Cross-type delta |
 |---|--:|--:|---|
 | `variation` | 25 | 0 | — |
-| `transcript` | 79 | 20 | `source_refseq` |
-| `exon` | 36 | 20 | `source_refseq` |
+| `transcript` | 77 | 20 | `source_refseq` |
+| `exon` | 33 | 20 | `source_refseq` |
 | `translation_core` | 10 | 0 | — |
 | `translation_sift` | 3 | 0 | — |
-| `regulatory` | 32 | 20 | `source_refseq` |
-| `motif` | 37 | 20 | `source_refseq` |
+| `regulatory` | 30 | 20 | `source_refseq` |
+| `motif` | 35 | 20 | `source_refseq` |
 
 ### The provenance block
 
@@ -169,7 +169,7 @@ cache, leaving 19.
     | `af_gnomadg_alleles` | `list<item: string>` |
     | `af_gnomadg_freqs` | `list<item: float>` |
 
-??? note "`transcript` — 59 columns (+ 20 provenance)"
+??? note "`transcript` — 57 columns (+ 20 provenance)"
 
     The transcript models, including sequences and the nested `exons` / `cdna_mapper_segments` / `refseq_edits` structures. No provenance block shown — see above.
 
@@ -231,11 +231,9 @@ cache, leaving 19.
     | `has_non_polya_rna_edit` | `bool` |
     | `spliced_seq` | `string` |
     | `flags_str` | `string` |
-    | `raw_object_json` | `string` |
-    | `object_hash` | `string` |
     | `transcript_uid` | `uint32` |
 
-??? note "`exon` — 16 columns (+ 20 provenance)"
+??? note "`exon` — 13 columns (+ 20 provenance)"
 
     Exon/intron structure, one row per exon of a transcript. No provenance block shown — see above.
 
@@ -254,9 +252,6 @@ cache, leaving 19.
     | `transcript_id` | `string` |
     | `gene_stable_id` | `string` |
     | `exon_number` | `int32` |
-    | `raw_object_json` | `string` |
-    | `object_hash` | `string` |
-    | `_rn` | `uint64` |
 
 ??? note "`translation_core` — 10 columns"
 
@@ -285,7 +280,7 @@ cache, leaving 19.
     | `sift` | `binary` |
     | `poly` | `binary` |
 
-??? note "`regulatory` — 12 columns (+ 20 provenance)"
+??? note "`regulatory` — 10 columns (+ 20 provenance)"
 
     Regulatory features. No provenance block shown — see above.
 
@@ -301,10 +296,8 @@ cache, leaving 19.
     | `epigenome_count` | `int32` |
     | `regulatory_build_id` | `int64` |
     | `cell_types` | `string` |
-    | `raw_object_json` | `string` |
-    | `object_hash` | `string` |
 
-??? note "`motif` — 17 columns (+ 20 provenance)"
+??? note "`motif` — 15 columns (+ 20 provenance)"
 
     TF-binding motif features (release 116 only). No provenance block shown — see above.
 
@@ -325,8 +318,6 @@ cache, leaving 19.
     | `cell_types` | `string` |
     | `overlapping_regulatory_feature` | `string` |
     | `transcription_factors` | `string` |
-    | `raw_object_json` | `string` |
-    | `object_hash` | `string` |
 
 ## CSQ output fields
 

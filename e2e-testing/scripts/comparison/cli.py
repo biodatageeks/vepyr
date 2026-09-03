@@ -87,7 +87,32 @@ def parse_args(argv=None):
         "--skip-comparison",
         dest="skip_compare",
         action="store_true",
-        help="Annotate only, no comparison against the VEP reference",
+        help="Annotate only: no comparison, and no reference slice. To "
+        "compare, drop this and use --comparison-mode.",
+    )
+    p.add_argument(
+        "--comparison-mode",
+        choices=("field", "md5"),
+        default=None,
+        dest="comparison_mode",
+        help="How to compare vepyr's output against the VEP reference "
+        "(default: field). Both modes annotate and cut the reference slice if "
+        "it is missing; only the check differs. 'field' compares the CSQ "
+        "fields per record and writes the aggregate summary. 'md5' hashes the "
+        "files and reports byte concordance per contig. Use --skip-compare to "
+        "annotate with no comparison at all.",
+    )
+    p.add_argument(
+        "--md5-mode",
+        choices=("strict", "canonical", "both"),
+        default="both",
+        dest="md5_mode",
+        help="Digest mode for --comparison-mode md5 (default: both). "
+        "'strict' hashes record bytes as-is -- the parity target. 'canonical' "
+        "normalises cosmetic serialization first. 'both' is the default "
+        "because hashing twice is cheap and the pair is diagnostic: a strict "
+        "failure with a canonical pass isolates serialization drift from a "
+        "content change, which one digest alone cannot tell you.",
     )
     p.add_argument(
         "--no-normalize",
@@ -221,6 +246,116 @@ def resolve_contigs(args, resolved, input_vcf):
     return args.chroms
 
 
+def md5_summary(report_dir, chroms, suffix, release, requested):
+    """Print the per-contig md5 verdicts and return the contigs that differ.
+
+    Read back from the per-contig report JSONs rather than kept in memory, so
+    the summary is identical whether the contigs ran in-process or under
+    --isolate (where each one is a separate subprocess).
+    """
+    modes = ("strict", "canonical") if requested == "both" else (requested,)
+    rows = []
+    missing = []
+    for chrom in chroms:
+        path = report.report_json_path(report_dir, chrom, suffix, release)
+        try:
+            with open(path) as f:
+                payload = json.load(f).get("md5")
+        except (OSError, ValueError):
+            payload = None
+        if not payload:
+            missing.append(chrom)
+            continue
+        rows.append((chrom, payload))
+
+    print(f"\n{'=' * 60}")
+    print(f"  MD5 concordance vs the VEP reference ({', '.join(modes)})")
+    print(f"{'=' * 60}")
+    header = f"  {'CONTIG':<8} {'RECORDS':>12}  " + "  ".join(
+        f"{m.upper():<9}" for m in modes
+    )
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+    differing = []
+    incomplete = []
+    for chrom, payload in rows:
+        first = payload.get(modes[0], {})
+        cells = []
+        for mode in modes:
+            entry = payload.get(mode)
+            if entry is None:
+                # A requested mode with no stored digest is unevaluated, not
+                # passing -- happens when the report was written by a run with
+                # a narrower --md5-mode.
+                cells.append(f"{'-':<9}")
+                incomplete.append(chrom)
+                continue
+            cells.append(f"{'ok' if entry['body_match'] else 'DIFFER':<9}")
+            if not entry["body_match"]:
+                differing.append(chrom)
+        records = first.get("vep_records")
+        shown = f"{records:,}" if isinstance(records, int) else "?"
+        print(f"  {chrom:<8} {shown:>12}  " + "  ".join(cells))
+
+    differing = sorted(set(differing))
+    incomplete = sorted(set(incomplete) - set(differing))
+    total = sum(
+        payload.get(modes[0], {}).get("vep_records") or 0 for _, payload in rows
+    )
+    if missing:
+        print(f"  no md5 evidence for: {', '.join(missing)}")
+    if incomplete:
+        print(
+            f"  no digest for every requested mode on: {', '.join(incomplete)}"
+            " -- re-run without --skip-annotate, or narrow --md5-mode"
+        )
+    if differing:
+        print(f"\n  FAIL: body digest differs on {', '.join(differing)}")
+    elif missing or incomplete:
+        print("\n  FAIL: incomplete md5 evidence -- nothing was verified above")
+    else:
+        print(f"\n  PASS: {len(rows)} contig(s) concord ({total:,} records)")
+    print("=" * 60)
+    return differing + missing + incomplete
+
+
+def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested):
+    """Hash one contig's vepyr output against its VEP reference slice.
+
+    Delegates to `md5_concordance` rather than re-implementing the digest, so
+    the verdict here and the verdict from `md5_concordance.py --results-dir`
+    cannot drift. Returns `{mode: {...}}`, printing one line per mode.
+    """
+    import md5_concordance
+
+    modes = ("strict", "canonical") if requested == "both" else (requested,)
+    pair = md5_concordance.Pair(label=chrom, vep=vep_slice, vepyr=vepyr_vcf)
+    out = {}
+    for mode in modes:
+        outcome = md5_concordance.compare(pair, mode)
+        out[mode] = {
+            "body_match": outcome.body_match,
+            "header_match": outcome.header_match,
+            "count_match": outcome.count_match,
+            "vep_body_md5": outcome.vep.body,
+            "vepyr_body_md5": outcome.vepyr.body,
+            "vep_records": outcome.vep.records,
+            "vepyr_records": outcome.vepyr.records,
+            "notes": list(outcome.notes),
+        }
+        verdict = "MATCH" if outcome.body_match else "DIFFER"
+        counts = (
+            f"{outcome.vep.records:,}"
+            if outcome.count_match
+            else f"{outcome.vep.records:,} vs {outcome.vepyr.records:,}"
+        )
+        print(f"  md5 {mode}: body {verdict} ({counts} records)")
+        if not outcome.body_match:
+            for note in outcome.notes:
+                print(f"    - {note}")
+    return out
+
+
 def run_contig(
     chrom,
     args,
@@ -271,11 +406,17 @@ def run_contig(
         bgzf=args.bgzf,
     )
 
-    comparison = None
+    # The reference slice feeds the field comparison and the md5 check alike, so
+    # it must be cut whenever either is wanted -- `--skip-compare --md5` used to
+    # leave md5 with nothing to compare against.
+    vep_slice = None
     if not args.skip_compare:
         vep_slice = vcfio.slice_vep(
             resolved.vep_vcf, chrom, work_dir, resolved.suffix, force=args.force
         )
+
+    comparison = None
+    if not args.skip_compare and args.comparison_mode == "field":
         comparison = compare.compare_vcfs(
             output_vcf,
             vep_slice,
@@ -289,6 +430,10 @@ def run_contig(
                 resolved.release,
             ),
         )
+
+    md5_result = None
+    if not args.skip_compare and args.comparison_mode == "md5":
+        md5_result = md5_for_contig(chrom, vep_slice, output_vcf, args.md5_mode)
 
     result = {
         "chrom": chrom,
@@ -308,7 +453,10 @@ def run_contig(
             "output_variants": n_out,
         },
         "comparison": comparison,
+        "comparison_mode": None if args.skip_compare else args.comparison_mode,
     }
+    if md5_result is not None:
+        result["md5"] = md5_result
     if reference_identity is not None:
         result["reference_identity"] = reference_identity
     # Only for plugin profiles, so a non-plugin report keeps its exact shape.
@@ -349,7 +497,13 @@ def _run_contig_isolated(chrom, args):
     if args.bgzf:
         cmd.append("--bgzf")
     if args.skip_compare:
+        # main() has already defaulted comparison_mode to "field", so forwarding
+        # it here would hand the child both flags and trip its own conflict
+        # check -- failing every contig of an annotate-only isolated sweep.
         cmd.append("--skip-compare")
+    else:
+        cmd += ["--comparison-mode", args.comparison_mode]
+        cmd += ["--md5-mode", args.md5_mode]
     if args.no_normalize:
         cmd.append("--no-normalize")
     if args.vep:
@@ -363,6 +517,19 @@ def _run_contig_isolated(chrom, args):
 
 def main(argv=None):
     args = parse_args(argv)
+
+    # --skip-compare means "no comparison at all"; --comparison-mode selects
+    # which comparison to run. Asking for both is contradictory, so say so
+    # rather than silently honouring one of them.
+    if args.skip_compare and args.comparison_mode is not None:
+        print(
+            "Error: --skip-compare runs no comparison, so it cannot be "
+            f"combined with --comparison-mode {args.comparison_mode}. "
+            "Drop one.",
+            file=sys.stderr,
+        )
+        return 2
+    args.comparison_mode = args.comparison_mode or "field"
 
     try:
         # Per-contig plugin references resolve one file at a time, so hand the
@@ -502,11 +669,69 @@ def main(argv=None):
                 print(f"  ERROR: {chrom} failed: {exc}", file=sys.stderr)
                 failures.append(chrom)
 
+    md5_failures = []
+    # No `not args.skip_annotate` guard: md5_summary reads the per-contig report
+    # JSONs back off disk, exactly as load_reports does for field mode, so
+    # --skip-annotate re-summarises existing evidence instead of silently
+    # printing nothing and exiting 0.
+    if args.comparison_mode == "md5":
+        md5_failures = md5_summary(
+            report_dir,
+            [chrom for chrom in chroms if chrom not in failures],
+            resolved.suffix,
+            resolved.release,
+            args.md5_mode,
+        )
+
     if args.skip_compare:
         print("\nSkipping aggregate summary (--skip-compare)")
         return 1 if failures else 0
 
+    if args.comparison_mode == "md5":
+        # The field-level aggregate summarises per-field mismatch counts, which
+        # md5 mode never produces. The md5 table above is this mode's summary.
+        if failures:
+            print(f"  FAILED contigs: {', '.join(failures)}")
+        return 1 if failures or md5_failures else 0
+
     successful_chroms = [chrom for chrom in chroms if chrom not in failures]
+
+    # An md5 run writes `comparison: null` to the same mode-agnostic report
+    # path a field run uses. Left unchecked, a later field-mode
+    # --skip-annotate would load those reports, aggregate_mismatches() would
+    # skip every null, and the run would print a 0/0 field summary and exit 0
+    # on evidence that contains no field comparison at all. Only reused
+    # evidence can be stale this way -- a fresh field run always populates
+    # `comparison` -- so the check is scoped to --skip-annotate.
+    field_evidence_missing = []
+    for chrom in successful_chroms if args.skip_annotate else ():
+        path = report.report_json_path(
+            report_dir, chrom, resolved.suffix, resolved.release
+        )
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path) as f:
+                payload = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if payload.get("comparison") is None:
+            field_evidence_missing.append(chrom)
+    if field_evidence_missing:
+        print(
+            "  ERROR: no field-comparison evidence for "
+            + ", ".join(field_evidence_missing)
+            + " -- those reports were written by a run in another mode "
+            "(--comparison-mode md5, or --skip-compare).\n"
+            "         Re-run in field mode, or pass --comparison-mode md5 to "
+            "read the md5 evidence instead.",
+            file=sys.stderr,
+        )
+        failures.extend(field_evidence_missing)
+        successful_chroms = [
+            chrom for chrom in successful_chroms if chrom not in field_evidence_missing
+        ]
+
     if not args.skip_annotate:
         missing_evidence = [
             chrom
@@ -585,5 +810,7 @@ def main(argv=None):
     print(f"  Total mismatches: {sum(agg['field_mm'].values()):,}")
     if failures:
         print(f"  FAILED contigs: {', '.join(failures)}")
+    if md5_failures:
+        print(f"  MD5 mismatched contigs: {', '.join(md5_failures)}")
     print("=" * 60)
-    return 1 if failures else 0
+    return 1 if failures or md5_failures else 0

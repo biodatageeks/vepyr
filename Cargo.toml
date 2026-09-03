@@ -42,8 +42,14 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# Released bio-formats v1.11.0 and bio-functions v0.19.2, pinned by the commit
-# each tag names. v1.11.0 carries each record's INFO and FORMAT key order through
+# bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
+# and bio-functions 86f1c0a (v0.19.2 + the translation_core ORDER BY #224, the unread-column
+# drop #225, and the bio-formats bump #226). Together these make a cache build reproducible:
+# the exon dedup tie-break is now total, translation_core has a total output ORDER BY instead
+# of relying on CoalescePartitionsExec arrival order, and the four context entities no longer
+# persist raw_object_json / object_hash / _rn, which no reader projects.
+#
+# bio-formats v1.11.0 carried each record's INFO and FORMAT key order through
 # a read/write round trip; v0.18.0 turned that on for annotation output and
 # stopped stripping field metadata from the annotation schema, without which the
 # carry reaches the writer unrecognised. v0.19.0 adds the plugin cache-builder
@@ -55,6 +61,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "3a3fca3f423c3290dea80b2ee20fbebc7a5f3fe0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "86f1c0a2a49c9a4f08dbaca42c25308b898b7542", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }

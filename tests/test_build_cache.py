@@ -632,7 +632,16 @@ class TestBuildCacheIntegration:
 
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["transcript"].num_columns == 78
+        assert tables["transcript"].num_columns == 76
+
+    def test_transcript_omits_unpersisted_columns(self, built_cache):
+        # The cache build stops at the columns something reads. The raw
+        # Storable payload and its hash are projected by no reader, and `_rn`
+        # is the dedup helper; see biodatageeks/datafusion-bio-functions#225.
+        _, _, _, tables = built_cache
+        cols = tables["transcript"].column_names
+        for c in ("raw_object_json", "object_hash"):
+            assert c not in cols, f"{c} must not be persisted in transcript"
 
     def test_transcript_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -729,7 +738,16 @@ class TestBuildCacheIntegration:
 
     def test_exon_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["exon"].num_columns == 35
+        assert tables["exon"].num_columns == 32
+
+    def test_exon_omits_unpersisted_columns(self, built_cache):
+        # The cache build stops at the columns something reads. The raw
+        # Storable payload and its hash are projected by no reader, and `_rn`
+        # is the dedup helper; see biodatageeks/datafusion-bio-functions#225.
+        _, _, _, tables = built_cache
+        cols = tables["exon"].column_names
+        for c in ("raw_object_json", "object_hash", "_rn"):
+            assert c not in cols, f"{c} must not be persisted in exon"
 
     def test_exon_required_columns(self, built_cache):
         _, _, _, tables = built_cache
@@ -889,7 +907,16 @@ class TestBuildCacheIntegration:
 
     def test_regulatory_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["regulatory"].num_columns == 31
+        assert tables["regulatory"].num_columns == 29
+
+    def test_regulatory_omits_unpersisted_columns(self, built_cache):
+        # The cache build stops at the columns something reads. The raw
+        # Storable payload and its hash are projected by no reader, and `_rn`
+        # is the dedup helper; see biodatageeks/datafusion-bio-functions#225.
+        _, _, _, tables = built_cache
+        cols = tables["regulatory"].column_names
+        for c in ("raw_object_json", "object_hash"):
+            assert c not in cols, f"{c} must not be persisted in regulatory"
 
     def test_regulatory_required_columns(self, built_cache):
         _, _, _, tables = built_cache

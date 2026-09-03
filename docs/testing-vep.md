@@ -465,9 +465,29 @@ rather than a full scan.
 ## Checking byte-level agreement
 
 The field-by-field comparison above answers whether the annotation *content* matches.
-`md5_concordance.py` answers the stricter question of whether the *bytes* match, which
+The byte-level check answers the stricter question of whether the *bytes* match, which
 is what makes vepyr's output a drop-in replacement for VEP's rather than an equivalent
-one. It hashes each file's header and record body separately and compares the digests.
+one. Both hash each file's header and record body separately and compare the digests.
+
+For the usual case, ask `run_comparison.py` for it directly — it slices the input and
+the reference, annotates, hashes both, and exits non-zero on any mismatch:
+
+```bash
+cd e2e-testing/scripts
+
+# One command, any contig subset
+uv run python run_comparison.py --release 116 --chroms 1 4 7 22 \
+    --comparison-mode md5 --bgzf
+```
+
+`--comparison-mode` picks *how* to compare (`field`, the default, or `md5`);
+`--skip-compare` picks *whether* to compare at all and skips the reference slice with
+it. The two cannot be combined. `--md5-mode` defaults to `both`, reporting `strict` and
+`canonical` side by side.
+
+Reach for `md5_concordance.py` when you need what that flag does not do: compare two
+arbitrary files, re-hash existing output without re-annotating, or classify *how*
+records differ with `--explain`.
 
 ```bash
 cd e2e-testing/scripts
@@ -481,7 +501,8 @@ uv run python md5_concordance.py \
 uv run python md5_concordance.py --results-dir ../results/116 --mode strict
 ```
 
-`--mode canonical` (the default) normalizes the differences that are known to be
+`--mode canonical` (the standalone tool's default; `run_comparison.py --md5-mode`
+defaults to `both`) normalizes the differences that are known to be
 cosmetic before hashing — QUAL rendered numerically, INFO and FORMAT keys sorted,
 FORMAT keys missing in every sample dropped — so a matching canonical digest means the
 two files carry identical annotation content and differ only in how they were written.

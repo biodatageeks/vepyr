@@ -96,8 +96,18 @@ uv run python run_comparison.py --release 115 --chroms 22 --workers 4
 # One subprocess per contig, so a native crash loses only that contig
 uv run python run_comparison.py --release 115 --isolate
 
-# Annotate only, no comparison -- useful for annotation timing
+# Annotate only, no comparison and no reference slice -- annotation timing
 uv run python run_comparison.py --release 115 --chroms 22 --skip-compare
+
+# Byte-level comparison instead of the field-by-field one, for a contig subset.
+# Slices the input and the VEP reference, annotates, hashes both, exits non-zero
+# on any mismatch -- the whole e2e check in one command.
+uv run python run_comparison.py --release 116 --chroms 1 4 7 22 \
+    --comparison-mode md5 --bgzf
+
+# Narrow the digest to one mode (default reports strict and canonical)
+uv run python run_comparison.py --release 116 --chroms 22 \
+    --comparison-mode md5 --md5-mode strict
 
 # Regenerate the summary from existing per-contig JSONs (instant)
 uv run python run_comparison.py --release 115 --skip-annotate
@@ -109,6 +119,23 @@ uv run python run_comparison.py --release 115 --chroms 22 \
     --cache-dir /path/to/cache \
     --fasta /path/to/reference.fa
 ```
+
+**Comparison modes.** `--comparison-mode` selects *how* the output is checked
+against the VEP reference; `--skip-compare` selects *whether* it is checked at
+all. The two cannot be combined -- doing so is an error rather than a silently
+resolved contradiction.
+
+| flags | annotate | reference slice | check |
+|---|---|---|---|
+| *(default)* | yes | yes | `field` -- CSQ fields per record, writes the aggregate summary |
+| `--comparison-mode md5` | yes | yes | `md5` -- byte digests per contig |
+| `--skip-compare` | yes | no | none |
+
+`--md5-mode` defaults to `both`, reporting `strict` (record bytes as-is, the
+parity target) and `canonical` (cosmetic serialization normalised first)
+side by side. Hashing twice is cheap and the pair is diagnostic: a strict
+failure with a canonical pass isolates serialization drift from a change in
+annotation content, which either digest alone leaves ambiguous.
 
 **Defaults:** `--profile merged`, always regenerate annotation output, reuse
 only source-identified normalized/input/reference slices (`--force` to recreate
