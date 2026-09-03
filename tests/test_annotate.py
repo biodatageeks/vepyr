@@ -35,6 +35,91 @@ def metadata_cache_dir(skip_if_no_cache, tmp_path_factory):
     return str(copy_cache_with_source_metadata(CACHE_DIR, target, "ensembl", "115"))
 
 
+@pytest.fixture(scope="module")
+def partial_cache_dir(metadata_cache_dir, tmp_path_factory):
+    """A per-contig download: every shard on disk, manifests listing more.
+
+    Mirrors ``snapshot_download(allow_patterns=["*/chr1.parquet",
+    "*/chrom_manifest.json"])`` against a published cache, whose
+    ``chrom_manifest.json`` files describe the whole cache. The entries
+    prepended here name contigs that have no shard on disk, and the first of
+    them is what a manifest-position probe would try to open.
+    """
+    source = Path(metadata_cache_dir)
+    target = tmp_path_factory.mktemp("partial_cache")
+    absent = [
+        {"chrom": chrom, "dataset": f"{chrom}.parquet", "rows": 1}
+        for chrom in ("chr21", "chr22")
+    ]
+    for entity_dir in sorted(d for d in source.iterdir() if d.is_dir()):
+        out = target / entity_dir.name
+        out.mkdir()
+        for shard in entity_dir.glob("*.parquet"):
+            (out / shard.name).symlink_to(shard)
+        entries = json.loads((entity_dir / "chrom_manifest.json").read_text())
+        (out / "chrom_manifest.json").write_text(json.dumps(absent + entries, indent=2))
+    return str(target)
+
+
+class TestPartialCache:
+    """A cache whose shards are a subset of its manifests must annotate what it has.
+
+    Regression test for sitekwb/vepyr-porting-tests#607: the engine used to read
+    ``bio.vep.cache_source_type`` off the manifest's first shard unconditionally,
+    so a partial download failed with ``failed to open Parquet cache shard
+    '.../variation/chr21.parquet'`` before touching a requested contig.
+    """
+
+    def test_manifest_lists_more_than_is_on_disk(self, partial_cache_dir):
+        variation = Path(partial_cache_dir) / "variation"
+        entries = json.loads((variation / "chrom_manifest.json").read_text())
+        assert [e["chrom"] for e in entries] == ["chr21", "chr22", "chr1"]
+        assert not (variation / entries[0]["dataset"]).exists()
+        assert (variation / "chr1.parquet").is_file()
+
+    def test_annotates_the_contigs_it_has(self, partial_cache_dir, metadata_cache_dir):
+        import vepyr
+
+        def run(cache_dir):
+            return vepyr.annotate(
+                INPUT_VCF,
+                cache_dir,
+                everything=True,
+                reference_fasta=REFERENCE_FASTA,
+            ).collect()
+
+        partial = run(partial_cache_dir)
+        intact = run(metadata_cache_dir)
+        assert partial.height > 0
+        assert partial.height == intact.height
+        assert partial.select("chrom", "start", "most_severe_consequence").equals(
+            intact.select("chrom", "start", "most_severe_consequence")
+        )
+
+    def test_cache_without_manifest_still_fails_on_the_manifest(
+        self, metadata_cache_dir, tmp_path
+    ):
+        """What the old dataset-card recipe produced: a shard and no manifest.
+
+        Not repaired by the shard-selection fix, and must not be: without a
+        manifest there is no partitioned cache to open.
+        """
+        import vepyr
+
+        cache = tmp_path / "no_manifest"
+        (cache / "variation").mkdir(parents=True)
+        (cache / "variation" / "chr1.parquet").symlink_to(
+            Path(metadata_cache_dir) / "variation" / "chr1.parquet"
+        )
+        with pytest.raises(RuntimeError, match="chrom_manifest.json"):
+            vepyr.annotate(
+                INPUT_VCF,
+                str(cache),
+                everything=True,
+                reference_fasta=REFERENCE_FASTA,
+            ).collect()
+
+
 class TestAnnotate:
     """Test the streaming annotation pipeline."""
 
