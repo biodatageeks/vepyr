@@ -2,6 +2,7 @@ use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat};
 use datafusion_bio_function_vep::plugin_cache::builder::PluginCacheBuilder;
 use datafusion_bio_function_vep::plugin_cache::source_manifest::SourceManifest;
+use datafusion_bio_function_vep::plugin_cache::source_verify::SourceVerification;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -311,7 +312,8 @@ fn apply_source_paths(
 }
 
 #[pyfunction]
-#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false))]
+#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, verify_source="strict"))]
+#[allow(clippy::too_many_arguments)]
 fn build_plugin_cache(
     py: Python<'_>,
     manifest_path: &str,
@@ -320,7 +322,13 @@ fn build_plugin_cache(
     plugin_cache_root: &str,
     chroms: Option<Vec<String>>,
     overwrite: bool,
+    verify_source: &str,
 ) -> PyResult<Vec<(String, usize, usize, usize)>> {
+    // Reject a bad mode before the (possibly expensive) manifest resolution
+    // and before anything on disk is touched.
+    let verification: SourceVerification = verify_source
+        .parse()
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("verify_source: {e}")))?;
     let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
     apply_source_paths(&mut manifest, source_path)?;
@@ -379,7 +387,8 @@ fn build_plugin_cache(
                 variation_cache_dir,
                 plugin_cache_root,
             )
-            .with_overwrite(overwrite);
+            .with_overwrite(overwrite)
+            .with_source_verification(verification);
             if let Some(cs) = chroms {
                 b = b.with_chrom_filter(cs);
             }

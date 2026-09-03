@@ -46,11 +46,16 @@ def build_plugin_cache(
     plugin_cache_root: str,
     chroms: list[str] | None = None,
     overwrite: bool = False,
+    verify_source: str = "strict",
 ) -> list[tuple[str, int, int, int]]:
     """Build a plugin cache from a source manifest. Returns (chrom, rows, warm, cold).
 
     ``source_path`` is a path for a single-source manifest, or ``{part: path}``
     for a manifest declaring several ``[[source]]`` entries.
+
+    ``verify_source`` is ``"strict"`` (hash each source and fail on a mismatch
+    with the manifest's ``path_md5``/``md5``), ``"warn"`` (hash, log, continue)
+    or ``"skip"`` (never hash).
     """
     ...
 

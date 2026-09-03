@@ -680,6 +680,7 @@ def build_plugin_cache(
     chroms: list[str] | None = None,
     plugins_repo: str | None = None,
     overwrite: bool = False,
+    verify_source: bool | str = True,
 ) -> list[tuple[str, int, int, int]]:
     """Build a per-chromosome plugin cache.
 
@@ -702,7 +703,20 @@ def build_plugin_cache(
 
     The sources are registered as ``plugin_<name>_src_<part>`` and combined by the
     manifest's own ``ingest_sql`` -- there is no need to concatenate them first.
+
+    ``verify_source`` guards against building from the wrong bytes. Before the
+    first chromosome is ingested, each resolved source file is MD5-hashed once
+    (streaming, bounded memory) and compared with the manifest's ``path_md5``
+    (or ``md5``). ``True`` / ``"strict"`` (default) raises on a mismatch,
+    naming the part, both digests and the upstream ``url``; ``"warn"`` logs it
+    and keeps building; ``False`` / ``"skip"`` never hashes -- use it for a
+    chromosome slice cut with ``tabix``, whose digest can never match the whole
+    file. A manifest that declares no ``md5`` is never hashed. The digest
+    actually verified, with the file's size and mtime, is recorded under
+    ``sources`` in the emitted ``manifest.json``; an incremental ``chroms=[...]``
+    build against an unchanged file trusts that record instead of re-hashing.
     """
+    mode = _normalize_verify_source(verify_source)
     with _resolve_plugin_manifest(
         plugin, version, plugins_repo=plugins_repo
     ) as manifest_path:
@@ -713,7 +727,25 @@ def build_plugin_cache(
             plugin_cache_root,
             chroms,
             overwrite,
+            mode,
         )
+
+
+_VERIFY_SOURCE_MODES = ("strict", "warn", "skip")
+
+
+def _normalize_verify_source(verify_source: bool | str) -> str:
+    """Map ``build_plugin_cache``'s ``verify_source`` onto the engine's mode."""
+    if verify_source is True:
+        return "strict"
+    if verify_source is False:
+        return "skip"
+    if isinstance(verify_source, str) and verify_source in _VERIFY_SOURCE_MODES:
+        return verify_source
+    raise ValueError(
+        f"verify_source must be True, False or one of {_VERIFY_SOURCE_MODES}, "
+        f"got {verify_source!r}"
+    )
 
 
 def _plugin_subset_root(

@@ -61,12 +61,28 @@ path = "placeholder_b.tsv.gz"
 
 
 def _init_full_repo(
-    root: Path, *, multi_source: bool = False, parted: bool = False
+    root: Path,
+    *,
+    multi_source: bool = False,
+    parted: bool = False,
+    md5: str | None = None,
 ) -> Path:
-    """A plugins repo whose demo manifest the Rust builder can load."""
+    """A plugins repo whose demo manifest the Rust builder can load.
+
+    ``md5`` adds the provenance keys (``url`` + ``md5``) to the sole
+    ``[[source]]`` so the build verifies the file ``source_path`` resolves to.
+    """
     repo = root / "vepyr-plugins-full"
     (repo / "plugins" / "demo").mkdir(parents=True)
     base = _PARTED_MANIFEST if parted else _FULL_MANIFEST
+    if md5 is not None:
+        base = base.replace(
+            'path = "placeholder.tsv.gz"\n',
+            'path = "placeholder.tsv.gz"\n'
+            'url = "https://example.org/demo/demo.tsv.gz"\n'
+            f'md5 = "{md5}"\n',
+        )
+        assert md5 in base
     body = base + (_SECOND_SOURCE if multi_source else "")
     (repo / "plugins" / "demo" / "demo.source.toml").write_text(body)
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -386,3 +402,71 @@ def test_single_source_manifest_rejects_a_mapping(tmp_path):
     repo = _init_full_repo(tmp_path)
     with pytest.raises(ValueError, match="no `part`"):
         _build(repo, tmp_path, {"snv": str(tmp_path / "src.tsv.gz")})
+
+
+# --- Source verification (issue #68) -----------------------------------------
+
+_WRONG_MD5 = "0" * 32
+
+
+def _write_source(tmp_path: Path) -> tuple[Path, str]:
+    """A small source file and its real MD5."""
+    import hashlib
+
+    src = tmp_path / "src.tsv"
+    src.write_bytes(b"1\t100\tA\tG\t0.9\n")
+    return src, hashlib.md5(src.read_bytes()).hexdigest()
+
+
+def test_source_md5_mismatch_fails_before_the_build(tmp_path):
+    """Strict by default: a source whose bytes differ from the manifest's md5
+    is refused before any chromosome is ingested, naming both digests."""
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(RuntimeError) as exc:
+        _build(repo, tmp_path, str(src))
+    message = str(exc.value)
+    assert "MD5 mismatch" in message
+    assert _WRONG_MD5 in message
+    assert actual in message
+    assert "https://example.org/demo/demo.tsv.gz" in message
+    # The build never started: no plugin directory was created.
+    assert not (tmp_path / "pc" / "plugin" / "demo").exists()
+
+
+def test_matching_source_md5_reaches_the_build(tmp_path):
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=actual)
+    with pytest.raises(RuntimeError, match="variation shard"):
+        _build(repo, tmp_path, str(src))
+
+
+@pytest.mark.parametrize("mode", [False, "skip", "warn"])
+def test_verify_source_opt_out_reaches_the_build(tmp_path, mode):
+    """``False``/``"skip"`` never hash; ``"warn"`` hashes but keeps going."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(RuntimeError, match="variation shard"):
+        _build(repo, tmp_path, str(src), verify_source=mode)
+
+
+def test_verify_source_true_is_strict(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(RuntimeError, match="MD5 mismatch"):
+        _build(repo, tmp_path, str(src), verify_source=True)
+
+
+def test_verify_source_rejects_an_unknown_mode(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(ValueError, match="verify_source"):
+        _build(repo, tmp_path, str(src), verify_source="loose")
+
+
+def test_manifest_without_md5_is_not_verified(tmp_path):
+    """Third-party manifests that predate the provenance keys still build."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    with pytest.raises(RuntimeError, match="variation shard"):
+        _build(repo, tmp_path, str(src))

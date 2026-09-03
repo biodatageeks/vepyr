@@ -43,10 +43,13 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
-# and bio-functions 58b5650 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
-# drop #225, the bio-formats bump #226, and the partial-cache source-type probe #227, which
+# and bio-functions fcadc1b (v0.19.2 + the translation_core ORDER BY #224, the unread-column
+# drop #225, the bio-formats bump #226, the partial-cache source-type probe #227, which
 # reads bio.vep.cache_source_type from the first variation shard present on disk instead of
-# the manifest's first entry, so a per-contig download with whole-cache manifests annotates).
+# the manifest's first entry, so a per-contig download with whole-cache manifests annotates,
+# and plugin source verification (vepyr#68): the plugin cache builder parses url/md5/path_md5
+# from the source manifest, hashes each build input once under strict/warn/skip, and records
+# the provenance under `sources` in the emitted manifest.json).
 # Together these make a cache build reproducible:
 # the exon dedup tie-break is now total, translation_core has a total output ORDER BY instead
 # of relying on CoalescePartitionsExec arrival order, and the four context entities no longer
@@ -64,6 +67,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "58b5650750db246270dd8bd564505fc080eb8796", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "fcadc1ba3dbb7b16fe2a1313c3a820b6dcafb3eb", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }

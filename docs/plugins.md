@@ -31,6 +31,7 @@ vepyr.build_plugin_cache(
     chroms=None,                     # None = all chroms present under <cache_dir>/variation/
     plugins_repo=None,               # optional local clone of vepyr-plugins for OFFLINE builds
     overwrite=False,                 # True replaces an existing plugin/<name>/ tree
+    verify_source=True,              # hash each source against the manifest's md5 first
 )
 ```
 
@@ -47,6 +48,27 @@ The manifest is resolved from the public vepyr-plugins repo at `version`
 (cloned on demand), or from a local clone via `plugins_repo` for fully offline
 builds. Tiering (warm/cold) is **inherited from the variation cache** at
 `cache_dir` — plugins declare no tier policy of their own.
+
+### Source verification
+
+A byte-parity-validated cache is only as good as the bytes it was built from,
+so before the first chromosome is ingested the build MD5-hashes each resolved
+`source_path` once (streaming, bounded memory — CADD's 87 GB SNV file costs a
+few minutes of I/O on top of a multi-hour build) and compares it with the
+manifest's `path_md5`, or `md5` when no `path_md5` is declared:
+
+| `verify_source` | Behaviour |
+|---|---|
+| `True` / `"strict"` (default) | A mismatch raises before anything is written, naming the part, the expected and actual digests and the upstream `url`. |
+| `"warn"` | A mismatch is logged and the build continues; the digest actually found is recorded. For deliberate builds against a re-compressed or derived artifact. |
+| `False` / `"skip"` | Nothing is hashed. Use it for a chromosome slice cut with `tabix`, whose digest can never match the whole file's. |
+
+A manifest that declares no `md5` is never hashed, whatever the mode. The
+outcome is recorded under `sources` in the emitted `manifest.json` (see
+[Cache format](#cache-format-lookup-internals)), and an incremental
+`chroms=[...]` build against a file whose size and mtime match an earlier
+verified record trusts that record instead of re-hashing — a per-chromosome
+CADD workflow that calls `build_plugin_cache` 22 times hashes its input once.
 
 ## Annotating with plugins
 
@@ -171,8 +193,9 @@ source and map it to CSQ fields.
 |---|---|---|---|
 | `provider` | `csv` \| `tsv` \| `parquet` \| `vcf` \| `bed` | yes | Reader for this file. All five work — see [Table providers](#build-pipeline-table-providers-tables-views). |
 | `path` | string | yes | Placeholder; **always** overridden at build time by `source_path`. |
-| `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Purely informational — not read by the build. |
-| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. Purely informational — not read by the build. |
+| `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Never fetched; copied into the built cache's `manifest.json` and quoted in verification errors. |
+| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. Unless `path_md5` is set, this is the digest the build [verifies](#source-verification) `source_path` against. |
+| `path_md5` | string | no | MD5 of the **actual build input** when it is a derived artifact of `url` that cannot share its digest — AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip. Verified in preference to `md5`. Omit when `path` is the upstream file itself. |
 | `part` | string | no | Names this source when a manifest declares several. Registers as `plugin_<name>_src_<part>`, and makes `source_path` take a `{part: path}` mapping. |
 | `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. On `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
 | `record_layout` | bool | no (default `false`) | `vcf` sources only: carry the raw record layout through the provider. |
@@ -525,6 +548,33 @@ A plugin cache is a set of per-chromosome Parquet shards
 point-lookup-optimized layout as the Ensembl variation cache, so a lookup reads
 only the handful of pages that could contain the queried positions — never the
 whole file.
+
+### Provenance in `manifest.json`
+
+Besides the schema, CSQ mapping and per-shard row/tier counts, the manifest
+records one `sources` entry per `[[source]]` so a shard's provenance survives
+without the source file:
+
+```json
+"sources": [
+  {
+    "file": "AlphaMissense_hg38.bgz.tsv.gz",
+    "url": "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz",
+    "md5": "9fd167735f16a1b87da6eb3e4c25fcb5",
+    "path_md5": "46d0028375cf95088bd014ff6855cffd",
+    "verified_md5": "46d0028375cf95088bd014ff6855cffd",
+    "size": 628407716,
+    "mtime": 1783322828
+  }
+]
+```
+
+`part` is present for multi-file manifests (CADD). `url`, `md5` and (when
+declared) `path_md5` are copied from the source manifest. `verified_md5` is the digest the build actually computed over the
+resolved file — absent when verification was skipped or the manifest declared
+no digest, and *different* from the expected digest only after a `"warn"`
+build. `size` and `mtime` fingerprint the hashed file for incremental builds.
+Caches built before this block existed carry no `sources` key.
 
 ### Shard schema
 
