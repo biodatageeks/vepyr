@@ -125,6 +125,132 @@ class TestPartialCache:
             ).collect()
 
 
+@pytest.fixture(scope="module")
+def demo_plugin_cache(metadata_cache_dir, tmp_path_factory):
+    """A one-plugin cache built in-process against the golden variation shard.
+
+    Two rows keyed to golden input variants, so the ``DEMO`` field is populated
+    for them and the run is distinguishable from one that ignored the plugin.
+    """
+    from tests.test_build_plugin_cache import _init_full_repo
+
+    import vepyr
+
+    root = tmp_path_factory.mktemp("demo_plugin")
+    repo = _init_full_repo(root)
+    source = root / "demo.tsv"
+    source.write_text("1\t604358\tG\tC\t0.5\n1\t604360\tT\tC\t0.25\n")
+    plugin_root = root / "pc"
+    built = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(source),
+        cache_dir=metadata_cache_dir,
+        plugin_cache_root=str(plugin_root),
+        plugins_repo=str(repo),
+        chroms=["1"],
+    )
+    assert built == [("chr1", 2, 0, 2)]
+    return str(plugin_root)
+
+
+@pytest.fixture(scope="module")
+def partial_plugin_cache(demo_plugin_cache, tmp_path_factory):
+    """The plugin-cache analogue of ``partial_cache_dir``: ``manifest.json``
+    lists contigs whose shards were never downloaded, ahead of the one that was.
+    """
+    source = Path(demo_plugin_cache) / "plugin" / "demo"
+    target = tmp_path_factory.mktemp("partial_plugin") / "plugin" / "demo"
+    target.mkdir(parents=True)
+    shutil.copy2(source / "chr1.parquet", target / "chr1.parquet")
+    manifest = json.loads((source / "manifest.json").read_text())
+    absent = [
+        {"chrom": chrom, "file": f"{chrom}.parquet", "rows": 1, "warm": 0, "cold": 1}
+        for chrom in ("chr21", "chr22")
+    ]
+    manifest["chroms"] = absent + manifest["chroms"]
+    (target / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return str(target.parents[1])
+
+
+class TestPartialPluginCache:
+    """A plugin cache with a subset of its manifest's shards annotates what it has.
+
+    Companion to ``TestPartialCache``: the plugin registry is opened per contig
+    and reads the CSQ header from ``manifest.json`` without touching a shard, so
+    a per-chromosome plugin download works without trimming the manifest. The
+    one deliberate exception is a requested contig the manifest says has rows
+    but whose shard is absent, which fails loudly rather than emitting nulls
+    under a header that still advertises the plugin's fields.
+    """
+
+    @staticmethod
+    def _records(path: Path) -> tuple[str, list[str]]:
+        lines = path.read_text().splitlines()
+        csq_header = next(line for line in lines if line.startswith("##INFO=<ID=CSQ"))
+        return csq_header, [line for line in lines if not line.startswith("#")]
+
+    def test_plugin_manifest_lists_more_than_is_on_disk(self, partial_plugin_cache):
+        plugin_dir = Path(partial_plugin_cache) / "plugin" / "demo"
+        manifest = json.loads((plugin_dir / "manifest.json").read_text())
+        assert [c["chrom"] for c in manifest["chroms"]] == ["chr21", "chr22", "chr1"]
+        assert not (plugin_dir / manifest["chroms"][0]["file"]).exists()
+        assert (plugin_dir / "chr1.parquet").is_file()
+
+    def test_annotates_the_contigs_it_has(
+        self,
+        partial_cache_dir,
+        partial_plugin_cache,
+        metadata_cache_dir,
+        demo_plugin_cache,
+        tmp_path,
+    ):
+        import vepyr
+
+        def run(cache_dir, plugin_root, name):
+            out = tmp_path / f"{name}.vcf"
+            vepyr.annotate(
+                INPUT_VCF,
+                cache_dir,
+                output_vcf=str(out),
+                reference_fasta=REFERENCE_FASTA,
+                skip_csq=False,
+                plugin_cache_root=plugin_root,
+                plugins=["demo"],
+            )
+            return self._records(out)
+
+        partial_header, partial = run(
+            partial_cache_dir, partial_plugin_cache, "partial"
+        )
+        intact_header, intact = run(metadata_cache_dir, demo_plugin_cache, "intact")
+        assert "DEMO" in partial_header
+        assert partial_header == intact_header
+        assert len(partial) > 0
+        assert partial == intact
+        assert any("604358" in line and "|0.5" in line for line in partial)
+
+    def test_listed_contig_with_missing_shard_fails_loudly(
+        self, demo_plugin_cache, metadata_cache_dir, tmp_path
+    ):
+        import vepyr
+
+        source = Path(demo_plugin_cache) / "plugin" / "demo"
+        broken = tmp_path / "broken" / "plugin" / "demo"
+        broken.mkdir(parents=True)
+        shutil.copy2(source / "manifest.json", broken / "manifest.json")
+        with pytest.raises(RuntimeError, match="shard is missing"):
+            vepyr.annotate(
+                INPUT_VCF,
+                metadata_cache_dir,
+                output_vcf=str(tmp_path / "out.vcf"),
+                reference_fasta=REFERENCE_FASTA,
+                skip_csq=False,
+                plugin_cache_root=str(tmp_path / "broken"),
+                plugins=["demo"],
+            )
+
+
 class TestAnnotate:
     """Test the streaming annotation pipeline."""
 
