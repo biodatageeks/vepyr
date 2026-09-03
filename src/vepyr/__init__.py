@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.metadata
 import logging
 import warnings
 from collections.abc import Callable, Iterator
@@ -27,6 +28,8 @@ __all__ = [
     "supported_vep_targets",
     "cache_contig_identity",
 ]
+
+__version__ = importlib.metadata.version("vepyr")
 
 log = logging.getLogger(__name__)
 
