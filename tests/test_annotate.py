@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import os
+import shutil
 import sys
 import threading
 import warnings
@@ -44,6 +45,9 @@ def partial_cache_dir(metadata_cache_dir, tmp_path_factory):
     ``chrom_manifest.json`` files describe the whole cache. The entries
     prepended here name contigs that have no shard on disk, and the first of
     them is what a manifest-position probe would try to open.
+
+    Shards are copied, not symlinked: Windows needs Developer Mode or elevated
+    privileges for symlinks, and the suite runs there.
     """
     source = Path(metadata_cache_dir)
     target = tmp_path_factory.mktemp("partial_cache")
@@ -55,7 +59,7 @@ def partial_cache_dir(metadata_cache_dir, tmp_path_factory):
         out = target / entity_dir.name
         out.mkdir()
         for shard in entity_dir.glob("*.parquet"):
-            (out / shard.name).symlink_to(shard)
+            shutil.copy2(shard, out / shard.name)
         entries = json.loads((entity_dir / "chrom_manifest.json").read_text())
         (out / "chrom_manifest.json").write_text(json.dumps(absent + entries, indent=2))
     return str(target)
@@ -108,8 +112,9 @@ class TestPartialCache:
 
         cache = tmp_path / "no_manifest"
         (cache / "variation").mkdir(parents=True)
-        (cache / "variation" / "chr1.parquet").symlink_to(
-            Path(metadata_cache_dir) / "variation" / "chr1.parquet"
+        shutil.copy2(
+            Path(metadata_cache_dir) / "variation" / "chr1.parquet",
+            cache / "variation" / "chr1.parquet",
         )
         with pytest.raises(RuntimeError, match="chrom_manifest.json"):
             vepyr.annotate(
