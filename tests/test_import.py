@@ -15,3 +15,12 @@ def test_build_cache_importable():
 def test_annotate_importable():
     """The public vepyr.annotate function is callable."""
     assert callable(annotate)
+
+
+def test_version_matches_installed_metadata():
+    """vepyr.__version__ exists and agrees with the installed distribution."""
+    import importlib.metadata
+
+    import vepyr
+
+    assert vepyr.__version__ == importlib.metadata.version("vepyr")

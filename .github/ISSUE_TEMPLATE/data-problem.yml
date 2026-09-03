@@ -104,9 +104,10 @@ body:
     attributes:
       label: vepyr tag or commit SHA
       description: >-
-        A release tag (`v0.4.0`) or the exact commit SHA you built from. Get it with
-        `python -c "import vepyr; print(vepyr.__version__)"`, or `git rev-parse HEAD`
-        for a source build.
+        A release tag (`v0.4.0`) or the exact commit SHA you built from. For an installed
+        wheel run `python -c "import importlib.metadata as m; print(m.version('vepyr'))"`;
+        for a source build run `git rev-parse HEAD` in the checkout. The `tool="vepyr ..."`
+        entry in your output VCF header carries the same version.
       placeholder: "v0.4.0  —  or  306926d4126cbaf75b0ac762a267d2e8b2b157ef"
     validations:
       required: true
