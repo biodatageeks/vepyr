@@ -171,6 +171,8 @@ source and map it to CSQ fields.
 |---|---|---|---|
 | `provider` | `csv` \| `tsv` \| `parquet` \| `vcf` \| `bed` | yes | Reader for this file. All five work — see [Table providers](#build-pipeline-table-providers-tables-views). |
 | `path` | string | yes | Placeholder; **always** overridden at build time by `source_path`. |
+| `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Purely informational — not read by the build. |
+| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. Purely informational — not read by the build. |
 | `part` | string | no | Names this source when a manifest declares several. Registers as `plugin_<name>_src_<part>`, and makes `source_path` take a `{part: path}` mapping. |
 | `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. On `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
 | `record_layout` | bool | no (default `false`) | `vcf` sources only: carry the raw record layout through the provider. |
@@ -414,6 +416,8 @@ FROM plugin_alphamissense_src
 [[source]]
 provider = "tsv"
 path = "AlphaMissense_hg38.tsv.gz"
+url  = "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz"
+md5  = "9fd167735f16a1b87da6eb3e4c25fcb5"
   [source.csv]
   delimiter   = "\t"
   has_header  = false
@@ -461,6 +465,8 @@ FROM plugin_demo_score_src
 [[source]]
 provider = "tsv"
 path = "demo.tsv.gz"
+url  = "https://example.org/demo/v1/demo.tsv.gz"
+md5  = "d41d8cd98f00b204e9800998ecf8427e"
   [source.csv]
   delimiter = "\t"
   has_header = false
