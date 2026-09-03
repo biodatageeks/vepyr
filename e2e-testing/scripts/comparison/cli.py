@@ -453,6 +453,7 @@ def run_contig(
             "output_variants": n_out,
         },
         "comparison": comparison,
+        "comparison_mode": None if args.skip_compare else args.comparison_mode,
     }
     if md5_result is not None:
         result["md5"] = md5_result
@@ -496,10 +497,12 @@ def _run_contig_isolated(chrom, args):
     if args.bgzf:
         cmd.append("--bgzf")
     if args.skip_compare:
+        # main() has already defaulted comparison_mode to "field", so forwarding
+        # it here would hand the child both flags and trip its own conflict
+        # check -- failing every contig of an annotate-only isolated sweep.
         cmd.append("--skip-compare")
-    if args.comparison_mode:
+    else:
         cmd += ["--comparison-mode", args.comparison_mode]
-    if args.md5_mode:
         cmd += ["--md5-mode", args.md5_mode]
     if args.no_normalize:
         cmd.append("--no-normalize")
@@ -692,6 +695,43 @@ def main(argv=None):
         return 1 if failures or md5_failures else 0
 
     successful_chroms = [chrom for chrom in chroms if chrom not in failures]
+
+    # An md5 run writes `comparison: null` to the same mode-agnostic report
+    # path a field run uses. Left unchecked, a later field-mode
+    # --skip-annotate would load those reports, aggregate_mismatches() would
+    # skip every null, and the run would print a 0/0 field summary and exit 0
+    # on evidence that contains no field comparison at all. Only reused
+    # evidence can be stale this way -- a fresh field run always populates
+    # `comparison` -- so the check is scoped to --skip-annotate.
+    field_evidence_missing = []
+    for chrom in successful_chroms if args.skip_annotate else ():
+        path = report.report_json_path(
+            report_dir, chrom, resolved.suffix, resolved.release
+        )
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path) as f:
+                payload = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if payload.get("comparison") is None:
+            field_evidence_missing.append(chrom)
+    if field_evidence_missing:
+        print(
+            "  ERROR: no field-comparison evidence for "
+            + ", ".join(field_evidence_missing)
+            + " -- those reports were written by a run in another mode "
+            "(--comparison-mode md5, or --skip-compare).\n"
+            "         Re-run in field mode, or pass --comparison-mode md5 to "
+            "read the md5 evidence instead.",
+            file=sys.stderr,
+        )
+        failures.extend(field_evidence_missing)
+        successful_chroms = [
+            chrom for chrom in successful_chroms if chrom not in field_evidence_missing
+        ]
+
     if not args.skip_annotate:
         missing_evidence = [
             chrom
