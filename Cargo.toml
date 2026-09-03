@@ -42,7 +42,13 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# Released bio-formats v1.11.0 and bio-functions v0.19.2, pinned by the commit
+# QUALIFICATION PINS (not release tags). bio-formats is
+# c992f69 = v1.12.0 + the exon dedup tie-break (biodatageeks/datafusion-bio-formats#246);
+# bio-functions is 93ba78e = v0.19.2 + the translation_core ORDER BY (#224) and the
+# unread-column drop (#225), merged for local qualification and itself re-pinned to
+# c992f69. Re-pin both to the merged master SHAs once those three PRs land.
+#
+# Previously: released bio-formats v1.11.0 and bio-functions v0.19.2, pinned by the commit
 # each tag names. v1.11.0 carries each record's INFO and FORMAT key order through
 # a read/write round trip; v0.18.0 turned that on for annotation output and
 # stopped stripping field metadata from the annotation schema, without which the
@@ -55,6 +61,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "3a3fca3f423c3290dea80b2ee20fbebc7a5f3fe0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "93ba78ebaae262a0d0fbed78baab8879a87ec52b", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c992f69e0b94201c4d9056b7450f2b2ec2922d5e" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c992f69e0b94201c4d9056b7450f2b2ec2922d5e" }
