@@ -636,6 +636,36 @@ def _resolve_plugin_manifest(
         if created_clone:
             repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
             subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
+        resolved_ref = subprocess.run(
+            [
+                "git",
+                "-C",
+                repo,
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                f"{version}^{{commit}}",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if resolved_ref.returncode != 0:
+            resolved_ref = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    repo,
+                    "rev-parse",
+                    "--verify",
+                    "--quiet",
+                    f"origin/{version}^{{commit}}",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        resolved_commit = resolved_ref.stdout.strip()
         worktree = tempfile.mkdtemp(prefix="vepyr-plugins-wt-")
         subprocess.run(
             [
@@ -647,7 +677,7 @@ def _resolve_plugin_manifest(
                 "--quiet",
                 "--detach",
                 worktree,
-                version,
+                resolved_commit,
             ],
             check=True,
         )
@@ -655,12 +685,6 @@ def _resolve_plugin_manifest(
         manifest = os.path.join(worktree, rel)
         if not os.path.exists(manifest):
             raise FileNotFoundError(f"{rel} not found at {version} in {repo}")
-        resolved_commit = subprocess.run(
-            ["git", "-C", worktree, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
         yield manifest, resolved_commit
     finally:
         # Remove the worktree (deletes the dir AND its registration in `repo`);
