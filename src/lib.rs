@@ -404,6 +404,46 @@ fn install_overwrite(
     )))
 }
 
+/// A full overwrite swaps the live cache out by two renames; a process killed
+/// between them leaves the cache under `<plugin>.previous-*` and nothing at
+/// its path. The next call puts it back when there is exactly one such tree
+/// and no live cache, so an interrupted swap is not a permanent loss.
+fn recover_set_aside_cache(plugin_dir: &Path, plugin_name: &str) {
+    if plugin_dir.exists() {
+        return;
+    }
+    let Some(parent) = plugin_dir.parent() else {
+        return;
+    };
+    let prefix = format!("{plugin_name}.previous-");
+    let candidates: Vec<std::path::PathBuf> = std::fs::read_dir(parent)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(&prefix))
+                && p.join("manifest.json").exists()
+        })
+        .collect();
+    if let [only] = candidates.as_slice() {
+        match std::fs::rename(only, plugin_dir) {
+            Ok(()) => log::warn!(
+                "recovered the plugin cache {} from {}, left behind by an interrupted overwrite",
+                plugin_dir.display(),
+                only.display()
+            ),
+            Err(e) => log::warn!(
+                "could not recover {} from {}: {e}",
+                plugin_dir.display(),
+                only.display()
+            ),
+        }
+    }
+}
+
 /// Remove directories that are no longer needed, returning a description of
 /// each one that could not be removed but still exists.
 fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
@@ -439,7 +479,7 @@ fn warn_leftovers(py: Python<'_>, leftovers: Vec<String>) -> PyResult<()> {
 
 #[pyfunction]
 #[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, verify_source="strict"))]
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn build_plugin_cache(
     py: Python<'_>,
     manifest_path: &str,
@@ -449,7 +489,7 @@ fn build_plugin_cache(
     chroms: Option<Vec<String>>,
     overwrite: bool,
     verify_source: &str,
-) -> PyResult<Vec<(String, usize, usize, usize)>> {
+) -> PyResult<(Vec<(String, usize, usize, usize)>, String)> {
     // Reject a bad mode before the (possibly expensive) manifest resolution
     // and before anything on disk is touched.
     let verification: SourceVerification = verify_source
@@ -469,6 +509,7 @@ fn build_plugin_cache(
     let plugin_dir = std::path::Path::new(plugin_cache_root)
         .join("plugin")
         .join(&manifest.plugin_name);
+    recover_set_aside_cache(&plugin_dir, &manifest.plugin_name);
     // A full overwrite must end with only freshly built chromosomes: `build_all`
     // carries chromosomes of an earlier build over when their provenance
     // matches, and a smaller/different chrom set would otherwise leave stale
@@ -569,11 +610,18 @@ fn build_plugin_cache(
         (Ok(cache), None) => cache,
     };
 
-    Ok(cache
-        .chroms
-        .into_iter()
-        .map(|c| (c.chrom, c.rows, c.warm, c.cold))
-        .collect())
+    // The provenance this build recorded, returned rather than read back from
+    // the live manifest: another writer may replace the live cache at any time.
+    let sources = serde_json::to_string(&cache.sources)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    Ok((
+        cache
+            .chroms
+            .into_iter()
+            .map(|c| (c.chrom, c.rows, c.warm, c.cold))
+            .collect(),
+        sources,
+    ))
 }
 
 /// Annotate a VCF and write results directly to a VCF file.

@@ -722,7 +722,7 @@ def build_plugin_cache(
     with _resolve_plugin_manifest(
         plugin, version, plugins_repo=plugins_repo
     ) as manifest_path:
-        result = _build_plugin_cache(
+        result, sources_json = _build_plugin_cache(
             manifest_path,
             source_path,
             cache_dir,
@@ -732,29 +732,22 @@ def build_plugin_cache(
             mode,
         )
     if mode == "warn":
-        _warn_on_source_mismatch(plugin_cache_root, plugin)
+        import json
+
+        _warn_on_source_mismatch(plugin, json.loads(sources_json))
     return result
 
 
-def _warn_on_source_mismatch(plugin_cache_root: str, plugin: str) -> None:
+def _warn_on_source_mismatch(plugin: str, sources: list[dict]) -> None:
     """Raise a ``RuntimeWarning`` for every source a ``"warn"`` build accepted
     with a digest other than the manifest's.
 
     The engine logs the mismatch at warn level, but the native module's logger
     only shows errors unless ``RUST_LOG`` is set, so a Python caller would not
-    see it. The emitted ``manifest.json`` records what was hashed, so the
-    outcome is read back from there and surfaced through ``warnings`` and
-    ``logging`` regardless of logger configuration.
+    see it. ``sources`` is the provenance this build recorded, returned by the
+    native call rather than read back from the live manifest, which another
+    writer may have replaced meanwhile.
     """
-    import json
-    import os
-
-    path = os.path.join(plugin_cache_root, "plugin", plugin, "manifest.json")
-    try:
-        with open(path, encoding="utf-8") as fh:
-            sources = json.load(fh).get("sources", [])
-    except (OSError, ValueError):
-        return
     for source in sources:
         declared, found = source.get("md5"), source.get("verified_md5")
         if not declared or not found or declared == found:

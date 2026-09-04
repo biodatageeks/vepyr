@@ -47,8 +47,11 @@ def build_plugin_cache(
     chroms: list[str] | None = None,
     overwrite: bool = False,
     verify_source: str = "strict",
-) -> list[tuple[str, int, int, int]]:
-    """Build a plugin cache from a source manifest. Returns (chrom, rows, warm, cold).
+) -> tuple[list[tuple[str, int, int, int]], str]:
+    """Build a plugin cache from a source manifest.
+
+    Returns the per-chromosome ``(chrom, rows, warm, cold)`` tuples and the
+    ``sources`` provenance this build recorded, as a JSON string.
 
     ``source_path`` is a path for a single-source manifest, or ``{part: path}``
     for a manifest declaring several ``[[source]]`` entries.
