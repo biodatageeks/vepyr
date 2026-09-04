@@ -421,7 +421,8 @@ def test_full_overwrite_replaces_the_cache_with_fresh_chroms_only(tmp_path):
     manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
     assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
     assert manifest["sources"][0]["verified_md5"] == actual
-    assert not list((pc / "plugin").glob("demo.previous*"))
+    assert not list(pc.glob(".previous-demo*"))
+    assert [d.name for d in (pc / "plugin").iterdir()] == ["demo"]
 
 
 def test_single_source_manifest_rejects_a_mapping(tmp_path):

@@ -405,18 +405,15 @@ fn install_overwrite(
 }
 
 /// A full overwrite swaps the live cache out by two renames; a process killed
-/// between them leaves the cache under `<plugin>.previous-*` and nothing at
-/// its path. The next call puts it back when there is exactly one such tree
-/// and no live cache, so an interrupted swap is not a permanent loss.
-fn recover_set_aside_cache(plugin_dir: &Path, plugin_name: &str) {
+/// between them leaves the cache under `<root>/.previous-<plugin>-*` and
+/// nothing at its path. The next call puts it back when there is exactly one
+/// such tree and no live cache, so an interrupted swap is not a permanent loss.
+fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) {
     if plugin_dir.exists() {
         return;
     }
-    let Some(parent) = plugin_dir.parent() else {
-        return;
-    };
-    let prefix = format!("{plugin_name}.previous-");
-    let candidates: Vec<std::path::PathBuf> = std::fs::read_dir(parent)
+    let prefix = format!(".previous-{plugin_name}-");
+    let candidates: Vec<std::path::PathBuf> = std::fs::read_dir(root)
         .into_iter()
         .flatten()
         .flatten()
@@ -429,6 +426,9 @@ fn recover_set_aside_cache(plugin_dir: &Path, plugin_name: &str) {
         })
         .collect();
     if let [only] = candidates.as_slice() {
+        if let Some(parent) = plugin_dir.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
         match std::fs::rename(only, plugin_dir) {
             Ok(()) => log::warn!(
                 "recovered the plugin cache {} from {}, left behind by an interrupted overwrite",
@@ -509,7 +509,11 @@ fn build_plugin_cache(
     let plugin_dir = std::path::Path::new(plugin_cache_root)
         .join("plugin")
         .join(&manifest.plugin_name);
-    recover_set_aside_cache(&plugin_dir, &manifest.plugin_name);
+    recover_set_aside_cache(
+        Path::new(plugin_cache_root),
+        &plugin_dir,
+        &manifest.plugin_name,
+    );
     // A full overwrite must end with only freshly built chromosomes: `build_all`
     // carries chromosomes of an earlier build over when their provenance
     // matches, and a smaller/different chrom set would otherwise leave stale
@@ -595,8 +599,11 @@ fn build_plugin_cache(
         (Err(e), None) => return Err(e),
         (Ok(cache), Some(staging)) => {
             let staged_dir = staging.join("plugin").join(&manifest.plugin_name);
-            let previous =
-                plugin_dir.with_file_name(format!("{}.previous-{unique}", manifest.plugin_name));
+            // Set aside beside the staging roots, never under `plugin/`: every
+            // manifest-bearing directory there is discovered as a plugin, and a
+            // set-aside tree that could not be removed would be loaded as one.
+            let previous = Path::new(plugin_cache_root)
+                .join(format!(".previous-{}-{unique}", manifest.plugin_name));
             let mut leftovers = Vec::new();
             let installed = install_overwrite(&staged_dir, &plugin_dir, &previous, &mut leftovers);
             leftovers.extend(remove_leftovers(&[(staging, "the staging directory")]));
