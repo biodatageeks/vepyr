@@ -418,21 +418,38 @@ fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) ->
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
     // whose name extends this one (`cadd` vs `cadd-x`) cannot match.
     let prefix = format!(".previous-{plugin_name}.");
-    let candidates: Vec<std::path::PathBuf> = std::fs::read_dir(root)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .map(|e| e.path())
-        .filter(|p| {
-            p.file_name()
-                .and_then(|n| n.to_str())
-                .and_then(|n| n.strip_prefix(&prefix))
-                .is_some_and(|rest| {
-                    !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-')
-                })
-                && p.join("manifest.json").exists()
-        })
-        .collect();
+    let entries = match std::fs::read_dir(root) {
+        Ok(entries) => entries,
+        // No cache root yet: nothing could have been set aside.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => {
+            return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "cannot check {} for a cache set aside by an interrupted overwrite: {e}",
+                root.display()
+            )));
+        }
+    };
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    for entry in entries {
+        let p = entry
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "cannot check {} for a cache set aside by an interrupted overwrite: {e}",
+                    root.display()
+                ))
+            })?
+            .path();
+        if p.file_name()
+            .and_then(|n| n.to_str())
+            .and_then(|n| n.strip_prefix(&prefix))
+            .is_some_and(|rest| {
+                !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-')
+            })
+            && p.join("manifest.json").exists()
+        {
+            candidates.push(p);
+        }
+    }
     match candidates.as_slice() {
         [] => Ok(()),
         [only] => {
