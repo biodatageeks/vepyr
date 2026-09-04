@@ -408,9 +408,12 @@ fn install_overwrite(
 /// between them leaves the cache under `<root>/.previous-<plugin>.*` and
 /// nothing at its path. The next call puts it back when there is exactly one
 /// such tree and no live cache, so an interrupted swap is not a permanent loss.
-fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) {
+/// A recovery that cannot be done — the rename fails, or several orphaned
+/// trees exist — is an error rather than a log line: building on without the
+/// cache would leave the old data stranded beside a fresh, partial one.
+fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) -> PyResult<()> {
     if plugin_dir.exists() {
-        return;
+        return Ok(());
     }
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
     // whose name extends this one (`cadd` vs `cadd-x`) cannot match.
@@ -430,22 +433,39 @@ fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) {
                 && p.join("manifest.json").exists()
         })
         .collect();
-    if let [only] = candidates.as_slice() {
-        if let Some(parent) = plugin_dir.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        match std::fs::rename(only, plugin_dir) {
-            Ok(()) => log::warn!(
+    match candidates.as_slice() {
+        [] => Ok(()),
+        [only] => {
+            if let Some(parent) = plugin_dir.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            std::fs::rename(only, plugin_dir).map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "the plugin cache {} is missing and its copy set aside by an interrupted \
+                     overwrite at {} could not be moved back ({e}); move it back by hand before \
+                     building",
+                    plugin_dir.display(),
+                    only.display()
+                ))
+            })?;
+            log::warn!(
                 "recovered the plugin cache {} from {}, left behind by an interrupted overwrite",
                 plugin_dir.display(),
                 only.display()
-            ),
-            Err(e) => log::warn!(
-                "could not recover {} from {}: {e}",
-                plugin_dir.display(),
-                only.display()
-            ),
+            );
+            Ok(())
         }
+        several => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "the plugin cache {} is missing and several copies set aside by interrupted \
+             overwrites exist ({}); move the one to keep back by hand and delete the others \
+             before building",
+            plugin_dir.display(),
+            several
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
     }
 }
 
@@ -518,7 +538,7 @@ fn build_plugin_cache(
         Path::new(plugin_cache_root),
         &plugin_dir,
         &manifest.plugin_name,
-    );
+    )?;
     // A full overwrite must end with only freshly built chromosomes: `build_all`
     // carries chromosomes of an earlier build over when their provenance
     // matches, and a smaller/different chrom set would otherwise leave stale
