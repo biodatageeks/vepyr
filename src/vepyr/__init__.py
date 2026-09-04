@@ -1073,25 +1073,25 @@ def annotate(
                 )
         if len(set(plugins)) != len(plugins):
             raise ValueError("plugins must not contain duplicate names")
-        import os
-
-        source_root = os.path.join(plugin_cache_root, "plugin")
-        if not os.path.isdir(source_root):
-            raise FileNotFoundError(
-                f"No plugin directory under plugin_cache_root: {source_root}"
-            )
-        available = sorted(
-            name
-            for name in os.listdir(source_root)
-            if os.path.isfile(os.path.join(source_root, name, "manifest.json"))
-        )
-        unknown = [name for name in plugins if name not in available]
-        if unknown:
-            raise ValueError(
-                f"Unknown plugin {unknown[0]!r} in {source_root}. "
-                f"Available: {', '.join(available) or '(none)'}"
-            )
         if plugins:
+            import os
+
+            source_root = os.path.join(plugin_cache_root, "plugin")
+            if not os.path.isdir(source_root):
+                raise FileNotFoundError(
+                    f"No plugin directory under plugin_cache_root: {source_root}"
+                )
+            available = sorted(
+                name
+                for name in os.listdir(source_root)
+                if os.path.isfile(os.path.join(source_root, name, "manifest.json"))
+            )
+            unknown = [name for name in plugins if name not in available]
+            if unknown:
+                raise ValueError(
+                    f"Unknown plugin {unknown[0]!r} in {source_root}. "
+                    f"Available: {', '.join(available) or '(none)'}"
+                )
             if output_vcf is None and skip_csq:
                 # Plugin values reach a LazyFrame only inside the CSQ string,
                 # which `skip_csq=True` (the default) drops — so the plugins
@@ -1103,8 +1103,8 @@ def annotate(
                     "for a header that names them",
                     stacklevel=2,
                 )
-        opts["plugin_cache_root"] = plugin_cache_root
-        opts["plugins"] = list(plugins)
+            opts["plugin_cache_root"] = plugin_cache_root
+            opts["plugins"] = list(plugins)
     elif plugin_cache_root is not None:
         opts["plugin_cache_root"] = plugin_cache_root
     if not preserve_record_layout:

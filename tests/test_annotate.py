@@ -963,11 +963,13 @@ def test_annotate_plugins_is_accepted_in_signature():
     assert params["plugins"].default is None
 
 
-def test_annotate_empty_plugins_passes_empty_ordered_selection(tmp_path, monkeypatch):
-    """plugins=[] keeps the real root but asks the engine to open no plugins."""
+def test_annotate_empty_plugins_is_plugin_free_without_cache_validation(
+    tmp_path, monkeypatch
+):
+    """plugins=[] remains plugin-free even when the prospective root is absent."""
     import vepyr
 
-    root = _fake_plugin_root(tmp_path, ["cadd"])
+    root = str(tmp_path / "not-built-yet")
     seen = {}
 
     def fake(vcf, cache_dir, options_json, skip_csq, limit):
@@ -980,8 +982,8 @@ def test_annotate_empty_plugins_passes_empty_ordered_selection(tmp_path, monkeyp
         with pytest.raises(_Stop):
             vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=[])
 
-    assert seen["opts"]["plugin_cache_root"] == root
-    assert seen["opts"]["plugins"] == []
+    assert "plugin_cache_root" not in seen["opts"]
+    assert "plugins" not in seen["opts"]
     assert [w for w in caught if "skip_csq" in str(w.message)] == []
 
 
