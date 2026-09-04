@@ -571,3 +571,74 @@ def test_manifest_without_md5_is_not_verified(tmp_path):
     [record] = _sources(tmp_path)
     assert "md5" not in record
     assert "verified_md5" not in record
+
+
+# --- Recovery of a cache set aside by an interrupted overwrite -----------------
+
+
+def _orphan(pc: Path, name: str) -> Path:
+    """A set-aside tree as an interrupted overwrite leaves it: outside
+    ``plugin/``, with its manifest and a shard."""
+    import json
+
+    orphan = pc / name
+    orphan.mkdir(parents=True)
+    manifest = {
+        "plugin_name": "demo",
+        "source_manifest": "demo.source.toml",
+        "key_columns": ["chrom", "start", "end", "allele_string"],
+        "value_columns": [
+            {"column": "demo_score", "csq_field": "DEMO", "type": "Float32"}
+        ],
+        "chroms": [
+            {"chrom": "chrZZ", "file": "chrZZ.parquet", "rows": 1, "warm": 1, "cold": 0}
+        ],
+    }
+    (orphan / "manifest.json").write_text(json.dumps(manifest))
+    (orphan / "chrZZ.parquet").write_bytes(b"old")
+    return orphan
+
+
+def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1")
+    # A skip build makes no provenance claim, so the recovered (legacy)
+    # chromosome is kept alongside the new one.
+    assert _build_real(repo, tmp_path, str(src), verify_source="skip") == [
+        ("chr1", 1, 1, 0),
+        ("chrZZ", 1, 1, 0),
+    ]
+    assert not orphan.exists()
+    import json
+
+    manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
+    assert [c["chrom"] for c in manifest["chroms"]] == ["chr1", "chrZZ"]
+    assert (pc / "plugin" / "demo" / "chrZZ.parquet").read_bytes() == b"old"
+
+
+def test_several_orphaned_caches_are_an_error_naming_them(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    first = _orphan(pc, ".previous-demo.4242-1")
+    second = _orphan(pc, ".previous-demo.4243-1")
+    with pytest.raises(RuntimeError, match="several copies") as exc:
+        _build_real(repo, tmp_path, str(src), verify_source="skip")
+    assert str(first) in str(exc.value) and str(second) in str(exc.value)
+    assert first.exists() and second.exists()
+    assert not (pc / "plugin" / "demo").exists()
+
+
+def test_recovery_ignores_a_plugin_whose_name_extends_this_one(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    other = _orphan(pc, ".previous-demo-x.4242-1")
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    assert other.exists()
+    import json
+
+    manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
+    assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
