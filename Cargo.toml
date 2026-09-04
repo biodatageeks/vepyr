@@ -43,7 +43,7 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
-# and bio-functions 9ab6247 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
+# and bio-functions 66355d4 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
 # drop #225, the bio-formats bump #226, the partial-cache source-type probe #227, which
 # reads bio.vep.cache_source_type from the first variation shard present on disk instead of
 # the manifest's first entry, so a per-contig download with whole-cache manifests annotates,
@@ -67,6 +67,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9ab624723fbb8721db7d3b358f62740088ae73e7", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "66355d42febbbca7951296e91f37f1f1354675a2", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }

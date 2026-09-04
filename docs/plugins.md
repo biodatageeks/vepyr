@@ -564,7 +564,9 @@ without the source file:
     "path_md5": "46d0028375cf95088bd014ff6855cffd",
     "verified_md5": "46d0028375cf95088bd014ff6855cffd",
     "size": 628407716,
-    "mtime_ns": 1783322828158000000
+    "mtime_ns": 1783322828158000000,
+    "ino": 194298162,
+    "ctime_ns": 1787813446862801296
   }
 ]
 ```
@@ -573,10 +575,13 @@ without the source file:
 declared) `path_md5` are copied from the source manifest. `verified_md5` is the digest the build actually computed over the
 resolved file — absent when verification was skipped or the manifest declared
 no digest, and *different* from the expected digest only after a `"warn"`
-build. `file`, `size` and `mtime_ns` fingerprint the hashed file for incremental
-builds; a filtered rebuild whose input hashes differently from the earlier
-build's drops that build's chromosomes from the manifest rather than mixing
-releases. Chromosomes whose input was never verified — a cache built before
+build. `file`, `size`, `mtime_ns`, `ino` and `ctime_ns` fingerprint the hashed
+file for incremental builds: an unchanged file is not re-hashed, while a
+replacement or rewrite (a new inode, a fresh change time) always is, and a
+source that changes while a chromosome is being ingested fails the build
+before that shard replaces the previous one. A filtered rebuild whose input
+hashes differently from the earlier build's drops that build's chromosomes
+from the manifest rather than mixing releases. Chromosomes whose input was never verified — a cache built before
 this block existed (no `sources` key), or one built with `verify_source="skip"`
 — cannot be attributed to a verified input, so a verifying `chroms=[...]` build
 that would carry them over is refused: rebuild every chromosome
