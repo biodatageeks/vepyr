@@ -198,6 +198,7 @@ source and map it to CSQ fields.
 | `path_md5` | string | no | MD5 of the **actual build input** when it is a derived artifact of `url` that cannot share its digest — AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip. Verified in preference to `md5`. Omit when `path` is the upstream file itself. |
 | `part` | string | no | Names this source when a manifest declares several. Registers as `plugin_<name>_src_<part>`, and makes `source_path` take a `{part: path}` mapping. |
 | `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. On `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
+| `index_md5` | string | no | MD5 of the sibling `<path>.tbi`, when the publisher ships one (ClinVar's `.tbi.md5`) or it was recorded with the build input. The index decides which records a chromosome build reads, so it is [verified](#source-verification) like `path` and refused on a mismatch. Requires `index`. |
 | `record_layout` | bool | no (default `false`) | `vcf` sources only: carry the raw record layout through the provider. |
 | `[source.csv]` | table | for `csv`/`tsv` | Parsing options — see below. Not used by `parquet`/`vcf`/`bed`. |
 
@@ -566,7 +567,15 @@ without the source file:
     "size": 628407716,
     "mtime_ns": 1783322828158000000,
     "ino": 194298162,
-    "ctime_ns": 1787813446862801296
+    "ctime_ns": 1787813446862801296,
+    "index": {
+      "file": "AlphaMissense_hg38.bgz.tsv.gz.tbi",
+      "verified_md5": "7e925b94f5afd9ef184bde4de8aedeb5",
+      "size": 684511,
+      "mtime_ns": 1783322837454000000,
+      "ino": 194298178,
+      "ctime_ns": 1787813449824439001
+    }
   }
 ]
 ```
@@ -577,11 +586,15 @@ resolved file — absent when verification was skipped or the manifest declared
 no digest, and *different* from the expected digest only after a `"warn"`
 build. `file`, `size`, `mtime_ns`, `ino` and `ctime_ns` fingerprint the hashed
 file for incremental builds: an unchanged file is not re-hashed, while a
-replacement or rewrite (a new inode, a fresh change time) always is, and a
-source that changes while a chromosome is being ingested fails the build
-before that shard replaces the previous one. A filtered rebuild whose input
-hashes differently from the earlier build's drops that build's chromosomes
-from the manifest rather than mixing releases. Chromosomes whose input was never verified — a cache built before
+replacement or rewrite (a new inode, a fresh change time) always is. For a
+tabix source the `.tbi` gets the same treatment under `index` — it is always
+hashed, checked against `index_md5` when declared, and fingerprinted. Every
+chromosome is built to a staging file and the sources are re-checked after
+each; only when all of them passed are the shards made live and the manifest
+written, so a source that changes mid-build leaves the cache exactly as it
+was. A filtered rebuild whose input hashes differently from the earlier
+build's drops that build's chromosomes from the manifest rather than mixing
+releases. Chromosomes whose input was never verified — a cache built before
 this block existed (no `sources` key), or one built with `verify_source="skip"`
 — cannot be attributed to a verified input, so a verifying `chroms=[...]` build
 that would carry them over is refused: rebuild every chromosome
