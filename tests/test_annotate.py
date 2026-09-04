@@ -937,6 +937,17 @@ def test_annotate_plugins_rejects_duplicates(tmp_path):
         )
 
 
+def test_annotate_plugins_rejects_unknown_name_with_available_plugins(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["cadd", "clinvar"])
+    with pytest.raises(ValueError, match="Unknown plugin 'nope'") as exc:
+        vepyr.annotate(
+            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["nope"]
+        )
+    assert "Available: cadd, clinvar" in str(exc.value)
+
+
 def test_annotate_plugins_requires_plugin_cache_root():
     import vepyr
 
