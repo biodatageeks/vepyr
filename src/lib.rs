@@ -405,14 +405,16 @@ fn install_overwrite(
 }
 
 /// A full overwrite swaps the live cache out by two renames; a process killed
-/// between them leaves the cache under `<root>/.previous-<plugin>-*` and
+/// between them leaves the cache under `<root>/.previous-<plugin>.*` and
 /// nothing at its path. The next call puts it back when there is exactly one
 /// such tree and no live cache, so an interrupted swap is not a permanent loss.
 fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) {
     if plugin_dir.exists() {
         return;
     }
-    let prefix = format!(".previous-{plugin_name}-");
+    // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
+    // whose name extends this one (`cadd` vs `cadd-x`) cannot match.
+    let prefix = format!(".previous-{plugin_name}.");
     let candidates: Vec<std::path::PathBuf> = std::fs::read_dir(root)
         .into_iter()
         .flatten()
@@ -421,7 +423,10 @@ fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) {
         .filter(|p| {
             p.file_name()
                 .and_then(|n| n.to_str())
-                .is_some_and(|n| n.starts_with(&prefix))
+                .and_then(|n| n.strip_prefix(&prefix))
+                .is_some_and(|rest| {
+                    !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-')
+                })
                 && p.join("manifest.json").exists()
         })
         .collect();
@@ -603,7 +608,7 @@ fn build_plugin_cache(
             // manifest-bearing directory there is discovered as a plugin, and a
             // set-aside tree that could not be removed would be loaded as one.
             let previous = Path::new(plugin_cache_root)
-                .join(format!(".previous-{}-{unique}", manifest.plugin_name));
+                .join(format!(".previous-{}.{unique}", manifest.plugin_name));
             let mut leftovers = Vec::new();
             let installed = install_overwrite(&staged_dir, &plugin_dir, &previous, &mut leftovers);
             leftovers.extend(remove_leftovers(&[(staging, "the staging directory")]));
