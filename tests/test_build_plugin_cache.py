@@ -109,12 +109,20 @@ def _init_plugins_repo(root: Path) -> Path:
 
 def test_resolve_manifest_offline_checks_out_tag(tmp_path):
     repo = _init_plugins_repo(tmp_path)
-    with vepyr._resolve_plugin_manifest(
-        "demo", "v0.1.0", plugins_repo=str(repo)
-    ) as path:
+    expected_commit = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "v0.1.0^{commit}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    with vepyr._resolve_plugin_manifest("demo", "v0.1.0", plugins_repo=str(repo)) as (
+        path,
+        resolved_commit,
+    ):
         assert (
             Path(path).read_text().strip() == 'plugin_name = "demo"'
         )  # the tagged version
+        assert resolved_commit == expected_commit
         worktree = Path(path).parents[2]  # <worktree>/plugins/demo/demo.source.toml
         assert worktree.exists()
     # On exit the worktree is removed and its registration in the caller's repo
@@ -128,6 +136,34 @@ def test_resolve_manifest_offline_checks_out_tag(tmp_path):
         check=True,
     ).stdout
     assert str(worktree) not in listed
+
+
+def test_build_records_requested_ref_and_resolved_commit(monkeypatch, tmp_path):
+    repo = _init_full_repo(tmp_path)
+    expected_commit = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "v0.1.0^{commit}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    captured: dict[str, object] = {}
+
+    def fake_build_plugin_cache(*args):
+        captured["args"] = args
+        return []
+
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", fake_build_plugin_cache)
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path="source.tsv.gz",
+        cache_dir="cache",
+        plugin_cache_root="plugin-cache",
+        plugins_repo=str(repo),
+    )
+
+    assert result == []
+    assert captured["args"][-1] == f"v0.1.0@{expected_commit}"
 
 
 def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):

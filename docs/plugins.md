@@ -45,7 +45,11 @@ versions (e.g. AlphaMissense `v0.2.0` + ClinVar `v0.3.0`), call
 
 The manifest is resolved from the public vepyr-plugins repo at `version`
 (cloned on demand), or from a local clone via `plugins_repo` for fully offline
-builds. Tiering (warm/cold) is **inherited from the variation cache** at
+builds. The exact resolution is recorded in the cache's `manifest.json` as
+`cache_source_version: "<version>@<commit SHA>"`. An incremental build may add
+or replace chromosomes only when that value matches the existing cache; use a
+full build with `overwrite=True` to move a plugin cache to another revision.
+Tiering (warm/cold) is **inherited from the variation cache** at
 `cache_dir` — plugins declare no tier policy of their own.
 
 ## Annotating with plugins
@@ -524,7 +528,9 @@ A plugin cache is a set of per-chromosome Parquet shards
 (`plugin/<name>/chr*.parquet`) plus a `manifest.json`. The shards use the same
 point-lookup-optimized layout as the Ensembl variation cache, so a lookup reads
 only the handful of pages that could contain the queried positions — never the
-whole file.
+whole file. `manifest.json` records the requested plugin ref and its exact
+resolved commit in `cache_source_version`, making cache provenance immutable and
+auditable even when the requested ref is a branch.
 
 ### Shard schema
 

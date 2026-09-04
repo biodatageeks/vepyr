@@ -311,7 +311,8 @@ fn apply_source_paths(
 }
 
 #[pyfunction]
-#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false))]
+#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, source_version=None))]
+#[allow(clippy::too_many_arguments)]
 fn build_plugin_cache(
     py: Python<'_>,
     manifest_path: &str,
@@ -320,6 +321,7 @@ fn build_plugin_cache(
     plugin_cache_root: &str,
     chroms: Option<Vec<String>>,
     overwrite: bool,
+    source_version: Option<String>,
 ) -> PyResult<Vec<(String, usize, usize, usize)>> {
     let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
@@ -380,6 +382,9 @@ fn build_plugin_cache(
                 plugin_cache_root,
             )
             .with_overwrite(overwrite);
+            if let Some(source_version) = source_version {
+                b = b.with_source_version(source_version);
+            }
             if let Some(cs) = chroms {
                 b = b.with_chrom_filter(cs);
             }
