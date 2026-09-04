@@ -414,35 +414,47 @@ fn build_plugin_cache(
         }
         (Err(e), None) => return Err(e),
         (Ok(cache), Some(staging)) => {
-            let io = |what: &str, e: std::io::Error| {
+            let io = |what: String, e: std::io::Error| {
                 pyo3::exceptions::PyRuntimeError::new_err(format!("overwrite: {what}: {e}"))
             };
             let staged_dir = staging.join("plugin").join(&manifest.plugin_name);
-            if plugin_dir.exists() {
-                std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
+            if let Some(parent) = plugin_dir.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| io(format!("failed to create {}", parent.display()), e))?;
+            }
+            // Swap by renames, which are atomic per step: the previous cache
+            // is set aside, the new one moved in, and only then is the old one
+            // deleted. A failure between the two renames puts the old cache
+            // back, so no step can leave the cache half removed.
+            let previous = plugin_dir.with_file_name(format!("{}.previous", manifest.plugin_name));
+            let _ = std::fs::remove_dir_all(&previous);
+            let had_previous = plugin_dir.exists();
+            if had_previous {
+                std::fs::rename(&plugin_dir, &previous).map_err(|e| {
                     io(
-                        &format!(
-                            "failed to remove the previous cache at {}",
-                            plugin_dir.display()
+                        format!(
+                            "failed to set the previous cache aside at {}",
+                            previous.display()
                         ),
                         e,
                     )
                 })?;
             }
-            if let Some(parent) = plugin_dir.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| io(&format!("failed to create {}", parent.display()), e))?;
-            }
-            std::fs::rename(&staged_dir, &plugin_dir).map_err(|e| {
-                io(
-                    &format!(
+            if let Err(e) = std::fs::rename(&staged_dir, &plugin_dir) {
+                if had_previous {
+                    let _ = std::fs::rename(&previous, &plugin_dir);
+                }
+                let _ = std::fs::remove_dir_all(staging);
+                return Err(io(
+                    format!(
                         "failed to move the new cache {} into place at {}",
                         staged_dir.display(),
                         plugin_dir.display()
                     ),
                     e,
-                )
-            })?;
+                ));
+            }
+            let _ = std::fs::remove_dir_all(&previous);
             let _ = std::fs::remove_dir_all(staging);
             cache
         }
