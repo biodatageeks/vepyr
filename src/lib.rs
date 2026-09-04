@@ -470,8 +470,34 @@ fn build_plugin_cache(
                 }
                 return Err(io(what, e));
             }
-            let _ = std::fs::remove_dir_all(&previous);
-            let _ = std::fs::remove_dir_all(staging);
+            // The new cache is in place; a cleanup that fails (an open file on
+            // Windows, a transient I/O error) must not pass silently, since
+            // the set-aside tree is a whole plugin cache worth of disk.
+            let mut leftovers: Vec<String> = Vec::new();
+            for (path, what) in [
+                (previous.as_path(), "the previous cache"),
+                (staging.as_path(), "the staging directory"),
+            ] {
+                if let Err(e) = std::fs::remove_dir_all(path) {
+                    if path.exists() {
+                        leftovers.push(format!("{what} at {} ({e})", path.display()));
+                    }
+                }
+            }
+            if !leftovers.is_empty() {
+                let message = std::ffi::CString::new(format!(
+                    "overwrite: the new plugin cache is in place, but {} could not be removed; \
+                     delete it by hand to reclaim the space",
+                    leftovers.join(" and ")
+                ))
+                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+                pyo3::PyErr::warn(
+                    py,
+                    &py.get_type::<pyo3::exceptions::PyRuntimeWarning>(),
+                    &message,
+                    1,
+                )?;
+            }
             cache
         }
         (Ok(cache), None) => cache,
