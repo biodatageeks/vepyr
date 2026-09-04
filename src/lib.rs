@@ -411,10 +411,13 @@ fn install_overwrite(
 /// A recovery that cannot be done — the rename fails, or several orphaned
 /// trees exist — is an error rather than a log line: building on without the
 /// cache would leave the old data stranded beside a fresh, partial one.
-fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) -> PyResult<()> {
-    if path_exists(plugin_dir)? {
-        return Ok(());
-    }
+fn recover_set_aside_cache(
+    py: Python<'_>,
+    root: &Path,
+    plugin_dir: &Path,
+    plugin_name: &str,
+) -> PyResult<()> {
+    let live = path_exists(plugin_dir)?;
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
     // whose name extends this one (`cadd` vs `cadd-x`) cannot match.
     let prefix = format!(".previous-{plugin_name}.");
@@ -462,6 +465,23 @@ fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) ->
                 )));
             }
         }
+    }
+    if live {
+        // The swap completed but its cleanup did not (killed in between), or
+        // another overwrite is mid-swap right now: not ours to delete, but
+        // not to be left unmentioned either — each holds a cache's worth.
+        return warn_leftovers(
+            py,
+            candidates
+                .iter()
+                .map(|p| {
+                    format!(
+                        "a set-aside cache at {} (stale, or another overwrite in progress)",
+                        p.display()
+                    )
+                })
+                .collect(),
+        );
     }
     match candidates.as_slice() {
         [] => Ok(()),
@@ -517,8 +537,10 @@ fn path_exists(path: &Path) -> PyResult<bool> {
 fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
     let mut leftovers = Vec::new();
     for (path, what) in dirs {
+        // Anything but "already gone" is a leftover; a stat afterwards could
+        // itself fail and must not turn a failed removal into silence.
         if let Err(e) = std::fs::remove_dir_all(path) {
-            if path.exists() {
+            if e.kind() != std::io::ErrorKind::NotFound {
                 leftovers.push(format!("{what} at {} ({e})", path.display()));
             }
         }
@@ -578,6 +600,7 @@ fn build_plugin_cache(
         .join("plugin")
         .join(&manifest.plugin_name);
     recover_set_aside_cache(
+        py,
         Path::new(plugin_cache_root),
         &plugin_dir,
         &manifest.plugin_name,
