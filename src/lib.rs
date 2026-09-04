@@ -470,17 +470,14 @@ fn recover_set_aside_cache(
         // The swap completed but its cleanup did not (killed in between), or
         // another overwrite is mid-swap right now: not ours to delete, but
         // not to be left unmentioned either — each holds a cache's worth.
-        return warn_leftovers(
+        return warn_about(
             py,
             candidates
                 .iter()
-                .map(|p| {
-                    format!(
-                        "a set-aside cache at {} (stale, or another overwrite in progress)",
-                        p.display()
-                    )
-                })
+                .map(|p| format!("a set-aside cache at {}", p.display()))
                 .collect(),
+            "was left behind by an interrupted overwrite, or belongs to one in progress; \
+             it was not touched — delete it by hand once no overwrite is running",
         );
     }
     match candidates.as_slice() {
@@ -551,14 +548,21 @@ fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
 /// A cleanup that fails must not pass silently: a leftover staging or
 /// set-aside tree is a plugin cache's worth of disk.
 fn warn_leftovers(py: Python<'_>, leftovers: Vec<String>) -> PyResult<()> {
-    if leftovers.is_empty() {
+    warn_about(
+        py,
+        leftovers,
+        "could not be removed; delete it by hand to reclaim the space",
+    )
+}
+
+/// Raise one `RuntimeWarning` listing `items`, each a cache-sized directory
+/// the caller should know about, followed by `advice`.
+fn warn_about(py: Python<'_>, items: Vec<String>, advice: &str) -> PyResult<()> {
+    if items.is_empty() {
         return Ok(());
     }
-    let message = std::ffi::CString::new(format!(
-        "overwrite: {} could not be removed; delete it by hand to reclaim the space",
-        leftovers.join(" and ")
-    ))
-    .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    let message = std::ffi::CString::new(format!("overwrite: {} {advice}", items.join(" and ")))
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
     pyo3::PyErr::warn(
         py,
         &py.get_type::<pyo3::exceptions::PyRuntimeWarning>(),
