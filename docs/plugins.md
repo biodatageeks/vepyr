@@ -586,7 +586,10 @@ upstream file, so the recorded digest is the artifact's, not the upstream's. `fi
 file for incremental builds: an unchanged file is not re-hashed, while a
 replacement or rewrite (a new inode, a fresh change time) always is. For a
 tabix source the `.tbi` gets the same treatment under `index` — it is always
-hashed and fingerprinted, so a changed index is a changed input. Every
+hashed and fingerprinted, so a changed index is a changed input — and it is
+checked to describe the data it sits beside: for every contig it names, the
+record its first chunk points at must carry that contig, which refuses an
+index built from another version of the file in strict and warn mode alike. Every
 chromosome is built to a staging file and the sources are re-checked after
 each; only when all of them passed are the shards made live and the manifest
 written, so a source that changes mid-build leaves the cache exactly as it
