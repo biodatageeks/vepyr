@@ -315,6 +315,26 @@ pub fn annotate_to_vcf_file(
             ));
         }
     };
+    config.fields = match opts.get("fields") {
+        None => None,
+        Some(Value::Array(values)) => Some(
+            values
+                .iter()
+                .map(|value| {
+                    value.as_str().map(String::from).ok_or_else(|| {
+                        pyo3::exceptions::PyValueError::new_err(
+                            "fields must be an array of strings",
+                        )
+                    })
+                })
+                .collect::<PyResult<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "fields must be an array of strings",
+            ));
+        }
+    };
     // Recorded as a `tool` attribute in the output header's provenance
     // lines. The header key itself is fixed by the engine.
     config.provenance_tool_name = Some(env!("CARGO_PKG_NAME").to_string());

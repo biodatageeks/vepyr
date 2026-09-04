@@ -942,9 +942,7 @@ def test_annotate_plugins_rejects_unknown_name_with_available_plugins(tmp_path):
 
     root = _fake_plugin_root(tmp_path, ["cadd", "clinvar"])
     with pytest.raises(ValueError, match="Unknown plugin 'nope'") as exc:
-        vepyr.annotate(
-            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["nope"]
-        )
+        vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["nope"])
     assert "Available: cadd, clinvar" in str(exc.value)
 
 
@@ -961,6 +959,126 @@ def test_annotate_plugins_is_accepted_in_signature():
     params = inspect.signature(vepyr.annotate).parameters
     assert "plugins" in params
     assert params["plugins"].default is None
+
+
+def test_annotate_core_fields_expand_in_vep_order(monkeypatch):
+    import vepyr
+
+    seen = {}
+
+    def fake(vcf, cache_dir, options_json, skip_csq, limit):
+        seen["opts"] = json.loads(options_json)
+        raise _Stop()
+
+    monkeypatch.setattr(vepyr, "_create_annotator", fake)
+    with pytest.raises(_Stop):
+        vepyr.annotate("in.vcf", CACHE_DIR, fields="core")
+
+    assert seen["opts"]["fields"] == [
+        "Allele",
+        "Gene",
+        "Feature",
+        "Feature_type",
+        "Consequence",
+        "cDNA_position",
+        "CDS_position",
+        "Protein_position",
+        "Amino_acids",
+        "Codons",
+        "Existing_variation",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("fields", "error", "message"),
+    [
+        ("all", ValueError, "must be 'core'"),
+        ({"Gene"}, TypeError, "ordered list or tuple"),
+        ([], ValueError, "at least one"),
+        (["Gene", "Gene"], ValueError, "duplicate"),
+        (["Gene", 1], TypeError, "must be strings"),
+    ],
+)
+def test_annotate_rejects_invalid_field_selections(fields, error, message):
+    import vepyr
+
+    with pytest.raises(error, match=message):
+        vepyr.annotate("in.vcf", CACHE_DIR, fields=fields)
+
+
+def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatch):
+    import pyarrow as pa
+    import vepyr
+
+    root = Path(_fake_plugin_root(tmp_path, ["cadd"]))
+    (root / "plugin" / "cadd" / "manifest.json").write_text(
+        json.dumps(
+            {
+                "plugin_name": "cadd",
+                "field_order": "declared",
+                "value_columns": [
+                    {"column": "phred", "csq_field": "CADD_PHRED"},
+                    {"column": "raw", "csq_field": "CADD_RAW"},
+                ],
+            }
+        )
+    )
+    core_values = [
+        "G",
+        "ENSG1",
+        "ENST1",
+        "Transcript",
+        "missense_variant",
+        "10",
+        "7",
+        "3",
+        "A/T",
+        "Gcc/Acc",
+        "rs1",
+    ]
+    schema = pa.schema(
+        [
+            pa.field("chrom", pa.string()),
+            pa.field("CSQ", pa.string()),
+            pa.field("Allele", pa.string()),
+        ]
+    )
+
+    class FakeAnnotator:
+        def __init__(self):
+            self.schema = schema
+
+        def __iter__(self):
+            yield pa.record_batch(
+                [
+                    pa.array(["1"]),
+                    pa.array(["|".join([*core_values, "24.5", "0.12"])]),
+                    pa.array(["G"]),
+                ],
+                schema=schema,
+            )
+
+    calls = []
+
+    def fake(vcf, cache_dir, options_json, skip_csq, limit):
+        calls.append((json.loads(options_json), skip_csq, limit))
+        return FakeAnnotator()
+
+    monkeypatch.setattr(vepyr, "_create_annotator", fake)
+    result = vepyr.annotate(
+        "in.vcf",
+        CACHE_DIR,
+        fields="core",
+        plugin_cache_root=str(root),
+        plugins=["cadd"],
+        skip_csq=True,
+    ).collect()
+
+    assert calls[0][0]["fields"] == list(vepyr._CORE_CSQ_FIELDS)
+    assert calls[0][1] is False, "CSQ is retained internally for plugin projection"
+    assert "CSQ" not in result.columns
+    assert result["CADD_PHRED"].to_list() == [["24.5"]]
+    assert result["CADD_RAW"].to_list() == [["0.12"]]
 
 
 def test_annotate_empty_plugins_is_plugin_free_without_cache_validation(
