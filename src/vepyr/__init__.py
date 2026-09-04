@@ -1253,6 +1253,10 @@ def annotate(
         import os
 
         plugin_root = os.path.join(plugin_cache_root, "plugin")
+        if not os.path.isdir(plugin_root):
+            raise FileNotFoundError(
+                f"No plugin directory under plugin_cache_root: {plugin_root}"
+            )
         manifests = []
         for directory_name in sorted(os.listdir(plugin_root)):
             manifest_path = os.path.join(plugin_root, directory_name, "manifest.json")
@@ -1300,8 +1304,9 @@ def annotate(
             raise RuntimeError(
                 "annotation schema is missing most_severe_consequence"
             ) from exc
+        annotation_schema_names = set(schema_names[annotation_start + 1 :])
         missing_columns = [
-            name for name in selected_fields if name not in polars_schema
+            name for name in selected_fields if name not in annotation_schema_names
         ]
         if missing_columns:
             raise ValueError(
@@ -1363,8 +1368,6 @@ def annotate(
                     .alias(name)
                     for index, name in enumerate(plugin_field_names)
                 )
-                if skip_csq:
-                    batch_df = batch_df.drop("CSQ")
             if selected_dataframe_columns is not None:
                 batch_df = batch_df.select(
                     [*selected_dataframe_columns, *plugin_field_names]

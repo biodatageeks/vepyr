@@ -1045,6 +1045,36 @@ def test_annotate_rejects_invalid_field_selections(fields, error, message):
         vepyr.annotate("in.vcf", CACHE_DIR, fields=fields)
 
 
+def test_selected_fields_must_be_annotation_columns(monkeypatch):
+    import pyarrow as pa
+    import vepyr
+
+    class FakeAnnotator:
+        schema = pa.schema(
+            [
+                pa.field("chrom", pa.string()),
+                pa.field("most_severe_consequence", pa.string()),
+                pa.field("Allele", pa.string()),
+            ]
+        )
+
+    monkeypatch.setattr(vepyr, "_create_annotator", lambda *args: FakeAnnotator())
+    with pytest.raises(ValueError, match="no named DataFrame column"):
+        vepyr.annotate("in.vcf", CACHE_DIR, fields=["most_severe_consequence"])
+
+
+def test_selected_fields_with_plugin_root_require_plugin_directory(tmp_path):
+    import vepyr
+
+    with pytest.raises(FileNotFoundError, match="No plugin directory"):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            fields="core",
+            plugin_cache_root=str(tmp_path / "not-built-yet"),
+        )
+
+
 def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatch):
     import pyarrow as pa
     import vepyr
