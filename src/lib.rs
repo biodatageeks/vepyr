@@ -358,44 +358,50 @@ fn install_overwrite(
                 ));
             }
         };
-        match std::fs::rename(staged_dir, plugin_dir) {
-            Ok(()) => return Ok(had_previous.then(|| previous.to_path_buf())),
-            Err(e) if path_exists(plugin_dir)? && attempt < ATTEMPTS => {
-                // Another overwrite installed its complete cache between the
-                // two renames. The cache we set aside is older than that one,
-                // so it is dropped, and the newer live cache is set aside next.
-                if had_previous {
-                    leftovers.extend(remove_leftovers(&[(
-                        previous,
-                        "a superseded previous cache",
-                    )]));
-                }
-                log::info!(
-                    "overwrite: {} was replaced by another writer during the swap ({e}); \
-                     retrying (attempt {attempt} of {ATTEMPTS})",
-                    plugin_dir.display()
-                );
+        let install = std::fs::rename(staged_dir, plugin_dir);
+        let Err(e) = install else {
+            return Ok(had_previous.then(|| previous.to_path_buf()));
+        };
+        // Probe without `?`: whatever the probe says, the previous cache must
+        // be put back before this function returns an error.
+        let live_again = path_exists(plugin_dir);
+        if matches!(live_again, Ok(true)) && attempt < ATTEMPTS {
+            // Another overwrite installed its complete cache between the two
+            // renames. The cache we set aside is older than that one, so it
+            // is dropped, and the newer live cache is set aside next.
+            if had_previous {
+                leftovers.extend(remove_leftovers(&[(
+                    previous,
+                    "a superseded previous cache",
+                )]));
             }
-            Err(e) => {
-                let mut what = format!(
-                    "failed to move the new cache {} into place at {}",
-                    staged_dir.display(),
+            log::info!(
+                "overwrite: {} was replaced by another writer during the swap ({e}); \
+                 retrying (attempt {attempt} of {ATTEMPTS})",
+                plugin_dir.display()
+            );
+            continue;
+        }
+        let mut what = format!(
+            "failed to move the new cache {} into place at {}",
+            staged_dir.display(),
+            plugin_dir.display()
+        );
+        if let Err(probe) = live_again {
+            what.push_str(&format!("; inspecting it afterwards also failed ({probe})"));
+        }
+        if had_previous {
+            match std::fs::rename(previous, plugin_dir) {
+                Ok(()) => what.push_str("; the previous cache was put back"),
+                Err(restore) => what.push_str(&format!(
+                    "; putting the previous cache back also failed ({restore}), it is \
+                     intact at {} — rename it to {} to recover",
+                    previous.display(),
                     plugin_dir.display()
-                );
-                if had_previous {
-                    match std::fs::rename(previous, plugin_dir) {
-                        Ok(()) => what.push_str("; the previous cache was put back"),
-                        Err(restore) => what.push_str(&format!(
-                            "; putting the previous cache back also failed ({restore}), it is \
-                             intact at {} — rename it to {} to recover",
-                            previous.display(),
-                            plugin_dir.display()
-                        )),
-                    }
-                }
-                return Err(io(what, e));
+                )),
             }
         }
+        return Err(io(what, e));
     }
     Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
         "overwrite: gave up installing {} after {ATTEMPTS} attempts; another full overwrite \
