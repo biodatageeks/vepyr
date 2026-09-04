@@ -642,3 +642,27 @@ def test_recovery_ignores_a_plugin_whose_name_extends_this_one(tmp_path):
 
     manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
     assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
+
+
+def test_orphan_beside_a_live_cache_is_reported_not_deleted(tmp_path):
+    """A set-aside tree next to a live cache is either the leftover of a swap
+    whose cleanup was interrupted or another overwrite's rollback copy in
+    flight; the build names it and leaves it alone."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    orphan = _orphan(pc, ".previous-demo.4242-1")
+    with pytest.warns(RuntimeWarning, match="set-aside cache") as caught:
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
+    assert str(orphan) in str(caught[0].message)
+    assert orphan.exists()
+    assert (pc / "plugin" / "demo" / "manifest.json").exists()
