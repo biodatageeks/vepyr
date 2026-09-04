@@ -322,7 +322,12 @@ fn apply_source_paths(
 /// that reappeared is another writer's complete cache, which is set aside in
 /// turn so the later writer wins. A rename that fails for any other reason
 /// puts the previous cache back and reports where everything is.
-fn install_overwrite(staged_dir: &Path, plugin_dir: &Path, previous: &Path) -> PyResult<()> {
+fn install_overwrite(
+    staged_dir: &Path,
+    plugin_dir: &Path,
+    previous_base: &Path,
+    leftovers: &mut Vec<String>,
+) -> PyResult<Option<std::path::PathBuf>> {
     let io = |what: String, e: std::io::Error| {
         pyo3::exceptions::PyRuntimeError::new_err(format!("overwrite: {what}: {e}"))
     };
@@ -332,6 +337,14 @@ fn install_overwrite(staged_dir: &Path, plugin_dir: &Path, previous: &Path) -> P
     }
     const ATTEMPTS: usize = 8;
     for attempt in 1..=ATTEMPTS {
+        // A fresh set-aside path per attempt: a superseded set-aside tree that
+        // could not be removed must not make the next rename fail.
+        let previous = if attempt == 1 {
+            previous_base.to_path_buf()
+        } else {
+            std::path::PathBuf::from(format!("{}-{attempt}", previous_base.display()))
+        };
+        let previous = previous.as_path();
         let had_previous = match std::fs::rename(plugin_dir, previous) {
             Ok(()) => true,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
@@ -346,13 +359,16 @@ fn install_overwrite(staged_dir: &Path, plugin_dir: &Path, previous: &Path) -> P
             }
         };
         match std::fs::rename(staged_dir, plugin_dir) {
-            Ok(()) => return Ok(()),
+            Ok(()) => return Ok(had_previous.then(|| previous.to_path_buf())),
             Err(e) if plugin_dir.exists() && attempt < ATTEMPTS => {
                 // Another overwrite installed its complete cache between the
                 // two renames. The cache we set aside is older than that one,
                 // so it is dropped, and the newer live cache is set aside next.
                 if had_previous {
-                    let _ = std::fs::remove_dir_all(previous);
+                    leftovers.extend(remove_leftovers(&[(
+                        previous,
+                        "a superseded previous cache",
+                    )]));
                 }
                 log::info!(
                     "overwrite: {} was replaced by another writer during the swap ({e}); \
@@ -540,10 +556,11 @@ fn build_plugin_cache(
             let staged_dir = staging.join("plugin").join(&manifest.plugin_name);
             let previous =
                 plugin_dir.with_file_name(format!("{}.previous-{unique}", manifest.plugin_name));
-            let installed = install_overwrite(&staged_dir, &plugin_dir, &previous);
-            let mut leftovers = remove_leftovers(&[(staging, "the staging directory")]);
-            if installed.is_ok() {
-                leftovers.extend(remove_leftovers(&[(&previous, "the previous cache")]));
+            let mut leftovers = Vec::new();
+            let installed = install_overwrite(&staged_dir, &plugin_dir, &previous, &mut leftovers);
+            leftovers.extend(remove_leftovers(&[(staging, "the staging directory")]));
+            if let Ok(Some(set_aside)) = &installed {
+                leftovers.extend(remove_leftovers(&[(set_aside, "the previous cache")]));
             }
             warn_leftovers(py, leftovers)?;
             installed?;
