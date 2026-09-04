@@ -441,18 +441,24 @@ fn build_plugin_cache(
                 })?;
             }
             if let Err(e) = std::fs::rename(&staged_dir, &plugin_dir) {
-                if had_previous {
-                    let _ = std::fs::rename(&previous, &plugin_dir);
-                }
                 let _ = std::fs::remove_dir_all(staging);
-                return Err(io(
-                    format!(
-                        "failed to move the new cache {} into place at {}",
-                        staged_dir.display(),
-                        plugin_dir.display()
-                    ),
-                    e,
-                ));
+                let mut what = format!(
+                    "failed to move the new cache {} into place at {}",
+                    staged_dir.display(),
+                    plugin_dir.display()
+                );
+                if had_previous {
+                    match std::fs::rename(&previous, &plugin_dir) {
+                        Ok(()) => what.push_str("; the previous cache was put back"),
+                        Err(restore) => what.push_str(&format!(
+                            "; putting the previous cache back also failed ({restore}), it is \
+                             intact at {} — rename it to {} to recover",
+                            previous.display(),
+                            plugin_dir.display()
+                        )),
+                    }
+                }
+                return Err(io(what, e));
             }
             let _ = std::fs::remove_dir_all(&previous);
             let _ = std::fs::remove_dir_all(staging);
