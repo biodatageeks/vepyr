@@ -82,9 +82,10 @@ result = vepyr.annotate(
 
 VCF output records the exact ordered layout in the `CSQ` `Format:` header. On
 the DataFrame path, the selected base fields retain their existing named
-columns and each plugin field (for example `CADD_PHRED` and `CADD_RAW`) is a
-named `List(String)` column. The raw `CSQ` string is still available with
-`skip_csq=False`, but is not required to access plugin values.
+columns, unselected annotation columns are omitted, and each plugin field (for
+example `CADD_PHRED` and `CADD_RAW`) is a named `List(String)` column. The raw
+`CSQ` string is still available with `skip_csq=False`, but is not required to
+access plugin values.
 
 An explicit list or tuple may be used instead of `"core"`; its order is
 preserved. Fields needed by plugin match templates are still computed even

@@ -197,6 +197,45 @@ class TestPartialPluginCache:
         assert not (plugin_dir / manifest["chroms"][0]["file"]).exists()
         assert (plugin_dir / "chr1.parquet").is_file()
 
+    def test_core_fields_align_vcf_and_named_dataframe_plugin_output(
+        self, demo_plugin_cache, metadata_cache_dir, tmp_path
+    ):
+        import vepyr
+
+        output = tmp_path / "core-plugin.vcf"
+        vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            fields="core",
+            plugin_cache_root=demo_plugin_cache,
+            plugins=["demo"],
+            output_vcf=str(output),
+            show_progress=False,
+        )
+        header = next(
+            line
+            for line in output.read_text().splitlines()
+            if line.startswith("##INFO=<ID=CSQ")
+        )
+        assert header.endswith(
+            "Format: Allele|Gene|Feature|Feature_type|Consequence|cDNA_position|"
+            "CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|"
+            'DEMO">'
+        )
+
+        frame = vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            fields="core",
+            plugin_cache_root=demo_plugin_cache,
+            plugins=["demo"],
+        ).collect()
+        assert "DEMO" in frame.columns
+        assert "DISTANCE" not in frame.columns
+        assert any(
+            value is not None for values in frame["DEMO"].to_list() for value in values
+        )
+
     def test_annotates_the_contigs_it_has(
         self,
         partial_cache_dir,
@@ -1040,7 +1079,9 @@ def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatc
         [
             pa.field("chrom", pa.string()),
             pa.field("CSQ", pa.string()),
-            pa.field("Allele", pa.string()),
+            pa.field("most_severe_consequence", pa.string()),
+            *(pa.field(name, pa.string()) for name in vepyr._CORE_CSQ_FIELDS),
+            pa.field("DISTANCE", pa.string()),
         ]
     )
 
@@ -1053,7 +1094,9 @@ def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatc
                 [
                     pa.array(["1"]),
                     pa.array(["|".join([*core_values, "24.5", "0.12"])]),
-                    pa.array(["G"]),
+                    pa.array(["missense_variant"]),
+                    *(pa.array([value]) for value in core_values),
+                    pa.array(["100"]),
                 ],
                 schema=schema,
             )
@@ -1077,6 +1120,12 @@ def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatc
     assert calls[0][0]["fields"] == list(vepyr._CORE_CSQ_FIELDS)
     assert calls[0][1] is False, "CSQ is retained internally for plugin projection"
     assert "CSQ" not in result.columns
+    assert "DISTANCE" not in result.columns
+    assert result.columns[-13:] == [
+        *vepyr._CORE_CSQ_FIELDS,
+        "CADD_PHRED",
+        "CADD_RAW",
+    ]
     assert result["CADD_PHRED"].to_list() == [["24.5"]]
     assert result["CADD_RAW"].to_list() == [["0.12"]]
 

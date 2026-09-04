@@ -895,7 +895,8 @@ def annotate(
         Ordered base CSQ fields to emit, mirroring VEP ``--fields``. ``"core"``
         selects VEP's eleven VCF-side default output fields. A list or tuple
         preserves its supplied order. Plugin fields are always appended after
-        the selected base block. ``None`` (default) keeps the full layout.
+        the selected base block. On the DataFrame path, unselected annotation
+        columns are omitted. ``None`` (default) keeps the full layout.
     plugin_cache_root : str or None
         Root of a plugin cache tree built by :func:`build_plugin_cache`, e.g.
         ``"/data/plugin_cache"`` holding ``plugin/<name>/`` directories. Every
@@ -1290,6 +1291,32 @@ def annotate(
     pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
+    selected_dataframe_columns: list[str] | None = None
+    if selected_fields is not None:
+        schema_names = list(polars_schema)
+        try:
+            annotation_start = schema_names.index("most_severe_consequence")
+        except ValueError as exc:
+            raise RuntimeError(
+                "annotation schema is missing most_severe_consequence"
+            ) from exc
+        missing_columns = [
+            name for name in selected_fields if name not in polars_schema
+        ]
+        if missing_columns:
+            raise ValueError(
+                "selected CSQ fields have no named DataFrame column: "
+                + ", ".join(missing_columns)
+            )
+        selected_dataframe_columns = [
+            name
+            for name in schema_names[: annotation_start + 1]
+            if not (skip_csq and name == "CSQ")
+        ]
+        selected_dataframe_columns.extend(selected_fields)
+        polars_schema = {
+            name: polars_schema[name] for name in selected_dataframe_columns
+        }
     if plugin_field_names:
         for name in plugin_field_names:
             if name in polars_schema:
@@ -1298,7 +1325,7 @@ def annotate(
                 )
             polars_schema[name] = pl.List(pl.String)
         if skip_csq:
-            del polars_schema["CSQ"]
+            polars_schema.pop("CSQ", None)
     del probe
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
@@ -1338,6 +1365,10 @@ def annotate(
                 )
                 if skip_csq:
                     batch_df = batch_df.drop("CSQ")
+            if selected_dataframe_columns is not None:
+                batch_df = batch_df.select(
+                    [*selected_dataframe_columns, *plugin_field_names]
+                )
             if predicate is not None:
                 batch_df = batch_df.filter(predicate)
             if with_columns is not None:
