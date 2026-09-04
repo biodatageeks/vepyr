@@ -564,7 +564,7 @@ without the source file:
     "path_md5": "46d0028375cf95088bd014ff6855cffd",
     "verified_md5": "46d0028375cf95088bd014ff6855cffd",
     "size": 628407716,
-    "mtime": 1783322828
+    "mtime_ns": 1783322828158000000
   }
 ]
 ```
@@ -573,7 +573,9 @@ without the source file:
 declared) `path_md5` are copied from the source manifest. `verified_md5` is the digest the build actually computed over the
 resolved file — absent when verification was skipped or the manifest declared
 no digest, and *different* from the expected digest only after a `"warn"`
-build. `size` and `mtime` fingerprint the hashed file for incremental builds.
+build. `file`, `size` and `mtime_ns` fingerprint the hashed file for incremental
+builds; a filtered rebuild whose manifest declares different digests drops the
+earlier build's chromosomes from the manifest rather than mixing releases.
 Caches built before this block existed carry no `sources` key.
 
 ### Shard schema
