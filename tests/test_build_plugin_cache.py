@@ -391,7 +391,7 @@ def test_failed_full_overwrite_leaves_the_previous_cache_intact(tmp_path):
     assert "already exists" not in str(exc.value)  # overwrite bypassed the guard
     assert (pc / "plugin" / "demo" / "chrZZ.parquet").read_bytes() == b"stale"
     assert (pc / "plugin" / "demo" / "manifest.json").exists()
-    assert not (pc / ".overwrite-demo").exists()
+    assert not list(pc.glob(".overwrite-demo*"))
 
 
 def test_full_overwrite_replaces_the_cache_with_fresh_chroms_only(tmp_path):
@@ -415,12 +415,13 @@ def test_full_overwrite_replaces_the_cache_with_fresh_chroms_only(tmp_path):
     assert result == [("chr1", 1, 1, 0)]
     assert not (pc / "plugin" / "demo" / "chrZZ.parquet").exists()
     assert (pc / "plugin" / "demo" / "chr1.parquet").exists()
-    assert not (pc / ".overwrite-demo").exists()
+    assert not list(pc.glob(".overwrite-demo*"))
     import json
 
     manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
     assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
     assert manifest["sources"][0]["verified_md5"] == actual
+    assert not list((pc / "plugin").glob("demo.previous*"))
 
 
 def test_single_source_manifest_rejects_a_mapping(tmp_path):

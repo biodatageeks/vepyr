@@ -352,11 +352,21 @@ fn build_plugin_cache(
     // cost a multi-hour cache. So the replacement is built into a staging root
     // beside the cache and swapped into place only after the build succeeds;
     // on failure the staging root is removed and the old cache is untouched.
+    // The staging root is unique to this invocation, so two overwrites of the
+    // same plugin never build into, or delete, each other's tree; each swaps
+    // in its own complete cache and the later one wins.
+    let unique = format!(
+        "{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    );
     let staging_root = if is_full_build {
         if overwrite {
             let staging = std::path::Path::new(plugin_cache_root)
-                .join(format!(".overwrite-{}", manifest.plugin_name));
-            let _ = std::fs::remove_dir_all(&staging);
+                .join(format!(".overwrite-{}-{unique}", manifest.plugin_name));
             std::fs::create_dir_all(&staging).map_err(|e| {
                 pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "overwrite: failed to create staging directory {}: {e}",
@@ -426,8 +436,8 @@ fn build_plugin_cache(
             // is set aside, the new one moved in, and only then is the old one
             // deleted. A failure between the two renames puts the old cache
             // back, so no step can leave the cache half removed.
-            let previous = plugin_dir.with_file_name(format!("{}.previous", manifest.plugin_name));
-            let _ = std::fs::remove_dir_all(&previous);
+            let previous =
+                plugin_dir.with_file_name(format!("{}.previous-{unique}", manifest.plugin_name));
             let had_previous = plugin_dir.exists();
             if had_previous {
                 std::fs::rename(&plugin_dir, &previous).map_err(|e| {
