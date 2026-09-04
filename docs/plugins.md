@@ -574,9 +574,13 @@ declared) `path_md5` are copied from the source manifest. `verified_md5` is the 
 resolved file — absent when verification was skipped or the manifest declared
 no digest, and *different* from the expected digest only after a `"warn"`
 build. `file`, `size` and `mtime_ns` fingerprint the hashed file for incremental
-builds; a filtered rebuild whose manifest declares different digests drops the
-earlier build's chromosomes from the manifest rather than mixing releases.
-Caches built before this block existed carry no `sources` key.
+builds; a filtered rebuild whose input hashes differently from the earlier
+build's drops that build's chromosomes from the manifest rather than mixing
+releases. A cache built before this block existed carries no `sources` key, and
+a verifying `chroms=[...]` build into it is refused rather than attributing the
+verified digest to shards of unknown origin: rebuild the whole plugin
+(`overwrite=True`), or add chromosomes with `verify_source="skip"`, which makes
+no claim.
 
 ### Shard schema
 
