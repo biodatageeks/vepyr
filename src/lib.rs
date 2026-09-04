@@ -439,15 +439,28 @@ fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) ->
                 ))
             })?
             .path();
-        if p.file_name()
+        let named_like_a_set_aside = p
+            .file_name()
             .and_then(|n| n.to_str())
             .and_then(|n| n.strip_prefix(&prefix))
             .is_some_and(|rest| {
                 !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-')
-            })
-            && p.join("manifest.json").exists()
-        {
-            candidates.push(p);
+            });
+        if !named_like_a_set_aside {
+            continue;
+        }
+        // A candidate must hold a manifest; an error other than "no such
+        // file" while checking is reported, not read as absence.
+        match std::fs::metadata(p.join("manifest.json")) {
+            Ok(_) => candidates.push(p),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "cannot inspect {} while checking for a cache set aside by an interrupted \
+                     overwrite: {e}",
+                    p.display()
+                )));
+            }
         }
     }
     match candidates.as_slice() {
