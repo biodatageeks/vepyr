@@ -576,9 +576,10 @@ no digest, and *different* from the expected digest only after a `"warn"`
 build. `file`, `size` and `mtime_ns` fingerprint the hashed file for incremental
 builds; a filtered rebuild whose input hashes differently from the earlier
 build's drops that build's chromosomes from the manifest rather than mixing
-releases. A cache built before this block existed carries no `sources` key, and
-a verifying `chroms=[...]` build into it is refused rather than attributing the
-verified digest to shards of unknown origin: rebuild the whole plugin
+releases. Chromosomes whose input was never verified — a cache built before
+this block existed (no `sources` key), or one built with `verify_source="skip"`
+— cannot be attributed to a verified input, so a verifying `chroms=[...]` build
+that would carry them over is refused: rebuild every chromosome
 (`overwrite=True`), or add chromosomes with `verify_source="skip"`, which makes
 no claim.
 
