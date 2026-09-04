@@ -706,12 +706,14 @@ def build_plugin_cache(
 
     ``verify_source`` guards against building from the wrong bytes. Before the
     first chromosome is ingested, each resolved source file is MD5-hashed once
-    (streaming, bounded memory) and compared with the manifest's ``path_md5``
-    (or ``md5``). ``True`` / ``"strict"`` (default) raises on a mismatch,
+    (streaming, bounded memory) and compared with the manifest's ``md5``.
+    ``True`` / ``"strict"`` (default) raises on a mismatch,
     naming the part, both digests and the upstream ``url``; ``"warn"`` logs it
-    and keeps building; ``False`` / ``"skip"`` never hashes -- use it for a
-    chromosome slice cut with ``tabix``, whose digest can never match the whole
-    file. A manifest that declares no ``md5`` is never hashed. The digest
+    and keeps building -- for a build input that is a derived artifact of the
+    upstream file (AlphaMissense's BGZF re-compression; its plugin README
+    documents the preprocessing); ``False`` / ``"skip"`` never hashes -- use it
+    for a chromosome slice cut with ``tabix``, whose digest can never match the
+    whole file. A manifest that declares no ``md5`` is never hashed. The digest
     actually verified, with the file's size and mtime, is recorded under
     ``sources`` in the emitted ``manifest.json``; an incremental ``chroms=[...]``
     build against an unchanged file trusts that record instead of re-hashing.

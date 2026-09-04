@@ -55,12 +55,12 @@ A byte-parity-validated cache is only as good as the bytes it was built from,
 so before the first chromosome is ingested the build MD5-hashes each resolved
 `source_path` once (streaming, bounded memory — CADD's 87 GB SNV file costs a
 few minutes of I/O on top of a multi-hour build) and compares it with the
-manifest's `path_md5`, or `md5` when no `path_md5` is declared:
+manifest's `md5`:
 
 | `verify_source` | Behaviour |
 |---|---|
 | `True` / `"strict"` (default) | A mismatch raises before anything is written, naming the part, the expected and actual digests and the upstream `url`. |
-| `"warn"` | A mismatch is logged and the build continues; the digest actually found is recorded. For deliberate builds against a re-compressed or derived artifact. |
+| `"warn"` | A mismatch is logged and the build continues; the digest actually found is recorded. For deliberate builds against a re-compressed or derived artifact, such as AlphaMissense's BGZF build input (its plugin README documents the preprocessing). |
 | `False` / `"skip"` | Nothing is hashed. Use it for a chromosome slice cut with `tabix`, whose digest can never match the whole file's. |
 
 A manifest that declares no `md5` is never hashed, whatever the mode. The
@@ -194,11 +194,9 @@ source and map it to CSQ fields.
 | `provider` | `csv` \| `tsv` \| `parquet` \| `vcf` \| `bed` | yes | Reader for this file. All five work — see [Table providers](#build-pipeline-table-providers-tables-views). |
 | `path` | string | yes | Placeholder; **always** overridden at build time by `source_path`. |
 | `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Never fetched; copied into the built cache's `manifest.json` and quoted in verification errors. |
-| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. Unless `path_md5` is set, this is the digest the build [verifies](#source-verification) `source_path` against. |
-| `path_md5` | string | no | MD5 of the **actual build input** when it is a derived artifact of `url` that cannot share its digest — AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip. Verified in preference to `md5`. Omit when `path` is the upstream file itself. |
+| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. This is the digest the build [verifies](#source-verification) `source_path` against. A manifest keeps this one digest; when the build input is a derived artifact of `url` (AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip) the preprocessing is documented in the plugin's README and the build runs with `verify_source="warn"` or `False`. |
 | `part` | string | no | Names this source when a manifest declares several. Registers as `plugin_<name>_src_<part>`, and makes `source_path` take a `{part: path}` mapping. |
 | `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. On `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
-| `index_md5` | string | no | MD5 of the sibling `<path>.tbi`, when the publisher ships one (ClinVar's `.tbi.md5`) or it was recorded with the build input. The index decides which records a chromosome build reads, so it is [verified](#source-verification) like `path` and refused on a mismatch. Requires `index`. |
 | `record_layout` | bool | no (default `false`) | `vcf` sources only: carry the raw record layout through the provider. |
 | `[source.csv]` | table | for `csv`/`tsv` | Parsing options — see below. Not used by `parquet`/`vcf`/`bed`. |
 
@@ -562,7 +560,6 @@ without the source file:
     "file": "AlphaMissense_hg38.bgz.tsv.gz",
     "url": "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz",
     "md5": "9fd167735f16a1b87da6eb3e4c25fcb5",
-    "path_md5": "46d0028375cf95088bd014ff6855cffd",
     "verified_md5": "46d0028375cf95088bd014ff6855cffd",
     "size": 628407716,
     "mtime_ns": 1783322828158000000,
@@ -580,15 +577,16 @@ without the source file:
 ]
 ```
 
-`part` is present for multi-file manifests (CADD). `url`, `md5` and (when
-declared) `path_md5` are copied from the source manifest. `verified_md5` is the digest the build actually computed over the
-resolved file — absent when verification was skipped or the manifest declared
-no digest, and *different* from the expected digest only after a `"warn"`
-build. `file`, `size`, `mtime_ns`, `ino` and `ctime_ns` fingerprint the hashed
+`part` is present for multi-file manifests (CADD). `url` and `md5` are copied
+from the source manifest. `verified_md5` is the digest the build actually
+computed over the resolved file — absent when verification was skipped or the
+manifest declared no digest, and *different* from `md5` only after a `"warn"`
+build, as here: AlphaMissense's build input is a BGZF re-compression of the
+upstream file, so the recorded digest is the artifact's, not the upstream's. `file`, `size`, `mtime_ns`, `ino` and `ctime_ns` fingerprint the hashed
 file for incremental builds: an unchanged file is not re-hashed, while a
 replacement or rewrite (a new inode, a fresh change time) always is. For a
 tabix source the `.tbi` gets the same treatment under `index` — it is always
-hashed, checked against `index_md5` when declared, and fingerprinted. Every
+hashed and fingerprinted, so a changed index is a changed input. Every
 chromosome is built to a staging file and the sources are re-checked after
 each; only when all of them passed are the shards made live and the manifest
 written, so a source that changes mid-build leaves the cache exactly as it

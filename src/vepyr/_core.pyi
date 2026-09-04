@@ -54,8 +54,8 @@ def build_plugin_cache(
     for a manifest declaring several ``[[source]]`` entries.
 
     ``verify_source`` is ``"strict"`` (hash each source and fail on a mismatch
-    with the manifest's ``path_md5``/``md5``), ``"warn"`` (hash, log, continue)
-    or ``"skip"`` (never hash).
+    with the manifest's ``md5``), ``"warn"`` (hash, log, continue) or
+    ``"skip"`` (never hash).
     """
     ...
 
