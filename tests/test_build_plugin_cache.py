@@ -361,22 +361,23 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     assert "variation shard" in msg  # it reached the build (no variation cache)
 
 
-def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
-    """A full (chroms=None) overwrite rebuild must start from a clean slate. The
-    builder's `with_overwrite` is a no-op and `build_all` SEEDS its manifest from
-    any existing plugin manifest, preserving chroms not in the new build set — so
-    rebuilding a smaller set into the same root would leave stale chrom entries and
-    shards that `annotate()` keeps emitting. Verify the pre-existing plugin dir
-    (manifest + shards) is removed before the build runs."""
-    repo = _init_full_repo(tmp_path)
-    pc = tmp_path / "pc"
+def _stale_cache(pc: Path) -> None:
+    """A pre-existing plugin cache with a chromosome no new build produces."""
     (pc / "plugin" / "demo").mkdir(parents=True)
-    # A stale manifest entry + shard for a chrom the new build won't produce.
     (pc / "plugin" / "demo" / "manifest.json").write_text(
         '{"chroms": [{"chrom": "chrZZ"}]}'
     )
     (pc / "plugin" / "demo" / "chrZZ.parquet").write_bytes(b"stale")
-    # No variation cache exists, so the build itself fails AFTER the wipe.
+
+
+def test_failed_full_overwrite_leaves_the_previous_cache_intact(tmp_path):
+    """A full (chroms=None) overwrite is built beside the cache and swapped in
+    only once it succeeds: a build that fails (here: no variation cache) must
+    not have destroyed a cache that may have taken hours to produce, and must
+    leave no staging directory behind."""
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _stale_cache(pc)
     with pytest.raises(Exception) as exc:
         vepyr.build_plugin_cache(
             "demo",
@@ -388,9 +389,38 @@ def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
             overwrite=True,
         )
     assert "already exists" not in str(exc.value)  # overwrite bypassed the guard
-    # The stale shard + manifest were removed before the (failing) build.
+    assert (pc / "plugin" / "demo" / "chrZZ.parquet").read_bytes() == b"stale"
+    assert (pc / "plugin" / "demo" / "manifest.json").exists()
+    assert not (pc / ".overwrite-demo").exists()
+
+
+def test_full_overwrite_replaces_the_cache_with_fresh_chroms_only(tmp_path):
+    """After a successful full overwrite only the freshly built chromosomes
+    remain: the stale entry and shard are gone, the new manifest lists what
+    the variation cache provided, and the staging directory is removed."""
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=actual)
+    pc = tmp_path / "pc"
+    _stale_cache(pc)
+    _write_variation_shard(tmp_path)
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        overwrite=True,
+    )
+    assert result == [("chr1", 1, 1, 0)]
     assert not (pc / "plugin" / "demo" / "chrZZ.parquet").exists()
-    assert not (pc / "plugin" / "demo" / "manifest.json").exists()
+    assert (pc / "plugin" / "demo" / "chr1.parquet").exists()
+    assert not (pc / ".overwrite-demo").exists()
+    import json
+
+    manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
+    assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
+    assert manifest["sources"][0]["verified_md5"] == actual
 
 
 def test_single_source_manifest_rejects_a_mapping(tmp_path):
@@ -500,12 +530,18 @@ def test_verify_source_skip_builds_without_a_digest(tmp_path, mode):
     assert "verified_md5" not in record
 
 
-def test_verify_source_warn_builds_and_records_what_it_found(tmp_path):
+def test_verify_source_warn_builds_records_what_it_found_and_warns(tmp_path):
+    """Warn mode keeps building, records the digest found, and tells the
+    Python caller through ``warnings`` — the engine's own log line is hidden
+    unless ``RUST_LOG`` is set."""
     src, actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
-    assert _build_real(repo, tmp_path, str(src), verify_source="warn") == [
-        ("chr1", 1, 1, 0)
-    ]
+    with pytest.warns(RuntimeWarning, match="differs from the manifest") as caught:
+        result = _build_real(repo, tmp_path, str(src), verify_source="warn")
+    assert result == [("chr1", 1, 1, 0)]
+    [warning] = caught
+    assert _WRONG_MD5 in str(warning.message)
+    assert actual in str(warning.message)
     [record] = _sources(tmp_path)
     assert record["md5"] == _WRONG_MD5
     assert record["verified_md5"] == actual

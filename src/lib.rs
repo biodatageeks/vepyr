@@ -343,32 +343,43 @@ fn build_plugin_cache(
     let plugin_dir = std::path::Path::new(plugin_cache_root)
         .join("plugin")
         .join(&manifest.plugin_name);
-    if is_full_build {
+    // A full overwrite must end with only freshly built chromosomes: `build_all`
+    // carries chromosomes of an earlier build over when their provenance
+    // matches, and a smaller/different chrom set would otherwise leave stale
+    // entries behind that `annotate()` keeps emitting. But the existing cache
+    // must not be destroyed before the new one is known to be good — the
+    // source is verified inside `build_all`, and a mismatch there would have
+    // cost a multi-hour cache. So the replacement is built into a staging root
+    // beside the cache and swapped into place only after the build succeeds;
+    // on failure the staging root is removed and the old cache is untouched.
+    let staging_root = if is_full_build {
         if overwrite {
-            // A full overwrite must start from a clean slate. The builder's
-            // `with_overwrite` is a no-op (it rewrites each shard per chrom), and
-            // `build_all` SEEDS its manifest from any existing plugin manifest,
-            // preserving chroms that are not part of the new build set. So without
-            // wiping first, rebuilding a smaller/different chrom set into the same
-            // root leaves stale chrom entries and shards behind, and `annotate()`
-            // keeps emitting those stale plugin values. Remove the whole plugin
-            // directory (manifest + shards) so only freshly built chroms remain.
-            if plugin_dir.exists() {
-                std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
-                    pyo3::exceptions::PyValueError::new_err(format!(
-                        "overwrite: failed to remove existing plugin cache at {}: {e}",
-                        plugin_dir.display()
-                    ))
-                })?;
-            }
+            let staging = std::path::Path::new(plugin_cache_root)
+                .join(format!(".overwrite-{}", manifest.plugin_name));
+            let _ = std::fs::remove_dir_all(&staging);
+            std::fs::create_dir_all(&staging).map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "overwrite: failed to create staging directory {}: {e}",
+                    staging.display()
+                ))
+            })?;
+            Some(staging)
         } else if plugin_dir.join("manifest.json").exists() {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "plugin cache already exists at {} (pass overwrite=True to rebuild all \
                  chromosomes, or chroms=[...] to add/rebuild specific ones)",
                 plugin_dir.join("manifest.json").display()
             )));
+        } else {
+            None
         }
-    }
+    } else {
+        None
+    };
+    let build_root: String = staging_root
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| plugin_cache_root.to_string());
     let manifest_file = std::path::Path::new(manifest_path)
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
@@ -379,13 +390,13 @@ fn build_plugin_cache(
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
-    let cache = py.detach(|| {
+    let built = py.detach(|| {
         rt.block_on(async {
             let mut b = PluginCacheBuilder::new(
                 &manifest,
                 &manifest_file,
                 variation_cache_dir,
-                plugin_cache_root,
+                build_root.as_str(),
             )
             .with_overwrite(overwrite)
             .with_source_verification(verification);
@@ -395,7 +406,48 @@ fn build_plugin_cache(
             b.build_all().await
         })
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("plugin build failed: {e}")))
-    })?;
+    });
+    let cache = match (built, &staging_root) {
+        (Err(e), Some(staging)) => {
+            let _ = std::fs::remove_dir_all(staging);
+            return Err(e);
+        }
+        (Err(e), None) => return Err(e),
+        (Ok(cache), Some(staging)) => {
+            let io = |what: &str, e: std::io::Error| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!("overwrite: {what}: {e}"))
+            };
+            let staged_dir = staging.join("plugin").join(&manifest.plugin_name);
+            if plugin_dir.exists() {
+                std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
+                    io(
+                        &format!(
+                            "failed to remove the previous cache at {}",
+                            plugin_dir.display()
+                        ),
+                        e,
+                    )
+                })?;
+            }
+            if let Some(parent) = plugin_dir.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| io(&format!("failed to create {}", parent.display()), e))?;
+            }
+            std::fs::rename(&staged_dir, &plugin_dir).map_err(|e| {
+                io(
+                    &format!(
+                        "failed to move the new cache {} into place at {}",
+                        staged_dir.display(),
+                        plugin_dir.display()
+                    ),
+                    e,
+                )
+            })?;
+            let _ = std::fs::remove_dir_all(staging);
+            cache
+        }
+        (Ok(cache), None) => cache,
+    };
 
     Ok(cache
         .chroms
