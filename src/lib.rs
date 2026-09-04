@@ -360,7 +360,7 @@ fn install_overwrite(
         };
         match std::fs::rename(staged_dir, plugin_dir) {
             Ok(()) => return Ok(had_previous.then(|| previous.to_path_buf())),
-            Err(e) if dir_exists(plugin_dir)? && attempt < ATTEMPTS => {
+            Err(e) if path_exists(plugin_dir)? && attempt < ATTEMPTS => {
                 // Another overwrite installed its complete cache between the
                 // two renames. The cache we set aside is older than that one,
                 // so it is dropped, and the newer live cache is set aside next.
@@ -412,7 +412,7 @@ fn install_overwrite(
 /// trees exist — is an error rather than a log line: building on without the
 /// cache would leave the old data stranded beside a fresh, partial one.
 fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) -> PyResult<()> {
-    if dir_exists(plugin_dir)? {
+    if path_exists(plugin_dir)? {
         return Ok(());
     }
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
@@ -500,8 +500,8 @@ fn recover_set_aside_cache(root: &Path, plugin_dir: &Path, plugin_name: &str) ->
 }
 
 /// Whether `path` exists, reporting a stat error instead of reading it as
-/// absence — an unreadable cache directory must not look like a missing one.
-fn dir_exists(path: &Path) -> PyResult<bool> {
+/// absence — an unreadable cache must not look like a missing one.
+fn path_exists(path: &Path) -> PyResult<bool> {
     match std::fs::metadata(path) {
         Ok(_) => Ok(true),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
@@ -613,7 +613,7 @@ fn build_plugin_cache(
                 ))
             })?;
             Some(staging)
-        } else if plugin_dir.join("manifest.json").exists() {
+        } else if path_exists(&plugin_dir.join("manifest.json"))? {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "plugin cache already exists at {} (pass overwrite=True to rebuild all \
                  chromosomes, or chroms=[...] to add/rebuild specific ones)",
