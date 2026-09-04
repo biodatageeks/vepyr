@@ -421,6 +421,10 @@ fn recover_set_aside_cache(
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
     // whose name extends this one (`cadd` vs `cadd-x`) cannot match.
     let prefix = format!(".previous-{plugin_name}.");
+    let staging_prefix = format!(".overwrite-{plugin_name}.");
+    let numeric =
+        |rest: &str| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-');
+    let mut stale_staging: Vec<String> = Vec::new();
     let entries = match std::fs::read_dir(root) {
         Ok(entries) => entries,
         // No cache root yet: nothing could have been set aside.
@@ -442,14 +446,14 @@ fn recover_set_aside_cache(
                 ))
             })?
             .path();
-        let named_like_a_set_aside = p
-            .file_name()
-            .and_then(|n| n.to_str())
-            .and_then(|n| n.strip_prefix(&prefix))
-            .is_some_and(|rest| {
-                !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-')
-            });
-        if !named_like_a_set_aside {
+        let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        // A staging tree of a terminated overwrite (a live one has the same
+        // shape, so it is reported, never removed here).
+        if name.strip_prefix(&staging_prefix).is_some_and(numeric) {
+            stale_staging.push(format!("a staging tree at {}", p.display()));
+            continue;
+        }
+        if !name.strip_prefix(&prefix).is_some_and(numeric) {
             continue;
         }
         // A candidate must hold a manifest; an error other than "no such
@@ -466,6 +470,12 @@ fn recover_set_aside_cache(
             }
         }
     }
+    warn_about(
+        py,
+        stale_staging,
+        "was left behind by an overwrite that did not finish, or belongs to one in progress; \
+         it was not touched — delete it by hand once no overwrite is running",
+    )?;
     if live {
         // The swap completed but its cleanup did not (killed in between), or
         // another overwrite is mid-swap right now: not ours to delete, but
@@ -632,7 +642,7 @@ fn build_plugin_cache(
     let staging_root = if is_full_build {
         if overwrite {
             let staging = std::path::Path::new(plugin_cache_root)
-                .join(format!(".overwrite-{}-{unique}", manifest.plugin_name));
+                .join(format!(".overwrite-{}.{unique}", manifest.plugin_name));
             std::fs::create_dir_all(&staging).map_err(|e| {
                 pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "overwrite: failed to create staging directory {}: {e}",
