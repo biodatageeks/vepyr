@@ -5,6 +5,7 @@ use datafusion_bio_function_vep::plugin_cache::source_manifest::SourceManifest;
 use datafusion_bio_function_vep::plugin_cache::source_verify::SourceVerification;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
+use std::path::Path;
 
 // The VEP consequence engine is allocation-heavy (CSQ strings, feature clones,
 // HashMaps); macOS libmalloc is slow per-alloc and contends across threads,
@@ -311,6 +312,115 @@ fn apply_source_paths(
     Ok(())
 }
 
+/// Make the staged cache at `staged_dir` the live one at `plugin_dir`, by
+/// renames only, so no step can leave the cache half removed: the live cache
+/// is set aside at `previous`, the staged one renamed into place, and the
+/// caller deletes `previous` afterwards. Another full overwrite of the same
+/// plugin may finish in between — the live directory can vanish before the
+/// first rename or reappear before the second — so both renames are retried:
+/// a missing live cache means there is nothing to set aside, and a live cache
+/// that reappeared is another writer's complete cache, which is set aside in
+/// turn so the later writer wins. A rename that fails for any other reason
+/// puts the previous cache back and reports where everything is.
+fn install_overwrite(staged_dir: &Path, plugin_dir: &Path, previous: &Path) -> PyResult<()> {
+    let io = |what: String, e: std::io::Error| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("overwrite: {what}: {e}"))
+    };
+    if let Some(parent) = plugin_dir.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| io(format!("failed to create {}", parent.display()), e))?;
+    }
+    const ATTEMPTS: usize = 8;
+    for attempt in 1..=ATTEMPTS {
+        let had_previous = match std::fs::rename(plugin_dir, previous) {
+            Ok(()) => true,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+            Err(e) => {
+                return Err(io(
+                    format!(
+                        "failed to set the previous cache aside at {}",
+                        previous.display()
+                    ),
+                    e,
+                ));
+            }
+        };
+        match std::fs::rename(staged_dir, plugin_dir) {
+            Ok(()) => return Ok(()),
+            Err(e) if plugin_dir.exists() && attempt < ATTEMPTS => {
+                // Another overwrite installed its complete cache between the
+                // two renames. The cache we set aside is older than that one,
+                // so it is dropped, and the newer live cache is set aside next.
+                if had_previous {
+                    let _ = std::fs::remove_dir_all(previous);
+                }
+                log::info!(
+                    "overwrite: {} was replaced by another writer during the swap ({e}); \
+                     retrying (attempt {attempt} of {ATTEMPTS})",
+                    plugin_dir.display()
+                );
+            }
+            Err(e) => {
+                let mut what = format!(
+                    "failed to move the new cache {} into place at {}",
+                    staged_dir.display(),
+                    plugin_dir.display()
+                );
+                if had_previous {
+                    match std::fs::rename(previous, plugin_dir) {
+                        Ok(()) => what.push_str("; the previous cache was put back"),
+                        Err(restore) => what.push_str(&format!(
+                            "; putting the previous cache back also failed ({restore}), it is \
+                             intact at {} — rename it to {} to recover",
+                            previous.display(),
+                            plugin_dir.display()
+                        )),
+                    }
+                }
+                return Err(io(what, e));
+            }
+        }
+    }
+    Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+        "overwrite: gave up installing {} after {ATTEMPTS} attempts; another full overwrite \
+         of the same plugin keeps replacing it",
+        plugin_dir.display()
+    )))
+}
+
+/// Remove directories that are no longer needed, returning a description of
+/// each one that could not be removed but still exists.
+fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
+    let mut leftovers = Vec::new();
+    for (path, what) in dirs {
+        if let Err(e) = std::fs::remove_dir_all(path) {
+            if path.exists() {
+                leftovers.push(format!("{what} at {} ({e})", path.display()));
+            }
+        }
+    }
+    leftovers
+}
+
+/// A cleanup that fails must not pass silently: a leftover staging or
+/// set-aside tree is a plugin cache's worth of disk.
+fn warn_leftovers(py: Python<'_>, leftovers: Vec<String>) -> PyResult<()> {
+    if leftovers.is_empty() {
+        return Ok(());
+    }
+    let message = std::ffi::CString::new(format!(
+        "overwrite: {} could not be removed; delete it by hand to reclaim the space",
+        leftovers.join(" and ")
+    ))
+    .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    pyo3::PyErr::warn(
+        py,
+        &py.get_type::<pyo3::exceptions::PyRuntimeWarning>(),
+        &message,
+        1,
+    )
+}
+
 #[pyfunction]
 #[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, verify_source="strict"))]
 #[allow(clippy::too_many_arguments)]
@@ -419,85 +529,24 @@ fn build_plugin_cache(
     });
     let cache = match (built, &staging_root) {
         (Err(e), Some(staging)) => {
-            let _ = std::fs::remove_dir_all(staging);
+            // The build failed; the previous cache was never touched. A staging
+            // tree that cannot be removed is reported alongside the error, since
+            // it may hold a cache's worth of shards.
+            warn_leftovers(py, remove_leftovers(&[(staging, "the staging directory")]))?;
             return Err(e);
         }
         (Err(e), None) => return Err(e),
         (Ok(cache), Some(staging)) => {
-            let io = |what: String, e: std::io::Error| {
-                pyo3::exceptions::PyRuntimeError::new_err(format!("overwrite: {what}: {e}"))
-            };
             let staged_dir = staging.join("plugin").join(&manifest.plugin_name);
-            if let Some(parent) = plugin_dir.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| io(format!("failed to create {}", parent.display()), e))?;
-            }
-            // Swap by renames, which are atomic per step: the previous cache
-            // is set aside, the new one moved in, and only then is the old one
-            // deleted. A failure between the two renames puts the old cache
-            // back, so no step can leave the cache half removed.
             let previous =
                 plugin_dir.with_file_name(format!("{}.previous-{unique}", manifest.plugin_name));
-            let had_previous = plugin_dir.exists();
-            if had_previous {
-                std::fs::rename(&plugin_dir, &previous).map_err(|e| {
-                    io(
-                        format!(
-                            "failed to set the previous cache aside at {}",
-                            previous.display()
-                        ),
-                        e,
-                    )
-                })?;
+            let installed = install_overwrite(&staged_dir, &plugin_dir, &previous);
+            let mut leftovers = remove_leftovers(&[(staging, "the staging directory")]);
+            if installed.is_ok() {
+                leftovers.extend(remove_leftovers(&[(&previous, "the previous cache")]));
             }
-            if let Err(e) = std::fs::rename(&staged_dir, &plugin_dir) {
-                let _ = std::fs::remove_dir_all(staging);
-                let mut what = format!(
-                    "failed to move the new cache {} into place at {}",
-                    staged_dir.display(),
-                    plugin_dir.display()
-                );
-                if had_previous {
-                    match std::fs::rename(&previous, &plugin_dir) {
-                        Ok(()) => what.push_str("; the previous cache was put back"),
-                        Err(restore) => what.push_str(&format!(
-                            "; putting the previous cache back also failed ({restore}), it is \
-                             intact at {} — rename it to {} to recover",
-                            previous.display(),
-                            plugin_dir.display()
-                        )),
-                    }
-                }
-                return Err(io(what, e));
-            }
-            // The new cache is in place; a cleanup that fails (an open file on
-            // Windows, a transient I/O error) must not pass silently, since
-            // the set-aside tree is a whole plugin cache worth of disk.
-            let mut leftovers: Vec<String> = Vec::new();
-            for (path, what) in [
-                (previous.as_path(), "the previous cache"),
-                (staging.as_path(), "the staging directory"),
-            ] {
-                if let Err(e) = std::fs::remove_dir_all(path) {
-                    if path.exists() {
-                        leftovers.push(format!("{what} at {} ({e})", path.display()));
-                    }
-                }
-            }
-            if !leftovers.is_empty() {
-                let message = std::ffi::CString::new(format!(
-                    "overwrite: the new plugin cache is in place, but {} could not be removed; \
-                     delete it by hand to reclaim the space",
-                    leftovers.join(" and ")
-                ))
-                .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-                pyo3::PyErr::warn(
-                    py,
-                    &py.get_type::<pyo3::exceptions::PyRuntimeWarning>(),
-                    &message,
-                    1,
-                )?;
-            }
+            warn_leftovers(py, leftovers)?;
+            installed?;
             cache
         }
         (Ok(cache), None) => cache,
