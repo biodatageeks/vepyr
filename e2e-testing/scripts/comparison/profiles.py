@@ -39,8 +39,9 @@ class Profile:
     `suffix` is stored without a leading underscore; filename templates add the
     separators. `ignore_csq_order` marks profiles where Ensembl VEP emits already
     selected CSQ entries in Perl hash order, which carries no meaning. `plugins`
-    names the VEP plugins the reference was produced with; a non-empty tuple makes
-    resolve() require the plugin cache and pass its root to vepyr.annotate().
+    names the plugin-cache manifests in the CSQ order of the VEP reference; a
+    non-empty tuple makes resolve() require the plugin cache and pass both its
+    root and that exact order to vepyr.annotate().
     """
 
     flavour: str
@@ -59,9 +60,9 @@ class Profile:
 
 _PICK = {"pick_order": VEP_PICK_ORDER}
 
-# The five plugins the release-116 plugin reference was produced with, in the
-# order they appear in that reference's filename.
-_ALL_PLUGINS = ("ClinVar", "SpliceAI", "CADD", "AlphaMissense", "dbNSFP")
+# The five plugin-cache manifest names in their release-116 VEP reference CSQ
+# order. VEP emits --plugin blocks in flag order and appends --custom ClinVar.
+_ALL_PLUGINS = ("spliceai", "cadd", "alphamissense", "dbnsfp", "clinvar")
 _PLUGIN_REFERENCE = (
     "HG002_annotated_wgs_everything_hgvs_merged_clinvar_spliceai_cadd_am_dbnsfp"
 )
@@ -410,6 +411,7 @@ def resolve(
     annotate_kwargs = dict(profile.annotate_kwargs)
     if resolved_plugin_cache is not None:
         annotate_kwargs["plugin_cache_root"] = resolved_plugin_cache
+        annotate_kwargs["plugins"] = list(profile.plugins)
 
     return Resolved(
         profile=profile_name,
