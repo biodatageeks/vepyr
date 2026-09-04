@@ -8,8 +8,6 @@ from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import tempfile
-
     import polars as pl
 
 from vepyr._core import annotate_vcf as _annotate_vcf
@@ -716,108 +714,6 @@ def build_plugin_cache(
         )
 
 
-def _plugin_subset_root(
-    plugin_cache_root: str,
-    plugins: list[str],
-) -> tempfile.TemporaryDirectory[str]:
-    """Materialise a plugin cache root holding only ``plugins``.
-
-    Plugin selection in the engine is directory-shaped: every plugin under
-    ``<root>/plugin/`` is applied, and the CSQ header and the per-transcript
-    body discover that directory through two independent passes. Filtering one
-    pass and not the other would leave the header advertising fields the body
-    never fills, shifting every later field's value. Handing the engine a root
-    that already contains only the wanted plugins keeps the two passes in
-    agreement by construction.
-
-    The tree is symlinks, so it costs no disk and no copy.
-
-    Returns the ``TemporaryDirectory`` rather than its path: the caller owns
-    the lifetime, and the tree must outlive every annotation run that reads it.
-    """
-    import os
-    import tempfile
-
-    if isinstance(plugins, str) or not isinstance(plugins, (list, tuple)):
-        raise TypeError("plugins must be a list of plugin names, or None")
-
-    source_root = os.path.join(plugin_cache_root, "plugin")
-    if not os.path.isdir(source_root):
-        raise FileNotFoundError(
-            f"No plugin directory under plugin_cache_root: {source_root}"
-        )
-
-    available = sorted(
-        name
-        for name in os.listdir(source_root)
-        if os.path.isfile(os.path.join(source_root, name, "manifest.json"))
-    )
-
-    # Order is irrelevant to the engine — it sorts discovered manifests by
-    # (csq_rank, plugin_name) — but de-duplicate so a repeated name cannot
-    # collide when the symlink is created.
-    selected: list[str] = []
-    for name in plugins:
-        if not isinstance(name, str):
-            raise TypeError(f"plugin names must be strings, got {type(name).__name__}")
-        if name not in available:
-            raise ValueError(
-                f"Unknown plugin {name!r} in {source_root}. "
-                f"Available: {', '.join(available) or '(none)'}"
-            )
-        if name not in selected:
-            selected.append(name)
-
-    tmp = tempfile.TemporaryDirectory(prefix="vepyr-plugin-subset-")
-    subset_root = os.path.join(tmp.name, "plugin")
-    os.makedirs(subset_root)
-    for name in selected:
-        src_dir = os.path.abspath(os.path.join(source_root, name))
-        dst_dir = os.path.join(subset_root, name)
-        os.makedirs(dst_dir)
-        # Link the files rather than the directory. A directory symlink would
-        # need `target_is_directory=True` on Windows and, more awkwardly, the
-        # SeCreateSymbolicLinkPrivilege that non-elevated Windows sessions lack
-        # unless Developer Mode is on. Hard links to files need no privilege on
-        # NTFS, and a plugin directory is ~25 files, so this costs nothing.
-        for entry in os.listdir(src_dir):
-            src = os.path.join(src_dir, entry)
-            if os.path.isdir(src):
-                # A plugin cache is flat today: chr*.parquet plus manifest.json.
-                # Skipping a directory would drop shards from the subset and the
-                # engine would only report the missing files, not the reason.
-                raise NotImplementedError(
-                    f"plugin {name!r} has a nested directory {entry!r}; the "
-                    f"subset root only mirrors flat plugin caches. Drop "
-                    f"`plugins` and pass the whole plugin_cache_root instead."
-                )
-            if not os.path.isfile(src):
-                continue
-            dst = os.path.join(dst_dir, entry)
-            try:
-                os.link(src, dst)
-            except OSError:
-                # Different volume (temp dir and cache on separate drives), or
-                # a filesystem without hard links. Symlinking a *file* still
-                # avoids the directory-symlink pitfalls above.
-                try:
-                    os.symlink(src, dst)
-                except OSError as exc:
-                    raise OSError(
-                        f"Cannot link plugin file {src!r} into a subset cache "
-                        f"root: {exc}. On Windows, either enable Developer "
-                        f"Mode or set TMPDIR to the same volume as "
-                        f"plugin_cache_root."
-                    ) from exc
-
-    log.info(
-        "Plugin subset: %s (of %d available)",
-        ", ".join(selected) or "(none)",
-        len(available),
-    )
-    return tmp
-
-
 def annotate(
     vcf: str,
     cache_dir: str,
@@ -865,7 +761,7 @@ def annotate(
     skip_csq: bool = True,
     # Custom plugin caches
     plugin_cache_root: str | None = None,
-    plugins: list[str] | None = None,
+    plugins: list[str] | tuple[str, ...] | None = None,
     # Output mode
     output_vcf: str | None = None,
     preserve_record_layout: bool = True,
@@ -992,14 +888,12 @@ def annotate(
         Plugin values are appended to the ``CSQ`` field. With ``output_vcf``
         the header names them; in a ``LazyFrame`` they are only inside the
         ``CSQ`` string, which the default ``skip_csq=True`` drops.
-    plugins : list of str or None
+    plugins : list or tuple of str, or None
         Restrict annotation to these plugin names, a subset of the directories
         under ``<plugin_cache_root>/plugin/``. ``None`` (default) applies every
-        plugin found there. An empty list applies none. Requires
-        ``plugin_cache_root``; an unknown name is an error rather than a silent
-        skip. Selection works by handing the engine a root containing only the
-        named plugins, hard-linked to the originals, so it costs no disk and no
-        copy.
+        plugin found there in alphabetical order. A supplied sequence is also
+        the emitted CSQ block order; an empty sequence applies none. Requires
+        ``plugin_cache_root``. Duplicate or unknown names are errors.
     output_vcf : str or None
         Path to write annotated VCF output. When set, annotation results are
         written directly to a VCF file and the output path is returned.
@@ -1167,15 +1061,18 @@ def annotate(
         # Single annotation-concurrency knob: N within-contig fused pipelines.
         # Requires a tabix-indexed (bgzip+.tbi) input VCF.
         opts["workers"] = workers
-    # Held for the lifetime of the annotation: for `output_vcf` that is this
-    # call, but a LazyFrame re-creates its annotator on every collect(), so the
-    # symlink tree has to survive as long as the frame does (see below).
-    _plugin_subset = None
     if plugins is not None:
         if plugin_cache_root is None:
             raise ValueError("plugins requires plugin_cache_root")
         if isinstance(plugins, str) or not isinstance(plugins, (list, tuple)):
-            raise TypeError("plugins must be a list of plugin names, or None")
+            raise TypeError("plugins must be a list or tuple of plugin names, or None")
+        for name in plugins:
+            if not isinstance(name, str):
+                raise TypeError(
+                    f"plugin names must be strings, got {type(name).__name__}"
+                )
+        if len(set(plugins)) != len(plugins):
+            raise ValueError("plugins must not contain duplicate names")
         if plugins:
             if output_vcf is None and skip_csq:
                 # Plugin values reach a LazyFrame only inside the CSQ string,
@@ -1188,11 +1085,8 @@ def annotate(
                     "for a header that names them",
                     stacklevel=2,
                 )
-            _plugin_subset = _plugin_subset_root(plugin_cache_root, plugins)
-            opts["plugin_cache_root"] = _plugin_subset.name
-        # An empty selection is exactly a plugin-free run: leave
-        # plugin_cache_root out of the options entirely rather than handing the
-        # engine an empty tree, and do not warn about fields that cannot exist.
+        opts["plugin_cache_root"] = plugin_cache_root
+        opts["plugins"] = list(plugins)
     elif plugin_cache_root is not None:
         opts["plugin_cache_root"] = plugin_cache_root
     if not preserve_record_layout:
@@ -1258,17 +1152,6 @@ def annotate(
                     )
                 except Exception as exc:
                     _error[0] = exc
-                finally:
-                    # The worker owns the subset tree. Cleaning up in the
-                    # caller instead would race this thread: it is a daemon and
-                    # keeps annotating after an interrupt or a raising progress
-                    # drain unwinds annotate(), and it holds only the path (via
-                    # options_json), not the TemporaryDirectory — so a caller
-                    # -side release could remove plugin shards still to be read
-                    # for later contigs. Joining before cleanup would fix that
-                    # too, but would make Ctrl-C block for the rest of the run.
-                    if _plugin_subset is not None:
-                        _plugin_subset.cleanup()
 
             def _drain_progress_updates() -> None:
                 if _pbar is None or _pending_updates is None:
@@ -1304,24 +1187,15 @@ def annotate(
     import polars as pl
     import pyarrow as pa
 
-    # Get schema from a probe annotator (doesn't consume data). Nothing owns
-    # the subset tree until it is parked on the closure below, so a failure
-    # here has to release it rather than leave it to the collector — an
-    # exception's traceback keeps this frame, and the tree, alive for as long
-    # as the caller holds the exception.
-    try:
-        probe = _create_annotator(
-            vcf,
-            cache_dir,
-            options_json,
-            skip_csq,
-            None,
-        )
-        pa_schema = probe.schema
-    except BaseException:
-        if _plugin_subset is not None:
-            _plugin_subset.cleanup()
-        raise
+    # Get schema from a probe annotator (doesn't consume data).
+    probe = _create_annotator(
+        vcf,
+        cache_dir,
+        options_json,
+        skip_csq,
+        None,
+    )
+    pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
     del probe
@@ -1358,12 +1232,6 @@ def annotate(
                 yield batch_df
             if remaining is not None and remaining <= 0:
                 break
-
-    # `_opts` points at the plugin symlink tree and every collect() re-opens
-    # it, so the tree must outlive this call. Parking the TemporaryDirectory on
-    # the closure — which register_io_source hands to the LazyFrame — ties its
-    # removal to the frame becoming unreachable rather than to this return.
-    _batch_source._plugin_subset = _plugin_subset
 
     from polars.io.plugins import register_io_source
 
