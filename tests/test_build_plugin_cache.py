@@ -410,12 +410,55 @@ _WRONG_MD5 = "0" * 32
 
 
 def _write_source(tmp_path: Path) -> tuple[Path, str]:
-    """A small source file and its real MD5."""
+    """A one-row source file and its real MD5."""
     import hashlib
 
     src = tmp_path / "src.tsv"
     src.write_bytes(b"1\t100\tA\tG\t0.9\n")
     return src, hashlib.md5(src.read_bytes()).hexdigest()
+
+
+def _write_variation_shard(tmp_path: Path) -> Path:
+    """A one-row variation cache matching the source row, so a build can run
+    end to end. The engine validates the requested shards before hashing a
+    source, so verification tests need a real shard to reach the check."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    cache = tmp_path / "cache"
+    (cache / "variation").mkdir(parents=True)
+    table = pa.table(
+        {
+            "chrom": pa.array(["1"], pa.string()),
+            "start": pa.array([100], pa.uint32()),
+            "allele_string": pa.array(["A/G"], pa.string()),
+            "tier": pa.array([0], pa.int8()),
+        }
+    )
+    pq.write_table(table, cache / "variation" / "chr1.parquet")
+    return cache
+
+
+def _build_real(repo, tmp_path: Path, source_path, **kw):
+    """A complete one-chromosome build: source, variation shard, output."""
+    _write_variation_shard(tmp_path)
+    return vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=source_path,
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(tmp_path / "pc"),
+        plugins_repo=str(repo),
+        chroms=["1"],
+        **kw,
+    )
+
+
+def _sources(tmp_path: Path) -> list[dict]:
+    import json
+
+    manifest = tmp_path / "pc" / "plugin" / "demo" / "manifest.json"
+    return json.loads(manifest.read_text())["sources"]
 
 
 def test_source_md5_mismatch_fails_before_the_build(tmp_path):
@@ -424,7 +467,7 @@ def test_source_md5_mismatch_fails_before_the_build(tmp_path):
     src, actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
     with pytest.raises(RuntimeError) as exc:
-        _build(repo, tmp_path, str(src))
+        _build_real(repo, tmp_path, str(src))
     message = str(exc.value)
     assert "MD5 mismatch" in message
     assert _WRONG_MD5 in message
@@ -434,27 +477,45 @@ def test_source_md5_mismatch_fails_before_the_build(tmp_path):
     assert not (tmp_path / "pc" / "plugin" / "demo").exists()
 
 
-def test_matching_source_md5_reaches_the_build(tmp_path):
+def test_matching_source_md5_builds_and_records_the_digest(tmp_path):
     src, actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path, md5=actual)
-    with pytest.raises(RuntimeError, match="variation shard"):
-        _build(repo, tmp_path, str(src))
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    [record] = _sources(tmp_path)
+    assert record["md5"] == actual
+    assert record["verified_md5"] == actual
+    assert record["url"] == "https://example.org/demo/demo.tsv.gz"
+    assert record["size"] == src.stat().st_size
 
 
-@pytest.mark.parametrize("mode", [False, "skip", "warn"])
-def test_verify_source_opt_out_reaches_the_build(tmp_path, mode):
-    """``False``/``"skip"`` never hash; ``"warn"`` hashes but keeps going."""
+@pytest.mark.parametrize("mode", [False, "skip"])
+def test_verify_source_skip_builds_without_a_digest(tmp_path, mode):
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
-    with pytest.raises(RuntimeError, match="variation shard"):
-        _build(repo, tmp_path, str(src), verify_source=mode)
+    assert _build_real(repo, tmp_path, str(src), verify_source=mode) == [
+        ("chr1", 1, 1, 0)
+    ]
+    [record] = _sources(tmp_path)
+    assert record["md5"] == _WRONG_MD5
+    assert "verified_md5" not in record
+
+
+def test_verify_source_warn_builds_and_records_what_it_found(tmp_path):
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    assert _build_real(repo, tmp_path, str(src), verify_source="warn") == [
+        ("chr1", 1, 1, 0)
+    ]
+    [record] = _sources(tmp_path)
+    assert record["md5"] == _WRONG_MD5
+    assert record["verified_md5"] == actual
 
 
 def test_verify_source_true_is_strict(tmp_path):
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
     with pytest.raises(RuntimeError, match="MD5 mismatch"):
-        _build(repo, tmp_path, str(src), verify_source=True)
+        _build_real(repo, tmp_path, str(src), verify_source=True)
 
 
 def test_verify_source_rejects_an_unknown_mode(tmp_path):
@@ -468,5 +529,7 @@ def test_manifest_without_md5_is_not_verified(tmp_path):
     """Third-party manifests that predate the provenance keys still build."""
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)
-    with pytest.raises(RuntimeError, match="variation shard"):
-        _build(repo, tmp_path, str(src))
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    [record] = _sources(tmp_path)
+    assert "md5" not in record
+    assert "verified_md5" not in record
