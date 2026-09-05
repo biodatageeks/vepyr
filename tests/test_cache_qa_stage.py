@@ -21,6 +21,8 @@ class FakeRunner:
             body = (
                 self.tag_info if "--revision" in argv and self.tag_info else self.info
             )
+            if "--expand" in argv:  # the Hub omits sha when siblings are expanded
+                body = {k: v for k, v in body.items() if k != "sha"}
             return subprocess.CompletedProcess(argv, 0, json.dumps(body), "")
         return subprocess.CompletedProcess(argv, 0, "", "")
 

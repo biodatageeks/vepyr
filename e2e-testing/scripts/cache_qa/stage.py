@@ -136,6 +136,9 @@ def publish(
 def verify(runner: Runner, repo: str, stage_dir: Path, tag: str) -> list[str]:
     """Return mismatches between the staged files/tag and the Hub; empty means ok."""
     problems: list[str] = []
+    # `--expand siblings` narrows the response to the expanded fields, so the
+    # head sha comes from a plain info call.
+    head = str(_info(runner, repo).get("sha"))
     info = _info(runner, repo, siblings=True)
     remote = {s["rfilename"]: s for s in info.get("siblings", [])}
     for path in sorted(Path(stage_dir).iterdir()):
@@ -147,7 +150,6 @@ def verify(runner: Runner, repo: str, stage_dir: Path, tag: str) -> list[str]:
         if size is not None and int(size) != path.stat().st_size:
             local = path.stat().st_size
             problems.append(f"{path.name}: size {local} local vs {size} on the hub")
-    head = str(info.get("sha"))
     tag_sha = str(_info(runner, repo, revision=tag).get("sha"))
     if tag_sha != head:
         problems.append(f"tag {tag} resolves to {tag_sha[:7]}, head is {head[:7]}")
