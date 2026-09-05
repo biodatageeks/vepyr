@@ -588,7 +588,7 @@ fn warn_about(py: Python<'_>, items: Vec<String>, advice: &str) -> PyResult<()> 
 }
 
 #[pyfunction]
-#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, verify_source="strict"))]
+#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, verify_source="strict", source_version=None))]
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn build_plugin_cache(
     py: Python<'_>,
@@ -599,6 +599,7 @@ fn build_plugin_cache(
     chroms: Option<Vec<String>>,
     overwrite: bool,
     verify_source: &str,
+    source_version: Option<String>,
 ) -> PyResult<(Vec<(String, usize, usize, usize)>, String)> {
     // Reject a bad mode before the (possibly expensive) manifest resolution
     // and before anything on disk is touched.
@@ -692,6 +693,9 @@ fn build_plugin_cache(
             )
             .with_overwrite(overwrite)
             .with_source_verification(verification);
+            if let Some(source_version) = source_version {
+                b = b.with_source_version(source_version);
+            }
             if let Some(cs) = chroms {
                 b = b.with_chrom_filter(cs);
             }

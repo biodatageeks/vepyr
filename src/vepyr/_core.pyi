@@ -47,6 +47,7 @@ def build_plugin_cache(
     chroms: list[str] | None = None,
     overwrite: bool = False,
     verify_source: str = "strict",
+    source_version: str | None = None,
 ) -> tuple[list[tuple[str, int, int, int]], str]:
     """Build a plugin cache from a source manifest.
 
@@ -58,7 +59,8 @@ def build_plugin_cache(
 
     ``verify_source`` is ``"strict"`` (hash each source and fail on a mismatch
     with the manifest's ``md5``), ``"warn"`` (hash, log, continue) or
-    ``"skip"`` (never hash).
+    ``"skip"`` (never hash). ``source_version`` is recorded in
+    ``manifest.json`` when provided.
     """
     ...
 

@@ -125,12 +125,20 @@ def _init_plugins_repo(root: Path) -> Path:
 
 def test_resolve_manifest_offline_checks_out_tag(tmp_path):
     repo = _init_plugins_repo(tmp_path)
-    with vepyr._resolve_plugin_manifest(
-        "demo", "v0.1.0", plugins_repo=str(repo)
-    ) as path:
+    expected_commit = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "v0.1.0^{commit}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    with vepyr._resolve_plugin_manifest("demo", "v0.1.0", plugins_repo=str(repo)) as (
+        path,
+        resolved_commit,
+    ):
         assert (
             Path(path).read_text().strip() == 'plugin_name = "demo"'
         )  # the tagged version
+        assert resolved_commit == expected_commit
         worktree = Path(path).parents[2]  # <worktree>/plugins/demo/demo.source.toml
         assert worktree.exists()
     # On exit the worktree is removed and its registration in the caller's repo
@@ -144,6 +152,94 @@ def test_resolve_manifest_offline_checks_out_tag(tmp_path):
         check=True,
     ).stdout
     assert str(worktree) not in listed
+
+
+def test_resolve_manifest_accepts_remote_only_branch(tmp_path):
+    source = _init_plugins_repo(tmp_path)
+    default_branch = subprocess.run(
+        ["git", "-C", str(source), "branch", "--show-current"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "-C", str(source), "switch", "-qc", "feature-manifest"],
+        check=True,
+    )
+    manifest = source / "plugins" / "demo" / "demo.source.toml"
+    manifest.write_text('plugin_name = "feature-demo"\n')
+    subprocess.run(["git", "-C", str(source), "add", str(manifest)], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source),
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "commit",
+            "-qm",
+            "feature",
+        ],
+        check=True,
+    )
+    expected_commit = subprocess.run(
+        ["git", "-C", str(source), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "-C", str(source), "switch", "-q", default_branch], check=True
+    )
+
+    clone = tmp_path / "fresh-clone"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-local", str(source), str(clone)],
+        check=True,
+    )
+    local_branches = subprocess.run(
+        ["git", "-C", str(clone), "branch", "--format=%(refname:short)"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    assert "feature-manifest" not in local_branches
+
+    with vepyr._resolve_plugin_manifest(
+        "demo", "feature-manifest", plugins_repo=str(clone)
+    ) as (path, resolved_commit):
+        assert Path(path).read_text() == 'plugin_name = "feature-demo"\n'
+        assert resolved_commit == expected_commit
+
+
+def test_build_records_requested_ref_and_resolved_commit(monkeypatch, tmp_path):
+    repo = _init_full_repo(tmp_path)
+    expected_commit = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "v0.1.0^{commit}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    captured: dict[str, object] = {}
+
+    def fake_build_plugin_cache(*args):
+        captured["args"] = args
+        return [], "[]"
+
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", fake_build_plugin_cache)
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path="source.tsv.gz",
+        cache_dir="cache",
+        plugin_cache_root="plugin-cache",
+        plugins_repo=str(repo),
+    )
+
+    assert result == []
+    assert captured["args"][-1] == f"v0.1.0@{expected_commit}"
 
 
 def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
@@ -576,9 +672,11 @@ def test_manifest_without_md5_is_not_verified(tmp_path):
 # --- Recovery of a cache set aside by an interrupted overwrite -----------------
 
 
-def _orphan(pc: Path, name: str) -> Path:
+def _orphan(pc: Path, name: str, repo: Path | None = None) -> Path:
     """A set-aside tree as an interrupted overwrite leaves it: outside
-    ``plugin/``, with its manifest and a shard."""
+    ``plugin/``, with its manifest and a shard. With ``repo``, the manifest
+    records the source version a build from ``v0.1.0`` of it would record,
+    so an incremental build can merge into the recovered cache."""
     import json
 
     orphan = pc / name
@@ -594,6 +692,14 @@ def _orphan(pc: Path, name: str) -> Path:
             {"chrom": "chrZZ", "file": "chrZZ.parquet", "rows": 1, "warm": 1, "cold": 0}
         ],
     }
+    if repo is not None:
+        commit = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "v0.1.0^{commit}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        manifest["cache_source_version"] = f"v0.1.0@{commit}"
     (orphan / "manifest.json").write_text(json.dumps(manifest))
     (orphan / "chrZZ.parquet").write_bytes(b"old")
     return orphan
@@ -603,7 +709,7 @@ def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)
     pc = tmp_path / "pc"
-    orphan = _orphan(pc, ".previous-demo.4242-1")
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
     # A skip build makes no provenance claim, so the recovered (legacy)
     # chromosome is kept alongside the new one.
     assert _build_real(repo, tmp_path, str(src), verify_source="skip") == [
