@@ -91,29 +91,37 @@ vepyr.annotate(
 )
 ```
 
-!!! warning "In a LazyFrame, plugin values hide inside `CSQ`"
-    Plugin fields are appended to the `CSQ` field, after the base fields, in
-    `(csq_rank, plugin_name)` order. Writing a VCF gives you a header naming
-    them. A `LazyFrame` has no header, and its default `skip_csq=True` drops
-    the `CSQ` column outright — so plugins are applied and then silently
-    discarded.
+### Plugin-only annotation
 
-    Pass `skip_csq=False` to keep them. The values are correct and identical
-    to the VCF path, but unnamed — you have to count positions yourself, and
-    the base field count varies (74–86, by cache type and `everything`), so
-    the offsets are not fixed. A CADD-only subset on a **merged** cache at
-    default flags appends `CADD_PHRED` then `CADD_RAW` at positions 80 and 81
-    of an 81-field `CSQ`; with `everything=True` the same two land at 87 and
-    88. Plugin values are not broken out as DataFrame columns.
+Pass `fields="core"` to emit VEP's eleven VCF-side default fields followed by
+the selected plugin blocks:
 
-    Passing [`plugins`](#choosing-which-plugins-run) without `output_vcf` and
-    with `skip_csq` left at its default warns for this reason.
+```python
+result = vepyr.annotate(
+    "sample.vcf",
+    "/data/116_GRCh38_merged",
+    fields="core",
+    plugin_cache_root="/data/plugin_cache",
+    plugins=["cadd"],
+)
+```
+
+VCF output records the exact ordered layout in the `CSQ` `Format:` header. On
+the DataFrame path, the selected base fields retain their existing named
+columns, unselected annotation columns are omitted, and each plugin field (for
+example `CADD_PHRED` and `CADD_RAW`) is a named `List(String)` column. The raw
+`CSQ` string is still available with `skip_csq=False`, but is not required to
+access plugin values.
+
+An explicit list or tuple may be used instead of `"core"`; its order is
+preserved. Fields needed by plugin match templates are still computed even
+when they are not emitted. With `fields=None` the full legacy CSQ layout and
+DataFrame schema remain unchanged.
 
 ### Choosing which plugins run
 
-Selection is **directory-shaped**: every plugin under
-`<plugin_cache_root>/plugin/` is applied. There is no per-call version
-argument — a plugin's version is fixed when
+By default every plugin under `<plugin_cache_root>/plugin/` is applied. There
+is no per-call version argument — a plugin's version is fixed when
 [`build_plugin_cache`](api.md#vepyr.build_plugin_cache) writes it.
 
 `plugins` narrows that set to a subset of the directories present:
@@ -135,36 +143,17 @@ vepyr.annotate(
 | `[]` | none; equivalent to a plugin-free run |
 | `["nope"]` | `ValueError`, listing the plugins that *are* available |
 
-Order is irrelevant — the engine sorts discovered plugins by
-`(csq_rank, plugin_name)`, so the CSQ layout does not depend on how you list
-them. `plugins` requires `plugin_cache_root`.
+Order is significant: `plugins=["clinvar", "cadd"]` emits the ClinVar block
+before the CADD block in both the CSQ header and every CSQ value. Duplicates
+are rejected, and the value must be a list or tuple rather than an unordered
+set. With `plugins=None`, the engine discovers every cached plugin and emits
+them in alphabetical plugin-name order. `plugins` requires
+`plugin_cache_root`.
 
 The three alternatives to `plugins` all still work, and are what you want when
 a selection is permanent rather than per-call: pass `plugin_cache_root=None`
 for no plugins, build separate roots for separate combinations, or add and
 remove plugin directories under an existing root.
-
-??? note "How the subset is materialised"
-
-    The engine has no plugin filter. Both the CSQ header and the per-transcript
-    body discover `<root>/plugin/` independently, so filtering one and not the
-    other would leave the header advertising fields the body never fills,
-    shifting every later value.
-
-    `plugins` therefore hands the engine a root that already contains only the
-    selected plugins — a temporary directory whose files are hard-linked to the
-    originals. The two discovery passes then cannot disagree, and nothing is
-    copied.
-
-    Files are linked individually rather than the plugin directory being
-    symlinked, because a directory symlink needs `target_is_directory=True` on
-    Windows plus a privilege non-elevated sessions lack. Where hard links are
-    unavailable — a temporary directory on a different volume — it falls back
-    to per-file symlinks, then to an error naming `TMPDIR`.
-
-    The subset lives as long as it is needed: released when the annotation
-    finishes for `output_vcf`, and tied to the `LazyFrame` otherwise, since a
-    frame re-opens the cache on every `collect()`.
 
 ## Manifest structure
 
@@ -188,7 +177,6 @@ source and map it to CSQ fields.
 | `[[match_column]]` | table array | no (default none) | Per-transcript discriminator(s) — see below. Omit for per-variant plugins. |
 | `allele_match` | `exact` \| `minimised` | no (default `exact`) | Which comparison the plugin's own Ensembl implementation uses. See [Allele matching](#allele-matching-exact-vs-minimised) — it is a statement about upstream, not a tuning knob. |
 | `field_order` | `declared` \| `alphabetical` | no (default `declared`) | Order of this plugin's fields in CSQ. `declared` mirrors Ensembl `--custom`, `alphabetical` mirrors `--plugin`. |
-| `csq_rank` | integer | no (default `4294967295`) | Where this plugin's block sits relative to other plugins. Plugins are emitted sorted by `(csq_rank, plugin_name)`, so an unset rank sorts last, by name. |
 | `assume_unique` | bool | no (default `false`) | Declare that the source never repeats a probe key, skipping the dedup pass. The build **samples the data to check the claim** rather than trusting it. |
 
 ### `[[source]]`

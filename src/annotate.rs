@@ -295,6 +295,46 @@ pub fn annotate_to_vcf_file(
         .get("plugin_cache_root")
         .and_then(|v| v.as_str())
         .map(std::path::PathBuf::from);
+    config.plugins = match opts.get("plugins") {
+        None => None,
+        Some(Value::Array(values)) => Some(
+            values
+                .iter()
+                .map(|value| {
+                    value.as_str().map(String::from).ok_or_else(|| {
+                        pyo3::exceptions::PyValueError::new_err(
+                            "plugins must be an array of strings",
+                        )
+                    })
+                })
+                .collect::<PyResult<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "plugins must be an array of strings",
+            ));
+        }
+    };
+    config.fields = match opts.get("fields") {
+        None => None,
+        Some(Value::Array(values)) => Some(
+            values
+                .iter()
+                .map(|value| {
+                    value.as_str().map(String::from).ok_or_else(|| {
+                        pyo3::exceptions::PyValueError::new_err(
+                            "fields must be an array of strings",
+                        )
+                    })
+                })
+                .collect::<PyResult<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "fields must be an array of strings",
+            ));
+        }
+    };
     // Recorded as a `tool` attribute in the output header's provenance
     // lines. The header key itself is fixed by the engine.
     config.provenance_tool_name = Some(env!("CARGO_PKG_NAME").to_string());
