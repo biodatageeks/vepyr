@@ -42,6 +42,10 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
+# bio-functions b145bc6 (#237): the plugin-cache tier ORDER BY is the probe key
+# (tier, start, allele_string, match cols) instead of every column, which is what let the
+# full-source SpliceAI chr1/chr2 shards build at the default 8 GiB pool (bio-functions#235).
+#
 # bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
 # and bio-functions 6476619 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
 # drop #225, the bio-formats bump #226, the partial-cache source-type probe #227, which
@@ -69,6 +73,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "6476619ed2562bdec5f065ad78b471f3d84d67aa", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b145bc6e3f4b4e757fe2d1e8fd8a5bd5e8e944ff", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
