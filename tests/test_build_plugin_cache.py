@@ -61,12 +61,28 @@ path = "placeholder_b.tsv.gz"
 
 
 def _init_full_repo(
-    root: Path, *, multi_source: bool = False, parted: bool = False
+    root: Path,
+    *,
+    multi_source: bool = False,
+    parted: bool = False,
+    md5: str | None = None,
 ) -> Path:
-    """A plugins repo whose demo manifest the Rust builder can load."""
+    """A plugins repo whose demo manifest the Rust builder can load.
+
+    ``md5`` adds the provenance keys (``url`` + ``md5``) to the sole
+    ``[[source]]`` so the build verifies the file ``source_path`` resolves to.
+    """
     repo = root / "vepyr-plugins-full"
     (repo / "plugins" / "demo").mkdir(parents=True)
     base = _PARTED_MANIFEST if parted else _FULL_MANIFEST
+    if md5 is not None:
+        base = base.replace(
+            'path = "placeholder.tsv.gz"\n',
+            'path = "placeholder.tsv.gz"\n'
+            'url = "https://example.org/demo/demo.tsv.gz"\n'
+            f'md5 = "{md5}"\n',
+        )
+        assert md5 in base
     body = base + (_SECOND_SOURCE if multi_source else "")
     (repo / "plugins" / "demo" / "demo.source.toml").write_text(body)
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -210,7 +226,7 @@ def test_build_records_requested_ref_and_resolved_commit(monkeypatch, tmp_path):
 
     def fake_build_plugin_cache(*args):
         captured["args"] = args
-        return []
+        return [], "[]"
 
     monkeypatch.setattr(vepyr, "_build_plugin_cache", fake_build_plugin_cache)
     result = vepyr.build_plugin_cache(
@@ -441,22 +457,23 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     assert "variation shard" in msg  # it reached the build (no variation cache)
 
 
-def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
-    """A full (chroms=None) overwrite rebuild must start from a clean slate. The
-    builder's `with_overwrite` is a no-op and `build_all` SEEDS its manifest from
-    any existing plugin manifest, preserving chroms not in the new build set — so
-    rebuilding a smaller set into the same root would leave stale chrom entries and
-    shards that `annotate()` keeps emitting. Verify the pre-existing plugin dir
-    (manifest + shards) is removed before the build runs."""
-    repo = _init_full_repo(tmp_path)
-    pc = tmp_path / "pc"
+def _stale_cache(pc: Path) -> None:
+    """A pre-existing plugin cache with a chromosome no new build produces."""
     (pc / "plugin" / "demo").mkdir(parents=True)
-    # A stale manifest entry + shard for a chrom the new build won't produce.
     (pc / "plugin" / "demo" / "manifest.json").write_text(
         '{"chroms": [{"chrom": "chrZZ"}]}'
     )
     (pc / "plugin" / "demo" / "chrZZ.parquet").write_bytes(b"stale")
-    # No variation cache exists, so the build itself fails AFTER the wipe.
+
+
+def test_failed_full_overwrite_leaves_the_previous_cache_intact(tmp_path):
+    """A full (chroms=None) overwrite is built beside the cache and swapped in
+    only once it succeeds: a build that fails (here: no variation cache) must
+    not have destroyed a cache that may have taken hours to produce, and must
+    leave no staging directory behind."""
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _stale_cache(pc)
     with pytest.raises(Exception) as exc:
         vepyr.build_plugin_cache(
             "demo",
@@ -468,9 +485,40 @@ def test_full_overwrite_wipes_stale_plugin_dir(tmp_path):
             overwrite=True,
         )
     assert "already exists" not in str(exc.value)  # overwrite bypassed the guard
-    # The stale shard + manifest were removed before the (failing) build.
+    assert (pc / "plugin" / "demo" / "chrZZ.parquet").read_bytes() == b"stale"
+    assert (pc / "plugin" / "demo" / "manifest.json").exists()
+    assert not list(pc.glob(".overwrite-demo*"))
+
+
+def test_full_overwrite_replaces_the_cache_with_fresh_chroms_only(tmp_path):
+    """After a successful full overwrite only the freshly built chromosomes
+    remain: the stale entry and shard are gone, the new manifest lists what
+    the variation cache provided, and the staging directory is removed."""
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=actual)
+    pc = tmp_path / "pc"
+    _stale_cache(pc)
+    _write_variation_shard(tmp_path)
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        overwrite=True,
+    )
+    assert result == [("chr1", 1, 1, 0)]
     assert not (pc / "plugin" / "demo" / "chrZZ.parquet").exists()
-    assert not (pc / "plugin" / "demo" / "manifest.json").exists()
+    assert (pc / "plugin" / "demo" / "chr1.parquet").exists()
+    assert not list(pc.glob(".overwrite-demo*"))
+    import json
+
+    manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
+    assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
+    assert manifest["sources"][0]["verified_md5"] == actual
+    assert not list(pc.glob(".previous-demo*"))
+    assert [d.name for d in (pc / "plugin").iterdir()] == ["demo"]
 
 
 def test_single_source_manifest_rejects_a_mapping(tmp_path):
@@ -482,3 +530,245 @@ def test_single_source_manifest_rejects_a_mapping(tmp_path):
     repo = _init_full_repo(tmp_path)
     with pytest.raises(ValueError, match="no `part`"):
         _build(repo, tmp_path, {"snv": str(tmp_path / "src.tsv.gz")})
+
+
+# --- Source verification (issue #68) -----------------------------------------
+
+_WRONG_MD5 = "0" * 32
+
+
+def _write_source(tmp_path: Path) -> tuple[Path, str]:
+    """A one-row source file and its real MD5."""
+    import hashlib
+
+    src = tmp_path / "src.tsv"
+    src.write_bytes(b"1\t100\tA\tG\t0.9\n")
+    return src, hashlib.md5(src.read_bytes()).hexdigest()
+
+
+def _write_variation_shard(tmp_path: Path) -> Path:
+    """A one-row variation cache matching the source row, so a build can run
+    end to end. The engine validates the requested shards before hashing a
+    source, so verification tests need a real shard to reach the check."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    cache = tmp_path / "cache"
+    (cache / "variation").mkdir(parents=True)
+    table = pa.table(
+        {
+            "chrom": pa.array(["1"], pa.string()),
+            "start": pa.array([100], pa.uint32()),
+            "allele_string": pa.array(["A/G"], pa.string()),
+            "tier": pa.array([0], pa.int8()),
+        }
+    )
+    pq.write_table(table, cache / "variation" / "chr1.parquet")
+    return cache
+
+
+def _build_real(repo, tmp_path: Path, source_path, **kw):
+    """A complete one-chromosome build: source, variation shard, output."""
+    _write_variation_shard(tmp_path)
+    return vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=source_path,
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(tmp_path / "pc"),
+        plugins_repo=str(repo),
+        chroms=["1"],
+        **kw,
+    )
+
+
+def _sources(tmp_path: Path) -> list[dict]:
+    import json
+
+    manifest = tmp_path / "pc" / "plugin" / "demo" / "manifest.json"
+    return json.loads(manifest.read_text())["sources"]
+
+
+def test_source_md5_mismatch_fails_before_the_build(tmp_path):
+    """Strict by default: a source whose bytes differ from the manifest's md5
+    is refused before any chromosome is ingested, naming both digests."""
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(RuntimeError) as exc:
+        _build_real(repo, tmp_path, str(src))
+    message = str(exc.value)
+    assert "MD5 mismatch" in message
+    assert _WRONG_MD5 in message
+    assert actual in message
+    assert "https://example.org/demo/demo.tsv.gz" in message
+    # The build never started: no plugin directory was created.
+    assert not (tmp_path / "pc" / "plugin" / "demo").exists()
+
+
+def test_matching_source_md5_builds_and_records_the_digest(tmp_path):
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=actual)
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    [record] = _sources(tmp_path)
+    assert record["md5"] == actual
+    assert record["verified_md5"] == actual
+    assert record["url"] == "https://example.org/demo/demo.tsv.gz"
+    assert record["size"] == src.stat().st_size
+
+
+@pytest.mark.parametrize("mode", [False, "skip"])
+def test_verify_source_skip_builds_without_a_digest(tmp_path, mode):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    assert _build_real(repo, tmp_path, str(src), verify_source=mode) == [
+        ("chr1", 1, 1, 0)
+    ]
+    [record] = _sources(tmp_path)
+    assert record["md5"] == _WRONG_MD5
+    assert "verified_md5" not in record
+
+
+def test_verify_source_warn_builds_records_what_it_found_and_warns(tmp_path):
+    """Warn mode keeps building, records the digest found, and tells the
+    Python caller through ``warnings`` — the engine's own log line is hidden
+    unless ``RUST_LOG`` is set."""
+    src, actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.warns(RuntimeWarning, match="differs from the manifest") as caught:
+        result = _build_real(repo, tmp_path, str(src), verify_source="warn")
+    assert result == [("chr1", 1, 1, 0)]
+    [warning] = caught
+    assert _WRONG_MD5 in str(warning.message)
+    assert actual in str(warning.message)
+    [record] = _sources(tmp_path)
+    assert record["md5"] == _WRONG_MD5
+    assert record["verified_md5"] == actual
+
+
+def test_verify_source_true_is_strict(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(RuntimeError, match="MD5 mismatch"):
+        _build_real(repo, tmp_path, str(src), verify_source=True)
+
+
+def test_verify_source_rejects_an_unknown_mode(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    with pytest.raises(ValueError, match="verify_source"):
+        _build(repo, tmp_path, str(src), verify_source="loose")
+
+
+def test_manifest_without_md5_is_not_verified(tmp_path):
+    """Third-party manifests that predate the provenance keys still build."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    [record] = _sources(tmp_path)
+    assert "md5" not in record
+    assert "verified_md5" not in record
+
+
+# --- Recovery of a cache set aside by an interrupted overwrite -----------------
+
+
+def _orphan(pc: Path, name: str, repo: Path | None = None) -> Path:
+    """A set-aside tree as an interrupted overwrite leaves it: outside
+    ``plugin/``, with its manifest and a shard. With ``repo``, the manifest
+    records the source version a build from ``v0.1.0`` of it would record,
+    so an incremental build can merge into the recovered cache."""
+    import json
+
+    orphan = pc / name
+    orphan.mkdir(parents=True)
+    manifest = {
+        "plugin_name": "demo",
+        "source_manifest": "demo.source.toml",
+        "key_columns": ["chrom", "start", "end", "allele_string"],
+        "value_columns": [
+            {"column": "demo_score", "csq_field": "DEMO", "type": "Float32"}
+        ],
+        "chroms": [
+            {"chrom": "chrZZ", "file": "chrZZ.parquet", "rows": 1, "warm": 1, "cold": 0}
+        ],
+    }
+    if repo is not None:
+        commit = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "v0.1.0^{commit}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        manifest["cache_source_version"] = f"v0.1.0@{commit}"
+    (orphan / "manifest.json").write_text(json.dumps(manifest))
+    (orphan / "chrZZ.parquet").write_bytes(b"old")
+    return orphan
+
+
+def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    # A skip build makes no provenance claim, so the recovered (legacy)
+    # chromosome is kept alongside the new one.
+    assert _build_real(repo, tmp_path, str(src), verify_source="skip") == [
+        ("chr1", 1, 1, 0),
+        ("chrZZ", 1, 1, 0),
+    ]
+    assert not orphan.exists()
+    import json
+
+    manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
+    assert [c["chrom"] for c in manifest["chroms"]] == ["chr1", "chrZZ"]
+    assert (pc / "plugin" / "demo" / "chrZZ.parquet").read_bytes() == b"old"
+
+
+def test_several_orphaned_caches_are_an_error_naming_them(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    first = _orphan(pc, ".previous-demo.4242-1")
+    second = _orphan(pc, ".previous-demo.4243-1")
+    with pytest.raises(RuntimeError, match="several copies") as exc:
+        _build_real(repo, tmp_path, str(src), verify_source="skip")
+    assert str(first) in str(exc.value) and str(second) in str(exc.value)
+    assert first.exists() and second.exists()
+    assert not (pc / "plugin" / "demo").exists()
+
+
+def test_recovery_ignores_a_plugin_whose_name_extends_this_one(tmp_path):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    other = _orphan(pc, ".previous-demo-x.4242-1")
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    assert other.exists()
+    import json
+
+    manifest = json.loads((pc / "plugin" / "demo" / "manifest.json").read_text())
+    assert [c["chrom"] for c in manifest["chroms"]] == ["chr1"]
+
+
+def test_orphan_beside_a_live_cache_is_reported_not_deleted(tmp_path):
+    """A set-aside tree next to a live cache is either the leftover of a swap
+    whose cleanup was interrupted or another overwrite's rollback copy in
+    flight; the build names it and leaves it alone."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    orphan = _orphan(pc, ".previous-demo.4242-1")
+    with pytest.warns(RuntimeWarning, match="set-aside cache") as caught:
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
+    assert str(orphan) in str(caught[0].message)
+    assert orphan.exists()
+    assert (pc / "plugin" / "demo" / "manifest.json").exists()

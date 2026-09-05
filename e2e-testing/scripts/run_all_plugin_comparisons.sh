@@ -317,6 +317,9 @@ result = vepyr.build_plugin_cache(
     chroms=[chrom],
     plugins_repo=plugin_repo,
     overwrite=True,
+    # The input is a per-chromosome slice cut above; it can never hash to
+    # the whole file's md5, so the source check is skipped here.
+    verify_source="skip",
 )
 print(result)
 ' "$plugin" "$version" "$source" "$CACHE_DIR" "$PLUGIN_CACHE" "$chrom" "$PLUGIN_REPO"
