@@ -97,11 +97,15 @@ def check_positions(m: CacheManifest) -> InvariantResult:
     return _result("positions", counts, "rows with start < 1 or end < start - 1")
 
 
-def _allele_violation(allele_match: str) -> pl.Expr:
+def _allele_parts() -> tuple[pl.Expr, pl.Expr]:
     parts = pl.col("allele_string").str.split_exact("/", 1)
-    ref = parts.struct.field("field_0")
-    alt = parts.struct.field("field_1")
-    bad = ref.is_null() | alt.is_null() | (ref == "") | (alt == "")
+    return parts.struct.field("field_0"), parts.struct.field("field_1")
+
+
+def _allele_malformed(allele_match: str) -> pl.Expr:
+    """Hard failures: no `/`, empty REF, or a shared leading base when minimised."""
+    ref, alt = _allele_parts()
+    bad = ref.is_null() | alt.is_null() | (ref == "")
     if allele_match == "minimised":
         shared = (
             (ref.str.slice(0, 1) == alt.str.slice(0, 1)) & (ref != "-") & (alt != "-")
@@ -110,9 +114,24 @@ def _allele_violation(allele_match: str) -> pl.Expr:
     return bad
 
 
+def _allele_empty_alt() -> pl.Expr:
+    """`REF/` rows: a source record whose ALT was `.`; unmatchable, not corrupt."""
+    ref, alt = _allele_parts()
+    return ref.is_not_null() & (ref != "") & (alt == "")
+
+
 def check_allele_form(m: CacheManifest) -> InvariantResult:
-    counts = _count_per_shard(m, lambda e: _allele_violation(m.allele_match))
-    return _result("allele_form", counts, "malformed allele strings")
+    hard = _count_per_shard(m, lambda e: _allele_malformed(m.allele_match))
+    r = _result("allele_form", hard, "malformed allele strings")
+    if r.status == "fail":
+        return r
+    empty = _count_per_shard(m, lambda e: _allele_empty_alt())
+    warn = _result(
+        "allele_form", empty, "rows with an empty ALT (source ALT '.')", "warn"
+    )
+    if warn.status == "warn":
+        return warn
+    return r
 
 
 def descending_steps(cols: list[str]) -> pl.Expr:

@@ -102,13 +102,21 @@ def test_allele_form_minimised_allows_dash(tmp_path):
     assert invariants.check_allele_form(_load(cache)).status == "pass"
 
 
-def test_allele_form_rejects_missing_slash_or_empty_part(tmp_path):
+def test_allele_form_rejects_missing_slash_or_empty_ref(tmp_path):
     cache = SyntheticCache(tmp_path)
     df = cache.rows["chrX"]
     df = _set_row(df, 0, "allele_string", pl.lit("A"))
-    cache.rows["chrX"] = _set_row(df, 1, "allele_string", pl.lit("A/"))
+    cache.rows["chrX"] = _set_row(df, 1, "allele_string", pl.lit("/A"))
     r = invariants.check_allele_form(_load(cache))
     assert r.status == "fail" and r.per_contig == {"chrX": 2}
+
+
+def test_allele_form_warns_on_empty_alt(tmp_path):
+    cache = SyntheticCache(tmp_path)
+    cache.rows["chrX"] = _set_row(cache.rows["chrX"], 0, "allele_string", pl.lit("T/"))
+    r = invariants.check_allele_form(_load(cache))
+    assert r.status == "warn" and r.per_contig == {"chrX": 1}
+    assert "empty ALT" in r.detail
 
 
 def test_order_passes_on_sorted_cache(tmp_path):
