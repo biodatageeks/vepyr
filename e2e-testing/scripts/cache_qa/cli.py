@@ -134,8 +134,10 @@ def main(
         print(f"status={rep['status']} rows={rep['summary']['rows']:,} json={out}")
 
         if readme_path is not None and not args.json_only:
-            text = card.splice(readme_path.read_text(), card.render_section(rep))
-            readme_path.write_text(text)
+            text = card.splice(
+                readme_path.read_text(encoding="utf-8"), card.render_section(rep)
+            )
+            readme_path.write_text(text, encoding="utf-8")
             print(f"card updated: {readme_path}")
 
         if rep["status"] == "fail":

@@ -18,7 +18,7 @@ class FakeRunner:
         if argv[:2] == ["hf", "download"]:
             local_dir = Path(argv[argv.index("--local-dir") + 1])
             local_dir.mkdir(parents=True, exist_ok=True)
-            (local_dir / "README.md").write_text(self.readme_text)
+            (local_dir / "README.md").write_text(self.readme_text, encoding="utf-8")
             return subprocess.CompletedProcess(argv, 0, "", "")
         if argv[:3] == ["hf", "datasets", "info"]:
             upload = next(c for c in self.calls if c[:2] == ["hf", "upload"])
@@ -44,25 +44,25 @@ def test_pass_writes_json_and_readme(tmp_path):
     cache = SyntheticCache(tmp_path)
     cache.write()
     readme = tmp_path / "README.md"
-    readme.write_text("# T\n\n## Usage\n\nu\n")
+    readme.write_text("# T\n\n## Usage\n\nu\n", encoding="utf-8")
     rc = cli.main(
         ["demo", "--root", str(tmp_path), "--readme", str(readme)],
         now=lambda: "2026-09-05T00:00:00Z",
     )
     assert rc == 0
-    out = json.loads((cache.plugin_dir / "qa_profile.json").read_text())
+    out = json.loads((cache.plugin_dir / "qa_profile.json").read_text(encoding="utf-8"))
     assert out["status"] == "pass" and out["generated_at"] == "2026-09-05T00:00:00Z"
-    text = readme.read_text()
+    text = readme.read_text(encoding="utf-8")
     assert card.START in text and "## Quality profile" in text
 
 
 def test_json_only_skips_readme(tmp_path):
     SyntheticCache(tmp_path).write()
     readme = tmp_path / "README.md"
-    readme.write_text("# T\n")
+    readme.write_text("# T\n", encoding="utf-8")
     args = ["demo", "--root", str(tmp_path), "--readme", str(readme), "--json-only"]
     assert cli.main(args) == 0
-    assert readme.read_text() == "# T\n"
+    assert readme.read_text(encoding="utf-8") == "# T\n"
 
 
 def test_failed_invariant_exits_1_and_blocks_publish(tmp_path):
@@ -84,7 +84,7 @@ def test_failed_invariant_exits_1_and_blocks_publish(tmp_path):
     ]
     assert cli.main(args, runner=runner) == 1
     assert not any(c[:2] == ["hf", "upload"] for c in runner.calls)
-    out = json.loads((cache.plugin_dir / "qa_profile.json").read_text())
+    out = json.loads((cache.plugin_dir / "qa_profile.json").read_text(encoding="utf-8"))
     assert out["status"] == "fail"
 
 
@@ -127,4 +127,4 @@ def test_publish_happy_path(tmp_path):
         "manifest.json",
         "qa_profile.json",
     ]
-    assert card.START in (Path(upload[3]) / "README.md").read_text()
+    assert card.START in (Path(upload[3]) / "README.md").read_text(encoding="utf-8")

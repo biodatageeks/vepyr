@@ -78,4 +78,4 @@ def build_report(
 
 
 def write_report(report: dict, path: Path) -> None:
-    Path(path).write_text(json.dumps(report, indent=2) + "\n")
+    Path(path).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

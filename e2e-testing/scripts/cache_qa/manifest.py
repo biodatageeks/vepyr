@@ -119,7 +119,7 @@ def load_manifest(plugin_dir: Path) -> CacheManifest:
     if not path.exists():
         raise ManifestError(f"{path}: no such file")
     try:
-        raw = json.loads(path.read_text())
+        raw = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         raise ManifestError(f"{path}: invalid JSON: {e}") from e
     value_columns = []
