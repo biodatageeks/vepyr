@@ -198,6 +198,20 @@ df = vepyr.annotate(
 ).collect()
 ```
 
+To use vepyr as a lightweight plugin annotator, select VEP's core VCF fields.
+Plugin outputs become named DataFrame columns, so keeping the raw `CSQ` string
+is optional:
+
+```python
+df = vepyr.annotate(
+    "input.vcf.gz",
+    "/data/vepyr_cache/parquet/116_GRCh38_ensembl",
+    fields="core",
+    plugin_cache_root="/data/plugin_cache",
+    plugins=["cadd", "spliceai"],
+).collect()
+```
+
 ### Writing annotated VCF output
 
 Write results directly to a VCF file instead of returning a LazyFrame:

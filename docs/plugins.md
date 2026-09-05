@@ -65,24 +65,32 @@ vepyr.annotate(
 )
 ```
 
-!!! warning "In a LazyFrame, plugin values hide inside `CSQ`"
-    Plugin fields are appended to the `CSQ` field, after the base fields, in
-    caller-supplied `plugins` order, or alphabetical plugin-name order when
-    `plugins=None`. Writing a VCF gives you a header naming
-    them. A `LazyFrame` has no header, and its default `skip_csq=True` drops
-    the `CSQ` column outright — so plugins are applied and then silently
-    discarded.
+### Plugin-only annotation
 
-    Pass `skip_csq=False` to keep them. The values are correct and identical
-    to the VCF path, but unnamed — you have to count positions yourself, and
-    the base field count varies (74–86, by cache type and `everything`), so
-    the offsets are not fixed. A CADD-only subset on a **merged** cache at
-    default flags appends `CADD_PHRED` then `CADD_RAW` at positions 80 and 81
-    of an 81-field `CSQ`; with `everything=True` the same two land at 87 and
-    88. Plugin values are not broken out as DataFrame columns.
+Pass `fields="core"` to emit VEP's eleven VCF-side default fields followed by
+the selected plugin blocks:
 
-    Passing [`plugins`](#choosing-which-plugins-run) without `output_vcf` and
-    with `skip_csq` left at its default warns for this reason.
+```python
+result = vepyr.annotate(
+    "sample.vcf",
+    "/data/116_GRCh38_merged",
+    fields="core",
+    plugin_cache_root="/data/plugin_cache",
+    plugins=["cadd"],
+)
+```
+
+VCF output records the exact ordered layout in the `CSQ` `Format:` header. On
+the DataFrame path, the selected base fields retain their existing named
+columns, unselected annotation columns are omitted, and each plugin field (for
+example `CADD_PHRED` and `CADD_RAW`) is a named `List(String)` column. The raw
+`CSQ` string is still available with `skip_csq=False`, but is not required to
+access plugin values.
+
+An explicit list or tuple may be used instead of `"core"`; its order is
+preserved. Fields needed by plugin match templates are still computed even
+when they are not emitted. With `fields=None` the full legacy CSQ layout and
+DataFrame schema remain unchanged.
 
 ### Choosing which plugins run
 

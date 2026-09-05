@@ -31,6 +31,20 @@ __version__ = importlib.metadata.version("vepyr")
 
 log = logging.getLogger(__name__)
 
+_CORE_CSQ_FIELDS = (
+    "Allele",
+    "Gene",
+    "Feature",
+    "Feature_type",
+    "Consequence",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+)
+
 # Ensembl FTP URL templates for VEP cache tarballs.
 # {method_infix} is "" for Ensembl, "_merged" for merged, "_refseq" for RefSeq.
 # Release >=115 uses indexed_vep_cache/, older releases use vep/.
@@ -759,6 +773,7 @@ def annotate(
     cache_size_mb: int = 1024,
     workers: int = 1,
     skip_csq: bool = True,
+    fields: str | list[str] | tuple[str, ...] | None = None,
     # Custom plugin caches
     plugin_cache_root: str | None = None,
     plugins: list[str] | tuple[str, ...] | None = None,
@@ -876,6 +891,12 @@ def annotate(
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
+    fields : {"core"}, list or tuple of str, or None
+        Ordered base CSQ fields to emit, mirroring VEP ``--fields``. ``"core"``
+        selects VEP's eleven VCF-side default output fields. A list or tuple
+        preserves its supplied order. Plugin fields are always appended after
+        the selected base block. On the DataFrame path, unselected annotation
+        columns are omitted. ``None`` (default) keeps the full layout.
     plugin_cache_root : str or None
         Root of a plugin cache tree built by :func:`build_plugin_cache`, e.g.
         ``"/data/plugin_cache"`` holding ``plugin/<name>/`` directories. Every
@@ -885,9 +906,9 @@ def annotate(
         chosen here. ``None`` (default) applies no plugins and is
         byte-identical to a plugin-free run.
 
-        Plugin values are appended to the ``CSQ`` field. With ``output_vcf``
-        the header names them; in a ``LazyFrame`` they are only inside the
-        ``CSQ`` string, which the default ``skip_csq=True`` drops.
+        Plugin values are appended to the ``CSQ`` field. With ``fields`` set,
+        a ``LazyFrame`` also exposes each plugin field as a named list column,
+        including when ``skip_csq=True``.
     plugins : list or tuple of str, or None
         Restrict annotation to these plugin names, a subset of the directories
         under ``<plugin_cache_root>/plugin/``. ``None`` (default) applies every
@@ -965,6 +986,26 @@ def annotate(
     ... )
     """
     import json
+
+    if fields == "core":
+        selected_fields = list(_CORE_CSQ_FIELDS)
+    elif isinstance(fields, str):
+        raise ValueError("fields must be 'core', an ordered list or tuple, or None")
+    elif fields is None:
+        selected_fields = None
+    elif not isinstance(fields, (list, tuple)):
+        raise TypeError("fields must be 'core', an ordered list or tuple, or None")
+    else:
+        if not fields:
+            raise ValueError("fields must contain at least one base CSQ field")
+        for name in fields:
+            if not isinstance(name, str):
+                raise TypeError(
+                    f"field names must be strings, got {type(name).__name__}"
+                )
+        if len(set(fields)) != len(fields):
+            raise ValueError("fields must not contain duplicate names")
+        selected_fields = list(fields)
 
     # Validate reference_fasta requirement
     if (everything or hgvs or hgvsc or hgvsp) and not reference_fasta:
@@ -1061,6 +1102,8 @@ def annotate(
         # Single annotation-concurrency knob: N within-contig fused pipelines.
         # Requires a tabix-indexed (bgzip+.tbi) input VCF.
         opts["workers"] = workers
+    if selected_fields is not None:
+        opts["fields"] = selected_fields
     if plugins is not None:
         if plugin_cache_root is None:
             raise ValueError("plugins requires plugin_cache_root")
@@ -1092,7 +1135,7 @@ def annotate(
                     f"Unknown plugin {unknown[0]!r} in {source_root}. "
                     f"Available: {', '.join(available) or '(none)'}"
                 )
-            if output_vcf is None and skip_csq:
+            if output_vcf is None and skip_csq and selected_fields is None:
                 # Plugin values reach a LazyFrame only inside the CSQ string,
                 # which `skip_csq=True` (the default) drops — so the plugins
                 # would be built and then silently discarded. The VCF path is
@@ -1205,26 +1248,98 @@ def annotate(
     import polars as pl
     import pyarrow as pa
 
+    plugin_field_names: list[str] = []
+    if selected_fields is not None and plugin_cache_root is not None and plugins != []:
+        import os
+
+        plugin_root = os.path.join(plugin_cache_root, "plugin")
+        if not os.path.isdir(plugin_root):
+            raise FileNotFoundError(
+                f"No plugin directory under plugin_cache_root: {plugin_root}"
+            )
+        manifests = []
+        for directory_name in sorted(os.listdir(plugin_root)):
+            manifest_path = os.path.join(plugin_root, directory_name, "manifest.json")
+            if not os.path.isfile(manifest_path):
+                continue
+            with open(manifest_path, encoding="utf-8") as handle:
+                manifest = json.load(handle)
+            plugin_name = manifest.get("plugin_name", directory_name)
+            manifests.append((plugin_name, manifest))
+        manifests.sort(key=lambda item: item[0])
+        by_name = {name: manifest for name, manifest in manifests}
+        ordered_names = list(plugins) if plugins is not None else sorted(by_name)
+        for plugin_name in ordered_names:
+            manifest = by_name[plugin_name]
+            value_columns = manifest.get("value_columns", [])
+            if manifest.get("field_order", "declared") == "alphabetical":
+                value_columns = sorted(
+                    value_columns, key=lambda column: column["csq_field"]
+                )
+            plugin_field_names.extend(column["csq_field"] for column in value_columns)
+        if len(set(plugin_field_names)) != len(plugin_field_names):
+            raise ValueError(
+                "selected plugins expose duplicate CSQ field names, which cannot be "
+                "represented as distinct DataFrame columns"
+            )
+
     # Get schema from a probe annotator (doesn't consume data).
+    engine_skip_csq = skip_csq and not plugin_field_names
     probe = _create_annotator(
         vcf,
         cache_dir,
         options_json,
-        skip_csq,
+        engine_skip_csq,
         None,
     )
     pa_schema = probe.schema
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
+    selected_dataframe_columns: list[str] | None = None
+    if selected_fields is not None:
+        schema_names = list(polars_schema)
+        try:
+            annotation_start = schema_names.index("most_severe_consequence")
+        except ValueError as exc:
+            raise RuntimeError(
+                "annotation schema is missing most_severe_consequence"
+            ) from exc
+        annotation_schema_names = set(schema_names[annotation_start + 1 :])
+        missing_columns = [
+            name for name in selected_fields if name not in annotation_schema_names
+        ]
+        if missing_columns:
+            raise ValueError(
+                "selected CSQ fields have no named DataFrame column: "
+                + ", ".join(missing_columns)
+            )
+        selected_dataframe_columns = [
+            name
+            for name in schema_names[: annotation_start + 1]
+            if not (skip_csq and name == "CSQ")
+        ]
+        selected_dataframe_columns.extend(selected_fields)
+        polars_schema = {
+            name: polars_schema[name] for name in selected_dataframe_columns
+        }
+    if plugin_field_names:
+        for name in plugin_field_names:
+            if name in polars_schema:
+                raise ValueError(
+                    f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
+                )
+            polars_schema[name] = pl.List(pl.String)
+        if skip_csq:
+            polars_schema.pop("CSQ", None)
     del probe
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _skip = (
+    _vcf, _cache_dir, _opts, _engine_skip = (
         vcf,
         cache_dir,
         options_json,
-        skip_csq,
+        engine_skip_csq,
     )
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
@@ -1233,12 +1348,30 @@ def annotate(
             _vcf,
             _cache_dir,
             _opts,
-            _skip,
+            _engine_skip,
             n_rows,
         )
         remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)
+            if plugin_field_names:
+                first_plugin_index = len(selected_fields)
+                batch_df = batch_df.with_columns(
+                    pl.col("CSQ")
+                    .str.split(",")
+                    .list.eval(
+                        pl.element()
+                        .str.split("|")
+                        .list.get(first_plugin_index + index, null_on_oob=True)
+                        .replace("", None)
+                    )
+                    .alias(name)
+                    for index, name in enumerate(plugin_field_names)
+                )
+            if selected_dataframe_columns is not None:
+                batch_df = batch_df.select(
+                    [*selected_dataframe_columns, *plugin_field_names]
+                )
             if predicate is not None:
                 batch_df = batch_df.filter(predicate)
             if with_columns is not None:
