@@ -31,6 +31,7 @@ vepyr.build_plugin_cache(
     chroms=None,                     # None = all chroms present under <cache_dir>/variation/
     plugins_repo=None,               # optional local clone of vepyr-plugins for OFFLINE builds
     overwrite=False,                 # True replaces an existing plugin/<name>/ tree
+    verify_source=True,              # hash each source against the manifest's md5 first
 )
 ```
 
@@ -45,8 +46,33 @@ versions (e.g. AlphaMissense `v0.2.0` + ClinVar `v0.3.0`), call
 
 The manifest is resolved from the public vepyr-plugins repo at `version`
 (cloned on demand), or from a local clone via `plugins_repo` for fully offline
-builds. Tiering (warm/cold) is **inherited from the variation cache** at
+builds. The exact resolution is recorded in the cache's `manifest.json` as
+`cache_source_version: "<version>@<commit SHA>"`. An incremental build may add
+or replace chromosomes only when that value matches the existing cache; use a
+full build with `overwrite=True` to move a plugin cache to another revision.
+Tiering (warm/cold) is **inherited from the variation cache** at
 `cache_dir` — plugins declare no tier policy of their own.
+
+### Source verification
+
+A byte-parity-validated cache is only as good as the bytes it was built from,
+so before the first chromosome is ingested the build MD5-hashes each resolved
+`source_path` once (streaming, bounded memory — CADD's 87 GB SNV file costs a
+few minutes of I/O on top of a multi-hour build) and compares it with the
+manifest's `md5`:
+
+| `verify_source` | Behaviour |
+|---|---|
+| `True` / `"strict"` (default) | A mismatch raises before anything is written, naming the part, the expected and actual digests and the upstream `url`. |
+| `"warn"` | A mismatch is logged and the build continues; the digest actually found is recorded. For deliberate builds against a re-compressed or derived artifact, such as AlphaMissense's BGZF build input (its plugin README documents the preprocessing). |
+| `False` / `"skip"` | Nothing is hashed. Use it for a chromosome slice cut with `tabix`, whose digest can never match the whole file's. |
+
+A manifest that declares no `md5` is never hashed, whatever the mode. The
+outcome is recorded under `sources` in the emitted `manifest.json` (see
+[Cache format](#cache-format-lookup-internals)), and an incremental
+`chroms=[...]` build against a file whose size and mtime match an earlier
+verified record trusts that record instead of re-hashing — a per-chromosome
+CADD workflow that calls `build_plugin_cache` 22 times hashes its input once.
 
 ## Annotating with plugins
 
@@ -159,8 +185,8 @@ source and map it to CSQ fields.
 |---|---|---|---|
 | `provider` | `csv` \| `tsv` \| `parquet` \| `vcf` \| `bed` | yes | Reader for this file. All five work — see [Table providers](#build-pipeline-table-providers-tables-views). |
 | `path` | string | yes | Placeholder; **always** overridden at build time by `source_path`. |
-| `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Purely informational — not read by the build. |
-| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. Purely informational — not read by the build. |
+| `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Never fetched; copied into the built cache's `manifest.json` and quoted in verification errors. |
+| `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. This is the digest the build [verifies](#source-verification) `source_path` against. A manifest keeps this one digest; when the build input is a derived artifact of `url` (AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip) the preprocessing is documented in the plugin's README and the build runs with `verify_source="warn"` or `False`. |
 | `part` | string | no | Names this source when a manifest declares several. Registers as `plugin_<name>_src_<part>`, and makes `source_path` take a `{part: path}` mapping. |
 | `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. On `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
 | `record_layout` | bool | no (default `false`) | `vcf` sources only: carry the raw record layout through the provider. |
@@ -512,7 +538,63 @@ A plugin cache is a set of per-chromosome Parquet shards
 (`plugin/<name>/chr*.parquet`) plus a `manifest.json`. The shards use the same
 point-lookup-optimized layout as the Ensembl variation cache, so a lookup reads
 only the handful of pages that could contain the queried positions — never the
-whole file.
+whole file. `manifest.json` records the requested plugin ref and its exact
+resolved commit in `cache_source_version`, making cache provenance immutable and
+auditable even when the requested ref is a branch.
+
+### Provenance in `manifest.json`
+
+Besides the schema, CSQ mapping and per-shard row/tier counts, the manifest
+records one `sources` entry per `[[source]]` so a shard's provenance survives
+without the source file:
+
+```json
+"sources": [
+  {
+    "file": "AlphaMissense_hg38.bgz.tsv.gz",
+    "url": "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz",
+    "md5": "9fd167735f16a1b87da6eb3e4c25fcb5",
+    "verified_md5": "46d0028375cf95088bd014ff6855cffd",
+    "size": 628407716,
+    "mtime_ns": 1783322828158000000,
+    "ino": 194298162,
+    "ctime_ns": 1787813446862801296,
+    "index": {
+      "file": "AlphaMissense_hg38.bgz.tsv.gz.tbi",
+      "verified_md5": "7e925b94f5afd9ef184bde4de8aedeb5",
+      "size": 684511,
+      "mtime_ns": 1783322837454000000,
+      "ino": 194298178,
+      "ctime_ns": 1787813449824439001
+    }
+  }
+]
+```
+
+`part` is present for multi-file manifests (CADD). `url` and `md5` are copied
+from the source manifest. `verified_md5` is the digest the build actually
+computed over the resolved file — absent when verification was skipped or the
+manifest declared no digest, and *different* from `md5` only after a `"warn"`
+build, as here: AlphaMissense's build input is a BGZF re-compression of the
+upstream file, so the recorded digest is the artifact's, not the upstream's. `file`, `size`, `mtime_ns`, `ino` and `ctime_ns` fingerprint the hashed
+file for incremental builds: an unchanged file is not re-hashed, while a
+replacement or rewrite (a new inode, a fresh change time) always is. For a
+tabix source the `.tbi` gets the same treatment under `index` — it is always
+hashed and fingerprinted, so a changed index is a changed input — and it is
+checked to describe the data it sits beside: for every contig it names, the
+record its first chunk points at must carry that contig, which refuses an
+index built from another version of the file in strict and warn mode alike. Every
+chromosome is built to a staging file and the sources are re-checked after
+each; only when all of them passed are the shards made live and the manifest
+written, so a source that changes mid-build leaves the cache exactly as it
+was. A filtered rebuild whose input hashes differently from the earlier
+build's drops that build's chromosomes from the manifest rather than mixing
+releases. Chromosomes whose input was never verified — a cache built before
+this block existed (no `sources` key), or one built with `verify_source="skip"`
+— cannot be attributed to a verified input, so a verifying `chroms=[...]` build
+that would carry them over is refused: rebuild every chromosome
+(`overwrite=True`), or add chromosomes with `verify_source="skip"`, which makes
+no claim.
 
 ### Shard schema
 

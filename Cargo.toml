@@ -43,10 +43,15 @@ env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
 # bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
-# and bio-functions 58b5650 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
-# drop #225, the bio-formats bump #226, and the partial-cache source-type probe #227, which
+# and bio-functions 6476619 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
+# drop #225, the bio-formats bump #226, the partial-cache source-type probe #227, which
 # reads bio.vep.cache_source_type from the first variation shard present on disk instead of
-# the manifest's first entry, so a per-contig download with whole-cache manifests annotates).
+# the manifest's first entry, so a per-contig download with whole-cache manifests annotates,
+# and plugin source verification #228 (vepyr#68): the plugin cache builder hashes each build
+# input and its tabix index once under strict/warn/skip, stages every shard until the sources
+# are re-checked, and records the provenance under `sources` in the emitted manifest.json;
+# #230 makes plugin shard row order reproducible, #231 records the manifest source version,
+# and #232 preserves the requested plugin order in the annotation output).
 # Together these make a cache build reproducible:
 # the exon dedup tie-break is now total, translation_core has a total output ORDER BY instead
 # of relying on CoalescePartitionsExec arrival order, and the four context entities no longer

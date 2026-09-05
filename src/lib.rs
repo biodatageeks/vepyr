@@ -2,8 +2,10 @@ use datafusion_bio_format_ensembl_cache::CacheSourceType;
 use datafusion_bio_function_vep::cache_builder::{CacheBuilder, CacheFormat};
 use datafusion_bio_function_vep::plugin_cache::builder::PluginCacheBuilder;
 use datafusion_bio_function_vep::plugin_cache::source_manifest::SourceManifest;
+use datafusion_bio_function_vep::plugin_cache::source_verify::SourceVerification;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
+use std::path::Path;
 
 // The VEP consequence engine is allocation-heavy (CSQ strings, feature clones,
 // HashMaps); macOS libmalloc is slow per-alloc and contends across threads,
@@ -310,8 +312,284 @@ fn apply_source_paths(
     Ok(())
 }
 
+/// Make the staged cache at `staged_dir` the live one at `plugin_dir`, by
+/// renames only, so no step can leave the cache half removed: the live cache
+/// is set aside at `previous`, the staged one renamed into place, and the
+/// caller deletes `previous` afterwards. Another full overwrite of the same
+/// plugin may finish in between — the live directory can vanish before the
+/// first rename or reappear before the second — so both renames are retried:
+/// a missing live cache means there is nothing to set aside, and a live cache
+/// that reappeared is another writer's complete cache, which is set aside in
+/// turn so the later writer wins. A rename that fails for any other reason
+/// puts the previous cache back and reports where everything is.
+fn install_overwrite(
+    staged_dir: &Path,
+    plugin_dir: &Path,
+    previous_base: &Path,
+    leftovers: &mut Vec<String>,
+) -> PyResult<Option<std::path::PathBuf>> {
+    let io = |what: String, e: std::io::Error| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("overwrite: {what}: {e}"))
+    };
+    if let Some(parent) = plugin_dir.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| io(format!("failed to create {}", parent.display()), e))?;
+    }
+    const ATTEMPTS: usize = 8;
+    for attempt in 1..=ATTEMPTS {
+        // A fresh set-aside path per attempt: a superseded set-aside tree that
+        // could not be removed must not make the next rename fail.
+        let previous = if attempt == 1 {
+            previous_base.to_path_buf()
+        } else {
+            std::path::PathBuf::from(format!("{}-{attempt}", previous_base.display()))
+        };
+        let previous = previous.as_path();
+        let had_previous = match std::fs::rename(plugin_dir, previous) {
+            Ok(()) => true,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+            Err(e) => {
+                return Err(io(
+                    format!(
+                        "failed to set the previous cache aside at {}",
+                        previous.display()
+                    ),
+                    e,
+                ));
+            }
+        };
+        let install = std::fs::rename(staged_dir, plugin_dir);
+        let Err(e) = install else {
+            return Ok(had_previous.then(|| previous.to_path_buf()));
+        };
+        // Probe without `?`: whatever the probe says, the previous cache must
+        // be put back before this function returns an error.
+        let live_again = path_exists(plugin_dir);
+        if matches!(live_again, Ok(true)) && attempt < ATTEMPTS {
+            // Another overwrite installed its complete cache between the two
+            // renames. The cache we set aside is older than that one, so it
+            // is dropped, and the newer live cache is set aside next.
+            if had_previous {
+                leftovers.extend(remove_leftovers(&[(
+                    previous,
+                    "a superseded previous cache",
+                )]));
+            }
+            log::info!(
+                "overwrite: {} was replaced by another writer during the swap ({e}); \
+                 retrying (attempt {attempt} of {ATTEMPTS})",
+                plugin_dir.display()
+            );
+            continue;
+        }
+        let mut what = format!(
+            "failed to move the new cache {} into place at {}",
+            staged_dir.display(),
+            plugin_dir.display()
+        );
+        if let Err(probe) = live_again {
+            what.push_str(&format!("; inspecting it afterwards also failed ({probe})"));
+        }
+        if had_previous {
+            match std::fs::rename(previous, plugin_dir) {
+                Ok(()) => what.push_str("; the previous cache was put back"),
+                Err(restore) => what.push_str(&format!(
+                    "; putting the previous cache back also failed ({restore}), it is \
+                     intact at {} — rename it to {} to recover",
+                    previous.display(),
+                    plugin_dir.display()
+                )),
+            }
+        }
+        return Err(io(what, e));
+    }
+    Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+        "overwrite: gave up installing {} after {ATTEMPTS} attempts; another full overwrite \
+         of the same plugin keeps replacing it",
+        plugin_dir.display()
+    )))
+}
+
+/// A full overwrite swaps the live cache out by two renames; a process killed
+/// between them leaves the cache under `<root>/.previous-<plugin>.*` and
+/// nothing at its path. The next call puts it back when there is exactly one
+/// such tree and no live cache, so an interrupted swap is not a permanent loss.
+/// A recovery that cannot be done — the rename fails, or several orphaned
+/// trees exist — is an error rather than a log line: building on without the
+/// cache would leave the old data stranded beside a fresh, partial one.
+fn recover_set_aside_cache(
+    py: Python<'_>,
+    root: &Path,
+    plugin_dir: &Path,
+    plugin_name: &str,
+) -> PyResult<()> {
+    let live = path_exists(plugin_dir)?;
+    // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
+    // whose name extends this one (`cadd` vs `cadd-x`) cannot match.
+    let prefix = format!(".previous-{plugin_name}.");
+    let staging_prefix = format!(".overwrite-{plugin_name}.");
+    let numeric =
+        |rest: &str| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit() || b == b'-');
+    let mut stale_staging: Vec<String> = Vec::new();
+    let entries = match std::fs::read_dir(root) {
+        Ok(entries) => entries,
+        // No cache root yet: nothing could have been set aside.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => {
+            return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "cannot check {} for a cache set aside by an interrupted overwrite: {e}",
+                root.display()
+            )));
+        }
+    };
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    for entry in entries {
+        let p = entry
+            .map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "cannot check {} for a cache set aside by an interrupted overwrite: {e}",
+                    root.display()
+                ))
+            })?
+            .path();
+        let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        // A staging tree of a terminated overwrite (a live one has the same
+        // shape, so it is reported, never removed here).
+        if name.strip_prefix(&staging_prefix).is_some_and(numeric) {
+            stale_staging.push(format!("a staging tree at {}", p.display()));
+            continue;
+        }
+        if !name.strip_prefix(&prefix).is_some_and(numeric) {
+            continue;
+        }
+        // A candidate must hold a manifest; an error other than "no such
+        // file" while checking is reported, not read as absence.
+        match std::fs::metadata(p.join("manifest.json")) {
+            Ok(_) => candidates.push(p),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "cannot inspect {} while checking for a cache set aside by an interrupted \
+                     overwrite: {e}",
+                    p.display()
+                )));
+            }
+        }
+    }
+    warn_about(
+        py,
+        stale_staging,
+        "was left behind by an overwrite that did not finish, or belongs to one in progress; \
+         it was not touched — delete it by hand once no overwrite is running",
+    )?;
+    if live {
+        // The swap completed but its cleanup did not (killed in between), or
+        // another overwrite is mid-swap right now: not ours to delete, but
+        // not to be left unmentioned either — each holds a cache's worth.
+        return warn_about(
+            py,
+            candidates
+                .iter()
+                .map(|p| format!("a set-aside cache at {}", p.display()))
+                .collect(),
+            "was left behind by an interrupted overwrite, or belongs to one in progress; \
+             it was not touched — delete it by hand once no overwrite is running",
+        );
+    }
+    match candidates.as_slice() {
+        [] => Ok(()),
+        [only] => {
+            if let Some(parent) = plugin_dir.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            std::fs::rename(only, plugin_dir).map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "the plugin cache {} is missing and its copy set aside by an interrupted \
+                     overwrite at {} could not be moved back ({e}); move it back by hand before \
+                     building",
+                    plugin_dir.display(),
+                    only.display()
+                ))
+            })?;
+            log::warn!(
+                "recovered the plugin cache {} from {}, left behind by an interrupted overwrite",
+                plugin_dir.display(),
+                only.display()
+            );
+            Ok(())
+        }
+        several => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "the plugin cache {} is missing and several copies set aside by interrupted \
+             overwrites exist ({}); move the one to keep back by hand and delete the others \
+             before building",
+            plugin_dir.display(),
+            several
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+    }
+}
+
+/// Whether `path` exists, reporting a stat error instead of reading it as
+/// absence — an unreadable cache must not look like a missing one.
+fn path_exists(path: &Path) -> PyResult<bool> {
+    match std::fs::metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+            "cannot inspect {}: {e}",
+            path.display()
+        ))),
+    }
+}
+
+/// Remove directories that are no longer needed, returning a description of
+/// each one that could not be removed but still exists.
+fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
+    let mut leftovers = Vec::new();
+    for (path, what) in dirs {
+        // Anything but "already gone" is a leftover; a stat afterwards could
+        // itself fail and must not turn a failed removal into silence.
+        if let Err(e) = std::fs::remove_dir_all(path) {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                leftovers.push(format!("{what} at {} ({e})", path.display()));
+            }
+        }
+    }
+    leftovers
+}
+
+/// A cleanup that fails must not pass silently: a leftover staging or
+/// set-aside tree is a plugin cache's worth of disk.
+fn warn_leftovers(py: Python<'_>, leftovers: Vec<String>) -> PyResult<()> {
+    warn_about(
+        py,
+        leftovers,
+        "could not be removed; delete it by hand to reclaim the space",
+    )
+}
+
+/// Raise one `RuntimeWarning` listing `items`, each a cache-sized directory
+/// the caller should know about, followed by `advice`.
+fn warn_about(py: Python<'_>, items: Vec<String>, advice: &str) -> PyResult<()> {
+    if items.is_empty() {
+        return Ok(());
+    }
+    let message = std::ffi::CString::new(format!("overwrite: {} {advice}", items.join(" and ")))
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    pyo3::PyErr::warn(
+        py,
+        &py.get_type::<pyo3::exceptions::PyRuntimeWarning>(),
+        &message,
+        1,
+    )
+}
+
 #[pyfunction]
-#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false))]
+#[pyo3(signature = (manifest_path, source_path, variation_cache_dir, plugin_cache_root, chroms=None, overwrite=false, verify_source="strict", source_version=None))]
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn build_plugin_cache(
     py: Python<'_>,
     manifest_path: &str,
@@ -320,7 +598,14 @@ fn build_plugin_cache(
     plugin_cache_root: &str,
     chroms: Option<Vec<String>>,
     overwrite: bool,
-) -> PyResult<Vec<(String, usize, usize, usize)>> {
+    verify_source: &str,
+    source_version: Option<String>,
+) -> PyResult<(Vec<(String, usize, usize, usize)>, String)> {
+    // Reject a bad mode before the (possibly expensive) manifest resolution
+    // and before anything on disk is touched.
+    let verification: SourceVerification = verify_source
+        .parse()
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("verify_source: {e}")))?;
     let mut manifest = SourceManifest::load(std::path::Path::new(manifest_path))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
     apply_source_paths(&mut manifest, source_path)?;
@@ -335,32 +620,59 @@ fn build_plugin_cache(
     let plugin_dir = std::path::Path::new(plugin_cache_root)
         .join("plugin")
         .join(&manifest.plugin_name);
-    if is_full_build {
+    recover_set_aside_cache(
+        py,
+        Path::new(plugin_cache_root),
+        &plugin_dir,
+        &manifest.plugin_name,
+    )?;
+    // A full overwrite must end with only freshly built chromosomes: `build_all`
+    // carries chromosomes of an earlier build over when their provenance
+    // matches, and a smaller/different chrom set would otherwise leave stale
+    // entries behind that `annotate()` keeps emitting. But the existing cache
+    // must not be destroyed before the new one is known to be good — the
+    // source is verified inside `build_all`, and a mismatch there would have
+    // cost a multi-hour cache. So the replacement is built into a staging root
+    // beside the cache and swapped into place only after the build succeeds;
+    // on failure the staging root is removed and the old cache is untouched.
+    // The staging root is unique to this invocation, so two overwrites of the
+    // same plugin never build into, or delete, each other's tree; each swaps
+    // in its own complete cache and the later one wins.
+    let unique = format!(
+        "{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    );
+    let staging_root = if is_full_build {
         if overwrite {
-            // A full overwrite must start from a clean slate. The builder's
-            // `with_overwrite` is a no-op (it rewrites each shard per chrom), and
-            // `build_all` SEEDS its manifest from any existing plugin manifest,
-            // preserving chroms that are not part of the new build set. So without
-            // wiping first, rebuilding a smaller/different chrom set into the same
-            // root leaves stale chrom entries and shards behind, and `annotate()`
-            // keeps emitting those stale plugin values. Remove the whole plugin
-            // directory (manifest + shards) so only freshly built chroms remain.
-            if plugin_dir.exists() {
-                std::fs::remove_dir_all(&plugin_dir).map_err(|e| {
-                    pyo3::exceptions::PyValueError::new_err(format!(
-                        "overwrite: failed to remove existing plugin cache at {}: {e}",
-                        plugin_dir.display()
-                    ))
-                })?;
-            }
-        } else if plugin_dir.join("manifest.json").exists() {
+            let staging = std::path::Path::new(plugin_cache_root)
+                .join(format!(".overwrite-{}.{unique}", manifest.plugin_name));
+            std::fs::create_dir_all(&staging).map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "overwrite: failed to create staging directory {}: {e}",
+                    staging.display()
+                ))
+            })?;
+            Some(staging)
+        } else if path_exists(&plugin_dir.join("manifest.json"))? {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "plugin cache already exists at {} (pass overwrite=True to rebuild all \
                  chromosomes, or chroms=[...] to add/rebuild specific ones)",
                 plugin_dir.join("manifest.json").display()
             )));
+        } else {
+            None
         }
-    }
+    } else {
+        None
+    };
+    let build_root: String = staging_root
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| plugin_cache_root.to_string());
     let manifest_file = std::path::Path::new(manifest_path)
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
@@ -371,28 +683,67 @@ fn build_plugin_cache(
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
-    let cache = py.detach(|| {
+    let built = py.detach(|| {
         rt.block_on(async {
             let mut b = PluginCacheBuilder::new(
                 &manifest,
                 &manifest_file,
                 variation_cache_dir,
-                plugin_cache_root,
+                build_root.as_str(),
             )
-            .with_overwrite(overwrite);
+            .with_overwrite(overwrite)
+            .with_source_verification(verification);
+            if let Some(source_version) = source_version {
+                b = b.with_source_version(source_version);
+            }
             if let Some(cs) = chroms {
                 b = b.with_chrom_filter(cs);
             }
             b.build_all().await
         })
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("plugin build failed: {e}")))
-    })?;
+    });
+    let cache = match (built, &staging_root) {
+        (Err(e), Some(staging)) => {
+            // The build failed; the previous cache was never touched. A staging
+            // tree that cannot be removed is reported alongside the error, since
+            // it may hold a cache's worth of shards.
+            warn_leftovers(py, remove_leftovers(&[(staging, "the staging directory")]))?;
+            return Err(e);
+        }
+        (Err(e), None) => return Err(e),
+        (Ok(cache), Some(staging)) => {
+            let staged_dir = staging.join("plugin").join(&manifest.plugin_name);
+            // Set aside beside the staging roots, never under `plugin/`: every
+            // manifest-bearing directory there is discovered as a plugin, and a
+            // set-aside tree that could not be removed would be loaded as one.
+            let previous = Path::new(plugin_cache_root)
+                .join(format!(".previous-{}.{unique}", manifest.plugin_name));
+            let mut leftovers = Vec::new();
+            let installed = install_overwrite(&staged_dir, &plugin_dir, &previous, &mut leftovers);
+            leftovers.extend(remove_leftovers(&[(staging, "the staging directory")]));
+            if let Ok(Some(set_aside)) = &installed {
+                leftovers.extend(remove_leftovers(&[(set_aside, "the previous cache")]));
+            }
+            warn_leftovers(py, leftovers)?;
+            installed?;
+            cache
+        }
+        (Ok(cache), None) => cache,
+    };
 
-    Ok(cache
-        .chroms
-        .into_iter()
-        .map(|c| (c.chrom, c.rows, c.warm, c.cold))
-        .collect())
+    // The provenance this build recorded, returned rather than read back from
+    // the live manifest: another writer may replace the live cache at any time.
+    let sources = serde_json::to_string(&cache.sources)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
+    Ok((
+        cache
+            .chroms
+            .into_iter()
+            .map(|c| (c.chrom, c.rows, c.warm, c.cold))
+            .collect(),
+        sources,
+    ))
 }
 
 /// Annotate a VCF and write results directly to a VCF file.
