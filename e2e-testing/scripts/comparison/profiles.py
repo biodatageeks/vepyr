@@ -374,14 +374,24 @@ def resolve(
         # but only when a reference is actually needed. Modes that just
         # aggregate stored reports need none, and must not be blocked by the
         # absence of something they never read.
-        if require_reference:
+        # A whole-genome reference of the same basename (a full VEP run with
+        # the plugins) serves a multi-contig run directly when it exists.
+        wgs = _first_existing(
+            os.path.join(
+                data_dir(), "output", RELEASE_DIRS[release], profile.vep_basename
+            )
+        )
+        if wgs:
+            resolved_ref = wgs
+        elif require_reference:
             raise ProfileUnavailable(
                 f"profile {profile_name!r} uses per-contig references "
                 f"({profile.vep_per_contig.format(chrom='N')}.vcf.gz under "
                 f"output/{RELEASE_DIRS[release]}/{profile.vep_subdir}/). "
                 "Request a single contig with --chroms, or pass --vep explicitly."
             )
-        resolved_ref = None
+        else:
+            resolved_ref = None
     else:
         resolved_ref = vep_vcf_for(profile_name, release, chrom)
     resolved_plugin_cache = None

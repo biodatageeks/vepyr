@@ -1,5 +1,4 @@
 import pytest
-
 from comparison import profiles
 
 
@@ -250,13 +249,16 @@ def test_explicit_plugin_cache_override_skips_derivation(tmp_path, monkeypatch):
     assert resolved.annotate_kwargs["plugin_cache_root"] == str(custom)
 
 
-def test_plugin_profile_without_a_contig_explains_the_per_contig_layout():
+def test_plugin_profile_without_a_contig_explains_the_per_contig_layout(
+    monkeypatch, tmp_path
+):
     """Plugin references are one file per contig, so there is nothing to slice.
 
     Previously the profile declared a single WGS basename that the generator
     never writes, so the documented command reported the profile "unavailable"
     even with every generated reference present.
     """
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
     with pytest.raises(profiles.ProfileUnavailable) as excinfo:
         profiles.resolve("merged_plugins", "116")
 
@@ -295,3 +297,16 @@ def test_plugin_profile_without_a_contig_is_allowed_when_no_reference_is_needed(
     )
 
     assert resolved.vep_vcf is None
+
+
+def test_plugin_profile_without_a_contig_uses_a_whole_genome_reference(
+    monkeypatch, tmp_path
+):
+    """A full VEP run with the plugins serves a multi-contig comparison directly."""
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    out = tmp_path / "output" / "116"
+    out.mkdir(parents=True)
+    wgs = out / (profiles.PROFILES["merged_plugins"].vep_basename + ".vcf.gz")
+    wgs.write_bytes(b"")
+    resolved = profiles.resolve("merged_plugins", "116", require_cache=False)
+    assert resolved.vep_vcf == str(wgs)
