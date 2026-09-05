@@ -273,7 +273,7 @@ def vep_per_contig_vcf_for(profile_name, release, chrom):
     profile = PROFILES[profile_name]
     if not profile.vep_per_contig:
         return None
-    bare = str(chrom)[3:] if str(chrom).startswith("chr") else str(chrom)
+    bare = str(chrom).removeprefix("chr")
     return _first_existing(
         os.path.join(
             data_dir(),
@@ -294,13 +294,18 @@ def vep_vcf_for(profile_name, release, chrom=None):
     """
     profile = PROFILES[profile_name]
     if profile.vep_per_contig:
+        # Prefer the per-contig file; fall back to a whole-genome reference of
+        # the same basename (a full VEP run with the plugins), which the
+        # comparison restricts to the requested contig like any WGS reference.
         if chrom is not None:
-            return vep_per_contig_vcf_for(profile_name, release, chrom)
-        for candidate_chrom in range(1, 23):
-            found = vep_per_contig_vcf_for(profile_name, release, candidate_chrom)
+            found = vep_per_contig_vcf_for(profile_name, release, chrom)
             if found:
                 return found
-        return None
+        else:
+            for candidate_chrom in range(1, 23):
+                found = vep_per_contig_vcf_for(profile_name, release, candidate_chrom)
+                if found:
+                    return found
     return _first_existing(
         os.path.join(data_dir(), "output", RELEASE_DIRS[release], profile.vep_basename)
     )
