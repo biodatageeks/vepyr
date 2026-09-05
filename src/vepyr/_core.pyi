@@ -46,11 +46,13 @@ def build_plugin_cache(
     plugin_cache_root: str,
     chroms: list[str] | None = None,
     overwrite: bool = False,
+    source_version: str | None = None,
 ) -> list[tuple[str, int, int, int]]:
     """Build a plugin cache from a source manifest. Returns (chrom, rows, warm, cold).
 
     ``source_path`` is a path for a single-source manifest, or ``{part: path}``
     for a manifest declaring several ``[[source]]`` entries.
+    ``source_version`` is recorded in ``manifest.json`` when provided.
     """
     ...
 

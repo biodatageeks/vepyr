@@ -608,16 +608,18 @@ def _resolve_plugin_manifest(
     *,
     plugins_repo: str | None = None,
     repo_url: str = DEFAULT_PLUGINS_REPO_URL,
-) -> Iterator[str]:
+) -> Iterator[tuple[str, str]]:
     """Resolve ``plugins/<plugin>/<plugin>.source.toml`` at git tag ``version``.
 
     Offline: reuse a provided local clone (``plugins_repo``). Online: clone the
     public repo into a temp dir. Either way, materialize the file at ``version``
     via ``git worktree`` (never disturbs the caller's checkout).
 
-    A context manager: the temp clone (online only) and the worktree — including
-    its registration in the source repo's ``.git/worktrees/`` — are removed on
-    exit, so repeated builds don't leak ``/tmp`` clones or stale worktree entries.
+    Yields the manifest path and the immutable commit SHA to which ``version``
+    resolved. A context manager: the temp clone (online only) and the worktree —
+    including its registration in the source repo's ``.git/worktrees/`` — are
+    removed on exit, so repeated builds don't leak ``/tmp`` clones or stale
+    worktree entries.
     """
     import os
     import shutil
@@ -634,6 +636,36 @@ def _resolve_plugin_manifest(
         if created_clone:
             repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
             subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
+        resolved_ref = subprocess.run(
+            [
+                "git",
+                "-C",
+                repo,
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                f"{version}^{{commit}}",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if resolved_ref.returncode != 0:
+            resolved_ref = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    repo,
+                    "rev-parse",
+                    "--verify",
+                    "--quiet",
+                    f"origin/{version}^{{commit}}",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        resolved_commit = resolved_ref.stdout.strip()
         worktree = tempfile.mkdtemp(prefix="vepyr-plugins-wt-")
         subprocess.run(
             [
@@ -645,7 +677,7 @@ def _resolve_plugin_manifest(
                 "--quiet",
                 "--detach",
                 worktree,
-                version,
+                resolved_commit,
             ],
             check=True,
         )
@@ -653,7 +685,7 @@ def _resolve_plugin_manifest(
         manifest = os.path.join(worktree, rel)
         if not os.path.exists(manifest):
             raise FileNotFoundError(f"{rel} not found at {version} in {repo}")
-        yield manifest
+        yield manifest, resolved_commit
     finally:
         # Remove the worktree (deletes the dir AND its registration in `repo`);
         # `rmtree` is a belt-and-suspenders cleanup if `worktree remove` failed
@@ -702,10 +734,15 @@ def build_plugin_cache(
 
     The sources are registered as ``plugin_<name>_src_<part>`` and combined by the
     manifest's own ``ingest_sql`` -- there is no need to concatenate them first.
+
+    The cache manifest records the source as ``<version>@<commit SHA>``. This
+    keeps mutable refs auditable and prevents an incremental build from mixing
+    chromosomes produced from different manifest revisions.
     """
-    with _resolve_plugin_manifest(
-        plugin, version, plugins_repo=plugins_repo
-    ) as manifest_path:
+    with _resolve_plugin_manifest(plugin, version, plugins_repo=plugins_repo) as (
+        manifest_path,
+        resolved_commit,
+    ):
         return _build_plugin_cache(
             manifest_path,
             source_path,
@@ -713,6 +750,7 @@ def build_plugin_cache(
             plugin_cache_root,
             chroms,
             overwrite,
+            f"{version}@{resolved_commit}",
         )
 
 
