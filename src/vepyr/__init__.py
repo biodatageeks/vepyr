@@ -1713,8 +1713,12 @@ def annotate(
                 needed.update(predicate.meta.root_names())
         # Fields the match templates of every plugin column read, this query
         # included, must be computed whatever flags were given: a plugin whose
-        # template needs HGVSc is null without hgvs.
-        read_plugins = plugin_columns if needed is None else needed & plugin_columns
+        # template needs HGVSc is null without hgvs. The raw CSQ string carries
+        # every plugin's values, so reading it reads every plugin.
+        if needed is None or "CSQ" in needed:
+            read_plugins = plugin_columns
+        else:
+            read_plugins = needed & plugin_columns
         required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
         engine_opts = _flags_for_projection(_opts, needed, set(polars_schema), required)
         # The CSQ string is only built when the query reads it or a plugin

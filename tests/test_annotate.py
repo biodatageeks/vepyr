@@ -2076,6 +2076,25 @@ class TestPluginMatchTemplates:
             with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
                 lf.collect()
 
+    def test_template_fields_are_honoured_when_csq_is_selected(
+        self, tmp_path, monkeypatch
+    ):
+        # the raw CSQ string carries every plugin's values
+        import vepyr
+
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            af=True,
+            reference_fasta=REFERENCE_FASTA,
+            skip_csq=False,
+            plugin_cache_root=root,
+            plugins=["byhgvs"],
+        ).select("chrom", "CSQ").collect()
+        opts = calls[-1]
+        assert opts["hgvs"] is True and opts["af"] is True
+
     def test_template_fields_without_fasta_raise(self, tmp_path, monkeypatch):
         import vepyr
 
