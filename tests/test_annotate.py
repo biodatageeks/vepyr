@@ -1583,7 +1583,8 @@ class TestFlagInference:
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR).collect()
+        with pytest.warns(UserWarning, match=r"no reference_fasta.*HGVSc.*SIFT"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR).collect()
         opts = seen[-1]
         for key in (
             "check_existing",
@@ -1601,10 +1602,14 @@ class TestFlagInference:
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, af=True, reference_fasta=REFERENCE_FASTA
-        ).collect()
-        opts = seen[-1]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # explicit flags or a select() never warn
+            vepyr.annotate(
+                INPUT_VCF, CACHE_DIR, af=True, reference_fasta=REFERENCE_FASTA
+            ).collect()
+            opts = seen[-1]
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, af=True).collect()
+            vepyr.annotate(INPUT_VCF, CACHE_DIR).select(["chrom", "AF"]).collect()
         assert opts["af"] is True
         assert (
             "everything" not in opts

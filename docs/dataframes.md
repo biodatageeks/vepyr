@@ -19,9 +19,9 @@ df = lf.collect()
 !!! tip "No columns selected means `everything`"
     A frame created without annotation flags and collected without a
     `select()` is the full VEP `--everything` result, provided a
-    `reference_fasta` is given. Without a FASTA the HGVS and
-    `everything`-only columns stay null, because the engine cannot compute
-    them. Add a `select()` and only the flags its columns need are run, see
+    `reference_fasta` is given. Without a FASTA the engine cannot compute
+    the HGVS and `everything`-only columns: they stay null and a warning
+    names them. Add a `select()` and only the flags its columns need are run, see
     [below](#what-is-pushed-into-the-engine). Flags you pass explicitly are
     honoured as given.
 

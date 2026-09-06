@@ -150,6 +150,14 @@ def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
             else:
                 for key in _COLOCATED_OPTIONS:
                     out[key] = True
+                unavailable = ", ".join(
+                    sorted(_HGVS_COLUMNS | _EVERYTHING_ONLY_COLUMNS)
+                )
+                warnings.warn(
+                    "no reference_fasta given, so these columns will be null: "
+                    f"{unavailable}. Pass reference_fasta= for the full result",
+                    stacklevel=2,
+                )
         return out
     if "CSQ" in needed:
         return out
