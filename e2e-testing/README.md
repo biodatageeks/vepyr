@@ -319,6 +319,24 @@ Optional selection profiles depend on their corresponding reference VCFs.
 Passing an unavailable combination prints the live availability matrix and
 fails before normalization.
 
+### `profile_plugin_cache.py` -- plugin cache QA profile
+
+Checks a plugin cache's structural invariants, profiles its content into
+`qa_profile.json`, regenerates the `## Quality profile` section of its Hub card, and
+optionally publishes shards, manifest, JSON and card as one commit with a moved tag.
+Design: `docs/superpowers/specs/2026-09-05-plugin-cache-qa-profile-design.md`.
+
+```bash
+uv run python e2e-testing/scripts/profile_plugin_cache.py clinvar \
+  --root ~/workspace/data_vepyr/plugin_cache_v0.1.1
+# with card update and publish
+uv run python e2e-testing/scripts/profile_plugin_cache.py clinvar --root ... \
+  --readme-from-hub biodatageeks/vepyr_116_GRCh38_plugin_clinvar \
+  --publish biodatageeks/vepyr_116_GRCh38_plugin_clinvar --tag v0.1.1
+```
+
+Exit 0 pass/warn, 1 an invariant failed (nothing uploaded), 2 usage or I/O error.
+
 ## Typical workflow after a dependency bump
 
 ```bash
