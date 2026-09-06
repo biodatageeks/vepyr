@@ -118,7 +118,7 @@ Schema({
     'SOMATIC': String,
     'PHENO': String,
     'PUBMED': List(String),              # distinct values per variant
-    'MOTIF_NAME': List(String),          # per entry; null outside MotifFeature entries
+    'MOTIF_NAME': List(String),          # per entry, MotifFeature entries only; everything only
     'MOTIF_POS': List(Int64),
     'HIGH_INF_POS': List(String),
     'MOTIF_SCORE_CHANGE': List(Float32),
@@ -190,8 +190,8 @@ native annotator. Two things reach the engine:
   columns (`Existing_variation`, `CLIN_SIG`, `SOMATIC`, `PHENO`, `PUBMED`, the
   `AF` family and the cache-only columns) on `check_existing` and the `af`
   flags; and the `everything`-only extras (`MANE`, `APPRIS`, `SIFT`,
-  `PolyPhen`, `DOMAINS`, `miRNA`, `HGVS_OFFSET` and the gnomAD
-  sub-populations) on `everything`. A group nobody selected is switched off
+  `PolyPhen`, `DOMAINS`, `miRNA`, `HGVS_OFFSET`, the five motif columns and
+  the gnomAD sub-populations) on `everything`. A group nobody selected is switched off
   for the run. A group a column needs is switched on when you gave no flags;
   flags you did set are kept exactly as configured. HGVS and the `everything`
   extras need `reference_fasta`, and selecting them without one raises rather

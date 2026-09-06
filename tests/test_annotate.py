@@ -1476,6 +1476,7 @@ class TestFlagInference:
             "AFR_AF",
             "MANE",
             "SIFT",
+            "MOTIF_NAME",
             "dbsnp_ids",
         ]
 
@@ -1541,6 +1542,16 @@ class TestFlagInference:
         ).collect()
         assert seen[-1]["everything"] is True
         assert seen[-1]["reference_fasta_path"] == REFERENCE_FASTA
+
+    def test_motif_columns_infer_everything(self, monkeypatch):
+        # the motif fields exist only in the everything CSQ layout
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            ["chrom", "MOTIF_NAME"]
+        ).collect()
+        assert seen[-1]["everything"] is True
 
     def test_everything_only_column_without_fasta_is_an_error(self, monkeypatch):
         import vepyr

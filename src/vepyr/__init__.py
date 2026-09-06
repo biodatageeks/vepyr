@@ -84,9 +84,16 @@ _COLOCATED_OPTIONS = (
     "max_af",
     "pubmed",
 )
-# Columns only ``everything`` fills; selecting one keeps the flag as is.
+# Columns only ``everything`` fills; selecting one keeps the flag as is. The
+# motif columns are among them because the five motif fields exist only in
+# the ``everything`` CSQ layout (the engine leaves them null otherwise).
 _EVERYTHING_ONLY_COLUMNS = frozenset(
     {
+        "MOTIF_NAME",
+        "MOTIF_POS",
+        "HIGH_INF_POS",
+        "MOTIF_SCORE_CHANGE",
+        "TRANSCRIPTION_FACTORS",
         "MANE",
         "APPRIS",
         "SIFT",
