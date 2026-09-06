@@ -130,6 +130,39 @@ def test_unknown_header_contigs_disable_pushdown(monkeypatch, fake_engine):
     assert "regions" not in opts
 
 
+@pytest.mark.parametrize(
+    "residual",
+    [
+        pl.col("most_severe_consequence").is_duplicated(),
+        pl.col("most_severe_consequence").rank() > 1,
+        pl.col("start").cum_count() > 1,
+    ],
+)
+def test_set_dependent_residuals_never_reach_the_plugin(
+    monkeypatch, fake_engine, residual
+):
+    """Region pushdown relies on Polars applying the pushed predicate to the
+    narrowed rows, which is only sound for elementwise expressions. Polars
+    keeps set-dependent predicates on its own side of the IO plugin; this
+    pins that assumption so a change in its pushdown rules shows up here."""
+    import vepyr
+
+    handed_over = []
+    original = vepyr.extract_regions
+    monkeypatch.setattr(
+        vepyr,
+        "extract_regions",
+        lambda predicate, contigs: (
+            handed_over.append(predicate) or original(predicate, contigs)
+        ),
+    )
+    lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
+    lf.filter((pl.col("start") >= 100) & residual).collect()
+    assert handed_over == [], "a set-dependent predicate reached the IO plugin"
+    (opts,) = _collect_opts(fake_engine)
+    assert "regions" not in opts
+
+
 def test_unindexed_input_warns_once_per_annotate_call(fake_engine):
     import vepyr
 
