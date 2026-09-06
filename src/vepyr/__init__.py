@@ -1844,6 +1844,15 @@ def annotate(
                     pbar.update(batch.num_rows)
                     pbar.refresh()
                     yield batch
+                # Exhausted, so the rows seen are all there were. A LIMIT is
+                # only an upper bound: without this a `.head(1000)` over a
+                # 2-record input would close at 2/1000 and report a finished
+                # run as 0.2%. Deliberately outside the `finally` -- a stream
+                # that raised has not seen all its rows, and must not be
+                # presented as complete.
+                if pbar.total is not None:
+                    pbar.total = pbar.n
+                    pbar.refresh()
             finally:
                 # Reached on normal exhaustion and when Polars abandons the
                 # outer generator once a limit is satisfied.
