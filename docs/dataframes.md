@@ -141,6 +141,12 @@ entry, such as the frequencies, are stored once as scalars. The input's other
 `INFO` fields and its sample columns are not in the frame; use `output_vcf`
 for those. Add `skip_csq=False` to get the raw `CSQ` string as a column.
 
+To narrow the frame, `select()` the columns you need, see
+[below](#what-is-pushed-into-the-engine); the engine then only computes what
+those columns require.
+
+### Plugin columns
+
 With a plugin cache configured, every plugin CSQ field is a named
 `List(String)` column appended after the block above, `CADD_PHRED` and
 `CADD_RAW` for example; see [Plugins](plugins.md). The engine only runs the
@@ -158,8 +164,7 @@ lf.select("chrom", "start", "SYMBOL")                     # neither
 
 Selecting a plugin column on a frame without a plugin cache fails when the
 plan is built, with Polars' `ColumnNotFoundError` listing the columns the
-frame has. To narrow the frame, `select()` the columns you need (next
-section); the engine then only computes what those columns require.
+frame has.
 
 ## What is pushed into the engine
 
