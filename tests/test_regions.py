@@ -192,8 +192,33 @@ def test_bounds_beyond_i64_are_normalised(predicate, expected):
     assert extract_regions((pl.col("chrom") == "chr1") & predicate, CONTIGS) == expected
 
 
+def test_contigs_are_fetched_lazily_and_only_for_pushable_predicates():
+    calls = []
+
+    def contigs():
+        calls.append(1)
+        return list(CONTIGS)
+
+    # Unsupported shapes never ask for the contigs (an unindexed input would
+    # have to scan the file to produce them).
+    assert extract_regions(pl.col("start").cast(pl.Int64) > 5, contigs) is None
+    assert (
+        extract_regions((pl.col("chrom") == "chr1") & (pl.col("start") > 5.5), contigs)
+        is None
+    )
+    assert extract_regions(pl.col("chrom").is_duplicated(), contigs) is None
+    assert calls == []
+    # A pushable predicate asks exactly once, even with several groups.
+    p = ((pl.col("chrom") == "chr1") & (pl.col("start") > 5)) | (
+        pl.col("chrom") == "chr2"
+    )
+    assert extract_regions(p, contigs) == [region("chr1", 6), region("chr2")]
+    assert calls == [1]
+
+
 def test_unknown_contigs_fail_open():
     # No ``##contig`` lines and no index: nothing can be proven, so no pushdown
     # rather than an empty result.
     assert extract_regions(pl.col("chrom") == "chr1", []) is None
     assert extract_regions(pl.col("start") > 5, []) is None
+    assert extract_regions(pl.col("chrom") == "chr1", list) is None

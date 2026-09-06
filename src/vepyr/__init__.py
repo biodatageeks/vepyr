@@ -1766,7 +1766,9 @@ def annotate(
         # indexed inputs are read by seek. Polars still applies the full
         # predicate on every batch below, so this can only narrow the input.
         if predicate is not None and GENOMIC_COLUMNS & set(predicate.meta.root_names()):
-            regions = extract_regions(predicate, _header_contigs())
+            # The contig list is fetched lazily: only a pushable predicate
+            # pays for the contig scan an unindexed input needs.
+            regions = extract_regions(predicate, _header_contigs)
             if regions == []:
                 return
             if regions is not None:

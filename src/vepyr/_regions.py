@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import io
 import json
+from collections.abc import Callable
 from typing import Any
 
 import polars as pl
@@ -54,20 +55,33 @@ class _Unrecognised(Exception):
     """A genomic conjunct this module cannot bound safely."""
 
 
-def extract_regions(predicate: pl.Expr, contigs: list[str]) -> list[dict] | None:
+def extract_regions(
+    predicate: pl.Expr, contigs: list[str] | Callable[[], list[str]]
+) -> list[dict] | None:
     """Regions the predicate restricts the input to, or ``None`` for no pushdown.
 
-    ``[]`` means the predicate can accept no row at all. An empty ``contigs``
-    list means the input's contigs are unknown (no ``##contig`` header and no
-    index), and nothing can be proven about it: no pushdown.
+    ``[]`` means the predicate can accept no row at all. ``contigs`` is the
+    input's contig list or a callable producing it; the callable is only
+    invoked once every conjunct has passed the shape checks, because finding
+    the contigs of an unindexed input costs a scan of the file. An empty list
+    means the contigs are unknown (no ``##contig`` header and no index), and
+    nothing can be proven about it: no pushdown.
     """
-    if not contigs:
-        return None
+    provider = contigs if callable(contigs) else (lambda: contigs)
+    cache: dict[str, list[str]] = {}
+
+    def known_contigs() -> list[str]:
+        if "value" not in cache:
+            cache["value"] = list(provider())
+        if not cache["value"]:
+            raise _Unrecognised("contigs unknown")
+        return cache["value"]
+
     try:
         tree = json.loads(predicate.meta.serialize(format="json"))
         regions: list[dict] = []
         for group in _split(tree, "Or"):
-            chroms, lo, hi = _analyse_group(group, contigs)
+            chroms, lo, hi = _analyse_group(group, known_contigs)
             # Coordinates are 1-based: a lower bound below 1 is no bound, an
             # upper bound below 1 accepts nothing. Beyond the engine's i64
             # range a lower bound accepts nothing and an upper bound is open.
@@ -98,15 +112,16 @@ def _split(node: dict, op: str) -> list[dict]:
 
 
 def _analyse_group(
-    group: dict, contigs: list[str]
+    group: dict, known_contigs: Callable[[], list[str]]
 ) -> tuple[list[str], int | None, int | None]:
     """One conjunction: (chroms in contig order, lower bound, upper bound).
 
     Raises ``_Unrecognised`` when the group has no recognised genomic conjunct
     or holds one it cannot bound, because an ``Or`` over such a group could
-    accept any row.
+    accept any row. Every conjunct's shape is checked before the contig list
+    is requested, so an unsupported predicate never pays for the contig scan.
     """
-    chrom_set: set[str] | None = None
+    chrom_nodes: list[dict] = []
     lo: int | None = None
     hi: int | None = None
     recognised = False
@@ -114,9 +129,7 @@ def _analyse_group(
         names = _column_names(conjunct)
         if names == {"chrom"}:
             _gate_chrom_shape(conjunct)
-            frame = pl.DataFrame({"chrom": contigs}, schema={"chrom": pl.String})
-            matched = set(frame.filter(_deserialize(conjunct))["chrom"].to_list())
-            chrom_set = matched if chrom_set is None else chrom_set & matched
+            chrom_nodes.append(conjunct)
             recognised = True
         elif names and names <= _RANGE_COLUMNS:
             c_lo, c_hi = _range_bounds(conjunct)
@@ -130,6 +143,12 @@ def _analyse_group(
         # any other conjunct is a residual Polars applies after annotation
     if not recognised:
         raise _Unrecognised("no genomic conjunct in group")
+    contigs = known_contigs()
+    chrom_set: set[str] | None = None
+    for node in chrom_nodes:
+        frame = pl.DataFrame({"chrom": contigs}, schema={"chrom": pl.String})
+        matched = set(frame.filter(_deserialize(node))["chrom"].to_list())
+        chrom_set = matched if chrom_set is None else chrom_set & matched
     if chrom_set is None:
         return list(contigs), lo, hi
     return [c for c in contigs if c in chrom_set], lo, hi

@@ -35,11 +35,13 @@ FASTA_NAME = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 DEFAULT_PROFILES = tuple(
     name for name, profile in profiles.PROFILES.items() if profile.flavour == name
 )
-DEFAULT_REGIONS = [
-    "chr22:20000000-25000000",
-    "chr22:30000000-30100000",
-    "chr22:17000000-17500000,chr22:40000000-40200000",
-    "chr22:45000000-",
+# Default regions, written against the selected contig (`{c}`): a 5 Mb range,
+# a 100 kb range, two disjoint ranges in one predicate, and an open-ended tail.
+DEFAULT_REGION_TEMPLATES = [
+    "{c}:20000000-25000000",
+    "{c}:30000000-30100000",
+    "{c}:17000000-17500000,{c}:40000000-40200000",
+    "{c}:45000000-",
 ]
 
 
@@ -175,8 +177,9 @@ def main(argv=None):
     p.add_argument(
         "--regions",
         nargs="+",
-        default=DEFAULT_REGIONS,
-        help="'chrom:lo-hi' items; comma-join several into one predicate",
+        default=None,
+        help="'chrom:lo-hi' items; comma-join several into one predicate "
+        "(default: four regions on the selected --chrom)",
     )
     p.add_argument(
         "--input",
@@ -203,14 +206,16 @@ def main(argv=None):
         args.release,
     )
     slice_dir = os.path.join(out_dir, "input")
-    slice_gz = vcfio.slice_contig(vcf, vcfio.canonical_contig(args.chrom), slice_dir)
+    contig = vcfio.canonical_contig(args.chrom)
+    regions = args.regions or [t.format(c=contig) for t in DEFAULT_REGION_TEMPLATES]
+    slice_gz = vcfio.slice_contig(vcf, contig, slice_dir)
     plain_vcf = plain_copy(slice_gz, slice_dir)
 
     all_ok = True
     rows = []
     for profile in args.profiles:
         ok, profile_rows = run_profile(
-            vepyr, profile, args.release, slice_gz, plain_vcf, fasta, args.regions
+            vepyr, profile, args.release, slice_gz, plain_vcf, fasta, regions
         )
         all_ok &= ok
         rows.extend(profile_rows)
