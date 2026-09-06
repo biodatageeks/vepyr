@@ -27,6 +27,8 @@ _INT_SCALAR_KEYS = frozenset(
     {"Int8", "Int16", "Int32", "Int64", "UInt8", "UInt16", "UInt32", "UInt64"}
 )
 _FLIP = {"Eq": "Eq", "Gt": "Lt", "GtEq": "LtEq", "Lt": "Gt", "LtEq": "GtEq"}
+# The engine represents bounds as signed 64-bit integers.
+_I64_MAX = 2**63 - 1
 # Functions a chrom conjunct may use: elementwise only, so evaluating the
 # conjunct against a one-row-per-contig frame gives the same verdict per
 # contig as it would per data row. Set-dependent functions (is_duplicated,
@@ -67,11 +69,16 @@ def extract_regions(predicate: pl.Expr, contigs: list[str]) -> list[dict] | None
         for group in _split(tree, "Or"):
             chroms, lo, hi = _analyse_group(group, contigs)
             # Coordinates are 1-based: a lower bound below 1 is no bound, an
-            # upper bound below 1 accepts nothing.
+            # upper bound below 1 accepts nothing. Beyond the engine's i64
+            # range a lower bound accepts nothing and an upper bound is open.
             if lo is not None and lo < 1:
                 lo = None
             if hi is not None and hi < 1:
                 continue
+            if lo is not None and lo > _I64_MAX:
+                continue
+            if hi is not None and hi > _I64_MAX:
+                hi = None
             if lo is not None and hi is not None and lo > hi:
                 continue
             regions.extend({"chrom": c, "start": lo, "end": hi} for c in chroms)

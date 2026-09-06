@@ -20,14 +20,14 @@ PLAIN_INPUT_VCF = str(GOLDEN_DIR / "input.vcf")
 REFERENCE_FASTA = str(GOLDEN_DIR / "reference.fa")
 
 
-def test_vcf_contigs_prefers_the_index_and_falls_back_to_the_header():
+def test_vcf_contigs_are_exact_with_and_without_an_index():
     from vepyr._core import vcf_contigs
 
-    # Indexed input: the data-bearing contigs from the .tbi (exact).
+    # Indexed input: the data-bearing contigs from the .tbi.
     assert vcf_contigs(INPUT_VCF) == ["chr1"]
-    # Plain input: the ##contig declarations, a superset of the data.
-    header = vcf_contigs(PLAIN_INPUT_VCF)
-    assert "chr1" in header and len(header) > 1
+    # Plain input: the header declares the whole assembly, but only the
+    # contigs the records use count (found by one scan of the file).
+    assert vcf_contigs(PLAIN_INPUT_VCF) == ["chr1"]
 
 
 def test_vcf_contigs_missing_file_raises():

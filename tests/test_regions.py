@@ -179,6 +179,19 @@ def test_bounds_below_one_are_normalised(predicate, expected):
     assert extract_regions(predicate, CONTIGS) == expected
 
 
+@pytest.mark.parametrize(
+    "predicate, expected",
+    [
+        (pl.col("end") <= pl.lit(2**63, dtype=pl.UInt64), [region("chr1")]),
+        (pl.col("start") <= pl.lit(2**64 - 1, dtype=pl.UInt64), [region("chr1")]),
+        (pl.col("start") > pl.lit(2**63 - 1, dtype=pl.UInt64), []),
+        (pl.col("start") >= pl.lit(2**63, dtype=pl.UInt64), []),
+    ],
+)
+def test_bounds_beyond_i64_are_normalised(predicate, expected):
+    assert extract_regions((pl.col("chrom") == "chr1") & predicate, CONTIGS) == expected
+
+
 def test_unknown_contigs_fail_open():
     # No ``##contig`` lines and no index: nothing can be proven, so no pushdown
     # rather than an empty result.

@@ -272,8 +272,8 @@ an `|` *inside* a range conjunct) is not pushed down and is applied by Polars
 after annotation, which is still correct, just not faster.
 
 Without a tabix/CSI index next to the input a `RuntimeWarning` is emitted:
-the whole file is parsed and filtered before annotation, and only the
-selected rows are annotated. On Merged and RefSeq caches a range costs one
+the whole file is parsed once to find which contigs it carries and once more
+to filter it before annotation, and only the selected rows are annotated. On Merged and RefSeq caches a range costs one
 extra positional pass over each selected contig, which keeps the result
 byte-identical to a whole-file run.
 

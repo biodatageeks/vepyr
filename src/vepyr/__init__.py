@@ -23,12 +23,12 @@ from vepyr._core import vcf_contigs as _vcf_contigs
 from vepyr._regions import GENOMIC_COLUMNS, extract_regions
 
 __all__ = [
+    "annotate",
     "build_cache",
     "build_cache_entity",
     "build_plugin_cache",
-    "annotate",
-    "supported_vep_targets",
     "cache_contig_identity",
+    "supported_vep_targets",
 ]
 
 __version__ = importlib.metadata.version("vepyr")
@@ -651,7 +651,7 @@ def build_cache(
     local_cache: str | None = None,
     download_retries: int = 10,
     show_progress: bool = True,
-    on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
+    on_progress: Callable[[str, str, int, int, int], None] | None = None,
     overwrite: bool = False,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to an optimized cache.
@@ -1126,8 +1126,8 @@ def annotate(
     preserve_record_layout: bool = True,
     show_progress: bool = True,
     compression: str | None = None,
-    on_batch_written: "Callable[[int, int, int], None] | None" = None,
-) -> "pl.LazyFrame | str":
+    on_batch_written: Callable[[int, int, int], None] | None = None,
+) -> pl.LazyFrame | str:
     """Annotate variants from a VCF file with VEP consequences.
 
     Reads the VCF, runs ``annotate_vep()`` against the partitioned parquet
@@ -1605,7 +1605,7 @@ def annotate(
     # (csq_field, element dtype, per_variant): a plugin keyed only on the
     # variant (no match_columns) carries one value per row, a per-feature
     # plugin one value per consequence entry.
-    plugin_column_specs: list[tuple[str, "pl.DataType", bool]] = []
+    plugin_column_specs: list[tuple[str, pl.DataType, bool]] = []
     # Fields a plugin's match templates read (``{HGVSc}`` say), per plugin
     # column: reading the column needs those fields' flags too.
     plugin_column_inputs: dict[str, set[str]] = {}
@@ -1730,8 +1730,9 @@ def annotate(
             return
         warnings.warn(
             f"region filter on {_vcf!r} without a tabix/CSI index ({_vcf}.tbi or "
-            ".csi): the whole file is parsed and filtered before annotation. "
-            "Compress with bgzip and index with tabix for seek-based reads.",
+            ".csi): the whole file is parsed once to find its contigs and once "
+            "more to filter it before annotation. Compress with bgzip and index "
+            "with tabix for seek-based reads.",
             RuntimeWarning,
             stacklevel=2,
         )

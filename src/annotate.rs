@@ -367,49 +367,97 @@ pub fn annotate_to_vcf_file(
     })
 }
 
-/// The input's contigs: the data-bearing contigs from the tabix/CSI index when
-/// there is one (exact), otherwise the `##contig` declarations in header
-/// order, otherwise empty (unknown). The provider resolves its index and
-/// header asynchronously, so it is built on a runtime.
+/// The input's data-bearing contigs, or empty when unknown. With a tabix/CSI
+/// index the set comes from the index (exact, free). Without one the
+/// `##contig` header cannot be trusted to be exhaustive, so the records are
+/// scanned once for their distinct `chrom` values; header order is kept for
+/// the contigs it declares, undeclared ones follow in encounter order.
 pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
+    use std::collections::HashSet;
+
+    use datafusion::arrow::array::StringArray;
+    use datafusion::arrow::compute::cast;
+    use datafusion::arrow::datatypes::DataType;
     use datafusion::datasource::TableProvider;
 
     let rt = runtime_for_workers(1)?;
     let path = vcf_path.to_string();
-    let schema = rt.block_on(async move {
-        datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+    rt.block_on(async move {
+        let provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
             path,
             Some(vec![]),
             Some(vec![]),
             None,
             false,
         )
-        .map(|provider| provider.schema())
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}")))
-    })?;
-    if let Some(raw) = schema.metadata().get("bio.vcf.contigs.indexed") {
-        let indexed: Vec<String> = serde_json::from_str(raw).map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Invalid VCF index metadata: {e}"))
+        .map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
         })?;
-        if !indexed.is_empty() {
-            return Ok(indexed);
+        let schema = provider.schema();
+        if let Some(raw) = schema.metadata().get("bio.vcf.contigs.indexed") {
+            let indexed: Vec<String> = serde_json::from_str(raw).map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Invalid VCF index metadata: {e}"
+                ))
+            })?;
+            if !indexed.is_empty() {
+                return Ok(indexed);
+            }
         }
-    }
-    let Some(raw) = schema.metadata().get("bio.vcf.contigs") else {
-        return Ok(Vec::new());
-    };
-    let entries: Vec<Value> = serde_json::from_str(raw).map_err(|e| {
-        pyo3::exceptions::PyRuntimeError::new_err(format!("Invalid VCF contig metadata: {e}"))
-    })?;
-    Ok(entries
-        .iter()
-        .filter_map(|entry| {
-            entry
-                .get("id")
-                .and_then(|id| id.as_str())
-                .map(str::to_string)
-        })
-        .collect())
+        let header: Vec<String> = match schema.metadata().get("bio.vcf.contigs") {
+            Some(raw) => {
+                let entries: Vec<Value> = serde_json::from_str(raw).map_err(|e| {
+                    pyo3::exceptions::PyRuntimeError::new_err(format!(
+                        "Invalid VCF contig metadata: {e}"
+                    ))
+                })?;
+                entries
+                    .iter()
+                    .filter_map(|entry| {
+                        entry
+                            .get("id")
+                            .and_then(|id| id.as_str())
+                            .map(str::to_string)
+                    })
+                    .collect()
+            }
+            None => Vec::new(),
+        };
+        // Scan the records for the exact set; any failure means "unknown".
+        let ctx = SessionContext::new();
+        if ctx.register_table("vcf", Arc::new(provider)).is_err() {
+            return Ok(Vec::new());
+        }
+        let batches = match ctx.sql("SELECT DISTINCT chrom FROM vcf").await {
+            Ok(df) => match df.collect().await {
+                Ok(batches) => batches,
+                Err(_) => return Ok(Vec::new()),
+            },
+            Err(_) => return Ok(Vec::new()),
+        };
+        let mut seen: HashSet<String> = HashSet::new();
+        let mut encountered: Vec<String> = Vec::new();
+        for batch in &batches {
+            let Ok(column) = cast(batch.column(0), &DataType::Utf8) else {
+                return Ok(Vec::new());
+            };
+            let Some(values) = column.as_any().downcast_ref::<StringArray>() else {
+                return Ok(Vec::new());
+            };
+            for value in values.iter().flatten() {
+                if seen.insert(value.to_string()) {
+                    encountered.push(value.to_string());
+                }
+            }
+        }
+        let mut ordered: Vec<String> = header.into_iter().filter(|c| seen.contains(c)).collect();
+        for contig in encountered {
+            if !ordered.contains(&contig) {
+                ordered.push(contig);
+            }
+        }
+        Ok(ordered)
+    })
 }
 
 /// Create a streaming annotator that yields PyArrow RecordBatches.
