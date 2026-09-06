@@ -76,7 +76,7 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-# bio-functions 55e81d3: streaming run pool, workers>1 on the LazyFrame path (#240, PR head; re-pin after merge)
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "55e81d34dc1792cb291d68213681c53033e2a3f7", features = ["cache-builder"] }
+# bio-functions 0bf7175: streaming run pool, workers>1 on the LazyFrame path (#240)
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "0bf7175d659d7f97f223f761b283bcdc90426670", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
