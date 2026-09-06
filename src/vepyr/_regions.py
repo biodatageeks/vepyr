@@ -114,6 +114,10 @@ def extract_regions(
         regions: list[dict] = []
         for chrom_nodes, lo, hi in vetted:
             chroms = _evaluate_group(chrom_nodes, known_contigs())
+            if any("`" in c for c in chroms):
+                # The engine rejects backticks in region names; a VCF with
+                # such a contig keeps the single-pass behaviour.
+                return None
             regions.extend({"chrom": c, "start": lo, "end": hi} for c in chroms)
         return regions
     except (_Unrecognised, KeyError, TypeError, ValueError, IndexError):

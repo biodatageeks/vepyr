@@ -260,6 +260,14 @@ def test_groups_that_narrow_nothing_fail_open(predicate):
     assert calls == []
 
 
+def test_contig_names_the_engine_cannot_represent_fail_open():
+    contigs = ["chr1", "weird`name"]
+    assert extract_regions(pl.col("start") >= 100, contigs) is None
+    assert extract_regions(pl.col("chrom") == "weird`name", contigs) is None
+    # A selection that never touches the odd contig still pushes.
+    assert extract_regions(pl.col("chrom") == "chr1", contigs) == [region("chr1")]
+
+
 def test_unknown_contigs_fail_open():
     # No ``##contig`` lines and no index: nothing can be proven, so no pushdown
     # rather than an empty result.
