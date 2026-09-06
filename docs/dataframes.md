@@ -201,9 +201,10 @@ native annotator. Two things reach the engine:
 `filter()` itself is applied to each batch after annotation. It bounds memory,
 because a batch is dropped as soon as it has been reduced, but it does not
 reduce the engine's work; filtering by region is cheaper done on the input VCF
-with `bcftools view -r`. Adding `skip_csq=False` and selecting `CSQ` disables
-pruning, since the string needs every flag. Plugin lookups run only when the
-query reads a plugin column or `CSQ`.
+with `bcftools view -r`. The raw `CSQ` string (`skip_csq=False`) needs every
+flag, so a query that reads it runs like a plain `collect()`: with the flags
+you gave, or the flagless default. Plugin lookups run only when the query
+reads a plugin column or `CSQ`.
 
 ```python
 preview = lf.head(20).collect()              # LIMIT 20 in the engine

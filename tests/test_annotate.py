@@ -1334,6 +1334,18 @@ class TestProjectionPruning:
         ).select(["chrom", "CSQ"]).collect()
         assert self._engine_opts(seen)["everything"] is True
 
+    def test_csq_column_on_a_flagless_frame_gets_the_flagless_default(
+        self, monkeypatch
+    ):
+        # select("CSQ") and collect().select("CSQ") must carry the same string
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA, skip_csq=False
+        ).select(["chrom", "CSQ"]).collect()
+        assert self._engine_opts(seen)["everything"] is True
+
     def test_individual_flags_are_pruned_too(self, monkeypatch):
         import vepyr
 

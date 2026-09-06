@@ -144,11 +144,11 @@ def _flags_for_projection(
 ) -> dict:
     """Derive the annotation flags a query needs from the columns it reads.
 
-    ``needed`` is the query's projection plus any filter columns. ``None``
-    means no projection: the flags stay as given, or, when none were given,
-    ``everything`` is used with a FASTA and the co-located lookup without one.
-    With a projection only three column groups depend on flags at all (see
-    the constants above):
+    ``needed`` is the query's projection plus any filter columns. With no
+    projection (``None``), or when the raw ``CSQ`` string is read, the flags
+    stay as given, or, when none were given, ``everything`` is used with a
+    FASTA and the co-located lookup without one. Otherwise only three column
+    groups depend on flags at all (see the constants above):
 
     - a group nobody selected has its flags removed, so the engine skips it;
     - a group the user enabled explicitly is kept exactly as configured;
@@ -156,18 +156,18 @@ def _flags_for_projection(
       HGVS and the ``everything`` extras need ``reference_fasta``; asking for
       them without one is an error rather than a column of nulls.
 
-    The raw ``CSQ`` string depends on the full flag set, so a query reading it
-    leaves ``opts`` untouched. ``available`` is the frame's column set; it
-    limits the no-FASTA warning to columns the frame has. Returns a new dict.
+    ``available`` is the frame's column set; it limits the no-FASTA warning
+    to columns the frame has. Returns a new dict.
     """
     out = dict(opts)
     user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
     user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
     user_any_flag = bool(opts.get("everything")) or user_hgvs or user_colocated
-    if needed is None:
-        # No projection: flags as given, or, when none were given, everything
-        # the inputs allow. HGVS and the everything extras need a FASTA, so
-        # without one only the co-located lookup can be switched on.
+    if needed is None or "CSQ" in needed:
+        # No projection, or the raw CSQ string (which needs every flag): flags
+        # as given, or, when none were given, everything the inputs allow.
+        # HGVS and the everything extras need a FASTA, so without one only
+        # the co-located lookup can be switched on.
         if not user_any_flag:
             if out.get("reference_fasta_path"):
                 out["everything"] = True
@@ -184,8 +184,6 @@ def _flags_for_projection(
                         "for the full result",
                         stacklevel=2,
                     )
-        return out
-    if "CSQ" in needed:
         return out
 
     def _needs(group: frozenset) -> bool:
