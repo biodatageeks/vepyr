@@ -30,6 +30,9 @@ _INT_SCALAR_KEYS = frozenset(
 _FLIP = {"Eq": "Eq", "Gt": "Lt", "GtEq": "LtEq", "Lt": "Gt", "LtEq": "GtEq"}
 # The engine represents bounds as signed 64-bit integers.
 _I64_MAX = 2**63 - 1
+# Names no VCF contig can have; a chrom conjunct that accepts one of them
+# accepts arbitrary names and narrows nothing on its own.
+_PROBE_CONTIGS = ["\x00vepyr-probe\x00", "vepyr.probe.contig.that.cannot.exist"]
 # Functions a chrom conjunct may use: elementwise only, so evaluating the
 # conjunct against a one-row-per-contig frame gives the same verdict per
 # contig as it would per data row. Set-dependent functions (is_duplicated,
@@ -94,11 +97,13 @@ def extract_regions(
                 lo = None
             if hi is not None and hi > _I64_MAX:
                 hi = None
-            if not chrom_nodes and lo is None and hi is None:
-                # Nothing narrows this group (e.g. only `end >= v`): pushing
-                # open regions for every contig would cost the contig scan
-                # and the warning for no gain.
-                return None
+            if lo is None and hi is None:
+                # Nothing narrows this group (only `end >= v`, or chrom
+                # conjuncts that accept any name such as `is_not_null()` or
+                # `!= "chr2"`): pushing open regions for every contig would
+                # cost the contig scan and the warning for no gain.
+                if not chrom_nodes or _accepts_unknown_contig(chrom_nodes):
+                    return None
             if hi is not None and hi < 1:
                 continue
             if lo is not None and lo > _I64_MAX:
@@ -155,6 +160,15 @@ def _plan_group(group: dict) -> tuple[list[dict], int | None, int | None]:
     if not recognised:
         raise _Unrecognised("no genomic conjunct in group")
     return chrom_nodes, lo, hi
+
+
+def _accepts_unknown_contig(chrom_nodes: list[dict]) -> bool:
+    """True when the chrom conjuncts let a name that is not a contig through,
+    i.e. they do not select specific contigs."""
+    frame = pl.DataFrame({"chrom": _PROBE_CONTIGS}, schema={"chrom": pl.String})
+    for node in chrom_nodes:
+        frame = frame.filter(_deserialize(node))
+    return frame.height > 0
 
 
 def _evaluate_group(chrom_nodes: list[dict], contigs: list[str]) -> list[str]:

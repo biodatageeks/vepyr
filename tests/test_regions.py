@@ -22,10 +22,16 @@ def test_genomic_columns():
     "predicate, expected",
     [
         (pl.col("chrom") == "chr2", [region("chr2")]),
-        (pl.col("chrom") != "chr2", [region(c) for c in CONTIGS if c != "chr2"]),
+        (
+            (pl.col("chrom") != "chr2") & (pl.col("start") >= 5),
+            [region(c, 5) for c in CONTIGS if c != "chr2"],
+        ),
         (pl.col("chrom").is_in(["chr3", "chr1"]), [region("chr1"), region("chr3")]),
         (pl.col("chrom").str.starts_with("chrX"), [region("chrX")]),
-        (~(pl.col("chrom") == "chr1"), [region(c) for c in CONTIGS if c != "chr1"]),
+        (
+            ~(pl.col("chrom") == "chr1") & (pl.col("end") <= 9),
+            [region(c, None, 9) for c in CONTIGS if c != "chr1"],
+        ),
         (
             (pl.col("chrom") == "chr1") | (pl.col("chrom") == "chr3"),
             [region("chr1"), region("chr3")],
@@ -157,9 +163,9 @@ def test_elementwise_string_functions_are_evaluated():
     assert extract_regions(pl.col("chrom").str.to_uppercase() == "CHRX", CONTIGS) == [
         region("chrX")
     ]
-    assert extract_regions(pl.col("chrom").is_not_null(), CONTIGS) == [
-        region(c) for c in CONTIGS
-    ]
+    assert extract_regions(
+        pl.col("chrom").is_not_null() & (pl.col("start") >= 5), CONTIGS
+    ) == [region(c, 5) for c in CONTIGS]
 
 
 @pytest.mark.parametrize(
@@ -236,6 +242,11 @@ def test_contigs_are_fetched_lazily_and_only_for_pushable_predicates():
         pl.col("start") > 0,
         pl.col("start").is_between(1, 2**63),
         (pl.col("chrom") == "chr1") | (pl.col("end") > 5),
+        pl.col("chrom").is_not_null(),
+        pl.col("chrom").str.starts_with(""),
+        pl.col("chrom") != "chr2",
+        ~(pl.col("chrom") == "chr1"),
+        (pl.col("chrom") == "chr1") | (pl.col("chrom") != "chr1"),
     ],
 )
 def test_groups_that_narrow_nothing_fail_open(predicate):

@@ -261,8 +261,10 @@ The result is always identical to filtering after `collect()`; only the work
 changes. Coordinates are the frame's own `start`/`end` columns (1-based,
 closed). Recognised shapes:
 
-- `chrom` conjuncts: `==`, `!=`, `is_in`, `str.starts_with` and boolean
-  combinations of them.
+- `chrom` conjuncts that name specific contigs: `==`, `is_in`,
+  `str.starts_with` and boolean combinations of them. A conjunct that would
+  accept any name (`!=`, `is_not_null()`) narrows nothing on its own and is
+  only pushed together with a range.
 - `start`/`end` conjuncts: comparisons with an integer literal and
   `is_between`. `end <= b` bounds the range; `end >= a` does not.
 - Several regions: an `|` of `(chrom & range)` groups, one region per group.
