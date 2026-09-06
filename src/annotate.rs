@@ -367,8 +367,10 @@ pub fn annotate_to_vcf_file(
     })
 }
 
-/// Contig ids declared in the VCF header, in header order. The provider
-/// resolves its index and header asynchronously, so it is built on a runtime.
+/// The input's contigs: the data-bearing contigs from the tabix/CSI index when
+/// there is one (exact), otherwise the `##contig` declarations in header
+/// order, otherwise empty (unknown). The provider resolves its index and
+/// header asynchronously, so it is built on a runtime.
 pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
     use datafusion::datasource::TableProvider;
 
@@ -385,6 +387,14 @@ pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
         .map(|provider| provider.schema())
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}")))
     })?;
+    if let Some(raw) = schema.metadata().get("bio.vcf.contigs.indexed") {
+        let indexed: Vec<String> = serde_json::from_str(raw).map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Invalid VCF index metadata: {e}"))
+        })?;
+        if !indexed.is_empty() {
+            return Ok(indexed);
+        }
+    }
     let Some(raw) = schema.metadata().get("bio.vcf.contigs") else {
         return Ok(Vec::new());
     };

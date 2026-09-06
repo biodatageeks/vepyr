@@ -55,8 +55,12 @@ class _Unrecognised(Exception):
 def extract_regions(predicate: pl.Expr, contigs: list[str]) -> list[dict] | None:
     """Regions the predicate restricts the input to, or ``None`` for no pushdown.
 
-    ``[]`` means the predicate can accept no row at all.
+    ``[]`` means the predicate can accept no row at all. An empty ``contigs``
+    list means the input's contigs are unknown (no ``##contig`` header and no
+    index), and nothing can be proven about it: no pushdown.
     """
+    if not contigs:
+        return None
     try:
         tree = json.loads(predicate.meta.serialize(format="json"))
         regions: list[dict] = []

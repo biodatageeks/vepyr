@@ -20,12 +20,14 @@ PLAIN_INPUT_VCF = str(GOLDEN_DIR / "input.vcf")
 REFERENCE_FASTA = str(GOLDEN_DIR / "reference.fa")
 
 
-def test_vcf_contigs_reads_the_header_for_plain_and_bgzip_inputs():
+def test_vcf_contigs_prefers_the_index_and_falls_back_to_the_header():
     from vepyr._core import vcf_contigs
 
-    gz = vcf_contigs(INPUT_VCF)
-    assert "chr1" in gz
-    assert vcf_contigs(PLAIN_INPUT_VCF) == gz
+    # Indexed input: the data-bearing contigs from the .tbi (exact).
+    assert vcf_contigs(INPUT_VCF) == ["chr1"]
+    # Plain input: the ##contig declarations, a superset of the data.
+    header = vcf_contigs(PLAIN_INPUT_VCF)
+    assert "chr1" in header and len(header) > 1
 
 
 def test_vcf_contigs_missing_file_raises():
@@ -114,6 +116,16 @@ def test_no_predicate_sends_no_regions_and_reads_no_contigs(monkeypatch, fake_en
 
     monkeypatch.setattr(vepyr, "_vcf_contigs", boom)
     vepyr.annotate(INPUT_VCF, CACHE_DIR).collect()
+    (opts,) = _collect_opts(fake_engine)
+    assert "regions" not in opts
+
+
+def test_unknown_header_contigs_disable_pushdown(monkeypatch, fake_engine):
+    import vepyr
+
+    monkeypatch.setattr(vepyr, "_vcf_contigs", lambda path: [])
+    lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
+    lf.filter(pl.col("chrom") == "chr1").collect()
     (opts,) = _collect_opts(fake_engine)
     assert "regions" not in opts
 

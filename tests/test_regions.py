@@ -179,5 +179,8 @@ def test_bounds_below_one_are_normalised(predicate, expected):
     assert extract_regions(predicate, CONTIGS) == expected
 
 
-def test_empty_contig_list_means_nothing_matches():
-    assert extract_regions(pl.col("chrom") == "chr1", []) == []
+def test_unknown_contigs_fail_open():
+    # No ``##contig`` lines and no index: nothing can be proven, so no pushdown
+    # rather than an empty result.
+    assert extract_regions(pl.col("chrom") == "chr1", []) is None
+    assert extract_regions(pl.col("start") > 5, []) is None
