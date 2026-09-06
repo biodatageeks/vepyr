@@ -162,6 +162,10 @@ type come from the plugin's manifest, not from the CSQ text it travels in:
   exactly, which is why `CADD_PHRED` is a string; cast it when you need a
   number.
 
+See [String scores and numeric casts in the vepyr-plugins README](https://github.com/biodatageeks/vepyr-plugins/blob/master/README.md#string-scores-and-numeric-casts)
+for per-field numeric types and Polars examples covering scalar columns,
+consequence-aligned lists and multiple scores inside a dbNSFP element.
+
 The engine only runs the plugin lookup, and only builds the CSQ string the
 values are carried in, when a query reads one of those columns:
 
