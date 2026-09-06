@@ -208,12 +208,40 @@ def test_contigs_are_fetched_lazily_and_only_for_pushable_predicates():
     )
     assert extract_regions(pl.col("chrom").is_duplicated(), contigs) is None
     assert calls == []
+    # A mixed Or whose later group is unsupported never asks either.
+    assert (
+        extract_regions(
+            (pl.col("chrom") == "chr1") | (pl.col("start").cast(pl.Int64) > 5), contigs
+        )
+        is None
+    )
+    assert calls == []
     # A pushable predicate asks exactly once, even with several groups.
     p = ((pl.col("chrom") == "chr1") & (pl.col("start") > 5)) | (
         pl.col("chrom") == "chr2"
     )
     assert extract_regions(p, contigs) == [region("chr1", 6), region("chr2")]
     assert calls == [1]
+
+
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        pl.col("end") >= 100,
+        pl.col("end") > 100,
+        pl.col("start") >= 0,
+        (pl.col("chrom") == "chr1") | (pl.col("end") > 5),
+    ],
+)
+def test_groups_that_narrow_nothing_fail_open(predicate):
+    calls = []
+
+    def contigs():
+        calls.append(1)
+        return list(CONTIGS)
+
+    assert extract_regions(predicate, contigs) is None
+    assert calls == []
 
 
 def test_unknown_contigs_fail_open():

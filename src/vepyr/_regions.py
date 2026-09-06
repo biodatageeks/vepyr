@@ -79,22 +79,30 @@ def extract_regions(
 
     try:
         tree = json.loads(predicate.meta.serialize(format="json"))
+        # Every group's shape is checked before any contig lookup, so no
+        # unsupported predicate pays for the contig scan.
+        plans = [_plan_group(group) for group in _split(tree, "Or")]
         regions: list[dict] = []
-        for group in _split(tree, "Or"):
-            chroms, lo, hi = _analyse_group(group, known_contigs)
+        for chrom_nodes, lo, hi in plans:
             # Coordinates are 1-based: a lower bound below 1 is no bound, an
             # upper bound below 1 accepts nothing. Beyond the engine's i64
             # range a lower bound accepts nothing and an upper bound is open.
             if lo is not None and lo < 1:
                 lo = None
+            if hi is not None and hi > _I64_MAX:
+                hi = None
+            if not chrom_nodes and lo is None and hi is None:
+                # Nothing narrows this group (e.g. only `end >= v`): pushing
+                # open regions for every contig would cost the contig scan
+                # and the warning for no gain.
+                return None
             if hi is not None and hi < 1:
                 continue
             if lo is not None and lo > _I64_MAX:
                 continue
-            if hi is not None and hi > _I64_MAX:
-                hi = None
             if lo is not None and hi is not None and lo > hi:
                 continue
+            chroms = _evaluate_group(chrom_nodes, known_contigs())
             regions.extend({"chrom": c, "start": lo, "end": hi} for c in chroms)
         return regions
     except (_Unrecognised, KeyError, TypeError, ValueError, IndexError):
@@ -111,15 +119,12 @@ def _split(node: dict, op: str) -> list[dict]:
     return [node]
 
 
-def _analyse_group(
-    group: dict, known_contigs: Callable[[], list[str]]
-) -> tuple[list[str], int | None, int | None]:
-    """One conjunction: (chroms in contig order, lower bound, upper bound).
+def _plan_group(group: dict) -> tuple[list[dict], int | None, int | None]:
+    """Shape-check one conjunction: (chrom conjunct nodes, lower, upper).
 
     Raises ``_Unrecognised`` when the group has no recognised genomic conjunct
     or holds one it cannot bound, because an ``Or`` over such a group could
-    accept any row. Every conjunct's shape is checked before the contig list
-    is requested, so an unsupported predicate never pays for the contig scan.
+    accept any row. Touches no contig list.
     """
     chrom_nodes: list[dict] = []
     lo: int | None = None
@@ -143,15 +148,20 @@ def _analyse_group(
         # any other conjunct is a residual Polars applies after annotation
     if not recognised:
         raise _Unrecognised("no genomic conjunct in group")
-    contigs = known_contigs()
+    return chrom_nodes, lo, hi
+
+
+def _evaluate_group(chrom_nodes: list[dict], contigs: list[str]) -> list[str]:
+    """Evaluate a planned group's chrom conjuncts against the contig list and
+    return the matching contigs in contig order."""
     chrom_set: set[str] | None = None
     for node in chrom_nodes:
         frame = pl.DataFrame({"chrom": contigs}, schema={"chrom": pl.String})
         matched = set(frame.filter(_deserialize(node))["chrom"].to_list())
         chrom_set = matched if chrom_set is None else chrom_set & matched
     if chrom_set is None:
-        return list(contigs), lo, hi
-    return [c for c in contigs if c in chrom_set], lo, hi
+        return list(contigs)
+    return [c for c in contigs if c in chrom_set]
 
 
 def _column_names(node: Any) -> set[str]:
