@@ -185,9 +185,11 @@ frame has.
 ## What is pushed into the engine
 
 The frame is backed by a Polars IO plugin that pulls Arrow batches from the
-native annotator. Two things reach the engine:
+native annotator. Three things reach the engine:
 
 - **`head(n)` and `limit(n)`** become a SQL `LIMIT`, so previewing is fast.
+- **A `filter()` on `chrom`, `start` or `end`** restricts the input before
+  annotation; see [Region filters](#region-filters) below.
 - **A narrowing `select()`**, together with the columns a pushed-down
   `filter()` reads, decides the annotation flags. Only three groups of columns
   depend on flags at all: `HGVSc` and `HGVSp` on `hgvs`; the co-located
@@ -202,10 +204,9 @@ native annotator. Two things reach the engine:
   than returning nulls. The selected columns are value-identical to a run
   with the flags spelled out.
 
-`filter()` itself is applied to each batch after annotation. It bounds memory,
-because a batch is dropped as soon as it has been reduced, but it does not
-reduce the engine's work; filtering by region is cheaper done on the input VCF
-with `bcftools view -r`. The raw `CSQ` string (`skip_csq=False`) needs every
+Every other `filter()` is applied to each batch after annotation. It bounds
+memory, because a batch is dropped as soon as it has been reduced, but it does
+not reduce the engine's work. The raw `CSQ` string (`skip_csq=False`) needs every
 flag, so a query that reads it runs like a plain `collect()`: with the flags
 you gave, or the flagless default. Plugin lookups run only when the query
 reads a plugin column or `CSQ`.
@@ -242,6 +243,50 @@ On the release-116 Ensembl cache with a FASTA and `workers=1`:
 | | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 5.8 s |
 | | `select(chrom, start, HGVSc, HGVSp)` | 9.0 s |
 | | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 14.2 s |
+
+### Region filters
+
+A `filter()` on `chrom`, `start` or `end` is pushed into the engine before
+annotation: contigs outside the filter are never prepared, and an indexed
+input (bgzip + `.tbi`/`.csi`) is read by seek.
+
+```python
+df = lf.filter(
+    (pl.col("chrom") == "chr22") & pl.col("start").is_between(20_000_000, 25_000_000)
+).collect()
+```
+
+The result is always identical to filtering after `collect()`; only the work
+changes. Coordinates are the frame's own `start`/`end` columns (1-based,
+closed). Recognised shapes:
+
+- `chrom` conjuncts: `==`, `!=`, `is_in`, `str.starts_with` and boolean
+  combinations of them.
+- `start`/`end` conjuncts: comparisons with an integer literal and
+  `is_between`. `end <= b` bounds the range; `end >= a` does not.
+- Several regions: an `|` of `(chrom & range)` groups, one region per group.
+
+Anything else (a float literal, a range compared to another column, a cast,
+an `|` *inside* a range conjunct) is not pushed down and is applied by Polars
+after annotation, which is still correct, just not faster.
+
+Without a tabix/CSI index next to the input a `RuntimeWarning` is emitted:
+the whole file is parsed and filtered before annotation, and only the
+selected rows are annotated. On Merged and RefSeq caches a range costs one
+extra positional pass over each selected contig, which keeps the result
+byte-identical to a whole-file run.
+
+On the release-116 caches with a FASTA, `everything=True` and `workers=1`
+(HG002 slices, indexed input):
+
+| Input | Query | Ensembl | Merged | RefSeq |
+|---|---|---|---|---|
+| chr22, 50,861 variants | `collect()` | 2.6 s | 3.2 s | 2.0 s |
+| | `filter(chr22:20,000,000-25,000,000)`, 5,406 rows | 0.6 s | 1.3 s | 0.8 s |
+| | `filter(chr22:30,000,000-30,100,000)`, 59 rows | 0.1 s | 0.7 s | 0.5 s |
+| chr1, 323,430 variants | `collect()` | 17.0 s | 22.5 s | 14.9 s |
+| | `filter(chr1:20,000,000-25,000,000)`, 7,871 rows | 1.2 s | 2.9 s | 1.7 s |
+| | `filter(chr1:30,000,000-30,100,000)`, 275 rows | 0.6 s | 1.8 s | 1.1 s |
 
 ## One row per consequence
 

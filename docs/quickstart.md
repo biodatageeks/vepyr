@@ -199,52 +199,8 @@ df = vepyr.annotate(
 ).collect()
 ```
 
-### Region filters
-
 Filtering the LazyFrame on `chrom`, `start` or `end` is pushed into the
-engine before annotation: contigs outside the filter are never prepared, and
-an indexed input (bgzip + `.tbi`/`.csi`) is read by seek.
-
-```python
-lf = vepyr.annotate("input.vcf.gz", cache_dir, everything=True, reference_fasta="GRCh38.fa")
-df = lf.filter(
-    (pl.col("chrom") == "chr22") & pl.col("start").is_between(20_000_000, 25_000_000)
-).collect()
-```
-
-The result is always identical to filtering after `collect()`; only the work
-changes. Coordinates are the frame's own `start`/`end` columns (1-based,
-closed). Recognised shapes:
-
-- `chrom` conjuncts: `==`, `!=`, `is_in`, `str.starts_with` and boolean
-  combinations of them.
-- `start`/`end` conjuncts: comparisons with an integer literal and
-  `is_between`. `end <= b` bounds the range; `end >= a` does not.
-- Several regions: an `|` of `(chrom & range)` groups, one region per group.
-
-Anything else (a float literal, a range compared to another column, a cast,
-an `|` *inside* a range conjunct) is not pushed down and is applied by Polars
-after annotation, which is still correct, just not faster.
-
-Without a tabix/CSI index next to the input a `RuntimeWarning` is emitted:
-the whole file is parsed and filtered before annotation, and only the
-selected rows are annotated. On Merged and RefSeq caches a range costs one
-extra positional pass over each selected contig, which keeps the result
-byte-identical to a whole-file run.
-
-To use vepyr as a lightweight plugin annotator, select VEP's core VCF fields.
-Plugin outputs become named DataFrame columns, so keeping the raw `CSQ` string
-is optional:
-
-```python
-df = vepyr.annotate(
-    "input.vcf.gz",
-    "/data/vepyr_cache/parquet/116_GRCh38_ensembl",
-    fields="core",
-    plugin_cache_root="/data/plugin_cache",
-    plugins=["cadd", "spliceai"],
-).collect()
-```
+engine before annotation; see [Polars DataFrames](dataframes.md#region-filters).
 
 ### Writing annotated VCF output
 

@@ -1296,8 +1296,9 @@ def annotate(
     restricts the *input* before annotation (region pushdown): unselected
     contigs are skipped and indexed inputs are read by seek. Results are
     identical to filtering after ``collect()``. A ``RuntimeWarning`` is
-    raised when the input has no ``.tbi``/``.csi`` index. See the quickstart
-    "Region filters" section for the recognised predicate shapes.
+    raised when the input has no ``.tbi``/``.csi`` index. See the "Region
+    filters" section of the Polars DataFrames docs page for the recognised
+    predicate shapes.
 
     Returns
     -------
