@@ -21,8 +21,17 @@ jobs:
           python-version: "3.12"
 
       - name: Install docs dependencies
+        # Read the list from pyproject's `docs` extra instead of repeating it
+        # here. A plugin added to the extra but not to this step breaks the
+        # deploy with "the ... plugin is not installed", and only on a tag.
         run: |
-          pip install mkdocs mkdocs-material mkdocstrings mkdocstrings-python
+          python - <<'PY' > /tmp/docs-requirements.txt
+          import pathlib, tomllib
+          cfg = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          print("\n".join(cfg["project"]["optional-dependencies"]["docs"]))
+          PY
+          cat /tmp/docs-requirements.txt
+          pip install -r /tmp/docs-requirements.txt
 
       - name: Install vepyr (stub for mkdocstrings)
         run: pip install -e . || echo "Native build skipped — mkdocstrings will use stubs"
