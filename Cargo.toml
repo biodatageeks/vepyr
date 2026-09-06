@@ -42,6 +42,8 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
+# bio-functions 4e1446b (#238): typed motif columns are per-consequence lists and
+# SWISSPROT/TREMBL typed values use `&` like the CSQ string; supersedes
 # bio-functions b145bc6 (#237): the plugin-cache tier ORDER BY is the probe key
 # (tier, start, allele_string, match cols) instead of every column, which is what let the
 # full-source SpliceAI chr1/chr2 shards build at the default 8 GiB pool (bio-functions#235).
@@ -73,6 +75,6 @@ serde_json = "1"
 # two different revs are two different sources to cargo, so a mismatch compiles
 # the formats crates twice and `CacheSourceType` / the VCF writer types then fail
 # to cross into `CacheBuilder` (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b145bc6e3f4b4e757fe2d1e8fd8a5bd5e8e944ff", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4e1446b34fb6bf456b8f5c8190fb678141cc2433", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "12016a9304d3a14e4d56d9459f3bd6f1cb678d02" }
