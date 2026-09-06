@@ -122,8 +122,13 @@ Algorithm over `predicate.meta.serialize(format="json")`:
 2. For each conjunct, classify by `meta.root_names()`:
    - exactly `{"chrom"}`: **evaluate**, do not interpret. After a shape gate that
      allows only `Column`, `Literal`, `BinaryExpr` (any operator), and `Function` nodes
-     whose function is `Boolean.IsIn`, `Boolean.Not` or any `StringExpr`, the conjunct
-     is run as `pl.DataFrame({"chrom": contigs}).filter(conjunct)`. The surviving
+     from an explicit elementwise whitelist (`Boolean.IsIn`, `Boolean.Not`,
+     `Boolean.IsNull`, `Boolean.IsNotNull`, and the `StringExpr` variants `StartsWith`,
+     `EndsWith`, `Contains`, `Uppercase`, `Lowercase`, `StripPrefix`, `StripSuffix`,
+     `StripChars`), the conjunct is run as
+     `pl.DataFrame({"chrom": contigs}).filter(conjunct)`. Set-dependent functions such
+     as `is_duplicated` or `is_unique` would evaluate differently on the contig table
+     than on the data rows, so they are excluded and fail open. The surviving
      names are the conjunct's chrom set. This covers `==`, `!=`, `is_in`,
      `str.starts_with` and their boolean combinations without decoding Polars' opaque
      list literals, and it needs no knowledge of contig spellings: `chrom == "1"`
@@ -134,7 +139,9 @@ Algorithm over `predicate.meta.serialize(format="json")`:
      integer literals, honouring `closed` (`both`, `left`, `right`, `none`).
      `start` bounds both sides. `end <= b` and `end < b` give an upper bound (because
      `start <= end`); `end >= a` gives nothing. `Eq` sets both bounds. Anything else,
-     including float literals, marks the conjunct unrecognised.
+     including float literals, marks the conjunct unrecognised. Bounds are normalised
+     to 1-based coordinates before they leave: a lower bound below 1 is dropped, an
+     upper bound below 1 makes the group empty.
    - any other root-name set (other columns, or genomic columns mixed with others in
      one conjunct): ignored, it stays a residual for Polars.
 3. A group's chrom set is the intersection of its chrom conjuncts (all contigs when
@@ -363,7 +370,7 @@ This is the release gate for the feature; the fixture tests are the iteration lo
 
 ## Documentation
 
-- `docs/quickstart.md` or `docs/performance.md`: a "Region filters" section with the
+- `docs/dataframes.md` (Polars DataFrames): a "Region filters" section with the
   contract, the supported predicate shapes, the coordinate system, the index warning,
   and the note that Merged/RefSeq ranges cost a positional count pass per contig.
 - `annotate()` docstring: a short pointer to that section.

@@ -27,7 +27,25 @@ _INT_SCALAR_KEYS = frozenset(
     {"Int8", "Int16", "Int32", "Int64", "UInt8", "UInt16", "UInt32", "UInt64"}
 )
 _FLIP = {"Eq": "Eq", "Gt": "Lt", "GtEq": "LtEq", "Lt": "Gt", "LtEq": "GtEq"}
-_CHROM_FUNCTION_FAMILIES = ("Boolean", "StringExpr")
+# Functions a chrom conjunct may use: elementwise only, so evaluating the
+# conjunct against a one-row-per-contig frame gives the same verdict per
+# contig as it would per data row. Set-dependent functions (is_duplicated,
+# is_unique, is_first_distinct, ...) are deliberately absent.
+_CHROM_FUNCTIONS = {
+    "Boolean": frozenset({"IsIn", "Not", "IsNull", "IsNotNull"}),
+    "StringExpr": frozenset(
+        {
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "Uppercase",
+            "Lowercase",
+            "StripPrefix",
+            "StripSuffix",
+            "StripChars",
+        }
+    ),
+}
 
 
 class _Unrecognised(Exception):
@@ -44,6 +62,12 @@ def extract_regions(predicate: pl.Expr, contigs: list[str]) -> list[dict] | None
         regions: list[dict] = []
         for group in _split(tree, "Or"):
             chroms, lo, hi = _analyse_group(group, contigs)
+            # Coordinates are 1-based: a lower bound below 1 is no bound, an
+            # upper bound below 1 accepts nothing.
+            if lo is not None and lo < 1:
+                lo = None
+            if hi is not None and hi < 1:
+                continue
             if lo is not None and hi is not None and lo > hi:
                 continue
             regions.extend({"chrom": c, "start": lo, "end": hi} for c in chroms)
@@ -115,9 +139,10 @@ def _column_names(node: Any) -> set[str]:
 
 
 def _gate_chrom_shape(node: Any) -> None:
-    """Allow only elementwise boolean shapes so evaluation on a contig table
-    is faithful: columns, literals, binary operators, and ``Boolean``/
-    ``StringExpr`` functions. Aggregations, windows, casts and the rest raise.
+    """Allow only elementwise shapes so evaluation on a contig table is
+    faithful: columns, literals, binary operators, and the functions listed in
+    ``_CHROM_FUNCTIONS``. Aggregations, windows, casts, set-dependent
+    functions and the rest raise.
     """
     if not isinstance(node, dict) or len(node) != 1:
         raise _Unrecognised("node shape")
@@ -132,9 +157,12 @@ def _gate_chrom_shape(node: Any) -> None:
         _gate_chrom_shape(payload["right"])
     elif kind == "Function":
         function = payload["function"]
-        family = next(iter(function)) if isinstance(function, dict) else function
-        if family not in _CHROM_FUNCTION_FAMILIES:
-            raise _Unrecognised(f"function {family}")
+        if not isinstance(function, dict) or len(function) != 1:
+            raise _Unrecognised("function shape")
+        ((family, variant),) = function.items()
+        name = next(iter(variant)) if isinstance(variant, dict) else variant
+        if name not in _CHROM_FUNCTIONS.get(family, frozenset()):
+            raise _Unrecognised(f"function {family}.{name}")
         for item in payload["input"]:
             _gate_chrom_shape(item)
     else:

@@ -138,5 +138,46 @@ def test_unrecognised_shapes_fail_open(predicate):
     assert extract_regions(predicate, CONTIGS) is None
 
 
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        pl.col("chrom").is_duplicated(),
+        ~pl.col("chrom").is_unique(),
+        pl.col("chrom").is_first_distinct(),
+        pl.col("chrom").str.len_chars() > 3,
+    ],
+)
+def test_set_dependent_chrom_functions_fail_open(predicate):
+    # These would evaluate to something else on the one-row-per-contig frame
+    # than on the data rows, so they must not be pushed down.
+    assert extract_regions(predicate, CONTIGS) is None
+
+
+def test_elementwise_string_functions_are_evaluated():
+    assert extract_regions(pl.col("chrom").str.to_uppercase() == "CHRX", CONTIGS) == [
+        region("chrX")
+    ]
+    assert extract_regions(pl.col("chrom").is_not_null(), CONTIGS) == [
+        region(c) for c in CONTIGS
+    ]
+
+
+@pytest.mark.parametrize(
+    "predicate, expected",
+    [
+        ((pl.col("chrom") == "chr1") & (pl.col("start") >= 0), [region("chr1")]),
+        ((pl.col("chrom") == "chr1") & (pl.col("start") > -5), [region("chr1")]),
+        ((pl.col("chrom") == "chr1") & (pl.col("start") < 1), []),
+        ((pl.col("chrom") == "chr1") & (pl.col("end") <= 0), []),
+        (
+            (pl.col("chrom") == "chr1") & pl.col("start").is_between(0, 5),
+            [region("chr1", None, 5)],
+        ),
+    ],
+)
+def test_bounds_below_one_are_normalised(predicate, expected):
+    assert extract_regions(predicate, CONTIGS) == expected
+
+
 def test_empty_contig_list_means_nothing_matches():
     assert extract_regions(pl.col("chrom") == "chr1", []) == []
