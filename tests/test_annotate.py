@@ -2095,6 +2095,28 @@ class TestPluginMatchTemplates:
         opts = calls[-1]
         assert opts["hgvs"] is True and opts["af"] is True
 
+    @pytest.mark.parametrize("query", ["collect", "select"])
+    def test_template_fields_are_checked_per_hgvs_field(
+        self, tmp_path, monkeypatch, query
+    ):
+        # hgvsp=True alone does not compute HGVSc, which the template needs
+        import vepyr
+
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        lf = vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            hgvsp=True,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["byhgvs"],
+        )
+        (lf.select("chrom", "BYHGVS_score") if query == "select" else lf).collect()
+        opts = calls[-1]
+        assert opts["hgvsc"] is True, "the field the template reads is switched on"
+        assert opts["hgvsp"] is True, "the explicit flag is kept"
+        assert "hgvs" not in opts
+
     def test_template_fields_without_fasta_raise(self, tmp_path, monkeypatch):
         import vepyr
 

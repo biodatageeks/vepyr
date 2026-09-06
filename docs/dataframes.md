@@ -249,7 +249,7 @@ some rows cannot break the alignment.
 
 ```python
 UNALIGNED = {"Existing_variation", "CLIN_SIG", "PUBMED",
-             "clin_sig_allele", "clinvar_ids", "dbsnp_ids"}
+             "clin_sig_allele", "clinvar_ids", "cosmic_ids", "dbsnp_ids"}
 
 
 def consequence_rows(df: pl.DataFrame) -> pl.DataFrame:

@@ -191,11 +191,18 @@ def _flags_for_projection(
             out["everything"] = True
         if out.get("everything"):
             return
+        # hgvs computes both HGVS fields; hgvsc and hgvsp one each, so the
+        # check is per field: hgvsp=True alone leaves HGVSc empty. With no
+        # HGVS flag at all, hgvs is switched on like the projection does.
         if fields & _HGVS_COLUMNS and not any(
             out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")
         ):
             _require_fasta(_HGVS_COLUMNS, "hgvs", fields)
             out["hgvs"] = True
+        for field, flag in (("HGVSc", "hgvsc"), ("HGVSp", "hgvsp")):
+            if field in fields and not (out.get("hgvs") or out.get(flag)):
+                _require_fasta(_HGVS_COLUMNS, flag, {field})
+                out[flag] = True
         if fields & _COLOCATED_COLUMNS and not any(
             out.get(key) for key in _COLOCATED_OPTIONS
         ):
@@ -261,6 +268,9 @@ def _flags_for_projection(
     if not keep_colocated:
         for key in _COLOCATED_OPTIONS:
             out.pop(key, None)
+    # Plugin template fields are checked per field: hgvsp=True alone does not
+    # compute the HGVSc a template may read.
+    _ensure(set(required))
     if not any(out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")):
         out.pop("reference_fasta_path", None)
     return out
