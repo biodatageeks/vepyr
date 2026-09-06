@@ -1293,8 +1293,11 @@ def annotate(
         INFO, so byte agreement with it needs this on. Only used when
         ``output_vcf`` is set.
     show_progress : bool
-        Show a progress bar on stderr during VCF output (default: True).
-        Only used when ``output_vcf`` is set.
+        Show a progress bar while annotating (default: True). On the VCF
+        output path it is a determinate bar over the pre-counted input. On
+        the ``LazyFrame`` path it counts the variants the engine yields on
+        each ``collect()``, with a total only when a limit (``.head(n)``)
+        reaches the source unfiltered.
     compression : str or None
         VCF output compression. ``"bgzf"`` (block-gzip, tabix-compatible),
         ``"gzip"``, ``"plain"``, or ``None`` (auto-detect from extension).
@@ -1722,11 +1725,12 @@ def annotate(
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _engine_skip = (
+    _vcf, _cache_dir, _opts, _engine_skip, _show_progress = (
         vcf,
         cache_dir,
         dict(opts),
         engine_skip_csq,
+        show_progress,
     )
     plugin_columns = set(plugin_field_names)
 
@@ -1810,8 +1814,43 @@ def annotate(
             not csq_needed,
             n_rows,
         )
+        # Progress bar, one per collect(). It counts the variants the engine
+        # yields, before the predicate applied below: a selective filter would
+        # otherwise leave the bar at zero while the engine works through the
+        # file. A total is only known when a LIMIT reaches the source with no
+        # predicate to shrink what it counts -- unlike the VCF path, nothing
+        # here pre-counts the input, so the bar is otherwise open-ended.
+        pbar = None
+        if _show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                pbar = tqdm(
+                    total=n_rows if predicate is None else None,
+                    unit=" variants",
+                    desc=f"Annotating {os.path.basename(_vcf)}",
+                    miniters=1,
+                    mininterval=0,
+                )
+            except ImportError:
+                pass
+
+        def tracked(batches):
+            if pbar is None:
+                yield from batches
+                return
+            try:
+                for batch in batches:
+                    pbar.update(batch.num_rows)
+                    pbar.refresh()
+                    yield batch
+            finally:
+                # Reached on normal exhaustion and when Polars abandons the
+                # outer generator once a limit is satisfied.
+                pbar.close()
+
         remaining = n_rows
-        for py_batch in annotator:
+        for py_batch in tracked(annotator):
             batch_df = pl.from_arrow(py_batch)
             if plugin_field_names and "CSQ" in batch_df.columns:
                 n_plugin = len(plugin_field_names)
