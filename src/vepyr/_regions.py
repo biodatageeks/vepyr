@@ -82,7 +82,9 @@ def extract_regions(
         # Every group's shape is checked before any contig lookup, so no
         # unsupported predicate pays for the contig scan.
         plans = [_plan_group(group) for group in _split(tree, "Or")]
-        regions: list[dict] = []
+        # Normalise and vet every group before any contig lookup, so no
+        # predicate that ends up not pushable pays for the contig scan.
+        vetted: list[tuple[list[dict], int | None, int | None]] = []
         for chrom_nodes, lo, hi in plans:
             # Coordinates are 1-based: a lower bound below 1 is no bound, an
             # upper bound below 1 accepts nothing. Beyond the engine's i64
@@ -102,6 +104,9 @@ def extract_regions(
                 continue
             if lo is not None and hi is not None and lo > hi:
                 continue
+            vetted.append((chrom_nodes, lo, hi))
+        regions: list[dict] = []
+        for chrom_nodes, lo, hi in vetted:
             chroms = _evaluate_group(chrom_nodes, known_contigs())
             regions.extend({"chrom": c, "start": lo, "end": hi} for c in chroms)
         return regions
