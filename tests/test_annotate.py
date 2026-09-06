@@ -2060,6 +2060,22 @@ class TestPluginMatchTemplates:
         with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
             lf.collect()
 
+    def test_flagless_plain_collect_without_fasta_raises_before_warning(
+        self, tmp_path, monkeypatch
+    ):
+        # no flags, no FASTA, full collect: the plugin needs HGVSc, so this
+        # raises, and it must not first warn that HGVSc "will be null"
+        import vepyr
+
+        root, _ = self._hgvs_plugin(tmp_path, monkeypatch)
+        lf = vepyr.annotate(
+            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["byhgvs"]
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
+                lf.collect()
+
     def test_template_fields_without_fasta_raise(self, tmp_path, monkeypatch):
         import vepyr
 

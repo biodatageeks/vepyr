@@ -206,7 +206,9 @@ def _flags_for_projection(
         # No projection, or the raw CSQ string (which needs every flag): flags
         # as given, or, when none were given, everything the inputs allow.
         # HGVS and the everything extras need a FASTA, so without one only
-        # the co-located lookup can be switched on.
+        # the co-located lookup can be switched on. Plugin requirements come
+        # first so a missing FASTA raises before anything is warned about.
+        _ensure(set(required))
         if not user_any_flag:
             if out.get("reference_fasta_path"):
                 out["everything"] = True
@@ -223,7 +225,6 @@ def _flags_for_projection(
                         "for the full result",
                         stacklevel=2,
                     )
-        _ensure(set(required))
         return out
 
     needed = needed | set(required)
