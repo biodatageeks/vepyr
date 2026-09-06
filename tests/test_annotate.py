@@ -1208,3 +1208,402 @@ def test_annotate_nonempty_plugins_warns_only_when_csq_is_dropped(
                 )
         hits = [w for w in caught if "skip_csq" in str(w.message)]
         assert len(hits) == expected, f"skip_csq={skip_csq}"
+
+
+class TestProjectionPruning:
+    """A ``select()`` on the LazyFrame is translated into the smallest flag set
+    that still yields the selected columns, so the engine skips HGVS, the
+    co-located lookup and the ``everything`` extras when nothing asks for them."""
+
+    BASE = ("chrom", "start", "ref", "alt", "SYMBOL", "Consequence", "IMPACT")
+
+    def _capture(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+        names = [
+            "chrom",
+            "start",
+            "ref",
+            "alt",
+            "CSQ",
+            "most_severe_consequence",
+            "SYMBOL",
+            "Consequence",
+            "IMPACT",
+            "HGVSc",
+            "AF",
+            "MANE",
+            "dbsnp_ids",
+        ]
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field(n, pa.string()) for n in names])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path, cache_dir, options_json, skip_csq=True, limit=None
+        ):
+            seen.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+        return seen
+
+    def _engine_opts(self, seen):
+        # seen[0] is the schema probe, seen[1] the collect
+        assert len(seen) == 2
+        return seen[1]
+
+    def test_everything_is_dropped_when_only_base_columns_are_selected(
+        self, monkeypatch
+    ):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
+        ).select(list(self.BASE)).collect()
+        opts = self._engine_opts(seen)
+        for key in (
+            "everything",
+            "hgvs",
+            "check_existing",
+            "af",
+            "pubmed",
+            "reference_fasta_path",
+        ):
+            assert key not in opts, key
+        assert opts["cache_format"] == "parquet"
+
+    def test_hgvs_column_keeps_hgvs_only(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
+        ).select(["chrom", "HGVSc"]).collect()
+        opts = self._engine_opts(seen)
+        assert opts["hgvs"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
+        assert "everything" not in opts
+        assert "check_existing" not in opts
+
+    def test_frequency_column_keeps_colocated_flags_only(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
+        ).select(["chrom", "AF"]).collect()
+        opts = self._engine_opts(seen)
+        for key in (
+            "check_existing",
+            "af",
+            "af_1kg",
+            "af_gnomade",
+            "af_gnomadg",
+            "max_af",
+            "pubmed",
+        ):
+            assert opts[key] is True, key
+        assert "everything" not in opts
+        assert "hgvs" not in opts
+        assert "reference_fasta_path" not in opts
+
+    def test_everything_only_column_keeps_everything(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
+        ).select(["chrom", "MANE"]).collect()
+        assert self._engine_opts(seen)["everything"] is True
+
+    def test_csq_column_disables_pruning(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+            skip_csq=False,
+        ).select(["chrom", "CSQ"]).collect()
+        assert self._engine_opts(seen)["everything"] is True
+
+    def test_individual_flags_are_pruned_too(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            hgvs=True,
+            reference_fasta=REFERENCE_FASTA,
+            af=True,
+            pubmed=True,
+        ).select(["chrom", "Consequence"]).collect()
+        opts = self._engine_opts(seen)
+        for key in ("hgvs", "af", "pubmed", "reference_fasta_path"):
+            assert key not in opts, key
+
+    def test_filter_column_counts_as_needed(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        (
+            vepyr.annotate(
+                INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
+            )
+            .filter(pl.col("AF") > 0.5)
+            .select(["chrom"])
+            .collect()
+        )
+        assert self._engine_opts(seen)["af"] is True
+
+    def test_no_select_keeps_everything(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
+        ).collect()
+        assert self._engine_opts(seen)["everything"] is True
+
+    def test_fields_and_select_together_is_an_error(self, monkeypatch):
+        import vepyr
+
+        self._capture(monkeypatch)
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+            fields=["Consequence", "IMPACT"],
+        )
+        # Polars wraps the source's ValueError in a ComputeError; match the text.
+        with pytest.raises(Exception, match="already fixes the annotation layout"):
+            lf.select(["chrom", "Consequence"]).collect()
+
+    def test_fields_without_a_narrowing_select_is_fine(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+            fields=["Consequence", "IMPACT"],
+        )
+        lf.collect()
+        lf.select(pl.all()).collect()
+        lf.select(list(lf.collect_schema())).collect()
+        assert all(
+            o["everything"] is True and o["fields"] == ["Consequence", "IMPACT"]
+            for o in seen
+        )
+
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [
+                "chrom",
+                "start",
+                "ref",
+                "alt",
+                "most_severe_consequence",
+                "SYMBOL",
+                "Consequence",
+                "IMPACT",
+            ],
+            ["chrom", "start", "HGVSc", "HGVSp"],
+            ["chrom", "start", "Existing_variation", "AF", "MAX_AF", "CLIN_SIG"],
+            ["chrom", "start", "Consequence", "dbsnp_ids"],
+        ],
+    )
+    def test_pruned_values_equal_the_full_run(self, metadata_cache_dir, columns):
+        import vepyr
+
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+        )
+        full = lf.collect().select(columns)
+        pruned = lf.select(columns).collect()
+        assert pruned.equals(full)
+
+
+class TestFlagInference:
+    """With no annotation flags given, a narrowing ``select()`` turns on the flag
+    groups its columns need. Explicit flags are kept as given (and pruned when
+    unused) rather than widened."""
+
+    def _capture(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        seen = []
+        names = [
+            "chrom",
+            "start",
+            "ref",
+            "alt",
+            "CSQ",
+            "most_severe_consequence",
+            "SYMBOL",
+            "Consequence",
+            "IMPACT",
+            "HGVSc",
+            "AF",
+            "AFR_AF",
+            "MANE",
+            "SIFT",
+            "dbsnp_ids",
+        ]
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field(n, pa.string()) for n in names])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake_create_annotator(
+            vcf_path, cache_dir, options_json, skip_csq=True, limit=None
+        ):
+            seen.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
+        return seen
+
+    def test_hgvs_is_inferred_from_hgvs_columns(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            ["chrom", "HGVSc"]
+        ).collect()
+        opts = seen[-1]
+        assert opts["hgvs"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
+        assert "check_existing" not in opts and "everything" not in opts
+
+    def test_hgvs_column_without_fasta_is_an_error(self, monkeypatch):
+        import vepyr
+
+        self._capture(monkeypatch)
+        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
+        with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
+            lf.select(["chrom", "HGVSc"]).collect()
+
+    def test_colocated_flags_are_inferred_from_frequency_columns(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR).select(["chrom", "AF"]).collect()
+        opts = seen[-1]
+        for key in (
+            "check_existing",
+            "af",
+            "af_1kg",
+            "af_gnomade",
+            "af_gnomadg",
+            "max_af",
+            "pubmed",
+        ):
+            assert opts[key] is True, key
+        assert "hgvs" not in opts and "reference_fasta_path" not in opts
+
+    def test_everything_is_inferred_from_everything_only_columns(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            ["chrom", "SIFT"]
+        ).collect()
+        assert seen[-1]["everything"] is True
+        assert seen[-1]["reference_fasta_path"] == REFERENCE_FASTA
+
+    def test_everything_only_column_without_fasta_is_an_error(self, monkeypatch):
+        import vepyr
+
+        self._capture(monkeypatch)
+        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
+        with pytest.raises(Exception, match="SIFT.*reference_fasta"):
+            lf.select(["chrom", "SIFT"]).collect()
+
+    def test_explicit_partial_flags_are_not_widened(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, af=True).select(
+            ["chrom", "AFR_AF"]
+        ).collect()
+        opts = seen[-1]
+        assert opts["af"] is True
+        assert "af_1kg" not in opts
+        assert "check_existing" not in opts
+
+    def test_explicit_hgvs_sub_options_are_kept(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            hgvs=True,
+            shift_hgvs=False,
+            reference_fasta=REFERENCE_FASTA,
+        ).select(["chrom", "HGVSc"]).collect()
+        assert seen[-1]["hgvs"] is True
+        assert seen[-1]["shift_hgvs"] is False
+
+    def test_plain_collect_without_flags_stays_bare(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).collect()
+        opts = seen[-1]
+        assert (
+            "hgvs" not in opts
+            and "everything" not in opts
+            and "check_existing" not in opts
+        )
+
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["chrom", "start", "HGVSc", "HGVSp"],
+            ["chrom", "start", "Existing_variation", "AF", "MAX_AF", "CLIN_SIG"],
+            ["chrom", "start", "SIFT", "PolyPhen", "MANE", "HGVS_OFFSET"],
+        ],
+    )
+    def test_inferred_values_equal_an_everything_run(self, metadata_cache_dir, columns):
+        import vepyr
+
+        everything = (
+            vepyr.annotate(
+                INPUT_VCF,
+                metadata_cache_dir,
+                everything=True,
+                reference_fasta=REFERENCE_FASTA,
+            )
+            .collect()
+            .select(columns)
+        )
+        inferred = (
+            vepyr.annotate(
+                INPUT_VCF, metadata_cache_dir, reference_fasta=REFERENCE_FASTA
+            )
+            .select(columns)
+            .collect()
+        )
+        assert inferred.equals(everything)

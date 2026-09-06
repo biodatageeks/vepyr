@@ -31,6 +31,158 @@ __version__ = importlib.metadata.version("vepyr")
 
 log = logging.getLogger(__name__)
 
+# Projection pushdown: which annotation flags each DataFrame column depends on.
+# Every other column has the same value whatever flags are set, so a
+# ``select()`` decides which groups the engine runs: unused groups are dropped
+# and, when no flag was given, needed groups are switched on. Verified column by column on HG002 chr22 against the
+# release-116 Ensembl cache; ``tests/test_annotate.py::TestProjectionPruning``
+# guards the value identity on the fixture cache.
+_HGVS_COLUMNS = frozenset({"HGVSc", "HGVSp"})
+_HGVS_OPTIONS = (
+    "hgvs",
+    "hgvsc",
+    "hgvsp",
+    "shift_hgvs",
+    "no_escape",
+    "remove_hgvsp_version",
+    "hgvsp_use_prediction",
+)
+_COLOCATED_COLUMNS = frozenset(
+    {
+        "Existing_variation",
+        "AF",
+        "AFR_AF",
+        "AMR_AF",
+        "EAS_AF",
+        "EUR_AF",
+        "SAS_AF",
+        "gnomADe_AF",
+        "gnomADg_AF",
+        "MAX_AF",
+        "MAX_AF_POPS",
+        "CLIN_SIG",
+        "SOMATIC",
+        "PHENO",
+        "PUBMED",
+        # cache-only columns: kept conservative, they come from the same lookup
+        "clin_sig_allele",
+        "clinical_impact",
+        "minor_allele",
+        "minor_allele_freq",
+        "clinvar_ids",
+        "cosmic_ids",
+        "dbsnp_ids",
+    }
+)
+_COLOCATED_OPTIONS = (
+    "check_existing",
+    "af",
+    "af_1kg",
+    "af_gnomade",
+    "af_gnomadg",
+    "max_af",
+    "pubmed",
+)
+# Columns only ``everything`` fills; selecting one keeps the flag as is.
+_EVERYTHING_ONLY_COLUMNS = frozenset(
+    {
+        "MANE",
+        "APPRIS",
+        "SIFT",
+        "PolyPhen",
+        "DOMAINS",
+        "miRNA",
+        "HGVS_OFFSET",
+        "gnomADe_AFR_AF",
+        "gnomADe_AMR_AF",
+        "gnomADe_ASJ_AF",
+        "gnomADe_EAS_AF",
+        "gnomADe_FIN_AF",
+        "gnomADe_MID_AF",
+        "gnomADe_NFE_AF",
+        "gnomADe_REMAINING_AF",
+        "gnomADe_SAS_AF",
+        "gnomADg_AFR_AF",
+        "gnomADg_AMI_AF",
+        "gnomADg_AMR_AF",
+        "gnomADg_ASJ_AF",
+        "gnomADg_EAS_AF",
+        "gnomADg_FIN_AF",
+        "gnomADg_MID_AF",
+        "gnomADg_NFE_AF",
+        "gnomADg_REMAINING_AF",
+        "gnomADg_SAS_AF",
+    }
+)
+
+
+def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
+    """Derive the annotation flags a query needs from the columns it reads.
+
+    ``needed`` is the query's projection plus any filter columns; ``None``
+    means no projection, which leaves ``opts`` as given. Otherwise only three
+    column groups depend on flags at all (see the constants above):
+
+    - a group nobody selected has its flags removed, so the engine skips it;
+    - a group the user enabled explicitly is kept exactly as configured;
+    - a group the user did not mention is enabled when a column needs it.
+      HGVS and the ``everything`` extras need ``reference_fasta``; asking for
+      them without one is an error rather than a column of nulls.
+
+    The raw ``CSQ`` string and plugin output depend on the full flag set, so
+    those leave ``opts`` untouched. Returns a new dict.
+    """
+    out = dict(opts)
+    if needed is None or "CSQ" in needed or "plugin_cache_root" in opts:
+        return out
+
+    def _needs(group: frozenset) -> bool:
+        return bool(needed & group)
+
+    def _require_fasta(group: frozenset, flag: str) -> None:
+        if not out.get("reference_fasta_path"):
+            columns = ", ".join(sorted(needed & group))
+            raise ValueError(
+                f"selecting {columns} needs {flag}, which requires reference_fasta="
+            )
+
+    user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
+    user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
+
+    if _needs(_EVERYTHING_ONLY_COLUMNS):
+        if not opts.get("everything"):
+            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything")
+            out["everything"] = True
+        return out  # everything covers every group; sub-options stay as given
+
+    keep_hgvs = _needs(_HGVS_COLUMNS)
+    keep_colocated = _needs(_COLOCATED_COLUMNS)
+    if out.pop("everything", False):
+        # Expand into the groups still needed; each alone yields the same
+        # column values as ``everything`` does.
+        if keep_hgvs:
+            out["hgvs"] = True
+        if keep_colocated:
+            for key in _COLOCATED_OPTIONS:
+                out[key] = True
+    else:
+        if keep_hgvs and not user_hgvs:
+            _require_fasta(_HGVS_COLUMNS, "hgvs")
+            out["hgvs"] = True
+        if keep_colocated and not user_colocated:
+            for key in _COLOCATED_OPTIONS:
+                out[key] = True
+    if not keep_hgvs:
+        for key in _HGVS_OPTIONS:
+            out.pop(key, None)
+    if not keep_colocated:
+        for key in _COLOCATED_OPTIONS:
+            out.pop(key, None)
+    if not any(out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")):
+        out.pop("reference_fasta_path", None)
+    return out
+
+
 _CORE_CSQ_FIELDS = (
     "Allele",
     "Gene",
@@ -1051,6 +1203,11 @@ def annotate(
     polars.LazyFrame or str
         When ``output_vcf`` is ``None``: annotated variants as a polars
         ``LazyFrame`` with typed annotation columns plus original VCF fields.
+        A ``select()`` on it decides which annotation flags the engine runs:
+        the groups no selected column needs are switched off, and, when no
+        flag was given, the groups a column needs are switched on (HGVS and
+        the ``everything`` extras require ``reference_fasta``). ``fields``
+        cannot be combined with such a ``select()``.
         When ``output_vcf`` is set: the output VCF file path.
 
     Examples
@@ -1439,16 +1596,29 @@ def annotate(
     _vcf, _cache_dir, _opts, _engine_skip = (
         vcf,
         cache_dir,
-        options_json,
+        dict(opts),
         engine_skip_csq,
     )
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
-        # Pass n_rows as LIMIT to the DataFusion query for engine-level pushdown
+        # Projection pushdown: the columns Polars asks for, plus the ones the
+        # pushed-down filter reads, decide which annotation flags the engine
+        # needs. n_rows becomes a LIMIT in the DataFusion query.
+        needed = None
+        if with_columns is not None and set(with_columns) != set(polars_schema):
+            if "fields" in _opts:
+                raise ValueError(
+                    "annotate(fields=...) already fixes the annotation layout; "
+                    "select columns on the LazyFrame or pass fields=, not both"
+                )
+            needed = set(with_columns)
+            if predicate is not None:
+                needed.update(predicate.meta.root_names())
+        engine_opts = _flags_for_projection(_opts, needed)
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
-            _opts,
+            json.dumps(engine_opts),
             _engine_skip,
             n_rows,
         )
