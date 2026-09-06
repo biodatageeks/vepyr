@@ -516,25 +516,6 @@ df = lf.collect()
 See [Performance](performance.md#workers-on-the-lazyframe-path) for a sweep
 across worker counts and cache profiles.
 
-## Filters and peak memory
-
-A `filter()` on ordinary (non-coordinate) columns is pushed into the IO source:
-surviving rows are kept per batch, so a selective query never accumulates the
-rows it discards. On chr1 with `everything=True`:
-
-| Filter | Rows kept | Peak RSS |
-|---|--:|--:|
-| none | 319,349 | 7.85 GB |
-| `MAX_AF > 0.5` | 208,015 | 7.74 GB |
-| `MAX_AF > 0.99` | 41,376 | 6.52 GB |
-
-The effect is real but bounded: dropping 87 % of the rows saved 17 % of peak
-memory, because the annotation engine's working set and the Arrow batches in
-flight dominate the total, and no predicate shrinks those.
-
-To bound memory rather than merely trim it, stream to disk with
-`sink_parquet` — see [below](#writing-results-to-disk).
-
 ## Writing results to disk
 
 `collect()` holds the whole result in memory. On chromosome 1 of a
