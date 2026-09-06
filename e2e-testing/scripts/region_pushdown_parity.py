@@ -76,9 +76,23 @@ def plain_copy(slice_gz, out_dir):
     return plain
 
 
+def profile_annotate_kwargs(profile, release):
+    """The profile's own annotation options (pick flags, plugins), so a
+    non-default profile is tested with the settings its name promises."""
+    spec = profiles.PROFILES[profile]
+    kwargs = dict(spec.annotate_kwargs)
+    if spec.plugins:
+        kwargs["plugin_cache_root"] = profiles.plugin_cache_dir_for(release)
+        kwargs["plugins"] = list(spec.plugins)
+    return kwargs
+
+
 def run_profile(vepyr, profile, release, slice_gz, plain_vcf, fasta, region_texts):
     cache_dir = profiles.cache_dir_for(profile, release)
-    lf = vepyr.annotate(slice_gz, cache_dir, everything=True, reference_fasta=fasta)
+    kwargs = profile_annotate_kwargs(profile, release)
+    lf = vepyr.annotate(
+        slice_gz, cache_dir, everything=True, reference_fasta=fasta, **kwargs
+    )
     full, full_s = timed(lf.collect)
     rows = []
     ok = True
@@ -104,7 +118,7 @@ def run_profile(vepyr, profile, release, slice_gz, plain_vcf, fasta, region_text
     predicate = parse_region_list(region_texts[0])
     reference = full.filter(predicate)
     lf_plain = vepyr.annotate(
-        plain_vcf, cache_dir, everything=True, reference_fasta=fasta
+        plain_vcf, cache_dir, everything=True, reference_fasta=fasta, **kwargs
     )
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
