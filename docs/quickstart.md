@@ -187,9 +187,9 @@ print(f"{df.height} variants x {df.width} columns")
 ```
 
 `workers` controls how many within-contig annotation pipelines run
-concurrently when writing with `output_vcf`; it requires a tabix-indexed
-(bgzip + `.tbi`) input VCF. The LazyFrame path is serial (`workers=1`) in
-this release.
+concurrently, on both the LazyFrame and the `output_vcf` path. It requires a
+tabix-indexed (bgzip + `.tbi` or `.csi`) input VCF. Output is identical to
+`workers=1`, row order included.
 
 ```python
 df = vepyr.annotate(

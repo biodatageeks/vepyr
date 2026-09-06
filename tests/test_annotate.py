@@ -829,6 +829,70 @@ class TestAnnotate:
                 workers=value,
             )
 
+    UNINDEXED_VCF = str(GOLDEN_DIR / "input.vcf")
+
+    def test_workers_above_one_requires_index_on_lazyframe_path(self, monkeypatch):
+        import vepyr
+
+        calls = []
+        monkeypatch.setattr(
+            vepyr, "_create_annotator", lambda *a, **k: calls.append(a) or None
+        )
+        with pytest.raises(
+            ValueError, match=r"workers>1 requires a tabix-indexed input"
+        ):
+            vepyr.annotate(self.UNINDEXED_VCF, CACHE_DIR, workers=2)
+        assert calls == [], "the engine must not be called"
+
+    def test_workers_above_one_requires_index_on_vcf_path(self, monkeypatch, tmp_path):
+        import vepyr
+
+        calls = []
+        monkeypatch.setattr(
+            vepyr, "_annotate_vcf", lambda *a, **k: calls.append(a) or 0
+        )
+        with pytest.raises(ValueError, match=r"input\.vcf\.tbi"):
+            vepyr.annotate(
+                self.UNINDEXED_VCF,
+                CACHE_DIR,
+                output_vcf=str(tmp_path / "out.vcf"),
+                show_progress=False,
+                workers=2,
+            )
+        assert calls == []
+
+    def test_workers_one_does_not_need_index(self, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        monkeypatch.setattr(vepyr, "_create_annotator", lambda *a, **k: FakeAnnotator())
+        lf = vepyr.annotate(self.UNINDEXED_VCF, CACHE_DIR, workers=1)
+        assert isinstance(lf, pl.LazyFrame)
+
+    def test_workers_above_one_accepts_csi_index(self, monkeypatch, tmp_path):
+        import pyarrow as pa
+        import vepyr
+
+        vcf = tmp_path / "in.vcf.gz"
+        vcf.write_bytes(b"")
+        (tmp_path / "in.vcf.gz.csi").write_bytes(b"")
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field("chrom", pa.string())])
+
+            def __iter__(self):
+                return iter(())
+
+        monkeypatch.setattr(vepyr, "_create_annotator", lambda *a, **k: FakeAnnotator())
+        lf = vepyr.annotate(str(vcf), CACHE_DIR, workers=2)
+        assert isinstance(lf, pl.LazyFrame)
+
     def test_chrom_parallelism_removed_from_public_api(self):
         import vepyr
 

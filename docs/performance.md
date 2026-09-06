@@ -100,12 +100,44 @@ plus a warm-up of the input buffers before the range, which keeps their output
 byte-identical to a whole-file run. Without an index the whole slice is parsed
 and filtered before annotation, so small ranges gain less.
 
+### Workers on the LazyFrame path
+
+Measured with `e2e-testing/scripts/lazyframe_workers_parity.py --release 116 --sweep 1 2 4 8`
+on HG002 contig slices, `everything=True`, a FASTA, on an Apple Silicon M3 Max
+(16 cores, 64 GiB) while other work ran on the host. Every frame equalled the
+`workers=1` frame row for row, and the LazyFrame CSQ column equalled the
+`output_vcf` INFO/CSQ at `workers=8`.
+
+| Input | workers | Ensembl | Merged | RefSeq |
+|---|---|---|---|---|
+| chr22, 50,284 variants | 1 | 2.5 s | 3.5 s | 2.2 s |
+| | 2 | 2.0 s | 2.5 s | 1.6 s |
+| | 4 | 1.2 s | 1.8 s | 1.2 s |
+| | 8 | 0.9 s | 1.7 s | 1.0 s |
+| chr1, 319,349 variants | 1 | 16.7 s | 21.4 s | 15.0 s |
+| | 2 | 10.1 s | 13.8 s | 9.8 s |
+| | 4 | 6.4 s | 9.0 s | 6.5 s |
+| | 8 | 3.9 s | 5.7 s | 3.5 s |
+
+Each contig is cut into grid-aligned runs that a pool of `workers` tasks
+annotates concurrently and releases in order; Merged and RefSeq runs replay a
+bounded warm-up at every seam, so they gain a little less than Ensembl. The
+per-contig prepare stays serial, which bounds the speedup on small contigs. The
+runner process, which holds the `workers=1` frame while collecting each
+candidate, peaked at 7.7 GB on chr1 Ensembl at `workers=1` and 19.3 GB by the
+end of the `workers=8` collect. A plain `collect()` queues at most
+`workers + lookahead` runs of output ahead of the consumer
+(`VEP_STREAM_LOOKAHEAD_RUNS`, default `workers`), capped at
+`VEP_STREAM_BUFFER_MB` (default 1024) of Arrow data; a run that would exceed
+the cap waits until the consumer has taken earlier batches, while the run
+being released never waits.
+
 ### Tuning
 
 | Parameter | Default | Effect |
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
-| `workers` | `1` | Within-contig annotation pipelines when writing with `output_vcf`; values greater than 1 require a tabix-indexed (bgzip + `.tbi`) input VCF. The LazyFrame path is serial in this release. |
+| `workers` | `1` | Within-contig annotation pipelines on both output paths; values greater than 1 require a tabix-indexed (bgzip + `.tbi`/`.csi`) input VCF. Output is identical to `workers=1`, row order included. |
 | region filters | – | A LazyFrame `filter()` on `chrom`/`start`/`end` is pushed into the engine: unselected contigs are skipped and indexed inputs are read by seek (see [Polars DataFrames](dataframes.md#region-filters)). |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 

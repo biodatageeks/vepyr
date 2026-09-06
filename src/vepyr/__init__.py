@@ -1072,6 +1072,19 @@ def _normalize_verify_source(verify_source: bool | str) -> str:
     )
 
 
+def _require_index_for_workers(vcf: str, workers: int) -> None:
+    """``workers>1`` reads each run's position window by index seek on both
+    output paths; without an index every run would parse the whole file."""
+    if workers <= 1:
+        return
+    if os.path.exists(vcf + ".tbi") or os.path.exists(vcf + ".csi"):
+        return
+    raise ValueError(
+        f"workers>1 requires a tabix-indexed input ({vcf}.tbi or .csi); "
+        "compress with bgzip and index with tabix, or use workers=1"
+    )
+
+
 def annotate(
     vcf: str,
     cache_dir: str,
@@ -1229,10 +1242,14 @@ def annotate(
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     workers : int
-        Number of within-contig fused annotation pipelines (default: 1) when
-        writing with ``output_vcf``; values greater than 1 require a
-        tabix-indexed (bgzip + ``.tbi``) input VCF. The ``LazyFrame`` path is
-        serial (``workers=1``) in this release.
+        Number of within-contig annotation pipelines (default: 1) on both
+        output paths. Values greater than 1 require a tabix-indexed (bgzip +
+        ``.tbi`` or ``.csi``) input VCF. Results are identical to ``workers=1``
+        row for row and in the same order. On the ``LazyFrame`` path the
+        engine queues at most ``workers + lookahead`` runs of output ahead of
+        the consumer, capped at ``VEP_STREAM_BUFFER_MB`` (default 1024) of
+        Arrow data; ``VEP_STREAM_LOOKAHEAD_RUNS`` (default ``workers``) sets
+        the lookahead.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -1386,6 +1403,7 @@ def annotate(
         raise ValueError("buffer_size must be a positive integer")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
+    _require_index_for_workers(vcf, workers)
     if cache_format != "parquet":
         raise ValueError("cache_format must be 'parquet'")
     _validate_expected_cache_version(expected_cache_version)

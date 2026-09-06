@@ -281,10 +281,9 @@ pub fn annotate_to_vcf_file(
         .filter(|n| *n > 0)
         .unwrap_or(datafusion_bio_function_vep::vcf_sink::VEP_DEFAULT_BUFFER_SIZE);
     // Single annotation-concurrency knob (vepyr `workers` -> engine `workers`).
-    // The engine derives its lookup parallelism from `workers`; the sink's
-    // DataFusion `target_partitions` stays 1 so the annotated VCF is written
-    // as a single ordered output (the streaming path, which polars drains in
-    // parallel, sets its own SessionConfig partitions from `workers`).
+    // The sink's DataFusion `target_partitions` stays 1 so the annotated VCF is
+    // written as a single ordered output; the streaming path runs the engine's
+    // run pool per contig and releases runs in order to one consumer.
     config.workers = workers;
     config.target_partitions = 1;
     config.compression = vcf_compression;
