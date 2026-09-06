@@ -2190,3 +2190,208 @@ class TestPluginMatchTemplates:
         )
         with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
             lf.select("chrom", "BYHGVS_score").collect()
+
+
+class TestLazyFrameProgress:
+    """The LazyFrame path shows the same kind of tqdm bar as the VCF path.
+
+    The bar counts variants as the engine yields them, before any Polars
+    predicate: a selective filter would otherwise leave it at zero while the
+    engine grinds through the file.
+    """
+
+    @staticmethod
+    def _recording_tqdm():
+        """A tqdm stand-in that records every bar built and each update."""
+        bars: list = []
+
+        class RecordingBar:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+                self.total = kwargs.get("total")
+                self.n = 0
+                self.updates: list[int] = []
+                self.closed = False
+                bars.append(self)
+
+            def update(self, n):
+                self.n += n
+                self.updates.append(n)
+
+            def refresh(self):
+                pass
+
+            def close(self):
+                self.closed = True
+
+        return RecordingBar, bars
+
+    @staticmethod
+    def _fake_annotator(batches):
+        """A ``_create_annotator`` stand-in yielding fixed Arrow batches."""
+        import pyarrow as pa
+
+        schema = pa.schema(
+            [pa.field("chrom", pa.string()), pa.field("pos", pa.int64())]
+        )
+
+        class FakeAnnotator:
+            def __init__(self):
+                self.schema = schema
+
+            def __iter__(self):
+                for chroms, positions in batches:
+                    yield pa.record_batch(
+                        {
+                            "chrom": pa.array(chroms, pa.string()),
+                            "pos": pa.array(positions, pa.int64()),
+                        },
+                        schema=schema,
+                    )
+
+        def fake_create_annotator(
+            vcf_path, cache_dir, options_json, skip_csq=True, limit=None
+        ):
+            return FakeAnnotator()
+
+        return fake_create_annotator
+
+    @staticmethod
+    def _failing_annotator(batches, exc):
+        """Like ``_fake_annotator`` but the stream dies after the batches."""
+        import pyarrow as pa
+
+        schema = pa.schema(
+            [pa.field("chrom", pa.string()), pa.field("pos", pa.int64())]
+        )
+
+        class FailingAnnotator:
+            def __init__(self):
+                self.schema = schema
+
+            def __iter__(self):
+                for chroms, positions in batches:
+                    yield pa.record_batch(
+                        {
+                            "chrom": pa.array(chroms, pa.string()),
+                            "pos": pa.array(positions, pa.int64()),
+                        },
+                        schema=schema,
+                    )
+                raise exc
+
+        def fake_create_annotator(
+            vcf_path, cache_dir, options_json, skip_csq=True, limit=None
+        ):
+            return FailingAnnotator()
+
+        return fake_create_annotator
+
+    def _annotate(self, monkeypatch, batches, **kwargs):
+        import vepyr
+
+        bar_cls, bars = self._recording_tqdm()
+        monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
+        monkeypatch.setattr(vepyr, "_create_annotator", self._fake_annotator(batches))
+        return vepyr.annotate(INPUT_VCF, CACHE_DIR, **kwargs), bars
+
+    def test_bar_counts_variants_the_engine_yields(self, monkeypatch):
+        lf, bars = self._annotate(
+            monkeypatch, [(["1", "1", "2"], [1, 2, 3]), (["2", "3"], [4, 5])]
+        )
+
+        lf.collect()
+
+        assert len(bars) == 1
+        assert sum(bars[0].updates) == 5
+
+    def test_bar_counts_rows_before_the_pushed_down_predicate(self, monkeypatch):
+        lf, bars = self._annotate(
+            monkeypatch, [(["1", "1", "2"], [1, 2, 3]), (["2", "3"], [4, 5])]
+        )
+
+        df = lf.filter(pl.col("pos") > 4).collect()
+
+        assert df.height == 1
+        assert sum(bars[0].updates) == 5
+
+    def test_show_progress_false_builds_no_bar(self, monkeypatch):
+        lf, bars = self._annotate(
+            monkeypatch, [(["1", "2"], [1, 2])], show_progress=False
+        )
+
+        lf.collect()
+
+        assert bars == []
+
+    def test_limit_without_predicate_sets_the_bar_total(self, monkeypatch):
+        lf, bars = self._annotate(
+            monkeypatch, [(["1", "1", "2"], [1, 2, 3]), (["2", "3"], [4, 5])]
+        )
+
+        lf.head(3).collect()
+
+        assert bars[0].total == 3
+
+    def test_predicate_leaves_the_bar_total_unset(self, monkeypatch):
+        lf, bars = self._annotate(
+            monkeypatch, [(["1", "1", "2"], [1, 2, 3]), (["2", "3"], [4, 5])]
+        )
+
+        lf.filter(pl.col("pos") > 4).collect()
+
+        assert bars[0].total is None
+
+    def test_bar_closes_when_polars_stops_early(self, monkeypatch):
+        lf, bars = self._annotate(
+            monkeypatch, [(["1", "1", "2"], [1, 2, 3]), (["2", "3"], [4, 5])]
+        )
+
+        lf.head(1).collect()
+
+        assert bars[0].closed
+
+    def test_each_collect_builds_its_own_bar(self, monkeypatch):
+        lf, bars = self._annotate(monkeypatch, [(["1", "2"], [1, 2])])
+
+        lf.collect()
+        lf.collect()
+
+        assert len(bars) == 2
+        assert all(sum(bar.updates) == 2 for bar in bars)
+
+    def test_limit_beyond_the_input_closes_at_the_observed_count(self, monkeypatch):
+        """A LIMIT is an upper bound, not a promise of that many rows.
+
+        Without this the bar closes at 2/1000 and reports a finished run as
+        0.2% complete.
+        """
+        lf, bars = self._annotate(monkeypatch, [(["1", "1"], [1, 2])])
+
+        lf.head(1000).collect()
+
+        assert bars[0].n == 2
+        assert bars[0].total == 2
+
+    def test_a_failed_stream_does_not_snap_the_total_to_the_rows_seen(
+        self, monkeypatch
+    ):
+        """Only exhaustion means "that was all of it" -- a crash does not."""
+        import vepyr
+
+        bar_cls, bars = self._recording_tqdm()
+        monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
+        monkeypatch.setattr(
+            vepyr,
+            "_create_annotator",
+            self._failing_annotator(
+                [(["1", "1"], [1, 2])], RuntimeError("Annotation stream error")
+            ),
+        )
+        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
+
+        with pytest.raises(Exception, match="Annotation stream error"):
+            lf.head(1000).collect()
+
+        assert bars[0].total == 1000
+        assert bars[0].closed
