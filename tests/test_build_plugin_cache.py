@@ -328,7 +328,9 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
         "in.vcf", "cache", plugin_cache_root=str(root), show_progress=False
     )
     assert lf is not None  # a LazyFrame, not a written path
-    assert f'"plugin_cache_root": "{root}"' in captured["options_json"]
+    # compare the parsed value: on Windows the path's backslashes are
+    # JSON-escaped in the raw string
+    assert json.loads(captured["options_json"])["plugin_cache_root"] == str(root)
     assert "CADD_PHRED" in lf.collect_schema()
 
 
