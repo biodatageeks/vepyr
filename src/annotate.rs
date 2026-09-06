@@ -35,17 +35,16 @@ fn normalize_options(options_json: &str) -> PyResult<(String, String)> {
     let object = opts
         .as_object_mut()
         .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("options JSON must be an object"))?;
+    // The partitioned Parquet cache is the only cache format; the option is
+    // kept so the engine receives an explicit value.
     let cache_format = object
         .get("cache_format")
         .and_then(|v| v.as_str())
-        .unwrap_or("indexed_parquet")
+        .unwrap_or("parquet")
         .to_string();
-    if !matches!(
-        cache_format.as_str(),
-        "indexed_parquet" | "legacy_fjall" | "parquet"
-    ) {
+    if cache_format != "parquet" {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'parquet'",
+            "cache_format must be 'parquet'",
         ));
     }
     object.insert(
@@ -368,6 +367,41 @@ pub fn annotate_to_vcf_file(
     })
 }
 
+/// Contig ids declared in the VCF header, in header order. The provider
+/// resolves its index and header asynchronously, so it is built on a runtime.
+pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
+    use datafusion::datasource::TableProvider;
+
+    let rt = runtime_for_workers(1)?;
+    let path = vcf_path.to_string();
+    let schema = rt.block_on(async move {
+        datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+            path,
+            Some(vec![]),
+            Some(vec![]),
+            None,
+            false,
+        )
+        .map(|provider| provider.schema())
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}")))
+    })?;
+    let Some(raw) = schema.metadata().get("bio.vcf.contigs") else {
+        return Ok(Vec::new());
+    };
+    let entries: Vec<Value> = serde_json::from_str(raw).map_err(|e| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("Invalid VCF contig metadata: {e}"))
+    })?;
+    Ok(entries
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .get("id")
+                .and_then(|id| id.as_str())
+                .map(str::to_string)
+        })
+        .collect())
+}
+
 /// Create a streaming annotator that yields PyArrow RecordBatches.
 pub fn create_streaming_annotator(
     py: Python<'_>,
@@ -464,7 +498,7 @@ mod tests {
     #[test]
     fn default_cache_format_and_workers_when_absent() {
         let (_json, fmt) = normalize_options(r#"{}"#).unwrap();
-        assert_eq!(fmt, "indexed_parquet");
+        assert_eq!(fmt, "parquet");
         let opts: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
         assert_eq!(workers_from_options(&opts), 1);
     }
@@ -472,8 +506,10 @@ mod tests {
     #[test]
     fn invalid_cache_format_is_rejected() {
         pyo3::Python::initialize();
-        let err = normalize_options(r#"{"cache_format":"fjall"}"#).unwrap_err();
-        assert!(err.to_string().contains("cache_format"));
+        for stale in ["fjall", "indexed_parquet", "legacy_fjall", "lance"] {
+            let err = normalize_options(&format!(r#"{{"cache_format":"{stale}"}}"#)).unwrap_err();
+            assert!(err.to_string().contains("cache_format"), "{stale}");
+        }
     }
 
     #[test]
