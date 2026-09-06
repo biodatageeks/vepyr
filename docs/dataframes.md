@@ -344,6 +344,102 @@ any_stream = df.filter(
 any_high = df.filter(pl.col("IMPACT").list.contains("HIGH"))
 ```
 
+## Plugins
+
+Point the frame at a plugin cache and the plugin fields are columns like any
+other; see [Plugin columns](#plugin-columns) for how their shape and type are
+decided. All examples below use the four published caches:
+
+```python
+lf = vepyr.annotate(
+    "input.vcf.gz", cache, reference_fasta="GRCh38.fa",
+    plugin_cache_root="/data/plugin_cache",
+    plugins=["cadd", "clinvar", "spliceai", "alphamissense"],
+)
+```
+
+**CADD** is per variant, and its scores are strings so the VCF keeps the
+source digits. Cast, then filter:
+
+```python
+high_cadd = (
+    lf.select("chrom", "start", "ref", "alt", "SYMBOL", "CADD_PHRED")
+      .with_columns(pl.col("CADD_PHRED").cast(pl.Float32))
+      .filter(pl.col("CADD_PHRED") >= 20)
+      .collect()
+)
+```
+
+**ClinVar** is per variant too, so its fields are plain string columns.
+`ClinVar` holds the variation id, and the assertion fields keep VEP's `&`
+joins, so match with a pattern:
+
+```python
+clinvar = (
+    lf.select("chrom", "start", "ref", "alt", "ClinVar", "ClinVar_CLNSIG", "ClinVar_CLNREVSTAT")
+      .filter(pl.col("ClinVar_CLNSIG").str.contains("(?i)pathogenic"))
+      .collect()
+)
+```
+
+**SpliceAI** is matched by gene symbol, so every field is a list aligned with
+`Consequence`. The delta scores are strings in the cache; cast the lists and
+take the largest score across the variant's entries:
+
+```python
+DS = ["SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL"]
+
+splice = (
+    lf.select("chrom", "start", "ref", "alt", "SpliceAI_pred_SYMBOL", *DS)
+      .with_columns(pl.col(DS).cast(pl.List(pl.Float32)))
+      .with_columns(pl.max_horizontal(pl.col(DS).list.max()).alias("spliceai_max_ds"))
+      .filter(pl.col("spliceai_max_ds") >= 0.5)
+      .collect()
+)
+```
+
+**AlphaMissense** is matched by protein change, so `am_class` and
+`am_pathogenicity` (already `List(Float32)`) belong to the consequence entry
+that produced the change. Explode them together with the transcript columns
+to see which transcript each score refers to:
+
+```python
+am = (
+    lf.select("chrom", "start", "ref", "alt", "Feature", "Protein_position",
+              "Amino_acids", "am_class", "am_pathogenicity")
+      .filter(pl.col("am_class").list.contains("likely_pathogenic"))
+      .explode(["Feature", "Protein_position", "Amino_acids", "am_class", "am_pathogenicity"])
+      .filter(pl.col("am_class") == "likely_pathogenic")
+      .collect()
+)
+```
+
+Plugin columns combine freely with the base annotation, and the projection
+still decides what runs. This query runs the co-located lookup for
+`gnomADg_AF` and the CADD lookup, and nothing else:
+
+```python
+candidates = (
+    lf.select("chrom", "start", "ref", "alt", "SYMBOL", "Consequence", "gnomADg_AF", "CADD_PHRED")
+      .with_columns(pl.col("CADD_PHRED").cast(pl.Float32))
+      .filter(
+          pl.any_horizontal(pl.col("gnomADg_AF").is_null(), pl.col("gnomADg_AF") < 0.001)
+          & (pl.col("CADD_PHRED") >= 25)
+      )
+      .collect()
+)
+```
+
+The [`consequence_rows`](#one-row-per-consequence) helper works unchanged on
+a frame with plugins: per-feature plugin lists explode alongside the
+transcript columns, per-variant scalars such as `CADD_PHRED` repeat on each
+row, like the frequencies do.
+
+A query that reads no plugin column skips the plugin lookup entirely. On
+chr22 with the four caches, `select(chrom, start, SYMBOL)` takes 1.2 s and
+`select(chrom, start, CADD_PHRED)` 8.4 s, so keep plugin columns out of
+queries that do not need them.
+
 ## Writing results to disk
 
 `collect()` holds the whole result in memory. On chromosome 1 of a
