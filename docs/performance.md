@@ -114,10 +114,10 @@ on HG002 contig slices, `everything=True`, a FASTA, on an Apple Silicon M3 Max
 | | 2 | 2.0 s | 2.5 s | 1.6 s |
 | | 4 | 1.2 s | 1.8 s | 1.2 s |
 | | 8 | 0.9 s | 1.7 s | 1.0 s |
-| chr1, 319,349 variants | 1 | 16.7 s | 21.4 s | – |
-| | 2 | 10.1 s | 13.8 s | – |
-| | 4 | 6.4 s | 9.0 s | – |
-| | 8 | 3.9 s | 5.7 s | – |
+| chr1, 319,349 variants | 1 | 16.7 s | 21.4 s | 15.0 s |
+| | 2 | 10.1 s | 13.8 s | 9.8 s |
+| | 4 | 6.4 s | 9.0 s | 6.5 s |
+| | 8 | 3.9 s | 5.7 s | 3.5 s |
 
 Each contig is cut into grid-aligned runs that a pool of `workers` tasks
 annotates concurrently and releases in order; Merged and RefSeq runs replay a
