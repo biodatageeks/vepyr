@@ -167,6 +167,8 @@ def test_elementwise_string_functions_are_evaluated():
     [
         ((pl.col("chrom") == "chr1") & (pl.col("start") >= 0), [region("chr1")]),
         ((pl.col("chrom") == "chr1") & (pl.col("start") > -5), [region("chr1")]),
+        ((pl.col("chrom") == "chr1") & (pl.col("start") >= 1), [region("chr1")]),
+        ((pl.col("chrom") == "chr1") & (pl.col("start") > 1), [region("chr1", 2)]),
         ((pl.col("chrom") == "chr1") & (pl.col("start") < 1), []),
         ((pl.col("chrom") == "chr1") & (pl.col("end") <= 0), []),
         (
@@ -230,6 +232,9 @@ def test_contigs_are_fetched_lazily_and_only_for_pushable_predicates():
         pl.col("end") >= 100,
         pl.col("end") > 100,
         pl.col("start") >= 0,
+        pl.col("start") >= 1,
+        pl.col("start") > 0,
+        pl.col("start").is_between(1, 2**63),
         (pl.col("chrom") == "chr1") | (pl.col("end") > 5),
     ],
 )

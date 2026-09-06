@@ -86,10 +86,11 @@ def extract_regions(
         # predicate that ends up not pushable pays for the contig scan.
         vetted: list[tuple[list[dict], int | None, int | None]] = []
         for chrom_nodes, lo, hi in plans:
-            # Coordinates are 1-based: a lower bound below 1 is no bound, an
-            # upper bound below 1 accepts nothing. Beyond the engine's i64
-            # range a lower bound accepts nothing and an upper bound is open.
-            if lo is not None and lo < 1:
+            # Coordinates are 1-based: a lower bound at or below 1 is no
+            # bound, an upper bound below 1 accepts nothing. Beyond the
+            # engine's i64 range a lower bound accepts nothing and an upper
+            # bound is open.
+            if lo is not None and lo <= 1:
                 lo = None
             if hi is not None and hi > _I64_MAX:
                 hi = None
