@@ -231,7 +231,8 @@ Without a projection there is nothing to infer from, so the flags you passed
 are what runs, and a frame created without flags runs `everything` when it
 has a FASTA and the co-located lookup when it does not.
 
-On the release-116 Ensembl cache with a FASTA and `workers=1`:
+On the release-116 Ensembl cache with a FASTA and `workers=1`, measured on an
+Apple Silicon M3 Max (16 cores, 64 GiB):
 
 | Input | Query | Wall time |
 |---|---|---|
@@ -277,7 +278,7 @@ extra positional pass over each selected contig, which keeps the result
 byte-identical to a whole-file run.
 
 On the release-116 caches with a FASTA, `everything=True` and `workers=1`
-(HG002 slices, indexed input):
+(HG002 slices, indexed input), measured on an Apple Silicon M3 Max (16 cores, 64 GiB):
 
 | Input | Query | Ensembl | Merged | RefSeq |
 |---|---|---|---|---|
