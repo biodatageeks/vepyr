@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import importlib.metadata
 import logging
+import re
 import warnings
 from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING
@@ -1554,6 +1555,9 @@ def annotate(
     # variant (no match_columns) carries one value per row, a per-feature
     # plugin one value per consequence entry.
     plugin_column_specs: list[tuple[str, "pl.DataType", bool]] = []
+    # Fields a plugin's match templates read (``{HGVSc}`` say), per plugin
+    # column: reading the column needs those fields' flags too.
+    plugin_column_inputs: dict[str, set[str]] = {}
     if plugin_cache_root is not None and plugins != []:
         import os
 
@@ -1581,11 +1585,18 @@ def annotate(
                 value_columns = sorted(
                     value_columns, key=lambda column: column["csq_field"]
                 )
-            per_variant = not manifest.get("match_columns")
+            match_columns = manifest.get("match_columns") or []
+            per_variant = not match_columns
+            template_fields = {
+                field
+                for match in match_columns
+                for field in re.findall(r"\{([^{}]+)\}", match.get("template", ""))
+            }
             for column in value_columns:
                 dtype = _plugin_value_dtype(column.get("type"))
                 plugin_field_names.append(column["csq_field"])
                 plugin_column_specs.append((column["csq_field"], dtype, per_variant))
+                plugin_column_inputs[column["csq_field"]] = template_fields
         if len(set(plugin_field_names)) != len(plugin_field_names):
             raise ValueError(
                 "selected plugins expose duplicate CSQ field names, which cannot be "
@@ -1666,6 +1677,8 @@ def annotate(
             needed = set(with_columns)
             if predicate is not None:
                 needed.update(predicate.meta.root_names())
+            for column in needed & plugin_columns:
+                needed |= plugin_column_inputs[column]
         engine_opts = _flags_for_projection(_opts, needed, set(polars_schema))
         # The CSQ string is only built when the query reads it or a plugin
         # column parsed out of it.

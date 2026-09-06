@@ -1913,3 +1913,87 @@ class TestPluginColumns:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             vepyr.annotate("in.vcf", CACHE_DIR, fields="core").collect()
+
+
+class TestPluginMatchTemplates:
+    """A per-feature plugin's match template can reference a flag-dependent
+    field (``{HGVSc}`` say); reading that plugin's column then needs the
+    field's flags even though the field itself is not selected."""
+
+    def _hgvs_plugin(self, tmp_path, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        root = Path(_fake_plugin_root(tmp_path, ["byhgvs"]))
+        (root / "plugin" / "byhgvs" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "plugin_name": "byhgvs",
+                    "field_order": "declared",
+                    "match_columns": [{"column": "hgvsc", "template": "{HGVSc}"}],
+                    "value_columns": [
+                        {
+                            "column": "score",
+                            "csq_field": "BYHGVS_score",
+                            "type": "Float32",
+                        }
+                    ],
+                }
+            )
+        )
+        names = ["chrom", "CSQ", "most_severe_consequence", "Consequence", "HGVSc"]
+        calls = []
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field(n, pa.string()) for n in names])
+
+            def __iter__(self):
+                return iter(())
+
+        def fake(vcf, cache_dir, options_json, skip_csq, limit):
+            calls.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake)
+        return str(root), calls
+
+    def test_template_fields_keep_their_flags(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["byhgvs"],
+        ).select("chrom", "BYHGVS_score").collect()
+        opts = calls[-1]
+        assert opts["hgvs"] is True and opts["reference_fasta_path"] == REFERENCE_FASTA
+        assert "check_existing" not in opts
+
+    def test_template_fields_are_inferred_on_a_flagless_frame(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["byhgvs"],
+        ).select("chrom", "BYHGVS_score").collect()
+        assert calls[-1]["hgvs"] is True
+
+    def test_template_fields_without_fasta_raise(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, _ = self._hgvs_plugin(tmp_path, monkeypatch)
+        lf = vepyr.annotate(
+            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["byhgvs"]
+        )
+        with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
+            lf.select("chrom", "BYHGVS_score").collect()
