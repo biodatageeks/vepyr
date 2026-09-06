@@ -119,6 +119,10 @@ shaped by its `match_columns`: one value per row for a per-variant plugin
 computes, plugin lookup included. See
 [Polars DataFrames](dataframes.md#plugin-columns).
 
+For why some scores remain strings to preserve VCF body MD5 matches, which
+numeric types retain each field's precision, and Polars casting examples,
+see [String scores and numeric casts in the vepyr-plugins README](https://github.com/biodatageeks/vepyr-plugins/blob/master/README.md#string-scores-and-numeric-casts).
+
 ### Choosing which plugins run
 
 By default every plugin under `<plugin_cache_root>/plugin/` is applied. There
