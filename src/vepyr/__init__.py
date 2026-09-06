@@ -1229,9 +1229,10 @@ def annotate(
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     workers : int
-        Number of within-contig fused annotation pipelines (default: 1).
-        The single annotation-concurrency knob. ``1`` is serial; values
-        greater than 1 require a tabix-indexed (bgzip + ``.tbi``) input VCF.
+        Number of within-contig fused annotation pipelines (default: 1) when
+        writing with ``output_vcf``; values greater than 1 require a
+        tabix-indexed (bgzip + ``.tbi``) input VCF. The ``LazyFrame`` path is
+        serial (``workers=1``) in this release.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -1288,6 +1289,15 @@ def annotate(
         ``total_input`` is the total number of input variants when known.
         Useful for driving tqdm progress bars in notebooks. Only used when
         ``output_vcf`` is set.
+
+    Notes
+    -----
+    Filtering the returned ``LazyFrame`` on ``chrom``, ``start`` or ``end``
+    restricts the *input* before annotation (region pushdown): unselected
+    contigs are skipped and indexed inputs are read by seek. Results are
+    identical to filtering after ``collect()``. A ``RuntimeWarning`` is
+    raised when the input has no ``.tbi``/``.csi`` index. See the quickstart
+    "Region filters" section for the recognised predicate shapes.
 
     Returns
     -------

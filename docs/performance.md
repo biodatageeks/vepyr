@@ -77,7 +77,8 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 | Parameter | Default | Effect |
 |---|---|---|
 | `cache_size_mb` | `1024` | LRU cache for annotation data — increase for large inputs |
-| `workers` | `1` | Within-contig annotation pipelines. `1` is serial; values greater than 1 require a tabix-indexed (bgzip + `.tbi`) input VCF. |
+| `workers` | `1` | Within-contig annotation pipelines when writing with `output_vcf`; values greater than 1 require a tabix-indexed (bgzip + `.tbi`) input VCF. The LazyFrame path is serial in this release. |
+| region filters | – | A LazyFrame `filter()` on `chrom`/`start`/`end` is pushed into the engine: unselected contigs are skipped and indexed inputs are read by seek (see the quickstart "Region filters" section). |
 | `partitions` | `1` | DataFusion partitions during cache build — increase for parallel conversion |
 
 !!! tip "Compile-time optimization"
