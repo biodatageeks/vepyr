@@ -147,11 +147,23 @@ those columns require.
 
 ### Plugin columns
 
-With a plugin cache configured, every plugin CSQ field is a named
-`List(String)` column appended after the block above, `CADD_PHRED` and
-`CADD_RAW` for example; see [Plugins](plugins.md). The engine only runs the
-plugin lookup, and only builds the CSQ string the values are carried in, when
-a query reads one of those columns:
+With a plugin cache configured, every plugin CSQ field is a named column
+appended after the block above; see [Plugins](plugins.md). Its shape and
+type come from the plugin's manifest, not from the CSQ text it travels in:
+
+- A plugin keyed on the variant alone, such as CADD or ClinVar, gives one
+  value per row: `CADD_PHRED: String`, `ClinVar_CLNSIG: String`.
+- A plugin keyed on a transcript feature, such as SpliceAI (by gene symbol)
+  or AlphaMissense (by protein change), gives one value per consequence
+  entry, aligned with `Consequence`: `SpliceAI_pred_DP_AG: List(Int32)`,
+  `am_pathogenicity: List(Float32)`.
+- The element type is the manifest's `type`: `Utf8`, `Int32` or `Float32`.
+  CADD's scores are declared `Utf8` so the VCF reproduces the source digits
+  exactly, which is why `CADD_PHRED` is a string; cast it when you need a
+  number.
+
+The engine only runs the plugin lookup, and only builds the CSQ string the
+values are carried in, when a query reads one of those columns:
 
 ```python
 lf = vepyr.annotate(

@@ -232,9 +232,7 @@ class TestPartialPluginCache:
         ).collect()
         assert "DEMO" in frame.columns
         assert "DISTANCE" not in frame.columns
-        assert any(
-            value is not None for values in frame["DEMO"].to_list() for value in values
-        )
+        assert frame["DEMO"].is_not_null().sum() == 2
 
     def test_annotates_the_contigs_it_has(
         self,
@@ -1156,8 +1154,9 @@ def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatc
         "CADD_PHRED",
         "CADD_RAW",
     ]
-    assert result["CADD_PHRED"].to_list() == [["24.5"]]
-    assert result["CADD_RAW"].to_list() == [["0.12"]]
+    # No match_columns in the manifest: a per-variant plugin, one value per row.
+    assert result["CADD_PHRED"].to_list() == ["24.5"]
+    assert result["CADD_RAW"].to_list() == ["0.12"]
 
 
 def test_annotate_empty_plugins_is_plugin_free_without_cache_validation(
@@ -1677,8 +1676,31 @@ class TestPluginColumns:
                     "plugin_name": "cadd",
                     "field_order": "declared",
                     "value_columns": [
-                        {"column": "phred", "csq_field": "CADD_PHRED"},
-                        {"column": "raw", "csq_field": "CADD_RAW"},
+                        {"column": "phred", "csq_field": "CADD_PHRED", "type": "Utf8"},
+                        {"column": "raw", "csq_field": "CADD_RAW", "type": "Utf8"},
+                    ],
+                }
+            )
+        )
+        # A per-feature plugin (match_columns set) with typed values.
+        (root / "plugin" / "spliceai").mkdir()
+        (root / "plugin" / "spliceai" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "plugin_name": "spliceai",
+                    "field_order": "declared",
+                    "match_columns": [{"column": "symbol", "template": "{SYMBOL}"}],
+                    "value_columns": [
+                        {
+                            "column": "ds_ag",
+                            "csq_field": "SpliceAI_DS_AG",
+                            "type": "Float32",
+                        },
+                        {
+                            "column": "dp_ag",
+                            "csq_field": "SpliceAI_DP_AG",
+                            "type": "Int32",
+                        },
                     ],
                 }
             )
@@ -1688,14 +1710,21 @@ class TestPluginColumns:
         calls = []
 
         class FakeAnnotator:
-            def __init__(self, skip_csq):
+            def __init__(self, skip_csq, plugin_names):
                 self.schema = schema
                 self.skip_csq = skip_csq
+                self.plugin_names = plugin_names
 
             def __iter__(self):
-                # The engine's CSQ layout is flag-dependent; plugin values are
-                # always its last fields. Two entries here.
-                csq = "G|missense_variant|A|B|24.5|0.12,G|intron_variant|A|B||"
+                # The engine's CSQ layout is flag-dependent; the requested
+                # plugins' values are always its last fields. Two entries here.
+                tails = {
+                    "cadd": ("24.5|0.12", "24.5|0.12"),
+                    "spliceai": ("0.91|8", "|"),
+                }
+                first = "|".join(tails[p][0] for p in self.plugin_names)
+                second = "|".join(tails[p][1] for p in self.plugin_names)
+                csq = f"G|missense_variant|A|B|{first},G|intron_variant|A|B|{second}"
                 cols = {
                     "chrom": ["1"],
                     "CSQ": [csq],
@@ -1711,8 +1740,9 @@ class TestPluginColumns:
                 )
 
         def fake(vcf, cache_dir, options_json, skip_csq, limit):
-            calls.append((json.loads(options_json), skip_csq))
-            return FakeAnnotator(skip_csq)
+            opts = json.loads(options_json)
+            calls.append((opts, skip_csq))
+            return FakeAnnotator(skip_csq, opts.get("plugins", []))
 
         monkeypatch.setattr(vepyr, "_create_annotator", fake)
         return str(root), calls
@@ -1729,12 +1759,13 @@ class TestPluginColumns:
                 "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
             )
         schema = lf.collect_schema()
-        assert schema["CADD_PHRED"] == pl.List(pl.String)
-        assert schema["CADD_RAW"] == pl.List(pl.String)
+        # per-variant plugin: one scalar per row, typed as the manifest says
+        assert schema["CADD_PHRED"] == pl.String
+        assert schema["CADD_RAW"] == pl.String
         assert "CSQ" not in schema
         df = lf.collect()
-        assert df["CADD_PHRED"].to_list() == [["24.5", None]]
-        assert df["CADD_RAW"].to_list() == [["0.12", None]]
+        assert df["CADD_PHRED"].to_list() == ["24.5"]
+        assert df["CADD_RAW"].to_list() == ["0.12"]
         assert "CSQ" not in df.columns
         assert calls[-1][1] is False, "CSQ built because the plugin columns were read"
 
@@ -1752,8 +1783,31 @@ class TestPluginColumns:
             .collect()
         )
         assert df.columns == ["chrom", "CADD_PHRED"]
-        assert df["CADD_PHRED"].to_list() == [["24.5", None]]
+        assert df["CADD_PHRED"].to_list() == ["24.5"]
         assert calls[-1][1] is False
+
+    def test_per_feature_plugin_is_a_typed_list_aligned_with_consequence(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, _ = self._fake_cadd(tmp_path, monkeypatch)
+        lf = vepyr.annotate(
+            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd", "spliceai"]
+        )
+        schema = lf.collect_schema()
+        assert schema["SpliceAI_DS_AG"] == pl.List(pl.Float32)
+        assert schema["SpliceAI_DP_AG"] == pl.List(pl.Int32)
+        df = lf.collect()
+        assert df["SpliceAI_DS_AG"].to_list() == [[pytest.approx(0.91), None]]
+        assert df["SpliceAI_DP_AG"].to_list() == [[8, None]]
+        assert df["CADD_PHRED"].to_list() == ["24.5"]
+        assert list(df.columns[-4:]) == [
+            "CADD_PHRED",
+            "CADD_RAW",
+            "SpliceAI_DS_AG",
+            "SpliceAI_DP_AG",
+        ]
 
     def test_selecting_only_base_columns_skips_the_csq_string(
         self, tmp_path, monkeypatch
@@ -1837,7 +1891,9 @@ class TestPluginColumns:
             .select("chrom", "start", "ref", "alt", "DEMO")
         )
         assert plain.equals(core)
-        assert any(v is not None for vs in plain["DEMO"].to_list() for v in vs)
+        # per-variant plugin, declared Float32 in its manifest: a typed scalar
+        assert plain.schema["DEMO"] == pl.Float32
+        assert sorted(plain["DEMO"].drop_nulls().to_list()) == [0.25, 0.5]
 
     def test_fields_core_without_fasta_does_not_warn_about_absent_columns(
         self, monkeypatch

@@ -111,10 +111,13 @@ explicit list or tuple may be used instead of `"core"`; its order is
 preserved. Fields needed by plugin match templates are still computed even
 when they are not emitted. With `fields=None` the full CSQ layout is written.
 
-On the DataFrame path `fields=` is not needed: each plugin field (for example
-`CADD_PHRED` and `CADD_RAW`) is always a named `List(String)` column after
-the base columns, and a `select()` decides what the engine computes, plugin
-lookup included. See [Polars DataFrames](dataframes.md#schema).
+On the DataFrame path `fields=` is not needed: each plugin field is always a
+named column after the base columns, typed by the manifest's `type` and
+shaped by its `match_columns`: one value per row for a per-variant plugin
+(`CADD_PHRED: String`), one per consequence entry for a per-feature plugin
+(`am_pathogenicity: List(Float32)`). A `select()` decides what the engine
+computes, plugin lookup included. See
+[Polars DataFrames](dataframes.md#plugin-columns).
 
 ### Choosing which plugins run
 

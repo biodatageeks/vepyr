@@ -116,6 +116,28 @@ _EVERYTHING_ONLY_COLUMNS = frozenset(
 )
 
 
+# Plugin cache manifest value types (engine ``ValueType``) to Polars dtypes.
+_PLUGIN_VALUE_TYPES = {"Utf8": "String", "Float32": "Float32", "Int32": "Int32"}
+
+
+def _plugin_value_dtype(type_name: str | None):
+    import polars as pl
+
+    return getattr(pl, _PLUGIN_VALUE_TYPES.get(type_name, "String"))
+
+
+def _plugin_column(values, dtype, per_variant: bool):
+    """Shape one plugin field parsed out of CSQ: ``values`` is a list of one
+    string per consequence entry. A per-variant plugin repeats the same value
+    on every entry, so it collapses to one typed scalar; a per-feature plugin
+    stays a typed list aligned with ``Consequence``."""
+    import polars as pl
+
+    if per_variant:
+        return values.list.drop_nulls().list.first().cast(dtype)
+    return values.cast(pl.List(dtype))
+
+
 def _flags_for_projection(
     opts: dict, needed: set[str] | None, available: set[str] | None = None
 ) -> dict:
@@ -1528,6 +1550,10 @@ def annotate(
     # configured. The engine appends them after the base layout, whose length
     # depends on the flags, so they are read as the last fields of each entry.
     plugin_field_names: list[str] = []
+    # (csq_field, element dtype, per_variant): a plugin keyed only on the
+    # variant (no match_columns) carries one value per row, a per-feature
+    # plugin one value per consequence entry.
+    plugin_column_specs: list[tuple[str, "pl.DataType", bool]] = []
     if plugin_cache_root is not None and plugins != []:
         import os
 
@@ -1555,7 +1581,11 @@ def annotate(
                 value_columns = sorted(
                     value_columns, key=lambda column: column["csq_field"]
                 )
-            plugin_field_names.extend(column["csq_field"] for column in value_columns)
+            per_variant = not manifest.get("match_columns")
+            for column in value_columns:
+                dtype = _plugin_value_dtype(column.get("type"))
+                plugin_field_names.append(column["csq_field"])
+                plugin_column_specs.append((column["csq_field"], dtype, per_variant))
         if len(set(plugin_field_names)) != len(plugin_field_names):
             raise ValueError(
                 "selected plugins expose duplicate CSQ field names, which cannot be "
@@ -1602,12 +1632,12 @@ def annotate(
             name: polars_schema[name] for name in selected_dataframe_columns
         }
     if plugin_field_names:
-        for name in plugin_field_names:
+        for name, dtype, per_variant in plugin_column_specs:
             if name in polars_schema:
                 raise ValueError(
                     f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
                 )
-            polars_schema[name] = pl.List(pl.String)
+            polars_schema[name] = dtype if per_variant else pl.List(dtype)
         if skip_csq:
             polars_schema.pop("CSQ", None)
     del probe
@@ -1661,16 +1691,21 @@ def annotate(
             if plugin_field_names and "CSQ" in batch_df.columns:
                 n_plugin = len(plugin_field_names)
                 batch_df = batch_df.with_columns(
-                    pl.col("CSQ")
-                    .str.split(",")
-                    .list.eval(
-                        pl.element()
-                        .str.split("|")
-                        .list.get(index - n_plugin, null_on_oob=True)
-                        .replace("", None)
+                    _plugin_column(
+                        pl.col("CSQ")
+                        .str.split(",")
+                        .list.eval(
+                            pl.element()
+                            .str.split("|")
+                            .list.get(index - n_plugin, null_on_oob=True)
+                            .replace("", None)
+                        ),
+                        dtype,
+                        per_variant,
+                    ).alias(name)
+                    for index, (name, dtype, per_variant) in enumerate(
+                        plugin_column_specs
                     )
-                    .alias(name)
-                    for index, name in enumerate(plugin_field_names)
                 )
             if skip_csq and "CSQ" in batch_df.columns:
                 batch_df = batch_df.drop("CSQ")
