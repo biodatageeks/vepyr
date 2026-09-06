@@ -11,17 +11,23 @@ import vepyr
 lf = vepyr.annotate(
     "input.vcf.gz",
     "/data/vepyr_cache/116_GRCh38_merged",
-    everything=True,
     reference_fasta="GRCh38.fa",
 )
 df = lf.collect()
 ```
 
+No annotation flags are needed on this path. A frame created without flags
+fills everything the inputs allow: with a `reference_fasta` that is the full
+`--everything` result, without one the HGVS and `everything`-only columns
+stay null because the engine cannot compute them. Flags you pass explicitly
+are honoured as given, and a `select()` decides what actually runs, see
+[below](#what-is-pushed-into-the-engine).
+
 ## Schema
 
 `collect_schema()` is free: it comes from a probe that opens the cache but
-annotates nothing. This is the schema for chr22 of HG002 with
-`everything=True` on the release-116 Ensembl cache:
+annotates nothing. This is the schema for chr22 of HG002 on the release-116
+Ensembl cache:
 
 ```python
 >>> lf.collect_schema()
@@ -151,12 +157,11 @@ native annotator. Two things reach the engine:
   flags; and the `everything`-only extras (`MANE`, `APPRIS`, `SIFT`,
   `PolyPhen`, `DOMAINS`, `miRNA`, `HGVS_OFFSET` and the gnomAD
   sub-populations) on `everything`. A group nobody selected is switched off
-  for the run. A group a column needs is switched on when you gave no flags,
-  so `annotate(vcf, cache, reference_fasta=fasta)` followed by a `select()`
-  is enough; flags you did set are kept exactly as configured. HGVS and the
-  `everything` extras need `reference_fasta`, and selecting them without one
-  raises rather than returning nulls. The selected columns are value-identical
-  to a run with the flags spelled out.
+  for the run. A group a column needs is switched on when you gave no flags;
+  flags you did set are kept exactly as configured. HGVS and the `everything`
+  extras need `reference_fasta`, and selecting them without one raises rather
+  than returning nulls. The selected columns are value-identical to a run
+  with the flags spelled out.
 
 `filter()` itself is applied to each batch after annotation. It bounds memory,
 because a batch is dropped as soon as it has been reduced, but it does not
@@ -173,17 +178,18 @@ high = (
       .collect()
 )                                            # runs without HGVS or the co-located lookup
 
-bare = vepyr.annotate("input.vcf.gz", cache, reference_fasta="GRCh38.fa")   # no flags
-bare.select("chrom", "start", "HGVSc").collect()           # turns on hgvs
-bare.select("chrom", "start", "AF", "CLIN_SIG").collect()  # turns on the co-located lookup
-bare.select("chrom", "start", "SIFT").collect()            # turns on everything
-bare.collect()                                             # no projection: base columns only
+lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # no flags at all
+lf.select("chrom", "start", "HGVSc").collect()                    # hgvs only
+lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # the co-located lookup only
+lf.select("chrom", "start", "SIFT").collect()                     # everything
+lf.collect()                                                      # no projection: everything
 ```
 
-Without a projection the flags you passed are what runs: a plain `collect()`
-on a frame created without flags fills only the flag-independent columns.
+Without a projection there is nothing to infer from, so the flags you passed
+are what runs, and a frame created without flags runs `everything` when it
+has a FASTA and the co-located lookup when it does not.
 
-With `everything=True` on the release-116 Ensembl cache and `workers=1`:
+On the release-116 Ensembl cache with a FASTA and `workers=1`:
 
 | Input | Query | Wall time |
 |---|---|---|

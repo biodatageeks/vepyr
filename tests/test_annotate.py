@@ -1566,17 +1566,65 @@ class TestFlagInference:
         assert seen[-1]["hgvs"] is True
         assert seen[-1]["shift_hgvs"] is False
 
-    def test_plain_collect_without_flags_stays_bare(self, monkeypatch):
+    def test_plain_collect_without_flags_infers_everything_with_a_fasta(
+        self, monkeypatch
+    ):
         import vepyr
 
         seen = self._capture(monkeypatch)
         vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).collect()
         opts = seen[-1]
+        assert opts["everything"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
+
+    def test_plain_collect_without_flags_or_fasta_infers_the_colocated_lookup(
+        self, monkeypatch
+    ):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(INPUT_VCF, CACHE_DIR).collect()
+        opts = seen[-1]
+        for key in (
+            "check_existing",
+            "af",
+            "af_1kg",
+            "af_gnomade",
+            "af_gnomadg",
+            "max_af",
+            "pubmed",
+        ):
+            assert opts[key] is True, key
+        assert "everything" not in opts and "hgvs" not in opts
+
+    def test_plain_collect_with_explicit_flags_keeps_them(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, af=True, reference_fasta=REFERENCE_FASTA
+        ).collect()
+        opts = seen[-1]
+        assert opts["af"] is True
         assert (
-            "hgvs" not in opts
-            and "everything" not in opts
+            "everything" not in opts
+            and "hgvs" not in opts
             and "check_existing" not in opts
         )
+
+    def test_flagless_collect_equals_an_everything_run(self, metadata_cache_dir):
+        import vepyr
+
+        everything = vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+        ).collect()
+        inferred = vepyr.annotate(
+            INPUT_VCF, metadata_cache_dir, reference_fasta=REFERENCE_FASTA
+        ).collect()
+        assert inferred.equals(everything)
 
     @pytest.mark.parametrize(
         "columns",

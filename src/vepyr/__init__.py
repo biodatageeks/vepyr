@@ -119,9 +119,11 @@ _EVERYTHING_ONLY_COLUMNS = frozenset(
 def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
     """Derive the annotation flags a query needs from the columns it reads.
 
-    ``needed`` is the query's projection plus any filter columns; ``None``
-    means no projection, which leaves ``opts`` as given. Otherwise only three
-    column groups depend on flags at all (see the constants above):
+    ``needed`` is the query's projection plus any filter columns. ``None``
+    means no projection: the flags stay as given, or, when none were given,
+    ``everything`` is used with a FASTA and the co-located lookup without one.
+    With a projection only three column groups depend on flags at all (see
+    the constants above):
 
     - a group nobody selected has its flags removed, so the engine skips it;
     - a group the user enabled explicitly is kept exactly as configured;
@@ -133,7 +135,23 @@ def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
     those leave ``opts`` untouched. Returns a new dict.
     """
     out = dict(opts)
-    if needed is None or "CSQ" in needed or "plugin_cache_root" in opts:
+    user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
+    user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
+    user_any_flag = bool(opts.get("everything")) or user_hgvs or user_colocated
+    if "plugin_cache_root" in opts:
+        return out
+    if needed is None:
+        # No projection: flags as given, or, when none were given, everything
+        # the inputs allow. HGVS and the everything extras need a FASTA, so
+        # without one only the co-located lookup can be switched on.
+        if not user_any_flag:
+            if out.get("reference_fasta_path"):
+                out["everything"] = True
+            else:
+                for key in _COLOCATED_OPTIONS:
+                    out[key] = True
+        return out
+    if "CSQ" in needed:
         return out
 
     def _needs(group: frozenset) -> bool:
@@ -145,9 +163,6 @@ def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
             raise ValueError(
                 f"selecting {columns} needs {flag}, which requires reference_fasta="
             )
-
-    user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
-    user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
 
     if _needs(_EVERYTHING_ONLY_COLUMNS):
         if not opts.get("everything"):
@@ -1206,8 +1221,11 @@ def annotate(
         A ``select()`` on it decides which annotation flags the engine runs:
         the groups no selected column needs are switched off, and, when no
         flag was given, the groups a column needs are switched on (HGVS and
-        the ``everything`` extras require ``reference_fasta``). ``fields``
-        cannot be combined with such a ``select()``.
+        the ``everything`` extras require ``reference_fasta``). Collected
+        without a ``select()`` and without flags, the frame is the
+        ``everything`` result when ``reference_fasta`` is given and the
+        co-located lookup result otherwise. ``fields`` cannot be combined
+        with a narrowing ``select()``.
         When ``output_vcf`` is set: the output VCF file path.
 
     Examples
