@@ -141,9 +141,25 @@ entry, such as the frequencies, are stored once as scalars. The input's other
 `INFO` fields and its sample columns are not in the frame; use `output_vcf`
 for those. Add `skip_csq=False` to get the raw `CSQ` string as a column.
 
-Plugin values become named list columns; see [Plugins](plugins.md). To
-narrow the frame, `select()` the columns you need (next section); the engine
-then only computes what those columns require.
+With a plugin cache configured, every plugin CSQ field is a named
+`List(String)` column appended after the block above, `CADD_PHRED` and
+`CADD_RAW` for example; see [Plugins](plugins.md). The engine only runs the
+plugin lookup, and only builds the CSQ string the values are carried in, when
+a query reads one of those columns:
+
+```python
+lf = vepyr.annotate(
+    "input.vcf.gz", cache, reference_fasta="GRCh38.fa",
+    plugin_cache_root="/data/plugin_cache", plugins=["cadd"],
+)
+lf.select("chrom", "start", "ref", "alt", "CADD_PHRED")   # plugin lookup, no HGVS
+lf.select("chrom", "start", "SYMBOL")                     # neither
+```
+
+Selecting a plugin column on a frame without a plugin cache fails when the
+plan is built, with Polars' `ColumnNotFoundError` listing the columns the
+frame has. To narrow the frame, `select()` the columns you need (next
+section); the engine then only computes what those columns require.
 
 ## What is pushed into the engine
 
@@ -169,7 +185,8 @@ native annotator. Two things reach the engine:
 because a batch is dropped as soon as it has been reduced, but it does not
 reduce the engine's work; filtering by region is cheaper done on the input VCF
 with `bcftools view -r`. Adding `skip_csq=False` and selecting `CSQ` disables
-pruning, since the string needs every flag.
+pruning, since the string needs every flag. Plugin lookups run only when the
+query reads a plugin column or `CSQ`.
 
 ```python
 preview = lf.head(20).collect()              # LIMIT 20 in the engine

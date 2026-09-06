@@ -1184,9 +1184,9 @@ def test_annotate_empty_plugins_is_plugin_free_without_cache_validation(
     assert [w for w in caught if "skip_csq" in str(w.message)] == []
 
 
-def test_annotate_nonempty_plugins_warns_only_when_csq_is_dropped(
-    tmp_path, monkeypatch
-):
+def test_annotate_nonempty_plugins_never_warn_about_csq(tmp_path, monkeypatch):
+    """Plugin fields are named columns on the DataFrame path whatever skip_csq
+    is, so there is nothing to warn about."""
     import vepyr
 
     root = _fake_plugin_root(tmp_path, ["cadd"])
@@ -1195,7 +1195,7 @@ def test_annotate_nonempty_plugins_warns_only_when_csq_is_dropped(
         raise _Stop()
 
     monkeypatch.setattr(vepyr, "_create_annotator", fake)
-    for skip_csq, expected in ((True, 1), (False, 0)):
+    for skip_csq in (True, False):
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             with pytest.raises(_Stop):
@@ -1206,8 +1206,7 @@ def test_annotate_nonempty_plugins_warns_only_when_csq_is_dropped(
                     plugins=["cadd"],
                     skip_csq=skip_csq,
                 )
-        hits = [w for w in caught if "skip_csq" in str(w.message)]
-        assert len(hits) == expected, f"skip_csq={skip_csq}"
+        assert not [w for w in caught if "skip_csq" in str(w.message)]
 
 
 class TestProjectionPruning:
@@ -1660,3 +1659,201 @@ class TestFlagInference:
             .collect()
         )
         assert inferred.equals(everything)
+
+
+class TestPluginColumns:
+    """Plugin CSQ fields are named LazyFrame columns whenever a plugin cache is
+    configured, with or without ``fields=``, and a query only pays for the CSQ
+    string when it reads a plugin column (or ``CSQ`` itself)."""
+
+    def _fake_cadd(self, tmp_path, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        root = Path(_fake_plugin_root(tmp_path, ["cadd"]))
+        (root / "plugin" / "cadd" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "plugin_name": "cadd",
+                    "field_order": "declared",
+                    "value_columns": [
+                        {"column": "phred", "csq_field": "CADD_PHRED"},
+                        {"column": "raw", "csq_field": "CADD_RAW"},
+                    ],
+                }
+            )
+        )
+        base = ["chrom", "CSQ", "most_severe_consequence", "SYMBOL", "Consequence"]
+        schema = pa.schema([pa.field(n, pa.string()) for n in base])
+        calls = []
+
+        class FakeAnnotator:
+            def __init__(self, skip_csq):
+                self.schema = schema
+                self.skip_csq = skip_csq
+
+            def __iter__(self):
+                # The engine's CSQ layout is flag-dependent; plugin values are
+                # always its last fields. Two entries here.
+                csq = "G|missense_variant|A|B|24.5|0.12,G|intron_variant|A|B||"
+                cols = {
+                    "chrom": ["1"],
+                    "CSQ": [csq],
+                    "most_severe_consequence": ["missense_variant"],
+                    "SYMBOL": ["X"],
+                    "Consequence": ["missense_variant"],
+                }
+                if self.skip_csq:
+                    cols.pop("CSQ")
+                yield pa.record_batch(
+                    [pa.array(v) for v in cols.values()],
+                    schema=pa.schema([pa.field(n, pa.string()) for n in cols]),
+                )
+
+        def fake(vcf, cache_dir, options_json, skip_csq, limit):
+            calls.append((json.loads(options_json), skip_csq))
+            return FakeAnnotator(skip_csq)
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake)
+        return str(root), calls
+
+    def test_plugin_columns_exist_without_fields(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, calls = self._fake_cadd(tmp_path, monkeypatch)
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "error"
+            )  # the old "emitted inside CSQ" warning is gone
+            lf = vepyr.annotate(
+                "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
+            )
+        schema = lf.collect_schema()
+        assert schema["CADD_PHRED"] == pl.List(pl.String)
+        assert schema["CADD_RAW"] == pl.List(pl.String)
+        assert "CSQ" not in schema
+        df = lf.collect()
+        assert df["CADD_PHRED"].to_list() == [["24.5", None]]
+        assert df["CADD_RAW"].to_list() == [["0.12", None]]
+        assert "CSQ" not in df.columns
+        assert calls[-1][1] is False, "CSQ built because the plugin columns were read"
+
+    def test_selecting_a_plugin_column_reads_the_last_csq_fields(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, calls = self._fake_cadd(tmp_path, monkeypatch)
+        df = (
+            vepyr.annotate(
+                "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
+            )
+            .select("chrom", "CADD_PHRED")
+            .collect()
+        )
+        assert df.columns == ["chrom", "CADD_PHRED"]
+        assert df["CADD_PHRED"].to_list() == [["24.5", None]]
+        assert calls[-1][1] is False
+
+    def test_selecting_only_base_columns_skips_the_csq_string(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, calls = self._fake_cadd(tmp_path, monkeypatch)
+        df = (
+            vepyr.annotate(
+                "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
+            )
+            .select("chrom", "SYMBOL")
+            .collect()
+        )
+        assert df.columns == ["chrom", "SYMBOL"]
+        assert calls[-1][1] is True, "no plugin column read, so no CSQ string built"
+        assert "plugin_cache_root" not in calls[-1][0], "and no plugin lookup either"
+        assert "plugins" not in calls[-1][0]
+
+    def test_skip_csq_false_keeps_csq_and_plugin_columns(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, _ = self._fake_cadd(tmp_path, monkeypatch)
+        df = vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            plugin_cache_root=root,
+            plugins=["cadd"],
+            skip_csq=False,
+        ).collect()
+        assert "CSQ" in df.columns and df.columns[-2:] == ["CADD_PHRED", "CADD_RAW"]
+
+    def test_flags_are_still_inferred_with_plugins(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, calls = self._fake_cadd(tmp_path, monkeypatch)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            plugin_cache_root=root,
+            plugins=["cadd"],
+            everything=True,
+            reference_fasta=REFERENCE_FASTA,
+        ).select("chrom", "CADD_PHRED").collect()
+        assert "everything" not in calls[-1][0]
+        assert calls[-1][0]["plugin_cache_root"] == root
+
+    def test_unknown_plugin_column_without_a_plugin_cache_fails_at_plan_time(
+        self, metadata_cache_dir
+    ):
+        import vepyr
+
+        lf = vepyr.annotate(INPUT_VCF, metadata_cache_dir)
+        with pytest.raises(pl.exceptions.ColumnNotFoundError, match="CADD_PHRED"):
+            lf.select("chrom", "CADD_PHRED").collect_schema()
+
+    def test_demo_plugin_values_match_the_fields_core_path(
+        self, demo_plugin_cache, metadata_cache_dir
+    ):
+        import vepyr
+
+        plain = (
+            vepyr.annotate(
+                INPUT_VCF,
+                metadata_cache_dir,
+                plugin_cache_root=demo_plugin_cache,
+                plugins=["demo"],
+            )
+            .select("chrom", "start", "ref", "alt", "DEMO")
+            .collect()
+        )
+        core = (
+            vepyr.annotate(
+                INPUT_VCF,
+                metadata_cache_dir,
+                fields="core",
+                plugin_cache_root=demo_plugin_cache,
+                plugins=["demo"],
+            )
+            .collect()
+            .select("chrom", "start", "ref", "alt", "DEMO")
+        )
+        assert plain.equals(core)
+        assert any(v is not None for vs in plain["DEMO"].to_list() for v in vs)
+
+    def test_fields_core_without_fasta_does_not_warn_about_absent_columns(
+        self, monkeypatch
+    ):
+        import pyarrow as pa
+        import vepyr
+
+        names = ["chrom", "CSQ", "most_severe_consequence", *vepyr._CORE_CSQ_FIELDS]
+
+        class FakeAnnotator:
+            schema = pa.schema([pa.field(n, pa.string()) for n in names])
+
+            def __iter__(self):
+                return iter(())
+
+        monkeypatch.setattr(vepyr, "_create_annotator", lambda *a, **k: FakeAnnotator())
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            vepyr.annotate("in.vcf", CACHE_DIR, fields="core").collect()

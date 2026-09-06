@@ -116,7 +116,9 @@ _EVERYTHING_ONLY_COLUMNS = frozenset(
 )
 
 
-def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
+def _flags_for_projection(
+    opts: dict, needed: set[str] | None, available: set[str] | None = None
+) -> dict:
     """Derive the annotation flags a query needs from the columns it reads.
 
     ``needed`` is the query's projection plus any filter columns. ``None``
@@ -131,15 +133,14 @@ def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
       HGVS and the ``everything`` extras need ``reference_fasta``; asking for
       them without one is an error rather than a column of nulls.
 
-    The raw ``CSQ`` string and plugin output depend on the full flag set, so
-    those leave ``opts`` untouched. Returns a new dict.
+    The raw ``CSQ`` string depends on the full flag set, so a query reading it
+    leaves ``opts`` untouched. ``available`` is the frame's column set; it
+    limits the no-FASTA warning to columns the frame has. Returns a new dict.
     """
     out = dict(opts)
     user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
     user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
     user_any_flag = bool(opts.get("everything")) or user_hgvs or user_colocated
-    if "plugin_cache_root" in opts:
-        return out
     if needed is None:
         # No projection: flags as given, or, when none were given, everything
         # the inputs allow. HGVS and the everything extras need a FASTA, so
@@ -150,14 +151,16 @@ def _flags_for_projection(opts: dict, needed: set[str] | None) -> dict:
             else:
                 for key in _COLOCATED_OPTIONS:
                     out[key] = True
-                unavailable = ", ".join(
-                    sorted(_HGVS_COLUMNS | _EVERYTHING_ONLY_COLUMNS)
-                )
-                warnings.warn(
-                    "no reference_fasta given, so these columns will be null: "
-                    f"{unavailable}. Pass reference_fasta= for the full result",
-                    stacklevel=2,
-                )
+                unavailable = _HGVS_COLUMNS | _EVERYTHING_ONLY_COLUMNS
+                if available is not None:
+                    unavailable = unavailable & available
+                if unavailable:
+                    warnings.warn(
+                        "no reference_fasta given, so these columns will be null: "
+                        f"{', '.join(sorted(unavailable))}. Pass reference_fasta= "
+                        "for the full result",
+                        stacklevel=2,
+                    )
         return out
     if "CSQ" in needed:
         return out
@@ -1419,17 +1422,6 @@ def annotate(
                     f"Unknown plugin {unknown[0]!r} in {source_root}. "
                     f"Available: {', '.join(available) or '(none)'}"
                 )
-            if output_vcf is None and skip_csq and selected_fields is None:
-                # Plugin values reach a LazyFrame only inside the CSQ string,
-                # which `skip_csq=True` (the default) drops — so the plugins
-                # would be built and then silently discarded. The VCF path is
-                # unaffected: it writes a header naming the fields.
-                warnings.warn(
-                    "plugin fields are emitted inside CSQ, which skip_csq=True "
-                    "discards; pass skip_csq=False to keep them, or output_vcf= "
-                    "for a header that names them",
-                    stacklevel=2,
-                )
             opts["plugin_cache_root"] = plugin_cache_root
             opts["plugins"] = list(plugins)
     elif plugin_cache_root is not None:
@@ -1532,8 +1524,11 @@ def annotate(
     import polars as pl
     import pyarrow as pa
 
+    # Plugin CSQ fields are named list columns whenever a plugin cache is
+    # configured. The engine appends them after the base layout, whose length
+    # depends on the flags, so they are read as the last fields of each entry.
     plugin_field_names: list[str] = []
-    if selected_fields is not None and plugin_cache_root is not None and plugins != []:
+    if plugin_cache_root is not None and plugins != []:
         import os
 
         plugin_root = os.path.join(plugin_cache_root, "plugin")
@@ -1625,6 +1620,7 @@ def annotate(
         dict(opts),
         engine_skip_csq,
     )
+    plugin_columns = set(plugin_field_names)
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
         # Projection pushdown: the columns Polars asks for, plus the ones the
@@ -1640,34 +1636,50 @@ def annotate(
             needed = set(with_columns)
             if predicate is not None:
                 needed.update(predicate.meta.root_names())
-        engine_opts = _flags_for_projection(_opts, needed)
+        engine_opts = _flags_for_projection(_opts, needed, set(polars_schema))
+        # The CSQ string is only built when the query reads it or a plugin
+        # column parsed out of it.
+        if needed is None:
+            csq_needed = not _engine_skip
+        else:
+            csq_needed = "CSQ" in needed or bool(needed & plugin_columns)
+            if not csq_needed:
+                # Plugin values only ever reach the frame through the CSQ
+                # string, so a query reading neither skips the plugin lookup.
+                engine_opts.pop("plugin_cache_root", None)
+                engine_opts.pop("plugins", None)
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
             json.dumps(engine_opts),
-            _engine_skip,
+            not csq_needed,
             n_rows,
         )
         remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)
-            if plugin_field_names:
-                first_plugin_index = len(selected_fields)
+            if plugin_field_names and "CSQ" in batch_df.columns:
+                n_plugin = len(plugin_field_names)
                 batch_df = batch_df.with_columns(
                     pl.col("CSQ")
                     .str.split(",")
                     .list.eval(
                         pl.element()
                         .str.split("|")
-                        .list.get(first_plugin_index + index, null_on_oob=True)
+                        .list.get(index - n_plugin, null_on_oob=True)
                         .replace("", None)
                     )
                     .alias(name)
                     for index, name in enumerate(plugin_field_names)
                 )
+            if skip_csq and "CSQ" in batch_df.columns:
+                batch_df = batch_df.drop("CSQ")
             if selected_dataframe_columns is not None:
                 batch_df = batch_df.select(
-                    [*selected_dataframe_columns, *plugin_field_names]
+                    [
+                        *selected_dataframe_columns,
+                        *(c for c in plugin_field_names if c in batch_df.columns),
+                    ]
                 )
             if predicate is not None:
                 batch_df = batch_df.filter(predicate)

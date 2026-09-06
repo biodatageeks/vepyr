@@ -294,12 +294,26 @@ def test_failed_clone_leaves_no_temp_dir():
     assert set(glob.glob(pat)) == before  # no leaked clone/worktree
 
 
-def test_plugin_cache_root_reaches_streaming_options(monkeypatch):
+def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
     """The LazyFrame/streaming path (output_vcf=None) must forward
     plugin_cache_root too — it flows through the same options_json to
-    _create_annotator, so plugin CSQ fields are emitted in both output modes."""
+    _create_annotator, so plugin CSQ fields are emitted in both output modes.
+    The root is read for the plugin manifests (they name the DataFrame
+    columns), so it has to exist."""
+    import json
+
     import pyarrow as pa
 
+    root = tmp_path / "pc"
+    (root / "plugin" / "cadd").mkdir(parents=True)
+    (root / "plugin" / "cadd" / "manifest.json").write_text(
+        json.dumps(
+            {
+                "plugin_name": "cadd",
+                "value_columns": [{"column": "phred", "csq_field": "CADD_PHRED"}],
+            }
+        )
+    )
     captured: dict = {}
 
     class _Probe:
@@ -311,10 +325,11 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch):
 
     monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
     lf = vepyr.annotate(
-        "in.vcf", "cache", plugin_cache_root="/tmp/pc", show_progress=False
+        "in.vcf", "cache", plugin_cache_root=str(root), show_progress=False
     )
     assert lf is not None  # a LazyFrame, not a written path
-    assert '"plugin_cache_root": "/tmp/pc"' in captured["options_json"]
+    assert f'"plugin_cache_root": "{root}"' in captured["options_json"]
+    assert "CADD_PHRED" in lf.collect_schema()
 
 
 def _build(repo, tmp_path, source_path, **kw):
