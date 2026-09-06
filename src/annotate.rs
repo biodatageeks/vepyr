@@ -35,17 +35,16 @@ fn normalize_options(options_json: &str) -> PyResult<(String, String)> {
     let object = opts
         .as_object_mut()
         .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("options JSON must be an object"))?;
+    // The partitioned Parquet cache is the only cache format; the option is
+    // kept so the engine receives an explicit value.
     let cache_format = object
         .get("cache_format")
         .and_then(|v| v.as_str())
-        .unwrap_or("indexed_parquet")
+        .unwrap_or("parquet")
         .to_string();
-    if !matches!(
-        cache_format.as_str(),
-        "indexed_parquet" | "legacy_fjall" | "parquet"
-    ) {
+    if cache_format != "parquet" {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "cache_format must be 'indexed_parquet', 'legacy_fjall', or 'parquet'",
+            "cache_format must be 'parquet'",
         ));
     }
     object.insert(
@@ -368,6 +367,99 @@ pub fn annotate_to_vcf_file(
     })
 }
 
+/// The input's data-bearing contigs, or empty when unknown. With a tabix/CSI
+/// index the set comes from the index (exact, free). Without one the
+/// `##contig` header cannot be trusted to be exhaustive, so the records are
+/// scanned once for their distinct `chrom` values; header order is kept for
+/// the contigs it declares, undeclared ones follow in encounter order.
+pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
+    use std::collections::HashSet;
+
+    use datafusion::arrow::array::StringArray;
+    use datafusion::arrow::compute::cast;
+    use datafusion::arrow::datatypes::DataType;
+    use datafusion::datasource::TableProvider;
+
+    let rt = runtime_for_workers(1)?;
+    let path = vcf_path.to_string();
+    rt.block_on(async move {
+        let provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+            path,
+            Some(vec![]),
+            Some(vec![]),
+            None,
+            false,
+        )
+        .map_err(|e| {
+            pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
+        })?;
+        let schema = provider.schema();
+        if let Some(raw) = schema.metadata().get("bio.vcf.contigs.indexed") {
+            let indexed: Vec<String> = serde_json::from_str(raw).map_err(|e| {
+                pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Invalid VCF index metadata: {e}"
+                ))
+            })?;
+            if !indexed.is_empty() {
+                return Ok(indexed);
+            }
+        }
+        let header: Vec<String> = match schema.metadata().get("bio.vcf.contigs") {
+            Some(raw) => {
+                let entries: Vec<Value> = serde_json::from_str(raw).map_err(|e| {
+                    pyo3::exceptions::PyRuntimeError::new_err(format!(
+                        "Invalid VCF contig metadata: {e}"
+                    ))
+                })?;
+                entries
+                    .iter()
+                    .filter_map(|entry| {
+                        entry
+                            .get("id")
+                            .and_then(|id| id.as_str())
+                            .map(str::to_string)
+                    })
+                    .collect()
+            }
+            None => Vec::new(),
+        };
+        // Scan the records for the exact set; any failure means "unknown".
+        let ctx = SessionContext::new();
+        if ctx.register_table("vcf", Arc::new(provider)).is_err() {
+            return Ok(Vec::new());
+        }
+        let batches = match ctx.sql("SELECT DISTINCT chrom FROM vcf").await {
+            Ok(df) => match df.collect().await {
+                Ok(batches) => batches,
+                Err(_) => return Ok(Vec::new()),
+            },
+            Err(_) => return Ok(Vec::new()),
+        };
+        let mut seen: HashSet<String> = HashSet::new();
+        let mut encountered: Vec<String> = Vec::new();
+        for batch in &batches {
+            let Ok(column) = cast(batch.column(0), &DataType::Utf8) else {
+                return Ok(Vec::new());
+            };
+            let Some(values) = column.as_any().downcast_ref::<StringArray>() else {
+                return Ok(Vec::new());
+            };
+            for value in values.iter().flatten() {
+                if seen.insert(value.to_string()) {
+                    encountered.push(value.to_string());
+                }
+            }
+        }
+        let mut ordered: Vec<String> = header.into_iter().filter(|c| seen.contains(c)).collect();
+        for contig in encountered {
+            if !ordered.contains(&contig) {
+                ordered.push(contig);
+            }
+        }
+        Ok(ordered)
+    })
+}
+
 /// Create a streaming annotator that yields PyArrow RecordBatches.
 pub fn create_streaming_annotator(
     py: Python<'_>,
@@ -464,7 +556,7 @@ mod tests {
     #[test]
     fn default_cache_format_and_workers_when_absent() {
         let (_json, fmt) = normalize_options(r#"{}"#).unwrap();
-        assert_eq!(fmt, "indexed_parquet");
+        assert_eq!(fmt, "parquet");
         let opts: serde_json::Value = serde_json::from_str(r#"{}"#).unwrap();
         assert_eq!(workers_from_options(&opts), 1);
     }
@@ -472,8 +564,10 @@ mod tests {
     #[test]
     fn invalid_cache_format_is_rejected() {
         pyo3::Python::initialize();
-        let err = normalize_options(r#"{"cache_format":"fjall"}"#).unwrap_err();
-        assert!(err.to_string().contains("cache_format"));
+        for stale in ["fjall", "indexed_parquet", "legacy_fjall", "lance"] {
+            let err = normalize_options(&format!(r#"{{"cache_format":"{stale}"}}"#)).unwrap_err();
+            assert!(err.to_string().contains("cache_format"), "{stale}");
+        }
     }
 
     #[test]

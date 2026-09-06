@@ -225,3 +225,4 @@ e2e-testing/reports/
 
 # Tabix indexes belong beside their source data, never at the repo root.
 /*.tbi
+e2e-testing/results/region_pushdown/

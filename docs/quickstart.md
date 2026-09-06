@@ -187,8 +187,9 @@ print(f"{df.height} variants x {df.width} columns")
 ```
 
 `workers` controls how many within-contig annotation pipelines run
-concurrently. `workers=1` is the serial path; `workers > 1` requires a
-tabix-indexed (bgzip + `.tbi`) input VCF.
+concurrently when writing with `output_vcf`; it requires a tabix-indexed
+(bgzip + `.tbi`) input VCF. The LazyFrame path is serial (`workers=1`) in
+this release.
 
 ```python
 df = vepyr.annotate(
@@ -198,19 +199,8 @@ df = vepyr.annotate(
 ).collect()
 ```
 
-To use vepyr as a lightweight plugin annotator, select VEP's core VCF fields.
-Plugin outputs become named DataFrame columns, so keeping the raw `CSQ` string
-is optional:
-
-```python
-df = vepyr.annotate(
-    "input.vcf.gz",
-    "/data/vepyr_cache/parquet/116_GRCh38_ensembl",
-    fields="core",
-    plugin_cache_root="/data/plugin_cache",
-    plugins=["cadd", "spliceai"],
-).collect()
-```
+Filtering the LazyFrame on `chrom`, `start` or `end` is pushed into the
+engine before annotation; see [Polars DataFrames](dataframes.md#region-filters).
 
 ### Writing annotated VCF output
 

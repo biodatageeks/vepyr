@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import importlib.metadata
 import logging
+import os
 import re
 import warnings
 from collections.abc import Callable, Iterator
@@ -18,14 +19,16 @@ from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
 from vepyr._core import supported_vep_targets_json as _supported_vep_targets_json
+from vepyr._core import vcf_contigs as _vcf_contigs
+from vepyr._regions import GENOMIC_COLUMNS, extract_regions
 
 __all__ = [
+    "annotate",
     "build_cache",
     "build_cache_entity",
     "build_plugin_cache",
-    "annotate",
-    "supported_vep_targets",
     "cache_contig_identity",
+    "supported_vep_targets",
 ]
 
 __version__ = importlib.metadata.version("vepyr")
@@ -402,7 +405,6 @@ def _download_with_progress(
     times with exponential backoff.
     """
     import http.client
-    import os
     import time
     import urllib.parse
 
@@ -591,7 +593,6 @@ def _resolve_raw_cache(
     download_retries: int,
 ) -> str:
     """Return an unpacked raw cache, downloading and extracting it if needed."""
-    import os
     import tarfile
 
     if local_cache is not None:
@@ -650,7 +651,7 @@ def build_cache(
     local_cache: str | None = None,
     download_retries: int = 10,
     show_progress: bool = True,
-    on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
+    on_progress: Callable[[str, str, int, int, int], None] | None = None,
     overwrite: bool = False,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to an optimized cache.
@@ -699,7 +700,6 @@ def build_cache(
     list[tuple[str, int]]
         List of ``(parquet_file_path, row_count)`` for each written file.
     """
-    import os
 
     _validate_cache_type(cache_type)
     expected_cache_version = _cache_version_for_release(release)
@@ -814,7 +814,6 @@ def build_cache_entity(
 
     Returns a flattened list of ``(parquet_file_path, row_count)`` pairs.
     """
-    import os
 
     _validate_cache_type(cache_type)
     _validate_cache_entity(entity)
@@ -878,7 +877,6 @@ def _resolve_plugin_manifest(
     removed on exit, so repeated builds don't leak ``/tmp`` clones or stale
     worktree entries.
     """
-    import os
     import shutil
     import subprocess
     import tempfile
@@ -1128,8 +1126,8 @@ def annotate(
     preserve_record_layout: bool = True,
     show_progress: bool = True,
     compression: str | None = None,
-    on_batch_written: "Callable[[int, int, int], None] | None" = None,
-) -> "pl.LazyFrame | str":
+    on_batch_written: Callable[[int, int, int], None] | None = None,
+) -> pl.LazyFrame | str:
     """Annotate variants from a VCF file with VEP consequences.
 
     Reads the VCF, runs ``annotate_vep()`` against the partitioned parquet
@@ -1231,9 +1229,10 @@ def annotate(
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     workers : int
-        Number of within-contig fused annotation pipelines (default: 1).
-        The single annotation-concurrency knob. ``1`` is serial; values
-        greater than 1 require a tabix-indexed (bgzip + ``.tbi``) input VCF.
+        Number of within-contig fused annotation pipelines (default: 1) when
+        writing with ``output_vcf``; values greater than 1 require a
+        tabix-indexed (bgzip + ``.tbi``) input VCF. The ``LazyFrame`` path is
+        serial (``workers=1``) in this release.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
@@ -1290,6 +1289,16 @@ def annotate(
         ``total_input`` is the total number of input variants when known.
         Useful for driving tqdm progress bars in notebooks. Only used when
         ``output_vcf`` is set.
+
+    Notes
+    -----
+    Filtering the returned ``LazyFrame`` on ``chrom``, ``start`` or ``end``
+    restricts the *input* before annotation (region pushdown): unselected
+    contigs are skipped and indexed inputs are read by seek. Results are
+    identical to filtering after ``collect()``. A ``RuntimeWarning`` is
+    raised when the input has no ``.tbi``/``.csi`` index. See the "Region
+    filters" section of the Polars DataFrames docs page for the recognised
+    predicate shapes.
 
     Returns
     -------
@@ -1471,8 +1480,6 @@ def annotate(
         if len(set(plugins)) != len(plugins):
             raise ValueError("plugins must not contain duplicate names")
         if plugins:
-            import os
-
             source_root = os.path.join(plugin_cache_root, "plugin")
             if not os.path.isdir(source_root):
                 raise FileNotFoundError(
@@ -1598,13 +1605,11 @@ def annotate(
     # (csq_field, element dtype, per_variant): a plugin keyed only on the
     # variant (no match_columns) carries one value per row, a per-feature
     # plugin one value per consequence entry.
-    plugin_column_specs: list[tuple[str, "pl.DataType", bool]] = []
+    plugin_column_specs: list[tuple[str, pl.DataType, bool]] = []
     # Fields a plugin's match templates read (``{HGVSc}`` say), per plugin
     # column: reading the column needs those fields' flags too.
     plugin_column_inputs: dict[str, set[str]] = {}
     if plugin_cache_root is not None and plugins != []:
-        import os
-
         plugin_root = os.path.join(plugin_cache_root, "plugin")
         if not os.path.isdir(plugin_root):
             raise FileNotFoundError(
@@ -1707,6 +1712,31 @@ def annotate(
     )
     plugin_columns = set(plugin_field_names)
 
+    # Region pushdown state, per annotate() call: header contigs are read
+    # lazily on the first collect that carries a genomic predicate, and the
+    # missing-index warning is raised at most once.
+    _region_state: dict = {"contigs": None, "warned": False}
+
+    def _header_contigs() -> list[str]:
+        if _region_state["contigs"] is None:
+            _region_state["contigs"] = list(_vcf_contigs(_vcf))
+        return _region_state["contigs"]
+
+    def _warn_if_unindexed() -> None:
+        if _region_state["warned"]:
+            return
+        _region_state["warned"] = True
+        if os.path.exists(_vcf + ".tbi") or os.path.exists(_vcf + ".csi"):
+            return
+        warnings.warn(
+            f"region filter on {_vcf!r} without a tabix/CSI index ({_vcf}.tbi or "
+            ".csi): the whole file is parsed once to find its contigs and once "
+            "more to filter it before annotation. Compress with bgzip and index "
+            "with tabix for seek-based reads.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
     def _batch_source(with_columns, predicate, n_rows, batch_size):
         # Projection pushdown: the columns Polars asks for, plus the ones the
         # pushed-down filter reads, decide which annotation flags the engine
@@ -1731,6 +1761,19 @@ def annotate(
             read_plugins = needed & plugin_columns
         required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
         engine_opts = _flags_for_projection(_opts, needed, set(polars_schema), required)
+        # Predicate pushdown on genomic coordinates: chrom/start/end conjuncts
+        # become engine `regions`, so unselected contigs are never prepared and
+        # indexed inputs are read by seek. Polars still applies the full
+        # predicate on every batch below, so this can only narrow the input.
+        if predicate is not None and GENOMIC_COLUMNS & set(predicate.meta.root_names()):
+            # The contig list is fetched lazily: only a pushable predicate
+            # pays for the contig scan an unindexed input needs.
+            regions = extract_regions(predicate, _header_contigs)
+            if regions == []:
+                return
+            if regions is not None:
+                _warn_if_unindexed()
+                engine_opts["regions"] = regions
         # The CSQ string is only built when the query reads it or a plugin
         # column parsed out of it.
         if needed is None:
