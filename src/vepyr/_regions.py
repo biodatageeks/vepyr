@@ -97,13 +97,13 @@ def extract_regions(
                 lo = None
             if hi is not None and hi > _I64_MAX:
                 hi = None
-            if lo is None and hi is None:
-                # Nothing narrows this group (only `end >= v`, or chrom
-                # conjuncts that accept any name such as `is_not_null()` or
-                # `!= "chr2"`): pushing open regions for every contig would
-                # cost the contig scan and the warning for no gain.
-                if not chrom_nodes or _accepts_unknown_contig(chrom_nodes):
-                    return None
+            # Nothing narrows this group (only `end >= v`, or chrom conjuncts
+            # that accept any name such as `is_not_null()` or `!= "chr2"`):
+            # pushing open regions for every contig would cost the contig
+            # scan and the warning for no gain.
+            unbounded = lo is None and hi is None
+            if unbounded and (not chrom_nodes or _accepts_unknown_contig(chrom_nodes)):
+                return None
             if hi is not None and hi < 1:
                 continue
             if lo is not None and lo > _I64_MAX:
