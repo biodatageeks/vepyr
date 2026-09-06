@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import importlib.metadata
 import logging
+import re
 import warnings
 from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING
@@ -30,6 +31,250 @@ __all__ = [
 __version__ = importlib.metadata.version("vepyr")
 
 log = logging.getLogger(__name__)
+
+# Projection pushdown: which annotation flags each DataFrame column depends on.
+# Every other column has the same value whatever flags are set, so a
+# ``select()`` decides which groups the engine runs: unused groups are dropped
+# and, when no flag was given, needed groups are switched on. Verified column by column on HG002 chr22 against the
+# release-116 Ensembl cache; ``tests/test_annotate.py::TestProjectionPruning``
+# guards the value identity on the fixture cache.
+_HGVS_COLUMNS = frozenset({"HGVSc", "HGVSp"})
+_HGVS_OPTIONS = (
+    "hgvs",
+    "hgvsc",
+    "hgvsp",
+    "shift_hgvs",
+    "no_escape",
+    "remove_hgvsp_version",
+    "hgvsp_use_prediction",
+)
+_COLOCATED_COLUMNS = frozenset(
+    {
+        "Existing_variation",
+        "AF",
+        "AFR_AF",
+        "AMR_AF",
+        "EAS_AF",
+        "EUR_AF",
+        "SAS_AF",
+        "gnomADe_AF",
+        "gnomADg_AF",
+        "MAX_AF",
+        "MAX_AF_POPS",
+        "CLIN_SIG",
+        "SOMATIC",
+        "PHENO",
+        "PUBMED",
+        # cache-only columns: kept conservative, they come from the same lookup
+        "clin_sig_allele",
+        "clinical_impact",
+        "minor_allele",
+        "minor_allele_freq",
+        "clinvar_ids",
+        "cosmic_ids",
+        "dbsnp_ids",
+    }
+)
+_COLOCATED_OPTIONS = (
+    "check_existing",
+    "af",
+    "af_1kg",
+    "af_gnomade",
+    "af_gnomadg",
+    "max_af",
+    "pubmed",
+)
+# Columns only ``everything`` fills; selecting one keeps the flag as is. The
+# motif columns are among them because the five motif fields exist only in
+# the ``everything`` CSQ layout (the engine leaves them null otherwise).
+_EVERYTHING_ONLY_COLUMNS = frozenset(
+    {
+        "MOTIF_NAME",
+        "MOTIF_POS",
+        "HIGH_INF_POS",
+        "MOTIF_SCORE_CHANGE",
+        "TRANSCRIPTION_FACTORS",
+        "MANE",
+        "APPRIS",
+        "SIFT",
+        "PolyPhen",
+        "DOMAINS",
+        "miRNA",
+        "HGVS_OFFSET",
+        "gnomADe_AFR_AF",
+        "gnomADe_AMR_AF",
+        "gnomADe_ASJ_AF",
+        "gnomADe_EAS_AF",
+        "gnomADe_FIN_AF",
+        "gnomADe_MID_AF",
+        "gnomADe_NFE_AF",
+        "gnomADe_REMAINING_AF",
+        "gnomADe_SAS_AF",
+        "gnomADg_AFR_AF",
+        "gnomADg_AMI_AF",
+        "gnomADg_AMR_AF",
+        "gnomADg_ASJ_AF",
+        "gnomADg_EAS_AF",
+        "gnomADg_FIN_AF",
+        "gnomADg_MID_AF",
+        "gnomADg_NFE_AF",
+        "gnomADg_REMAINING_AF",
+        "gnomADg_SAS_AF",
+    }
+)
+
+
+# Plugin cache manifest value types (engine ``ValueType``) to Polars dtypes.
+_PLUGIN_VALUE_TYPES = {"Utf8": "String", "Float32": "Float32", "Int32": "Int32"}
+
+
+def _plugin_value_dtype(type_name: str | None):
+    import polars as pl
+
+    return getattr(pl, _PLUGIN_VALUE_TYPES.get(type_name, "String"))
+
+
+def _plugin_column(values, dtype, per_variant: bool):
+    """Shape one plugin field parsed out of CSQ: ``values`` is a list of one
+    string per consequence entry. A per-variant plugin repeats the same value
+    on every entry, so it collapses to one typed scalar; a per-feature plugin
+    stays a typed list aligned with ``Consequence``."""
+    import polars as pl
+
+    if per_variant:
+        return values.list.drop_nulls().list.first().cast(dtype)
+    return values.cast(pl.List(dtype))
+
+
+def _flags_for_projection(
+    opts: dict,
+    needed: set[str] | None,
+    available: set[str] | None = None,
+    required: frozenset[str] | set[str] = frozenset(),
+) -> dict:
+    """Derive the annotation flags a query needs from the columns it reads.
+
+    ``needed`` is the query's projection plus any filter columns. With no
+    projection (``None``), or when the raw ``CSQ`` string is read, the flags
+    stay as given, or, when none were given, ``everything`` is used with a
+    FASTA and the co-located lookup without one. Otherwise only three column
+    groups depend on flags at all (see the constants above):
+
+    - a group nobody selected has its flags removed, so the engine skips it;
+    - a group the user enabled explicitly is kept exactly as configured;
+    - a group the user did not mention is enabled when a column needs it.
+      HGVS and the ``everything`` extras need ``reference_fasta``; asking for
+      them without one is an error rather than a column of nulls.
+
+    ``available`` is the frame's column set; it limits the no-FASTA warning
+    to columns the frame has. ``required`` names fields that must be computed
+    whatever the projection, the fields a plugin's match templates read: their
+    groups are switched on even when other flags were given explicitly.
+    Returns a new dict.
+    """
+    out = dict(opts)
+    user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
+    user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
+    user_any_flag = bool(opts.get("everything")) or user_hgvs or user_colocated
+
+    def _require_fasta(group: frozenset, flag: str, fields: set[str]) -> None:
+        if not out.get("reference_fasta_path"):
+            columns = ", ".join(sorted(fields & group))
+            raise ValueError(
+                f"selecting {columns} needs {flag}, which requires reference_fasta="
+            )
+
+    def _ensure(fields: set[str]) -> None:
+        """Switch on the groups ``fields`` need, whatever the user set."""
+        if fields & _EVERYTHING_ONLY_COLUMNS and not out.get("everything"):
+            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything", fields)
+            out["everything"] = True
+        if out.get("everything"):
+            return
+        # hgvs computes both HGVS fields; hgvsc and hgvsp one each, so the
+        # check is per field: hgvsp=True alone leaves HGVSc empty. With no
+        # HGVS flag at all, hgvs is switched on like the projection does.
+        if fields & _HGVS_COLUMNS and not any(
+            out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")
+        ):
+            _require_fasta(_HGVS_COLUMNS, "hgvs", fields)
+            out["hgvs"] = True
+        for field, flag in (("HGVSc", "hgvsc"), ("HGVSp", "hgvsp")):
+            if field in fields and not (out.get("hgvs") or out.get(flag)):
+                _require_fasta(_HGVS_COLUMNS, flag, {field})
+                out[flag] = True
+        if fields & _COLOCATED_COLUMNS and not any(
+            out.get(key) for key in _COLOCATED_OPTIONS
+        ):
+            for key in _COLOCATED_OPTIONS:
+                out[key] = True
+
+    if needed is None or "CSQ" in needed:
+        # No projection, or the raw CSQ string (which needs every flag): flags
+        # as given, or, when none were given, everything the inputs allow.
+        # HGVS and the everything extras need a FASTA, so without one only
+        # the co-located lookup can be switched on. Plugin requirements come
+        # first so a missing FASTA raises before anything is warned about.
+        _ensure(set(required))
+        if not user_any_flag:
+            if out.get("reference_fasta_path"):
+                out["everything"] = True
+            else:
+                for key in _COLOCATED_OPTIONS:
+                    out[key] = True
+                unavailable = _HGVS_COLUMNS | _EVERYTHING_ONLY_COLUMNS
+                if available is not None:
+                    unavailable = unavailable & available
+                if unavailable:
+                    warnings.warn(
+                        "no reference_fasta given, so these columns will be null: "
+                        f"{', '.join(sorted(unavailable))}. Pass reference_fasta= "
+                        "for the full result",
+                        stacklevel=2,
+                    )
+        return out
+
+    needed = needed | set(required)
+
+    def _needs(group: frozenset) -> bool:
+        return bool(needed & group)
+
+    if _needs(_EVERYTHING_ONLY_COLUMNS):
+        if not opts.get("everything"):
+            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything", needed)
+            out["everything"] = True
+        return out  # everything covers every group; sub-options stay as given
+
+    keep_hgvs = _needs(_HGVS_COLUMNS)
+    keep_colocated = _needs(_COLOCATED_COLUMNS)
+    if out.pop("everything", False):
+        # Expand into the groups still needed; each alone yields the same
+        # column values as ``everything`` does.
+        if keep_hgvs:
+            out["hgvs"] = True
+        if keep_colocated:
+            for key in _COLOCATED_OPTIONS:
+                out[key] = True
+    else:
+        if keep_hgvs and not user_hgvs:
+            _require_fasta(_HGVS_COLUMNS, "hgvs", needed)
+            out["hgvs"] = True
+        if keep_colocated and not user_colocated:
+            for key in _COLOCATED_OPTIONS:
+                out[key] = True
+    if not keep_hgvs:
+        for key in _HGVS_OPTIONS:
+            out.pop(key, None)
+    if not keep_colocated:
+        for key in _COLOCATED_OPTIONS:
+            out.pop(key, None)
+    # Plugin template fields are checked per field: hgvsp=True alone does not
+    # compute the HGVSc a template may read.
+    _ensure(set(required))
+    if not any(out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")):
+        out.pop("reference_fasta_path", None)
+    return out
+
 
 _CORE_CSQ_FIELDS = (
     "Allele",
@@ -1051,6 +1296,14 @@ def annotate(
     polars.LazyFrame or str
         When ``output_vcf`` is ``None``: annotated variants as a polars
         ``LazyFrame`` with typed annotation columns plus original VCF fields.
+        A ``select()`` on it decides which annotation flags the engine runs:
+        the groups no selected column needs are switched off, and, when no
+        flag was given, the groups a column needs are switched on (HGVS and
+        the ``everything`` extras require ``reference_fasta``). Collected
+        without a ``select()`` and without flags, the frame is the
+        ``everything`` result when ``reference_fasta`` is given and the
+        co-located lookup result otherwise. ``fields`` cannot be combined
+        with a narrowing ``select()``.
         When ``output_vcf`` is set: the output VCF file path.
 
     Examples
@@ -1236,17 +1489,6 @@ def annotate(
                     f"Unknown plugin {unknown[0]!r} in {source_root}. "
                     f"Available: {', '.join(available) or '(none)'}"
                 )
-            if output_vcf is None and skip_csq and selected_fields is None:
-                # Plugin values reach a LazyFrame only inside the CSQ string,
-                # which `skip_csq=True` (the default) drops — so the plugins
-                # would be built and then silently discarded. The VCF path is
-                # unaffected: it writes a header naming the fields.
-                warnings.warn(
-                    "plugin fields are emitted inside CSQ, which skip_csq=True "
-                    "discards; pass skip_csq=False to keep them, or output_vcf= "
-                    "for a header that names them",
-                    stacklevel=2,
-                )
             opts["plugin_cache_root"] = plugin_cache_root
             opts["plugins"] = list(plugins)
     elif plugin_cache_root is not None:
@@ -1349,8 +1591,18 @@ def annotate(
     import polars as pl
     import pyarrow as pa
 
+    # Plugin CSQ fields are named list columns whenever a plugin cache is
+    # configured. The engine appends them after the base layout, whose length
+    # depends on the flags, so they are read as the last fields of each entry.
     plugin_field_names: list[str] = []
-    if selected_fields is not None and plugin_cache_root is not None and plugins != []:
+    # (csq_field, element dtype, per_variant): a plugin keyed only on the
+    # variant (no match_columns) carries one value per row, a per-feature
+    # plugin one value per consequence entry.
+    plugin_column_specs: list[tuple[str, "pl.DataType", bool]] = []
+    # Fields a plugin's match templates read (``{HGVSc}`` say), per plugin
+    # column: reading the column needs those fields' flags too.
+    plugin_column_inputs: dict[str, set[str]] = {}
+    if plugin_cache_root is not None and plugins != []:
         import os
 
         plugin_root = os.path.join(plugin_cache_root, "plugin")
@@ -1377,7 +1629,18 @@ def annotate(
                 value_columns = sorted(
                     value_columns, key=lambda column: column["csq_field"]
                 )
-            plugin_field_names.extend(column["csq_field"] for column in value_columns)
+            match_columns = manifest.get("match_columns") or []
+            per_variant = not match_columns
+            template_fields = {
+                field
+                for match in match_columns
+                for field in re.findall(r"\{([^{}]+)\}", match.get("template", ""))
+            }
+            for column in value_columns:
+                dtype = _plugin_value_dtype(column.get("type"))
+                plugin_field_names.append(column["csq_field"])
+                plugin_column_specs.append((column["csq_field"], dtype, per_variant))
+                plugin_column_inputs[column["csq_field"]] = template_fields
         if len(set(plugin_field_names)) != len(plugin_field_names):
             raise ValueError(
                 "selected plugins expose duplicate CSQ field names, which cannot be "
@@ -1424,12 +1687,12 @@ def annotate(
             name: polars_schema[name] for name in selected_dataframe_columns
         }
     if plugin_field_names:
-        for name in plugin_field_names:
+        for name, dtype, per_variant in plugin_column_specs:
             if name in polars_schema:
                 raise ValueError(
                     f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
                 )
-            polars_schema[name] = pl.List(pl.String)
+            polars_schema[name] = dtype if per_variant else pl.List(dtype)
         if skip_csq:
             polars_schema.pop("CSQ", None)
     del probe
@@ -1439,39 +1702,83 @@ def annotate(
     _vcf, _cache_dir, _opts, _engine_skip = (
         vcf,
         cache_dir,
-        options_json,
+        dict(opts),
         engine_skip_csq,
     )
+    plugin_columns = set(plugin_field_names)
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
-        # Pass n_rows as LIMIT to the DataFusion query for engine-level pushdown
+        # Projection pushdown: the columns Polars asks for, plus the ones the
+        # pushed-down filter reads, decide which annotation flags the engine
+        # needs. n_rows becomes a LIMIT in the DataFusion query.
+        needed = None
+        if with_columns is not None and set(with_columns) != set(polars_schema):
+            if "fields" in _opts:
+                raise ValueError(
+                    "annotate(fields=...) already fixes the annotation layout; "
+                    "select columns on the LazyFrame or pass fields=, not both"
+                )
+            needed = set(with_columns)
+            if predicate is not None:
+                needed.update(predicate.meta.root_names())
+        # Fields the match templates of every plugin column read, this query
+        # included, must be computed whatever flags were given: a plugin whose
+        # template needs HGVSc is null without hgvs. The raw CSQ string carries
+        # every plugin's values, so reading it reads every plugin.
+        if needed is None or "CSQ" in needed:
+            read_plugins = plugin_columns
+        else:
+            read_plugins = needed & plugin_columns
+        required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
+        engine_opts = _flags_for_projection(_opts, needed, set(polars_schema), required)
+        # The CSQ string is only built when the query reads it or a plugin
+        # column parsed out of it.
+        if needed is None:
+            csq_needed = not _engine_skip
+        else:
+            csq_needed = "CSQ" in needed or bool(needed & plugin_columns)
+            if not csq_needed:
+                # Plugin values only ever reach the frame through the CSQ
+                # string, so a query reading neither skips the plugin lookup.
+                engine_opts.pop("plugin_cache_root", None)
+                engine_opts.pop("plugins", None)
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
-            _opts,
-            _engine_skip,
+            json.dumps(engine_opts),
+            not csq_needed,
             n_rows,
         )
         remaining = n_rows
         for py_batch in annotator:
             batch_df = pl.from_arrow(py_batch)
-            if plugin_field_names:
-                first_plugin_index = len(selected_fields)
+            if plugin_field_names and "CSQ" in batch_df.columns:
+                n_plugin = len(plugin_field_names)
                 batch_df = batch_df.with_columns(
-                    pl.col("CSQ")
-                    .str.split(",")
-                    .list.eval(
-                        pl.element()
-                        .str.split("|")
-                        .list.get(first_plugin_index + index, null_on_oob=True)
-                        .replace("", None)
+                    _plugin_column(
+                        pl.col("CSQ")
+                        .str.split(",")
+                        .list.eval(
+                            pl.element()
+                            .str.split("|")
+                            .list.get(index - n_plugin, null_on_oob=True)
+                            .replace("", None)
+                        ),
+                        dtype,
+                        per_variant,
+                    ).alias(name)
+                    for index, (name, dtype, per_variant) in enumerate(
+                        plugin_column_specs
                     )
-                    .alias(name)
-                    for index, name in enumerate(plugin_field_names)
                 )
+            if skip_csq and "CSQ" in batch_df.columns:
+                batch_df = batch_df.drop("CSQ")
             if selected_dataframe_columns is not None:
                 batch_df = batch_df.select(
-                    [*selected_dataframe_columns, *plugin_field_names]
+                    [
+                        *selected_dataframe_columns,
+                        *(c for c in plugin_field_names if c in batch_df.columns),
+                    ]
                 )
             if predicate is not None:
                 batch_df = batch_df.filter(predicate)

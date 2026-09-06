@@ -106,17 +106,22 @@ result = vepyr.annotate(
 )
 ```
 
-VCF output records the exact ordered layout in the `CSQ` `Format:` header. On
-the DataFrame path, the selected base fields retain their existing named
-columns, unselected annotation columns are omitted, and each plugin field (for
-example `CADD_PHRED` and `CADD_RAW`) is a named `List(String)` column. The raw
-`CSQ` string is still available with `skip_csq=False`, but is not required to
-access plugin values.
-
-An explicit list or tuple may be used instead of `"core"`; its order is
+VCF output records the exact ordered layout in the `CSQ` `Format:` header. An
+explicit list or tuple may be used instead of `"core"`; its order is
 preserved. Fields needed by plugin match templates are still computed even
-when they are not emitted. With `fields=None` the full legacy CSQ layout and
-DataFrame schema remain unchanged.
+when they are not emitted. With `fields=None` the full CSQ layout is written.
+
+On the DataFrame path `fields=` is not needed: each plugin field is always a
+named column after the base columns, typed by the manifest's `type` and
+shaped by its `match_columns`: one value per row for a per-variant plugin
+(`CADD_PHRED: String`), one per consequence entry for a per-feature plugin
+(`am_pathogenicity: List(Float32)`). A `select()` decides what the engine
+computes, plugin lookup included. See
+[Polars DataFrames](dataframes.md#plugin-columns).
+
+For why some scores remain strings to preserve VCF body MD5 matches, which
+numeric types retain each field's precision, and Polars casting examples,
+see [String scores and numeric casts in the vepyr-plugins README](https://github.com/biodatageeks/vepyr-plugins/blob/master/README.md#string-scores-and-numeric-casts).
 
 ### Choosing which plugins run
 
