@@ -1242,10 +1242,12 @@ def annotate(
     cache_size_mb : int
         Annotation cache size in MB (default: 1024).
     workers : int
-        Number of within-contig fused annotation pipelines (default: 1) when
-        writing with ``output_vcf``; values greater than 1 require a
-        tabix-indexed (bgzip + ``.tbi``) input VCF. The ``LazyFrame`` path is
-        serial (``workers=1``) in this release.
+        Number of within-contig annotation pipelines (default: 1) on both
+        output paths. Values greater than 1 require a tabix-indexed (bgzip +
+        ``.tbi`` or ``.csi``) input VCF. Results are identical to ``workers=1``
+        row for row and in the same order; on the ``LazyFrame`` path the
+        engine holds at most a few runs of output in memory ahead of the
+        consumer.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
