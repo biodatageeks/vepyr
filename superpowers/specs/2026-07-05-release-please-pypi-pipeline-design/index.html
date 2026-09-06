@@ -1,0 +1,1172 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/specs/2026-07-05-release-please-pypi-pipeline-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Robust semantic-versioned release pipeline - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#robust-semantic-versioned-release-pipeline" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Robust semantic-versioned release pipeline
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#revision-final-as-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision (final, as built)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-current-setup-and-its-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: current setup and its gaps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-workflow-design-the-core-robustness-choice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-workflow design (the core robustness choice)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#files-changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files changed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-time-external-setup-out-of-band" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-time external setup (out of band)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="robust-semantic-versioned-release-pipeline">Robust semantic-versioned release pipeline<a class="headerlink" href="#robust-semantic-versioned-release-pipeline" title="Permanent link">¶</a></h1>
+<p><strong>Date:</strong> 2026-07-05
+<strong>Status:</strong> Superseded — see "Revision" below. Implemented as two manual workflows.</p>
+<blockquote>
+<h2 id="revision-final-as-built">Revision (final, as built)<a class="headerlink" href="#revision-final-as-built" title="Permanent link">¶</a></h2>
+<p>The release-please approach below was replaced, at the user's request, with
+<strong>two manually-triggered workflows</strong> — the user wants to run releases on
+demand, not have a bot maintain a release PR.</p>
+<ul>
+<li><strong><code>version-bump.yml</code></strong> (manual <code>workflow_dispatch</code>): computes the next
+  semver from Conventional Commit messages since the last tag (with an
+  optional manual <code>patch</code>/<code>minor</code>/<code>major</code> override and a <code>dry_run</code>),
+  updates <code>Cargo.toml</code> + <code>pyproject.toml</code>, commits <code>chore(release): X.Y.Z</code>,
+  and creates + pushes an annotated tag. Does not publish.</li>
+<li><strong><code>publish_to_pypi.yml</code></strong> (manual <code>workflow_dispatch</code> with a <code>tag</code> input,
+  modelled on biodatageeks/polars-bio): checks out the chosen tag, runs a
+  Rust + Python test gate, builds the wheel matrix, publishes to PyPI via
+  <strong>OIDC Trusted Publishing</strong>, and creates/updates the GitHub Release.</li>
+</ul>
+<p>Retained from the original design: OIDC trusted publishing, the test gate
+before publish, the unchanged wheel matrix, <code>wheels-*</code> artifact naming,
+<code>--skip-existing</code>, and Conventional-Commit-driven versioning. Dropped:
+release-please, the release-PR flow, <code>release-please-config.json</code>,
+<code>.release-please-manifest.json</code>, and the <code>pyproject.toml</code> version annotation.
+The <code>ci.yml</code> <code>workflow_call</code> change was reverted (B carries its own gate).</p>
+<p><strong>Trigger model:</strong> both workflows are <code>workflow_dispatch</code> only. Because the
+tag is pushed by <code>version-bump.yml</code> (using <code>GITHUB_TOKEN</code>) it would not
+auto-trigger a tag-listening workflow anyway — so publishing is a deliberate
+second manual step where the operator selects the tag. No PAT required.</p>
+<p><strong>PyPI Trusted Publisher</strong> must reference workflow <strong><code>publish_to_pypi.yml</code></strong>
+(not <code>release-please.yml</code>), environment <code>pypi</code>.</p>
+<p>The sections below are retained as the original rationale/history.</p>
+</blockquote>
+<hr>
+<p><strong>Original design (release-please) — retained for history:</strong></p>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">¶</a></h2>
+<p>Replace the current manual bump + tag-triggered release with a robust,
+semantic-versioned pipeline that:</p>
+<ul>
+<li>derives versions automatically from Conventional Commit messages,</li>
+<li>gates the PyPI upload on a passing test suite,</li>
+<li>publishes to PyPI via OIDC Trusted Publishing (no long-lived token),</li>
+<li>keeps <code>Cargo.toml</code> and <code>pyproject.toml</code> versions in lockstep,</li>
+<li>avoids the <code>GITHUB_TOKEN</code>-doesn't-trigger-workflows trap in the current setup.</li>
+</ul>
+<h2 id="background-current-setup-and-its-gaps">Background: current setup and its gaps<a class="headerlink" href="#background-current-setup-and-its-gaps" title="Permanent link">¶</a></h2>
+<p>Three workflows exist today:</p>
+<ul>
+<li><strong><code>version-bump.yml</code></strong> — manual <code>workflow_dispatch</code>; operator picks
+  patch/minor/major; edits <code>Cargo.toml</code> + <code>pyproject.toml</code>, commits, tags,
+  pushes to master.</li>
+<li><strong><code>release.yml</code></strong> — triggers on a <code>X.Y.Z</code> tag push; builds sdist + wheels
+  (Linux x86_64, macOS x86_64+arm64, Windows x64); publishes to PyPI with the
+  <code>MATURIN_PYPI_TOKEN</code> API token; generates attestations; cuts a GitHub Release.</li>
+<li><strong><code>ci.yml</code></strong> — lint + Rust/Python tests + wheel builds on push/PR to master.</li>
+</ul>
+<p>Robustness gaps this design closes:</p>
+<ol>
+<li><strong>Broken trigger chain.</strong> <code>version-bump.yml</code> pushes the tag using
+   <code>GITHUB_TOKEN</code>. Events raised by <code>GITHUB_TOKEN</code> do <strong>not</strong> trigger other
+   workflows, so <code>release.yml</code> (which listens on tag push) would never fire from
+   an automated bump.</li>
+<li><strong>No test gate on release.</strong> <code>release.yml</code> publishes wheels without running
+   the test suite; a broken build can reach PyPI.</li>
+<li><strong>Long-lived credential.</strong> PyPI upload uses a stored API token rather than
+   OIDC Trusted Publishing, despite the workflow already declaring
+   <code>id-token: write</code> and a <code>pypi</code> environment.</li>
+<li><strong>Manual, non-semantic bumps.</strong> Version type is hand-picked rather than
+   derived from commit history.</li>
+</ol>
+<h2 id="decisions">Decisions<a class="headerlink" href="#decisions" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Versioning model</td>
+<td>release-please (Conventional Commits → semver), human gate at Release-PR merge</td>
+</tr>
+<tr>
+<td>PyPI auth</td>
+<td>OIDC Trusted Publishing via <code>pypa/gh-action-pypi-publish</code></td>
+</tr>
+<tr>
+<td>Wheel matrix</td>
+<td>Unchanged: Linux x86_64, macOS x86_64 + arm64, Windows x64</td>
+</tr>
+<tr>
+<td>Release gate</td>
+<td>Full test suite (Rust + Python) must pass before publish</td>
+</tr>
+<tr>
+<td>TestPyPI staging</td>
+<td>Not used</td>
+</tr>
+<tr>
+<td>Wheel smoke-test</td>
+<td>Not used</td>
+</tr>
+</tbody>
+</table>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
+<h3 id="flow">Flow<a class="headerlink" href="#flow" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>commits to master (Conventional Commits: feat:/fix:/feat!:)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>        │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        ▼
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>release-please job ──► maintains a "chore: release X.Y.Z" PR
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        │              (running CHANGELOG.md + version bump preview)
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        │
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>   merge that PR  ◄──── human gate
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        │
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        ▼
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>same workflow run: release_created == true
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        │
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        ├─► test gate (reusable CI) ── must pass
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        ├─► build sdist + wheels (Linux x86_64, macOS x86_64+arm64, Win x64)
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        ├─► publish to PyPI via OIDC Trusted Publishing (+ attestations)
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        └─► attach wheels to the GitHub Release release-please created
+</span></code></pre></div>
+<h3 id="single-workflow-design-the-core-robustness-choice">Single-workflow design (the core robustness choice)<a class="headerlink" href="#single-workflow-design-the-core-robustness-choice" title="Permanent link">¶</a></h3>
+<p>Everything lives in <strong>one workflow</strong>, <code>release-please.yml</code>, triggered on
+<code>push</code> to <code>master</code>. The release-please action runs on every push and keeps the
+Release PR up to date. When that PR is merged, the same run reports
+<code>release_created == true</code>, and the downstream jobs (test → build → publish →
+attach) run, each guarded by
+<code>if: needs.release-please.outputs.release_created</code>.</p>
+<p>This intentionally chains off the release-please job's <strong>output within the same
+run</strong>, rather than off a new tag/release event. A tag or Release created by
+<code>GITHUB_TOKEN</code> would not trigger a separately-triggered workflow, so a
+two-workflow design would silently never publish. One workflow avoids that.</p>
+<h3 id="components">Components<a class="headerlink" href="#components" title="Permanent link">¶</a></h3>
+<ol>
+<li><strong><code>release-please</code> job</strong></li>
+<li>Uses <code>googleapis/release-please-action</code>.</li>
+<li>Config: <code>release-please-config.json</code> + <code>.release-please-manifest.json</code>.</li>
+<li>Permissions: <code>contents: write</code>, <code>pull-requests: write</code>.</li>
+<li>
+<p>Outputs consumed downstream: <code>release_created</code>, <code>tag_name</code>,
+     <code>upload_url</code> (for asset attach).</p>
+</li>
+<li>
+<p><strong>Version sync (manifest mode)</strong></p>
+</li>
+<li><code>release-type: rust</code> bumps <code>Cargo.toml</code>.</li>
+<li><code>extra-files</code> generic updater bumps <code>pyproject.toml</code> via an annotation
+     comment <code># x-release-please-version</code> on the <code>version =</code> line.</li>
+<li><code>.release-please-manifest.json</code> seeded to the current version (<code>0.1.0</code>).</li>
+<li><code>Cargo.lock</code> is not committed in this repo, so no lockfile update is
+     required.</li>
+<li>
+<p>Version bump rules: <code>fix:</code> → patch, <code>feat:</code> → minor,
+     <code>feat!:</code> / <code>BREAKING CHANGE:</code> → major.</p>
+</li>
+<li>
+<p><strong>Test gate</strong></p>
+</li>
+<li><code>ci.yml</code> gains a <code>workflow_call</code> trigger so it can be reused.</li>
+<li>
+<p>The release flow calls it; <code>publish</code> declares <code>needs</code> on both the test job
+     and the build jobs. A failing suite blocks the upload.</p>
+</li>
+<li>
+<p><strong>Build jobs</strong> (<code>if: release_created</code>)</p>
+</li>
+<li>
+<p><code>sdist</code>, <code>linux</code> (x86_64, manylinux), <code>macos</code> (x86_64 + aarch64),
+     <code>windows</code> (x64), reusing the existing <code>PyO3/maturin-action</code> steps and
+     artifact naming (<code>wheels-*</code>).</p>
+</li>
+<li>
+<p><strong><code>publish</code> job</strong> (<code>if: release_created</code>)</p>
+</li>
+<li><code>environment: pypi</code>, <code>permissions: id-token: write</code>.</li>
+<li>Downloads all <code>wheels-*</code> artifacts.</li>
+<li>
+<p>Publishes with <code>pypa/gh-action-pypi-publish</code> using OIDC (no token),
+     <code>skip-existing: true</code> for idempotent re-runs, attestations enabled.</p>
+</li>
+<li>
+<p><strong>GitHub Release assets</strong></p>
+</li>
+<li>release-please already created the Release; wheels are uploaded to it
+     (via <code>gh release upload &lt;tag&gt;</code> or <code>softprops/action-gh-release</code> against the
+     existing tag). Release notes come from release-please's CHANGELOG.</li>
+</ol>
+<h2 id="files-changed">Files changed<a class="headerlink" href="#files-changed" title="Permanent link">¶</a></h2>
+<ul>
+<li><strong>New</strong></li>
+<li><code>.github/workflows/release-please.yml</code></li>
+<li><code>release-please-config.json</code></li>
+<li><code>.release-please-manifest.json</code></li>
+<li>Commit-convention note (see below)</li>
+<li><strong>Removed</strong></li>
+<li><code>.github/workflows/version-bump.yml</code></li>
+<li><code>.github/workflows/release.yml</code> (folded into <code>release-please.yml</code>)</li>
+<li><strong>Edited</strong></li>
+<li><code>.github/workflows/ci.yml</code> — add <code>workflow_call</code> trigger.</li>
+<li><code>pyproject.toml</code> — add <code># x-release-please-version</code> annotation on <code>version</code>.</li>
+</ul>
+<h2 id="commit-convention">Commit convention<a class="headerlink" href="#commit-convention" title="Permanent link">¶</a></h2>
+<p>Versioning now depends on Conventional Commit prefixes, so this must be
+documented and lightly enforced:</p>
+<ul>
+<li>Add a short <strong>"Commit convention"</strong> section (in <code>CONTRIBUTING.md</code> or the
+  README) listing the prefixes and their version impact:</li>
+<li><code>fix:</code> → patch, <code>feat:</code> → minor, <code>feat!:</code> / <code>BREAKING CHANGE:</code> → major,</li>
+<li><code>chore:</code>/<code>docs:</code>/<code>refactor:</code>/<code>test:</code>/<code>ci:</code> → no release.</li>
+<li>Recommend <strong>squash-merge</strong> with a Conventional-Commit-formatted PR title as
+  the practical enforcement point, since the squash title becomes the commit on
+  master. Optionally add a PR-title lint check (e.g. an <code>amannn/action-semantic-pull-request</code>
+  step) as a follow-up if title discipline slips.</li>
+</ul>
+<h2 id="one-time-external-setup-out-of-band">One-time external setup (out of band)<a class="headerlink" href="#one-time-external-setup-out-of-band" title="Permanent link">¶</a></h2>
+<ul>
+<li>Register a <strong>PyPI Trusted Publisher</strong> for the <code>vepyr</code> project:
+  owner <code>biodatageeks</code>, repo <code>vepyr</code>, workflow filename <code>release-please.yml</code>,
+  environment <code>pypi</code>.</li>
+<li>Once OIDC is confirmed working, delete the <code>MATURIN_PYPI_TOKEN</code> secret.</li>
+</ul>
+<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">¶</a></h2>
+<ul>
+<li>No TestPyPI staging.</li>
+<li>No post-build wheel install smoke-test.</li>
+<li>No expansion of the wheel matrix (no Linux arm64 / musllinux).</li>
+<li>No automatic tag push on every merge (semantic-release style); a human still
+  gates each release by merging the Release PR.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

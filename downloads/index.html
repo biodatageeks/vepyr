@@ -1,0 +1,1538 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/downloads/">
+      
+      
+        <link rel="prev" href="../caches/">
+      
+      
+        <link rel="next" href="../dataframes/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Download Ensembl VEP and plugin caches - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#download-ensembl-vep-and-plugin-caches" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Download Ensembl VEP and plugin caches
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#mirrors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mirrors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hugging-face-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hugging Face (recommended)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hugging Face (recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#downloading-only-part-of-a-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloading only part of a cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wut-onedrive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WUT OneDrive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WUT OneDrive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#downloading-from-a-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloading from a terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verifying-and-extracting-a-tar-download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying and extracting a .tar download
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confirming-the-cache-before-you-annotate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confirming the cache before you annotate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-caches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin caches
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin caches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#downloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dbnsfp-supported-but-not-published" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dbNSFP: supported, but not published
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#annotating-with-a-downloaded-plugin-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Annotating with a downloaded plugin cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#mirrors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mirrors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hugging-face-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hugging Face (recommended)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hugging Face (recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#downloading-only-part-of-a-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloading only part of a cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wut-onedrive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WUT OneDrive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WUT OneDrive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#downloading-from-a-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloading from a terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verifying-and-extracting-a-tar-download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying and extracting a .tar download
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confirming-the-cache-before-you-annotate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confirming the cache before you annotate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-caches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin caches
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin caches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#downloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Downloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dbnsfp-supported-but-not-published" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dbNSFP: supported, but not published
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#annotating-with-a-downloaded-plugin-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Annotating with a downloaded plugin cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="download-ensembl-vep-and-plugin-caches">Download Ensembl VEP and plugin caches<a class="headerlink" href="#download-ensembl-vep-and-plugin-caches" title="Permanent link">¶</a></h1>
+<p>Building a cache from an Ensembl VEP tarball with
+<a href="../api/#vepyr.build_cache"><code>build_cache</code></a> takes hours of CPU and needs the raw
+Ensembl download on local disk. If you just want to annotate, download a
+<strong>prebuilt Parquet cache</strong> instead — it is the exact output <code>build_cache</code> would
+have produced, ready to pass to <a href="../api/#vepyr.annotate"><code>annotate</code></a>.</p>
+<p>See <a href="../caches/">Caches</a> for what a cache contains, how the entities map to CSQ
+fields, and how the three cache types differ.</p>
+<div class="admonition info">
+<p class="admonition-title">Currently available: release 116, GRCh38</p>
+<p>All three cache types are published for <strong>Ensembl release 116 / GRCh38</strong>,
+along with four <a href="#plugin-caches">plugin caches</a>. Release 115 caches are not
+mirrored yet — build those locally for now. The <strong>dbNSFP</strong> plugin cache is
+a different case: it is supported but cannot be published at all, see
+<a href="#dbnsfp-supported-but-not-published">dbNSFP</a>.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Cache</th>
+<th>Transcript set</th>
+<th style="text-align: right;">Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>116_GRCh38_merged</code></td>
+<td>Ensembl <strong>and</strong> RefSeq</td>
+<td style="text-align: right;">36 G</td>
+</tr>
+<tr>
+<td><code>116_GRCh38_ensembl</code></td>
+<td>Ensembl/GENCODE</td>
+<td style="text-align: right;">32 G</td>
+</tr>
+<tr>
+<td><code>116_GRCh38_refseq</code></td>
+<td>RefSeq</td>
+<td style="text-align: right;">31 G</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mirrors">Mirrors<a class="headerlink" href="#mirrors" title="Permanent link">¶</a></h2>
+<p>Two mirrors carry the same data. <strong>Hugging Face is recommended</strong> — it is the
+only one that lets you fetch part of a cache, and it needs no extraction step.</p>
+<table>
+<thead>
+<tr>
+<th>Mirror</th>
+<th>Access</th>
+<th>Resumable</th>
+<th>Partial download</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#hugging-face-recommended">Hugging Face</a></td>
+<td>Anonymous</td>
+<td>Yes</td>
+<td>Yes — per contig</td>
+</tr>
+<tr>
+<td><a href="#wut-onedrive">WUT OneDrive</a></td>
+<td>Anonymous</td>
+<td>Yes — HTTP range</td>
+<td>No — whole <code>.tar</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="hugging-face-recommended">Hugging Face (recommended)<a class="headerlink" href="#hugging-face-recommended" title="Permanent link">¶</a></h2>
+<p>Each cache is a public dataset repository holding the Parquet shard tree
+directly, so no extraction step is needed and the download lands in the layout
+<code>annotate()</code> expects.</p>
+<p>Install the client once:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span><span class="s2">"huggingface_hub[cli]"</span>
+</span></code></pre></div>
+<p>Then download the cache you want:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><input id="__tabbed_1_3" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1">merged</label><label for="__tabbed_1_2">ensembl</label><label for="__tabbed_1_3">refseq</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_merged<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_cache/116_GRCh38_merged
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_ensembl<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_cache/116_GRCh38_ensembl
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_refseq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_cache/116_GRCh38_refseq
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<p>The download is resumable — rerun the same command after an interruption and it
+continues where it stopped. Integrity is checked by the client, so there is no
+separate checksum step.</p>
+<h3 id="downloading-only-part-of-a-cache">Downloading only part of a cache<a class="headerlink" href="#downloading-only-part-of-a-cache" title="Permanent link">¶</a></h3>
+<p>For testing you can fetch a single chromosome instead of the whole 31–36 G
+cache. Every entity directory carries a <code>chrom_manifest.json</code> that the engine
+requires, so it has to be included alongside the shards:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_merged<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--include<span class="w"> </span><span class="s1">'*/chr22.parquet'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>--include<span class="w"> </span><span class="s1">'*/chrom_manifest.json'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_cache/116_GRCh38_merged_chr22
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Partial caches annotate only what they cover</p>
+<p>vepyr validates the shards for each contig it annotates. A cache pulled
+with <code>--include '*/chr22.parquet'</code> can annotate chr22 and nothing else.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Do not skip the <code>variation</code> entity</p>
+<p><code>variation</code> is the cache's root table — the engine discovers everything
+else relative to it. Excluding it (<code>--exclude 'variation/*'</code>) does not
+produce a smaller working cache, it produces a cache that fails to open
+with <code>no partitioned Parquet VEP cache found</code>, even for annotations that
+never touch co-located variant data.</p>
+</div>
+<h2 id="wut-onedrive">WUT OneDrive<a class="headerlink" href="#wut-onedrive" title="Permanent link">¶</a></h2>
+<p>Hosted by the Warsaw University of Technology. Each cache is a single
+uncompressed <code>.tar</code> with an accompanying <code>.md5</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Cache</th>
+<th>Archive</th>
+<th>Checksum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>merged</td>
+<td><a href="https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQAsAbtWiUx-QLA5yiy8wClSAfT3KpLrbDcvpdOlD5ka2aU?e=EflRzo"><code>116_GRCh38_merged.tar</code></a></td>
+<td><a href="https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDTHLVwjV-BR5qXZPMUVz4xATfQuqeQ94zqb0wj4XnPimQ?e=RSXvUS"><code>.md5</code></a></td>
+</tr>
+<tr>
+<td>ensembl</td>
+<td><a href="https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDBwMnLehLPSIyDrWSKLIskAUJBmopl9c0y-RHLTTvLIr4?e=a4ChWs"><code>116_GRCh38_ensembl.tar</code></a></td>
+<td><a href="https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDW2HeREYS4Qpbj4MLAi9UaAbaWQ0veOPyXTphwbMgl77o?e=Y5Mjmf"><code>.md5</code></a></td>
+</tr>
+<tr>
+<td>refseq</td>
+<td><a href="https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDx9TWK4YtDQrGzbIWkJQZNASyK-VNiHaoes5Gk8wLKqto?e=g9M6qL"><code>116_GRCh38_refseq.tar</code></a></td>
+<td><a href="https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQCqfmTkXfTRQ5ce6SFgI6v7AdldBfrWJ2tuIgGy9iT0x_U?e=4OMu4g"><code>.md5</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="downloading-from-a-terminal">Downloading from a terminal<a class="headerlink" href="#downloading-from-a-terminal" title="Permanent link">¶</a></h3>
+<p>Appending <code>&amp;download=1</code> turns a share link into a direct download. SharePoint
+sets a session cookie on the first redirect, so curl needs a cookie jar —
+without one it returns <code>403</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">URL</span><span class="o">=</span><span class="s1">'&lt;share link from the table above&gt;&amp;download=1'</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>curl<span class="w"> </span>-L<span class="w"> </span>-c<span class="w"> </span>cookies.txt<span class="w"> </span>-b<span class="w"> </span>cookies.txt<span class="w"> </span>-C<span class="w"> </span>-<span class="w"> </span>-o<span class="w"> </span>116_GRCh38_merged.tar<span class="w"> </span><span class="s2">"</span><span class="nv">$URL</span><span class="s2">"</span>
+</span></code></pre></div>
+<p><code>-C -</code> resumes an interrupted transfer; the server supports HTTP range
+requests, so a partial file continues rather than restarting.</p>
+<h2 id="verifying-and-extracting-a-tar-download">Verifying and extracting a <code>.tar</code> download<a class="headerlink" href="#verifying-and-extracting-a-tar-download" title="Permanent link">¶</a></h2>
+<p>Applies to the OneDrive mirror only — the Hugging Face client verifies
+downloads itself.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>~/Downloads
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># 1. Verify the archive against its checksum</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>md5sum<span class="w"> </span>-c<span class="w"> </span>116_GRCh38_merged.tar.md5
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># 2. Extract into your cache root</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>~/vepyr_cache
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>tar<span class="w"> </span>-xf<span class="w"> </span>116_GRCh38_merged.tar<span class="w"> </span>-C<span class="w"> </span>~/vepyr_cache
+</span></code></pre></div>
+<p>On macOS use <code>md5 -r 116_GRCh38_merged.tar</code> and compare the digest by eye —
+there is no <code>md5sum -c</code> in the base system.</p>
+<div class="admonition note">
+<p class="admonition-title">Disk space</p>
+<p>Extraction needs room for the archive <strong>and</strong> the extracted tree at the
+same time — budget ~72 G for the merged cache, then delete the <code>.tar</code>.</p>
+</div>
+<h2 id="confirming-the-cache-before-you-annotate">Confirming the cache before you annotate<a class="headerlink" href="#confirming-the-cache-before-you-annotate" title="Permanent link">¶</a></h2>
+<p>Whatever mirror you used, check that the cache reports the release and assembly
+you expect. This opens only the shards for the named contig, so it is fast:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">cache</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">"~/vepyr_cache/116_GRCh38_merged"</span><span class="p">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">vepyr</span><span class="o">.</span><span class="n">cache_contig_identity</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="s2">"chr22"</span><span class="p">,</span> <span class="n">expected_cache_version</span><span class="o">=</span><span class="s2">"116"</span><span class="p">))</span>
+</span></code></pre></div>
+<p>(<code>cache_dir</code> is passed straight to the Rust engine, which does not expand <code>~</code> —
+hence <code>os.path.expanduser</code>.)</p>
+<p>A mismatched, missing, or mixed release is an error rather than a warning — see
+<a href="../caches/#strict-parquet-identity">Strict Parquet identity</a>.</p>
+<p>Then annotate as usual, pointing <code>cache_dir</code> at the cache directory itself:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">vcf</span><span class="o">=</span><span class="s2">"sample.vcf.gz"</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">everything</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"Homo_sapiens.GRCh38.dna.primary_assembly.fa"</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">)</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">lf</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+</span></code></pre></div>
+<h2 id="plugin-caches">Plugin caches<a class="headerlink" href="#plugin-caches" title="Permanent link">¶</a></h2>
+<p>Four plugin caches are published on Hugging Face, built against the release-116
+GRCh38 variation cache above. They are the exact output
+<a href="../api/#vepyr.build_plugin_cache"><code>build_plugin_cache</code></a> would have produced —
+see <a href="../plugins/">Plugins</a> for what a plugin cache is and how the values reach
+the CSQ output.</p>
+<table>
+<thead>
+<tr>
+<th>Plugin</th>
+<th>Dataset</th>
+<th style="text-align: right;">Size</th>
+<th>Source version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CADD</td>
+<td><a href="https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_cadd"><code>vepyr_116_GRCh38_plugin_cadd</code></a></td>
+<td style="text-align: right;">69 G</td>
+<td>v1.7 SNVs + gnomAD r4.0 indels</td>
+</tr>
+<tr>
+<td>SpliceAI</td>
+<td><a href="https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_spliceai"><code>vepyr_116_GRCh38_plugin_spliceai</code></a></td>
+<td style="text-align: right;">24 G</td>
+<td>Ensembl 110 masked SNV MANE (model v1.3.1)</td>
+</tr>
+<tr>
+<td>AlphaMissense</td>
+<td><a href="https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_alphamissense"><code>vepyr_116_GRCh38_plugin_alphamissense</code></a></td>
+<td style="text-align: right;">545 M</td>
+<td>hg38 canonical, 2023 release</td>
+</tr>
+<tr>
+<td>ClinVar</td>
+<td><a href="https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_clinvar"><code>vepyr_116_GRCh38_plugin_clinvar</code></a></td>
+<td style="text-align: right;">77 M</td>
+<td>GRCh38 weekly, <code>fileDate=2026-07-06</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each repository holds <code>chr1.parquet</code> … <code>chr22.parquet</code> plus the plugin
+<code>manifest.json</code>. <strong>Autosomes only</strong> — chrX, chrY and chrM are not covered. Every
+dataset card documents its full source provenance, schema, CSQ field mapping and
+licence.</p>
+<div class="admonition warning">
+<p class="admonition-title">Three of the four are non-commercial only</p>
+<p><strong>CADD</strong>, <strong>SpliceAI</strong> and <strong>AlphaMissense</strong> restrict use to academic /
+non-profit research; commercial use needs a licence from the respective
+provider. Only the ClinVar cache is unrestricted (NCBI public domain). Each
+dataset card carries the specific terms — check them before use.</p>
+</div>
+<h3 id="downloading">Downloading<a class="headerlink" href="#downloading" title="Permanent link">¶</a></h3>
+<p><code>annotate()</code> takes a <code>plugin_cache_root</code>, and looks for each plugin under
+<code>&lt;root&gt;/plugin/&lt;name&gt;/</code>. Download each cache <strong>into that layout</strong> — the
+<code>plugin/</code> path component is required:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:4"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio"><input id="__tabbed_2_2" name="__tabbed_2" type="radio"><input id="__tabbed_2_3" name="__tabbed_2" type="radio"><input id="__tabbed_2_4" name="__tabbed_2" type="radio"><div class="tabbed-labels"><label for="__tabbed_2_1">clinvar</label><label for="__tabbed_2_2">alphamissense</label><label for="__tabbed_2_3">spliceai</label><label for="__tabbed_2_4">cadd</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_plugin_clinvar<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_plugin_cache/plugin/clinvar
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_plugin_alphamissense<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_plugin_cache/plugin/alphamissense
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_plugin_spliceai<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_plugin_cache/plugin/spliceai
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_plugin_cadd<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_plugin_cache/plugin/cadd
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<p>Download several into the <strong>same</strong> root to combine them — this is the same rule
+as building, where repeated <code>build_plugin_cache</code> calls share one
+<code>plugin_cache_root</code>.</p>
+<p>A single chromosome works here too, and unlike the variation cache there is no
+root table to preserve — the plugin <code>manifest.json</code> is the only companion file:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>hf<span class="w"> </span>download<span class="w"> </span>biodatageeks/vepyr_116_GRCh38_plugin_cadd<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>--repo-type<span class="w"> </span>dataset<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>--include<span class="w"> </span><span class="s1">'chr22.parquet'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span>--include<span class="w"> </span><span class="s1">'manifest.json'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span>--local-dir<span class="w"> </span>~/vepyr_plugin_cache/plugin/cadd
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">The manifest lists every chromosome, downloaded or not</p>
+<p><code>manifest.json</code> is published whole, so it advertises all 22 shards even in a
+partial download. Keep the plugin cache's contig coverage at least as wide
+as the contigs you annotate.</p>
+</div>
+<h3 id="dbnsfp-supported-but-not-published">dbNSFP: supported, but not published<a class="headerlink" href="#dbnsfp-supported-but-not-published" title="Permanent link">¶</a></h3>
+<p>vepyr supports <strong>dbNSFP</strong> as a plugin — the manifest lives at
+<a href="https://github.com/biodatageeks/vepyr-plugins/blob/master/plugins/dbnsfp/dbnsfp.source.toml"><code>plugins/dbnsfp</code></a>
+and was developed against dbNSFP 5.3.1a for GRCh38. Its cache is <strong>not mirrored
+here, and will not be</strong>: unlike the four above, the upstream data cannot be
+redistributed.</p>
+<ul>
+<li>The academic download is gated — it needs registration with an institutional
+  email plus an access code.</li>
+<li>It is licensed <strong>CC BY-NC-ND 4.0</strong>. The <em>no-derivatives</em> term is the blocker:
+  a converted Parquet cache is a derivative work, so even a registered academic
+  user may not pass one on. Registration is not the only obstacle.</li>
+<li>Commercial use requires a paid licence.</li>
+</ul>
+<p>So dbNSFP is the one plugin you have to build yourself. Fetch the source from
+<a href="https://www.dbnsfp.org/download/">dbnsfp.org/download</a> under whichever licence
+applies to you, then build into the <strong>same</strong> <code>plugin_cache_root</code> as the
+downloaded caches so they combine:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">build_plugin_cache</span><span class="p">(</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">plugin</span><span class="o">=</span><span class="s2">"dbnsfp"</span><span class="p">,</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">version</span><span class="o">=</span><span class="s2">"v0.2.0"</span><span class="p">,</span>                       <span class="c1"># vepyr-plugins tag for this manifest</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">source_path</span><span class="o">=</span><span class="s2">"dbNSFP5.3.1a_grch38.gz"</span><span class="p">,</span>   <span class="c1"># your registered download</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">"~/vepyr_cache/116_GRCh38_merged"</span><span class="p">),</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">"~/vepyr_plugin_cache"</span><span class="p">),</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>That writes <code>~/vepyr_plugin_cache/plugin/dbnsfp/</code>, alongside the plugins you
+downloaded. See <a href="../plugins/">Plugins</a> for the build in full.</p>
+<h3 id="annotating-with-a-downloaded-plugin-cache">Annotating with a downloaded plugin cache<a class="headerlink" href="#annotating-with-a-downloaded-plugin-cache" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    <span class="n">vcf</span><span class="o">=</span><span class="s2">"sample.vcf.gz"</span><span class="p">,</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">"~/vepyr_cache/116_GRCh38_merged"</span><span class="p">),</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    <span class="n">everything</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"Homo_sapiens.GRCh38.dna.primary_assembly.fa"</span><span class="p">,</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">"~/vepyr_plugin_cache"</span><span class="p">),</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Note <code>plugin_cache_root</code> points at the root that <em>contains</em> <code>plugin/</code>, not at
+an individual plugin directory.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tiering is inherited, so match the releases</p>
+<p>A plugin cache's warm/cold <code>tier</code> is copied row-for-row from the variation
+cache it was built against (rows with no variation-cache match are cold).
+These four were built against the release-116 GRCh38 cache, so pair them
+with a 116 cache. Pairing with a different release still annotates
+correctly — <code>tier</code> only affects lookup locality, not values.</p>
+</div>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../caches/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Caches">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Caches
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../dataframes/" class="md-footer__link md-footer__link--next" aria-label="Next: Polars DataFrames">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Polars DataFrames
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

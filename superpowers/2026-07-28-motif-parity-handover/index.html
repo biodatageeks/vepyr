@@ -1,0 +1,1099 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/2026-07-28-motif-parity-handover/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Handover: MotifFeature parity, release 116 - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#handover-motiffeature-parity-release-116" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Handover: MotifFeature parity, release 116
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#where-things-stand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where things stand
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-pins-temporary-must-be-undone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current pins (temporary — must be undone)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-upstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open upstream
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-remaining-work-fn202" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The remaining work (fn#202)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gotchas-learned-the-hard-way" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gotchas learned the hard way
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rebuilding-the-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rebuilding the cache
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measuring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measuring
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-open-items-not-motif-related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other open items (not motif-related)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="handover-motiffeature-parity-release-116">Handover: MotifFeature parity, release 116<a class="headerlink" href="#handover-motiffeature-parity-release-116" title="Permanent link">¶</a></h1>
+<p><strong>Date:</strong> 2026-07-28
+<strong>Scope:</strong> vepyr vs Ensembl VEP 116 CSQ parity for MotifFeature annotations.</p>
+<blockquote>
+<p><strong>Historical snapshot.</strong> The residuals and open items below describe the
+2026-07-28 handover, not the final release state. The completed six-profile,
+zero-mismatch result is recorded in
+<a href="../2026-07-29-remaining-734-root-cause-and-plan/">the final root-cause and release report</a>.</p>
+</blockquote>
+<h2 id="where-things-stand">Where things stand<a class="headerlink" href="#where-things-stand" title="Permanent link">¶</a></h2>
+<p>chr22, release 116, <code>merged</code> cache, <code>--everything --hgvs</code>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>session start</th>
+<th>now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>field mismatches</td>
+<td>17,783</td>
+<td><strong>600</strong></td>
+</tr>
+<tr>
+<td>fields affected</td>
+<td>46</td>
+<td><strong>6</strong></td>
+</tr>
+<tr>
+<td>CSQ entry-count mismatch</td>
+<td>72</td>
+<td><strong>0</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Residual 600 is fully attributed:</p>
+<table>
+<thead>
+<tr>
+<th>field</th>
+<th>count</th>
+<th>blocked on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HIGH_INF_POS</code></td>
+<td>316</td>
+<td>PWM not in cache (fn#202)</td>
+</tr>
+<tr>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+<td>270</td>
+<td>PWM not in cache (fn#202)</td>
+</tr>
+<tr>
+<td><code>Consequence</code></td>
+<td>6</td>
+<td>fn#130, pre-existing</td>
+</tr>
+<tr>
+<td><code>HGVSp</code></td>
+<td>4</td>
+<td>fn#130, pre-existing</td>
+</tr>
+<tr>
+<td><code>IMPACT</code></td>
+<td>2</td>
+<td>pre-existing</td>
+</tr>
+<tr>
+<td><code>HGVSc</code></td>
+<td>2</td>
+<td>fn#112, pre-existing</td>
+</tr>
+</tbody>
+</table>
+<p>Every motif field VEP can produce <strong>without</strong> the position-weight matrix now matches:
+<code>Feature</code>, <code>MOTIF_NAME</code>, <code>TRANSCRIPTION_FACTORS</code>, <code>STRAND</code>, <code>MOTIF_POS</code>.</p>
+<h2 id="current-pins-temporary-must-be-undone">Current pins (temporary — must be undone)<a class="headerlink" href="#current-pins-temporary-must-be-undone" title="Permanent link">¶</a></h2>
+<p><code>vepyr/Cargo.toml</code> on branch <code>release-testing</code> (HEAD <code>dc07233</code>):</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">datafusion-bio-function-vep</span><span class="w">         </span><span class="n">rev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="err">e</span><span class="mi">551</span><span class="n">ccc4e256cfab87a2c0eeae942444feb1f00f</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">datafusion-bio-format-ensembl-cache</span><span class="w"> </span><span class="n">rev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="err">d</span><span class="mi">760</span><span class="n">d5a50fd7455db8748d09c4da5a6ac63cd379</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">datafusion-bio-format-vcf</span><span class="w">           </span><span class="n">rev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="err">d</span><span class="mi">760</span><span class="n">d5a50fd7455db8748d09c4da5a6ac63cd379</span>
+</span></code></pre></div>
+<p><code>e551ccc</code> is the tip of <code>integration/motif-parity-116</code>, a <strong>do-not-merge</strong> branch = PR #203's
+commits plus one pinning bio-formats to the #224 revision. That indirection exists because
+<code>bio-function-vep</code> depends on bio-formats itself, cargo rejects two specs for one git repo, and
+cargo also refuses a <code>[patch]</code> aimed back at the same source.</p>
+<p><strong>After both PRs merge:</strong> revert to released tags, delete <code>integration/motif-parity-116</code>.</p>
+<h2 id="open-upstream">Open upstream<a class="headerlink" href="#open-upstream" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PR bio-formats #224</td>
+<td>https://github.com/biodatageeks/datafusion-bio-formats/pull/224</td>
+</tr>
+<tr>
+<td>PR bio-functions #203</td>
+<td>https://github.com/biodatageeks/datafusion-bio-functions/pull/203</td>
+</tr>
+<tr>
+<td>issue fn#202 (remaining work)</td>
+<td>https://github.com/biodatageeks/datafusion-bio-functions/issues/202</td>
+</tr>
+<tr>
+<td>issue bio-formats #223</td>
+<td>https://github.com/biodatageeks/datafusion-bio-formats/issues/223</td>
+</tr>
+<tr>
+<td>issue fn#201</td>
+<td>https://github.com/biodatageeks/datafusion-bio-functions/issues/201</td>
+</tr>
+</tbody>
+</table>
+<p>PR branch tips: bio-functions <code>1bf1009</code>, bio-formats <code>d760d5a</code>.</p>
+<h2 id="the-remaining-work-fn202">The remaining work (fn#202)<a class="headerlink" href="#the-remaining-work-fn202" title="Permanent link">¶</a></h2>
+<p><code>HIGH_INF_POS</code> and <code>MOTIF_SCORE_CHANGE</code>. From
+<code>Bio/EnsEMBL/Variation/MotifFeatureVariationAllele.pm</code> in <code>ensemblorg/ensembl-vep:release_116.0</code>:</p>
+<div class="language-perl highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">sub</span><span class="w"> </span><span class="nf">in_informative_position</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="c1"># true SNPs only</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="k">unless</span><span class="w"> </span><span class="p">((</span><span class="nv">$vf</span><span class="o">-&gt;</span><span class="n">start</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">$vf</span><span class="o">-&gt;</span><span class="n">end</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="nv">$self</span><span class="o">-&gt;</span><span class="n">variation_feature_seq</span><span class="w"> </span><span class="ow">ne</span><span class="w"> </span><span class="s">'-'</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="k">my</span><span class="w"> </span><span class="nv">$start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">$self</span><span class="o">-&gt;</span><span class="n">motif_start</span><span class="p">;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">unless</span><span class="w"> </span><span class="nb">defined</span><span class="w"> </span><span class="nv">$start</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">$start</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">$start</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="nv">$self</span><span class="o">-&gt;</span><span class="nn">motif_feature</span><span class="o">-&gt;</span><span class="nb">length</span><span class="p">;</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nv">$self</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">in_informative_position</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">$mf</span><span class="o">-&gt;</span><span class="nn">get_BindingMatrix</span><span class="o">-&gt;</span><span class="n">is_position_informative</span><span class="p">(</span><span class="nv">$start</span><span class="p">);</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">}</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># motif_score_delta: scores ref and alt sequences against the full frequency matrix</span>
+</span></code></pre></div>
+<p>Both need <code>binding_matrix.elements</code> (the frequency matrix), plus <code>threshold</code> and
+<code>unit: "Frequencies"</code>. All are present in the cache's <code>raw_object_json</code> but <strong>not extracted into
+any typed column</strong>.</p>
+<p>Suggested order:</p>
+<ol>
+<li>bio-formats: extract the PWM elements into a column.</li>
+<li>Rebuild the 116 cache (~90 min, see below).</li>
+<li>bio-functions: implement <code>is_position_informative</code> and <code>motif_score_delta</code>.</li>
+<li>Re-measure chr22.</li>
+</ol>
+<h2 id="gotchas-learned-the-hard-way">Gotchas learned the hard way<a class="headerlink" href="#gotchas-learned-the-hard-way" title="Permanent link">¶</a></h2>
+<p>Each of these cost a wasted build/rebuild cycle. Do not rediscover them.</p>
+<ol>
+<li><strong><code>build_cache(release, cache_dir)</code> treats <code>cache_dir</code> as a PARENT</strong> and creates
+   <code>&lt;cache_dir&gt;/&lt;release&gt;_GRCh38_&lt;type&gt;/</code> inside it.</li>
+<li><strong><code>build_cache(local_cache=...)</code> wants the directory containing <code>info.txt</code></strong> — the version
+   directory (<code>$DATA/homo_sapiens_merged/116_GRCh38</code>), not the data root.</li>
+<li><strong>CSQ multi-valued sub-fields use <code>&amp;</code>, not <code>,</code>.</strong> The cache joins lists with <code>,</code>, which is the
+   CSQ <em>entry</em> separator. Emitting raw split one entry into three and produced 14,282 phantom
+   mismatches. Use <code>csq_multi_value()</code>.</li>
+<li><strong>Motif column lists are declared in THREE places</strong> in <code>annotate_provider.rs</code>: two
+   <code>MotifFeature</code> loaders plus the <code>scan_context_entity</code> call feeding <code>parse_motif_batches</code>. Only
+   the third is reached by the parquet-cache path. Miss it and the columns silently stay <code>None</code>.</li>
+<li><strong><code>maturin develop</code> fails if both <code>VIRTUAL_ENV</code> and <code>CONDA_PREFIX</code> are set.</strong> Use
+   <code>env -u VIRTUAL_ENV -u CONDA_PREFIX RUSTFLAGS="-C target-cpu=native" uv run maturin develop --release</code>.</li>
+<li><strong>Do not infer VEP behaviour from a handful of mismatching variants.</strong> A "multi-base REF ⇒ empty
+   MOTIF_POS" rule inferred from 2 cases regressed 2 → 38. Read the Perl in the Docker image
+   instead; it is at <code>/opt/vep/src/ensembl-vep/Bio/EnsEMBL/Variation/</code>.</li>
+</ol>
+<h2 id="rebuilding-the-cache">Rebuilding the cache<a class="headerlink" href="#rebuilding-the-cache" title="Permanent link">¶</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Complete release-qualified rebuild (dry run, then execute)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/rebuild_release_cache.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--cache-type<span class="w"> </span>merged
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/rebuild_release_cache.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--cache-type<span class="w"> </span>merged<span class="w"> </span>--run
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Targeted motif rebuild through the generic entity workflow (dry run, then execute)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/rebuild_cache_entity.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--cache-type<span class="w"> </span>merged<span class="w"> </span>--entity<span class="w"> </span>motif
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/rebuild_cache_entity.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--cache-type<span class="w"> </span>merged<span class="w"> </span>--entity<span class="w"> </span>motif<span class="w"> </span>--run
+</span></code></pre></div>
+<p>The complete path stages the whole cache and validates every entity. The
+targeted path uses public <code>vepyr.build_cache_entity()</code>, validates every motif
+manifest shard and its Parquet release/source metadata, and retains the prior
+motif directory as a timestamped backup.</p>
+<h2 id="measuring">Measuring<a class="headerlink" href="#measuring" title="Permanent link">¶</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">22</span><span class="w"> </span>--force<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>--no-normalize<span class="w"> </span>--vcf<span class="w"> </span>~/workspace/data_vepyr/HG002_normalized.vcf.gz
+</span></code></pre></div>
+<p>Report lands at <code>e2e-testing/reports/fast_chr22_merged_116_report.json</code>.</p>
+<p><code>--no-normalize</code> with the pre-normalized VCF skips a ~10 min <code>bcftools norm</code> over the full 2.9 GB
+input; drop it for a from-scratch run.</p>
+<h2 id="other-open-items-not-motif-related">Other open items (not motif-related)<a class="headerlink" href="#other-open-items-not-motif-related" title="Permanent link">¶</a></h2>
+<ol>
+<li><strong>Completed later:</strong> the full chr1–22 release-116 run is zero-mismatch for
+   merged, Ensembl, and RefSeq.</li>
+<li><strong>Completed later:</strong> release-116 Parquet caches now exist for merged,
+   Ensembl, and RefSeq.</li>
+<li><strong><code>merged_flag_pick</code> and <code>merged_pick_filter</code> references were never generated</strong> — unavailable at
+   both releases.</li>
+<li><strong><code>$DATA</code> reorganisation is pending.</strong> The runner prefers <code>$DATA/input/</code> and <code>$DATA/cache/</code> and
+   falls back to the legacy root with a notice. Move the caches when no vepyr run is active; move
+   the inputs only when no VEP container has <code>$DATA</code> bind-mounted.</li>
+<li><strong><code>compare.py</code> still pairs CSQ entries positionally</strong> (sort by <code>(Feature, Consequence)</code>, then
+   zip). This is what turns a single defect into a 46-field failure, and it never examines entries
+   past <code>min(len(a), len(b))</code>. Joining on <code>(Feature_type, Feature)</code> was designed but not
+   implemented; verified no duplicate keys exist across all 50,861 chr22 variants.</li>
+<li><strong>GSD workflow is not initialized</strong> (<code>.planning/</code> absent) though CLAUDE.md mandates routing edits
+   through it. All edits this session were direct, flagged each time.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

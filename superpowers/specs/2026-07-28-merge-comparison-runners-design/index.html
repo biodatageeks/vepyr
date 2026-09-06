@@ -1,0 +1,1508 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/specs/2026-07-28-merge-comparison-runners-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Merge the e2e comparison runners into one script - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#merge-the-e2e-comparison-runners-into-one-script" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Merge the e2e comparison runners into one script
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defect-1-block-gzipped-vep-references-crash-the-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect 1 — block-gzipped VEP references crash the comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-2-uncompressed-input-is-only-half-supported" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect 2 — uncompressed input is only half-supported
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-3-the-profile-table-is-duplicated-and-release-blind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect 3 — the profile table is duplicated and release-blind
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-availability-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current availability matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI surface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CLI surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-directory-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data directory layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profile-and-release-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profile and release resolution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contig-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contig detection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compression-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Artifact naming
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-and-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution and error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="merge-the-e2e-comparison-runners-into-one-script">Merge the e2e comparison runners into one script<a class="headerlink" href="#merge-the-e2e-comparison-runners-into-one-script" title="Permanent link">¶</a></h1>
+<p><strong>Date:</strong> 2026-07-28
+<strong>Status:</strong> Approved (design)
+<strong>Supersedes:</strong> <code>e2e-testing/scripts/run_annotation_fast.py</code>, <code>e2e-testing/scripts/run_annotation_fast_all.py</code></p>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">¶</a></h2>
+<p>Two scripts in <code>e2e-testing/scripts/</code> run the vepyr-vs-Ensembl-VEP parity comparison:</p>
+<ul>
+<li><code>run_annotation_fast.py</code> (809 lines) — one contig: normalize, slice, annotate, slice the VEP
+  reference, compare, write <code>reports/fast_chr{N}{suffix}_report.json</code>.</li>
+<li><code>run_annotation_fast_all.py</code> (780 lines) — spawns the former once per contig via
+  <code>subprocess.run</code>, then reads those JSONs back to aggregate, classify, and emit Markdown.</li>
+</ul>
+<p>They share no imports and are coupled only through forwarded argv and a report filename. That
+loose coupling makes them mergeable, but three defects block the workflows we need today.</p>
+<h3 id="defect-1-block-gzipped-vep-references-crash-the-comparison">Defect 1 — block-gzipped VEP references crash the comparison<a class="headerlink" href="#defect-1-block-gzipped-vep-references-crash-the-comparison" title="Permanent link">¶</a></h3>
+<p><code>extract_chrom_from_vep()</code> uses a bare <code>open(vep_vcf)</code> (<code>run_annotation_fast.py:358</code>) while every
+other reader goes through <code>open_text()</code>. Verified empirically:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>extract_chrom_from_vep on PLAIN vep reference  -&gt;  OK, 2 records
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>extract_chrom_from_vep on BGZF  vep reference  -&gt;  UnicodeDecodeError:
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                                                   'utf-8' codec can't decode byte 0x8b
+</span></code></pre></div>
+<p>All VEP references are now block-gzipped under <code>output/115.2/</code> and <code>output/116/</code>, so <strong>9 of the 10
+profiles point at files that no longer exist</strong>, and the tenth resolves only to a partially written
+file from an in-flight run.</p>
+<h3 id="defect-2-uncompressed-input-is-only-half-supported">Defect 2 — uncompressed input is only half-supported<a class="headerlink" href="#defect-2-uncompressed-input-is-only-half-supported" title="Permanent link">¶</a></h3>
+<p>The default path normalizes, which bgzips and indexes as a side effect. But <code>--no-normalize</code> with a
+plain <code>.vcf</code> dies in <code>ensure_tabix_index</code>, verified: <code>CalledProcessError</code>, with tabix reporting
+<code>the compression of 'x.vcf' is not BGZF</code>.</p>
+<h3 id="defect-3-the-profile-table-is-duplicated-and-release-blind">Defect 3 — the profile table is duplicated and release-blind<a class="headerlink" href="#defect-3-the-profile-table-is-duplicated-and-release-blind" title="Permanent link">¶</a></h3>
+<p><code>_CACHE_PROFILES</code> (<code>run_annotation_fast.py:42-148</code>) and <code>PROFILE_SUFFIXES</code>
+(<code>run_annotation_fast_all.py:28-39</code>) hold the same ten keys, maintained separately;
+<code>tests/test_run_annotation_fast.py:61</code> exists solely to catch drift between them. Neither models the
+Ensembl release, while on disk the caches are <code>115_GRCh38_*</code> plus <code>116_GRCh38_merged</code> and the
+references are split across <code>output/115.2/</code> and <code>output/116/</code>. Comparing a 115 cache against a 116
+reference produces a flood of mismatches that look like engine bugs.</p>
+<h2 id="goals">Goals<a class="headerlink" href="#goals" title="Permanent link">¶</a></h2>
+<ol>
+<li>One script covering a single contig and all contigs.</li>
+<li>Plain and block-gzipped VCFs accepted symmetrically on both the vepyr and VEP sides.</li>
+<li>Release modelled explicitly so a cache and a reference can never be silently mismatched.</li>
+</ol>
+<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">¶</a></h2>
+<p>Adding profiles for the two orphan references (<code>..._merged_am.vcf.gz</code>,
+<code>..._everything_vep.vcf.gz</code>), building the missing 116 caches, and regenerating the
+never-created <code>merged_flag_pick</code> / <code>merged_pick_filter</code> references. The runner reports these
+combinations as unavailable; producing them is separate work.</p>
+<h2 id="current-availability-matrix">Current availability matrix<a class="headerlink" href="#current-availability-matrix" title="Permanent link">¶</a></h2>
+<p>Verified on disk 2026-07-28.</p>
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>115 ref</th>
+<th>115 cache</th>
+<th>116 ref</th>
+<th>116 cache</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ensembl</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>merged</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>OK</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>refseq</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>merged_flag_pick_allele</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>merged_flag_pick_allele_gene</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>merged_per_gene</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>merged_pick_allele</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>merged_pick_allele_gene</code></td>
+<td>OK</td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>merged_flag_pick</code></td>
+<td><strong>—</strong></td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><code>merged_pick_filter</code></td>
+<td><strong>—</strong></td>
+<td>OK</td>
+<td>—</td>
+<td>OK</td>
+</tr>
+</tbody>
+</table>
+<p><code>merged_flag_pick</code> and <code>merged_pick_filter</code> are broken today and fail silently; under this design
+they fail immediately with a listing of what is available.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>e2e-testing/scripts/
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  run_comparison.py        # entry point: sys.argv -&gt; comparison.cli.main()
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  comparison/
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    __init__.py
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    profiles.py            # profile x release matrix, path derivation, availability check
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    vcfio.py               # open_text, is_bgzf, ensure_bgzf, contig detection, slicing
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    compare.py             # compare_vcfs(a, b) -&gt; dict     (no vepyr, no argparse)
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    annotate.py            # run_one(chrom, cfg) -&gt; dict     (the ONLY vepyr importer)
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    report.py              # ISSUES registry, aggregate, classify, markdown
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    cli.py                 # argparse, orchestration loop, --isolate
+</span></code></pre></div>
+<p>Each module has one responsibility and a stated dependency boundary:</p>
+<ul>
+<li><code>vcfio</code> knows compression and indexing, nothing about CSQ.</li>
+<li><code>compare</code> takes two paths and returns a dict; it touches no CLI, no Markdown, and does not
+  import <code>vepyr</code>. This is the highest-value code in the tree and becomes unit-testable without a
+  built native extension.</li>
+<li><code>report</code> takes dicts and returns a string; it touches no filesystem.</li>
+<li><code>annotate</code> is the sole importer of <code>vepyr</code>.</li>
+</ul>
+<p><code>run_annotation_fast.py</code> and <code>run_annotation_fast_all.py</code> are deleted.</p>
+<h2 id="cli-surface">CLI surface<a class="headerlink" href="#cli-surface" title="Permanent link">¶</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>run_comparison.py --release 115                          # all detected contigs
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>run_comparison.py --release 115 --chroms 22              # one contig
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>run_comparison.py --release 116 --profile merged --chroms 1 2 22
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  [--force] [--bgzf] [--workers N] [--isolate]
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  [--skip-annotate] [--skip-compare] [--no-normalize]
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  [--vcf ...] [--vep ...] [--cache-dir ...] [--fasta ...]
+</span></code></pre></div>
+<h3 id="defaults">Defaults<a class="headerlink" href="#defaults" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--release</code></td>
+<td><strong>required</strong></td>
+<td>Forces a conscious choice; the strongest guard against cache/reference mismatch</td>
+</tr>
+<tr>
+<td><code>--chroms</code></td>
+<td>auto-detected</td>
+<td>See "Contig detection"; <code>all</code> is a synonym for detect</td>
+</tr>
+<tr>
+<td><code>--profile</code></td>
+<td><code>merged</code></td>
+<td>The only profile that fully resolves at both 115 and 116, so a bare run works at either release (both current scripts default to <code>ensembl</code>, which has no 116 cache or reference)</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>off (reuse)</td>
+<td>The expensive option is opted into, not out of</td>
+</tr>
+<tr>
+<td><code>--bgzf</code></td>
+<td>off (plain output)</td>
+<td>Both current scripts agree</td>
+</tr>
+<tr>
+<td><code>--workers</code></td>
+<td><code>1</code></td>
+<td>Matches <code>docs/performance.md</code></td>
+</tr>
+<tr>
+<td>normalize</td>
+<td><strong>on</strong> (<code>--no-normalize</code> disables)</td>
+<td>Current single-contig default</td>
+</tr>
+<tr>
+<td><code>--isolate</code></td>
+<td>off (in-process)</td>
+<td>Subprocess isolation available on demand</td>
+</tr>
+<tr>
+<td><code>--skip-annotate</code></td>
+<td>off</td>
+<td>From the all-contigs script</td>
+</tr>
+<tr>
+<td><code>--skip-compare</code></td>
+<td>off</td>
+<td>Both</td>
+</tr>
+<tr>
+<td><code>--vcf</code></td>
+<td><code>$DATA/input/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz</code></td>
+<td>Moved under <code>input/</code>; see "Data directory layout"</td>
+</tr>
+<tr>
+<td><code>--fasta</code></td>
+<td><code>$DATA/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa</code></td>
+<td>Moved under <code>input/</code>; see "Data directory layout"</td>
+</tr>
+<tr>
+<td><code>--vep</code>, <code>--cache-dir</code></td>
+<td>derived from profile x release</td>
+<td>Explicit values override</td>
+</tr>
+<tr>
+<td><code>$DATA</code></td>
+<td><code>$DATA_VEPYR_DIR</code> or <code>~/workspace/data_vepyr</code></td>
+<td>Unchanged</td>
+</tr>
+</tbody>
+</table>
+<p>Dropped: <code>--no-force</code> (polarity resolved to <code>--force</code>) and the hidden <code>--cache</code> alias.</p>
+<p>At startup, before any work, the runner echoes the resolved <code>cache_dir</code>, <code>vep_vcf</code>, and detected
+contigs. The 115/116 trap is silent precisely because nobody sees which files a run opened.</p>
+<h2 id="data-directory-layout">Data directory layout<a class="headerlink" href="#data-directory-layout" title="Permanent link">¶</a></h2>
+<p><code>$DATA</code> currently mixes inputs, VEP outputs, caches, logs, and stray artifacts at the top level.
+Inputs move into <code>$DATA/input/</code>, mirroring the <code>$DATA/output/{release}/</code> convention that already
+exists:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$DATA/
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  input/
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz     + .tbi
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    HG002_normalized.vcf.gz                       + .tbi   # the VEP-side normalized input
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    Homo_sapiens.GRCh38.dna.primary_assembly.fa   + .fai
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  cache/
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    {115,116}_GRCh38_{ensembl,merged,refseq}/               # vepyr Parquet caches
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  output/{115.2,116}/                                       # VEP reference VCFs
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  homo_sapiens_{ensembl,merged,refseq}/                     # raw Ensembl VEP caches, untouched
+</span></code></pre></div>
+<p>Inputs, vepyr caches, and VEP references each get their own subdirectory, so <code>$DATA</code> no longer
+mixes all three at the top level. The raw Ensembl VEP cache directories
+(<code>homo_sapiens_*</code>) stay where they are: they are consumed by the Docker VEP containers, not by
+this runner, and moving them would break in-flight jobs.</p>
+<p><strong>Resolution order.</strong> Both the default input paths and the derived cache directory resolve the new
+location first and fall back to the legacy <code>$DATA/</code> root, logging a deprecation warning when the
+fallback fires. This decouples the code change from the disk move: the runner works before, during,
+and after the reorganisation, and an explicit <code>--vcf</code> / <code>--fasta</code> / <code>--cache-dir</code> always wins.</p>
+<p><strong>The disk move is a separate manual step, not part of this change.</strong> At the time of writing an
+Ensembl-116 VEP container is running with <code>$DATA</code> bind-mounted as both <code>/fasta</code> and <code>/work</code>,
+reading the FASTA and <code>HG002_normalized.vcf.gz</code> by path. Moving those files while it runs risks
+killing a multi-hour job. The input move must wait until no container holds them, and the Docker
+<code>-v</code> paths in <code>docs/testing-vep.md</code> and <code>e2e-testing/vep-docker.md</code> must be updated in the same
+pass.</p>
+<p>The vepyr Parquet caches are not mounted by any container — the VEP containers mount
+<code>homo_sapiens_*</code> instead — so <code>cache/</code> can be populated independently of the input move, provided
+no vepyr annotation is running.</p>
+<h2 id="profile-and-release-resolution">Profile and release resolution<a class="headerlink" href="#profile-and-release-resolution" title="Permanent link">¶</a></h2>
+<p><code>profiles.py</code> holds one dict of profile -&gt; <code>{flavour, vep_basename, annotate_kwargs, suffix}</code> and
+derives both paths. Note that <code>suffix</code> is stored <strong>without</strong> a leading underscore (<code>"merged"</code>, not
+<code>"_merged"</code>, as the current tables use), so the filename templates below compose cleanly; the
+rendered names are unchanged for the legacy fallback.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cache_dir = $DATA/cache/{release}_GRCh38_{flavour}     # falls back to $DATA/{release}_GRCh38_{flavour}
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>vep_vcf   = $DATA/output/{RELEASE_DIRS[release]}/{vep_basename}{.vcf.gz | .vcf}
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>RELEASE_DIRS = {"115": "115.2", "116": "116"}
+</span></code></pre></div>
+<p>Releases are strings throughout (<code>--release 115</code>), never ints, because <code>115.2</code> is a directory name
+and future releases may not be purely numeric.</p>
+<p><code>.vcf.gz</code> is preferred and <code>.vcf</code> accepted. <code>RELEASE_DIRS</code> is explicit because the on-disk <code>115.2</code>
+directory name is not derivable from the release number. Resolution runs before any other work and,
+on failure, lists what is available for every release, so <code>--profile refseq --release 116</code> reports
+"reference OK, no <code>116_GRCh38_refseq</code> cache" rather than failing after an hour of annotation.</p>
+<h2 id="contig-detection">Contig detection<a class="headerlink" href="#contig-detection" title="Permanent link">¶</a></h2>
+<p>Detection reads the <strong>index, not the header</strong>. Measured on the real files:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>tabix -l   -&gt;  chr1 chr2 ... chr22    (22 contigs, in coordinate order)
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>##contig   -&gt;  195 entries            (whole GRCh38 primary assembly + scaffolds/alts)
+</span></code></pre></div>
+<p>Parsing <code>##contig</code> would launch 195 contigs, 173 of them empty. <code>tabix -l</code> also returns index
+order, giving <code>chr1..chr22</code> rather than the lexicographic <code>chr1, chr10, chr11, ...</code> a naive sort
+produces.</p>
+<p>Algorithm:</p>
+<ol>
+<li><code>tabix -l</code> on the resolved VEP reference.</li>
+<li>Intersect with <code>tabix -l</code> on the prepared input VCF, preserving reference order. Only contigs
+   present in both can be compared, and the input is always indexed because per-contig slicing
+   requires it.</li>
+<li>If the reference is plain or unindexed, fall back to the input's contig list and warn that
+   detection was degraded.</li>
+<li>With <code>--skip-compare</code> there is no reference, so detect from the input alone.</li>
+<li>An explicit <code>--chroms</code> wins but is validated against the detected list, failing fast with the
+   available contigs instead of producing an empty slice.</li>
+</ol>
+<p>This removes the hardcoded <code>range(1, 23)</code> and makes X/Y/MT work automatically on datasets that
+contain them.</p>
+<h2 id="compression-handling">Compression handling<a class="headerlink" href="#compression-handling" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Today</th>
+<th>Merged runner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VEP ref, bgzf + <code>.tbi</code></td>
+<td><code>UnicodeDecodeError</code></td>
+<td><code>tabix ref chrN</code> — seek, not scan</td>
+</tr>
+<tr>
+<td>VEP ref, bgzf, no index</td>
+<td><code>UnicodeDecodeError</code></td>
+<td>stream via <code>open_text</code></td>
+</tr>
+<tr>
+<td>VEP ref, plain</td>
+<td>linear scan</td>
+<td>unchanged</td>
+</tr>
+<tr>
+<td>vepyr output, plain or bgzf</td>
+<td>works</td>
+<td>unchanged, keeps <code>is_bgzf</code> validation</td>
+</tr>
+<tr>
+<td>Input, plain, <code>--no-normalize</code></td>
+<td><code>CalledProcessError</code></td>
+<td>auto-bgzip into the work dir, then index</td>
+</tr>
+<tr>
+<td>Input, plain, normalizing</td>
+<td>works</td>
+<td>unchanged</td>
+</tr>
+</tbody>
+</table>
+<p>The tabix path also eliminates 22 full scans of a 1.6 GB reference per all-contigs run.
+<code>count_data_lines()</code> replaces the <code>gunzip -c | grep -cv '^#'</code> shellout at
+<code>run_annotation_fast.py:697</code>.</p>
+<h2 id="artifact-naming">Artifact naming<a class="headerlink" href="#artifact-naming" title="Permanent link">¶</a></h2>
+<p>Two latent bugs are fixed here, both made likely by reuse-by-default.</p>
+<p><strong>Release must appear in artifact names.</strong> Today <code>results/fast_chr1/vepyr_parquet_chr1_merged.vcf</code>
+and <code>reports/fast_chr1_merged_report.json</code> carry no release token
+(<code>run_annotation_fast.py:706,797</code>). A <code>--release 116</code> run would find the 115 artifact, judge it
+present, and reuse it — publishing a "116 parity report" built from 115 annotations. New names
+embed the release:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>results/{release}/_shared/normalized.vcf.gz          # + .tbi, + normalized.source.json
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>results/{release}/fast_{chrom}/input_{chrom}.vcf.gz  # + .tbi
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>results/{release}/fast_{chrom}/vepyr_parquet_{chrom}_{suffix}.vcf[.gz]
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>results/{release}/fast_{chrom}/vep_{chrom}_{suffix}.vcf
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>reports/fast_{chrom}_{suffix}_{release}_report.json
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>reports/fast_{span}_{suffix}_{release}_summary_{timestamp}.md
+</span></code></pre></div>
+<p>Every intermediate lives under <code>results/{release}/</code>. Reports stay in the flat <code>reports/</code> directory,
+where the release is carried in the filename instead, so the existing 408 historical reports remain
+in place and loadable.</p>
+<p><code>{span}</code> derives from the detected contig set rather than the hardcoded <code>chr1_22</code>. The report
+loader tries the release-qualified name first and falls back to the legacy
+<code>fast_{chrom}_{suffix}_report.json</code>, so <code>--skip-annotate</code> keeps working against the 408 existing
+reports while new runs cannot collide.</p>
+<p><strong>Normalization must be shared per release, not per contig.</strong> <code>normalize_vcf(args.vcf, work_dir)</code>
+is called with the per-contig work directory (<code>run_annotation_fast.py:692</code>) and writes
+<code>normalized.vcf.gz</code> inside it, so a 22-contig sweep runs <code>bcftools norm</code> over the full 2.9 GB input
+22 times and keeps 22 copies of the result. It moves up one level, to
+<code>results/{release}/_shared/normalized.vcf.gz</code>, computed once per release and reused by every
+contig.</p>
+<p>Normalization is in principle release-independent — <code>bcftools norm -m -both</code> touches only the input
+VCF — so scoping it per release costs one redundant pass per release. That is deliberate. It buys a
+single total invariant that is trivial to verify by inspection:</p>
+<blockquote>
+<p>Nothing under <code>results/{release}/</code> is ever read by a run of a different release.</p>
+</blockquote>
+<p>A shared-across-releases cache would make that invariant conditional, and conditional invariants are
+how the 115/116 mismatch got in.</p>
+<p><strong>Normalized output is keyed to its source.</strong> A per-release directory still reuses
+<code>normalized.vcf.gz</code> blindly if <code>--vcf</code> changes between runs at the same release. Alongside the
+normalized file the runner writes <code>normalized.source.json</code> recording the input path, size, and
+mtime; on reuse it compares, and re-normalizes on any mismatch rather than silently annotating a
+stale decomposition.</p>
+<h2 id="execution-and-error-handling">Execution and error handling<a class="headerlink" href="#execution-and-error-handling" title="Permanent link">¶</a></h2>
+<p>Contigs run in-process in a loop, each wrapped in <code>try/except</code>. A failure is recorded and the loop
+continues; the run exits non-zero at the end listing failed contigs.</p>
+<p><code>--isolate</code> re-runs each contig as a subprocess, so a SIGSEGV in the native extension loses only
+that contig. This preserves the crash isolation the current subprocess design provides
+accidentally, as an explicit documented flag rather than an implementation side effect.</p>
+<p>Profile resolution raises before any work begins, so a bad <code>--release</code> never wastes a
+normalization pass. A <code>--bgzf</code> output that fails BGZF validation remains a hard exit.</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">¶</a></h2>
+<p><code>tests/test_run_comparison.py</code> replaces <code>tests/test_run_annotation_fast.py</code>. The ~20 existing tests
+port over where still applicable, minus <code>test_fast_all_profile_suffixes_match_single_runner_profiles</code>,
+which the merge makes meaningless.</p>
+<p>New tests the module split makes possible, none of which need a built native extension:</p>
+<ul>
+<li><code>compare_vcfs</code> over all four compression combinations (plain/plain, bgzf/bgzf, bgzf/plain,
+  plain/bgzf) returns identical dicts. This is the direct regression test for Defect 1.</li>
+<li>The tabix slice path and the linear slice path produce byte-identical output.</li>
+<li><code>profiles.resolve</code> raises with an availability listing for an unavailable combination, and
+  omitting <code>--release</code> is an argparse error.</li>
+<li>Default input resolution prefers <code>$DATA/input/</code>, falls back to <code>$DATA/</code> with a warning, and an
+  explicit <code>--vcf</code> / <code>--fasta</code> overrides both.</li>
+<li>Contig detection prefers the index over the header: given a fixture whose header lists more
+  contigs than the index, only the indexed ones are returned, in index order.</li>
+<li>Artifact names for the same profile at two releases do not collide, and every intermediate path
+  a run resolves is contained under its own <code>results/{release}/</code> — the isolation invariant asserted
+  directly rather than by inspection.</li>
+<li>Reused normalization is invalidated when <code>--vcf</code> changes: the same release run twice with
+  different inputs re-normalizes instead of reusing <code>normalized.vcf.gz</code>.</li>
+<li><code>report.generate_markdown</code> on a synthetic aggregate, with no filesystem access.</li>
+</ul>
+<p>A <code>conftest.py</code> puts <code>e2e-testing/scripts</code> on <code>sys.path</code> so the package imports normally.</p>
+<h2 id="migration">Migration<a class="headerlink" href="#migration" title="Permanent link">¶</a></h2>
+<ul>
+<li>Delete <code>run_annotation_fast.py</code>, <code>run_annotation_fast_all.py</code>, and
+  <code>tests/test_run_annotation_fast.py</code>.</li>
+<li>Rewrite <code>e2e-testing/README.md:61-194</code> for the single command surface, adding <code>--release</code> to
+  every example.</li>
+<li>Preserve the JSON report contract via the legacy-name fallback described above.</li>
+<li>Preserve <code>--skip-annotate</code> and <code>--skip-compare</code> behaviour.</li>
+</ul>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--release</code> now required breaks every documented command</td>
+<td>README rewritten in the same change; argparse error names the valid values</td>
+</tr>
+<tr>
+<td>In-process execution loses crash isolation</td>
+<td><code>--isolate</code> restores it on demand</td>
+</tr>
+<tr>
+<td>Legacy report fallback masks a genuine naming bug</td>
+<td>Fallback logs when it fires, so silent reliance is visible</td>
+</tr>
+<tr>
+<td>Historical reports predate the release axis and cannot be attributed</td>
+<td>Accepted; they are only read by <code>--skip-annotate</code></td>
+</tr>
+<tr>
+<td>Per-release normalization costs one redundant <code>bcftools norm</code> pass and ~2.9 GB per release</td>
+<td>Accepted deliberately to keep the isolation invariant unconditional</td>
+</tr>
+<tr>
+<td>Existing <code>results/fast_chr*/</code> directories predate the release layout</td>
+<td>Left in place, unread by the new layout; removable by hand</td>
+</tr>
+<tr>
+<td>Moving inputs into <code>$DATA/input/</code> breaks a running VEP container</td>
+<td>The move is manual, deferred, and gated on no container holding the files; the fallback keeps the runner working either way</td>
+</tr>
+<tr>
+<td>Docker <code>-v</code> paths in the docs point at the old input locations</td>
+<td>Updated in the same pass as the disk move, not with the code change</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

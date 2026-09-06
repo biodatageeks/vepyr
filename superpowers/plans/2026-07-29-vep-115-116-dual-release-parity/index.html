@@ -1,0 +1,2385 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/plans/2026-07-29-vep-115-116-dual-release-parity/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>VEP 115/116 Dual-Release Parity Implementation Plan - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#vep-115116-dual-release-parity-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              VEP 115/116 Dual-Release Parity Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#repository-and-data-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository and data topology
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-snapshot-2026-07-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation snapshot — 2026-07-30
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-negotiable-design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-negotiable design decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-graph-and-burn-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency graph and burn-down
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependency graph and burn-down">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-0-freeze-worktree-state-and-implementation-baselines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 0: Freeze worktree state and implementation baselines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-1-make-parity-evidence-uncapped-and-reproducible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Make parity evidence uncapped and reproducible
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-extend-the-existing-bio-formats-openspec-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Extend the existing bio-formats OpenSpec change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-establish-release-provenance-in-bio-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Establish release provenance in bio-formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-preserve-cache-metadata-and-resolve-vepsemantics-lazily-by-contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Preserve cache metadata and resolve VepSemantics lazily by contig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-expose-the-release-contract-in-vepyr-and-the-comparison-profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Expose the release contract in vepyr and the comparison profile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-preserve-and-consume-clin_sig_ref_allele" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Preserve and consume clin_sig_ref_allele
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Task 6: Preserve and consume clin_sig_ref_allele">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-6a-optional-cache-field-and-vep-equivalent-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6A: Optional cache field and VEP-equivalent matching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6b-rebuild-complete-115-and-116-caches-recoverably" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6B: Rebuild complete 115 and 116 caches, recoverably
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-fix-the-ten-release-independent-residual-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Fix the ten release-independent residual fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Task 7: Fix the ten release-independent residual fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-7a-chr20-terminal-cds-insertion-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7A: chr20 terminal CDS insertion boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7b-chr16-primary-only-exon-boundary-span" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7B: chr16 primary-only exon-boundary span
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7c-prove-then-fix-the-chr11-refseq-shift-predicate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7C: Prove, then fix, the chr11 RefSeq shift predicate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7d-integration-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7D: Integration check
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-8-implement-the-nine-vep-116-stop-predicate-behaviors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: Implement the nine VEP 116 stop-predicate behaviors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-9-implement-vep-116-partial-transcript-hgvs-in-slice-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9: Implement VEP 116 partial-transcript HGVS in slice space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-10-add-a-machine-enforced-release-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10: Add a machine-enforced release gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-11-pin-upstream-revisions-and-run-the-only-full-release-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 11: Pin upstream revisions and run the only full release gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-12-publish-the-six-verified-caches-to-google-drive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 12: Publish the six verified caches to Google Drive
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#definition-of-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition of done
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#explicitly-out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicitly out of scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="vep-115116-dual-release-parity-implementation-plan">VEP 115/116 Dual-Release Parity Implementation Plan<a class="headerlink" href="#vep-115116-dual-release-parity-implementation-plan" title="Permanent link">¶</a></h1>
+<blockquote>
+<p><strong>For implementers:</strong> execute this plan in task order. Use one commit boundary per
+repository per task, keep the existing dirty vepyr files out of those commits, and
+do not accept any of the six full chr1–22 release/profile gates until the final
+pinned build.</p>
+</blockquote>
+<p><strong>Goal:</strong> Make one vepyr build reproduce Ensembl VEP 115 or 116 according to the
+cache release, reduce the measured release-116 mismatch count from 734 to zero,
+and prove exact chr1–22 parity for the merged, Ensembl-only, and RefSeq-only
+profiles under both releases.</p>
+<p><strong>Architecture:</strong> The raw-cache reader (<code>bio-formats</code>) establishes a cache-release
+contract. The converted-cache builder and annotation engine (<code>bio-functions</code>)
+preserve it. At runtime, <code>bio-functions</code> validates the relevant Parquet metadata
+once per requested contig, memoizes the result, and passes that contig's
+<code>VepSemantics</code> value into the consequence/HGVS engine. Only the two source-proven
+115→116 behavior changes consume that value: partial-transcript HGVS and the
+stop-predicate family.
+ClinVar reference-allele handling is activated by an optional cache column, and
+the chr11/chr16/chr20 fixes are unconditional. Each vepyr package release embeds
+an explicit support matrix. The Python wrapper (<code>vepyr</code>) may assert an expected
+cache version; the native engine checks each requested contig's Parquet metadata
+against the matrix immediately before that contig runs. The comparison harness
+writes an uncapped mismatch ledger and reproducible build provenance.</p>
+<p><strong>Primary analysis:</strong>
+<a href="../../2026-07-29-remaining-734-root-cause-and-plan/">2026-07-29-remaining-734-root-cause-and-plan.md</a></p>
+<p><strong>Source delta:</strong>
+<a href="../../../e2e-testing/115-116/2026-07-28-vep-115-to-116-changelog_8815.md">2026-07-28-vep-115-to-116-changelog_8815.md</a></p>
+<p><strong>Current 116 benchmark:</strong>
+<a href="../../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260728_2105.md">fast_chr1_chr22_merged_116_summary_20260728_2105.md</a></p>
+<h2 id="repository-and-data-topology">Repository and data topology<a class="headerlink" href="#repository-and-data-topology" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Responsibility</th>
+<th>Working tree</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python API, native wrapper, comparator, release reports</td>
+<td><code>/Users/mwiewior/research/git/vepyr</code></td>
+</tr>
+<tr>
+<td>Consequence engine, converted-cache builder and lookup</td>
+<td><code>/Users/mwiewior/research/git/_wt/biofunctions-pwm</code></td>
+</tr>
+<tr>
+<td>Raw Ensembl cache reader and Arrow schema contract</td>
+<td><code>/Users/mwiewior/research/git/_wt/bioformats-pwm</code></td>
+</tr>
+<tr>
+<td>Generated release-115 caches</td>
+<td><code>~/workspace/data_vepyr/cache/115_GRCh38_{merged,ensembl,refseq}</code></td>
+</tr>
+<tr>
+<td>Generated release-116 caches</td>
+<td><code>~/workspace/data_vepyr/cache/116_GRCh38_{merged,ensembl,refseq}</code></td>
+</tr>
+</tbody>
+</table>
+<p>The local-development absolute worktree patches have been removed. The original
+six-profile qualification revision <code>01350d6</code> proved merged, Ensembl-only, and
+RefSeq-only parity for both releases. The final released dependency graph is
+vepyr <code>cb964bb16d2171187eaf066d3fbc01012bc49b2a</code>, bio-functions
+<code>b4996420cea2dc2d2b33b35ef75dcdafc553b376</code>, and bio-formats <code>v1.9.0</code> at
+<code>6564554619019535ffd3ace5aa650797a31eb8ed</code>. A native release extension built
+from that graph reran both merged chr1–22 gates with clean provenance.</p>
+<h2 id="implementation-snapshot-2026-07-30">Implementation snapshot — 2026-07-30<a class="headerlink" href="#implementation-snapshot-2026-07-30" title="Permanent link">¶</a></h2>
+<p>The checklist below remains the reviewable execution plan. Its current state is:</p>
+<table>
+<thead>
+<tr>
+<th>Work</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Comparator, uncapped ledger, reference identity, and per-report build provenance</td>
+<td>implemented</td>
+</tr>
+<tr>
+<td>OpenSpec release/cache contract</td>
+<td>implemented and strictly validated</td>
+</tr>
+<tr>
+<td>bio-formats raw-release metadata</td>
+<td>PR #224 merged as <code>379894cad6d676cbc163402a8b88f0dff11455e2</code>; released as <code>v1.9.0</code> at <code>6564554619019535ffd3ace5aa650797a31eb8ed</code></td>
+</tr>
+<tr>
+<td>bio-functions metadata preservation, strict resolver, and contig-lazy validation</td>
+<td>implemented</td>
+</tr>
+<tr>
+<td>Python/native support-matrix and expected-version APIs</td>
+<td>implemented</td>
+</tr>
+<tr>
+<td>Optional ClinVar reference allele and all three exact variants</td>
+<td>implemented</td>
+</tr>
+<tr>
+<td>chr11/chr16/chr20 residuals</td>
+<td>implemented; chr11 predicate is now proven</td>
+</tr>
+<tr>
+<td>Nine VEP 116 stop behaviors</td>
+<td>implemented behind one policy</td>
+</tr>
+<tr>
+<td>VEP 116 partial-overlap HGVS</td>
+<td>implemented behind one policy</td>
+</tr>
+<tr>
+<td>Safe generalized 115/116 cache rebuild</td>
+<td>implemented in <code>e2e-testing/scripts/rebuild_release_cache.py</code>; dry-run verified</td>
+</tr>
+<tr>
+<td>Machine release gate</td>
+<td>implemented in <code>e2e-testing/scripts/verify_parity_gate.py</code></td>
+</tr>
+<tr>
+<td>Rebuilt 115/116 merged cache artifacts</td>
+<td>complete; all manifest-referenced footers and row counts verified</td>
+</tr>
+<tr>
+<td>Rebuilt 115/116 Ensembl and RefSeq cache artifacts</td>
+<td>all four transactional builds complete and verified</td>
+</tr>
+<tr>
+<td>Full released-dependency chr1–22 merged parity</td>
+<td>clean strict <a href="../../../e2e-testing/reports/fast_chr1_chr22_merged_115_summary_20260730_1206.md">115</a> and <a href="../../../e2e-testing/reports/fast_chr1_chr22_merged_116_summary_20260730_1217.md">116</a> gates exact at vepyr <code>cb964bb</code>, bio-functions <code>b499642</code>, and bio-formats <code>v1.9.0</code>/<code>6564554</code></td>
+</tr>
+<tr>
+<td>Full chr1–22 Ensembl/RefSeq parity</td>
+<td>original pinned <a href="../../../e2e-testing/reports/fast_chr1_chr22_ensembl_115_summary_20260729_2243.md">115 Ensembl</a>, <a href="../../../e2e-testing/reports/fast_chr1_chr22_refseq_115_summary_20260729_2233.md">115 RefSeq</a>, <a href="../../../e2e-testing/reports/fast_chr1_chr22_ensembl_116_summary_20260729_2308.md">116 Ensembl</a>, and <a href="../../../e2e-testing/reports/fast_chr1_chr22_refseq_116_summary_20260729_2243.md">116 RefSeq</a> gates exact</td>
+</tr>
+<tr>
+<td>Durable upstream revisions and removal of absolute path patches</td>
+<td>bio-formats <code>v1.9.0</code>/<code>6564554619019535ffd3ace5aa650797a31eb8ed</code>, bio-functions <code>b4996420cea2dc2d2b33b35ef75dcdafc553b376</code>, vepyr qualification commit <code>cb964bb16d2171187eaf066d3fbc01012bc49b2a</code></td>
+</tr>
+<tr>
+<td>Review state</td>
+<td>PR #224: Claude safe to merge and Codex no major issues; PR #203: Claude no remaining blockers and Codex no major issues; zero unresolved threads</td>
+</tr>
+</tbody>
+</table>
+<p>Verified suites at this snapshot: bio-formats 461 passed/1 ignored,
+bio-functions 906 executed passed/1 ignored, vepyr Python 1,032 passed/2
+skipped, and vepyr Rust 4 passed. All six original release/profile gates and
+both released-dependency merged gates compare 4,096,123 variants with every
+enforced mismatch counter at zero.</p>
+<h2 id="non-negotiable-design-decisions">Non-negotiable design decisions<a class="headerlink" href="#non-negotiable-design-decisions" title="Permanent link">¶</a></h2>
+<ol>
+<li>Cache version and VEP codebase version are distinct identifiers. This vepyr
+   release supports exactly:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Cache</th>
+<th>VEP</th>
+<th>API</th>
+<th>Ensembl core</th>
+<th>Variation</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"115"</code></td>
+<td><code>"115.2"</code></td>
+<td><code>"115"</code></td>
+<td><code>266b84d</code></td>
+<td><code>b7c2637</code></td>
+<td><code>V115</code></td>
+</tr>
+<tr>
+<td><code>"116"</code></td>
+<td><code>"116.0"</code></td>
+<td><code>"116"</code></td>
+<td><code>c0cf13d</code></td>
+<td><code>2fb834b</code></td>
+<td><code>V116</code></td>
+</tr>
+</tbody>
+</table>
+<p>The support matrix is versioned with vepyr. Supporting VEP/cache 117 later
+   requires an explicit matrix and policy change in a new vepyr release.
+2. Add one semantic enum:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">VepSemantics</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">V115</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">V116</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li>Resolve it once per requested contig and memoize that validation for the
+   invocation. Do not parse paths in transcript or per-variant hot loops.</li>
+<li>Annotation cache identity comes only from <code>bio.vep.cache_version</code> Arrow
+   metadata. Generated-cache directory names are never an annotation fallback.
+   Strict raw-cache basename parsing is permitted only during conversion because
+   the shipped raw 115/116 <code>info.txt</code> files omit the version.</li>
+<li>Do not add an annotation-cache version sidecar or marker file. Existing
+   <code>chrom_manifest.json</code> files may locate a contig's shards, but only Parquet
+   footer/schema metadata may establish their version. The existing provenance
+   column is informational and is not an identity source.</li>
+<li>Cache identity is mandatory. Missing, malformed, conflicting and unsupported
+   cache versions are errors before annotation; there is no V115 fallback.</li>
+<li>An optional <code>expected_cache_version</code> is an assertion only. It must agree with
+   the independently detected Parquet metadata and cannot make an unlabeled
+   cache acceptable.</li>
+<li>A recognized-looking but unsupported future release, such as <code>117</code>, is an
+   error even when supplied as the expected version. It must not silently inherit
+   V116 behavior.</li>
+<li>Only these decisions are gated by <code>VepSemantics</code>:
+   <code>partial_overlap_hgvs</code> and <code>stop_codon_predicates</code>.</li>
+<li><code>clin_sig_ref_allele</code> is an optional nullable cache field. Its presence and
+   non-empty row value activate the VEP 116 allele-orientation behavior; it is not
+   a required release-115 column.</li>
+<li>The chr11, chr16 and chr20 corrections are release-independent.</li>
+<li>IMPACT is derived from consequence terms. HGVSp consumes the same coding
+    classification. Neither gets a separate release conditional.</li>
+<li>Do not port VEP 116's dead <code>$consider_ins_len</code> plumbing.</li>
+<li>Preserve existing non-boundary HGVS behavior and existing cache lookup
+    layout/performance.</li>
+<li>Runtime validation is contig-lazy. Immediately before loading/annotating a
+    contig, validate only that contig's manifest-referenced shards across every
+    present entity. Those shards must carry one supported cache version and one
+    consistent source type. A chr1-only run must not open chr2 data.</li>
+<li>Never rebuild a live cache in place. Build and verify a complete staging
+    cache, eagerly verify every emitted shard once, swap it recoverably, and
+    retain the old cache until final parity passes.</li>
+</ol>
+<h2 id="dependency-graph-and-burn-down">Dependency graph and burn-down<a class="headerlink" href="#dependency-graph-and-burn-down" title="Permanent link">¶</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>comparison evidence ───────────────────────────────────────────────┐
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                                                                  │
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>bio-formats cache-release contract                                │
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>          │                                                       │
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>          v                                                       │
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>bio-functions metadata preservation + VepSemantics resolver       │
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>          │                         │                              │
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>          │                         ├── stop policy (224)           │
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>          │                         └── partial HGVS policy (388)   │
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>          │                                                       │
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>          ├── optional ClinVar field + lookup (112) ── cache swap │
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>          └── release-independent residual fixes (10)              │
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>                                                                  v
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>vepyr API + supported-target assertion ────────────── pinned release gates
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th style="text-align: right;">Expected 116 mismatches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frozen current build</td>
+<td style="text-align: right;">734</td>
+</tr>
+<tr>
+<td>Release metadata/semantics plumbing</td>
+<td style="text-align: right;">734</td>
+</tr>
+<tr>
+<td>ClinVar reference allele</td>
+<td style="text-align: right;">622</td>
+</tr>
+<tr>
+<td>chr11/chr16/chr20 residuals</td>
+<td style="text-align: right;">612</td>
+</tr>
+<tr>
+<td>VEP 116 stop predicates</td>
+<td style="text-align: right;">388</td>
+</tr>
+<tr>
+<td>VEP 116 partial-overlap HGVS</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p>The count is a diagnostic expectation, not permission to ignore a different
+result. Any deviation pauses the burn-down and requires ledger reconciliation.</p>
+<hr>
+<h3 id="task-0-freeze-worktree-state-and-implementation-baselines">Task 0: Freeze worktree state and implementation baselines<a class="headerlink" href="#task-0-freeze-worktree-state-and-implementation-baselines" title="Permanent link">¶</a></h3>
+<p><strong>Repositories:</strong> all three, read-only.</p>
+<p><strong>Produces:</strong> a recorded pre-change state and no mixed user/implementation
+commits.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Record <code>git status --short</code>, branch and full SHA in each repository.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Record the current vepyr <code>Cargo.toml</code> path overrides and <code>Cargo.lock</code> hash.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Preserve all unrelated dirty vepyr files. In particular, do not stage
+  <code>uv.lock</code>, existing untracked plans/assets, the changelog directory, or the
+  plotting script unless a later task explicitly owns one of them.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Confirm the exact local raw and generated cache roots used for both
+  releases; do not infer them from <code>$HOME</code> inside implementation code.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Confirm available disk space before any cache staging operation.</li>
+</ul>
+<p>Commands:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>-C<span class="w"> </span>/Users/mwiewior/research/git/vepyr<span class="w"> </span>status<span class="w"> </span>--short
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>git<span class="w"> </span>-C<span class="w"> </span>/Users/mwiewior/research/git/_wt/biofunctions-pwm<span class="w"> </span>status<span class="w"> </span>--short
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>git<span class="w"> </span>-C<span class="w"> </span>/Users/mwiewior/research/git/_wt/bioformats-pwm<span class="w"> </span>status<span class="w"> </span>--short
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>shasum<span class="w"> </span>-a<span class="w"> </span><span class="m">256</span><span class="w"> </span>/Users/mwiewior/research/git/vepyr/Cargo.lock
+</span></code></pre></div>
+<p><strong>Acceptance:</strong> all subsequent commits can be reviewed repository-by-repository,
+and no pre-existing user change is included.</p>
+<hr>
+<h3 id="task-1-make-parity-evidence-uncapped-and-reproducible">Task 1: Make parity evidence uncapped and reproducible<a class="headerlink" href="#task-1-make-parity-evidence-uncapped-and-reproducible" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> vepyr.</p>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>e2e-testing/scripts/comparison/compare.py</code></li>
+<li>Modify: <code>e2e-testing/scripts/comparison/vcfio.py</code></li>
+<li>Modify: <code>e2e-testing/scripts/comparison/report.py</code></li>
+<li>Modify: <code>e2e-testing/scripts/comparison/cli.py</code></li>
+<li>Modify: <code>tests/test_comparison_compare.py</code></li>
+<li>Modify: <code>tests/test_comparison_vcfio.py</code></li>
+<li>Modify: <code>tests/test_comparison_report.py</code></li>
+<li>Modify: <code>tests/test_comparison_cli.py</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul class="task-list">
+<li>Add a release-qualified JSONL mismatch-ledger path per contig.</li>
+<li>Add a ledger row count and SHA-256 to each report JSON.</li>
+<li>Add per-field equality-shape counts.</li>
+<li>
+<p>Replace source-text dependency guessing with resolved Cargo provenance.</p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add comparator tests before implementation for:</p>
+</li>
+<li>both values empty;</li>
+<li>both values non-empty and equal;</li>
+<li>vepyr empty only;</li>
+<li>VEP empty only;</li>
+<li>both non-empty and unequal;</li>
+<li><code>&amp;</code>-order-only equality;</li>
+<li>duplicate Feature/consequence entries from different output alleles;</li>
+<li>one-sided CSQ entries when entry counts differ;</li>
+<li>a mismatch set larger than ten, proving the ledger is uncapped while report
+    examples remain capped.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Parse the Ensembl reference's <code>##VEP</code> header into a structured identity:</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>VEP version
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>API version
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>cache version
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Ensembl core revision
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>ensembl-variation revision
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>assembly
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a pure validator that accepts a selected support record and rejects a
+  non-matching header. Task 5 wires the native support record into this validator
+  before annotation; unit tests cover the exact two target records above.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Pair CSQ entries by output allele identity plus Feature, using
+  <code>ALLELE_NUM</code> when available and a deterministic duplicate ordinal. Do not rely
+  on <code>(Feature, Consequence)</code> alone for multi-allelic records.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Emit one JSONL record per semantic field mismatch with:</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>variant_key
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>allele / ALLELE_NUM
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>Feature
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>duplicate_ordinal
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>field
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>vepyr
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>vep
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>mismatch_shape
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Emit distinct ledger records for one-sided CSQ entries. Keep structural
+  entry-count mismatch separate from field mismatch totals.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Return per-field counters whose buckets sum exactly to <code>field_total</code>.
+  Preserve <code>field_mismatch_counts</code> for compatibility.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Write ledgers beside the per-contig JSON reports using release-qualified
+  names. An exact run produces an empty file with a valid hash.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Aggregate ledger counts and equality-shape counts into the Markdown
+  summary without embedding the entire ledger.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Rework <code>get_build_info()</code> to use <code>cargo metadata --locked</code> plus Git state:</li>
+<li>full vepyr SHA and dirty flag;</li>
+<li>resolved bio-functions source, SHA/path and dirty flag;</li>
+<li>resolved bio-formats source, SHA/path and dirty flag;</li>
+<li><code>Cargo.lock</code> SHA-256.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Make release report generation fail if either dependency
+  cannot be resolved or a local dependency worktree is dirty.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>tests/test_comparison_compare.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>tests/test_comparison_report.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>tests/test_comparison_cli.py<span class="w"> </span>-v
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>e2e-testing/scripts/comparison<span class="w"> </span>tests
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>e2e-testing/scripts/comparison<span class="w"> </span>tests
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> With the current pre-semantic-change extension, regenerate the 116
+  comparison ledgers without <code>--force</code> so existing annotation VCFs are reused.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run a current-build release-115 chr1–22 comparison before changing
+  semantics. This closes the historical chr2/chr4 evidence gap.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Verify that the uncapped 116 ledger reconciles exactly to:</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>partial HGVS      388
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>stop family       224
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>CLIN_SIG          112
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>chr11               2
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>chr16               2
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>chr20               6
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>total              734
+</span></code></pre></div>
+<p><strong>Commit boundary:</strong> one vepyr comparator/provenance commit.</p>
+<p><strong>Acceptance:</strong> the baseline is independently auditable; no conclusion depends
+on ten-example caps or on a Cargo.toml line hidden by a path override.</p>
+<hr>
+<h3 id="task-2-extend-the-existing-bio-formats-openspec-change">Task 2: Extend the existing bio-formats OpenSpec change<a class="headerlink" href="#task-2-extend-the-existing-bio-formats-openspec-change" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-formats.</p>
+<p>The repository's <code>AGENTS.md</code> requires OpenSpec approval for this cache-contract
+change. Extend <code>add-vep-annotation</code>; do not create a competing proposal for the
+same VEP cache schema.</p>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>Modify: <code>openspec/changes/add-vep-annotation/proposal.md</code></li>
+<li>Modify: <code>openspec/changes/add-vep-annotation/design.md</code></li>
+<li>Modify: <code>openspec/changes/add-vep-annotation/tasks.md</code></li>
+<li>
+<p>Modify: <code>openspec/changes/add-vep-annotation/specs/vep-annotation/spec.md</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a “VEP cache release provenance” requirement with scenarios for:</p>
+</li>
+<li>explicit <code>cache_version</code>/<code>version</code> in <code>info.txt</code>;</li>
+<li>strict fallback from raw basename <code>115_GRCh38</code> or <code>116_GRCh38</code>;</li>
+<li>no release derivation from arbitrary parent directories;</li>
+<li>disagreement between metadata and basename;</li>
+<li>unknown/malformed release;</li>
+<li><code>bio.vep.cache_version</code> on all entity schemas and every emitted shard;</li>
+<li>contig-lazy annotation rejection when a requested contig's shard lacks or
+    conflicts on that metadata.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a downstream support-contract requirement: a consumer must reject a
+  cache version not declared by that vepyr package's support matrix.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add an “optional ClinVar reference allele” requirement:
+  release-116 variation schemas expose nullable <code>clin_sig_ref_allele</code>; release-115
+  schemas remain valid without it.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> State explicitly that release-basename fallback is provenance recovery at
+  the raw cache root. It does not infer <code>cache_source_type</code>, preserving the
+  existing no-source-mode-path-inference decision.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> State that generated-cache identity comes only from Parquet Arrow
+  key-value metadata. No sidecar, manifest field, directory name or data column
+  may replace it.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add implementation tasks as a new subsection after the existing cache
+  source-mode work.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>openspec<span class="w"> </span>validate<span class="w"> </span>add-vep-annotation<span class="w"> </span>--strict
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Obtain OpenSpec approval before Task 3 changes Rust source.</li>
+</ul>
+<p><strong>Commit boundary:</strong> OpenSpec artifacts only.</p>
+<p><strong>Acceptance:</strong> the approved schema contract covers release provenance and the
+optional ClinVar field without weakening explicit source-mode semantics.</p>
+<hr>
+<h3 id="task-3-establish-release-provenance-in-bio-formats">Task 3: Establish release provenance in bio-formats<a class="headerlink" href="#task-3-establish-release-provenance-in-bio-formats" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-formats.</p>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>datafusion/bio-format-ensembl-cache/src/info.rs</code></li>
+<li>Modify: <code>datafusion/bio-format-ensembl-cache/src/schema.rs</code></li>
+<li>Modify: <code>datafusion/bio-format-ensembl-cache/src/lib.rs</code> or the module that
+  exports metadata keys</li>
+<li>Modify: <code>datafusion/bio-format-ensembl-cache/tests/integration_tests.rs</code></li>
+<li>Modify: focused fixtures under
+  <code>datafusion/bio-format-ensembl-cache/tests/fixtures/</code></li>
+</ul>
+<p><strong>Produces:</strong></p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">VEP_CACHE_VERSION_METADATA_KEY</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"bio.vep.cache_version"</span><span class="p">;</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add unit tests for <code>CacheInfo::from_root</code>:</li>
+<li>explicit <code>cache_version 115</code>;</li>
+<li>explicit <code>version 116</code>;</li>
+<li>missing field under raw root <code>115_GRCh38</code>;</li>
+<li>missing field under raw root <code>116_GRCh38</code>;</li>
+<li>a nonconforming basename remains <code>"unknown"</code>;</li>
+<li>explicit value and basename conflict is rejected, not silently chosen.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Implement one strict raw-root basename parser. It may accept the raw VEP
+  forms <code>{release}_{assembly}</code>, <code>{release}_{assembly}_merged</code>, and
+  <code>{release}_{assembly}_refseq</code>; it must examine only <code>cache_root.file_name()</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Populate <code>CacheInfo.cache_version</code> from explicit info first and the strict
+  raw-root basename second.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add <code>bio.vep.cache_version=&lt;release&gt;</code> to <code>new_schema()</code> alongside coordinate
+  and source-type metadata. If release provenance cannot be established, expose
+  the unknown state to the caller so the vepyr cache builder can reject it; do
+  not manufacture a supported value.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Keep the existing <code>cache_version</code> provenance column consistent with the
+  schema metadata, but document that annotation identity never scans/trusts this
+  column.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Verify the generic <code>variation_cols</code> path exposes
+  <code>clin_sig_ref_allele: Utf8?</code> for a 116 fixture and omits it for a 115 fixture.
+  Do not hard-code it as required in the raw reader.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Verify transcript, variation, exon, translation, regulatory and motif
+  provider schemas all carry the same release metadata.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>cargo<span class="w"> </span>fmt<span class="w"> </span>--all<span class="w"> </span>--check
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>datafusion-bio-format-ensembl-cache
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>cargo<span class="w"> </span>clippy<span class="w"> </span>-p<span class="w"> </span>datafusion-bio-format-ensembl-cache<span class="w"> </span>--all-targets<span class="w"> </span>--<span class="w"> </span>-D<span class="w"> </span>warnings
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>openspec<span class="w"> </span>validate<span class="w"> </span>add-vep-annotation<span class="w"> </span>--strict
+</span></code></pre></div>
+<p><strong>Commit boundary:</strong> one bio-formats implementation commit after the approved
+OpenSpec commit.</p>
+<p><strong>Acceptance:</strong> both actual raw roots used by this project resolve to their
+release despite omitting the version line, while arbitrary paths do not.</p>
+<hr>
+<h3 id="task-4-preserve-cache-metadata-and-resolve-vepsemantics-lazily-by-contig">Task 4: Preserve cache metadata and resolve <code>VepSemantics</code> lazily by contig<a class="headerlink" href="#task-4-preserve-cache-metadata-and-resolve-vepsemantics-lazily-by-contig" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-functions.</p>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>datafusion/bio-function-vep/src/vep_semantics.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/lib.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/cache_source.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/cache_builder.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/cache/schema.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/cache/build.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/parquet_cache/write.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/annotate_table_function.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/annotate_provider.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/transcript_consequence.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/vcf_sink.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/Cargo.toml</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">VepSemantics</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">V115</span><span class="p">,</span><span class="w"> </span><span class="n">V116</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">SupportedVepTarget</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">cache_version</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">vep_codebase_version</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">api_version</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">ensembl_core_revision</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">ensembl_variation_revision</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">semantics</span><span class="p">:</span><span class="w"> </span><span class="nc">VepSemantics</span><span class="p">,</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">}</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">CacheIdentity</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">source_type</span><span class="p">:</span><span class="w"> </span><span class="nc">CacheSourceType</span><span class="p">,</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">cache_version</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">vep_codebase_version</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">semantics</span><span class="p">:</span><span class="w"> </span><span class="nc">VepSemantics</span><span class="p">,</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Options JSON:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">"expected_cache_version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"115|116"</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Pin <code>datafusion-bio-format-ensembl-cache</code> to the pushed Task 3 revision
+  before landing this task. Local vepyr path patches may be used while iterating,
+  but not as the committed dependency.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Define the canonical, compiled support matrix containing only
+  the two complete support records in the table above.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add resolver/lazy-validator tests covering the full matrix:</li>
+<li>chr1 shards with consistent 115 metadata;</li>
+<li>chr1 shards with consistent 116 metadata;</li>
+<li>generated directory named <code>115_GRCh38_merged</code> but missing metadata → error;</li>
+<li>metadata conflicting with the generated directory name still follows
+    metadata for identity; the expected-version assertion catches a wrong cache
+    in comparison runs;</li>
+<li>one chr1 entity shard missing metadata → error naming that shard before any
+    chr1 annotation;</li>
+<li>one chr1 entity shard carrying a different version → error naming both
+    values;</li>
+<li>one chr1 entity shard carrying a different source type → error;</li>
+<li>broken chr2 metadata is not read by a chr1-only run;</li>
+<li>after successful chr1 processing, broken chr2 metadata errors before the
+    first chr2 annotation row;</li>
+<li>expected cache version agrees with detected identity;</li>
+<li>expected cache version conflicts with detected identity;</li>
+<li>expected cache version without metadata still errors;</li>
+<li>missing all identity sources → error;</li>
+<li>malformed value → error;</li>
+<li>unsupported <code>117</code> from metadata or assertion → error.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a <code>LazyCacheIdentityValidator</code> shared by workers in one annotation
+  invocation. It resolves each requested contig's shard paths from the existing
+  entity manifests and memoizes successful validation by canonical contig.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Read identity directly from each selected Parquet footer's Arrow schema
+  key-value metadata. Do not introduce or consult a cache-version sidecar.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Immediately before context/variation data for a contig is opened, require
+  every present shard for that contig to carry <code>bio.vep.cache_source_type</code> and
+  <code>bio.vep.cache_version</code>, with exactly one consistent value for each.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Establish the invocation's <code>CacheIdentity</code> from the first requested
+  contig, then require every later contig to match it. Required core entities
+  remain governed by existing layout checks; motif or another optional entity
+  may have no shard for the contig.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Keep footer I/O contig-local: a chr1 invocation may read manifests but must
+  not open the footer/data of any chr2 Parquet shard.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Extend <code>CacheBuilder</code> with an expected cache version supplied by vepyr's
+  <code>build_cache(release=...)</code>. Before writing the first shard, require the raw
+  provider metadata to:</li>
+<li>exist;</li>
+<li>name a cache version in the compiled support matrix;</li>
+<li>equal the requested build release.</li>
+</ul>
+<p>Apply the same check to full builds and single-entity builds so a raw 116 cache
+  cannot be written under a <code>115_GRCh38_*</code> output directory.
+- [ ] Pass the shared lazy validator through both annotation paths: the
+  SQL/table-function path and the sharded direct-provider VCF path.
+- [ ] Store the validated <code>VepSemantics</code> on the immutable per-contig annotation
+  configuration and construct <code>TranscriptConsequenceEngine</code> only after that
+  contig validates.
+- [ ] Add exactly two policy helpers, initially preserving behavior:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">semantics</span><span class="p">.</span><span class="n">partial_overlap_hgvs</span><span class="p">()</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">semantics</span><span class="p">.</span><span class="n">vep116_stop_predicates</span><span class="p">()</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Fail before the affected contig's context loading or variant annotation
+  when its cache identity is missing, mixed or unsupported. For direct VCF
+  output, preserve the current temporary-output behavior so a later-contig
+  validation error never publishes a partial final file.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Preserve release metadata through every converted-cache physical schema:</li>
+<li>variation projection and AF encoding;</li>
+<li>transcript UID attachment;</li>
+<li>exon/regulatory/motif passthrough;</li>
+<li>translation core projection;</li>
+<li>compact translation SIFT schema.</li>
+</ul>
+<p>Several current transforms construct <code>Schema::new(fields)</code> and therefore drop
+  upstream metadata. Copy source schema metadata before adding or replacing
+  <code>bio.vep.cache_source_type</code>.
+- [ ] Add cache-builder tests proving all emitted entity schemas retain both
+  metadata keys.
+- [ ] Add <code>expected_cache_version</code> to <code>AnnotateVcfConfig</code> and its JSON
+  round-trip tests.
+- [ ] Expose the compiled support matrix through a small read-only native API so
+  Python/reporting does not maintain a second hand-copied list.
+- [ ] Confirm this plumbing changes no consequence output under either semantics.
+- [ ] Run:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>cargo<span class="w"> </span>fmt<span class="w"> </span>--all<span class="w"> </span>--check
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>datafusion-bio-function-vep<span class="w"> </span>--features<span class="w"> </span>cache-builder<span class="w"> </span>--lib
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>datafusion-bio-function-vep<span class="w"> </span>--features<span class="w"> </span>cache-builder<span class="w"> </span>--tests
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>cargo<span class="w"> </span>clippy<span class="w"> </span>-p<span class="w"> </span>datafusion-bio-function-vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span>--features<span class="w"> </span>cache-builder<span class="w"> </span>--all-targets<span class="w"> </span>--<span class="w"> </span>-D<span class="w"> </span>warnings
+</span></code></pre></div>
+<p><strong>Commit boundary:</strong> one bio-functions release-contract/plumbing commit.</p>
+<p><strong>Acceptance:</strong> only metadata-bearing shards for requested contigs open.
+Unlabeled, mixed and unsupported contig shards fail before that contig
+annotates; unrelated contigs are not opened; no field output changes yet.</p>
+<hr>
+<h3 id="task-5-expose-the-release-contract-in-vepyr-and-the-comparison-profile">Task 5: Expose the release contract in vepyr and the comparison profile<a class="headerlink" href="#task-5-expose-the-release-contract-in-vepyr-and-the-comparison-profile" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> vepyr.</p>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>Modify: <code>src/vepyr/__init__.py</code></li>
+<li>Modify: <code>src/annotate.rs</code></li>
+<li>Modify: <code>src/lib.rs</code></li>
+<li>Modify: <code>src/vepyr/_core.pyi</code> if native signatures change</li>
+<li>Modify: <code>e2e-testing/scripts/comparison/profiles.py</code></li>
+<li>Modify: <code>e2e-testing/scripts/comparison/annotate.py</code></li>
+<li>Modify: <code>e2e-testing/scripts/comparison/cli.py</code></li>
+<li>Modify: <code>tests/test_annotate.py</code></li>
+<li>Modify: <code>tests/test_build_cache.py</code></li>
+<li>Modify: <code>tests/test_comparison_profiles.py</code></li>
+<li>Modify: <code>tests/test_comparison_annotate.py</code></li>
+<li>
+<p>Modify: <code>tests/test_comparison_cli.py</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a keyword-only public assertion:</p>
+</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">expected_cache_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add <code>vepyr.supported_vep_targets()</code> returning the native support records,
+  including cache/VEP/API versions and exact core/variation revisions.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Validate that an expected cache value is exactly one of the cache versions
+  in that support matrix. Do not accept booleans, floats, Docker tag <code>115.2</code>, or
+  arbitrary integers.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Pass the assertion through streaming annotation and direct VCF output.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add wrapper tests proving output and streaming paths serialize the same
+  assertion.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a deferred <code>comparison.annotate.supported_vep_targets()</code> adapter. This
+  remains the only comparison module that imports vepyr.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Have <code>comparison.cli</code> fetch the native support matrix once, validate
+  <code>--release</code>, and match the parsed reference <code>##VEP</code> header before invoking
+  annotation.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add the validated selected cache release to <code>annotate_kwargs</code> as
+  <code>expected_cache_version</code>. The comparator therefore catches a cache/reference
+  mix-up before annotation.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not add a second Python codebase-version map. <code>RELEASE_DIRS</code> may continue
+  to describe where local reference artifacts live, but it is not the support
+  contract. Unit tests without a native extension inject/mimic support records.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Persist expected/detected cache version, target VEP codebase version,
+  parsed reference-header identity, cache path and resolved dependency provenance
+  in every report JSON.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Pass <code>build_cache(release=...)</code> into the native builder as the expected
+  cache version. Do the same for the single-entity native entry used by
+  maintenance scripts; neither build path may write before raw metadata agrees.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Ensure <code>--isolate</code> forwards all release-related CLI state.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>tests/test_annotate.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>tests/test_comparison_profiles.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span>tests/test_comparison_annotate.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span>tests/test_comparison_cli.py<span class="w"> </span>-v
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--locked<span class="w"> </span>--no-default-features
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>src<span class="w"> </span>tests<span class="w"> </span>e2e-testing/scripts/comparison
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>src<span class="w"> </span>tests<span class="w"> </span>e2e-testing/scripts/comparison
+</span></code></pre></div>
+<p><strong>Commit boundary:</strong> one vepyr API/harness commit.</p>
+<p><strong>Acceptance:</strong> every annotation requires a supported, detectable cache;
+comparison runs additionally assert the intended cache/reference pair.</p>
+<hr>
+<h3 id="task-6-preserve-and-consume-clin_sig_ref_allele">Task 6: Preserve and consume <code>clin_sig_ref_allele</code><a class="headerlink" href="#task-6-preserve-and-consume-clin_sig_ref_allele" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-functions first, then vepyr for the safe rebuild script.</p>
+<h4 id="task-6a-optional-cache-field-and-vep-equivalent-matching">Task 6A: Optional cache field and VEP-equivalent matching<a class="headerlink" href="#task-6a-optional-cache-field-and-vep-equivalent-matching" title="Permanent link">¶</a></h4>
+<p><strong>bio-functions files:</strong></p>
+<ul class="task-list">
+<li>Modify: <code>datafusion/bio-function-vep/src/cache/schema.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/cache/build.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/cache/lookup_exec.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/colocated.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/allele.rs</code></li>
+<li>
+<p>Modify: <code>datafusion/bio-function-vep/src/annotate_provider.rs</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add schema tests with and without <code>clin_sig_ref_allele</code>.</p>
+</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Introduce an optional variation-column list rather than adding the field to
+  <code>VARIATION_REQUIRED_COLUMNS</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> When the source schema contains the field, pass it through tiering and the
+  physical Parquet schema as nullable UTF-8. When absent, retain the current 115
+  schema and behavior.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add the field to colocated cold/warm projections conditionally; an old
+  shard without it must still open.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Carry it through <code>WarmColocIndices</code>, <code>ColocatedCacheEntry</code>, deduplication,
+  and <code>ColocatedEntry</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Pass the live VCF/VariationFeature reference allele (<code>ref_al</code> at the
+  annotation row, before VEP allele minimization) into clinical-field assembly.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> For each labelled <code>clin_sig_allele</code> entry:</li>
+<li>if cached ClinVar reference is absent/empty or equals the live reference,
+    keep the label allele;</li>
+<li>if it differs, reverse-complement the label allele before lookup;</li>
+<li>then run the existing match against the output allele.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Reuse one canonical VEP-compatible allele reverse-complement helper.
+  Include <code>-</code>, <code>N</code>, case normalization and supported IUPAC symbols in its tests.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not change <code>matched_alleles.is_empty()</code> behavior as part of this task.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add exact tests for:</li>
+<li><code>chr3:42210085 C&gt;CGGAGGA</code>, 41 entries become blank;</li>
+<li><code>chr15:89333596 T&gt;TTGC</code>, 63 entries become blank;</li>
+<li><code>chr14:74506880 C&gt;CGCGCGCAT</code>, 8 entries become <code>benign</code>;</li>
+<li>absent field and null row preserve release-115 behavior.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run the full bio-functions test/lint commands from Task 4.</li>
+</ul>
+<p><strong>Commit boundary:</strong> one bio-functions ClinVar commit.</p>
+<h4 id="task-6b-rebuild-complete-115-and-116-caches-recoverably">Task 6B: Rebuild complete 115 and 116 caches, recoverably<a class="headerlink" href="#task-6b-rebuild-complete-115-and-116-caches-recoverably" title="Permanent link">¶</a></h4>
+<p><strong>vepyr files:</strong></p>
+<ul class="task-list">
+<li>Create: <code>e2e-testing/scripts/rebuild_release_cache.py</code></li>
+<li>Create or modify: focused script tests under <code>tests/</code></li>
+<li>
+<p>Remove the redundant release-116 compatibility wrapper after the generalized
+  <code>rebuild_release_cache.py</code> command and documentation replace it.</p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Preserve safe staging/swap behavior with dry-run as the default.</p>
+</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Require explicit release/cache type and resolve source/target through the
+  comparison profile helpers.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Build the complete release cache into a fresh sibling staging directory
+  with <code>vepyr.build_cache</code>; never pass the live cache as the output.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Rebuild release 115 and release 116 sequentially so only one staging copy
+  consumes disk at a time.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Before swap, verify:</li>
+<li>every present entity has a manifest;</li>
+<li>every manifest entry points to an existing Parquet shard;</li>
+<li>every referenced shard has the expected release and source metadata;</li>
+<li>no entity/shard carries a mixed value;</li>
+<li>release 116 variation shards expose optional <code>clin_sig_ref_allele</code>;</li>
+<li>release 115 variation shards omit it or contain only the explicitly
+    documented nullable compatibility shape;</li>
+<li>the three exact 116 ClinVar source rows have expected cached values;</li>
+<li>per-entity/per-chromosome row counts are reconciled against the prior cache,
+    with every intentional delta documented before swap.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not write a cache-version sidecar during build or swap. Manifests remain
+  shard inventories only.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Rename the live cache to a timestamped backup, rename staging into place,
+  and automatically roll back if the second rename fails.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Retain the backup by default through final release gates. Cleanup is a
+  separate explicit operation.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Eagerly verify every shard in each rebuilt staging cache before swap.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Against copied test caches, prove that removing chr1 metadata fails before
+  chr1 loads, while broken chr2 metadata does not block a chr1-only run and does
+  block a subsequent chr2 run before its first annotation row.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run targeted release-116 comparisons:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">14</span><span class="w"> </span><span class="m">15</span><span class="w"> </span>--force
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Confirm the ledger loses exactly 112 CLIN_SIG rows and gains no mismatch.</li>
+</ul>
+<p><strong>Expected 116 total:</strong> <code>734 - 112 = 622</code>.</p>
+<p><strong>Commit boundary:</strong> one vepyr cache-maintenance script commit. The generated
+cache data itself is not committed.</p>
+<hr>
+<h3 id="task-7-fix-the-ten-release-independent-residual-fields">Task 7: Fix the ten release-independent residual fields<a class="headerlink" href="#task-7-fix-the-ten-release-independent-residual-fields" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-functions.</p>
+<p>These fixes may be implemented as separate commits and reviewed in parallel, but
+they must remain independent of <code>VepSemantics</code>.</p>
+<h4 id="task-7a-chr20-terminal-cds-insertion-boundary">Task 7A: chr20 terminal CDS insertion boundary<a class="headerlink" href="#task-7a-chr20-terminal-cds-insertion-boundary" title="Permanent link">¶</a></h4>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>
+<p>Modify: <code>datafusion/bio-function-vep/src/transcript_consequence.rs</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add failing fixtures for plus/minus strand insertions immediately before
+  and after both CDS boundaries.</p>
+</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Correct the plus-strand terminal predicate in
+  <code>insertion_left_flank_in_cds</code>: <code>left_flank == cds_end</code> must not enter the
+  coding branch for the insertion after the padding base.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Assert the exact <code>chr20:45840343 A&gt;AC / ENST00000984773.1</code> result:
+  <code>3_prime_UTR_variant&amp;NMD_transcript_variant</code>, MODIFIER, and blank CDS/protein
+  fields.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run the fixture under V115 and V116 semantics and require the same answer.</li>
+</ul>
+<h4 id="task-7b-chr16-primary-only-exon-boundary-span">Task 7B: chr16 primary-only exon-boundary span<a class="headerlink" href="#task-7b-chr16-primary-only-exon-boundary-span" title="Permanent link">¶</a></h4>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>
+<p>Modify: <code>datafusion/bio-function-vep/src/transcript_consequence.rs</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add a fixture where the primary genomic flank maps to CDS and the alternate
+  flank does not.</p>
+</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add the symmetric boundary branch beside the existing
+  primary-missing/alternate-mapped branch.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Assert <code>Protein_position=74-75</code> for both
+  <code>ENST00001096215.1</code> and <code>ENST00001096224.1</code> at
+  <code>chr16:5072071 G&gt;GGTCT</code>, without changing <code>CDS_position=222-223</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Require identical V115/V116 semantic results.</li>
+</ul>
+<h4 id="task-7c-prove-then-fix-the-chr11-refseq-shift-predicate">Task 7C: Prove, then fix, the chr11 RefSeq shift predicate<a class="headerlink" href="#task-7c-prove-then-fix-the-chr11-refseq-shift-predicate" title="Permanent link">¶</a></h4>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>Modify: <code>datafusion/bio-function-vep/src/hgvs.rs</code></li>
+<li>
+<p>Modify if proven necessary:
+  <code>datafusion/bio-function-vep/src/transcript_consequence.rs</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> First create a failing <code>NM_002457.5</code> fixture that records:
+  <code>bam_edit_status</code>, original genomic shift alleles, formatter alleles,
+  GIVEN_REF, USED_REF, shift offset and final HGVSc.</p>
+</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Trace the equivalent VEP 115.2 and 116.0 values through
+  <code>hgvsc_uses_genomic_shift</code>. Document the exact allele space used by VEP in the
+  test or adjacent source comment.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not change the predicate until the fixture proves why the current
+  failed-edit comparison rejects the 47-base shift.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Narrow only the proven failed-edit condition.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Assert for both semantics:</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>HGVSc=NM_002457.5:c.4443_4463del
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>HGVS_OFFSET=47
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>GIVEN_REF=CCAACCACCACTCCCAGCCCT
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>USED_REF=CACCACTCCCAGCCCTCCAAC
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run all existing RefSeq/BAM-edit HGVS tests to prevent a broad relaxation.</li>
+</ul>
+<h4 id="task-7d-integration-check">Task 7D: Integration check<a class="headerlink" href="#task-7d-integration-check" title="Permanent link">¶</a></h4>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run the full bio-functions test/lint commands from Task 4.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Rebuild the extension and compare only the affected contigs:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="m">20</span><span class="w"> </span>--force
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Confirm the ledger loses exactly 10 fields and no new row.</li>
+</ul>
+<p><strong>Expected 116 total:</strong> <code>622 - 10 = 612</code>.</p>
+<p><strong>Commit boundaries:</strong> one commit per residual class, or one clearly scoped
+release-independent-residual commit after Task 7C is proven.</p>
+<hr>
+<h3 id="task-8-implement-the-nine-vep-116-stop-predicate-behaviors">Task 8: Implement the nine VEP 116 stop-predicate behaviors<a class="headerlink" href="#task-8-implement-the-nine-vep-116-stop-predicate-behaviors" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-functions.</p>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>Modify: <code>datafusion/bio-function-vep/src/transcript_consequence.rs</code></li>
+<li>
+<p>Modify only if classification consumption requires it:
+  <code>datafusion/bio-function-vep/src/hgvs.rs</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Build a table-driven paired golden suite. The same input fixture must
+  assert a V115 answer and a V116 answer for each net behavior:</p>
+</li>
+<li>no <code>inframe_insertion</code> when both peptides are <code>*</code>;</li>
+<li>no <code>inframe_deletion</code> when reference peptide is <code>*</code>;</li>
+<li><code>stop_gained</code> false when <code>stop_lost</code> is true;</li>
+<li>no <code>stop_lost</code> for partial terminal codon;</li>
+<li>no <code>stop_lost</code> with <code>X</code> in alternate peptide;</li>
+<li>no <code>stop_retained</code> with <code>X</code> in alternate peptide;</li>
+<li>no-alt stop-retained uses genomic <code>_cil</code> overlap;</li>
+<li>V116 <code>ref_eq_alt_sequence</code> final-stop rules;</li>
+<li>no frameshift when affected reference peptide starts with <code>*</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Include plus/minus strands, insertion/deletion, intron-crossing genomic
+  overlap, and both surviving/deleted <code>ref_eq_alt_sequence</code> clauses.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Keep the consolidated Rust classifier. Implement net semantic differences
+  behind <code>semantics.vep116_stop_predicates()</code> rather than reproducing Perl cache
+  plumbing.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Compute one coding classification object and use it for:
+  consequence terms, frameshift-vs-delins HGVSp choice, and downstream IMPACT.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Assert that no <code>if release</code>/<code>if semantics</code> branch is added to IMPACT
+  mapping or final HGVSp string formatting.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not add <code>consider_ins_len</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run all transcript consequence, SO-term, IMPACT and HGVSp tests.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Rebuild vepyr and run representative integration contigs:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="m">22</span><span class="w"> </span>--force
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">115</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">22</span><span class="w"> </span>--force
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Confirm all targeted 116 stop-family rows disappear and release-115 chr22
+  remains exact.</li>
+</ul>
+<p><strong>Expected 116 total:</strong> <code>612 - 224 = 388</code>.</p>
+<p><strong>Commit boundary:</strong> one bio-functions V116 stop-semantics commit.</p>
+<hr>
+<h3 id="task-9-implement-vep-116-partial-transcript-hgvs-in-slice-space">Task 9: Implement VEP 116 partial-transcript HGVS in slice space<a class="headerlink" href="#task-9-implement-vep-116-partial-transcript-hgvs-in-slice-space" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> bio-functions.</p>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>datafusion/bio-function-vep/src/hgvs.rs</code></li>
+<li>Modify: <code>datafusion/bio-function-vep/src/transcript_consequence.rs</code></li>
+</ul>
+<p><strong>Boundary-only model:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>unclamped_slice_start
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>unclamped_slice_end
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>clamped_slice_start
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>clamped_slice_end
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>shift_offset
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>transcript_length
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>strand
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add paired V115/V116 fixtures before implementation for:</li>
+<li>left and right transcript overhang;</li>
+<li>plus and minus strand;</li>
+<li>wholly outside on either side;</li>
+<li>partial overlap with zero shift;</li>
+<li>partial overlap with a valid positive 3′ shift;</li>
+<li>shifted clamped end beyond transcript length;</li>
+<li>allele clipping at each boundary;</li>
+<li>an ordinary non-boundary deletion proving byte-identical behavior.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Convert the unshifted genomic interval to transcript-slice coordinates in
+  transcript orientation.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Under V115, retain the current “either end outside” early return.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Under V116:</li>
+<li>reject only when both ends are below 1 or both exceed transcript length;</li>
+<li>clamp both ends to <code>[1, transcript_length]</code>;</li>
+<li>keep shift as a non-negative slice-space offset;</li>
+<li>reject when <code>clamped_end + shift_offset &gt; transcript_length</code>;</li>
+<li>clip alleles as VEP does, then format the shifted clamped interval.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not replace the interval with materialized
+  <code>HgvsGenomicShift::display_start/display_end</code> on this branch.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Keep the existing non-boundary path unchanged.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Do not materialize complete genomic transcript slices or substitute
+  hydrated cDNA. If a fixture proves missing flank bases are required, perform a
+  lazy interval read through the existing per-worker <code>hgvs_reader</code> only on the
+  boundary branch.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Run the full HGVS and RefSeq edit test suites, including Task 7C.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Rebuild vepyr and run representative integration contigs:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">21</span><span class="w"> </span>--force
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">115</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">21</span><span class="w"> </span><span class="m">22</span><span class="w"> </span>--force
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Reconcile every removed row against the partial-overlap class in the
+  uncapped ledger.</li>
+</ul>
+<p><strong>Expected 116 total:</strong> <code>388 - 388 = 0</code>.</p>
+<p><strong>Commit boundary:</strong> one bio-functions V116 partial-HGVS commit.</p>
+<hr>
+<h3 id="task-10-add-a-machine-enforced-release-gate">Task 10: Add a machine-enforced release gate<a class="headerlink" href="#task-10-add-a-machine-enforced-release-gate" title="Permanent link">¶</a></h3>
+<p><strong>Repository:</strong> vepyr.</p>
+<p><strong>Files:</strong></p>
+<ul class="task-list">
+<li>Create: <code>e2e-testing/scripts/verify_parity_gate.py</code></li>
+<li>Create: <code>tests/test_verify_parity_gate.py</code></li>
+<li>
+<p>Modify: <code>e2e-testing/scripts/comparison/report.py</code></p>
+</li>
+<li class="task-list-item">
+<p><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Make the verifier consume per-contig JSON reports and ledger files for one
+  exact <code>(release, profile, contig set)</code>.</p>
+</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Reject missing, null-comparison, duplicate or wrong-release reports.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Require:</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>variants_only_in_vepyr   = 0
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>variants_only_in_vep     = 0
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>csq_entry_count_mismatch = 0
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>csq_order_mismatch       = 0
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>field_mismatch_total     = 0
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>mismatch_ledger_rows     = 0
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Require expected and detected cache versions to match and require the
+  selected support record to belong to the running vepyr package version.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Require the parsed reference <code>##VEP</code> header to match the same support
+  record, including API, core revision and variation revision.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Verify per-field equality buckets sum to totals.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Fail on an unknown/unsupported cache identity or a local absolute
+  dependency in release mode.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Add unit tests for every failure mode.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> Keep performance separate from correctness: compare throughput and peak
+  memory with the frozen baseline, and require investigation/resolution for a
+  regression over 5%; do not hide correctness behind a speed result.</li>
+</ul>
+<p><strong>Commit boundary:</strong> one vepyr release-gate commit.</p>
+<hr>
+<h3 id="task-11-pin-upstream-revisions-and-run-the-only-full-release-gates">Task 11: Pin upstream revisions and run the only full release gates<a class="headerlink" href="#task-11-pin-upstream-revisions-and-run-the-only-full-release-gates" title="Permanent link">¶</a></h3>
+<p><strong>Repositories:</strong> bio-formats → bio-functions → vepyr.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Land/push bio-formats first and record the exact revision containing the
+  approved release metadata contract.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Update bio-functions to that revision; run its complete CI; land/push and
+  record the exact revision containing all parity work.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Replace vepyr's absolute path patches and temporary motif integration pins
+  with the exact durable bio-functions/bio-formats revisions or releases.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Choose the vepyr package release number, update <code>pyproject.toml</code> and
+  <code>Cargo.toml</code> together, and document its exact support matrix (cache 115/VEP
+  115.2 and cache 116/VEP 116.0) in the public README/release notes.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Verify <code>vepyr.supported_vep_targets()</code> reports that package version and
+  exactly those two complete targets.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Regenerate <code>Cargo.lock</code> deliberately and review that only intended
+  dependencies moved.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Verify <code>cargo metadata --locked</code> contains no local source for either VEP
+  dependency.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Build the exact release candidate with the same native release flags used
+  for cache construction and parity qualification:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>env<span class="w"> </span>-u<span class="w"> </span>VIRTUAL_ENV<span class="w"> </span>-u<span class="w"> </span>CONDA_PREFIX<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nv">RUSTFLAGS</span><span class="o">=</span><span class="s2">"-C target-cpu=native"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">  </span>uv<span class="w"> </span>sync<span class="w"> </span>--reinstall-package<span class="w"> </span>vepyr
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--locked<span class="w"> </span>--no-default-features
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Remove/recreate release result directories or use a new immutable run ID
+  so no annotation produced by an older extension is reused.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Run release 116 chr1–22 for all three cache/reference profiles:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">for</span><span class="w"> </span>profile<span class="w"> </span><span class="k">in</span><span class="w"> </span>merged<span class="w"> </span>ensembl<span class="w"> </span>refseq<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">  </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span><span class="s2">"</span><span class="nv">$profile</span><span class="s2">"</span><span class="w"> </span>--chroms<span class="w"> </span>all<span class="w"> </span>--force<span class="w"> </span>--isolate
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">  </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/verify_parity_gate.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span><span class="s2">"</span><span class="nv">$profile</span><span class="s2">"</span><span class="w"> </span>--chroms<span class="w"> </span><span class="m">1</span>-22
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="k">done</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Run release 115 chr1–22 for all three profiles from the same extension and lockfile:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">for</span><span class="w"> </span>profile<span class="w"> </span><span class="k">in</span><span class="w"> </span>merged<span class="w"> </span>ensembl<span class="w"> </span>refseq<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">115</span><span class="w"> </span>--profile<span class="w"> </span><span class="s2">"</span><span class="nv">$profile</span><span class="s2">"</span><span class="w"> </span>--chroms<span class="w"> </span>all<span class="w"> </span>--force<span class="w"> </span>--isolate
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">  </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>e2e-testing/scripts/verify_parity_gate.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="w">    </span>--release<span class="w"> </span><span class="m">115</span><span class="w"> </span>--profile<span class="w"> </span><span class="s2">"</span><span class="nv">$profile</span><span class="s2">"</span><span class="w"> </span>--chroms<span class="w"> </span><span class="m">1</span>-22
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="k">done</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Confirm all six release/profile gates report zero structural, ordering and field mismatches.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Confirm release-116 CLIN_SIG parity uses the rebuilt variation data and
+  release-115 uses the rebuilt absent-field path.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Confirm no absolute path patch, unknown/unsupported cache, dirty
+  dependency, or stale report appears in either final summary.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Commit the final vepyr release evidence, push the
+  <code>release-testing</code> branch, and create or update its PR. Record the exact pushed
+  bio-formats, bio-functions, and vepyr revisions in the PR body and in the
+  root-cause document; do not describe an unpushed local commit as included in
+  any PR.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Confirm that no retained pre-metadata cache backup exists at any of the
+  six preferred targets; the first promotion created none because the targets
+  did not yet exist.</li>
+</ul>
+<p><strong>Commit boundary:</strong> one vepyr dependency-pin/release-artifact commit. Generated
+large cache and result files remain outside Git unless intentionally published
+as release evidence.</p>
+<hr>
+<h3 id="task-12-publish-the-six-verified-caches-to-google-drive">Task 12: Publish the six verified caches to Google Drive<a class="headerlink" href="#task-12-publish-the-six-verified-caches-to-google-drive" title="Permanent link">¶</a></h3>
+<p><strong>Source:</strong> <code>~/workspace/data_vepyr/cache</code></p>
+<p><strong>Destination:</strong> <code>gdrive-mw:/vepyr/cache</code></p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Start only after all cache rebuilds, eager shard verification, and six
+  pinned-binary parity gates are complete. Never upload a hidden
+  <code>.rebuild-*</code> staging directory or retained backup.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Copy all six immutable release/profile directories without renaming them:</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">for</span><span class="w"> </span>cache<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">  </span>115_GRCh38_merged<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="w">  </span>115_GRCh38_ensembl<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span>115_GRCh38_refseq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span>116_GRCh38_merged<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="w">  </span>116_GRCh38_ensembl<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">  </span>116_GRCh38_refseq
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="k">do</span>
+</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="w">  </span>rclone<span class="w"> </span>copy<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-10"><a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a><span class="w">    </span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/workspace/data_vepyr/cache/</span><span class="nv">$cache</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-11"><a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a><span class="w">    </span><span class="s2">"gdrive-mw:/vepyr/cache/</span><span class="nv">$cache</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-12"><a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a><span class="w">    </span>-P
+</span><span id="__span-26-13"><a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a><span class="k">done</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> A successful copy exit is necessary but not sufficient. For every
+  directory, compare local and remote file counts and byte totals and run a
+  one-way <code>rclone check</code> (hash comparison where the remote exposes hashes;
+  otherwise explicitly record the size-only fallback).</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Re-run the local cache verifier after upload. Remote publication must not
+  mutate or replace the qualified local caches.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Record the six remote destinations and verification results in the final
+  vepyr PR evidence.</li>
+</ul>
+<p>Publication completed on 2026-07-30. The remote root contains exactly the six
+named directories above. For every cache, the local and remote file count and
+byte total matched exactly, <code>rclone check --one-way</code> reported zero differences,
+and <code>rebuild_release_cache.py --verify-only</code> passed again against the unchanged
+local source. The authoritative counts, byte totals, row totals, and remote
+destinations are recorded in §10.3 of the root-cause document.</p>
+<p>The upload is an artifact-publication step, not a correctness gate: no Git
+revision changes after the pinned binary has passed may be hidden by uploading
+an older cache.</p>
+<hr>
+<h2 id="test-matrix">Test matrix<a class="headerlink" href="#test-matrix" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>V115</th>
+<th>V116</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resolver unit tests</td>
+<td>yes</td>
+<td>yes</td>
+<td>identity, support matrix, conflicts, unsupported future behavior</td>
+</tr>
+<tr>
+<td>Cache schema tests</td>
+<td>absent ClinVar field</td>
+<td>present ClinVar field</td>
+<td>data-driven compatibility</td>
+</tr>
+<tr>
+<td>Stop golden fixtures</td>
+<td>old answer</td>
+<td>nine new answers</td>
+<td>only stop policy is gated</td>
+</tr>
+<tr>
+<td>Partial HGVS fixtures</td>
+<td>early return</td>
+<td>clamp then shift</td>
+<td>only HGVS policy is gated</td>
+</tr>
+<tr>
+<td>chr11/16/20 fixtures</td>
+<td>fixed answer</td>
+<td>same fixed answer</td>
+<td>release-independent behavior</td>
+</tr>
+<tr>
+<td>ClinVar fixtures</td>
+<td>old/null path</td>
+<td>ref-aware reverse complement</td>
+<td>field-driven behavior</td>
+</tr>
+<tr>
+<td>Targeted E2E</td>
+<td>chr1/21/22 + residuals</td>
+<td>affected representative contigs</td>
+<td>fast development checks</td>
+</tr>
+<tr>
+<td>Final E2E</td>
+<td>chr1–22 × merged/Ensembl/RefSeq</td>
+<td>chr1–22 × merged/Ensembl/RefSeq</td>
+<td>six-gate release acceptance</td>
+</tr>
+</tbody>
+</table>
+<h2 id="review-checklist">Review checklist<a class="headerlink" href="#review-checklist" title="Permanent link">¶</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Searching for <code>VepSemantics</code>, <code>expected_cache_version</code>, or
+  <code>partial_overlap_hgvs</code>
+  finds no release conditional outside the resolver, stop policy and HGVS
+  boundary policy.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Searching IMPACT/HGVSp code finds no independent release branch.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> <code>clin_sig_ref_allele</code> is optional at raw schema, converted schema and
+  runtime lookup boundaries.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Metadata-less legacy V115/V116 shards are rejected when their contig is
+  requested.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> The final V115 and V116 caches were fully rebuilt from the matching raw
+  cache, and every manifest-referenced shard validates.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> New cache schemas retain both <code>bio.vep.cache_source_type</code> and
+  <code>bio.vep.cache_version</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> The chr11 fix is backed by a proven failed-edit fixture, not the original
+  hypothesis alone.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Comparator ledgers are uncapped, release-qualified and hashed.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> Final reports identify the exact clean source revisions and lockfile.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled="" checked=""><span class="task-list-indicator"></span></label> All six full release/profile gates pass from the same pinned binary; both
+  merged gates also pass on the subsequently released dependency graph.</li>
+</ul>
+<h2 id="definition-of-done">Definition of done<a class="headerlink" href="#definition-of-done" title="Permanent link">¶</a></h2>
+<p>Implementation is complete only when all of the following are true:</p>
+<ol>
+<li>Cache identity is mandatory and maps through this vepyr version's explicit
+   support matrix: cache 115→VEP 115.2 or cache 116→VEP 116.0.</li>
+<li>Only partial-overlap HGVS and the stop-predicate family are release-gated.</li>
+<li>Release-116 ClinVar reference-allele behavior is driven by optional cache
+   data and release-115 caches remain valid without that column.</li>
+<li>The chr11, chr16 and chr20 fixtures pass identically under both semantics.</li>
+<li>Complete merged, Ensembl-only, and RefSeq-only caches for 115 and 116 are
+   rebuilt into staging and every manifest-referenced Parquet shard carries
+   consistent version/source metadata.</li>
+<li>Current pinned-code chr1–22 comparisons are structurally and field-exact for
+   all six release/profile combinations.</li>
+<li>All 132 per-contig mismatch ledgers are empty and every equality bucket
+   reconciles.</li>
+<li>The bio-formats and bio-functions commits are pushed to their corresponding
+   PR branches; the vepyr release build pins those exact Git revisions and
+   contains no machine-local dependency path, unknown source revision, or
+   fallback for an unlabeled/unsupported cache.</li>
+<li>The vepyr branch and PR are pushed with the exact dependency revisions and
+   the six-gate evidence recorded.</li>
+<li>All six verified cache directories are copied to their matching
+    <code>gdrive-mw:/vepyr/cache/&lt;cache&gt;</code> destinations and the remote copies pass the
+    recorded count/size/hash verification.</li>
+<li>Any performance regression over 5% has a documented cause and disposition.</li>
+</ol>
+<h2 id="explicitly-out-of-scope">Explicitly out of scope<a class="headerlink" href="#explicitly-out-of-scope" title="Permanent link">¶</a></h2>
+<ul>
+<li>Automatically treating VEP 117 or later as V116.</li>
+<li>Porting unrelated 115→116 changelog entries that do not affect this parity
+  profile.</li>
+<li>Inferring annotation semantics from a generated-cache directory name.</li>
+<li>Adding or trusting a version sidecar/marker file for generated caches.</li>
+<li>Accepting or silently migrating a metadata-less generated cache at annotation
+  time.</li>
+<li>Adding release switches for ClinVar, chr11, chr16, chr20, IMPACT or HGVSp.</li>
+<li>Merging the reverted <code>wip/hgvs-transcript-clip-116</code> branch as-is.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

@@ -1,0 +1,4657 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/caches/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../downloads/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Caches - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ensembl-vep-caches" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Caches
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#cache-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported releases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supported releases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#strict-parquet-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strict Parquet identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout-entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout &amp; entities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entity-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity schemas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Entity schemas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-provenance-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The provenance block
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-entity-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-entity columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#csq-output-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSQ output fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CSQ output fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-transcript-source-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The transcript-source block
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-the-fields-come-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where the fields come from
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field order
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-format-lookup-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache format &amp; lookup internals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cache format &amp; lookup internals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parquet-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parquet storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sorting-within-a-shard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sorting within a shard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-index-the-pagedir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page index → the PageDir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row groups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-lookup-async-reader-monotonic-cursor-in-batches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime lookup — async reader + monotonic cursor, in batches
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sizing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-a-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building a cache
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building a cache">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rebuilding-a-single-contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rebuilding a single contig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#cache-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported releases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supported releases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#strict-parquet-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strict Parquet identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout-entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout &amp; entities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entity-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity schemas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Entity schemas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-provenance-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The provenance block
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-entity-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-entity columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#csq-output-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSQ output fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CSQ output fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-transcript-source-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The transcript-source block
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-the-fields-come-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where the fields come from
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field order
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-format-lookup-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache format &amp; lookup internals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cache format &amp; lookup internals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parquet-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parquet storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sorting-within-a-shard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sorting within a shard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-index-the-pagedir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page index → the PageDir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row groups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-lookup-async-reader-monotonic-cursor-in-batches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime lookup — async reader + monotonic cursor, in batches
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sizing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-a-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building a cache
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building a cache">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rebuilding-a-single-contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rebuilding a single contig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ensembl-vep-caches">Ensembl VEP caches<a class="headerlink" href="#ensembl-vep-caches" title="Permanent link">¶</a></h1>
+<p>vepyr annotates against an <strong>Ensembl VEP cache</strong> converted into a
+point-lookup-optimized, per-chromosome Parquet layout by
+<a href="../api/"><code>vepyr.build_cache</code></a>. This page describes the cache types, the supported
+Ensembl releases, the entities a converted cache contains, and their on-disk
+sizes.</p>
+<div class="admonition tip">
+<p class="admonition-title">Don't want to build one?</p>
+<p>Prebuilt release 116 caches are published for download — see
+<a href="../downloads/">Download Ensembl VEP and plugin caches</a>.</p>
+</div>
+<h2 id="cache-types">Cache types<a class="headerlink" href="#cache-types" title="Permanent link">¶</a></h2>
+<p>VEP ships three flavours of the GRCh38 cache, differing only in which transcript
+set they carry:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Transcripts</th>
+<th><code>build_cache(cache_type=…)</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ensembl</strong></td>
+<td>Ensembl/GENCODE transcripts</td>
+<td><code>ensembl</code></td>
+</tr>
+<tr>
+<td><strong>refseq</strong></td>
+<td>RefSeq transcripts</td>
+<td><code>refseq</code></td>
+</tr>
+<tr>
+<td><strong>merged</strong></td>
+<td>Ensembl <strong>and</strong> RefSeq (both transcript sets)</td>
+<td><code>merged</code></td>
+</tr>
+</tbody>
+</table>
+<p>The variation, regulatory, and motif data are the same across types; only the
+transcript/exon/translation entities differ (merged is the union, so it is the
+largest).</p>
+<h2 id="supported-releases">Supported releases<a class="headerlink" href="#supported-releases" title="Permanent link">¶</a></h2>
+<ul>
+<li><strong>Release 115</strong> (GRCh38) — the golden reference VCFs in this project are
+  produced with the <code>ensemblorg/ensembl-vep:release_115.2</code> docker image.</li>
+<li><strong>Release 116</strong> (GRCh38) — exact VEP 116.0 semantics.</li>
+</ul>
+<p>Both are built the same way; a converted cache directory is named
+<code>&lt;release&gt;_&lt;assembly&gt;_&lt;type&gt;</code>, e.g. <code>115_GRCh38_merged</code>, <code>116_GRCh38_merged</code>.</p>
+<h3 id="strict-parquet-identity">Strict Parquet identity<a class="headerlink" href="#strict-parquet-identity" title="Permanent link">¶</a></h3>
+<p>The current vepyr release supports cache 115 with VEP 115.2 semantics and cache
+116 with VEP 116.0 semantics. <code>build_cache()</code> derives the raw cache release,
+checks it against the requested release, and embeds <code>bio.vep.cache_version</code> in
+the Arrow schema metadata of every generated Parquet shard. There is no
+generated-cache version sidecar.</p>
+<p>Before annotating a contig, vepyr checks only that contig's
+manifest-referenced shards. Every participating entity must declare the same
+supported release and source type. The first contig establishes the invocation
+identity; a later contig must agree before any of its rows are annotated. A
+chr1-only annotation therefore does not open chr2 Parquet footers.</p>
+<p>Missing, malformed, mixed, and unsupported releases are errors. The generated
+cache directory name is not a fallback, and <code>expected_cache_version</code> can only
+assert the independently detected metadata—it cannot label an old
+metadata-less cache. Such caches must be rebuilt.</p>
+<h2 id="layout-entities">Layout &amp; entities<a class="headerlink" href="#layout-entities" title="Permanent link">¶</a></h2>
+<p><code>build_cache</code> downloads the Ensembl cache tarball and converts each <strong>entity</strong>
+into a directory of per-chromosome Parquet shards:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>&lt;cache_dir&gt;/&lt;release&gt;_&lt;assembly&gt;_&lt;type&gt;/
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  variation/chr1.parquet … chrY.parquet   (+ non-standard contigs)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  transcript/chr1.parquet …
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  exon/…  translation_core/…  translation_sift/…  regulatory/…  motif/…
+</span></code></pre></div>
+<p>The entities and what they feed in the CSQ output:</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Feeds</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>variation</strong></td>
+<td><code>Existing_variation</code>, co-located allele frequencies (1000G, gnomAD exomes/genomes), <code>MAX_AF*</code>, <code>CLIN_SIG</code>, <code>SOMATIC</code>, <code>PHENO</code>, <code>PUBMED</code></td>
+<td>By far the largest entity; also carries the warm/cold <code>tier</code> that plugin caches inherit.</td>
+</tr>
+<tr>
+<td><strong>transcript</strong></td>
+<td><code>Gene</code>, <code>Feature</code>, <code>SYMBOL</code>, <code>BIOTYPE</code>, <code>STRAND</code>, <code>CANONICAL</code>, <code>MANE*</code>, <code>TSL</code>, <code>APPRIS</code>, <code>CCDS</code>, source/xref fields</td>
+<td>The transcript models; differs by cache type.</td>
+</tr>
+<tr>
+<td><strong>exon</strong></td>
+<td><code>EXON</code>/<code>INTRON</code> numbering, <code>cDNA_position</code>, <code>CDS_position</code></td>
+<td>Exon/intron structure.</td>
+</tr>
+<tr>
+<td><strong>translation_core</strong></td>
+<td><code>Protein_position</code>, <code>Amino_acids</code>, <code>Codons</code>, <code>HGVSp</code>, <code>ENSP</code></td>
+<td>Protein translations.</td>
+</tr>
+<tr>
+<td><strong>translation_sift</strong></td>
+<td><code>SIFT</code>, <code>PolyPhen</code></td>
+<td>Precomputed missense predictions; the second-largest entity (per-protein blobs).</td>
+</tr>
+<tr>
+<td><strong>regulatory</strong></td>
+<td>regulatory-region consequences</td>
+<td>Regulatory features.</td>
+</tr>
+<tr>
+<td><strong>motif</strong></td>
+<td>TF-binding / motif consequences (<code>MOTIF_NAME</code>, <code>MOTIF_POS</code>, <code>HIGH_INF_POS</code>, <code>MOTIF_SCORE_CHANGE</code>, <code>TRANSCRIPTION_FACTORS</code>)</td>
+<td>Present from release 116; empty in the release-115 caches.</td>
+</tr>
+</tbody>
+</table>
+<p>(The Ensembl <code>translation</code> entity is split into two Parquet entities on
+conversion: <code>translation_core</code> and <code>translation_sift</code>.)</p>
+<h2 id="entity-schemas">Entity schemas<a class="headerlink" href="#entity-schemas" title="Permanent link">¶</a></h2>
+<p>Each entity directory holds per-chromosome Parquet shards with the column layout
+below. These are the schemas <strong>as built</strong> from the release-115 and release-116
+GRCh38 caches — the reader derives them from the raw cache's <code>info.txt</code> rather
+than from a fixed literal, so a different source cache can declare different
+optional columns.</p>
+<p>Three rules cover every difference:</p>
+<ul>
+<li><strong>Cache type barely matters.</strong> <code>transcript</code>, <code>exon</code>, <code>regulatory</code> and <code>motif</code>
+  carry one extra column, <code>source_refseq</code> (<code>string</code>), in the <strong>refseq</strong> and
+  <strong>merged</strong> caches; it is absent from <strong>ensembl</strong>. Nothing else differs, and
+  <code>variation</code>, <code>translation_core</code> and <code>translation_sift</code> are byte-identical in
+  layout across all three types.</li>
+<li><strong>Release matters once.</strong> The 116 <code>variation</code> schema has one column the 115
+  schema does not: <code>clin_sig_ref_allele</code> (<code>string</code>). 115 <code>variation</code> has 24
+  columns, 116 has 25.</li>
+<li><strong><code>motif</code> is 116-only.</strong> In the 115 caches the <code>motif</code> directory holds only
+  <code>chrom_manifest.json</code> — there are no shards, and therefore no 115 motif
+  schema.</li>
+</ul>
+<p>Column counts (merged cache, release 116):</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th style="text-align: right;">Columns</th>
+<th style="text-align: right;">of which provenance</th>
+<th>Cross-type delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>variation</code></td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">0</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>transcript</code></td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">20</td>
+<td><code>source_refseq</code></td>
+</tr>
+<tr>
+<td><code>exon</code></td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">20</td>
+<td><code>source_refseq</code></td>
+</tr>
+<tr>
+<td><code>translation_core</code></td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>translation_sift</code></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>regulatory</code></td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">20</td>
+<td><code>source_refseq</code></td>
+</tr>
+<tr>
+<td><code>motif</code></td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">20</td>
+<td><code>source_refseq</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-provenance-block">The provenance block<a class="headerlink" href="#the-provenance-block" title="Permanent link">¶</a></h3>
+<p><code>transcript</code>, <code>exon</code>, <code>regulatory</code> and <code>motif</code> each end with the same 20-column
+provenance block, recording which raw cache the rows came from. It is listed
+here once and omitted from the per-entity tables below:</p>
+<p><code>species</code>, <code>assembly</code>, <code>cache_version</code>, <code>serializer_type</code>, <code>source_cache_path</code>,
+<code>source_file</code>, then one <code>string</code> column per source database declared by the raw
+cache — <code>source_assembly</code>, <code>source_clinvar</code>, <code>source_cosmic</code>, <code>source_dbsnp</code>,
+<code>source_gencode</code>, <code>source_genebuild</code>, <code>source_gnomade</code>, <code>source_gnomadg</code>,
+<code>source_hgmd_public</code>, <code>source_polyphen</code>, <code>source_refseq</code>, <code>source_regbuild</code>,
+<code>source_sift</code>, <code>source_src_1000genomes</code>.</p>
+<p>All are <code>string</code>. <code>source_refseq</code> is the one that disappears in an <strong>ensembl</strong>
+cache, leaving 19.</p>
+<div class="admonition note">
+<p class="admonition-title"><code>source_cache</code> is not provenance</p>
+<p><code>transcript</code> additionally carries a <code>source_cache</code> column. That is real
+data — which half of a merged cache a transcript came from — and it backs
+the <code>SOURCE</code> CSQ field.</p>
+</div>
+<h3 id="per-entity-columns">Per-entity columns<a class="headerlink" href="#per-entity-columns" title="Permanent link">¶</a></h3>
+<details class="note">
+<summary><code>variation</code> — 25 columns</summary>
+<p>The co-located known-variant table: identifiers, clinical significance, and the allele-frequency arrays. <code>tier</code> is the warm/cold flag that plugin caches inherit.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrom</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>uint32</code></td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td><code>uint32</code></td>
+</tr>
+<tr>
+<td><code>allele_string</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>variation_name</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>clin_sig</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>clin_sig_allele</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>clin_sig_ref_allele</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>clinical_impact</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>phenotype_or_disease</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>pubmed</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>somatic</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>minor_allele</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>minor_allele_freq</code></td>
+<td><code>double</code></td>
+</tr>
+<tr>
+<td><code>clinvar_ids</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>cosmic_ids</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>dbsnp_ids</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>tier</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>af_global_alleles</code></td>
+<td><code>list&lt;item: string&gt;</code></td>
+</tr>
+<tr>
+<td><code>af_global_freqs</code></td>
+<td><code>list&lt;item: float&gt;</code></td>
+</tr>
+<tr>
+<td><code>af_gnomade_alleles</code></td>
+<td><code>list&lt;item: string&gt;</code></td>
+</tr>
+<tr>
+<td><code>af_gnomade_freqs</code></td>
+<td><code>list&lt;item: float&gt;</code></td>
+</tr>
+<tr>
+<td><code>af_gnomadg_alleles</code></td>
+<td><code>list&lt;item: string&gt;</code></td>
+</tr>
+<tr>
+<td><code>af_gnomadg_freqs</code></td>
+<td><code>list&lt;item: float&gt;</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>transcript</code> — 57 columns (+ 20 provenance)</summary>
+<p>The transcript models, including sequences and the nested <code>exons</code> / <code>cdna_mapper_segments</code> / <code>refseq_edits</code> structures. No provenance block shown — see above.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrom</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>strand</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>db_id</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>biotype</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>is_canonical</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>gene_stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>gene_symbol</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>gene_symbol_source</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>gene_hgnc_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>gene_hgnc_id_native</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>refseq_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>display_xref_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>source_cache</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>refseq_match</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>refseq_edits</code></td>
+<td><code>list&lt;item: struct&lt;start: int64 not null, end: int64 not null, repla…</code></td>
+</tr>
+<tr>
+<td><code>is_gencode_basic</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>is_gencode_primary</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>cds_start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>cds_end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>cdna_coding_start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>cdna_coding_end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>translation_stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>translation_start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>translation_end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>exon_count</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>exons</code></td>
+<td><code>list&lt;item: struct&lt;start: int64 not null, end: int64 not null, phase…</code></td>
+</tr>
+<tr>
+<td><code>cdna_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>peptide_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>codon_table</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>tsl</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>appris</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>mane_select</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>mane_plus_clinical</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>gene_phenotype</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>ccds</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>swissprot</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>trembl</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>uniparc</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>uniprot_isoform</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>cds_start_nf</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>cds_end_nf</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>mature_mirna_regions</code></td>
+<td><code>list&lt;item: struct&lt;start: int64 not null, end: int64 not null&gt;&gt;</code></td>
+</tr>
+<tr>
+<td><code>ncrna_structure</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>translateable_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>three_prime_utr_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>five_prime_utr_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>cdna_mapper_segments</code></td>
+<td><code>list&lt;item: struct&lt;genomic_start: int64 not null, genomic_end: int64…</code></td>
+</tr>
+<tr>
+<td><code>bam_edit_status</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>has_non_polya_rna_edit</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>spliced_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>flags_str</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>transcript_uid</code></td>
+<td><code>uint32</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>exon</code> — 13 columns (+ 20 provenance)</summary>
+<p>Exon/intron structure, one row per exon of a transcript. No provenance block shown — see above.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrom</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>strand</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>phase</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>end_phase</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>is_current</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>is_constitutive</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>transcript_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>gene_stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>exon_number</code></td>
+<td><code>int32</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>translation_core</code> — 10 columns</summary>
+<p>Protein translations and their CDS sequences, keyed by transcript.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>transcript_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>cds_len</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>protein_len</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>translation_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>cds_sequence</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>translation_seq_canonical</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>cds_sequence_canonical</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>protein_features</code></td>
+<td><code>list&lt;item: struct&lt;analysis: string, hseqname: string, start: int64,…</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>translation_sift</code> — 3 columns</summary>
+<p>Precomputed SIFT/PolyPhen matrices as opaque per-protein blobs, keyed by a 64-bit protein <code>key</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td>
+<td><code>uint64</code></td>
+</tr>
+<tr>
+<td><code>sift</code></td>
+<td><code>binary</code></td>
+</tr>
+<tr>
+<td><code>poly</code></td>
+<td><code>binary</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>regulatory</code> — 10 columns (+ 20 provenance)</summary>
+<p>Regulatory features. No provenance block shown — see above.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrom</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>strand</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>stable_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>db_id</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>feature_type</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>epigenome_count</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>regulatory_build_id</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>cell_types</code></td>
+<td><code>string</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>motif</code> — 15 columns (+ 20 provenance)</summary>
+<p>TF-binding motif features (release 116 only). No provenance block shown — see above.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrom</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>strand</code></td>
+<td><code>int8</code></td>
+</tr>
+<tr>
+<td><code>motif_id</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>db_id</code></td>
+<td><code>int64</code></td>
+</tr>
+<tr>
+<td><code>score</code></td>
+<td><code>double</code></td>
+</tr>
+<tr>
+<td><code>binding_matrix</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>binding_matrix_length</code></td>
+<td><code>int32</code></td>
+</tr>
+<tr>
+<td><code>binding_matrix_elements</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>binding_matrix_unit</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>motif_seq</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>cell_types</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>overlapping_regulatory_feature</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td><code>transcription_factors</code></td>
+<td><code>string</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<h2 id="csq-output-fields">CSQ output fields<a class="headerlink" href="#csq-output-fields" title="Permanent link">¶</a></h2>
+<p><code>annotate(output_vcf=…)</code> writes a <code>CSQ</code> INFO field whose <code>Format:</code> header lists
+the per-transcript fields in output order. <strong>Which fields appear, and in which
+order, depends on the cache type and on <code>everything=</code></strong> — vepyr reproduces
+Ensembl VEP's own flag-expansion order rather than a fixed list.</p>
+<p>Measured against the release-116 GRCh38 caches:</p>
+<table>
+<thead>
+<tr>
+<th>Cache type</th>
+<th style="text-align: right;"><code>everything=True</code></th>
+<th style="text-align: right;"><code>everything=False</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ensembl</code></td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">74</td>
+</tr>
+<tr>
+<td><code>refseq</code></td>
+<td style="text-align: right;">85</td>
+<td style="text-align: right;">78</td>
+</tr>
+<tr>
+<td><code>merged</code></td>
+<td style="text-align: right;">86</td>
+<td style="text-align: right;">79</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-transcript-source-block">The transcript-source block<a class="headerlink" href="#the-transcript-source-block" title="Permanent link">¶</a></h3>
+<p>The whole difference between cache types is one contiguous block of fields, plus
+the fate of <code>SOURCE</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Cache type</th>
+<th>Block inserted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ensembl</code></td>
+<td><em>(none)</em></td>
+</tr>
+<tr>
+<td><code>refseq</code></td>
+<td><code>REFSEQ_MATCH</code>, <code>REFSEQ_OFFSET</code>, <code>GIVEN_REF</code>, <code>USED_REF</code>, <code>BAM_EDIT</code></td>
+</tr>
+<tr>
+<td><code>merged</code></td>
+<td><code>REFSEQ_MATCH</code>, <strong><code>SOURCE</code></strong>, <code>REFSEQ_OFFSET</code>, <code>GIVEN_REF</code>, <code>USED_REF</code>, <code>BAM_EDIT</code></td>
+</tr>
+</tbody>
+</table>
+<p>Where the block lands differs by mode:</p>
+<ul>
+<li><strong><code>everything=True</code></strong> — inserted after <code>UNIPROT_ISOFORM</code>, before <code>GENE_PHENO</code>.</li>
+<li><strong><code>everything=False</code></strong> — it <em>replaces</em> the <code>SOURCE</code> slot, which sits after
+  <code>TRANSCRIPTION_FACTORS</code> and before <code>VARIANT_CLASS</code>.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title"><code>SOURCE</code> is not present in every combination</p>
+<p><code>SOURCE</code> names which transcript set a consequence came from, so it is only
+meaningful for a merged cache. Its presence is not uniform:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>ensembl</code></th>
+<th><code>refseq</code></th>
+<th><code>merged</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>everything=True</code></td>
+<td>✗</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>everything=False</code></td>
+<td>✓</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<p>A <code>refseq</code> cache never emits <code>SOURCE</code>; an <code>ensembl</code> cache emits it only
+outside <code>--everything</code>. Do not write downstream code that assumes a fixed
+column index — parse the <code>Format:</code> header.</p>
+</div>
+<h3 id="where-the-fields-come-from">Where the fields come from<a class="headerlink" href="#where-the-fields-come-from" title="Permanent link">¶</a></h3>
+<p>For a merged cache with <code>everything=True</code> and <code>flag_pick_allele_gene</code>, the
+87 fields break down as:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Added fields</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VCF CSQ fixed base fields</td>
+<td><code>Allele</code>, <code>Consequence</code>, <code>IMPACT</code>, <code>SYMBOL</code>, <code>Gene</code>, …</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td><code>--everything</code> / <code>--hgvs</code> flag-derived, de-duplicated against the base</td>
+<td>frequency, MANE, UniProt, HGVS offset, regulatory, …</td>
+<td style="text-align: right;">59</td>
+</tr>
+<tr>
+<td>VEP option-set implication: frequency/pubmed flags enable <code>check_existing</code></td>
+<td><code>CLIN_SIG</code>, <code>SOMATIC</code>, <code>PHENO</code></td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><code>--merged</code></td>
+<td><code>REFSEQ_MATCH</code>, <code>SOURCE</code>, <code>REFSEQ_OFFSET</code></td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><code>--flag_pick_allele_gene</code></td>
+<td><code>PICK</code></td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>BAM-edited cache auto-enables <code>--use_transcript_ref</code></td>
+<td><code>GIVEN_REF</code>, <code>USED_REF</code>, <code>BAM_EDIT</code></td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td></td>
+<td style="text-align: right;"><strong>87</strong></td>
+</tr>
+</tbody>
+</table>
+<p><code>PICK</code> is emitted as a standalone field immediately after <code>FLAGS</code>, not as a
+token inside <code>FLAGS</code>.</p>
+<h3 id="field-order">Field order<a class="headerlink" href="#field-order" title="Permanent link">¶</a></h3>
+<details class="note">
+<summary><code>ensembl</code> — <code>everything=True</code> (80 fields)</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>Allele</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>IMPACT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>SYMBOL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>Gene</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>Feature_type</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>Feature</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>BIOTYPE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td><code>EXON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>INTRON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>HGVSc</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td><code>HGVSp</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td><code>cDNA_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td><code>CDS_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td><code>Protein_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td><code>Amino_acids</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td><code>Codons</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td><code>Existing_variation</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td><code>DISTANCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>STRAND</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>FLAGS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>VARIANT_CLASS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>SYMBOL_SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>HGNC_ID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>CANONICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td><code>MANE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td><code>MANE_SELECT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td><code>MANE_PLUS_CLINICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td><code>TSL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td><code>APPRIS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td><code>CCDS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td><code>ENSP</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td><code>SWISSPROT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td><code>TREMBL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td><code>UNIPARC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td><code>UNIPROT_ISOFORM</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td><code>GENE_PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td><code>SIFT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td><code>PolyPhen</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td><code>DOMAINS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td><code>miRNA</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td><code>HGVS_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td><code>AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td><code>AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td><code>AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td><code>EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td><code>EUR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td><code>SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td><code>gnomADe_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td><code>gnomADe_AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td><code>gnomADe_AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td><code>gnomADe_ASJ_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td><code>gnomADe_EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td><code>gnomADe_FIN_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td><code>gnomADe_MID_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td><code>gnomADe_NFE_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td><code>gnomADe_REMAINING_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td><code>gnomADe_SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td><code>gnomADg_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td><code>gnomADg_AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td><code>gnomADg_AMI_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td><code>gnomADg_AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td><code>gnomADg_ASJ_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td><code>gnomADg_EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td><code>gnomADg_FIN_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td><code>gnomADg_MID_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">67</td>
+<td><code>gnomADg_NFE_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">68</td>
+<td><code>gnomADg_REMAINING_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">69</td>
+<td><code>gnomADg_SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">70</td>
+<td><code>MAX_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">71</td>
+<td><code>MAX_AF_POPS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">72</td>
+<td><code>CLIN_SIG</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">73</td>
+<td><code>SOMATIC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">74</td>
+<td><code>PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">75</td>
+<td><code>PUBMED</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">76</td>
+<td><code>MOTIF_NAME</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">77</td>
+<td><code>MOTIF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">78</td>
+<td><code>HIGH_INF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">79</td>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">80</td>
+<td><code>TRANSCRIPTION_FACTORS</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>ensembl</code> — <code>everything=False</code> (74 fields)</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>Allele</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>IMPACT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>SYMBOL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>Gene</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>Feature_type</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>Feature</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>BIOTYPE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td><code>EXON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>INTRON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>HGVSc</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td><code>HGVSp</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td><code>cDNA_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td><code>CDS_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td><code>Protein_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td><code>Amino_acids</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td><code>Codons</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td><code>Existing_variation</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td><code>DISTANCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>STRAND</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>FLAGS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>SYMBOL_SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>HGNC_ID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>MOTIF_NAME</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>MOTIF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td><code>HIGH_INF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td><code>TRANSCRIPTION_FACTORS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td><code>SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td><code>VARIANT_CLASS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td><code>CANONICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td><code>TSL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td><code>MANE_SELECT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td><code>MANE_PLUS_CLINICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td><code>ENSP</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td><code>GENE_PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td><code>CCDS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td><code>SWISSPROT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td><code>TREMBL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td><code>UNIPARC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td><code>UNIPROT_ISOFORM</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td><code>AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td><code>AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td><code>AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td><code>EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td><code>EUR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td><code>SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td><code>gnomADe_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td><code>gnomADe_AFR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td><code>gnomADe_AMR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td><code>gnomADe_ASJ</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td><code>gnomADe_EAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td><code>gnomADe_FIN</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td><code>gnomADe_MID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td><code>gnomADe_NFE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td><code>gnomADe_REMAINING</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td><code>gnomADe_SAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td><code>gnomADg_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td><code>gnomADg_AFR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td><code>gnomADg_AMI</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td><code>gnomADg_AMR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td><code>gnomADg_ASJ</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td><code>gnomADg_EAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td><code>gnomADg_FIN</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td><code>gnomADg_MID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td><code>gnomADg_NFE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">67</td>
+<td><code>gnomADg_REMAINING</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">68</td>
+<td><code>gnomADg_SAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">69</td>
+<td><code>MAX_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">70</td>
+<td><code>MAX_AF_POPS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">71</td>
+<td><code>CLIN_SIG</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">72</td>
+<td><code>SOMATIC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">73</td>
+<td><code>PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">74</td>
+<td><code>PUBMED</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>refseq</code> — <code>everything=True</code> (85 fields)</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>Allele</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>IMPACT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>SYMBOL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>Gene</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>Feature_type</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>Feature</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>BIOTYPE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td><code>EXON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>INTRON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>HGVSc</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td><code>HGVSp</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td><code>cDNA_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td><code>CDS_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td><code>Protein_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td><code>Amino_acids</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td><code>Codons</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td><code>Existing_variation</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td><code>DISTANCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>STRAND</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>FLAGS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>VARIANT_CLASS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>SYMBOL_SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>HGNC_ID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>CANONICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td><code>MANE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td><code>MANE_SELECT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td><code>MANE_PLUS_CLINICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td><code>TSL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td><code>APPRIS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td><code>CCDS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td><code>ENSP</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td><code>SWISSPROT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td><code>TREMBL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td><code>UNIPARC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td><code>UNIPROT_ISOFORM</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td><code>REFSEQ_MATCH</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td><code>REFSEQ_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td><code>GIVEN_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td><code>USED_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td><code>BAM_EDIT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td><code>GENE_PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td><code>SIFT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td><code>PolyPhen</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td><code>DOMAINS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td><code>miRNA</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td><code>HGVS_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td><code>AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td><code>AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td><code>AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td><code>EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td><code>EUR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td><code>SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td><code>gnomADe_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td><code>gnomADe_AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td><code>gnomADe_AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td><code>gnomADe_ASJ_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td><code>gnomADe_EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td><code>gnomADe_FIN_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td><code>gnomADe_MID_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td><code>gnomADe_NFE_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td><code>gnomADe_REMAINING_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td><code>gnomADe_SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td><code>gnomADg_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td><code>gnomADg_AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td><code>gnomADg_AMI_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">67</td>
+<td><code>gnomADg_AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">68</td>
+<td><code>gnomADg_ASJ_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">69</td>
+<td><code>gnomADg_EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">70</td>
+<td><code>gnomADg_FIN_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">71</td>
+<td><code>gnomADg_MID_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">72</td>
+<td><code>gnomADg_NFE_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">73</td>
+<td><code>gnomADg_REMAINING_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">74</td>
+<td><code>gnomADg_SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">75</td>
+<td><code>MAX_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">76</td>
+<td><code>MAX_AF_POPS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">77</td>
+<td><code>CLIN_SIG</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">78</td>
+<td><code>SOMATIC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">79</td>
+<td><code>PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">80</td>
+<td><code>PUBMED</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">81</td>
+<td><code>MOTIF_NAME</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">82</td>
+<td><code>MOTIF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">83</td>
+<td><code>HIGH_INF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">84</td>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">85</td>
+<td><code>TRANSCRIPTION_FACTORS</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>refseq</code> — <code>everything=False</code> (78 fields)</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>Allele</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>IMPACT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>SYMBOL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>Gene</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>Feature_type</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>Feature</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>BIOTYPE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td><code>EXON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>INTRON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>HGVSc</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td><code>HGVSp</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td><code>cDNA_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td><code>CDS_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td><code>Protein_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td><code>Amino_acids</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td><code>Codons</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td><code>Existing_variation</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td><code>DISTANCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>STRAND</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>FLAGS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>SYMBOL_SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>HGNC_ID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>MOTIF_NAME</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>MOTIF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td><code>HIGH_INF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td><code>TRANSCRIPTION_FACTORS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td><code>REFSEQ_MATCH</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td><code>REFSEQ_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td><code>GIVEN_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td><code>USED_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td><code>BAM_EDIT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td><code>VARIANT_CLASS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td><code>CANONICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td><code>TSL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td><code>MANE_SELECT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td><code>MANE_PLUS_CLINICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td><code>ENSP</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td><code>GENE_PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td><code>CCDS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td><code>SWISSPROT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td><code>TREMBL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td><code>UNIPARC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td><code>UNIPROT_ISOFORM</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td><code>AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td><code>AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td><code>AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td><code>EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td><code>EUR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td><code>SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td><code>gnomADe_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td><code>gnomADe_AFR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td><code>gnomADe_AMR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td><code>gnomADe_ASJ</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td><code>gnomADe_EAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td><code>gnomADe_FIN</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td><code>gnomADe_MID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td><code>gnomADe_NFE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td><code>gnomADe_REMAINING</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td><code>gnomADe_SAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td><code>gnomADg_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td><code>gnomADg_AFR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td><code>gnomADg_AMI</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td><code>gnomADg_AMR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td><code>gnomADg_ASJ</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">67</td>
+<td><code>gnomADg_EAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">68</td>
+<td><code>gnomADg_FIN</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">69</td>
+<td><code>gnomADg_MID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">70</td>
+<td><code>gnomADg_NFE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">71</td>
+<td><code>gnomADg_REMAINING</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">72</td>
+<td><code>gnomADg_SAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">73</td>
+<td><code>MAX_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">74</td>
+<td><code>MAX_AF_POPS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">75</td>
+<td><code>CLIN_SIG</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">76</td>
+<td><code>SOMATIC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">77</td>
+<td><code>PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">78</td>
+<td><code>PUBMED</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>merged</code> — <code>everything=True</code> (86 fields)</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>Allele</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>IMPACT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>SYMBOL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>Gene</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>Feature_type</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>Feature</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>BIOTYPE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td><code>EXON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>INTRON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>HGVSc</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td><code>HGVSp</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td><code>cDNA_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td><code>CDS_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td><code>Protein_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td><code>Amino_acids</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td><code>Codons</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td><code>Existing_variation</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td><code>DISTANCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>STRAND</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>FLAGS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>VARIANT_CLASS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>SYMBOL_SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>HGNC_ID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>CANONICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td><code>MANE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td><code>MANE_SELECT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td><code>MANE_PLUS_CLINICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td><code>TSL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td><code>APPRIS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td><code>CCDS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td><code>ENSP</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td><code>SWISSPROT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td><code>TREMBL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td><code>UNIPARC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td><code>UNIPROT_ISOFORM</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td><code>REFSEQ_MATCH</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td><code>SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td><code>REFSEQ_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td><code>GIVEN_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td><code>USED_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td><code>BAM_EDIT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td><code>GENE_PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td><code>SIFT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td><code>PolyPhen</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td><code>DOMAINS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td><code>miRNA</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td><code>HGVS_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td><code>AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td><code>AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td><code>AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td><code>EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td><code>EUR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td><code>SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td><code>gnomADe_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td><code>gnomADe_AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td><code>gnomADe_AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td><code>gnomADe_ASJ_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td><code>gnomADe_EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td><code>gnomADe_FIN_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td><code>gnomADe_MID_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td><code>gnomADe_NFE_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td><code>gnomADe_REMAINING_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td><code>gnomADe_SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td><code>gnomADg_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td><code>gnomADg_AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">67</td>
+<td><code>gnomADg_AMI_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">68</td>
+<td><code>gnomADg_AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">69</td>
+<td><code>gnomADg_ASJ_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">70</td>
+<td><code>gnomADg_EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">71</td>
+<td><code>gnomADg_FIN_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">72</td>
+<td><code>gnomADg_MID_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">73</td>
+<td><code>gnomADg_NFE_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">74</td>
+<td><code>gnomADg_REMAINING_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">75</td>
+<td><code>gnomADg_SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">76</td>
+<td><code>MAX_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">77</td>
+<td><code>MAX_AF_POPS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">78</td>
+<td><code>CLIN_SIG</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">79</td>
+<td><code>SOMATIC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">80</td>
+<td><code>PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">81</td>
+<td><code>PUBMED</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">82</td>
+<td><code>MOTIF_NAME</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">83</td>
+<td><code>MOTIF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">84</td>
+<td><code>HIGH_INF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">85</td>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">86</td>
+<td><code>TRANSCRIPTION_FACTORS</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<details class="note">
+<summary><code>merged</code> — <code>everything=False</code> (79 fields)</summary>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>Allele</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>IMPACT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>SYMBOL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td><code>Gene</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td><code>Feature_type</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>Feature</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>BIOTYPE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td><code>EXON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>INTRON</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td><code>HGVSc</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td><code>HGVSp</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td><code>cDNA_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td><code>CDS_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td><code>Protein_position</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td><code>Amino_acids</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td><code>Codons</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td><code>Existing_variation</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td><code>DISTANCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td><code>STRAND</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td><code>FLAGS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td><code>SYMBOL_SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td><code>HGNC_ID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td><code>MOTIF_NAME</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td><code>MOTIF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td><code>HIGH_INF_POS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td><code>MOTIF_SCORE_CHANGE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td><code>TRANSCRIPTION_FACTORS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td><code>REFSEQ_MATCH</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td><code>SOURCE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td><code>REFSEQ_OFFSET</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td><code>GIVEN_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td><code>USED_REF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td><code>BAM_EDIT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td><code>VARIANT_CLASS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td><code>CANONICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td><code>TSL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td><code>MANE_SELECT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td><code>MANE_PLUS_CLINICAL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td><code>ENSP</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td><code>GENE_PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td><code>CCDS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td><code>SWISSPROT</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td><code>TREMBL</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td><code>UNIPARC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td><code>UNIPROT_ISOFORM</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td><code>AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td><code>AFR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td><code>AMR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td><code>EAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td><code>EUR_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td><code>SAS_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td><code>gnomADe_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td><code>gnomADe_AFR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td><code>gnomADe_AMR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td><code>gnomADe_ASJ</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td><code>gnomADe_EAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td><code>gnomADe_FIN</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td><code>gnomADe_MID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td><code>gnomADe_NFE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td><code>gnomADe_REMAINING</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td><code>gnomADe_SAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td><code>gnomADg_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td><code>gnomADg_AFR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td><code>gnomADg_AMI</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td><code>gnomADg_AMR</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">67</td>
+<td><code>gnomADg_ASJ</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">68</td>
+<td><code>gnomADg_EAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">69</td>
+<td><code>gnomADg_FIN</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">70</td>
+<td><code>gnomADg_MID</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">71</td>
+<td><code>gnomADg_NFE</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">72</td>
+<td><code>gnomADg_REMAINING</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">73</td>
+<td><code>gnomADg_SAS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">74</td>
+<td><code>MAX_AF</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">75</td>
+<td><code>MAX_AF_POPS</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">76</td>
+<td><code>CLIN_SIG</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">77</td>
+<td><code>SOMATIC</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">78</td>
+<td><code>PHENO</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">79</td>
+<td><code>PUBMED</code></td>
+</tr>
+</tbody>
+</table>
+</details>
+<h2 id="cache-format-lookup-internals">Cache format &amp; lookup internals<a class="headerlink" href="#cache-format-lookup-internals" title="Permanent link">¶</a></h2>
+<p>Every cache — the Ensembl variation/transcript/… entities and the custom plugin
+caches — uses the same point-lookup-optimized Parquet layout, so a lookup reads
+only the handful of pages that could contain the queried positions rather than
+scanning the whole file.</p>
+<h3 id="parquet-storage">Parquet storage<a class="headerlink" href="#parquet-storage" title="Permanent link">¶</a></h3>
+<p>The writer properties are tuned for random point lookups, not scans:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compression</td>
+<td>ZSTD, level 3</td>
+<td>Good ratio; fast enough to decode per page.</td>
+</tr>
+<tr>
+<td>Dictionary encoding</td>
+<td><strong>disabled</strong></td>
+<td>Avoids a per-take dictionary load; ZSTD recovers the ratio (the no-dict file is actually smaller).</td>
+</tr>
+<tr>
+<td>Data page size</td>
+<td>≤ 4 KiB</td>
+<td>Small pages → fine-grained page index → a lookup touches minimal bytes.</td>
+</tr>
+<tr>
+<td>Data page row count</td>
+<td>≤ 512 rows</td>
+<td>Bounds how many rows a single page decode yields.</td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td><strong>Page-level</strong></td>
+<td>Emits <code>ColumnIndex</code> + <code>OffsetIndex</code> in the footer — the read-side position→page directory.</td>
+</tr>
+<tr>
+<td>Row group size</td>
+<td>1,000,000 rows</td>
+<td>Large groups keep footer/metadata overhead low; the page index gives intra-group resolution.</td>
+</tr>
+<tr>
+<td>Sorting columns</td>
+<td><code>(tier, start)</code></td>
+<td>Physical clustering — see <a href="#sorting-within-a-shard">Sorting within a shard</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sorting-within-a-shard">Sorting within a shard<a class="headerlink" href="#sorting-within-a-shard" title="Permanent link">¶</a></h3>
+<p>Rows within each shard are physically sorted by <strong><code>(tier, start)</code></strong> and written in
+that order, and the sort is recorded in the Parquet <code>SortingColumn</code> metadata:</p>
+<ol>
+<li><strong>By <code>tier</code> first</strong> — all <strong>warm</strong> rows (tier <code>0</code>) are written before all
+   <strong>cold</strong> rows (tier <code>1</code>). This clusters common variants into a contiguous
+   run of pages, so a buffer of common-variant lookups touches a small, dense
+   region instead of pages scattered across the file.</li>
+<li><strong>By <code>start</code> within each tier</strong> — each tier's run is ascending by genomic
+   <code>start</code>. Ascending, non-overlapping <code>start</code> ranges per page are what make the
+   <code>ColumnIndex</code> (per-page min/max of <code>start</code>) an effective pruning directory:
+   resolving a query position to its candidate page(s) is a binary-search-like
+   metadata lookup, and coalescing adjacent pages into one read is cheap.</li>
+</ol>
+<p>Because the file is split into a warm block then a cold block (each
+independently <code>start</code>-sorted), a single <code>start</code> value can appear in <strong>both</strong>
+blocks; the lookup resolves candidate pages across both. Writing warm-first
+keeps the hot working set contiguous — the whole point of the tier.</p>
+<h3 id="page-index-the-pagedir">Page index → the <code>PageDir</code><a class="headerlink" href="#page-index-the-pagedir" title="Permanent link">¶</a></h3>
+<p>Since page-level statistics are enabled, each shard's footer carries a
+<code>ColumnIndex</code> (per-page min/max of <code>start</code>) and an <code>OffsetIndex</code> (per-page byte
+offset + row range). At open time the reader builds a <strong><code>PageDir</code></strong> over the
+<code>start</code> leaf column from these indexes. Resolving a set of query positions to the
+minimal set of candidate page row-ranges is then a metadata-only operation — no
+column data is read until the ranges are known.</p>
+<h3 id="row-groups">Row groups<a class="headerlink" href="#row-groups" title="Permanent link">¶</a></h3>
+<p>Shards use 1,000,000-row row groups. Row groups bound the footer metadata size;
+within a group the small (≤ 512-row) pages plus the page index provide the actual
+point-lookup resolution. A whole chromosome is typically one or a few row groups.</p>
+<h3 id="runtime-lookup-async-reader-monotonic-cursor-in-batches">Runtime lookup — async reader + monotonic cursor, in batches<a class="headerlink" href="#runtime-lookup-async-reader-monotonic-cursor-in-batches" title="Permanent link">¶</a></h3>
+<p>Annotation runs in position-ordered buffers. For each buffer the runtime does one
+<strong>page-scoped, three-phase take</strong> per shard, reading only that buffer's candidate
+pages:</p>
+<ol>
+<li><strong>Resolve</strong> — the buffer's sorted, de-duplicated <code>start</code> positions are mapped
+   through the <code>PageDir</code> to candidate page <strong>row-ranges</strong>. Metadata only; no data
+   read.</li>
+<li><strong>Locate</strong> — a <code>start</code>-only projected read over just those pages (a
+   <code>RowSelection</code> built from the ranges) streams <code>start</code> values back in batches
+   through a <strong><code>CoalescingAsyncReader</code></strong> — an async Parquet reader that merges
+   nearby page byte-ranges (within a 512 KiB gap) into single I/O calls. A
+   <strong>monotonic row-offset cursor</strong> advances exactly one step per streamed row,
+   staying in lockstep with the selection, and records the exact file offset of
+   every row whose <code>start</code> is in the buffer's probe set. The cursor only moves
+   forward, so there is no back-seeking.</li>
+<li><strong>Take</strong> — a final projected read at those exact offsets pulls just the payload
+   columns for the matched rows into one compact <code>RecordBatch</code>.</li>
+</ol>
+<h2 id="sizing">Sizing<a class="headerlink" href="#sizing" title="Permanent link">¶</a></h2>
+<p>Measured on-disk sizes of the converted Parquet caches in
+<code>/Users/mwiewior/workspace/data_vepyr</code> (GRCh38):</p>
+<table>
+<thead>
+<tr>
+<th>Cache</th>
+<th style="text-align: right;">Total</th>
+<th style="text-align: right;">variation</th>
+<th style="text-align: right;">translation_sift</th>
+<th style="text-align: right;">transcript</th>
+<th style="text-align: right;">translation_core</th>
+<th style="text-align: right;">exon</th>
+<th style="text-align: right;">regulatory</th>
+<th style="text-align: right;">motif</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>115_GRCh38_ensembl</code></td>
+<td style="text-align: right;"><strong>29 G</strong></td>
+<td style="text-align: right;">26 G</td>
+<td style="text-align: right;">2.7 G</td>
+<td style="text-align: right;">533 M</td>
+<td style="text-align: right;">196 M</td>
+<td style="text-align: right;">178 M</td>
+<td style="text-align: right;">71 M</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><code>115_GRCh38_refseq</code></td>
+<td style="text-align: right;"><strong>29 G</strong></td>
+<td style="text-align: right;">26 G</td>
+<td style="text-align: right;">2.8 G</td>
+<td style="text-align: right;">295 M</td>
+<td style="text-align: right;">156 M</td>
+<td style="text-align: right;">73 M</td>
+<td style="text-align: right;">71 M</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><code>115_GRCh38_merged</code></td>
+<td style="text-align: right;"><strong>32 G</strong></td>
+<td style="text-align: right;">26 G</td>
+<td style="text-align: right;">5.5 G</td>
+<td style="text-align: right;">720 M</td>
+<td style="text-align: right;">348 M</td>
+<td style="text-align: right;">240 M</td>
+<td style="text-align: right;">71 M</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td><code>116_GRCh38_ensembl</code></td>
+<td style="text-align: right;"><strong>32 G</strong></td>
+<td style="text-align: right;">27 G</td>
+<td style="text-align: right;">4.1 G</td>
+<td style="text-align: right;">633 M</td>
+<td style="text-align: right;">263 M</td>
+<td style="text-align: right;">211 M</td>
+<td style="text-align: right;">71 M</td>
+<td style="text-align: right;">89 M</td>
+</tr>
+<tr>
+<td><code>116_GRCh38_refseq</code></td>
+<td style="text-align: right;"><strong>31 G</strong></td>
+<td style="text-align: right;">27 G</td>
+<td style="text-align: right;">2.9 G</td>
+<td style="text-align: right;">296 M</td>
+<td style="text-align: right;">156 M</td>
+<td style="text-align: right;">73 M</td>
+<td style="text-align: right;">71 M</td>
+<td style="text-align: right;">89 M</td>
+</tr>
+<tr>
+<td><code>116_GRCh38_merged</code></td>
+<td style="text-align: right;"><strong>36 G</strong></td>
+<td style="text-align: right;">27 G</td>
+<td style="text-align: right;">7.0 G</td>
+<td style="text-align: right;">818 M</td>
+<td style="text-align: right;">418 M</td>
+<td style="text-align: right;">272 M</td>
+<td style="text-align: right;">71 M</td>
+<td style="text-align: right;">89 M</td>
+</tr>
+</tbody>
+</table>
+<p>Observations:</p>
+<ul>
+<li><strong><code>variation</code> dominates</strong> every cache (~26–27 G, ~80–90% of the total) — it is
+  the full set of known variants with population frequencies.</li>
+<li><strong><code>translation_sift</code> is the clear #2</strong> and scales with the transcript set:
+  merged (both transcript sets) is ~2× the single-set caches, and 116 is larger
+  than 115.</li>
+<li><strong><code>merged</code> ≈ <code>ensembl</code> + <code>refseq</code></strong> for the transcript/exon/translation
+  entities (it carries both), while sharing the same variation/regulatory data.</li>
+<li><strong><code>motif</code></strong> is populated only from release <strong>116</strong> (empty in the 115 caches).</li>
+</ul>
+<h2 id="building-a-cache">Building a cache<a class="headerlink" href="#building-a-cache" title="Permanent link">¶</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">build_cache</span><span class="p">(</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">release</span><span class="o">=</span><span class="mi">116</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="s2">"/Users/mwiewior/workspace/data_vepyr"</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">cache_type</span><span class="o">=</span><span class="s2">"merged"</span><span class="p">,</span>          <span class="c1"># "ensembl" | "refseq" | "merged"</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">assembly</span><span class="o">=</span><span class="s2">"GRCh38"</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">partitions</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>                 <span class="c1"># conversion parallelism</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># → /Users/mwiewior/workspace/data_vepyr/116_GRCh38_merged/&lt;entity&gt;/chr*.parquet</span>
+</span></code></pre></div>
+<p>For a targeted rebuild, use the same release-aware public contract:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">build_cache_entity</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">release</span><span class="o">=</span><span class="mi">116</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="s2">"/Users/mwiewior/workspace/data_vepyr"</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">entity</span><span class="o">=</span><span class="s2">"motif"</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">cache_type</span><span class="o">=</span><span class="s2">"merged"</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">local_cache</span><span class="o">=</span><span class="s2">"/data/ensembl-vep/homo_sapiens_merged/116_GRCh38"</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Valid raw entities are <code>variation</code>, <code>transcript</code>, <code>exon</code>, <code>translation</code>,
+<code>regulatory</code>, and <code>motif</code>. <code>translation</code> produces both <code>translation_core</code> and
+<code>translation_sift</code>. The targeted builder derives the expected Parquet cache
+version from <code>release</code> and rejects a conflicting raw-cache release/source
+before writing output, exactly like the full builder.</p>
+<h3 id="rebuilding-a-single-contig">Rebuilding a single contig<a class="headerlink" href="#rebuilding-a-single-contig" title="Permanent link">¶</a></h3>
+<p><code>chroms</code> restricts the rebuild to named contigs; omit it to rebuild every
+contig, scaffolds included. One contig of one entity takes seconds rather than
+the hours a full conversion needs, which is what makes a targeted cache fix
+practical to iterate on:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">build_cache_entity</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">release</span><span class="o">=</span><span class="mi">116</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="s2">"/Users/mwiewior/workspace/data_vepyr"</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">entity</span><span class="o">=</span><span class="s2">"translation"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">cache_type</span><span class="o">=</span><span class="s2">"merged"</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">local_cache</span><span class="o">=</span><span class="s2">"/data/ensembl-vep/homo_sapiens_merged/116_GRCh38"</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">chroms</span><span class="o">=</span><span class="p">[</span><span class="s2">"chrX"</span><span class="p">],</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Indicative timings for <code>translation</code> on the 116 merged cache: about 30 s for a
+single contig, 926 s for chr1–22, and roughly 26 min for every contig including
+scaffolds.</p>
+<p>Two cautions when using this to patch a cache you intend to publish:</p>
+<ul>
+<li><strong>Restricting <code>chroms</code> leaves every other contig at its previous build.</strong> The
+  result is a cache of mixed generations. A published cache holds far more than
+  the 24 main contigs — 1,744 <code>translation_core</code> files for 116 merged — so
+  rebuild every contig before uploading, or the scaffolds silently stay stale.</li>
+<li><strong>The entity is the unit of rebuild, not the output.</strong> Raw <code>translation</code>
+  always writes both <code>translation_core</code> and <code>translation_sift</code>, but a given fix
+  may only change one of them. Compare the rebuilt shards against the previous
+  ones and upload only what differs; that is often the difference between
+  shipping a few hundred MB and many GB.</li>
+</ul>
+<p>See the <a href="../api/#vepyr.build_cache">API reference</a> for the full signature. Plugin
+caches (e.g. AlphaMissense) are built separately and layered on top — see
+<a href="../plugins/">Plugins</a>.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../architecture/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Architecture">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Architecture
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../downloads/" class="md-footer__link md-footer__link--next" aria-label="Next: Download Ensembl VEP and plugin caches">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Download Ensembl VEP and plugin caches
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

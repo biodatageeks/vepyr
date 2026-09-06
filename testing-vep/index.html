@@ -1,0 +1,1703 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/testing-vep/">
+      
+      
+        <link rel="prev" href="../performance/">
+      
+      
+        <link rel="next" href="../developers/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Testing vs Ensembl VEP - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#testing-against-ensembl-vep" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Testing vs Ensembl VEP
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#test-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test dataset
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preprocessing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preprocessing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Preprocessing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-directory-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data directory layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-download-the-benchmark-vcf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Download the benchmark VCF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-normalize-to-biallelic-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Normalize to biallelic records
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-compress-and-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Compress and index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-reference-fasta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Reference FASTA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-ensembl-vep-caches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Ensembl VEP caches
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-the-reference-vep-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generating the reference VEP output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating the reference VEP output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compress-and-index-the-reference-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compress and index the reference output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checking-byte-level-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking byte-level agreement
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#test-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test dataset
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preprocessing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preprocessing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Preprocessing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-directory-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data directory layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-download-the-benchmark-vcf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Download the benchmark VCF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-normalize-to-biallelic-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Normalize to biallelic records
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-compress-and-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Compress and index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-reference-fasta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Reference FASTA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-ensembl-vep-caches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Ensembl VEP caches
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-the-reference-vep-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generating the reference VEP output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating the reference VEP output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compress-and-index-the-reference-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compress and index the reference output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checking-byte-level-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking byte-level agreement
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="testing-against-ensembl-vep">Testing against Ensembl VEP<a class="headerlink" href="#testing-against-ensembl-vep" title="Permanent link">¶</a></h1>
+<p>vepyr's correctness bar is <strong>zero mismatches against Ensembl VEP <code>--everything --hgvs</code></strong>
+for the supported scope (<code>homo_sapiens</code>, GRCh38, Ensembl release 116). Reaching that bar
+means running both tools over the same input and diffing the resulting CSQ fields
+variant by variant.</p>
+<p>This page covers the input preparation, the reference (golden truth) VEP run, and the
+comparison harness under <code>e2e-testing/</code>.</p>
+<h2 id="test-dataset">Test dataset<a class="headerlink" href="#test-dataset" title="Permanent link">¶</a></h2>
+<p>The parity suite runs on the GIAB <strong>HG002 / NA24385</strong> benchmark callset (Ashkenazim
+son, NIST v4.2.1, GRCh38, chr1-22) — roughly 4M variants, large enough to exercise
+every consequence type and small enough to re-run after every dependency bump.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source</td>
+<td>GIAB AshkenazimTrio, <code>NISTv4.2.1/GRCh38</code></td>
+</tr>
+<tr>
+<td>Download size</td>
+<td>~156 MB (<code>.vcf.gz</code>)</td>
+</tr>
+<tr>
+<td>Input records</td>
+<td>4,048,342</td>
+</tr>
+<tr>
+<td>Records after normalization</td>
+<td>4,096,123</td>
+</tr>
+</tbody>
+</table>
+<h2 id="preprocessing">Preprocessing<a class="headerlink" href="#preprocessing" title="Permanent link">¶</a></h2>
+<p>All commands below assume a working directory that will hold the test data. The
+e2e scripts default to <code>~/workspace/data_vepyr</code> and honour <code>DATA_VEPYR_DIR</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DATA_VEPYR_DIR</span><span class="o">=</span>~/workspace/data_vepyr
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">"</span>/<span class="o">{</span>input,cache,output<span class="o">}</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">"</span>
+</span></code></pre></div>
+<p>You need <code>bcftools</code>, <code>bgzip</code>, <code>tabix</code>, and <code>samtools</code> on <code>PATH</code>. The reference numbers
+on this page were produced with <strong>bcftools 1.21 / htslib 1.21</strong>.</p>
+<h3 id="data-directory-layout">Data directory layout<a class="headerlink" href="#data-directory-layout" title="Permanent link">¶</a></h3>
+<p>The harness expects three subdirectories under <code>$DATA_VEPYR_DIR</code>, separating what you
+feed in, what vepyr reads, and what Ensembl VEP produces:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$DATA_VEPYR_DIR/
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  input/
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz     + .tbi   # downloaded benchmark
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    HG002_normalized.vcf.gz                       + .tbi   # normalized, fed to both tools
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    Homo_sapiens.GRCh38.dna.primary_assembly.fa   + .fai   # reference FASTA
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  cache/
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    {release}_GRCh38_{ensembl,refseq,merged}/              # vepyr Parquet caches
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>  output/
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    116/                                                   # Ensembl VEP reference VCFs
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    115.2/                                                 # (115 references live here)
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>  homo_sapiens{,_refseq,_merged}/                          # raw Ensembl VEP caches
+</span></code></pre></div>
+<p>The raw <code>homo_sapiens*</code> caches stay at the top level: they are consumed by the VEP
+Docker containers, not by vepyr, and vepyr reads only the converted Parquet caches
+under <code>cache/</code>.</p>
+<p>Note the asymmetry in <code>output/</code>: release 115 references live in <code>115.2</code> (the VEP point
+release they were generated with), release 116 in <code>116</code>. The runner keeps that mapping
+explicitly rather than deriving the directory from the release number, so <code>--release 115</code>
+finds <code>output/115.2/</code> without you having to remember it.</p>
+<div class="admonition tip">
+<p class="admonition-title">Migrating an older layout</p>
+<p>Earlier versions kept inputs and Parquet caches at the top level. The runner still
+finds them there and prints a one-line notice per path telling you what to move, so
+you can reorganise whenever it is convenient. Move the caches only when no vepyr
+annotation is running, and the inputs only when no VEP container has
+<code>$DATA_VEPYR_DIR</code> bind-mounted — a running container reads the FASTA and the
+normalized VCF by path.</p>
+</div>
+<h3 id="1-download-the-benchmark-vcf">1. Download the benchmark VCF<a class="headerlink" href="#1-download-the-benchmark-vcf" title="Permanent link">¶</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input"</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>wget<span class="w"> </span>-c<span class="w"> </span>--tries<span class="o">=</span><span class="m">20</span><span class="w"> </span>--waitretry<span class="o">=</span><span class="m">5</span><span class="w"> </span>--retry-connrefused<span class="w"> </span>--timeout<span class="o">=</span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>wget<span class="w"> </span>-c<span class="w"> </span>--tries<span class="o">=</span><span class="m">20</span><span class="w"> </span>--waitretry<span class="o">=</span><span class="m">5</span><span class="w"> </span>--retry-connrefused<span class="w"> </span>--timeout<span class="o">=</span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span>https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi
+</span></code></pre></div>
+<p>The <code>-c</code> flag resumes a partial download, which matters on this file size. Confirm you
+got the same release used for the numbers on this page:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>md5sum<span class="w"> </span>HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># dc750b3807d4af1f7ffec852e9c2f771</span>
+</span></code></pre></div>
+<h3 id="2-normalize-to-biallelic-records">2. Normalize to biallelic records<a class="headerlink" href="#2-normalize-to-biallelic-records" title="Permanent link">¶</a></h3>
+<p>VEP consequence calls are per-allele, so multiallelic sites must be decomposed into one
+record per ALT allele before either tool sees them. Without this step the two tools
+disagree on allele ordering and the comparison is meaningless.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input"</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>bcftools<span class="w"> </span>norm<span class="w"> </span>-m<span class="w"> </span>-both<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>-o<span class="w"> </span>HG002_normalized.vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+</span></code></pre></div>
+<p>Expected output:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Lines   total/split/joined/realigned/removed/skipped:   4048342/47781/0/0/0/0
+</span></code></pre></div>
+<p>47,781 multiallelic sites split, giving 4,096,123 biallelic records in a ~2.9 GB plain
+VCF. Note this is <code>-m -both</code> only — no <code>-f</code>/left-alignment against the reference, so the
+step is deterministic and needs no FASTA.</p>
+<h3 id="3-compress-and-index">3. Compress and index<a class="headerlink" href="#3-compress-and-index" title="Permanent link">¶</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>bgzip<span class="w"> </span>-f<span class="w"> </span>HG002_normalized.vcf
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>tabix<span class="w"> </span>-p<span class="w"> </span>vcf<span class="w"> </span>HG002_normalized.vcf.gz
+</span></code></pre></div>
+<p><code>bgzip</code> replaces the 2.9 GB plain VCF with a ~151 MB <code>.vcf.gz</code>, and <code>tabix</code> writes the
+<code>.tbi</code> beside it. Both tools consume this pair directly, so there is no reason to keep
+the uncompressed copy:</p>
+<ul>
+<li><strong>vepyr</strong> needs the index for within-contig parallelism (<code>workers</code> &gt; 1) and for
+  per-chromosome extraction in the e2e scripts.</li>
+<li><strong>Ensembl VEP</strong> accepts a block-gzipped <code>--input_file</code> and decompresses it in a little
+  under a second — negligible against a multi-hour run.</li>
+</ul>
+<h3 id="4-reference-fasta">4. Reference FASTA<a class="headerlink" href="#4-reference-fasta" title="Permanent link">¶</a></h3>
+<p>Needed by both tools for HGVS notation (<code>--hgvs</code> / <code>reference_fasta=</code>):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input"</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>wget<span class="w"> </span>-c<span class="w"> </span>https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>gzip<span class="w"> </span>-d<span class="w"> </span>Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>samtools<span class="w"> </span>faidx<span class="w"> </span>Homo_sapiens.GRCh38.dna.primary_assembly.fa
+</span></code></pre></div>
+<p>The uncompressed FASTA is ~3.1 GB. It must stay uncompressed: both tools index it with
+<code>.fai</code> for random access, which plain gzip does not support.</p>
+<h3 id="5-ensembl-vep-caches">5. Ensembl VEP caches<a class="headerlink" href="#5-ensembl-vep-caches" title="Permanent link">¶</a></h3>
+<p>VEP ships three GRCh38 caches for release 116, differing only in which transcript set
+they contain. Download whichever ones you intend to compare against — the parity suite
+uses all three:</p>
+<table>
+<thead>
+<tr>
+<th>Cache</th>
+<th>Transcripts</th>
+<th>Download</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensembl</td>
+<td>Ensembl/GENCODE only</td>
+<td><a href="https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_vep_116_GRCh38.tar.gz"><code>homo_sapiens_vep_116_GRCh38.tar.gz</code></a></td>
+</tr>
+<tr>
+<td>RefSeq</td>
+<td>RefSeq only</td>
+<td><a href="https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_refseq_vep_116_GRCh38.tar.gz"><code>homo_sapiens_refseq_vep_116_GRCh38.tar.gz</code></a></td>
+</tr>
+<tr>
+<td>Merged</td>
+<td>Ensembl + RefSeq</td>
+<td><a href="https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"><code>homo_sapiens_merged_vep_116_GRCh38.tar.gz</code></a></td>
+</tr>
+</tbody>
+</table>
+<p>These are the <em>indexed</em> caches, which is what vepyr's converter and VEP's <code>--offline</code>
+mode both expect. The full FTP directory is
+<a href="https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/"><code>release-116/variation/indexed_vep_cache/</code></a>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">"</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>wget<span class="w"> </span>-c<span class="w"> </span>--tries<span class="o">=</span><span class="m">20</span><span class="w"> </span>--waitretry<span class="o">=</span><span class="m">5</span><span class="w"> </span>--retry-connrefused<span class="w"> </span>--timeout<span class="o">=</span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_vep_116_GRCh38.tar.gz
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>wget<span class="w"> </span>-c<span class="w"> </span>--tries<span class="o">=</span><span class="m">20</span><span class="w"> </span>--waitretry<span class="o">=</span><span class="m">5</span><span class="w"> </span>--retry-connrefused<span class="w"> </span>--timeout<span class="o">=</span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span>https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_refseq_vep_116_GRCh38.tar.gz
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>wget<span class="w"> </span>-c<span class="w"> </span>--tries<span class="o">=</span><span class="m">20</span><span class="w"> </span>--waitretry<span class="o">=</span><span class="m">5</span><span class="w"> </span>--retry-connrefused<span class="w"> </span>--timeout<span class="o">=</span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span>https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># Extract from $DATA_VEPYR_DIR, never from inside a species directory -- see below</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="k">for</span><span class="w"> </span>t<span class="w"> </span><span class="k">in</span><span class="w"> </span>homo_sapiens<span class="w"> </span>homo_sapiens_refseq<span class="w"> </span>homo_sapiens_merged<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">  </span>tar<span class="w"> </span>xzf<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">t</span><span class="si">}</span><span class="s2">_vep_116_GRCh38.tar.gz"</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="k">done</span>
+</span></code></pre></div>
+<p>Each archive unpacks to a <code>&lt;species_dir&gt;/116_GRCh38/</code> tree — the directory name encodes
+the transcript set, which is why the three can coexist under one root:</p>
+<table>
+<thead>
+<tr>
+<th>Cache</th>
+<th>Extracted path</th>
+<th>vepyr Parquet cache</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensembl</td>
+<td><code>homo_sapiens/116_GRCh38</code></td>
+<td><code>cache/116_GRCh38_ensembl</code></td>
+</tr>
+<tr>
+<td>RefSeq</td>
+<td><code>homo_sapiens_refseq/116_GRCh38</code></td>
+<td><code>cache/116_GRCh38_refseq</code></td>
+</tr>
+<tr>
+<td>Merged</td>
+<td><code>homo_sapiens_merged/116_GRCh38</code></td>
+<td><code>cache/116_GRCh38_merged</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">The archive carries its own species directory</p>
+<p>Each tarball already contains the <code>homo_sapiens_refseq/</code> prefix, so extracting from
+<em>inside</em> that directory produces <code>homo_sapiens_refseq/homo_sapiens_refseq/116_GRCh38</code>
+and leaves the path VEP actually looks at empty. Docker then silently creates the
+missing bind-mount source as an empty directory, and every variant is skipped with:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>WARNING: Chromosome chr1 not found in annotation sources or synonyms
+</span></code></pre></div>
+<p>That message is misleading — nothing is wrong with the chromosome naming. An empty
+version directory has no per-chromosome subdirectories <em>and</em> no <code>chr_synonyms.txt</code>,
+which is the only thing that maps <code>chr1</code> to Ensembl's <code>1</code>. The run completes after
+hours having annotated nothing.</p>
+<p>Verify before starting a multi-hour run:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">for</span><span class="w"> </span>t<span class="w"> </span><span class="k">in</span><span class="w"> </span>homo_sapiens<span class="w"> </span>homo_sapiens_refseq<span class="w"> </span>homo_sapiens_merged<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nv">n</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/</span><span class="nv">$t</span><span class="s2">/116_GRCh38"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l<span class="k">)</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$t</span><span class="s2">/116_GRCh38: </span><span class="nv">$n</span><span class="s2"> entries </span><span class="k">$(</span><span class="o">[</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/</span><span class="nv">$t</span><span class="s2">/116_GRCh38/chr_synonyms.txt"</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'(chr_synonyms.txt present)'</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'*** MISSING chr_synonyms.txt ***'</span><span class="k">)</span><span class="s2">"</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="k">done</span>
+</span></code></pre></div>
+<p>Expect roughly 1,900 entries and <code>chr_synonyms.txt</code> for each. If one is nested,
+lift it back up:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/homo_sapiens_refseq"</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>rmdir<span class="w"> </span>116_GRCh38<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mv<span class="w"> </span>homo_sapiens_refseq/116_GRCh38<span class="w"> </span>.<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rmdir<span class="w"> </span>homo_sapiens_refseq
+</span></code></pre></div>
+</div>
+<p>Convert each extracted cache to vepyr's Parquet format with
+<a href="../caches/"><code>build_cache()</code></a>, writing into <code>cache/</code>, before annotating.</p>
+<div class="admonition note">
+<p class="admonition-title">Reproducibility of the normalized VCF</p>
+<p><code>bcftools norm</code> writes a <code>##bcftools_normCommand=</code> header line containing the output
+path and the wall-clock date of the run, so a whole-file checksum differs between two
+runs of the same command on the same input. Compare header and records separately:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Header: expect a single differing ##bcftools_normCommand= line</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>diff<span class="w"> </span>&lt;<span class="o">(</span>bcftools<span class="w"> </span>view<span class="w"> </span>-h<span class="w"> </span>A.vcf.gz<span class="o">)</span><span class="w"> </span>&lt;<span class="o">(</span>bcftools<span class="w"> </span>view<span class="w"> </span>-h<span class="w"> </span>B.vcf.gz<span class="o">)</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Records: expect no output and exit status 0</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>cmp<span class="w"> </span>&lt;<span class="o">(</span>bcftools<span class="w"> </span>view<span class="w"> </span>-H<span class="w"> </span>A.vcf.gz<span class="o">)</span><span class="w"> </span>&lt;<span class="o">(</span>bcftools<span class="w"> </span>view<span class="w"> </span>-H<span class="w"> </span>B.vcf.gz<span class="o">)</span>
+</span></code></pre></div>
+<p>Re-running steps 1-3 on the md5 above reproduces the records byte for byte
+(md5 <code>f47259aebaa00b4eb6840c636ea14783</code> over all 4,096,123 records).</p>
+</div>
+<h2 id="generating-the-reference-vep-output">Generating the reference VEP output<a class="headerlink" href="#generating-the-reference-vep-output" title="Permanent link">¶</a></h2>
+<p>The golden truth is Ensembl VEP 116 run offline in Docker over the same normalized VCF.
+This is the slow half of the exercise — a full chr1-22 <code>--everything --hgvs</code> run takes
+<strong>4-7 hours per cache</strong>, so generate each once and keep it.</p>
+<p>The three commands below differ only in the cache mounted, the transcript-set flag
+(none / <code>--refseq</code> / <code>--merged</code>), and the output filename. All of them run
+<code>--offline --cache --everything --hgvs</code> against the same
+<code>HG002_normalized.vcf.gz</code> from the preprocessing steps, reading from <code>input/</code> and
+writing into <code>output/116/</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/output/116"</span>
+</span></code></pre></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><input id="__tabbed_1_3" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1">Ensembl</label><label for="__tabbed_1_2">RefSeq</label><label for="__tabbed_1_3">Merged</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">time</span><span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/homo_sapiens/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input:/input:ro"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/output/116:/output"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">  </span>ensemblorg/ensembl-vep:release_116.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">  </span>vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span>--dir<span class="w"> </span>/opt/vep/.vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span>--cache<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span>--offline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">  </span>--assembly<span class="w"> </span>GRCh38<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">  </span>--input_file<span class="w"> </span>/input/HG002_normalized.vcf.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">  </span>--output_file<span class="w"> </span>/output/HG002_annotated_wgs_everything_hgvs_vep.vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">  </span>--vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">  </span>--force_overwrite<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">  </span>--no_stats<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="w">  </span>--everything<span class="w"> </span>--hgvs<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="w">  </span>--fasta<span class="w"> </span>/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nb">time</span><span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/homo_sapiens_refseq/116_GRCh38:/opt/vep/.vep/homo_sapiens_refseq/116_GRCh38:ro"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input:/input:ro"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/output/116:/output"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span>ensemblorg/ensembl-vep:release_116.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span>vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span>--dir<span class="w"> </span>/opt/vep/.vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">  </span>--cache<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">  </span>--refseq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span>--offline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">  </span>--assembly<span class="w"> </span>GRCh38<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">  </span>--input_file<span class="w"> </span>/input/HG002_normalized.vcf.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="w">  </span>--output_file<span class="w"> </span>/output/HG002_annotated_wgs_everything_hgvs_refseq.vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">  </span>--vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">  </span>--force_overwrite<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="w">  </span>--no_stats<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="w">  </span>--everything<span class="w"> </span>--hgvs<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="w">  </span>--fasta<span class="w"> </span>/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nb">time</span><span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/homo_sapiens_merged/116_GRCh38:/opt/vep/.vep/homo_sapiens_merged/116_GRCh38:ro"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input:/input:ro"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/output/116:/output"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span>ensemblorg/ensembl-vep:release_116.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">  </span>vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">  </span>--dir<span class="w"> </span>/opt/vep/.vep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">  </span>--cache<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="w">  </span>--merged<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="w">  </span>--offline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="w">  </span>--assembly<span class="w"> </span>GRCh38<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="w">  </span>--input_file<span class="w"> </span>/input/HG002_normalized.vcf.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="w">  </span>--output_file<span class="w"> </span>/output/HG002_annotated_wgs_everything_hgvs_merged.vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="w">  </span>--vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="w">  </span>--force_overwrite<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="w">  </span>--no_stats<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="w">  </span>--everything<span class="w"> </span>--hgvs<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="w">  </span>--fasta<span class="w"> </span>/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Docker creates missing bind-mount sources</p>
+<p>If a <code>-v</code> source path does not exist, Docker creates it as an empty directory rather
+than failing. A typo in a cache path therefore produces a silent no-op run, not an
+error — which is the failure mode described under the extraction warning above.
+Run the verification loop before committing hours to a run.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">BAM-edited cache</p>
+<p>The RefSeq and merged caches are BAM-edited, so VEP logs
+<code>BAM-edited cache detected, enabling --use_transcript_ref</code> and annotates against the
+transcript reference rather than the REF allele you supplied. Pass <code>--use_given_ref</code>
+to override. Both caches also emit <code>WARNING: Transcript-assembly mismatch</code> lines for
+a few dozen variants; these are expected and are captured in the
+<code>*_warnings.txt</code> files next to the output.</p>
+</div>
+<p>The pick-mode reference commands (<code>--pick</code>, <code>--pick_allele</code>, <code>--per_gene</code>,
+<code>--flag_pick</code>, ...) are recorded verbatim in
+<a href="https://github.com/biodatageeks/vepyr/blob/master/e2e-testing/vep-docker.md"><code>e2e-testing/vep-docker.md</code></a>,
+which still documents the release 115 runs the current reports were generated from.
+All pick modes use the ranking order
+<code>biotype,rank,mane_select,tsl,canonical,appris,ccds,length</code>.</p>
+<h3 id="compress-and-index-the-reference-output">Compress and index the reference output<a class="headerlink" href="#compress-and-index-the-reference-output" title="Permanent link">¶</a></h3>
+<p>VEP writes plain VCF. With <code>--everything --hgvs</code> over 4M variants that is <strong>15-29 GB per
+run</strong>, and a full profile matrix will fill a disk. Block-gzip and index each output as
+soon as its run finishes:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/output/116"</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span>*.vcf<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span>bgzip<span class="w"> </span>--threads<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="s2">"</span><span class="nv">$f</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tabix<span class="w"> </span>-p<span class="w"> </span>vcf<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">f</span><span class="si">}</span><span class="s2">.gz"</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="k">done</span>
+</span></code></pre></div>
+<p><code>bgzip</code> removes the plain input only after it succeeds, so a failure leaves the original
+intact. Compression is roughly 15x on this data:</p>
+<table>
+<thead>
+<tr>
+<th>Reference</th>
+<th>Plain</th>
+<th>Block-gzipped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>..._hgvs_merged.vcf</code></td>
+<td>27 GB</td>
+<td>1.6 GB</td>
+</tr>
+<tr>
+<td><code>..._hgvs_vep.vcf</code></td>
+<td>16 GB</td>
+<td>987 MB</td>
+</tr>
+<tr>
+<td><code>..._hgvs_refseq.vcf</code></td>
+<td>10 GB</td>
+<td>718 MB</td>
+</tr>
+</tbody>
+</table>
+<p>This is not merely housekeeping. The comparison harness reads block-gzipped references
+through <code>tabix</code>, so extracting one contig becomes a seek instead of a scan of the whole
+file — across 22 contigs that is the difference between 22 full reads of a multi-gigabyte
+file and 22 index lookups. Plain <code>.vcf</code> references still work, and are read by streaming
+scan.</p>
+<p>Verify before deleting anything upstream:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>bgzip<span class="w"> </span>-t<span class="w"> </span>HG002_annotated_wgs_everything_hgvs_merged.vcf.gz<span class="w">   </span><span class="c1"># BGZF framing intact</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>tabix<span class="w"> </span>-l<span class="w"> </span>HG002_annotated_wgs_everything_hgvs_merged.vcf.gz<span class="w">   </span><span class="c1"># expect chr1..chr22</span>
+</span></code></pre></div>
+<h2 id="running-the-comparison">Running the comparison<a class="headerlink" href="#running-the-comparison" title="Permanent link">¶</a></h2>
+<p>With the normalized input, the converted Parquet cache, and the reference VEP output in
+place, the harness under <code>e2e-testing/scripts/</code> annotates with vepyr and diffs against
+the reference field by field.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nb">cd</span><span class="w"> </span>e2e-testing/scripts
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="c1"># Single chromosome</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">115</span><span class="w"> </span>--chroms<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="c1"># All detected contigs, with a timestamped Markdown report</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">115</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="c1"># A specific pick-mode profile</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">115</span><span class="w"> </span>--profile<span class="w"> </span>merged_pick_allele_gene
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="c1"># Plugin fields, against a VEP reference built with the same five plugins.</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="c1"># Plugin references are written one file per contig, so name the contig.</span>
+</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged_plugins<span class="w"> </span>--chroms<span class="w"> </span><span class="m">22</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Plugin profiles need a contig</p>
+<p><code>generate_vep_plugin_references.sh</code> writes one reference per contig under
+<code>output/{release}/plugins/</code>, so unlike the whole-genome profiles there is no
+single file to slice. Pass a single <code>--chroms</code> value, or <code>--vep</code> explicitly.
+Modes that read no reference at all, such as <code>--skip-annotate</code> aggregation
+of stored reports, do not need either.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Plugin profiles</p>
+<p><code>merged_plugins</code> attaches the plugin cache
+(<code>cache/plugin_cache_{release}/</code>, or <code>--plugin-cache</code>) so ClinVar, SpliceAI,
+CADD, AlphaMissense, and dbNSFP CSQ fields are comparable against a VEP
+reference produced with the same five plugins. <code>merged_plugins_base</code> reads
+that same reference with no plugin cache attached: the comparison then
+restricts itself to the shared fields, which separates a core-field
+difference from anything the plugin machinery introduced.</p>
+<p>These are comparison scenarios, not release gates. <code>verify_parity_gate.py</code>
+pins the Ensembl core CSQ contract and refuses a plugin profile outright
+rather than silently gating a field set it does not describe.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title"><code>--release</code> is required</p>
+<p>It selects both the Parquet cache (<code>cache/{release}_GRCh38_{flavour}</code>) and the VEP
+reference (<code>output/{release}/</code>), so a release 115 cache can never be compared against
+a release 116 reference. There is no default, because a wrong default here produces a
+plausible-looking report full of mismatches that are artefacts rather than bugs.</p>
+<p>The Ensembl, merged, and RefSeq baselines are qualified for both release 115 and
+release 116. Optional selection profiles still depend on their corresponding
+reference VCF. Ask for an unavailable combination and the run fails in
+milliseconds—before normalizing anything—and prints the live availability matrix:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>profile                                   115          116
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>ensembl                                    ok           ok
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>merged                                     ok           ok
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>refseq                                     ok           ok
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>merged_pick_allele                         ok no reference
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>merged_plugins                              -  no plugins
+</span></code></pre></div>
+</div>
+<p>Contigs default to whatever the reference's tabix index contains, intersected with the
+input — so the same command covers chr1-22 here and adapts automatically to a dataset
+with different contigs. Detection deliberately reads the index rather than the
+<code>##contig</code> headers: the headers on these references list all 195 GRCh38 primary-assembly
+sequences, of which only 22 carry records.</p>
+<p>Outputs land in <code>e2e-testing/reports/</code>: per-contig JSON
+(<code>fast_{chrom}_{profile}_{release}_report.json</code>) and an aggregate summary
+(<code>fast_{span}_{profile}_{release}_summary_YYYYMMDD_HHMM.md</code>) with per-contig timings,
+mismatch counts classified by root cause, and per-field mismatch examples.
+Intermediates live under <code>e2e-testing/results/{release}/</code>.</p>
+<p>The harness normalizes the input itself if a normalized copy is not already present,
+using exactly the <code>bcftools norm -m -both</code> → <code>bgzip</code> → <code>tabix</code> sequence above — so
+running the preprocessing by hand and pointing it at the result gives identical
+inputs. Both plain and block-gzipped VCFs are accepted on the vepyr and VEP sides;
+when the reference is bgzipped and indexed, the per-contig slice is a tabix seek
+rather than a full scan.</p>
+<h2 id="checking-byte-level-agreement">Checking byte-level agreement<a class="headerlink" href="#checking-byte-level-agreement" title="Permanent link">¶</a></h2>
+<p>The field-by-field comparison above answers whether the annotation <em>content</em> matches.
+The byte-level check answers the stricter question of whether the <em>bytes</em> match, which
+is what makes vepyr's output a drop-in replacement for VEP's rather than an equivalent
+one. Both hash each file's header and record body separately and compare the digests.</p>
+<p>For the usual case, ask <code>run_comparison.py</code> for it directly — it slices the input and
+the reference, annotates, hashes both, and exits non-zero on any mismatch:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nb">cd</span><span class="w"> </span>e2e-testing/scripts
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="c1"># One command, any contig subset</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--chroms<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="m">7</span><span class="w"> </span><span class="m">22</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">    </span>--comparison-mode<span class="w"> </span>md5<span class="w"> </span>--bgzf
+</span></code></pre></div>
+<p><code>--comparison-mode</code> picks <em>how</em> to compare (<code>field</code>, the default, or <code>md5</code>);
+<code>--skip-compare</code> picks <em>whether</em> to compare at all and skips the reference slice with
+it. The two cannot be combined. <code>--md5-mode</code> defaults to <code>both</code>, reporting <code>strict</code> and
+<code>canonical</code> side by side.</p>
+<p>Reach for <code>md5_concordance.py</code> when you need what that flag does not do: compare two
+arbitrary files, re-hash existing output without re-annotating, or classify <em>how</em>
+records differ with <code>--explain</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nb">cd</span><span class="w"> </span>e2e-testing/scripts
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="c1"># One pair, with a breakdown of what differs</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>md5_concordance.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span>--pair<span class="w"> </span>../results/116/fast_chr21/vep_chr21_merged.vcf<span class="w"> </span>/tmp/vepyr_chr21.vcf<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span>--mode<span class="w"> </span>strict<span class="w"> </span>--explain
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="c1"># Every per-contig pair under a results directory</span>
+</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>md5_concordance.py<span class="w"> </span>--results-dir<span class="w"> </span>../results/116<span class="w"> </span>--mode<span class="w"> </span>strict
+</span></code></pre></div>
+<p><code>--mode canonical</code> (the standalone tool's default; <code>run_comparison.py --md5-mode</code>
+defaults to <code>both</code>) normalizes the differences that are known to be
+cosmetic before hashing — QUAL rendered numerically, INFO and FORMAT keys sorted,
+FORMAT keys missing in every sample dropped — so a matching canonical digest means the
+two files carry identical annotation content and differ only in how they were written.
+<code>--mode strict</code> hashes the record bytes as-is.</p>
+<p>Each tool stamps the header with run provenance that can never match (wall-clock time,
+absolute cache paths, tool versions), so those lines are excluded from the header digest
+on both sides. A <code>HEADER DIFF</code> alongside a passing body is therefore a real difference
+worth reading — most often a <code>##bcftools_normCommand</code> showing that the two sides were
+annotated from differently normalized inputs.</p>
+<div class="admonition note">
+<p class="admonition-title">Whole-genome runs are disk-hungry</p>
+<p>A plain-text annotated WGS output is ~29 GB, and the parallel path needs roughly
+twice that while it assembles worker shards. Compare one contig at a time and
+delete each output before starting the next.</p>
+</div>
+<p>See <a href="https://github.com/biodatageeks/vepyr/blob/master/e2e-testing/README.md"><code>e2e-testing/README.md</code></a>
+for the full flag reference, the profile-to-reference-file mapping, the expected data
+directory layout, and the dependency-bump workflow.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../performance/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Performance">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Performance
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../developers/" class="md-footer__link md-footer__link--next" aria-label="Next: Developers">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Developers
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

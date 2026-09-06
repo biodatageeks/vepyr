@@ -1,0 +1,1337 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/specs/2026-09-06-lazyframe-parallel-workers-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Parallel workers on the LazyFrame path - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#parallel-workers-on-the-lazyframe-path" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Parallel workers on the LazyFrame path
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-what-the-engine-already-has" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: what the engine already has
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Engine design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mode-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mode selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-planning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run planning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-run-pool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The run pool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ordering-admission-and-draining" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordering, admission and draining
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LIMIT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regions-with-workers1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regions with workers&gt;1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors-and-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors and cancellation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracing-and-profiling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tracing and profiling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-design-vepyr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python design (vepyr)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurement-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurement plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delivery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deferred" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deferred
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="parallel-workers-on-the-lazyframe-path">Parallel workers on the LazyFrame path<a class="headerlink" href="#parallel-workers-on-the-lazyframe-path" title="Permanent link">¶</a></h1>
+<p><strong>Date:</strong> 2026-09-06
+<strong>Status:</strong> Approved (design)
+<strong>Implementation repos:</strong> <code>datafusion-bio-functions</code> (<code>datafusion/bio-function-vep</code>), then <code>vepyr</code>
+<strong>Related:</strong> <code>docs/superpowers/specs/2026-09-06-region-predicate-pushdown-design.md</code>
+(region runs, grid-aligned warm-up on the streaming path; engine PR #239, vepyr PR #81),
+engine design 2026-06-25 §5/§7 (grid slices and warm-up on the sharded VCF path),
+<code>docs/superpowers/plans/2026-06-21-single-workers-knob.md</code> (the <code>workers</code> knob)</p>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">¶</a></h2>
+<p><code>vepyr.annotate(..., workers=N)</code> has one concurrency knob. With <code>output_vcf</code> it runs N
+within-contig annotation pipelines and is byte-identical to <code>workers=1</code> at every N. On
+the LazyFrame path the same knob is accepted, forwarded to the engine, and then rejected
+at the first contig:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>parallel annotation (threads&gt;1) requires a VCF shard context; it is only
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>supported via the VCF output sink
+</span></code></pre></div>
+<p>The engine's <code>workers&gt;1</code> branch exists only for the VCF sink. Its workers write VCF body
+shards to a temp directory and an assembler thread concatenates them. Nothing hands
+Arrow batches back to a caller. The streaming path, which the Polars IO plugin drains,
+is one ordered lookup stream per contig and one window at a time.</p>
+<p>This design adds a parallel streaming mode to the engine so that a LazyFrame collect at
+<code>workers=N</code> runs N annotation pipelines per contig and yields rows in exactly the order
+<code>workers=1</code> yields them.</p>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">¶</a></h2>
+<p>In scope:</p>
+<ul>
+<li><code>workers&gt;1</code> on the LazyFrame path (<code>annotate()</code> without <code>output_vcf</code>) for Ensembl,
+  Merged and RefSeq caches, with results identical to <code>workers=1</code> row for row and in
+  the same order.</li>
+<li>Composition with region pushdown: a LazyFrame predicate on <code>chrom</code>/<code>start</code>/<code>end</code> is
+  pushed to the engine automatically (PR #81), so a parallel collect with a filter must
+  work. The engine guard <code>regions require workers=1</code> is lifted for the streaming mode.</li>
+<li>Bounded memory: the number of runs in flight or awaiting release is capped.</li>
+<li>LIMIT (<code>head(n)</code>, <code>n_rows</code>) on the parallel path, including early first-batch delivery.</li>
+<li>Tests at both layers and the LazyFrame-versus-VCF md5 gate at <code>workers&gt;1</code>.</li>
+<li>Documentation and docstring corrections (they currently say the path is serial).</li>
+</ul>
+<p>Out of scope:</p>
+<ul>
+<li>Any change to the sharded VCF sink. It stays as is, including its rejection of
+  <code>regions</code>.</li>
+<li>Concurrency inside a run. The serial state machine's window-level <code>inflight</code> queue
+  stays at one; it is unsound above one on Merged/RefSeq (see Background).</li>
+<li>Cross-contig concurrency. Contigs stay sequential; the existing next-contig prefetch
+  keeps overlapping the next contig's prepare with the current contig's annotation.</li>
+<li>Cost-balanced run cuts (<code>VEP_GRID_BALANCE</code>). Runs are cut by buffer count.</li>
+<li>An explicit <code>annotate(regions=...)</code> argument (still deferred from the regions spec).</li>
+</ul>
+<h2 id="background-what-the-engine-already-has">Background: what the engine already has<a class="headerlink" href="#background-what-the-engine-already-has" title="Permanent link">¶</a></h2>
+<p>All references are to <code>datafusion/bio-function-vep/src/annotate_provider.rs</code> at the
+current vepyr pin (<code>dba94e3</code>) unless stated.</p>
+<p><strong>The knob.</strong> The JSON key is <code>workers</code>. <code>AnnotateProvider::scan</code> parses it into
+<code>ContigAnnotationConfig::annotation_workers</code> and raises the session's target
+partitions to at least that value. <code>ContigAnnotationStream::poll_next</code> branches on it
+when a contig's prepare future resolves (<code>StreamState::PreparingContig</code>): <code>&gt;1</code> requires
+<code>ContigAnnotationConfig::vcf_shard_ctx</code>, which only <code>vcf_sink::drive_sharded_vcf_annotation</code>
+sets, and otherwise returns the error above; <code>&lt;=1</code> builds <code>ContigAnnotationState</code> and
+enters <code>AnnotatingContig</code>.</p>
+<p><strong>Runs are worker slices.</strong> PR #239 added region runs to the streaming path. A
+<code>ContigRun { bounds, slice: Option&lt;WorkerGridSlice&gt; }</code> carries the same
+<code>WorkerGridSlice</code> the sharded workers use (<code>scan_lo_pos</code>, <code>emit_start_pos</code>,
+<code>scan_hi_pos</code>, <code>skip_leading_rows</code>, <code>warm_up_start_row</code>, <code>emit_start_row</code>,
+<code>emit_end_row</code>). <code>ContigRun::lookup_filter</code> builds the run's VCF filter,
+<code>ContigRun::gate</code> builds a <code>regions::RunGate</code> (a factored-out copy of the sharded
+worker's inline gate: drop leading position ties, divert warm-up rows, rank-stop), and
+<code>activate_run_lookup</code> builds a <code>LookupProvider</code> for one run and spawns its lookup
+partition workers. <code>ActivatingRun</code> swaps a contig's lookup to the next run when the
+current run drains. Runs are planned in <code>prepare_contig_data</code> from the buffer-grid
+count pass (<code>count_contig_buffer_boundaries</code>, which runs concurrently with the context
+load) through <code>regions::plan_runs</code> and <code>build_grid_slices</code>.</p>
+<p><strong>Warm-up.</strong> Merged and RefSeq annotation depends on per-buffer HGNC donation state
+(<code>persisted_buffer_transcripts</code>). A cut in the input is a seam; the engine reconstructs
+the state at a seam by replaying whole buffers within <code>overlap_width_bp</code> (max
+transcript span + one 1 Mb cache region) before the seam (<code>warm_up_worker_state</code>).
+<code>build_grid_slices</code> walks the warm-up start back to the first buffer within that reach;
+with <code>overlap_width_bp = 0</code> the warm-up start equals the emit start and no rows are
+replayed. Ensembl has no cross-buffer state: <code>build_stateful_buffer_local_transcripts_cow</code>
+runs for every source but never diverges from the base transcripts on Ensembl, so a
+plain cut is exact. Both the sharded path and the region spec rely on this and both are
+byte-identical at every worker count.</p>
+<p><strong>The sharded worker.</strong> <code>spawn_annotation_from_lookup_sharded</code> drains one lookup
+receiver, applies the gate, replays warm-up, cuts windows of <code>input_buffer_size</code> units,
+and for each window calls <code>hydrate_worker_window</code> and <code>annotate_worker_window</code>. The
+result of that call is a <code>VecDeque&lt;RecordBatch&gt;</code>, already projected. Only then does
+<code>VcfBodyShardWriter::write_batch</code> format it to text. Every worker has its own
+<code>AnnotationWorkerState</code> (colocated map, persisted transcripts, overrides, SIFT cache,
+window buffer); the expensive immutable context (transcripts, exons, translations,
+indexes, consequence engine, plugin registry) is one <code>Arc&lt;SharedContigAnnotationContext&gt;</code>
+per contig. All workers of a contig share one <code>tokio::sync::OnceCell</code> for the Parquet
+variation lookup so the shard footer and page index (about 0.5 GB on chr1) are decoded
+once per contig.</p>
+<p><strong>The unsound axis.</strong> <code>ContigAnnotationState::inflight</code> dispatches windows on the
+blocking pool up to <code>annotation_workers</code> deep, but each window is seeded with a
+snapshot of <code>persisted_buffer_transcripts</code> taken at dispatch and the result of window N
+is installed only when N is awaited. Two windows in flight would seed N+1 with the
+pre-N map and silently drop HGNC carry on Merged/RefSeq. It is unreachable today
+because the <code>&gt;1</code> branch never enters <code>AnnotatingContig</code>. This design leaves it at one.</p>
+<p><strong>Ordered re-sequencer.</strong> <code>src/ordered_drain.rs</code> (<code>OrderedWindowDrain</code>) is dead code
+reserved for a parallel window driver. This design does not need it (the head run is
+streamed live rather than buffered to completion); the engine PR removes the module.</p>
+<h2 id="engine-design">Engine design<a class="headerlink" href="#engine-design" title="Permanent link">¶</a></h2>
+<h3 id="mode-selection">Mode selection<a class="headerlink" href="#mode-selection" title="Permanent link">¶</a></h3>
+<p><code>PreparingContig</code> gains a third arm. When <code>annotation_workers &gt; 1</code> and
+<code>vcf_shard_ctx</code> is <code>None</code>, the contig enters a new <code>StreamState::AnnotatingRunPool</code>.
+The sink's arm (<code>vcf_shard_ctx</code> is <code>Some</code>) and the serial arm are unchanged.</p>
+<p><code>prepare_contig_data</code> learns the mode as a boolean, <code>stream_parallel</code>, derived from the
+same two facts. It changes only the planning half described next; the context load,
+prefetch and cleanup are untouched.</p>
+<h3 id="run-planning">Run planning<a class="headerlink" href="#run-planning" title="Permanent link">¶</a></h3>
+<p>In <code>stream_parallel</code> mode the buffer-grid count pass runs for every cache source, not
+only Merged and RefSeq. It already overlaps the context load, and it gives every source
+the same run planner and the same gate. Two consequences:</p>
+<ul>
+<li><code>stateful_parallel</code> (grid slices for the sink) stays false in this mode, so the two
+  consumers of the single <code>grid_count</code> future never coexist. The count is consumed once,
+  by the run planner. This is what allows lifting the <code>regions require workers=1</code> guard.</li>
+<li>Ensembl runs are built with <code>overlap_width_bp = 0</code>, giving <code>warm_up_start_row ==
+  emit_start_row</code>, <code>skip_leading_rows</code> tie handling and rank-stop, and no replay.
+  Merged and RefSeq runs use the contig's real <code>overlap_width_bp</code>, exactly as region
+  runs and sharded slices do today.</li>
+</ul>
+<p>Planning steps for one contig with <code>B</code> buffers (boundaries of length <code>B+1</code>):</p>
+<ol>
+<li>Region runs first. Without regions the contig is one buffer range <code>[0, B)</code>. With
+   regions, <code>regions::plan_runs(bounds, Some(positions))</code> gives one merged buffer range
+   per region group, each with its trim bounds, as today.</li>
+<li>Each buffer range <code>[bk, bk1)</code> is cut into consecutive pieces of <code>run_buffers</code> whole
+   buffers (the last piece may be shorter). <code>run_buffers</code> is chosen once per contig:</li>
+</ol>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>target_runs = workers * RUNS_PER_WORKER          (RUNS_PER_WORKER = 4)
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>run_buffers = max(MIN_RUN_BUFFERS, ceil(B / target_runs))
+</span></code></pre></div>
+<p><code>MIN_RUN_BUFFERS</code> is 4 on Merged/RefSeq and 1 on Ensembl. The floor exists because
+   every seam on a stateful source replays roughly <code>overlap_width_bp</code> of input; at
+   whole-genome variant density that is about one buffer, so a four-buffer run keeps
+   the replay under a quarter of the run's prepare work and a small fraction of its
+   annotation work. Contigs with fewer buffers than <code>workers</code> simply plan fewer runs.
+3. <code>build_grid_slices(boundaries, cuts, overlap)</code> turns each piece into a
+   <code>WorkerGridSlice</code>; the run keeps the region's trim bounds. Runs are numbered in grid
+   order across the whole contig; the number is the release order.
+4. A degenerate grid (no rows) plans no run and skips the contig, as today.</p>
+<p>Environment overrides for the measurement sweep, read where the other <code>VEP_*</code> knobs are
+read: <code>VEP_STREAM_RUN_BUFFERS</code> (fixes <code>run_buffers</code>, ignoring the formula but not the
+<code>MIN_RUN_BUFFERS</code> floor on stateful sources) and <code>VEP_STREAM_LOOKAHEAD_RUNS</code> (see
+Ordering). The defaults above are provisional and the measurement pass may change them;
+changing a default does not change output.</p>
+<h3 id="the-run-pool">The run pool<a class="headerlink" href="#the-run-pool" title="Permanent link">¶</a></h3>
+<p><code>AnnotatingRunPool</code> owns:</p>
+<ul>
+<li><code>runs: Vec&lt;ContigRun&gt;</code> in release order, and <code>next_start: usize</code>.</li>
+<li><code>active: HashMap&lt;usize, RunTask&gt;</code> keyed by run index. A <code>RunTask</code> holds the
+  <code>JoinHandle&lt;Result&lt;RunResult&gt;&gt;</code> of the run's task, its abort handle, its lookup
+  partition handles (for abort), and the receiving end of its output channel.</li>
+<li><code>head: usize</code>, the index of the run whose output is being released.</li>
+<li>The contig-level fields the sink's <code>ParallelContigState</code> carries (chrom, config,
+  session, shared context, ephemeral tables, activation instant, profile).</li>
+</ul>
+<p>A run task is one <code>tokio::spawn</code> that awaits <code>activate_run_lookup</code> for its run and then
+runs the sharded worker body. The lookup is activated inside the task, not on the
+stream's poll path, so activation of run j+1 overlaps annotation of run j. The
+sharded worker body (<code>spawn_annotation_from_lookup_sharded</code>) is generalised over its
+output: an enum sink with a <code>VcfBody(VcfBodyShardWriter)</code> arm for the sink path and a
+<code>Batches(tokio::sync::mpsc::UnboundedSender&lt;RecordBatch&gt;)</code> arm for this mode. The
+gate, warm-up replay, window cutting and annotation calls are shared verbatim, so the
+sink path's behaviour cannot drift from the streaming path's. Trim bounds (regions) are
+applied in the worker before the batch is sent, as <code>filter_batch_to_bounds</code> does in the
+serial loop today. <code>rows_done</code> bookkeeping is skipped when there is no shard context.</p>
+<p>The per-run channel is unbounded on purpose: its content is bounded by the run's own
+size, a run must be able to finish without waiting for the drain (otherwise a straggling
+head would stall every worker), and the admission rule below bounds how many such runs
+exist.</p>
+<p>Every run task of a contig shares the contig's Parquet lookup <code>OnceCell</code>, as the
+sharded slices do. <code>activate_run_lookup</code> gains that parameter; the serial region-run
+path passes a fresh cell per contig as well, which is also a small win for it (today
+each region run decodes the footer again).</p>
+<p>Lookup partitions per run are one: the run's <code>LookupProvider</code> is built with
+<code>target_partitions = 1</code>, since parallelism comes from runs. Colocated sinks are per run,
+as they are per partition today.</p>
+<h3 id="ordering-admission-and-draining">Ordering, admission and draining<a class="headerlink" href="#ordering-admission-and-draining" title="Permanent link">¶</a></h3>
+<p>On every poll of <code>AnnotatingRunPool</code>:</p>
+<ol>
+<li><strong>Admit.</strong> While <code>active.len() &lt; workers</code> and <code>next_start &lt; head + workers + lookahead</code>
+   and <code>next_start &lt; runs.len()</code>, spawn the task for run <code>next_start</code> and increment it.
+   <code>lookahead</code> defaults to <code>workers</code> (<code>VEP_STREAM_LOOKAHEAD_RUNS</code> overrides). Memory in
+   flight is therefore at most <code>workers + lookahead</code> runs of output plus one window per
+   active task.</li>
+<li><strong>Drain the head.</strong> Poll the head run's receiver. A batch is returned to the caller
+   immediately, with the same LIMIT truncation and per-row accounting <code>DrainingWindow</code>
+   applies on the serial path (a pool-specific draining sub-state, since
+   <code>DrainingWindow</code> carries the serial <code>ContigAnnotationState</code>). A closed receiver
+   means the run finished: poll its join handle to surface any error, remove it from
+   <code>active</code>, advance <code>head</code>, and loop. When <code>head == runs.len()</code> the contig is done:
+   transition to <code>CleaningUp</code> as the other arms do.</li>
+<li><strong>Wake-ups.</strong> The head receiver's readiness wakes the stream. Admission is also
+   re-checked whenever a task completes, so a finished non-head run frees its worker
+   slot without waiting for the head. A task completion for a non-head run is observed
+   through its join handle in the same poll loop (a <code>FuturesUnordered</code> of join handles
+   or an explicit completion channel; implementation choice).</li>
+</ol>
+<p>Because runs are released strictly by index, and run indices follow the grid, the row
+order equals the serial order within a contig. Contigs are sequential, so the global
+order equals the serial order.</p>
+<h3 id="limit">LIMIT<a class="headerlink" href="#limit" title="Permanent link">¶</a></h3>
+<p>When the running total of released rows reaches the fetch limit, the pool aborts every
+active task and its lookup handles, drops the remaining runs, and the contig ends
+through <code>CleaningUp</code>; the outer loop already ends the stream on a satisfied limit. The
+first batch of a query with a small limit is released as soon as the head run's first
+window completes, not after the run finishes.</p>
+<h3 id="regions-with-workers1">Regions with workers&gt;1<a class="headerlink" href="#regions-with-workers1" title="Permanent link">¶</a></h3>
+<p>The construction-time guard in <code>AnnotateProvider::new</code> (<code>regions require workers=1</code>)
+is removed. It cannot be made conditional on the sink there, because the shard context
+is attached after construction; the sink case is already covered by the scan-time
+rejection of <code>regions</code> whenever a shard context is present, which is unchanged. With
+both <code>regions</code> and <code>workers&gt;1</code>, planning proceeds as in Run planning: region buffer
+ranges are subdivided into runs, each carrying its region's trim bounds, and the pool
+executes them in grid order. The <code>grid_count</code> double-take that motivated the guard
+cannot recur because <code>stateful_parallel</code> is false in this mode.</p>
+<h3 id="input-index">Input index<a class="headerlink" href="#input-index" title="Permanent link">¶</a></h3>
+<p>Each run reads its position window through the VCF provider's range filter. On an
+indexed input that is a seek; on an unindexed input it is a full parse per run, which
+would multiply the parse cost by the number of runs. <code>vepyr.annotate()</code> therefore
+raises <code>ValueError</code> when <code>workers &gt; 1</code> and neither <code>&lt;vcf&gt;.tbi</code> nor <code>&lt;vcf&gt;.csi</code> exists,
+on both output paths, before any engine call. The message mirrors the engine sink's
+(<code>workers&gt;1 requires a tabix-indexed input</code>). The engine itself does not add a check on
+the streaming path: it works on unindexed input, only slower, and the Python check is
+the earliest and most uniform place. (The presentation of this design said the engine
+would enforce it; the change is deliberate and is the only deviation.)</p>
+<h3 id="errors-and-cancellation">Errors and cancellation<a class="headerlink" href="#errors-and-cancellation" title="Permanent link">¶</a></h3>
+<p>A failing run task, lookup worker or activation surfaces its error as the contig's
+error: the pool aborts every task and lookup handle and enters <code>ErrorCleaningUp</code> with the
+original error, as <code>ParallelContigState::abort</code> does for the sink. Dropping the stream
+(Polars stops collecting, or the annotator is discarded) drops the pool, whose <code>Drop</code>
+aborts everything it owns, so no task outlives the query.</p>
+<h3 id="tracing-and-profiling">Tracing and profiling<a class="headerlink" href="#tracing-and-profiling" title="Permanent link">¶</a></h3>
+<p><code>VEP_PIPELINE_TRACE</code> emits, per contig, a <code>run_pool/plan</code> event (<code>runs</code>, <code>run_buffers</code>,
+<code>lookahead</code>) and per run <code>run_pool/start</code>, <code>run_pool/done</code> (input rows, output rows,
+elapsed, warm-up rows) and <code>run_pool/release</code>. <code>VEP_PROFILE</code>'s per-contig
+<code>pipeline_profile</code> line reports the run count and the head-wait time (time the drain
+spent with no head batch available while other runs were complete). These are what the
+measurement pass reads; wall time alone does not explain a scaling result.</p>
+<h2 id="python-design-vepyr">Python design (<code>vepyr</code>)<a class="headerlink" href="#python-design-vepyr" title="Permanent link">¶</a></h2>
+<ul>
+<li><code>annotate()</code>: the index check above. The docstring for <code>workers</code> describes both paths
+  and drops "serial in this release". The options dict is unchanged (<code>workers</code> is
+  already forwarded when <code>&gt;1</code>).</li>
+<li><code>src/annotate.rs</code>: no functional change. The runtime is already sized from <code>workers</code>
+  and the session's target partitions already follow it. A comment update where it says
+  the streaming path is drained in parallel by Polars (it is not; Polars drains one
+  generator).</li>
+<li><code>_batch_source</code>: no change. Region pushdown, projection-driven flags and the LIMIT
+  already reach the engine through the same options and SQL.</li>
+<li>Docs: <code>docs/performance.md</code> (knob table and a new timing table), <code>docs/quickstart.md</code>,
+  <code>docs/dataframes.md</code> where they state the LazyFrame path is serial.</li>
+</ul>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">¶</a></h2>
+<p>Engine (<code>datafusion-bio-function-vep</code>):</p>
+<ul>
+<li>Unit: run planning (cut count and lengths for several <code>B</code>/<code>workers</code>, the stateful
+  floor, Ensembl zero warm-up, region ranges subdivided with trim bounds preserved,
+  degenerate grid); admission never exceeds <code>workers + lookahead</code>; releases follow run
+  index whatever the completion order; LIMIT aborts active tasks and drops pending runs;
+  an error in a non-head run surfaces and aborts the pool.</li>
+<li>Fixture: SQL <code>annotate_vep(...)</code> on the crate fixtures with <code>workers</code> in <code>{1, 3}</code> on
+  Ensembl and Merged, with and without <code>regions</code>, with and without a LIMIT, comparing
+  concatenated outputs batch-row for batch-row. The sink's existing byte-identity tests
+  guard the shared worker body.</li>
+</ul>
+<p>vepyr:</p>
+<ul>
+<li>Golden fixture (<code>tests/data/golden</code>, indexed input, Ensembl and Merged caches):
+  <code>annotate(...).collect()</code> at <code>workers=2</code> equals <code>workers=1</code> as ordered frames, with
+  <code>skip_csq</code> in both settings, with a <code>chrom</code>/<code>start</code> predicate (pushdown plus workers),
+  with <code>head(7)</code>, and with <code>everything=True</code>.</li>
+<li>The index check raises for an unindexed input at <code>workers=2</code> on both paths; the
+  existing forwarding tests stay.</li>
+<li>e2e (release gate): the md5 LazyFrame-versus-VCF comparison on chr22 and chr1 at
+  <code>workers=4</code> on the 116 caches with <code>--everything</code>, and a wall/RSS table for
+  <code>workers</code> in <code>{1, 2, 4, 8}</code> on chr1 for <code>docs/performance.md</code>, read together with
+  the <code>run_pool</code> trace to attribute any shortfall. Discard the first run of a session
+  and check the host load average first.</li>
+</ul>
+<h2 id="measurement-plan">Measurement plan<a class="headerlink" href="#measurement-plan" title="Permanent link">¶</a></h2>
+<p>The sweep decides <code>RUNS_PER_WORKER</code>, <code>MIN_RUN_BUFFERS</code> and the lookahead default. It
+varies <code>VEP_STREAM_RUN_BUFFERS</code> and <code>VEP_STREAM_LOOKAHEAD_RUNS</code> at <code>workers=8</code> on chr1
+for Ensembl and Merged, records wall, peak RSS, head-wait and warm-up rows, and picks
+the smallest run length whose warm-up share stays under five percent on Merged and
+whose head-wait is not the dominant idle term. Expected outcome: within-contig scaling
+close to the sink's (about 5x at <code>workers=8</code>), with the same serial per-contig prepare
+tail the sink has.</p>
+<h2 id="delivery">Delivery<a class="headerlink" href="#delivery" title="Permanent link">¶</a></h2>
+<ol>
+<li>Engine PR on <code>datafusion-bio-functions</code>: the mode, planning, pool, generalised
+   worker sink, guard change, tracing, tests. Branch <code>feat/stream-run-pool</code>.</li>
+<li>vepyr PR pinned to the engine PR head: index check, docstring, docs, tests, e2e
+   runner flag. Re-pin to the merge commit after the engine PR merges, rerun the tests
+   and the gate, then merge.</li>
+</ol>
+<h2 id="deferred">Deferred<a class="headerlink" href="#deferred" title="Permanent link">¶</a></h2>
+<ul>
+<li>Cost-balanced run cuts (<code>VEP_GRID_BALANCE</code> equivalent) for gene-dense stragglers.</li>
+<li>Overlapping the next contig's first runs with the current contig's tail (cross-contig
+  concurrency). Ordering would still hold since runs are numbered globally, but the
+  shared context of two contigs would be resident at once.</li>
+<li>Lifting <code>regions</code> on the sharded VCF sink.</li>
+</ul>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">¶</a></h2>
+<ul>
+<li><strong>Warm-up share on Merged/RefSeq.</strong> If the measured share is high at useful run
+  lengths, the floor goes up and small contigs get fewer runs; correctness is unaffected.</li>
+<li><strong>Head-of-line idle.</strong> A gene-dense head run stalls release while others complete;
+  the lookahead bounds the waste but does not remove it. The trace's head-wait is the
+  signal; balanced cuts are the deferred fix.</li>
+<li><strong>Memory.</strong> Worst case is <code>workers + lookahead</code> runs of output resident. With the
+  defaults and four-buffer runs that is on the order of a few hundred megabytes to a
+  few gigabytes at <code>everything=True</code>, below the collect footprint Polars already has.
+  Users sinking to Parquet keep <code>row_group_size=5000</code>.</li>
+<li><strong>Drift between sink and stream workers.</strong> Mitigated by sharing one worker body
+  behind an output enum rather than copying it.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

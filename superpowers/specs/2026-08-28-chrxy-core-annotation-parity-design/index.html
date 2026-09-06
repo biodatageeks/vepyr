@@ -1,0 +1,1420 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/specs/2026-08-28-chrxy-core-annotation-parity-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>chrX/chrY core-annotation parity: transcript ablation, feature ranges, tiny introns - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chrxchry-core-annotation-parity-transcript-ablation-feature-ranges-tiny-introns" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              chrX/chrY core-annotation parity: transcript ablation, feature ranges, tiny introns
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defect-a-exonintron-single-value-vs-range-324-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect A — EXON/INTRON single value vs range (324 rows)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-b-transcript_ablation-never-emitted-37-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect B — transcript_ablation never emitted (37 rows)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-c-intron_variant-missing-at-a-2-bp-intron-2-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect C — intron_variant missing at a 2 bp intron (2 rows)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-d-hgvsp-missing-inside-a-2-bp-intron-1-row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect D — HGVSp missing inside a 2 bp intron (1 row)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-chr122-never-showed-any-of-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why chr1–22 never showed any of this
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defect-a-collect-then-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect A — collect, then range
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-b-a-generic-tier-gate-not-a-special-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect B — a generic tier gate, not a special case
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Defect B — a generic tier gate, not a special case">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#known-consequence-the-gate-is-not-a-no-op-on-mirna-transcripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known consequence: the gate is not a no-op on miRNA transcripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-c-restore-the-two-discarded-clauses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect C — restore the two discarded clauses
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defect-d-trace-first-then-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defect D — trace first, then fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#staging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Staging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provenance-and-repository-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provenance and repository state
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="chrxchry-core-annotation-parity-transcript-ablation-feature-ranges-tiny-introns">chrX/chrY core-annotation parity: transcript ablation, feature ranges, tiny introns<a class="headerlink" href="#chrxchry-core-annotation-parity-transcript-ablation-feature-ranges-tiny-introns" title="Permanent link">¶</a></h1>
+<p><strong>Date:</strong> 2026-08-28
+<strong>Status:</strong> Approved (design)
+<strong>Implementation repo:</strong> <code>datafusion-bio-function-vep</code> (github.com/biodatageeks/datafusion-bio-functions)
+<strong>Investigation:</strong> <code>/Users/mwiewior/workspace/data_vepyr/debug/chrXY-core-annotation-2026-08-28/</code>
+(<code>HANDOVER.md</code>, <code>KICKOFF.md</code>)</p>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">¶</a></h2>
+<p>vepyr reproduces Ensembl VEP 116 byte-identically on all 22 autosomes — 4,096,123 records,
+69,299,753 CSQ entries, 22/22 <code>body=ok</code>. Extending the same gate to chrX/chrY leaves <strong>364
+mismatched CSQ field values</strong> across 221,426 compared records. Zero plugin fields differ; every
+mismatch is a core annotation field produced by the consequence engine.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">chrX</th>
+<th style="text-align: right;">chrY</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>variants compared</td>
+<td style="text-align: right;">157,690</td>
+<td style="text-align: right;">63,736</td>
+</tr>
+<tr>
+<td>variants on one side only</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>CSQ entry count / order mismatches</td>
+<td style="text-align: right;">0 / 0</td>
+<td style="text-align: right;">0 / 0</td>
+</tr>
+<tr>
+<td>plugin-field mismatches</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>core-field mismatches</td>
+<td style="text-align: right;">148</td>
+<td style="text-align: right;">216</td>
+</tr>
+<tr>
+<td>strict body MD5</td>
+<td style="text-align: right;">DIFF</td>
+<td style="text-align: right;">DIFF</td>
+</tr>
+</tbody>
+</table>
+<p>The 364 rows decompose into exactly four defects, with no residue:</p>
+<table>
+<thead>
+<tr>
+<th>defect</th>
+<th style="text-align: right;">rows</th>
+<th>field(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A</strong> EXON/INTRON emitted as a single number where VEP emits a range</td>
+<td style="text-align: right;"><strong>324</strong></td>
+<td><code>EXON</code>, <code>INTRON</code></td>
+</tr>
+<tr>
+<td><strong>B</strong> <code>transcript_ablation</code> never emitted for sequence variants</td>
+<td style="text-align: right;"><strong>37</strong></td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td><strong>C</strong> <code>intron_variant</code> missing at a 2 bp intron boundary</td>
+<td style="text-align: right;"><strong>2</strong></td>
+<td><code>Consequence</code></td>
+</tr>
+<tr>
+<td><strong>D</strong> <code>HGVSp</code> missing for an insertion inside a 2 bp intron</td>
+<td style="text-align: right;"><strong>1</strong></td>
+<td><code>HGVSp</code></td>
+</tr>
+</tbody>
+</table>
+<p>324 + 37 + 2 + 1 = 364.</p>
+<h3 id="defect-a-exonintron-single-value-vs-range-324-rows">Defect A — EXON/INTRON single value vs range (324 rows)<a class="headerlink" href="#defect-a-exonintron-single-value-vs-range-324-rows" title="Permanent link">¶</a></h3>
+<p><code>which_exon_str</code> (<code>src/transcript_consequence.rs:8090</code>) and <code>which_intron_str</code> (<code>:8111</code>) both
+<code>return</code> from inside their scan loop on the first overlapping feature. Ensembl collects every
+overlapping feature, sorts the numbers, and emits <code>min-max</code>:</p>
+<div class="language-perl highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># BaseTranscriptVariation::exon_number, ensembl-variation @ 23c76f60b</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">my</span><span class="w"> </span><span class="nv">@numbers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">map</span><span class="w"> </span><span class="p">{</span><span class="o">...</span><span class="p">}</span><span class="w"> </span><span class="nb">grep</span><span class="w"> </span><span class="p">{</span><span class="n">overlap</span><span class="p">(</span><span class="nv">$vf_start</span><span class="p">,</span><span class="w"> </span><span class="nv">$vf_end</span><span class="p">,</span><span class="w"> </span><span class="nv">$_</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">start</span><span class="p">},</span><span class="w"> </span><span class="nv">$_</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">end</span><span class="p">})}</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">              </span><span class="nv">@</span><span class="p">{</span><span class="nv">$self</span><span class="o">-&gt;</span><span class="n">_overlapped_exons</span><span class="p">};</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">if</span><span class="p">(</span><span class="nb">scalar</span><span class="w"> </span><span class="nv">@numbers</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nv">@numbers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sort</span><span class="w"> </span><span class="p">{</span><span class="nv">$a</span><span class="w"> </span><span class="sr">&lt;=&gt;</span><span class="w"> </span><span class="nv">$b</span><span class="p">}</span><span class="w"> </span><span class="nv">@numbers</span><span class="p">;</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nv">$number_string</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">$numbers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="s">'-'</span><span class="o">.</span><span class="nv">$numbers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">];</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">}</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nv">$number_string</span><span class="w"> </span><span class="o">.=</span><span class="w"> </span><span class="s">'/'</span><span class="o">.</span><span class="nv">$total</span><span class="p">;</span>
+</span></code></pre></div>
+<p><code>intron_number</code> is the same code over <code>_overlapped_introns</code>.</p>
+<p>All 324 rows have the shape <em>VEP range vs vepyr single endpoint, identical total</em> — verified
+mechanically over both mismatch ledgers: 113 rows on chrX and 211 on chrY, with
+<code>total_same=True</code> and <code>vepyr_is_endpoint=True</code> for every single one. No other shape occurs.</p>
+<p><strong>This defect is independent of B.</strong> At <code>chrX:3886710</code>, feature <code>ENST00000648217</code> is only
+partially covered by the deletion: its <code>Consequence</code> already matches VEP exactly, yet <code>EXON</code> is
+<code>4/13</code> against VEP's <code>1-4/13</code> and <code>INTRON</code> is <code>4/12</code> against <code>1-4/12</code>. The handover's framing of
+A and B as "two symptoms, one cause" is incorrect — A fires on partial overlaps that will never
+be ablations.</p>
+<h3 id="defect-b-transcript_ablation-never-emitted-37-rows">Defect B — <code>transcript_ablation</code> never emitted (37 rows)<a class="headerlink" href="#defect-b-transcript_ablation-never-emitted-37-rows" title="Permanent link">¶</a></h3>
+<p>32 rows on chrX, 5 on chrY, every one of the form:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>VEP:    transcript_ablation
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>vepyr:  splice_acceptor_variant&amp;splice_donor_variant&amp;splice_donor_5th_base_variant
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        &amp;non_coding_transcript_exon_variant&amp;intron_variant
+</span></code></pre></div>
+<p>Ensembl's rule is a tier-1 consequence:</p>
+<div class="language-perl highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># VariationEffect.pm</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">sub</span><span class="w"> </span><span class="nf">feature_ablation</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">complete_overlap_feature</span><span class="p">(</span><span class="nv">$bvfoa</span><span class="p">,</span><span class="w"> </span><span class="nv">$feat</span><span class="p">,</span><span class="w"> </span><span class="nv">$bvfo</span><span class="p">,</span><span class="w"> </span><span class="nv">$bvf</span><span class="p">)</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">deletion</span><span class="p">(</span><span class="nv">@_</span><span class="p">));</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">sub</span><span class="w"> </span><span class="nf">complete_overlap_feature</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="nv">$bvf</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">start</span><span class="p">}</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="nv">$feat</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">start</span><span class="p">})</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="p">(</span><span class="nv">$bvf</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">end</span><span class="p">}</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="nv">$feat</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">end</span><span class="p">}));</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>transcript_ablation</code> and <code>transcript_amplification</code> are the only tier-1 transcript
+consequences; <code>mature_miRNA_variant</code> is the only tier-2; the remaining 28 transcript-scoped
+consequences are tier 3. Evaluation is strictly tier-ascending
+(<code>@SORTED_OVERLAP_CONSEQUENCES = sort {$a-&gt;tier &lt;=&gt; $b-&gt;tier}</code>,
+<code>BaseVariationFeatureOverlapAllele.pm:69</code>) and stops once a low tier has been assigned:</p>
+<div class="language-perl highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">OC:</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="k">my</span><span class="w"> </span><span class="nv">$oc</span><span class="w"> </span><span class="p">(</span><span class="nv">@oc_list</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="k">last</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nv">$assigned_tier</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">$oc</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">tier</span><span class="p">}</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nv">$assigned_tier</span><span class="p">;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="nv">$oc</span><span class="o">-&gt;</span><span class="nn">predicate</span><span class="o">-&gt;</span><span class="p">(</span><span class="nv">$self</span><span class="p">,</span><span class="w"> </span><span class="nv">$feat</span><span class="p">,</span><span class="w"> </span><span class="nv">$bvfo</span><span class="p">,</span><span class="w"> </span><span class="nv">$bvf</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nb">push</span><span class="w"> </span><span class="nv">@$cons</span><span class="p">,</span><span class="w"> </span><span class="nv">$oc</span><span class="p">;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="k">my</span><span class="w"> </span><span class="nv">$tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">$oc</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">tier</span><span class="p">};</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nv">$tier</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">$assigned_tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">$tier</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>So an ablated transcript emits <code>transcript_ablation</code> alone — every tier-3 term is suppressed —
+while <code>EXON</code>/<code>INTRON</code> are still populated, because those come from <code>OutputFactory</code>, not from the
+consequence list. The reference output confirms this exactly: at <code>chrX:3886710</code>,
+<code>ENST00000424415</code> carries <code>Consequence=transcript_ablation</code>, <code>EXON=1-4/4</code>, <code>INTRON=1-3/3</code>.</p>
+<p>The engine does construct <code>SoTerm::TranscriptAblation</code>, but only on the structural-variant path
+(<code>:2526</code>, <code>:2572</code>), driven by <code>SvFeatureKind::Transcript</code> + <code>SvEventKind::Ablation</code> rows from the
+<code>sv_features</code> cache artifact, and it emits a standalone CSQ entry with no <code>transcript_id</code>. There
+is no sequence-variant predicate, so a plain deletion spanning a transcript never reaches it.</p>
+<h3 id="defect-c-intron_variant-missing-at-a-2-bp-intron-2-rows">Defect C — <code>intron_variant</code> missing at a 2 bp intron (2 rows)<a class="headerlink" href="#defect-c-intron_variant-missing-at-a-2-bp-intron-2-rows" title="Permanent link">¶</a></h3>
+<p>Two variants, both insertions abutting a 2 bp intron. Exon coordinates read from the
+116 GRCh38 merged cache:</p>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>transcript</th>
+<th>flanking exons</th>
+<th>intron</th>
+<th>VF (start, end)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrX:10015674 G&gt;GC</code></td>
+<td><code>ENST00000380861</code> (+)</td>
+<td>1: …–10015674, 2: 10015677–…</td>
+<td><code>[10015675, 10015676]</code></td>
+<td>(10015675, 10015674)</td>
+</tr>
+<tr>
+<td><code>chrX:119605952 C&gt;CG</code></td>
+<td><code>NM_001417890.1</code> (−)</td>
+<td>2: …–119605952, 1: 119605955–…</td>
+<td><code>[119605953, 119605954]</code></td>
+<td>(119605953, 119605952)</td>
+</tr>
+</tbody>
+</table>
+<p>Ensembl's <code>intronic</code> flag comes from <code>_intron_effects</code>
+(<code>BaseTranscriptVariationAllele.pm:99-149</code>):</p>
+<div class="language-perl highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">if</span><span class="p">(</span><span class="nv">$intron</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">_frameshift</span><span class="p">}</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">overlap</span><span class="p">(</span><span class="nv">$r_start</span><span class="p">,</span><span class="w"> </span><span class="nv">$r_end</span><span class="p">,</span><span class="w"> </span><span class="nv">$intron_start</span><span class="p">,</span><span class="w"> </span><span class="nv">$intron_end</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nv">$intron_effects</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">within_frameshift_intron</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="k">next</span><span class="p">;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">overlap</span><span class="p">(</span><span class="nv">$r_start</span><span class="p">,</span><span class="w"> </span><span class="nv">$r_end</span><span class="p">,</span><span class="w"> </span><span class="nv">$intron_start</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nv">$intron_end</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="nv">$insertion</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="nv">$r_start</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">$intron_start</span><span class="o">+</span><span class="mi">2</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">$r_end</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">$intron_end</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="n">overlap</span><span class="p">(</span><span class="nv">$r_start_unshifted</span><span class="p">,</span><span class="w"> </span><span class="nv">$r_end_unshifted</span><span class="p">,</span><span class="w"> </span><span class="nv">$intron_start</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nv">$intron_end</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="nv">$insertion</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="nv">$r_start_unshifted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">$intron_start</span><span class="o">+</span><span class="mi">2</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">$r_end_unshifted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">$intron_end</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nv">$intron_effects</span><span class="o">-&gt;</span><span class="p">{</span><span class="n">intronic</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<p>For the first case: the frameshift-intron <code>next</code> is <strong>not</strong> taken, because
+<code>overlap(10015675, 10015674, 10015675, 10015676)</code> is false — an insertion's <code>end</code> is <code>start-1</code>,
+so it does not overlap the intron it abuts. Evaluation falls through, and
+<code>$r_end == $intron_end - 2</code> → <code>10015674 == 10015674</code> fires. <code>intronic = 1</code>. The second case is
+identical: <code>119605952 == 119605954 - 2</code>.</p>
+<p><code>variant_hits_intron_body</code> (<code>:9679</code>) diverges twice:</p>
+<ol>
+<li>It returns <code>false</code> for <em>any</em> intron with <code>(intron_end - intron_start).abs() &lt;= 12</code>,
+   unconditionally. Ensembl skips a frameshift intron only when the variant actually overlaps it.</li>
+<li>It collapses Ensembl's four OR'd clauses into the single range <code>[inner_start, inner_end+1]</code>.
+   That algebra is sound while <code>inner_start &lt;= inner_end</code>, but for a 2 bp intron
+   <code>inner_start = 10015677 &gt; inner_end = 10015674</code> and the function bails at
+   <code>if inner_start &gt; inner_end { return false; }</code> — discarding the standalone
+   <code>$r_end == $intron_end-2</code> clause, which is the entire defect.</li>
+</ol>
+<p>Both tools agree on <code>EXON</code> and <code>INTRON</code> here (both empty), which independently confirms the
+geometry: an insertion exactly at <code>exon_end+1</code> hits neither the exon (<code>start &lt;= exon.end</code> fails)
+nor the intron (<code>start &gt; intron_start</code> fails).</p>
+<h3 id="defect-d-hgvsp-missing-inside-a-2-bp-intron-1-row">Defect D — <code>HGVSp</code> missing inside a 2 bp intron (1 row)<a class="headerlink" href="#defect-d-hgvsp-missing-inside-a-2-bp-intron-1-row" title="Permanent link">¶</a></h3>
+<p><code>chrX:10015674 G&gt;GC</code> against <code>NM_015691.5</code>, whose exon 1 ends at 10015673 and exon 2 starts at
+10015676 — intron 1 is <code>[10015674, 10015675]</code>, again 2 bp. Here the insertion <strong>does</strong> overlap
+the intron (<code>overlap(10015675, 10015674, 10015674, 10015675)</code> is true), so Ensembl sets
+<code>within_frameshift_intron</code> and routes the variant through the coding path:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>VEP:    Consequence=coding_sequence_variant  HGVSc=NM_015691.5:c.96-1dup
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>        HGVSp=NP_056506.3:p.Pro33AlafsTer47  cDNA/CDS/Protein_position all empty
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>vepyr:  identical except HGVSp is empty
+</span></code></pre></div>
+<p>The engine has frameshift-intron handling (<code>:1800-1890</code>) and reaches the same
+<code>coding_sequence_variant</code>, the same <code>HGVSc</code>, and the same empty position fields — it just does
+not produce protein HGVS on that path. This is the one defect whose engine-side mechanism is not
+yet located; see Stage 4.</p>
+<h3 id="why-chr122-never-showed-any-of-this">Why chr1–22 never showed any of this<a class="headerlink" href="#why-chr122-never-showed-any-of-this" title="Permanent link">¶</a></h3>
+<p>The autosome benchmark (HG002 v4.2.1) contains no deletion large enough to span a transcript —
+the chrXY input reaches 38,429 bp — and the four tiny-intron transcripts involved in C and D are
+not exercised there. The autosome result stands; this is new coverage, not a regression.</p>
+<h2 id="design">Design<a class="headerlink" href="#design" title="Permanent link">¶</a></h2>
+<h3 id="defect-a-collect-then-range">Defect A — collect, then range<a class="headerlink" href="#defect-a-collect-then-range" title="Permanent link">¶</a></h3>
+<p>Change <code>which_exon_str</code> and <code>which_intron_str</code> to accumulate every hit instead of returning on
+the first. Emit <code>format!("{n}/{total}")</code> when one feature matches and
+<code>format!("{min}-{max}/{total}")</code> when more than one does.</p>
+<p>The hit predicates stay exactly as they are — insertions use <code>start &gt; f.start &amp;&amp; start &lt;= f.end</code>,
+everything else uses <code>overlaps(...)</code> — because those already reproduce Ensembl's <code>overlap()</code> on
+<code>(P, P-1)</code> insertion coordinates and are what makes the autosomes pass today. Only the
+accumulation changes.</p>
+<p>For introns, the number is computed per index with the existing strand mapping
+(<code>i + 1</code> on <code>+</code>, <code>total_introns - i</code> on <code>−</code>) and then min/max'd over the collected set, matching
+Ensembl's numeric sort of transcript-order numbers. On the <code>−</code> strand the collected numbers are
+descending in genomic order, so min/max is required — taking first/last would invert the range.</p>
+<h3 id="defect-b-a-generic-tier-gate-not-a-special-case">Defect B — a generic tier gate, not a special case<a class="headerlink" href="#defect-b-a-generic-tier-gate-not-a-special-case" title="Permanent link">¶</a></h3>
+<p>Two additions, both mirroring Ensembl directly.</p>
+<p><strong>1. <code>SoTerm::tier()</code></strong> in <code>so_terms.rs</code>, a match transcribed from <code>Config.pm</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">tier</th>
+<th>terms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td><code>transcript_ablation</code>, <code>transcript_amplification</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td><code>mature_miRNA_variant</code>, <code>TFBS_ablation</code>, <code>TFBS_amplification</code>, <code>TF_binding_site_variant</code>, <code>regulatory_region_ablation</code>, <code>regulatory_region_amplification</code>, <code>regulatory_region_variant</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td><code>intergenic_variant</code>, <code>sequence_variant</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>everything else</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. <code>apply_tier_gate(&amp;mut terms)</code></strong> at the emit boundary. Because the OC list is sorted by tier
+alone and <code>assigned_tier</code> is only ever set for <code>tier &lt;= 2</code>, Ensembl's <code>last if</code> reduces exactly to:</p>
+<blockquote>
+<p>Let <code>T</code> be the minimum tier among matched terms that is <code>&lt;= 2</code>. If <code>T</code> exists, retain only terms
+with <code>tier &lt;= T</code>. Otherwise retain everything.</p>
+</blockquote>
+<p>Note the asymmetry this preserves: a tier-3 match never sets <code>assigned_tier</code>, so tier-3 terms do
+<strong>not</strong> gate tier-4 terms. The reduction reproduces that, because the gate only engages when some
+matched term has tier ≤ 2.</p>
+<p><strong>3. The ablation predicate.</strong> A named function with a traceability block:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">fn</span><span class="w"> </span><span class="nf">transcript_is_ablated</span><span class="p">(</span><span class="n">variant</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">VariantInput</span><span class="p">,</span><span class="w"> </span><span class="n">tx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">TranscriptFeature</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="n">is_deletion</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">variant</span><span class="p">.</span><span class="n">start</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">tx</span><span class="p">.</span><span class="n">start</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">variant</span><span class="p">.</span><span class="n">end</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">tx</span><span class="p">.</span><span class="n">end</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>inserting <code>SoTerm::TranscriptAblation</code> into the term set, after which the generic gate does the
+suppression.</p>
+<p><strong>Term production is not restructured.</strong> <code>evaluate_transcript_overlap_inner</code> keeps returning the
+full term set <em>and</em> <code>coding_class</code> unchanged, and the gate runs on the output. This is load-bearing,
+not incidental: the pre-gate terms feed <code>original_terms_allow_protein_hgvs</code>,
+<code>used_ref_for_transcript_variant</code>, and the coding block at <code>:1352-1400</code>. An early return of
+<code>[TranscriptAblation]</code> would blank <code>coding_class</code> and silently change <code>HGVSc</code> and the position
+fields — which currently match VEP on all 4,096,123 autosome records, and which the reference
+shows VEP itself still populates on ablated transcripts.</p>
+<p>Two ordering risks were checked and retired: CSQ blocks sort by feature type then feature id
+(<code>:920</code>, <code>:1024</code>), not by term rank, so no block can reorder; and <code>TranscriptAblation</code> is already
+rank 1 with impact <code>HIGH</code> (<code>so_terms.rs:199</code>, <code>:245</code>), the same bucket as <code>SpliceAcceptorVariant</code>,
+so <code>IMPACT</code> is unchanged.</p>
+<h4 id="known-consequence-the-gate-is-not-a-no-op-on-mirna-transcripts">Known consequence: the gate is not a no-op on miRNA transcripts<a class="headerlink" href="#known-consequence-the-gate-is-not-a-no-op-on-mirna-transcripts" title="Permanent link">¶</a></h4>
+<p><code>mature_miRNA_variant</code> is tier 2, so a generic gate suppresses tier-3 terms that the engine
+currently hand-codes around — the <code>in_mature_mirna</code> flag skipping
+<code>NonCodingTranscriptExonVariant</code> (<code>:1820-1832</code>), and the <code>!terms.contains(&amp;MatureMirnaVariant)</code>
+guard on <code>NonCodingTranscriptVariant</code> (<code>:1965-1971</code>) — and it will additionally strip splice terms
+that <code>add_intron_splice_terms</code> adds unconditionally. That is more faithful to Ensembl, but it
+changes behaviour outside the four defects, and chr1–22 contains many miRNA transcripts.</p>
+<p>This is the single largest regression risk in this design and is accepted deliberately: the
+autosome gate is the instrument that adjudicates it. If the gate fails on miRNA rows, the fix is
+to remove the now-redundant hand-coded suppressions, not to narrow the tier gate.</p>
+<h3 id="defect-c-restore-the-two-discarded-clauses">Defect C — restore the two discarded clauses<a class="headerlink" href="#defect-c-restore-the-two-discarded-clauses" title="Permanent link">¶</a></h3>
+<p>In <code>variant_hits_intron_body</code>:</p>
+<ul>
+<li>Replace the unconditional <code>abs(intron_end - intron_start) &lt;= 12</code> bail with Ensembl's guard:
+  skip the intron <strong>only when the variant overlaps it</strong>
+  (<code>overlap(r_start, r_end, intron_start, intron_end)</code>). Non-overlapping variants fall through
+  to the boundary clauses, as in <code>_intron_effects</code>.</li>
+<li>Remove the <code>inner_start &gt; inner_end</code> early return and evaluate the clauses as a disjunction
+  rather than a collapsed range, so <code>r_start == inner_start</code> and <code>r_end == inner_end</code> still
+  apply when the inner range is inverted.</li>
+</ul>
+<p>The collapsed range stays valid for well-formed introns; this only restores behaviour in the
+degenerate case. The existing 402 unit tests in the file are the primary guard that the
+non-degenerate path is untouched.</p>
+<h3 id="defect-d-trace-first-then-fix">Defect D — trace first, then fix<a class="headerlink" href="#defect-d-trace-first-then-fix" title="Permanent link">¶</a></h3>
+<p>The mechanism is understood on the Ensembl side (<code>within_frameshift_intron</code> routes the variant
+into the coding path, producing protein HGVS without CDS/protein positions) but not yet located
+on the engine side. Stage 4 begins with a trace of <code>protein_hgvs_for_output_with_semantics</code> and
+the <code>in_frameshift_intron &amp;&amp; coding_class.is_none()</code> block at <code>:1878-1890</code>, which strips
+<code>FrameshiftVariant</code> and its peers, to establish where the protein HGVS is dropped. Only then is
+the fix designed.</p>
+<p>Scoping this as investigation-then-fix is deliberate: it is 1 row of 364, and guessing at it
+would risk the other 363.</p>
+<h2 id="staging">Staging<a class="headerlink" href="#staging" title="Permanent link">¶</a></h2>
+<p>Four stages, each independently verifiable, each starting from a failing test.</p>
+<table>
+<thead>
+<tr>
+<th>stage</th>
+<th>defect</th>
+<th style="text-align: right;">rows</th>
+<th>risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>A — EXON/INTRON ranges</td>
+<td style="text-align: right;">324</td>
+<td>low; additive, hit predicates unchanged</td>
+</tr>
+<tr>
+<td>2</td>
+<td>B — tier gate + ablation predicate</td>
+<td style="text-align: right;">37</td>
+<td>medium; miRNA interaction</td>
+</tr>
+<tr>
+<td>3</td>
+<td>C — frameshift-intron fall-through</td>
+<td style="text-align: right;">2</td>
+<td>medium; widens a hot predicate for every short intron</td>
+</tr>
+<tr>
+<td>4</td>
+<td>D — frameshift-intron HGVSp</td>
+<td style="text-align: right;">1</td>
+<td>unknown; trace first</td>
+</tr>
+</tbody>
+</table>
+<p>A and B run first because they are mechanical and carry 99% of the rows. C and D run last, where
+a surprise cannot contaminate the bulk result.</p>
+<h2 id="verification">Verification<a class="headerlink" href="#verification" title="Permanent link">¶</a></h2>
+<p><strong>Inner loop.</strong> A 3-variant VCF built from
+<code>input/HG002_chrXY_norm_acgt.vcf.gz</code> — <code>chrX:3886710</code>, <code>chrY:6246324</code>, <code>chrX:104069779</code> — plus a
+2-variant VCF for C (<code>chrX:10015674</code>, <code>chrX:119605952</code>). Both tools' full outputs are already in
+the investigation directory, so per-transcript diffs need no VEP re-run.</p>
+<p><strong>Stage gate.</strong> chrX and chrY to 0 semantic mismatches and strict body MD5, per §8 of <code>HANDOVER.md</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/run_comparison.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged_plugins<span class="w"> </span>--chroms<span class="w"> </span>X<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--vcf<span class="w">   </span><span class="nv">$DATA</span>/input/HG002_chrXY_norm_acgt.vcf.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--vep<span class="w">   </span><span class="nv">$DATA</span>/output/116/plugins/HG002_chrX_5plugins_vep116_caddfix.vcf.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>--plugin-cache<span class="w"> </span><span class="nv">$DATA</span>/plugin_cache<span class="w"> </span>--workers<span class="w"> </span><span class="m">4</span><span class="w"> </span>--bgzf<span class="w"> </span>--force
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/md5_concordance.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span>--pair<span class="w"> </span>&lt;vep<span class="w"> </span>slice&gt;.vcf<span class="w"> </span>&lt;vepyr&gt;.vcf.gz<span class="w"> </span>--mode<span class="w"> </span>strict<span class="w"> </span>--explain<span class="w"> </span>--explain-limit<span class="w"> </span><span class="m">0</span>
+</span></code></pre></div>
+<p><code>--vcf</code> and <code>--vep</code> are both required; the profile otherwise resolves the autosome benchmark, and
+plugin references are per-contig.</p>
+<p><strong>Regression gate — non-negotiable.</strong> <code>VEP_COMPARISON_WORKERS=4 ./scripts/run_all_plugin_comparisons.sh</code>
+must stay at 22/22 <code>body=ok</code>, 4,096,123 records, 69,299,753 CSQ entries, zero mismatches. Stages 2
+and 3 both touch logic shared with the autosomes; this is the only instrument that can detect the
+miRNA interaction or a short-intron regression.</p>
+<p>Also run <code>cargo test</code> in the engine crate — 402 unit tests in <code>transcript_consequence.rs</code> assert
+exact term sets and are the fastest signal for stages 2 and 3.</p>
+<h2 id="provenance-and-repository-state">Provenance and repository state<a class="headerlink" href="#provenance-and-repository-state" title="Permanent link">¶</a></h2>
+<p>Engine work branches off <code>datafusion-bio-functions</code> <strong><code>origin/master</code> = v0.19.1 <code>c3d4a5d</code></strong>, not
+the reference's v0.19.0 <code>01fa21f</code>. The two intervening commits (<code>3b32256</code>, <code>8339fa3</code>) are
+coordinate fixes in the <code>ranges</code> module, untouched by consequence logic, so they cannot confound
+the result — and branching from master avoids a rebase before merge.</p>
+<p>Preconditions before any of this reproduces:</p>
+<ul>
+<li>The local vepyr checkout is at <code>7fcaf7a</code> and pins engine v0.18.0 (<code>e937e49</code>). It must be pulled
+  to <code>origin/master</code> = <code>a6ba994</code>, which pins v0.19.0 (<code>01fa21f</code>), before the comparison scripts
+  from PRs #48 and #49 exist.</li>
+<li>GSD is not initialized in this repo (<code>.planning/ROADMAP.md</code> absent), so <code>/gsd:*</code> entry points
+  error out. This spec follows the <code>docs/superpowers/</code> convention already in use here.</li>
+</ul>
+<p>Reference provenance: Ensembl VEP <code>release_116.0</code>, merged cache <code>116_GRCh38_merged</code>, plugin
+manifests vepyr-plugins <code>8af8353</code>, input GIAB HG002 chrXY smallvar v1.0 GRCh38, Ensembl Perl read
+from <code>ensembl-variation</code> <code>23c76f60b</code>.</p>
+<h2 id="scope-and-non-goals">Scope and non-goals<a class="headerlink" href="#scope-and-non-goals" title="Permanent link">¶</a></h2>
+<p><strong>Coverage caveat.</strong> 221,426 of 255,212 chrXY records (86.8%) are compared. 24,327 are excluded
+for non-ACGT alleles — VEP detects input format from the first record, which is <code>chrX 222582 . Y C</code>,
+and aborts the whole file with <code>Can't detect input format</code> — and 9,459 for <code>*</code> spanning-deletion
+ALTs. Both tools see the identical filtered input, so the comparison is sound over what it covers,
+but chrX/Y parity must not be quoted as whole-benchmark coverage. The excluded records are
+unexamined and need their own decision.</p>
+<p><strong>Non-goal: porting Ensembl's full predicate table.</strong> Ensembl evaluates 31 independent
+transcript-scoped <code>OverlapConsequence</code> predicates; the engine uses one 263-line mutually-exclusive
+branch tree plus ~476 lines of helpers, with 10 <code>terms.insert</code> / 4 <code>terms.remove</code> sites and a
+60-line <code>strip_parent_terms</code> doing the conflict resolution that tier gating and <code>include</code> gates do
+upstream. A faithful port means rewriting ~740 lines into 31 predicates plus
+<code>_pre_consequence_predicates</code> / <code>_get_oc_list</code> / include-gate machinery, against ~2,441 lines of
+Perl, underneath 402 term-set assertions and a byte-identical 4M-record gate.</p>
+<p>It was evaluated and rejected for this work on three grounds: it would fix B and C but nothing of
+A (324 of 364 rows) or D, both of which are <code>OutputFactory</code>/HGVS concerns; the branch tree is a
+densely instrumented hot path whose short-circuiting looks load-bearing against a 50x-speedup
+constraint; and <code>STRICT_VEP_PARITY_PLAN.md:517</code> already records the decision that <em>"every planned
+rewrite starts from a reviewed Rust baseline rather than direct replacement."</em></p>
+<p>The generic tier gate is the part of that architecture worth having now, at ~40 lines instead of
+~2–4k. Recorded here as a future direction, not a rejection on merit.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

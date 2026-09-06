@@ -1,0 +1,2878 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/plugins/">
+      
+      
+        <link rel="prev" href="../api/">
+      
+      
+        <link rel="next" href="../performance/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Plugins - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plugins" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Plugins
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#building-a-plugin-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building a plugin cache
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building a plugin cache">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#annotating-with-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Annotating with plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Annotating with plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-only-annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin-only annotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choosing-which-plugins-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing which plugins run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manifest-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manifest structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manifest structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top level
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [[source]]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sourcecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [source.csv]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#match_column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [[match_column]]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#value_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [[value_columns]]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-part-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-part sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#allele-matching-exact-vs-minimised" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allele matching: exact vs minimised
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Allele matching: exact vs minimised">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-two-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-locus-where-both-rules-fire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A locus where both rules fire
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trim-order-is-load-bearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trim order is load-bearing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-alphamissense-per-transcript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: AlphaMissense (per-transcript)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-a-per-variant-plugin-no-discriminator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: a per-variant plugin (no discriminator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-attribute-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine-attribute namespace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-format-lookup-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache format &amp; lookup internals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cache format &amp; lookup internals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provenance-in-manifestjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provenance in manifest.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shard-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shard schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parquet-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parquet storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sorting-within-a-shard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sorting within a shard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-index-the-pagedir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page index → the PageDir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row groups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-lookup-async-reader-monotonic-cursor-in-batches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime lookup — async reader + monotonic cursor, in batches
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tiering-how-warmcold-is-calculated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tiering — how warm/cold is calculated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-pipeline-table-providers-tables-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build pipeline — table providers, tables &amp; views
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported plugins
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#building-a-plugin-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building a plugin cache
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building a plugin cache">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#annotating-with-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Annotating with plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Annotating with plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-only-annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin-only annotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#choosing-which-plugins-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing which plugins run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manifest-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manifest structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manifest structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top level
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [[source]]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sourcecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [source.csv]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#match_column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [[match_column]]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#value_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [[value_columns]]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-part-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-part sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#allele-matching-exact-vs-minimised" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allele matching: exact vs minimised
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Allele matching: exact vs minimised">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-two-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-locus-where-both-rules-fire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A locus where both rules fire
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trim-order-is-load-bearing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trim order is load-bearing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-alphamissense-per-transcript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: AlphaMissense (per-transcript)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-a-per-variant-plugin-no-discriminator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: a per-variant plugin (no discriminator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-attribute-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine-attribute namespace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-format-lookup-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache format &amp; lookup internals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cache format &amp; lookup internals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provenance-in-manifestjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provenance in manifest.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shard-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shard schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parquet-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parquet storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sorting-within-a-shard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sorting within a shard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-index-the-pagedir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page index → the PageDir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row groups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-lookup-async-reader-monotonic-cursor-in-batches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime lookup — async reader + monotonic cursor, in batches
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tiering-how-warmcold-is-calculated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tiering — how warm/cold is calculated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-pipeline-table-providers-tables-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build pipeline — table providers, tables &amp; views
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported plugins
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">¶</a></h1>
+<p>vepyr supports external per-variant annotation databases as <strong>plugins</strong>: a raw
+source (TSV/CSV/Parquet) is converted into a frequency-tiered, per-chromosome
+Parquet cache whose values are emitted as extra VEP CSQ output fields.
+Five plugins are implemented today: <strong>CADD</strong>, <strong>SpliceAI</strong>, <strong>AlphaMissense</strong>,
+<strong>ClinVar</strong> and <strong>dbNSFP</strong>.</p>
+<p>Plugin manifests live in the public <a href="https://github.com/biodatageeks/vepyr-plugins">vepyr-plugins</a>
+repository and are selected by <strong>plugin name + git tag</strong>, so different plugins can
+be pinned to different releases.</p>
+<div class="admonition tip">
+<p class="admonition-title">Don't want to build one?</p>
+<p>Prebuilt release-116 plugin caches for CADD, SpliceAI, AlphaMissense and
+ClinVar are published for download — see
+<a href="../downloads/#plugin-caches">Plugin caches</a>. dbNSFP is the exception: its
+licence forbids redistributing a converted cache, so that one must be built
+from your own registered download.</p>
+</div>
+<h2 id="building-a-plugin-cache">Building a plugin cache<a class="headerlink" href="#building-a-plugin-cache" title="Permanent link">¶</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">build_plugin_cache</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">plugin</span><span class="o">=</span><span class="s2">"alphamissense"</span><span class="p">,</span>          <span class="c1"># dir in vepyr-plugins</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">version</span><span class="o">=</span><span class="s2">"v0.2.0"</span><span class="p">,</span>                <span class="c1"># git tag of vepyr-plugins for THIS plugin's manifest</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">source_path</span><span class="o">=</span><span class="s2">"AlphaMissense_hg38.tsv.gz"</span><span class="p">,</span>  <span class="c1"># the raw source DATA (not in vepyr-plugins)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">cache_dir</span><span class="o">=</span><span class="s2">"/data/115_GRCh38_merged"</span><span class="p">,</span>      <span class="c1"># existing Ensembl variation cache (supplies tier)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="s2">"/data/plugin_cache"</span><span class="p">,</span>   <span class="c1"># output: plugin/&lt;name&gt;/chr*.parquet + manifest.json</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">chroms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>                     <span class="c1"># None = all chroms present under &lt;cache_dir&gt;/variation/</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">plugins_repo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>               <span class="c1"># optional local clone of vepyr-plugins for OFFLINE builds</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                 <span class="c1"># True replaces an existing plugin/&lt;name&gt;/ tree</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">verify_source</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>              <span class="c1"># hash each source against the manifest's md5 first</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>source_path</code> also accepts a <code>dict[str, str]</code> for a manifest whose <code>[[source]]</code>
+entries are split across several files, keyed by part name — those register as
+<code>plugin_&lt;name&gt;_src_&lt;part&gt;</code>. The call returns one
+<code>(chrom, rows, warm, cold)</code> tuple per chromosome written.</p>
+<p>One call builds one plugin at one version. To combine plugins at different
+versions (e.g. AlphaMissense <code>v0.2.0</code> + ClinVar <code>v0.3.0</code>), call
+<code>build_plugin_cache</code> once per plugin into the <strong>same</strong> <code>plugin_cache_root</code>.</p>
+<p>The manifest is resolved from the public vepyr-plugins repo at <code>version</code>
+(cloned on demand), or from a local clone via <code>plugins_repo</code> for fully offline
+builds. The exact resolution is recorded in the cache's <code>manifest.json</code> as
+<code>cache_source_version: "&lt;version&gt;@&lt;commit SHA&gt;"</code>. An incremental build may add
+or replace chromosomes only when that value matches the existing cache; use a
+full build with <code>overwrite=True</code> to move a plugin cache to another revision.
+Tiering (warm/cold) is <strong>inherited from the variation cache</strong> at
+<code>cache_dir</code> — plugins declare no tier policy of their own.</p>
+<h3 id="source-verification">Source verification<a class="headerlink" href="#source-verification" title="Permanent link">¶</a></h3>
+<p>A byte-parity-validated cache is only as good as the bytes it was built from,
+so before the first chromosome is ingested the build MD5-hashes each resolved
+<code>source_path</code> once (streaming, bounded memory — CADD's 87 GB SNV file costs a
+few minutes of I/O on top of a multi-hour build) and compares it with the
+manifest's <code>md5</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>verify_source</code></th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>True</code> / <code>"strict"</code> (default)</td>
+<td>A mismatch raises before anything is written, naming the part, the expected and actual digests and the upstream <code>url</code>.</td>
+</tr>
+<tr>
+<td><code>"warn"</code></td>
+<td>A mismatch is logged and the build continues; the digest actually found is recorded. For deliberate builds against a re-compressed or derived artifact, such as AlphaMissense's BGZF build input (its plugin README documents the preprocessing).</td>
+</tr>
+<tr>
+<td><code>False</code> / <code>"skip"</code></td>
+<td>Nothing is hashed. Use it for a chromosome slice cut with <code>tabix</code>, whose digest can never match the whole file's.</td>
+</tr>
+</tbody>
+</table>
+<p>A manifest that declares no <code>md5</code> is never hashed, whatever the mode. The
+outcome is recorded under <code>sources</code> in the emitted <code>manifest.json</code> (see
+<a href="#cache-format-lookup-internals">Cache format</a>), and an incremental
+<code>chroms=[...]</code> build against a file whose size and mtime match an earlier
+verified record trusts that record instead of re-hashing — a per-chromosome
+CADD workflow that calls <code>build_plugin_cache</code> 22 times hashes its input once.</p>
+<h2 id="annotating-with-plugins">Annotating with plugins<a class="headerlink" href="#annotating-with-plugins" title="Permanent link">¶</a></h2>
+<p>Point <code>annotate()</code> at the built cache root; the plugin CSQ fields appear
+automatically (header + per-transcript body). <code>plugin_cache_root=None</code> (default)
+is byte-identical to a plugin-free run.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="s2">"sample.vcf"</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="s2">"/data/115_GRCh38_merged"</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">everything</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"Homo_sapiens.GRCh38.dna.primary_assembly.fa"</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="s2">"/data/plugin_cache"</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">output_vcf</span><span class="o">=</span><span class="s2">"sample.annotated.vcf"</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="plugin-only-annotation">Plugin-only annotation<a class="headerlink" href="#plugin-only-annotation" title="Permanent link">¶</a></h3>
+<p>Pass <code>fields="core"</code> to emit VEP's eleven VCF-side default fields followed by
+the selected plugin blocks:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="s2">"sample.vcf"</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">"/data/116_GRCh38_merged"</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">fields</span><span class="o">=</span><span class="s2">"core"</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="s2">"/data/plugin_cache"</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">plugins</span><span class="o">=</span><span class="p">[</span><span class="s2">"cadd"</span><span class="p">],</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>VCF output records the exact ordered layout in the <code>CSQ</code> <code>Format:</code> header. An
+explicit list or tuple may be used instead of <code>"core"</code>; its order is
+preserved. Fields needed by plugin match templates are still computed even
+when they are not emitted. With <code>fields=None</code> the full CSQ layout is written.</p>
+<p>On the DataFrame path <code>fields=</code> is not needed: each plugin field is always a
+named column after the base columns, typed by the manifest's <code>type</code> and
+shaped by its <code>match_columns</code>: one value per row for a per-variant plugin
+(<code>CADD_PHRED: String</code>), one per consequence entry for a per-feature plugin
+(<code>am_pathogenicity: List(Float32)</code>). A <code>select()</code> decides what the engine
+computes, plugin lookup included. See
+<a href="../dataframes/#plugin-columns">Polars DataFrames</a>.</p>
+<p>For why some scores remain strings to preserve VCF body MD5 matches, which
+numeric types retain each field's precision, and Polars casting examples,
+see <a href="https://github.com/biodatageeks/vepyr-plugins/blob/master/README.md#string-scores-and-numeric-casts">String scores and numeric casts in the vepyr-plugins README</a>.</p>
+<h3 id="choosing-which-plugins-run">Choosing which plugins run<a class="headerlink" href="#choosing-which-plugins-run" title="Permanent link">¶</a></h3>
+<p>By default every plugin under <code>&lt;plugin_cache_root&gt;/plugin/</code> is applied. There
+is no per-call version argument — a plugin's version is fixed when
+<a href="../api/#vepyr.build_plugin_cache"><code>build_plugin_cache</code></a> writes it.</p>
+<p><code>plugins</code> narrows that set to a subset of the directories present:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="s2">"sample.vcf"</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="s2">"/data/116_GRCh38_merged"</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="s2">"/data/plugin_cache"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">plugins</span><span class="o">=</span><span class="p">[</span><span class="s2">"clinvar"</span><span class="p">,</span> <span class="s2">"cadd"</span><span class="p">],</span>   <span class="c1"># only these two</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">output_vcf</span><span class="o">=</span><span class="s2">"sample.annotated.vcf"</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th><code>plugins=</code></th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>omitted / <code>None</code></td>
+<td>every plugin under the root — the default</td>
+</tr>
+<tr>
+<td><code>["clinvar", "cadd"]</code></td>
+<td>only those two</td>
+</tr>
+<tr>
+<td><code>[]</code></td>
+<td>none; equivalent to a plugin-free run</td>
+</tr>
+<tr>
+<td><code>["nope"]</code></td>
+<td><code>ValueError</code>, listing the plugins that <em>are</em> available</td>
+</tr>
+</tbody>
+</table>
+<p>Order is significant: <code>plugins=["clinvar", "cadd"]</code> emits the ClinVar block
+before the CADD block in both the CSQ header and every CSQ value. Duplicates
+are rejected, and the value must be a list or tuple rather than an unordered
+set. With <code>plugins=None</code>, the engine discovers every cached plugin and emits
+them in alphabetical plugin-name order. <code>plugins</code> requires
+<code>plugin_cache_root</code>.</p>
+<p>The three alternatives to <code>plugins</code> all still work, and are what you want when
+a selection is permanent rather than per-call: pass <code>plugin_cache_root=None</code>
+for no plugins, build separate roots for separate combinations, or add and
+remove plugin directories under an existing root.</p>
+<h2 id="manifest-structure">Manifest structure<a class="headerlink" href="#manifest-structure" title="Permanent link">¶</a></h2>
+<p>A plugin's <code>plugins/&lt;name&gt;/&lt;name&gt;.source.toml</code> declares how to ingest the raw
+source and map it to CSQ fields.</p>
+<div class="admonition note">
+<p class="admonition-title">TOML ordering</p>
+<p>Top-level scalar keys (<code>plugin_name</code>, <code>coordinate_system</code>, <code>ingest_sql</code>)
+MUST precede any <code>[[table]]</code> header, or TOML absorbs them into the preceding
+table.</p>
+</div>
+<h3 id="top-level">Top level<a class="headerlink" href="#top-level" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plugin_name</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Plugin identifier; also the cache directory name.</td>
+</tr>
+<tr>
+<td><code>coordinate_system</code></td>
+<td><code>1-based</code> | <code>0-based-half-open</code></td>
+<td>yes</td>
+<td>How <code>ingest_sql</code> reads positions. Drives the build-time shift to the variation cache's 1-based convention, and for <code>vcf</code>/<code>bed</code> sources it also sets the provider's own flag so both agree.</td>
+</tr>
+<tr>
+<td><code>ingest_sql</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>SELECT</code> over the raw source table(s). MUST project <code>chrom</code>, <code>start</code>, <code>end</code>, <code>allele_string</code> (<code>ref/alt</code>), plus any discriminator and value columns.</td>
+</tr>
+<tr>
+<td><code>[[source]]</code></td>
+<td>table array</td>
+<td>yes, 1+</td>
+<td>The raw file(s) — see below.</td>
+</tr>
+<tr>
+<td><code>[[value_columns]]</code></td>
+<td>table array</td>
+<td>yes, 1+</td>
+<td>The emitted CSQ fields — see below.</td>
+</tr>
+<tr>
+<td><code>[[match_column]]</code></td>
+<td>table array</td>
+<td>no (default none)</td>
+<td>Per-transcript discriminator(s) — see below. Omit for per-variant plugins.</td>
+</tr>
+<tr>
+<td><code>allele_match</code></td>
+<td><code>exact</code> | <code>minimised</code></td>
+<td>no (default <code>exact</code>)</td>
+<td>Which comparison the plugin's own Ensembl implementation uses. See <a href="#allele-matching-exact-vs-minimised">Allele matching</a> — it is a statement about upstream, not a tuning knob.</td>
+</tr>
+<tr>
+<td><code>field_order</code></td>
+<td><code>declared</code> | <code>alphabetical</code></td>
+<td>no (default <code>declared</code>)</td>
+<td>Order of this plugin's fields in CSQ. <code>declared</code> mirrors Ensembl <code>--custom</code>, <code>alphabetical</code> mirrors <code>--plugin</code>.</td>
+</tr>
+<tr>
+<td><code>assume_unique</code></td>
+<td>bool</td>
+<td>no (default <code>false</code>)</td>
+<td>Declare that the source never repeats a probe key, skipping the dedup pass. The build <strong>samples the data to check the claim</strong> rather than trusting it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="source"><code>[[source]]</code><a class="headerlink" href="#source" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>provider</code></td>
+<td><code>csv</code> | <code>tsv</code> | <code>parquet</code> | <code>vcf</code> | <code>bed</code></td>
+<td>yes</td>
+<td>Reader for this file. All five work — see <a href="#build-pipeline-table-providers-tables-views">Table providers</a>.</td>
+</tr>
+<tr>
+<td><code>path</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Placeholder; <strong>always</strong> overridden at build time by <code>source_path</code>.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Provenance: the canonical <strong>upstream</strong> download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly <code>clinvar.vcf.gz</code>). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), <code>url</code> still names the upstream file. Never fetched; copied into the built cache's <code>manifest.json</code> and quoted in verification errors.</td>
+</tr>
+<tr>
+<td><code>md5</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Provenance: 32 lowercase hex MD5 of the file at <code>url</code>. Take it from the publisher's checksum file where one exists (CADD <code>MD5SUMs</code>, ClinVar <code>.md5</code>, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. This is the digest the build <a href="#source-verification">verifies</a> <code>source_path</code> against. A manifest keeps this one digest; when the build input is a derived artifact of <code>url</code> (AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip) the preprocessing is documented in the plugin's README and the build runs with <code>verify_source="warn"</code> or <code>False</code>.</td>
+</tr>
+<tr>
+<td><code>part</code></td>
+<td>string</td>
+<td>no</td>
+<td>Names this source when a manifest declares several. Registers as <code>plugin_&lt;name&gt;_src_&lt;part&gt;</code>, and makes <code>source_path</code> take a <code>{part: path}</code> mapping.</td>
+</tr>
+<tr>
+<td><code>index</code></td>
+<td><code>tabix</code></td>
+<td>no</td>
+<td>Random-access index. Explicit rather than inferred from a <code>.gz</code> suffix, because ordinary gzip is not seekable. On <code>csv</code>/<code>tsv</code> it <strong>requires</strong> <code>compression = "gzip"</code> (i.e. BGZF) — a plain gzip source with <code>index = "tabix"</code> is rejected at parse time.</td>
+</tr>
+<tr>
+<td><code>record_layout</code></td>
+<td>bool</td>
+<td>no (default <code>false</code>)</td>
+<td><code>vcf</code> sources only: carry the raw record layout through the provider.</td>
+</tr>
+<tr>
+<td><code>[source.csv]</code></td>
+<td>table</td>
+<td>for <code>csv</code>/<code>tsv</code></td>
+<td>Parsing options — see below. Not used by <code>parquet</code>/<code>vcf</code>/<code>bed</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sourcecsv"><code>[source.csv]</code><a class="headerlink" href="#sourcecsv" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>delimiter</code></td>
+<td>string</td>
+<td><code>"\t"</code></td>
+<td>Field separator.</td>
+</tr>
+<tr>
+<td><code>has_header</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Whether row 1 is a header.</td>
+</tr>
+<tr>
+<td><code>comment</code></td>
+<td>string</td>
+<td>none</td>
+<td>Lines starting with this are skipped (e.g. <code>"#"</code>).</td>
+</tr>
+<tr>
+<td><code>compression</code></td>
+<td>string</td>
+<td>none</td>
+<td><code>"gzip"</code> is the recognised value. gzip inputs are decompressed to a temp file first, since DataFusion is built without the <code>compression</code> feature.</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>array of <code>{name, type}</code></td>
+<td>empty</td>
+<td>Ordered column list for headerless or explicitly typed input. <code>type</code> is <code>Utf8</code>, <code>Float32</code> or <code>Int32</code> — declaring everything <code>Utf8</code> and casting in <code>ingest_sql</code> is the common pattern.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="match_column"><code>[[match_column]]</code><a class="headerlink" href="#match_column" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>column</code></td>
+<td>string</td>
+<td>yes</td>
+<td>The discriminator column stored in the shard.</td>
+</tr>
+<tr>
+<td><code>template</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Built at runtime from the <a href="#engine-attribute-namespace">engine-attribute namespace</a>, e.g. <code>{ref_aa}{Protein_position}{alt_aa}</code>. If any attribute it references is absent for a consequence, the discriminator is empty and the plugin emits nothing on that line.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="value_columns"><code>[[value_columns]]</code><a class="headerlink" href="#value_columns" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>column</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Column produced by <code>ingest_sql</code>.</td>
+</tr>
+<tr>
+<td><code>csq_field</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Output CSQ field name.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>Utf8</code> | <code>Float32</code> | <code>Int32</code></td>
+<td>yes</td>
+<td>Stored Arrow type.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>string</td>
+<td>no</td>
+<td>Emitted as the <code>##&lt;FIELD&gt;=&lt;description&gt;</code> header line, matching what Ensembl writes for plugin fields.</td>
+</tr>
+</tbody>
+</table>
+<p>Declaration order is <strong>not</strong> necessarily output order — <code>field_order</code> decides
+that, and it is <code>alphabetical</code> for four of the five shipped plugins. See
+<a href="#supported-plugins">the note on emitted order</a>.</p>
+<h3 id="multi-part-sources">Multi-part sources<a class="headerlink" href="#multi-part-sources" title="Permanent link">¶</a></h3>
+<p>A manifest may declare several <code>[[source]]</code> blocks, each with its own <code>part</code>.
+They register as <code>plugin_&lt;name&gt;_src_&lt;part&gt;</code> and are combined by the manifest's
+own <code>ingest_sql</code>, so the files need not be concatenated first — CADD's separate
+SNV and indel sources are the worked example:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">build_plugin_cache</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">"cadd"</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">source_path</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="s2">"snv"</span><span class="p">:</span> <span class="s2">".../whole_genome_SNVs.tsv.gz"</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="s2">"indel"</span><span class="p">:</span> <span class="s2">".../gnomad.genomes.r4.0.indel.tsv.gz"</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="p">},</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="o">...</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>The mapping must cover every declared part and name no unknown one. A bare path
+against a multi-source manifest is rejected — one path cannot address two
+sources, and the unmapped ones would silently read their placeholders. A mapping
+is likewise rejected when a <code>[[source]]</code> declares no <code>part</code>, since there is then
+no key to address it by.</p>
+<p>There is <strong>no <code>[tier]</code> block</strong> — tiering is inherited from the variation cache.</p>
+<h2 id="allele-matching-exact-vs-minimised">Allele matching: <code>exact</code> vs <code>minimised</code><a class="headerlink" href="#allele-matching-exact-vs-minimised" title="Permanent link">¶</a></h2>
+<p>Ensembl's plugins do <strong>not</strong> agree on how a variant is compared to a row of
+their data file, so neither can vepyr. Getting this wrong is silent: the wrong
+setting either drops annotations Ensembl reports, or invents ones it does not.</p>
+<p>Two rules are in use upstream:</p>
+<table>
+<thead>
+<tr>
+<th>rule</th>
+<th>what Ensembl does</th>
+<th>plugins</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>minimised</code></td>
+<td>calls <code>get_matched_variant_alleles()</code>, which runs <code>trim_sequences()</code> over <strong>both</strong> the variant and the data row before comparing</td>
+<td>CADD, AlphaMissense, ClinVar</td>
+</tr>
+<tr>
+<td><code>exact</code></td>
+<td>compares position and allele strings verbatim</td>
+<td>SpliceAI, dbNSFP</td>
+</tr>
+</tbody>
+</table>
+<p>Both rules compare the same three things — position, REF, ALT. The setting does
+not change the shape of the key, and it does not change the first lookup: every
+plugin is probed with the parser-level <code>(start, allele_string)</code>. What <code>minimised</code>
+adds is a <strong>second lookup on a miss</strong>, against the fully reduced key. <code>exact</code>
+plugins get one probe and stop.</p>
+<p>Because the fallback is only consulted after a miss, <code>minimised</code> can add hits
+but can never change one the primary probe already found.</p>
+<h3 id="the-two-keys">The two keys<a class="headerlink" href="#the-two-keys" title="Permanent link">¶</a></h3>
+<p>A key is the <strong>pair</strong> <code>(start, allele_string)</code> — two separate shard columns, and
+two separate arguments to the probe. <code>allele_string</code> holds only <code>REF/ALT</code>
+(<code>"A/T"</code>, <code>"GT/-"</code>); it never carries the position. Below, <code>A/T @ 26032805</code> is
+shorthand for that pair, not for the string itself.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>primary key <code>(start, allele_string)</code></th>
+<th>fully reduced (fallback key)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Built by</strong></td>
+<td><code>vcf_to_vep_input_allele()</code></td>
+<td><code>plugin_probe_allele()</code></td>
+</tr>
+<tr>
+<td><strong>Mirrors</strong></td>
+<td>Ensembl's VCF → <code>VariationFeature</code> parse</td>
+<td>Ensembl's <code>trim_sequences()</code></td>
+</tr>
+<tr>
+<td><strong>Trims prefix</strong></td>
+<td>one base only, the VCF anchor</td>
+<td>the whole shared prefix</td>
+</tr>
+<tr>
+<td><strong>Trims suffix</strong></td>
+<td>never</td>
+<td>the whole shared suffix</td>
+</tr>
+<tr>
+<td><strong>Applies to</strong></td>
+<td>indels only; SNV/MNV untouched</td>
+<td>every variant class</td>
+</tr>
+<tr>
+<td><strong>Moves position</strong></td>
+<td><code>+1</code> when the anchor is stripped</td>
+<td><code>+1</code> per prefix base; suffix never moves it</td>
+</tr>
+<tr>
+<td><strong>Empty side</strong></td>
+<td><code>-</code></td>
+<td><code>-</code></td>
+</tr>
+<tr>
+<td><strong>Used by</strong></td>
+<td>every plugin, always</td>
+<td><code>minimised</code> plugins, and only after a miss</td>
+</tr>
+</tbody>
+</table>
+<p>The same variants through both:</p>
+<table>
+<thead>
+<tr>
+<th>VCF record</th>
+<th>primary <code>(start, allele_string)</code></th>
+<th>fully reduced</th>
+<th>differ?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>100 A/G</code></td>
+<td><code>A/G</code> @ 100</td>
+<td><code>A/G</code> @ 100</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>200 CA/C</code></td>
+<td><code>A/-</code> @ 201</td>
+<td><code>A/-</code> @ 201</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>26032805 AAT/TAT</code></td>
+<td><code>AAT/TAT</code> @ 26032805</td>
+<td><code>A/T</code> @ 26032805</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td><code>13973877 TTGTGTGTGTGTG/GTGTGTGTGTGTG</code></td>
+<td>unchanged @ 13973877</td>
+<td><code>T/G</code> @ 13973877</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td><code>26062230 AAC/ACAC</code></td>
+<td><code>AC/CAC</code> @ 26062231</td>
+<td><code>-/C</code> @ 26062231</td>
+<td><strong>yes</strong></td>
+</tr>
+<tr>
+<td><code>13836148 CGTGTGT/CGTGT</code></td>
+<td><code>GTGTGT/GTGT</code> @ 13836149</td>
+<td><code>GT/-</code> @ 13836153</td>
+<td><strong>yes</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Which key each rule reaches for:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>probes the primary key</th>
+<th>probes the fully reduced key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exact</code> — SpliceAI, dbNSFP</td>
+<td>yes</td>
+<td>never</td>
+</tr>
+<tr>
+<td><code>minimised</code> — CADD, AlphaMissense, ClinVar</td>
+<td>yes</td>
+<td>only if the first missed <strong>and</strong> the two keys differ</td>
+</tr>
+</tbody>
+</table>
+<p>The first two rows are the common case: the keys are identical, so <code>minimised</code>
+does a single lookup exactly like <code>exact</code> — it costs nothing on well-formed
+input. The rest are equal-length MNVs and <code>bcftools norm -m -both</code> leftovers,
+where the parser keeps a shared suffix it never trims. That is the class where
+the rule decides the answer.</p>
+<div class="admonition note">
+<p class="admonition-title">Why MNVs dominate these examples</p>
+<p>The parser suffix-trims <strong>indels only</strong>, never same-length substitutions.
+So an untrimmed MNV keeps its entire shared suffix in <code>allele_string</code>, and
+the reduced key is genuinely a different lookup.</p>
+</div>
+<h3 id="a-locus-where-both-rules-fire">A locus where both rules fire<a class="headerlink" href="#a-locus-where-both-rules-fire" title="Permanent link">¶</a></h3>
+<p><code>chr21:26032805 AAT&gt;TAT</code> — a real HG002 record that <code>bcftools norm -m -both</code>
+left un-trimmed. It is really an <code>A&gt;T</code> SNV: trimming the shared trailing <code>AT</code>
+gives <code>A/T</code>, and since nothing is trimmed from the front the position does not
+move.</p>
+<p>Both plugins are probed with the same primary key and both miss; only the rule
+differs after that:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>primary probe <code>(26032805, AAT/TAT)</code></th>
+<th>fallback <code>(26032805, A/T)</code></th>
+<th>emitted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CADD</strong> — <code>minimised</code></td>
+<td>miss</td>
+<td><strong>hit</strong> — <code>CADD_PHRED=0.239</code>, <code>CADD_RAW=-0.380109</code></td>
+<td>the scores</td>
+</tr>
+<tr>
+<td><strong>SpliceAI</strong> — <code>exact</code></td>
+<td>miss</td>
+<td><em>not attempted</em> — a row <strong>does</strong> exist there (<code>ds_ag=0.00</code>, <code>symbol=APP</code>)</td>
+<td>nothing</td>
+</tr>
+</tbody>
+</table>
+<p>Ensembl VEP 116 emits exactly this at that locus: <code>CADD_PHRED=0.239</code>,
+<code>CADD_RAW=-0.380109</code>, and empty SpliceAI fields.</p>
+<p>That SpliceAI row is the point. The data is present and the reduced key would
+reach it — <code>exact</code> is what stops vepyr from claiming it, because Ensembl's
+<code>SpliceAI.pm</code> never reduces. Flipping SpliceAI to <code>minimised</code> turns loci like this
+one into annotations VEP does not emit — 68 of them on chr21.</p>
+<p><strong>ClinVar is <code>minimised</code>, despite being loaded with <code>--custom ...,exact</code>.</strong> The
+<code>exact</code> there names the <em>overlap mode</em>, not the allele rule — core still
+minimises the alleles first, then requires exact overlap. The golden VEP 116
+reference settles it: <code>chr1:65364614 GT&gt;TT</code> is annotated <code>ClinVar=1258041</code>,
+whose source record is the 1 bp SNV <code>G&gt;T</code> at the same position. Reaching it
+from <code>GT/TT</code> needs the shared trailing <code>T</code> trimmed, so this is full
+<code>trim_sequences()</code> behaviour — a suffix trim, not just the narrower
+leading-anchor-base shift. A verbatim comparison would emit nothing, and a
+1 bp feature could not have exactly overlapped the 2 bp unminimised variant
+either.</p>
+<p>The distinction bites whenever a record is <strong>not in minimal form</strong>. <code>bcftools
+norm -m -both</code> splits a multi-allelic record without re-trimming its halves, so
+this is routine rather than exotic:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>chr21:13973877  REF=TTGTGTGTGTGTG  ALT=GTGTGTGTGTGTG   # really just T&gt;G
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>chr21:26062230  REF=AAC            ALT=ACAC            # really just an inserted C
+</span></code></pre></div>
+<p>CADD keys the first as <code>T/G</code> in its per-base file. Under <code>minimised</code> Ensembl
+reduces the variant and matches; under <code>exact</code> it would not. SpliceAI is also
+empty here, but for an unrelated reason — it carries no rows anywhere near
+<code>chr21:13973877</code>, since it only covers splice regions. For a locus where the
+<em>rule</em> is what separates the two, see
+<a href="#a-locus-where-both-rules-fire">the worked example above</a>.</p>
+<h3 id="trim-order-is-load-bearing">Trim order is load-bearing<a class="headerlink" href="#trim-order-is-load-bearing" title="Permanent link">¶</a></h3>
+<p><code>trim_sequences()</code> can trim prefix-first or suffix-first, and for a non-minimal
+indel <strong>the two orders land on different coordinates — and therefore different
+variants</strong>. Ensembl's VCF parser builds the <code>VariationFeature</code> prefix-first
+(left-first), so that is the only order that reproduces its output:</p>
+<p>Reduction runs on the <strong>anchor-trimmed</strong> pair the VCF parser produces, not on
+the raw record — a leading base shared by REF and ALT is already gone, and the
+position already advanced, before any of this. Quoting a raw record against a
+post-trim coordinate is how you get an off-by-one:</p>
+<table>
+<thead>
+<tr>
+<th>chr21 VCF record</th>
+<th>parser hands over</th>
+<th>left-first (Ensembl)</th>
+<th>right-first</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>13836148 CGTGTGT/CGTGT</code></td>
+<td><code>13836149 GTGTGT/GTGT</code></td>
+<td><code>GT/-</code> at 13836153 — no row there, so empty, as VEP reports</td>
+<td><code>GT/-</code> at 13836149 — a <strong>different variant's</strong> score</td>
+</tr>
+<tr>
+<td><code>26062230 AAC/ACAC</code></td>
+<td><code>26062231 AC/CAC</code></td>
+<td><code>-/C</code> at 26062231 — the row VEP reports</td>
+<td>same</td>
+</tr>
+</tbody>
+</table>
+<p>Only the <strong>prefix</strong> loop moves the coordinate; the suffix loop trims bases
+without touching it. That is the whole reason the two orders disagree: trimming
+the suffix first consumes bases the prefix loop would otherwise have consumed
+<em>while advancing <code>start</code></em>, so the position ends up short.</p>
+<p>Getting this backwards is silent and produces confident wrong answers: on chr21
+a right-first reduction invented 5,288 CADD scores VEP does not emit, and
+regressed ClinVar and SpliceAI from clean.</p>
+<div class="admonition warning">
+<p class="admonition-title">Never set <code>minimised</code> to gain hits</p>
+<p>Reducing alleles for an <code>exact</code> plugin produces annotations Ensembl does not
+emit — SpliceAI gained 68 spurious hits on chr21 that way. The setting is a
+statement about what upstream does, not a tuning knob.</p>
+</div>
+<p>To decide the setting for a new plugin, read its <code>.pm</code>: if <code>run()</code> calls
+<code>get_matched_variant_alleles</code>, use <code>minimised</code>; if it compares <code>$vf-&gt;{start}</code>
+and the allele strings with <code>==</code>/<code>eq</code>, use <code>exact</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Ensembl's fetch window</p>
+<p><code>get_matched_variant_alleles</code> is not the whole story upstream. CADD.pm first
+fetches <code>[VF.start - 2, VF.end]</code> from the tabix file, so a row whose <em>file</em>
+position falls outside that window is never even considered — which is why
+VEP reports nothing for <code>CGTGTGT/CGTGT</code> even though a <code>GT/-</code> row exists
+nearby. Left-first reduction happens to land outside that row's reach too,
+so vepyr agrees without emulating the window; if a future mismatch traces
+back here, this is the mechanism to check.</p>
+</div>
+<h3 id="example-alphamissense-per-transcript">Example: AlphaMissense (per-transcript)<a class="headerlink" href="#example-alphamissense-per-transcript" title="Permanent link">¶</a></h3>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">plugin_name</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">"alphamissense"</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">coordinate_system</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1-based"</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">ingest_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"""</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="s2">SELECT chrom,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="s2">       CAST(pos AS INT) AS start,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="s2">       CAST(pos AS INT) AS end,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="s2">       concat(ref, '/', alt) AS allele_string,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="s2">       protein_variant AS protein_variant,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="s2">       CAST(am_pathogenicity AS FLOAT) AS am_pathogenicity,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="s2">       am_class AS am_class</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="s2">FROM plugin_alphamissense_src</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="s2">"""</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="k">[[source]]</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="n">provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"tsv"</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"AlphaMissense_hg38.tsv.gz"</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="n">url</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">"https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz"</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="n">md5</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">"9fd167735f16a1b87da6eb3e4c25fcb5"</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">  </span><span class="k">[source.csv]</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">  </span><span class="n">delimiter</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="w">  </span><span class="n">has_header</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="w">  </span><span class="n">comment</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="s2">"#"</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="w">  </span><span class="n">compression</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"gzip"</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="w">  </span><span class="n">schema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"chrom"</span><span class="p">,</span><span class="w">            </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"pos"</span><span class="p">,</span><span class="w">              </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"ref"</span><span class="p">,</span><span class="w">              </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"alt"</span><span class="p">,</span><span class="w">              </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"genome"</span><span class="p">,</span><span class="w">           </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"uniprot_id"</span><span class="p">,</span><span class="w">       </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"transcript_id"</span><span class="p">,</span><span class="w">    </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"protein_variant"</span><span class="p">,</span><span class="w">  </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"am_pathogenicity"</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"am_class"</span><span class="p">,</span><span class="w">         </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>
+</span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a><span class="k">[[match_column]]</span>
+</span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a><span class="n">column</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s2">"protein_variant"</span>
+</span><span id="__span-6-39"><a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a><span class="n">template</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"{ref_aa}{Protein_position}{alt_aa}"</span>
+</span><span id="__span-6-40"><a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>
+</span><span id="__span-6-41"><a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a><span class="k">[[value_columns]]</span>
+</span><span id="__span-6-42"><a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a><span class="n">column</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"am_class"</span>
+</span><span id="__span-6-43"><a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a><span class="n">csq_field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"am_class"</span>
+</span><span id="__span-6-44"><a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Utf8"</span>
+</span><span id="__span-6-45"><a id="__codelineno-6-45" name="__codelineno-6-45" href="#__codelineno-6-45"></a>
+</span><span id="__span-6-46"><a id="__codelineno-6-46" name="__codelineno-6-46" href="#__codelineno-6-46"></a><span class="k">[[value_columns]]</span>
+</span><span id="__span-6-47"><a id="__codelineno-6-47" name="__codelineno-6-47" href="#__codelineno-6-47"></a><span class="n">column</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"am_pathogenicity"</span>
+</span><span id="__span-6-48"><a id="__codelineno-6-48" name="__codelineno-6-48" href="#__codelineno-6-48"></a><span class="n">csq_field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"am_pathogenicity"</span>
+</span><span id="__span-6-49"><a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Float32"</span>
+</span></code></pre></div>
+<h3 id="example-a-per-variant-plugin-no-discriminator">Example: a per-variant plugin (no discriminator)<a class="headerlink" href="#example-a-per-variant-plugin-no-discriminator" title="Permanent link">¶</a></h3>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">plugin_name</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">"demo_score"</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">coordinate_system</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1-based"</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">ingest_sql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"""</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="s2">SELECT chrom, CAST(pos AS INT) AS start, CAST(pos AS INT) AS end,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="s2">       concat(ref, '/', alt) AS allele_string, CAST(score AS FLOAT) AS demo_score</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="s2">FROM plugin_demo_score_src</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="s2">"""</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="k">[[source]]</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"tsv"</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"demo.tsv.gz"</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">url</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">"https://example.org/demo/v1/demo.tsv.gz"</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">md5</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">"d41d8cd98f00b204e9800998ecf8427e"</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">  </span><span class="k">[source.csv]</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">  </span><span class="n">delimiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">  </span><span class="n">has_header</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">  </span><span class="n">compression</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"gzip"</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">  </span><span class="n">schema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"chrom"</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"pos"</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"ref"</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"alt"</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"score"</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"Utf8"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="k">[[value_columns]]</span>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="n">column</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"demo_score"</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="n">csq_field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"DEMO_SCORE"</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Float32"</span>
+</span></code></pre></div>
+<h2 id="engine-attribute-namespace">Engine-attribute namespace<a class="headerlink" href="#engine-attribute-namespace" title="Permanent link">¶</a></h2>
+<p>A <code>[[match_column]].template</code> may reference these per-consequence attributes
+(the values the transcript engine computes for CSQ output). Each is optional:
+<strong>if any attribute a template references is absent, the discriminator is empty
+and the plugin emits no value for that transcript line</strong> — this is how
+missense-only gating works (a non-missense consequence has no amino-acid change).</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Consequence</code></td>
+<td>Consequence type(s) for the transcript (e.g. <code>missense_variant</code>).</td>
+</tr>
+<tr>
+<td><code>Gene</code></td>
+<td>Ensembl gene stable ID.</td>
+</tr>
+<tr>
+<td><code>SYMBOL</code></td>
+<td>Gene symbol (e.g. <code>APP</code>) — SpliceAI's discriminator.</td>
+</tr>
+<tr>
+<td><code>Feature_type</code></td>
+<td>Feature type (e.g. <code>Transcript</code>).</td>
+</tr>
+<tr>
+<td><code>Feature</code></td>
+<td>Transcript stable ID — the transcript-id discriminator (e.g. dbNSFP).</td>
+</tr>
+<tr>
+<td><code>BIOTYPE</code></td>
+<td>Transcript biotype (e.g. <code>protein_coding</code>).</td>
+</tr>
+<tr>
+<td><code>HGVSc</code></td>
+<td>HGVS coding-sequence notation.</td>
+</tr>
+<tr>
+<td><code>HGVSp</code></td>
+<td>HGVS protein notation.</td>
+</tr>
+<tr>
+<td><code>cDNA_position</code></td>
+<td>Position in cDNA.</td>
+</tr>
+<tr>
+<td><code>CDS_position</code></td>
+<td>Position in the CDS.</td>
+</tr>
+<tr>
+<td><code>Protein_position</code></td>
+<td>1-based amino-acid position.</td>
+</tr>
+<tr>
+<td><code>Amino_acids</code></td>
+<td>Reference/alternate amino acids as <code>ref/alt</code> (e.g. <code>W/R</code>); single value when unchanged.</td>
+</tr>
+<tr>
+<td><code>Codons</code></td>
+<td>Reference/alternate codons.</td>
+</tr>
+<tr>
+<td><code>ref_aa</code></td>
+<td>Reference amino acid (left of <code>/</code> in <code>Amino_acids</code>).</td>
+</tr>
+<tr>
+<td><code>alt_aa</code></td>
+<td>Alternate amino acid (right of <code>/</code> in <code>Amino_acids</code>).</td>
+</tr>
+<tr>
+<td><code>ref</code></td>
+<td>VCF reference allele.</td>
+</tr>
+<tr>
+<td><code>alt</code></td>
+<td>VCF alternate allele.</td>
+</tr>
+</tbody>
+</table>
+<p>Examples: AlphaMissense (amino-acid change) <code>template = "{ref_aa}{Protein_position}{alt_aa}"</code>
+→ <code>W320R</code>; a transcript-keyed plugin <code>template = "{Feature}"</code>.</p>
+<p>A new attribute is added upstream only when a plugin needs a value not already
+listed here — the common discriminators are all present, so most plugins are
+manifest-only.</p>
+<h2 id="cache-format-lookup-internals">Cache format &amp; lookup internals<a class="headerlink" href="#cache-format-lookup-internals" title="Permanent link">¶</a></h2>
+<p>A plugin cache is a set of per-chromosome Parquet shards
+(<code>plugin/&lt;name&gt;/chr*.parquet</code>) plus a <code>manifest.json</code>. The shards use the same
+point-lookup-optimized layout as the Ensembl variation cache, so a lookup reads
+only the handful of pages that could contain the queried positions — never the
+whole file. <code>manifest.json</code> records the requested plugin ref and its exact
+resolved commit in <code>cache_source_version</code>, making cache provenance immutable and
+auditable even when the requested ref is a branch.</p>
+<h3 id="provenance-in-manifestjson">Provenance in <code>manifest.json</code><a class="headerlink" href="#provenance-in-manifestjson" title="Permanent link">¶</a></h3>
+<p>Besides the schema, CSQ mapping and per-shard row/tier counts, the manifest
+records one <code>sources</code> entry per <code>[[source]]</code> so a shard's provenance survives
+without the source file:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">"sources"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">"file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AlphaMissense_hg38.bgz.tsv.gz"</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz"</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">"md5"</span><span class="p">:</span><span class="w"> </span><span class="s2">"9fd167735f16a1b87da6eb3e4c25fcb5"</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">"verified_md5"</span><span class="p">:</span><span class="w"> </span><span class="s2">"46d0028375cf95088bd014ff6855cffd"</span><span class="p">,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="nt">"size"</span><span class="p">:</span><span class="w"> </span><span class="mi">628407716</span><span class="p">,</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="nt">"mtime_ns"</span><span class="p">:</span><span class="w"> </span><span class="mi">1783322828158000000</span><span class="p">,</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="nt">"ino"</span><span class="p">:</span><span class="w"> </span><span class="mi">194298162</span><span class="p">,</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="nt">"ctime_ns"</span><span class="p">:</span><span class="w"> </span><span class="mi">1787813446862801296</span><span class="p">,</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">    </span><span class="nt">"index"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">      </span><span class="nt">"file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AlphaMissense_hg38.bgz.tsv.gz.tbi"</span><span class="p">,</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">      </span><span class="nt">"verified_md5"</span><span class="p">:</span><span class="w"> </span><span class="s2">"7e925b94f5afd9ef184bde4de8aedeb5"</span><span class="p">,</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">      </span><span class="nt">"size"</span><span class="p">:</span><span class="w"> </span><span class="mi">684511</span><span class="p">,</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">      </span><span class="nt">"mtime_ns"</span><span class="p">:</span><span class="w"> </span><span class="mi">1783322837454000000</span><span class="p">,</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">      </span><span class="nt">"ino"</span><span class="p">:</span><span class="w"> </span><span class="mi">194298178</span><span class="p">,</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">      </span><span class="nt">"ctime_ns"</span><span class="p">:</span><span class="w"> </span><span class="mi">1787813449824439001</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="p">]</span>
+</span></code></pre></div>
+<p><code>part</code> is present for multi-file manifests (CADD). <code>url</code> and <code>md5</code> are copied
+from the source manifest. <code>verified_md5</code> is the digest the build actually
+computed over the resolved file — absent when verification was skipped or the
+manifest declared no digest, and <em>different</em> from <code>md5</code> only after a <code>"warn"</code>
+build, as here: AlphaMissense's build input is a BGZF re-compression of the
+upstream file, so the recorded digest is the artifact's, not the upstream's. <code>file</code>, <code>size</code>, <code>mtime_ns</code>, <code>ino</code> and <code>ctime_ns</code> fingerprint the hashed
+file for incremental builds: an unchanged file is not re-hashed, while a
+replacement or rewrite (a new inode, a fresh change time) always is. For a
+tabix source the <code>.tbi</code> gets the same treatment under <code>index</code> — it is always
+hashed and fingerprinted, so a changed index is a changed input — and it is
+checked to describe the data it sits beside: for every contig it names, the
+record its first chunk points at must carry that contig, which refuses an
+index built from another version of the file in strict and warn mode alike. Every
+chromosome is built to a staging file and the sources are re-checked after
+each; only when all of them passed are the shards made live and the manifest
+written, so a source that changes mid-build leaves the cache exactly as it
+was. A filtered rebuild whose input hashes differently from the earlier
+build's drops that build's chromosomes from the manifest rather than mixing
+releases. Chromosomes whose input was never verified — a cache built before
+this block existed (no <code>sources</code> key), or one built with <code>verify_source="skip"</code>
+— cannot be attributed to a verified input, so a verifying <code>chroms=[...]</code> build
+that would carry them over is refused: rebuild every chromosome
+(<code>overwrite=True</code>), or add chromosomes with <code>verify_source="skip"</code>, which makes
+no claim.</p>
+<h3 id="shard-schema">Shard schema<a class="headerlink" href="#shard-schema" title="Permanent link">¶</a></h3>
+<p>Columns, in order: the key columns <code>chrom</code> (Utf8), <code>start</code> / <code>end</code> (UInt32,
+1-based), <code>allele_string</code> (Utf8, <code>ref/alt</code>); then any <strong>match-discriminator</strong>
+column(s) (e.g. <code>protein_variant</code>); then the <strong>value</strong> columns (the CSQ fields);
+then a derived <strong><code>tier</code></strong> column (Int8: <code>0</code> = warm, <code>1</code> = cold). The variation
+frequency columns used to compute the tier are <strong>not</strong> stored — only the tier
+survives.</p>
+<p>Every cache — the Ensembl variation/transcript/… entities and the custom plugin
+caches — uses the same point-lookup-optimized Parquet layout, so a lookup reads
+only the handful of pages that could contain the queried positions rather than
+scanning the whole file.</p>
+<h3 id="parquet-storage">Parquet storage<a class="headerlink" href="#parquet-storage" title="Permanent link">¶</a></h3>
+<p>The writer properties are tuned for random point lookups, not scans:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compression</td>
+<td>ZSTD, level 3</td>
+<td>Good ratio; fast enough to decode per page.</td>
+</tr>
+<tr>
+<td>Dictionary encoding</td>
+<td><strong>disabled</strong></td>
+<td>Avoids a per-take dictionary load; ZSTD recovers the ratio (the no-dict file is actually smaller).</td>
+</tr>
+<tr>
+<td>Data page size</td>
+<td>≤ 4 KiB</td>
+<td>Small pages → fine-grained page index → a lookup touches minimal bytes.</td>
+</tr>
+<tr>
+<td>Data page row count</td>
+<td>≤ 512 rows</td>
+<td>Bounds how many rows a single page decode yields.</td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td><strong>Page-level</strong></td>
+<td>Emits <code>ColumnIndex</code> + <code>OffsetIndex</code> in the footer — the read-side position→page directory.</td>
+</tr>
+<tr>
+<td>Row group size</td>
+<td>1,000,000 rows</td>
+<td>Large groups keep footer/metadata overhead low; the page index gives intra-group resolution.</td>
+</tr>
+<tr>
+<td>Sorting columns</td>
+<td><code>(tier, start)</code></td>
+<td>Physical clustering — see <a href="#sorting-within-a-shard">Sorting within a shard</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sorting-within-a-shard">Sorting within a shard<a class="headerlink" href="#sorting-within-a-shard" title="Permanent link">¶</a></h3>
+<p>Rows within each shard are physically sorted by <strong><code>(tier, start)</code></strong> and written in
+that order, and the sort is recorded in the Parquet <code>SortingColumn</code> metadata:</p>
+<ol>
+<li><strong>By <code>tier</code> first</strong> — all <strong>warm</strong> rows (tier <code>0</code>) are written before all
+   <strong>cold</strong> rows (tier <code>1</code>). This clusters common variants into a contiguous
+   run of pages, so a buffer of common-variant lookups touches a small, dense
+   region instead of pages scattered across the file.</li>
+<li><strong>By <code>start</code> within each tier</strong> — each tier's run is ascending by genomic
+   <code>start</code>. Ascending, non-overlapping <code>start</code> ranges per page are what make the
+   <code>ColumnIndex</code> (per-page min/max of <code>start</code>) an effective pruning directory:
+   resolving a query position to its candidate page(s) is a binary-search-like
+   metadata lookup, and coalescing adjacent pages into one read is cheap.</li>
+</ol>
+<p>Because the file is split into a warm block then a cold block (each
+independently <code>start</code>-sorted), a single <code>start</code> value can appear in <strong>both</strong>
+blocks; the lookup resolves candidate pages across both. Writing warm-first
+keeps the hot working set contiguous — the whole point of the tier.</p>
+<h3 id="page-index-the-pagedir">Page index → the <code>PageDir</code><a class="headerlink" href="#page-index-the-pagedir" title="Permanent link">¶</a></h3>
+<p>Since page-level statistics are enabled, each shard's footer carries a
+<code>ColumnIndex</code> (per-page min/max of <code>start</code>) and an <code>OffsetIndex</code> (per-page byte
+offset + row range). At open time the reader builds a <strong><code>PageDir</code></strong> over the
+<code>start</code> leaf column from these indexes. Resolving a set of query positions to the
+minimal set of candidate page row-ranges is then a metadata-only operation — no
+column data is read until the ranges are known.</p>
+<h3 id="row-groups">Row groups<a class="headerlink" href="#row-groups" title="Permanent link">¶</a></h3>
+<p>Shards use 1,000,000-row row groups. Row groups bound the footer metadata size;
+within a group the small (≤ 512-row) pages plus the page index provide the actual
+point-lookup resolution. A whole chromosome is typically one or a few row groups.</p>
+<h3 id="runtime-lookup-async-reader-monotonic-cursor-in-batches">Runtime lookup — async reader + monotonic cursor, in batches<a class="headerlink" href="#runtime-lookup-async-reader-monotonic-cursor-in-batches" title="Permanent link">¶</a></h3>
+<p>Annotation runs in position-ordered buffers. For each buffer the runtime does one
+<strong>page-scoped, three-phase take</strong> per shard, reading only that buffer's candidate
+pages:</p>
+<ol>
+<li><strong>Resolve</strong> — the buffer's sorted, de-duplicated <code>start</code> positions are mapped
+   through the <code>PageDir</code> to candidate page <strong>row-ranges</strong>. Metadata only; no data
+   read.</li>
+<li><strong>Locate</strong> — a <code>start</code>-only projected read over just those pages (a
+   <code>RowSelection</code> built from the ranges) streams <code>start</code> values back in batches
+   through a <strong><code>CoalescingAsyncReader</code></strong> — an async Parquet reader that merges
+   nearby page byte-ranges (within a 512 KiB gap) into single I/O calls. A
+   <strong>monotonic row-offset cursor</strong> advances exactly one step per streamed row,
+   staying in lockstep with the selection, and records the exact file offset of
+   every row whose <code>start</code> is in the buffer's probe set. The cursor only moves
+   forward, so there is no back-seeking.</li>
+<li><strong>Take</strong> — a final projected read at those exact offsets pulls just the payload
+   columns for the matched rows into one compact <code>RecordBatch</code>.</li>
+</ol>
+<h3 id="tiering-how-warmcold-is-calculated">Tiering — how warm/cold is calculated<a class="headerlink" href="#tiering-how-warmcold-is-calculated" title="Permanent link">¶</a></h3>
+<p>Tiering clusters common variants together on disk so a batch of nearby query
+positions touches fewer, denser pages. The tier is <strong>inherited from the Ensembl
+variation cache</strong>, not recomputed per plugin:</p>
+<ul>
+<li>The variation cache marks a genomic <code>start</code> <strong>warm (tier 0)</strong> when its maximum
+  global allele frequency is <strong>≥ 0.01</strong> (<code>WARM_AF_THRESHOLD</code>), within a ±1
+  position radius (<code>WARM_POSITION_RADIUS</code>); otherwise <strong>cold (tier 1)</strong>.</li>
+<li>At build time the plugin rows are <code>LEFT JOIN</code>-ed onto the variation shard on
+  <code>(chrom, start, allele_string)</code> and take <code>COALESCE(v.tier, 1)</code> — i.e. a plugin
+  row inherits the variation record's tier, and <strong>any position with no variation
+  match is cold</strong>. (Saturation predictors like AlphaMissense are therefore almost
+  entirely cold, since most possible substitutions are not common variants.)</li>
+<li>The shard is written <strong>warm rows first, then cold</strong>, each pass sorted by
+  <code>start</code>, matching the <code>(tier, start)</code> physical sort.</li>
+</ul>
+<p>Plugins declare <strong>no</strong> tier policy of their own — there is no <code>[tier]</code> block in
+the manifest.</p>
+<h3 id="build-pipeline-table-providers-tables-views">Build pipeline — table providers, tables &amp; views<a class="headerlink" href="#build-pipeline-table-providers-tables-views" title="Permanent link">¶</a></h3>
+<p>The per-chromosome build registers the raw source and then transforms it through
+a short chain of SQL objects:</p>
+<ol>
+<li><strong>Table</strong> — the raw source file is registered as a DataFusion <strong>table</strong>
+   <code>plugin_&lt;name&gt;_src</code> (or <code>plugin_&lt;name&gt;_src_&lt;part&gt;</code> for multi-file sources) via
+   the matching provider (below).</li>
+<li><strong>Ingest view</strong> — <code>plugin_&lt;name&gt;_ingest</code>, a <code>CREATE OR REPLACE VIEW</code> wrapping
+   the manifest's <code>ingest_sql</code> (maps raw columns → the key/discriminator/value
+   columns).</li>
+<li><strong>Normalized view</strong> — <code>plugin_&lt;name&gt;_norm</code>, which applies the <code>canonical_contig</code>
+   UDF and the coordinate shift (to the variation cache's 1-based convention) and
+   filters to the target chromosome.</li>
+<li>The normalized view is tier-joined against the variation shard and the result
+   is written to the Parquet shard.</li>
+</ol>
+<p><strong>Table providers</strong> (<code>[[source]].provider</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>csv</code></td>
+<td>Built-in DataFusion CSV reader.</td>
+</tr>
+<tr>
+<td><code>tsv</code></td>
+<td>CSV reader with tab delimiter. gzip inputs are decompressed to a temp file first (DataFusion is built without the <code>compression</code> feature, so <code>register_csv</code> can't read <code>.gz</code> directly).</td>
+</tr>
+<tr>
+<td><code>parquet</code></td>
+<td>Built-in DataFusion Parquet reader.</td>
+</tr>
+<tr>
+<td><code>vcf</code></td>
+<td><code>VcfTableProvider</code> from bio-formats. Every INFO field the header declares is exposed and <code>ingest_sql</code> projects down to what it needs; set <code>record_layout</code> on the source to carry the raw record through.</td>
+</tr>
+<tr>
+<td><code>bed</code></td>
+<td><code>BedTableProvider</code> from bio-formats, BED4 only — <code>chrom</code>, <code>start</code>, <code>end</code>, <code>name</code>, whatever the file's variant.</td>
+</tr>
+</tbody>
+</table>
+<p>All five are implemented. <code>vcf</code> and <code>bed</code> take their zero/one-based
+interpretation from the manifest's <code>coordinate_system</code> rather than the file's
+own convention, so <code>ingest_sql</code> always sees the system the manifest declares.</p>
+<h2 id="supported-plugins">Supported plugins<a class="headerlink" href="#supported-plugins" title="Permanent link">¶</a></h2>
+<p>All five plugins below are implemented and validated against the golden Ensembl
+VEP 116 reference. Four have a <strong>prebuilt cache</strong> published on Hugging Face —
+see <a href="../downloads/#plugin-caches">Plugin caches</a> for the download commands.</p>
+<table>
+<thead>
+<tr>
+<th>Plugin</th>
+<th style="text-align: right;">CSQ fields</th>
+<th>Discriminator</th>
+<th>Allele match</th>
+<th>Prebuilt cache</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CADD</strong> v1.7</td>
+<td style="text-align: right;">2</td>
+<td>— (per variant)</td>
+<td><code>minimised</code></td>
+<td><a href="../downloads/#plugin-caches"><code>…plugin_cadd</code></a></td>
+<td><a href="https://cadd.gs.washington.edu/">cadd.gs.washington.edu</a></td>
+</tr>
+<tr>
+<td><strong>SpliceAI</strong></td>
+<td style="text-align: right;">9</td>
+<td><code>{SYMBOL}</code></td>
+<td><code>exact</code></td>
+<td><a href="../downloads/#plugin-caches"><code>…plugin_spliceai</code></a></td>
+<td><a href="https://github.com/Illumina/SpliceAI">Illumina/SpliceAI</a></td>
+</tr>
+<tr>
+<td><strong>AlphaMissense</strong></td>
+<td style="text-align: right;">2</td>
+<td><code>{ref_aa}{Protein_position}{alt_aa}</code></td>
+<td><code>minimised</code></td>
+<td><a href="../downloads/#plugin-caches"><code>…plugin_alphamissense</code></a></td>
+<td><a href="https://zenodo.org/records/8208688">Zenodo</a></td>
+</tr>
+<tr>
+<td><strong>ClinVar</strong></td>
+<td style="text-align: right;">6</td>
+<td>— (per variant)</td>
+<td><code>minimised</code></td>
+<td><a href="../downloads/#plugin-caches"><code>…plugin_clinvar</code></a></td>
+<td><a href="https://www.ncbi.nlm.nih.gov/clinvar/">ncbi.nlm.nih.gov/clinvar</a></td>
+</tr>
+<tr>
+<td><strong>dbNSFP</strong></td>
+<td style="text-align: right;">19</td>
+<td><code>{ref_aa}/{alt_aa}</code></td>
+<td><code>exact</code></td>
+<td><strong>not published</strong> — build locally</td>
+<td><a href="https://www.dbnsfp.org/">dbNSFP</a></td>
+</tr>
+</tbody>
+</table>
+<p>The CSQ fields each plugin emits, <strong>in emitted order</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Plugin</th>
+<th>Fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CADD</td>
+<td><code>CADD_PHRED</code>, <code>CADD_RAW</code></td>
+</tr>
+<tr>
+<td>SpliceAI</td>
+<td><code>SpliceAI_pred_DP_AG</code>, <code>SpliceAI_pred_DP_AL</code>, <code>SpliceAI_pred_DP_DG</code>, <code>SpliceAI_pred_DP_DL</code>, <code>SpliceAI_pred_DS_AG</code>, <code>SpliceAI_pred_DS_AL</code>, <code>SpliceAI_pred_DS_DG</code>, <code>SpliceAI_pred_DS_DL</code>, <code>SpliceAI_pred_SYMBOL</code></td>
+</tr>
+<tr>
+<td>AlphaMissense</td>
+<td><code>am_class</code>, <code>am_pathogenicity</code></td>
+</tr>
+<tr>
+<td>ClinVar</td>
+<td><code>ClinVar</code>, <code>ClinVar_CLNSIG</code>, <code>ClinVar_CLNREVSTAT</code>, <code>ClinVar_CLNDN</code>, <code>ClinVar_CLNVC</code>, <code>ClinVar_CLNVI</code></td>
+</tr>
+<tr>
+<td>dbNSFP</td>
+<td><code>CADD_phred</code>, <code>CADD_raw</code>, <code>GERP++_RS</code>, <code>MetaLR_pred</code>, <code>MetaLR_score</code>, <code>MetaSVM_pred</code>, <code>MetaSVM_score</code>, <code>MutationTaster_pred</code>, <code>MutationTaster_score</code>, <code>PROVEAN_pred</code>, <code>PROVEAN_score</code>, <code>Polyphen2_HDIV_score</code>, <code>Polyphen2_HVAR_score</code>, <code>REVEL_score</code>, <code>SIFT4G_pred</code>, <code>SIFT4G_score</code>, <code>VEST4_score</code>, <code>phastCons100way_vertebrate</code>, <code>phyloP100way_vertebrate</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Emitted order is not manifest order</p>
+<p>A manifest's <code>field_order</code> decides this, and it is not the order the
+<code>[[value_columns]]</code> happen to be written in:</p>
+<table>
+<thead>
+<tr>
+<th><code>field_order</code></th>
+<th>Emits</th>
+<th>Mirrors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>declared</code> (default)</td>
+<td>manifest declaration order</td>
+<td>Ensembl <code>--custom</code></td>
+</tr>
+<tr>
+<td><code>alphabetical</code></td>
+<td>sorted by CSQ field name</td>
+<td>Ensembl <code>--plugin</code></td>
+</tr>
+</tbody>
+</table>
+<p>Four of the five are <code>alphabetical</code>, because Ensembl loads them with
+<code>--plugin</code>. ClinVar is <code>declared</code>, because it is loaded with <code>--custom</code> —
+which is why it is the one plugin whose emitted order matches how its
+manifest reads. <code>dbNSFP</code> carries its own <code>CADD_phred</code>/<code>CADD_raw</code>, distinct
+from the CADD plugin's upper-case <code>CADD_PHRED</code>/<code>CADD_RAW</code>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">dbNSFP is supported but cannot be mirrored</p>
+<p>The dbNSFP licence permits academic use of the data but not redistribution
+of a converted copy, so no prebuilt cache is published. Register for and
+download the source yourself, then build the cache with
+<a href="../api/#vepyr.build_plugin_cache"><code>build_plugin_cache</code></a> as above — the
+manifest in <a href="https://github.com/biodatageeks/vepyr-plugins">vepyr-plugins</a>
+is public.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Licence terms differ per plugin</p>
+<p><strong>CADD</strong>, <strong>SpliceAI</strong> and <strong>AlphaMissense</strong> restrict use to academic /
+non-profit research; commercial use needs a licence from the respective
+provider. <strong>ClinVar</strong> is unrestricted (NCBI public domain). Each Hugging
+Face dataset card carries the specific terms.</p>
+</div>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../api/" class="md-footer__link md-footer__link--prev" aria-label="Previous: API">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                API
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../performance/" class="md-footer__link md-footer__link--next" aria-label="Next: Performance">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Performance
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

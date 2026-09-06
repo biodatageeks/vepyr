@@ -1,0 +1,1897 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/dataframes/">
+      
+      
+        <link rel="prev" href="../downloads/">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Polars DataFrames - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#polars-dataframes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Polars DataFrames
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-pushed-into-the-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is pushed into the engine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What is pushed into the engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#region-filters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Region filters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-row-per-consequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One row per consequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filter_vep-expressions-in-polars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filter_vep expressions in Polars
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugins
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-results-to-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing results to disk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agreement-with-the-vcf-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agreement with the VCF output
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-pushed-into-the-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is pushed into the engine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What is pushed into the engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#region-filters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Region filters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-row-per-consequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One row per consequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filter_vep-expressions-in-polars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filter_vep expressions in Polars
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugins
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-results-to-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing results to disk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agreement-with-the-vcf-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agreement with the VCF output
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="polars-dataframes">Polars DataFrames<a class="headerlink" href="#polars-dataframes" title="Permanent link">¶</a></h1>
+<p><code>vepyr.annotate()</code> without <code>output_vcf</code> returns a <code>polars.LazyFrame</code>. Nothing
+runs until you <code>collect()</code> or <code>sink_*()</code> it, and every collect starts a fresh
+annotation stream, so the same LazyFrame can be evaluated more than once.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="s2">"input.vcf.gz"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">"/data/vepyr_cache/116_GRCh38_merged"</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"GRCh38.fa"</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">df</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span></code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">No columns selected means <code>everything</code></p>
+<p>A frame created without annotation flags and collected without a
+<code>select()</code> is the full VEP <code>--everything</code> result, provided a
+<code>reference_fasta</code> is given. Without a FASTA the engine cannot compute
+the HGVS and <code>everything</code>-only columns: they stay null and a warning
+names them. Add a <code>select()</code> and only the flags its columns need are run, see
+<a href="#what-is-pushed-into-the-engine">below</a>. Flags you pass explicitly are
+honoured as given.</p>
+</div>
+<h2 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">¶</a></h2>
+<p><code>collect_schema()</code> is free: it comes from a probe that opens the cache but
+annotates nothing. This is the schema for chr22 of HG002 on the release-116
+Ensembl cache:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect_schema</span><span class="p">()</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">Schema</span><span class="p">({</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="s1">'chrom'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="s1">'start'</span><span class="p">:</span> <span class="n">UInt32</span><span class="p">,</span>                     <span class="c1"># VCF POS, 1-based</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="s1">'end'</span><span class="p">:</span> <span class="n">UInt32</span><span class="p">,</span>                       <span class="c1"># POS + len(REF) - 1</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="s1">'id'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>                        <span class="c1"># '' when the VCF has '.'</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="s1">'ref'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="s1">'alt'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="s1">'qual'</span><span class="p">:</span> <span class="n">Float64</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="s1">'filter'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="s1">'most_severe_consequence'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="s1">'Allele'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="s1">'Consequence'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>         <span class="c1"># one element per CSQ entry, in CSQ order ...</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="s1">'IMPACT'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="s1">'SYMBOL'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="s1">'Gene'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="s1">'Feature_type'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="s1">'Feature'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="s1">'BIOTYPE'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="s1">'EXON'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="s1">'INTRON'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="s1">'HGVSc'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    <span class="s1">'HGVSp'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>    <span class="s1">'cDNA_position'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>    <span class="s1">'CDS_position'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>    <span class="s1">'Protein_position'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>    <span class="s1">'Amino_acids'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>    <span class="s1">'Codons'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>    <span class="s1">'Existing_variation'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>  <span class="c1"># distinct values per variant, not per entry</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>    <span class="s1">'DISTANCE'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">Int64</span><span class="p">),</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>    <span class="s1">'STRAND'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">Int8</span><span class="p">),</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>    <span class="s1">'FLAGS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>    <span class="s1">'VARIANT_CLASS'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>    <span class="s1">'SYMBOL_SOURCE'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>    <span class="s1">'HGNC_ID'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>    <span class="s1">'CANONICAL'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>    <span class="s1">'MANE'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>    <span class="s1">'MANE_SELECT'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>    <span class="s1">'MANE_PLUS_CLINICAL'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>    <span class="s1">'TSL'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">Int8</span><span class="p">),</span>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>    <span class="s1">'APPRIS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>    <span class="s1">'CCDS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>    <span class="s1">'ENSP'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>    <span class="s1">'SWISSPROT'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>    <span class="s1">'TREMBL'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>    <span class="s1">'UNIPARC'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>    <span class="s1">'UNIPROT_ISOFORM'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a>    <span class="s1">'GENE_PHENO'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>    <span class="s1">'SIFT'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-50"><a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a>    <span class="s1">'PolyPhen'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-51"><a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a>    <span class="s1">'DOMAINS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-52"><a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a>    <span class="s1">'miRNA'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-53"><a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a>    <span class="s1">'HGVS_OFFSET'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">Int64</span><span class="p">),</span>
+</span><span id="__span-1-54"><a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a>    <span class="s1">'AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>                       <span class="c1"># frequencies are per variant ...</span>
+</span><span id="__span-1-55"><a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a>    <span class="s1">'AFR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-56"><a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a>    <span class="s1">'AMR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-57"><a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a>    <span class="s1">'EAS_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-58"><a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a>    <span class="s1">'EUR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-59"><a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a>    <span class="s1">'SAS_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-60"><a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a>    <span class="s1">'gnomADe_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-61"><a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a>    <span class="s1">'gnomADe_AFR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-62"><a id="__codelineno-1-62" name="__codelineno-1-62" href="#__codelineno-1-62"></a>    <span class="s1">'gnomADe_AMR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-63"><a id="__codelineno-1-63" name="__codelineno-1-63" href="#__codelineno-1-63"></a>    <span class="s1">'gnomADe_ASJ_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-64"><a id="__codelineno-1-64" name="__codelineno-1-64" href="#__codelineno-1-64"></a>    <span class="s1">'gnomADe_EAS_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-65"><a id="__codelineno-1-65" name="__codelineno-1-65" href="#__codelineno-1-65"></a>    <span class="s1">'gnomADe_FIN_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-66"><a id="__codelineno-1-66" name="__codelineno-1-66" href="#__codelineno-1-66"></a>    <span class="s1">'gnomADe_MID_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-67"><a id="__codelineno-1-67" name="__codelineno-1-67" href="#__codelineno-1-67"></a>    <span class="s1">'gnomADe_NFE_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-68"><a id="__codelineno-1-68" name="__codelineno-1-68" href="#__codelineno-1-68"></a>    <span class="s1">'gnomADe_REMAINING_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-69"><a id="__codelineno-1-69" name="__codelineno-1-69" href="#__codelineno-1-69"></a>    <span class="s1">'gnomADe_SAS_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-70"><a id="__codelineno-1-70" name="__codelineno-1-70" href="#__codelineno-1-70"></a>    <span class="s1">'gnomADg_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-71"><a id="__codelineno-1-71" name="__codelineno-1-71" href="#__codelineno-1-71"></a>    <span class="s1">'gnomADg_AFR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-72"><a id="__codelineno-1-72" name="__codelineno-1-72" href="#__codelineno-1-72"></a>    <span class="s1">'gnomADg_AMI_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-73"><a id="__codelineno-1-73" name="__codelineno-1-73" href="#__codelineno-1-73"></a>    <span class="s1">'gnomADg_AMR_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-74"><a id="__codelineno-1-74" name="__codelineno-1-74" href="#__codelineno-1-74"></a>    <span class="s1">'gnomADg_ASJ_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-75"><a id="__codelineno-1-75" name="__codelineno-1-75" href="#__codelineno-1-75"></a>    <span class="s1">'gnomADg_EAS_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-76"><a id="__codelineno-1-76" name="__codelineno-1-76" href="#__codelineno-1-76"></a>    <span class="s1">'gnomADg_FIN_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-77"><a id="__codelineno-1-77" name="__codelineno-1-77" href="#__codelineno-1-77"></a>    <span class="s1">'gnomADg_MID_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-78"><a id="__codelineno-1-78" name="__codelineno-1-78" href="#__codelineno-1-78"></a>    <span class="s1">'gnomADg_NFE_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-79"><a id="__codelineno-1-79" name="__codelineno-1-79" href="#__codelineno-1-79"></a>    <span class="s1">'gnomADg_REMAINING_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-80"><a id="__codelineno-1-80" name="__codelineno-1-80" href="#__codelineno-1-80"></a>    <span class="s1">'gnomADg_SAS_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-81"><a id="__codelineno-1-81" name="__codelineno-1-81" href="#__codelineno-1-81"></a>    <span class="s1">'MAX_AF'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-82"><a id="__codelineno-1-82" name="__codelineno-1-82" href="#__codelineno-1-82"></a>    <span class="s1">'MAX_AF_POPS'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-83"><a id="__codelineno-1-83" name="__codelineno-1-83" href="#__codelineno-1-83"></a>    <span class="s1">'CLIN_SIG'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>            <span class="c1"># distinct values per variant</span>
+</span><span id="__span-1-84"><a id="__codelineno-1-84" name="__codelineno-1-84" href="#__codelineno-1-84"></a>    <span class="s1">'SOMATIC'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-85"><a id="__codelineno-1-85" name="__codelineno-1-85" href="#__codelineno-1-85"></a>    <span class="s1">'PHENO'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-86"><a id="__codelineno-1-86" name="__codelineno-1-86" href="#__codelineno-1-86"></a>    <span class="s1">'PUBMED'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>              <span class="c1"># distinct values per variant</span>
+</span><span id="__span-1-87"><a id="__codelineno-1-87" name="__codelineno-1-87" href="#__codelineno-1-87"></a>    <span class="s1">'MOTIF_NAME'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>          <span class="c1"># per entry, MotifFeature entries only; everything only</span>
+</span><span id="__span-1-88"><a id="__codelineno-1-88" name="__codelineno-1-88" href="#__codelineno-1-88"></a>    <span class="s1">'MOTIF_POS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">Int64</span><span class="p">),</span>
+</span><span id="__span-1-89"><a id="__codelineno-1-89" name="__codelineno-1-89" href="#__codelineno-1-89"></a>    <span class="s1">'HIGH_INF_POS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-90"><a id="__codelineno-1-90" name="__codelineno-1-90" href="#__codelineno-1-90"></a>    <span class="s1">'MOTIF_SCORE_CHANGE'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">Float32</span><span class="p">),</span>
+</span><span id="__span-1-91"><a id="__codelineno-1-91" name="__codelineno-1-91" href="#__codelineno-1-91"></a>    <span class="s1">'TRANSCRIPTION_FACTORS'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-92"><a id="__codelineno-1-92" name="__codelineno-1-92" href="#__codelineno-1-92"></a>    <span class="s1">'clin_sig_allele'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>     <span class="c1"># cache-only columns, no CSQ counterpart</span>
+</span><span id="__span-1-93"><a id="__codelineno-1-93" name="__codelineno-1-93" href="#__codelineno-1-93"></a>    <span class="s1">'clinical_impact'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-94"><a id="__codelineno-1-94" name="__codelineno-1-94" href="#__codelineno-1-94"></a>    <span class="s1">'minor_allele'</span><span class="p">:</span> <span class="n">String</span><span class="p">,</span>
+</span><span id="__span-1-95"><a id="__codelineno-1-95" name="__codelineno-1-95" href="#__codelineno-1-95"></a>    <span class="s1">'minor_allele_freq'</span><span class="p">:</span> <span class="n">Float32</span><span class="p">,</span>
+</span><span id="__span-1-96"><a id="__codelineno-1-96" name="__codelineno-1-96" href="#__codelineno-1-96"></a>    <span class="s1">'clinvar_ids'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-97"><a id="__codelineno-1-97" name="__codelineno-1-97" href="#__codelineno-1-97"></a>    <span class="s1">'cosmic_ids'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-98"><a id="__codelineno-1-98" name="__codelineno-1-98" href="#__codelineno-1-98"></a>    <span class="s1">'dbsnp_ids'</span><span class="p">:</span> <span class="n">List</span><span class="p">(</span><span class="n">String</span><span class="p">),</span>
+</span><span id="__span-1-99"><a id="__codelineno-1-99" name="__codelineno-1-99" href="#__codelineno-1-99"></a><span class="p">})</span>
+</span></code></pre></div>
+<p>The 80 columns from <code>Allele</code> to <code>TRANSCRIPTION_FACTORS</code> are the CSQ fields in
+VCF header order. A <code>List</code> column that is aligned with <code>Consequence</code> has one
+element per CSQ entry; <code>Existing_variation</code>, <code>CLIN_SIG</code> and <code>PUBMED</code> hold the
+distinct values for the variant instead. Values that VEP repeats on every
+entry, such as the frequencies, are stored once as scalars. The input's other
+<code>INFO</code> fields and its sample columns are not in the frame; use <code>output_vcf</code>
+for those. Add <code>skip_csq=False</code> to get the raw <code>CSQ</code> string as a column.</p>
+<p>To narrow the frame, <code>select()</code> the columns you need, see
+<a href="#what-is-pushed-into-the-engine">below</a>; the engine then only computes what
+those columns require.</p>
+<h3 id="plugin-columns">Plugin columns<a class="headerlink" href="#plugin-columns" title="Permanent link">¶</a></h3>
+<p>With a plugin cache configured, every plugin CSQ field is a named column
+appended after the block above; see <a href="../plugins/">Plugins</a>. Its shape and
+type come from the plugin's manifest, not from the CSQ text it travels in:</p>
+<ul>
+<li>A plugin keyed on the variant alone, such as CADD or ClinVar, gives one
+  value per row: <code>CADD_PHRED: String</code>, <code>ClinVar_CLNSIG: String</code>.</li>
+<li>A plugin keyed on a transcript feature, such as SpliceAI (by gene symbol)
+  or AlphaMissense (by protein change), gives one value per consequence
+  entry, aligned with <code>Consequence</code>: <code>SpliceAI_pred_DP_AG: List(Int32)</code>,
+  <code>am_pathogenicity: List(Float32)</code>.</li>
+<li>The element type is the manifest's <code>type</code>: <code>Utf8</code>, <code>Int32</code> or <code>Float32</code>.
+  CADD's scores are declared <code>Utf8</code> so the VCF reproduces the source digits
+  exactly, which is why <code>CADD_PHRED</code> is a string; cast it when you need a
+  number.</li>
+</ul>
+<p>See <a href="https://github.com/biodatageeks/vepyr-plugins/blob/master/README.md#string-scores-and-numeric-casts">String scores and numeric casts in the vepyr-plugins README</a>
+for per-field numeric types and Polars examples covering scalar columns,
+consequence-aligned lists and multiple scores inside a dbNSFP element.</p>
+<p>The engine only runs the plugin lookup, and only builds the CSQ string the
+values are carried in, when a query reads one of those columns:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="s2">"input.vcf.gz"</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"GRCh38.fa"</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="s2">"/data/plugin_cache"</span><span class="p">,</span> <span class="n">plugins</span><span class="o">=</span><span class="p">[</span><span class="s2">"cadd"</span><span class="p">],</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"CADD_PHRED"</span><span class="p">)</span>   <span class="c1"># plugin lookup, no HGVS</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"SYMBOL"</span><span class="p">)</span>                     <span class="c1"># neither</span>
+</span></code></pre></div>
+<p>Selecting a plugin column on a frame without a plugin cache fails when the
+plan is built, with Polars' <code>ColumnNotFoundError</code> listing the columns the
+frame has.</p>
+<h2 id="what-is-pushed-into-the-engine">What is pushed into the engine<a class="headerlink" href="#what-is-pushed-into-the-engine" title="Permanent link">¶</a></h2>
+<p>The frame is backed by a Polars IO plugin that pulls Arrow batches from the
+native annotator. Three things reach the engine:</p>
+<ul>
+<li><strong><code>head(n)</code> and <code>limit(n)</code></strong> become a SQL <code>LIMIT</code>, so previewing is fast.</li>
+<li><strong>A <code>filter()</code> on <code>chrom</code>, <code>start</code> or <code>end</code></strong> restricts the input before
+  annotation; see <a href="#region-filters">Region filters</a> below.</li>
+<li><strong>A narrowing <code>select()</code></strong>, together with the columns a pushed-down
+  <code>filter()</code> reads, decides the annotation flags. Only three groups of columns
+  depend on flags at all: <code>HGVSc</code> and <code>HGVSp</code> on <code>hgvs</code>; the co-located
+  columns (<code>Existing_variation</code>, <code>CLIN_SIG</code>, <code>SOMATIC</code>, <code>PHENO</code>, <code>PUBMED</code>, the
+  <code>AF</code> family and the cache-only columns) on <code>check_existing</code> and the <code>af</code>
+  flags; and the <code>everything</code>-only extras (<code>MANE</code>, <code>APPRIS</code>, <code>SIFT</code>,
+  <code>PolyPhen</code>, <code>DOMAINS</code>, <code>miRNA</code>, <code>HGVS_OFFSET</code>, the five motif columns and
+  the gnomAD sub-populations) on <code>everything</code>. A group nobody selected is switched off
+  for the run. A group a column needs is switched on when you gave no flags;
+  flags you did set are kept exactly as configured. HGVS and the <code>everything</code>
+  extras need <code>reference_fasta</code>, and selecting them without one raises rather
+  than returning nulls. The selected columns are value-identical to a run
+  with the flags spelled out.</li>
+</ul>
+<p>Every other <code>filter()</code> is applied to each batch after annotation. It bounds
+memory, because a batch is dropped as soon as it has been reduced, but it does
+not reduce the engine's work. The raw <code>CSQ</code> string (<code>skip_csq=False</code>) needs every
+flag, so a query that reads it runs like a plain <code>collect()</code>: with the flags
+you gave, or the flagless default. Plugin lookups run only when the query
+reads a plugin column or <code>CSQ</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">preview</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>              <span class="c1"># LIMIT 20 in the engine</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">high</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">lf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"IMPACT"</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"HIGH"</span><span class="p">))</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>      <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"SYMBOL"</span><span class="p">,</span> <span class="s2">"Consequence"</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>      <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>                                            <span class="c1"># runs without HGVS or the co-located lookup</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"SYMBOL"</span><span class="p">,</span> <span class="s2">"Consequence"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>   <span class="c1"># no flags at all</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"HGVSc"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>                    <span class="c1"># hgvs only</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"AF"</span><span class="p">,</span> <span class="s2">"CLIN_SIG"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>           <span class="c1"># the co-located lookup only</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"SIFT"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>                     <span class="c1"># everything</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>                                                      <span class="c1"># no projection: everything</span>
+</span></code></pre></div>
+<p>Without a projection there is nothing to infer from, so the flags you passed
+are what runs, and a frame created without flags runs <code>everything</code> when it
+has a FASTA and the co-located lookup when it does not.</p>
+<p>On the release-116 Ensembl cache with a FASTA and <code>workers=1</code>, measured on an
+Apple Silicon M3 Max (16 cores, 64 GiB):</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Query</th>
+<th>Wall time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>chr22, 50,861 variants</td>
+<td><code>collect()</code></td>
+<td>2.3 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)</code></td>
+<td>1.2 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>select(chrom, start, HGVSc, HGVSp)</code></td>
+<td>1.4 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)</code></td>
+<td>1.9 s</td>
+</tr>
+<tr>
+<td>chr1, 323,430 variants</td>
+<td><code>collect()</code></td>
+<td>15.2 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)</code></td>
+<td>5.8 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>select(chrom, start, HGVSc, HGVSp)</code></td>
+<td>9.0 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)</code></td>
+<td>14.2 s</td>
+</tr>
+</tbody>
+</table>
+<h3 id="region-filters">Region filters<a class="headerlink" href="#region-filters" title="Permanent link">¶</a></h3>
+<p>A <code>filter()</code> on <code>chrom</code>, <code>start</code> or <code>end</code> is pushed into the engine before
+annotation: contigs outside the filter are never prepared, and an indexed
+input (bgzip + <code>.tbi</code>/<code>.csi</code>) is read by seek.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">df</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"chr22"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span><span class="o">.</span><span class="n">is_between</span><span class="p">(</span><span class="mi">20_000_000</span><span class="p">,</span> <span class="mi">25_000_000</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span></code></pre></div>
+<p>The result is always identical to filtering after <code>collect()</code>; only the work
+changes. Coordinates are the frame's own <code>start</code>/<code>end</code> columns (1-based,
+closed). Recognised shapes:</p>
+<ul>
+<li><code>chrom</code> conjuncts that name specific contigs: <code>==</code>, <code>is_in</code>,
+  <code>str.starts_with</code> and boolean combinations of them. A conjunct that would
+  accept any name (<code>!=</code>, <code>is_not_null()</code>) narrows nothing on its own and is
+  only pushed together with a range.</li>
+<li><code>start</code>/<code>end</code> conjuncts: comparisons with an integer literal and
+  <code>is_between</code>. <code>end &lt;= b</code> bounds the range; <code>end &gt;= a</code> does not.</li>
+<li>Several regions: an <code>|</code> of <code>(chrom &amp; range)</code> groups, one region per group.</li>
+</ul>
+<p>Anything else (a float literal, a range compared to another column, a cast,
+an <code>|</code> <em>inside</em> a range conjunct) is not pushed down and is applied by Polars
+after annotation, which is still correct, just not faster.</p>
+<p>Without a tabix/CSI index next to the input a <code>RuntimeWarning</code> is emitted:
+the whole file is parsed once to find which contigs it carries and once more
+to filter it before annotation, and only the selected rows are annotated. On Merged and RefSeq caches a range costs one
+extra positional pass over each selected contig, which keeps the result
+byte-identical to a whole-file run.</p>
+<p>On the release-116 caches with a FASTA, <code>everything=True</code> and <code>workers=1</code>
+(HG002 slices, indexed input), measured on an Apple Silicon M3 Max (16 cores, 64 GiB):</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Query</th>
+<th>Ensembl</th>
+<th>Merged</th>
+<th>RefSeq</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>chr22, 50,861 variants</td>
+<td><code>collect()</code></td>
+<td>2.6 s</td>
+<td>3.2 s</td>
+<td>2.0 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>filter(chr22:20,000,000-25,000,000)</code>, 5,406 rows</td>
+<td>0.6 s</td>
+<td>1.3 s</td>
+<td>0.8 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>filter(chr22:30,000,000-30,100,000)</code>, 59 rows</td>
+<td>0.1 s</td>
+<td>0.7 s</td>
+<td>0.5 s</td>
+</tr>
+<tr>
+<td>chr1, 323,430 variants</td>
+<td><code>collect()</code></td>
+<td>17.0 s</td>
+<td>22.5 s</td>
+<td>14.9 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>filter(chr1:20,000,000-25,000,000)</code>, 7,871 rows</td>
+<td>1.2 s</td>
+<td>2.9 s</td>
+<td>1.7 s</td>
+</tr>
+<tr>
+<td></td>
+<td><code>filter(chr1:30,000,000-30,100,000)</code>, 275 rows</td>
+<td>0.6 s</td>
+<td>1.8 s</td>
+<td>1.1 s</td>
+</tr>
+</tbody>
+</table>
+<h2 id="one-row-per-consequence">One row per consequence<a class="headerlink" href="#one-row-per-consequence" title="Permanent link">¶</a></h2>
+<p>Most downstream work, and every <code>filter_vep</code> expression, is about one CSQ
+entry: a variant paired with one transcript, regulatory or motif feature.
+Explode the aligned list columns together to get that long format. The helper
+pads a null list to the row's entry count first, so a column that is null on
+some rows cannot break the alignment.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">UNALIGNED</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Existing_variation"</span><span class="p">,</span> <span class="s2">"CLIN_SIG"</span><span class="p">,</span> <span class="s2">"PUBMED"</span><span class="p">,</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>             <span class="s2">"clin_sig_allele"</span><span class="p">,</span> <span class="s2">"clinvar_ids"</span><span class="p">,</span> <span class="s2">"cosmic_ids"</span><span class="p">,</span> <span class="s2">"dbsnp_ids"</span><span class="p">}</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">consequence_rows</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="sd">"""One row per CSQ entry. Keeps every scalar and per-variant column as is."""</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">c</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">)</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">UNALIGNED</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">]</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">padded</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">is_null</span><span class="p">())</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"Consequence"</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="n">c</span><span class="p">]))</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="p">]</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="k">return</span> <span class="p">(</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"Consequence"</span><span class="p">)</span><span class="o">.</span><span class="n">is_not_null</span><span class="p">())</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>          <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">padded</span><span class="p">)</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>          <span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="p">)</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="n">long</span> <span class="o">=</span> <span class="n">consequence_rows</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Rows whose <code>ALT</code> is <code>*</code> have no consequences and are dropped by the filter.
+On chr22 of HG002 the 50,861 variants become 943,901 consequence rows.</p>
+<h2 id="filter_vep-expressions-in-polars"><code>filter_vep</code> expressions in Polars<a class="headerlink" href="#filter_vep-expressions-in-polars" title="Permanent link">¶</a></h2>
+<p>Ensembl's <a href="https://jun2026.archive.ensembl.org/info/docs/tools/vep/script/vep_filter.html"><code>filter_vep</code></a>
+evaluates an expression per CSQ entry and keeps the variant when any entry
+matches; with <code>--only_matched</code> it also drops the entries that did not. Both
+map onto the frame:</p>
+<ul>
+<li>On the <strong>long frame</strong> (<code>long</code> above), <code>filter()</code> keeps matching entries only.
+  This is <code>filter_vep --only_matched</code>.</li>
+<li>On the <strong>wide frame</strong> (<code>df</code>), wrap the per-entry test in
+  <code>list.eval(...).list.any()</code> to keep the whole variant when any entry
+  matches. This is plain <code>filter_vep</code>.</li>
+</ul>
+<p>The table uses the long frame. Fields that <code>filter_vep</code> treats as numbers
+after stripping text, such as <code>SIFT</code>'s score in parentheses or the exon
+number in <code>2/10</code>, need the same extraction here.</p>
+<table>
+<thead>
+<tr>
+<th><code>filter_vep</code> expression</th>
+<th>Polars expression on <code>long</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Feature is ENST00000307301</code></td>
+<td><code>pl.col("Feature") == "ENST00000307301"</code></td>
+</tr>
+<tr>
+<td><code>Feature_type is Transcript</code></td>
+<td><code>pl.col("Feature_type") == "Transcript"</code></td>
+</tr>
+<tr>
+<td><code>Consequence is missense_variant</code></td>
+<td><code>pl.col("Consequence").str.split("&amp;").list.contains("missense_variant")</code></td>
+</tr>
+<tr>
+<td><code>Consequence matches stream</code></td>
+<td><code>pl.col("Consequence").str.contains("stream")</code></td>
+</tr>
+<tr>
+<td><code>Consequence match stop</code></td>
+<td><code>pl.col("Consequence").str.contains("stop")</code></td>
+</tr>
+<tr>
+<td><code>SIFT != tolerated</code></td>
+<td><code>pl.col("SIFT").str.replace(r"\(.*\)$", "") != "tolerated"</code></td>
+</tr>
+<tr>
+<td><code>SIFT match tolerated</code></td>
+<td><code>pl.col("SIFT").str.contains("tolerated")</code></td>
+</tr>
+<tr>
+<td><code>SIFT &lt; 0.1</code></td>
+<td><code>pl.col("SIFT").str.extract(r"\(([\d.]+)\)").cast(pl.Float64) &lt; 0.1</code></td>
+</tr>
+<tr>
+<td><code>Protein_position &lt; 10</code></td>
+<td><code>pl.col("Protein_position").str.extract(r"^(\d+)").cast(pl.Int64) &lt; 10</code></td>
+</tr>
+<tr>
+<td><code>Exon &gt; 1</code></td>
+<td><code>pl.col("EXON").str.extract(r"^(\d+)").cast(pl.Int64) &gt; 1</code></td>
+</tr>
+<tr>
+<td><code>MANE</code> (field exists)</td>
+<td><code>pl.col("MANE").is_not_null()</code></td>
+</tr>
+<tr>
+<td><code>SYMBOL</code></td>
+<td><code>pl.col("SYMBOL").is_not_null()</code></td>
+</tr>
+<tr>
+<td><code>not Existing_variation</code></td>
+<td><code>pl.col("Existing_variation").is_null()</code></td>
+</tr>
+<tr>
+<td><code>AF &lt; 0.01 or not AF</code></td>
+<td><code>pl.any_horizontal(pl.col("AF") &lt; 0.01, pl.col("AF").is_null())</code></td>
+</tr>
+<tr>
+<td><code>AFR_AF &gt; 0.1 or EUR_AF &gt; 0.1</code></td>
+<td><code>pl.any_horizontal(pl.col("AFR_AF") &gt; 0.1, pl.col("EUR_AF") &gt; 0.1)</code></td>
+</tr>
+<tr>
+<td><code>AFR_AF &gt; #EUR_AF</code></td>
+<td><code>pl.col("AFR_AF") &gt; pl.col("EUR_AF")</code></td>
+</tr>
+<tr>
+<td><code>(AFR_AF &gt; 0.1 or EUR_AF &gt; 0.1) and (EAS_AF &lt; 0.1 and SAS_AF &lt; 0.1)</code></td>
+<td><code>pl.any_horizontal(pl.col("AFR_AF") &gt; 0.1, pl.col("EUR_AF") &gt; 0.1) &amp; pl.all_horizontal(pl.col("EAS_AF") &lt; 0.1, pl.col("SAS_AF") &lt; 0.1)</code></td>
+</tr>
+<tr>
+<td><code>Consequence is missense_variant and CCDS and DOMAINS</code></td>
+<td><code>pl.col("Consequence").str.split("&amp;").list.contains("missense_variant") &amp; pl.col("CCDS").is_not_null() &amp; pl.col("DOMAINS").is_not_null()</code></td>
+</tr>
+<tr>
+<td><code>SYMBOL in BRCA1,BRCA2</code></td>
+<td><code>pl.col("SYMBOL").is_in(["BRCA1", "BRCA2"])</code></td>
+</tr>
+<tr>
+<td><code>Feature in /data/files/motifs_list.txt</code></td>
+<td><code>pl.col("Feature").is_in(Path("/data/files/motifs_list.txt").read_text().split())</code></td>
+</tr>
+<tr>
+<td><code>Consequence is coding_sequence_variant</code> with <code>--ontology</code></td>
+<td>No ontology expansion; list the child terms: <code>pl.col("Consequence").str.split("&amp;").list.eval(pl.element().is_in(CHILD_TERMS)).list.any()</code></td>
+</tr>
+</tbody>
+</table>
+<p>Operator by operator:</p>
+<table>
+<thead>
+<tr>
+<th><code>filter_vep</code></th>
+<th>Polars</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is</code>, <code>=</code>, <code>eq</code></td>
+<td><code>==</code>; on <code>&amp;</code>-joined fields <code>str.split("&amp;").list.contains(...)</code></td>
+</tr>
+<tr>
+<td><code>!=</code>, <code>ne</code></td>
+<td><code>!=</code></td>
+</tr>
+<tr>
+<td><code>match</code>, <code>matches</code>, <code>re</code>, <code>regex</code></td>
+<td><code>str.contains(pattern)</code></td>
+</tr>
+<tr>
+<td><code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code></td>
+<td>the same, after <code>cast()</code> from the string form where needed</td>
+</tr>
+<tr>
+<td><code>exists</code>, <code>ex</code>, <code>defined</code>, bare field</td>
+<td><code>is_not_null()</code></td>
+</tr>
+<tr>
+<td><code>not</code></td>
+<td><code>~</code> or <code>is_null()</code></td>
+</tr>
+<tr>
+<td><code>and</code>, <code>or</code>, parentheses</td>
+<td><code>&amp;</code> and the pipe operator, each side in its own parentheses; or <code>pl.all_horizontal()</code> / <code>pl.any_horizontal()</code></td>
+</tr>
+<tr>
+<td><code>in a,b,c</code> / <code>in file</code></td>
+<td><code>is_in([...])</code></td>
+</tr>
+</tbody>
+</table>
+<p>Where a value in the frame is null, the <code>filter_vep</code> field is empty, so
+<code>is_null()</code> and <code>is_not_null()</code> give the <code>not FIELD</code> and <code>FIELD</code> semantics
+exactly.</p>
+<p>The same expressions on the wide frame keep whole variants:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">any_stream</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"Consequence"</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">element</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"stream"</span><span class="p">))</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">)</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">any_high</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"IMPACT"</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"HIGH"</span><span class="p">))</span>
+</span></code></pre></div>
+<h2 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">¶</a></h2>
+<p>Point the frame at a plugin cache and the plugin fields are columns like any
+other; see <a href="#plugin-columns">Plugin columns</a> for how their shape and type are
+decided. All examples below use the four published caches:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="s2">"input.vcf.gz"</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"GRCh38.fa"</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">plugin_cache_root</span><span class="o">=</span><span class="s2">"/data/plugin_cache"</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">plugins</span><span class="o">=</span><span class="p">[</span><span class="s2">"cadd"</span><span class="p">,</span> <span class="s2">"clinvar"</span><span class="p">,</span> <span class="s2">"spliceai"</span><span class="p">,</span> <span class="s2">"alphamissense"</span><span class="p">],</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>CADD</strong> is per variant, and its scores are strings so the VCF keeps the
+source digits. Cast, then filter:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">high_cadd</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"SYMBOL"</span><span class="p">,</span> <span class="s2">"CADD_PHRED"</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>      <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"CADD_PHRED"</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Float32</span><span class="p">))</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>      <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"CADD_PHRED"</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">20</span><span class="p">)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>      <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>ClinVar</strong> is per variant too, so its fields are plain string columns.
+<code>ClinVar</code> holds the variation id, and the assertion fields keep VEP's <code>&amp;</code>
+joins, so match with a pattern:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">clinvar</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"ClinVar"</span><span class="p">,</span> <span class="s2">"ClinVar_CLNSIG"</span><span class="p">,</span> <span class="s2">"ClinVar_CLNREVSTAT"</span><span class="p">)</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>      <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"ClinVar_CLNSIG"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"(?i)pathogenic"</span><span class="p">))</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>      <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>SpliceAI</strong> is matched by gene symbol, so every field is a list aligned with
+<code>Consequence</code>. The delta scores are strings in the cache; cast the lists and
+take the largest score across the variant's entries:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">DS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SpliceAI_pred_DS_AG"</span><span class="p">,</span> <span class="s2">"SpliceAI_pred_DS_AL"</span><span class="p">,</span> <span class="s2">"SpliceAI_pred_DS_DG"</span><span class="p">,</span> <span class="s2">"SpliceAI_pred_DS_DL"</span><span class="p">]</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">splice</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"SpliceAI_pred_SYMBOL"</span><span class="p">,</span> <span class="o">*</span><span class="n">DS</span><span class="p">)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>      <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">DS</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Float32</span><span class="p">)))</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>      <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">max_horizontal</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">DS</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">"spliceai_max_ds"</span><span class="p">))</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>      <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"spliceai_max_ds"</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>      <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>AlphaMissense</strong> is matched by protein change, so <code>am_class</code> and
+<code>am_pathogenicity</code> (already <code>List(Float32)</code>) belong to the consequence entry
+that produced the change. Explode them together with the transcript columns
+to see which transcript each score refers to:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">am</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"Feature"</span><span class="p">,</span> <span class="s2">"Protein_position"</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>              <span class="s2">"Amino_acids"</span><span class="p">,</span> <span class="s2">"am_class"</span><span class="p">,</span> <span class="s2">"am_pathogenicity"</span><span class="p">)</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>      <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"am_class"</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">"likely_pathogenic"</span><span class="p">))</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>      <span class="o">.</span><span class="n">explode</span><span class="p">([</span><span class="s2">"Feature"</span><span class="p">,</span> <span class="s2">"Protein_position"</span><span class="p">,</span> <span class="s2">"Amino_acids"</span><span class="p">,</span> <span class="s2">"am_class"</span><span class="p">,</span> <span class="s2">"am_pathogenicity"</span><span class="p">])</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>      <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"am_class"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"likely_pathogenic"</span><span class="p">)</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>      <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Plugin columns combine freely with the base annotation, and the projection
+still decides what runs. This query runs the co-located lookup for
+<code>gnomADg_AF</code> and the CADD lookup, and nothing else:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">candidates</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">,</span> <span class="s2">"alt"</span><span class="p">,</span> <span class="s2">"SYMBOL"</span><span class="p">,</span> <span class="s2">"Consequence"</span><span class="p">,</span> <span class="s2">"gnomADg_AF"</span><span class="p">,</span> <span class="s2">"CADD_PHRED"</span><span class="p">)</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>      <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"CADD_PHRED"</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Float32</span><span class="p">))</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>      <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>          <span class="n">pl</span><span class="o">.</span><span class="n">any_horizontal</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"gnomADg_AF"</span><span class="p">)</span><span class="o">.</span><span class="n">is_null</span><span class="p">(),</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"gnomADg_AF"</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.001</span><span class="p">)</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>          <span class="o">&amp;</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"CADD_PHRED"</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">25</span><span class="p">)</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>      <span class="p">)</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>      <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>The <a href="#one-row-per-consequence"><code>consequence_rows</code></a> helper works unchanged on
+a frame with plugins: per-feature plugin lists explode alongside the
+transcript columns, per-variant scalars such as <code>CADD_PHRED</code> repeat on each
+row, like the frequencies do.</p>
+<p>A query that reads no plugin column skips the plugin lookup entirely. On
+chr22 with the four caches, <code>select(chrom, start, SYMBOL)</code> takes 1.2 s and
+<code>select(chrom, start, CADD_PHRED)</code> 8.4 s, so keep plugin columns out of
+queries that do not need them.</p>
+<h2 id="workers">Workers<a class="headerlink" href="#workers" title="Permanent link">¶</a></h2>
+<p><code>workers=N</code> splits each contig into grid-aligned runs that are annotated
+concurrently and released in order. It applies to the LazyFrame path as well as
+<code>output_vcf</code>, and the frame is identical to <code>workers=1</code>, row order included.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="s2">"input.vcf.gz"</span><span class="p">,</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="s2">"/data/vepyr_cache/116_GRCh38_ensembl"</span><span class="p">,</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">reference_fasta</span><span class="o">=</span><span class="s2">"GRCh38.fa"</span><span class="p">,</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">workers</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="p">)</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">df</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title"><code>workers &gt; 1</code> needs an indexed input</p>
+<p>The input VCF must be bgzip-compressed with a <code>.tbi</code> or <code>.csi</code> index. An
+unindexed input raises rather than silently falling back.</p>
+</div>
+<p>See <a href="../performance/#workers-on-the-lazyframe-path">Performance</a> for a sweep
+across worker counts and cache profiles.</p>
+<h2 id="writing-results-to-disk">Writing results to disk<a class="headerlink" href="#writing-results-to-disk" title="Permanent link">¶</a></h2>
+<p><code>collect()</code> holds the whole result in memory. On chromosome 1 of a
+whole-genome sample (323,430 variants, <code>everything=True</code>) the collected frame
+is about 2.3 GB, but the process peaks at 12.6 GB because Polars buffers the
+Arrow batches on top of the frame. Two things bring that down.</p>
+<p><strong>Leave the <code>CSQ</code> string off.</strong> It is off by default (<code>skip_csq=True</code>) and
+roughly halves peak memory. Turn it on only when you need the exact VEP string.</p>
+<p><strong>Stream with <code>sink_parquet</code> and a small row group.</strong> Polars holds one row
+group in memory before writing it, and its default group is far larger than an
+annotation batch. Setting the group to the engine's buffer size keeps the
+stream flat:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">lf</span><span class="o">.</span><span class="n">sink_parquet</span><span class="p">(</span><span class="s2">"annotated.parquet"</span><span class="p">,</span> <span class="n">row_group_size</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Measured on the release-116 Ensembl cache with <code>workers=1</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Path</th>
+<th>Wall time</th>
+<th>Peak RSS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>chr22, 50,861 variants</td>
+<td><code>output_vcf</code> (bgzf)</td>
+<td>3.9 s</td>
+<td>1.0 GB</td>
+</tr>
+<tr>
+<td></td>
+<td><code>collect()</code></td>
+<td>2.4 s</td>
+<td>1.6 GB</td>
+</tr>
+<tr>
+<td></td>
+<td><code>sink_parquet()</code> default</td>
+<td>2.7 s</td>
+<td>2.1 GB</td>
+</tr>
+<tr>
+<td></td>
+<td><code>sink_parquet(row_group_size=5000)</code></td>
+<td>2.5 s</td>
+<td>1.3 GB</td>
+</tr>
+<tr>
+<td>chr1, 323,430 variants</td>
+<td><code>output_vcf</code> (bgzf)</td>
+<td>21.6 s</td>
+<td>2.9 GB</td>
+</tr>
+<tr>
+<td></td>
+<td><code>collect()</code></td>
+<td>15.3 s</td>
+<td>6.9 GB</td>
+</tr>
+<tr>
+<td></td>
+<td><code>sink_parquet()</code> default</td>
+<td>15.8 s</td>
+<td>6.0 GB</td>
+</tr>
+<tr>
+<td></td>
+<td><code>sink_parquet(row_group_size=5000)</code></td>
+<td>16.5 s</td>
+<td>3.5 GB</td>
+</tr>
+</tbody>
+</table>
+<p>With <code>skip_csq=False</code> add roughly 1 GB on chr1 for the small-row-group sink and
+5 GB for <code>collect()</code>. The engine itself needs about 3 GB on chr1 whichever
+output you choose, so the small-row-group sink is within half a gigabyte of the
+VCF writer. Wall time is unaffected and the Parquet file grows by about 6 %.</p>
+<p>List columns cannot be written to CSV directly. Join them with <code>&amp;</code> first, on
+the wide frame or on the long frame, where the per-variant value sets are the
+only lists left:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">join_lists</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">))</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">"&amp;"</span><span class="p">))</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">join_lists</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="s2">"annotated.tsv"</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">join_lists</span><span class="p">(</span><span class="n">consequence_rows</span><span class="p">(</span><span class="n">df</span><span class="p">))</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="s2">"annotated_long.tsv"</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="agreement-with-the-vcf-output">Agreement with the VCF output<a class="headerlink" href="#agreement-with-the-vcf-output" title="Permanent link">¶</a></h2>
+<p>The DataFrame and VCF paths run the same engine. On chr22 and chr1 of HG002
+against the release-116 Ensembl cache with <code>everything=True</code>, the <code>CSQ</code>
+column (<code>skip_csq=False</code>) matched the VCF's <code>INFO/CSQ</code> byte for byte on every
+record, the variant columns matched <code>CHROM</code>, <code>POS</code>, <code>ID</code>, <code>REF</code>, <code>ALT</code>, <code>QUAL</code>
+and <code>FILTER</code>, and every typed column matched its CSQ field element for element,
+motif entries included. The only representational difference is the three
+per-variant value-set columns:</p>
+<div class="admonition note">
+<p class="admonition-title">Per-variant value sets</p>
+<p><code>Existing_variation</code>, <code>CLIN_SIG</code> and <code>PUBMED</code> are deduplicated per
+variant rather than repeated per consequence. No values are lost, but
+their list length does not match the per-consequence columns. Elements
+are split on the cache's <code>,</code> separator only, so a combined assertion such
+as <code>benign&amp;likely_benign</code> stays one element; match with <code>str.contains</code>.</p>
+</div>
+<p>When a downstream step needs the string itself, decode it directly:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">CSQ_FIELDS</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># the Format: list from the VCF header, or the schema names from "Allele" on</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">entries</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"CSQ"</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">decoded</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">entries</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">element</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"|"</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">null_on_oob</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>           <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">CSQ_FIELDS</span><span class="p">)</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="p">)</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../downloads/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Download Ensembl VEP and plugin caches">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Download Ensembl VEP and plugin caches
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../api/" class="md-footer__link md-footer__link--next" aria-label="Next: API">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                API
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

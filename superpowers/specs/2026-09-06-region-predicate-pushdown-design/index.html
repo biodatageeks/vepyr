@@ -1,0 +1,1485 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/specs/2026-09-06-region-predicate-pushdown-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Genomic-range predicate pushdown for the LazyFrame path - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#genomic-range-predicate-pushdown-for-the-lazyframe-path" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Genomic-range predicate pushdown for the LazyFrame path
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-ranges-need-no-base-pair-padding-and-why-mergedrefseq-need-grid-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why ranges need no base-pair padding, and why Merged/RefSeq need grid alignment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-design-vepyr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python design (vepyr)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python design (vepyr)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#extraction-module-srcvepyr_regionspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extraction module src/vepyr/_regions.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#header-contigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header contigs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#index-detection-and-warning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Index detection and warning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wiring-in-_batch_source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wiring in _batch_source
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rust-bridge-vepyrsrc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rust bridge (vepyr/src)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-design-datafusion-bio-function-vep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine design (datafusion-bio-function-vep)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Engine design (datafusion-bio-function-vep)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contig-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contig selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runs-replace-the-single-pass-per-contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runs replace the single pass per contig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stateful-runs-on-merged-and-refseq" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stateful runs on Merged and RefSeq
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cost-profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost profile
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#engine-unit-tests-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine unit tests (Rust)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vepyr-unit-tests-teststest_regionspy-teststest_annotatepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vepyr unit tests (tests/test_regions.py, tests/test_annotate.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#golden-fixture-parity-tests-teststest_annotatepy-ensembl-and-merged-caches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Golden-fixture parity tests (tests/test_annotate.py, Ensembl and merged caches)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-data-parity-gate-e2e-testingscriptsregion_pushdown_paritypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-data parity gate (e2e-testing/scripts/region_pushdown_parity.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delivery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deferred-explicit-annotateregions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deferred: explicit annotate(regions=...)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="genomic-range-predicate-pushdown-for-the-lazyframe-path">Genomic-range predicate pushdown for the LazyFrame path<a class="headerlink" href="#genomic-range-predicate-pushdown-for-the-lazyframe-path" title="Permanent link">¶</a></h1>
+<p><strong>Date:</strong> 2026-09-06
+<strong>Status:</strong> Approved (design)
+<strong>Implementation repos:</strong> <code>datafusion-bio-functions</code> (<code>datafusion/bio-function-vep</code>), then <code>vepyr</code>
+<strong>Related:</strong> <code>docs/superpowers/specs/2026-08-28-chrxy-core-annotation-parity-design.md</code>
+(golden parity gates), PR #79 (projection-driven flag inference in <code>_batch_source</code>),
+engine design 2026-06-25 §5/§7 (grid-aligned warm-up on the sharded VCF path)</p>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">¶</a></h2>
+<p><code>vepyr.annotate()</code> returns a Polars <code>LazyFrame</code> backed by an IO plugin. Polars hands
+the plugin the projected columns, the pushed predicate and the row limit. Today the
+plugin uses the projection to prune annotation flags (PR #79) and the limit as a SQL
+<code>LIMIT</code>, but the predicate is only applied <em>after</em> annotation, batch by batch. A query
+such as</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">vcf</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"chr22"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span><span class="o">.</span><span class="n">is_between</span><span class="p">(</span><span class="mi">20_000_000</span><span class="p">,</span> <span class="mi">25_000_000</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span></code></pre></div>
+<p>annotates the whole file and throws most of the result away. The VCF reader underneath
+(<code>datafusion-bio-format-vcf</code>) already turns <code>chrom</code>/<code>start</code>/<code>end</code> filters into tabix or
+CSI index seeks, and the engine already scans each contig through per-contig filters, so
+the pieces exist. Nothing connects the Polars predicate to them.</p>
+<p>This design adds that connection: genomic-range predicates are extracted from the
+Polars predicate, passed to the engine as <code>regions</code>, and honoured by the engine before
+annotation, so that only the selected contigs are prepared and only the selected rows
+are looked up and annotated.</p>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">¶</a></h2>
+<p>In scope:</p>
+<ul>
+<li>Predicate extraction for <code>chrom</code>, <code>start</code> and <code>end</code> on the LazyFrame path.</li>
+<li>An engine option <code>regions</code> honoured on the streaming (LazyFrame) path for every cache
+  source: Ensembl, Merged and RefSeq.</li>
+<li>Exact results on Merged and RefSeq, where annotation depends on Ensembl VEP's
+  per-buffer state, by aligning range cuts to the input-buffer grid and replaying
+  warm-up rows.</li>
+<li>Index detection with a warning when the input has no tabix/CSI index.</li>
+<li>Unit tests, golden-fixture parity tests and a real-data parity gate.</li>
+</ul>
+<p>Out of scope, each a separate follow-up:</p>
+<ul>
+<li>An explicit <code>annotate(regions=...)</code> argument. Its design is written down in the
+  "Deferred" section below so the follow-up is a wiring change, not a new design; the
+  engine option this delivery adds is what it needs.</li>
+<li><code>regions</code> on the sharded VCF-output path (<code>output_vcf</code> with <code>workers&gt;1</code>). The engine
+  rejects that combination with a plan error in this delivery.</li>
+<li><code>workers&gt;1</code> on the LazyFrame path. On the current engine pin a LazyFrame collect with
+  <code>workers=2</code> fails with "parallel annotation (threads&gt;1) requires a VCF shard
+  context". That is a pre-existing gap; the docstring and <code>docs/performance.md</code>
+  over-promise and need a separate fix.</li>
+<li>Predicates on any column other than <code>chrom</code>, <code>start</code>, <code>end</code>. They keep being applied
+  in Polars after annotation.</li>
+</ul>
+<h2 id="contract">Contract<a class="headerlink" href="#contract" title="Permanent link">¶</a></h2>
+<p>For every predicate <code>p</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">annotate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>  <span class="o">==</span>  <span class="n">annotate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</span></code></pre></div>
+<p>including row order. Pushdown only narrows the <em>input</em> to a superset of the rows <code>p</code>
+can accept; Polars still evaluates the full predicate on every batch as it does today.
+Extraction fails open: a predicate shape it does not recognise contributes no
+restriction. The only observable differences are speed and the index warning.</p>
+<p>Coordinates are the LazyFrame's own <code>start</code> and <code>end</code> columns: 1-based closed, as the
+VCF provider emits them (<code>coordinate_system_zero_based = false</code> in
+<code>create_streaming_annotator</code>). No conversion happens on either side.</p>
+<h2 id="why-ranges-need-no-base-pair-padding-and-why-mergedrefseq-need-grid-alignment">Why ranges need no base-pair padding, and why Merged/RefSeq need grid alignment<a class="headerlink" href="#why-ranges-need-no-base-pair-padding-and-why-mergedrefseq-need-grid-alignment" title="Permanent link">¶</a></h2>
+<p>Everything an annotation depends on besides the record itself comes from the cache,
+looked up by contig and by 1 Mb cache region around the variants the engine sees:
+transcripts within the up/downstream distance, regulatory and motif features,
+co-located variants. Trimming the VCF changes none of those lookups, so a plain cut is
+exact for the Ensembl source. The engine's byte-budget sharding on the VCF-output path
+already relies on this and is byte-identical at every worker count.</p>
+<p>Merged and RefSeq caches are different because of Ensembl VEP's HGNC donation.
+<code>merge_features()</code> copies the gene symbol and HGNC id from an Ensembl transcript onto a
+RefSeq transcript of the same gene that lacks them and mutates the cached transcript
+object in place. Those objects live in a per-region cache that persists across
+consecutive input buffers, so a RefSeq transcript's output in one buffer depends on
+which variants earlier buffers loaded. The engine replicates this through
+<code>persisted_buffer_transcripts</code> and, on the sharded path, reconstructs it at a seam by
+replaying whole buffers before the seam ("warm-up") within a bounded reach of
+<code>max transcript span + 1 Mb</code>. A range cut is a seam, so it needs the same treatment.</p>
+<h2 id="python-design-vepyr">Python design (<code>vepyr</code>)<a class="headerlink" href="#python-design-vepyr" title="Permanent link">¶</a></h2>
+<h3 id="extraction-module-srcvepyr_regionspy">Extraction module <code>src/vepyr/_regions.py</code><a class="headerlink" href="#extraction-module-srcvepyr_regionspy" title="Permanent link">¶</a></h3>
+<p>Pure functions, no engine access, unit-tested in isolation. Public surface inside the
+package:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">Region</span> <span class="o">=</span> <span class="nb">dict</span>  <span class="c1"># {"chrom": str, "start": int | None, "end": int | None}</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">extract_regions</span><span class="p">(</span><span class="n">predicate</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">,</span> <span class="n">contigs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Region</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Return values:</p>
+<ul>
+<li><code>None</code>: no pushdown. The predicate has no recognised genomic restriction.</li>
+<li><code>[]</code>: provably empty. The IO source yields nothing and never opens the engine.</li>
+<li>a non-empty list: regions in 1-based closed coordinates; <code>start</code>/<code>end</code> may be <code>None</code>
+  for an open side.</li>
+</ul>
+<p>Algorithm over <code>predicate.meta.serialize(format="json")</code>:</p>
+<ol>
+<li>Split the root on <code>Or</code> into disjunct groups, and each group on <code>And</code> into conjuncts.
+   A region list written as <code>(chr1 &amp; range) | (chr2 &amp; range)</code> therefore becomes two
+   regions.</li>
+<li>For each conjunct, classify by <code>meta.root_names()</code>:</li>
+<li>exactly <code>{"chrom"}</code>: <strong>evaluate</strong>, do not interpret. After a shape gate that
+     allows only <code>Column</code>, <code>Literal</code>, <code>BinaryExpr</code> (any operator), and <code>Function</code> nodes
+     from an explicit elementwise whitelist (<code>Boolean.IsIn</code>, <code>Boolean.Not</code>,
+     <code>Boolean.IsNull</code>, <code>Boolean.IsNotNull</code>, and the <code>StringExpr</code> variants <code>StartsWith</code>,
+     <code>EndsWith</code>, <code>Contains</code>, <code>Uppercase</code>, <code>Lowercase</code>, <code>StripPrefix</code>, <code>StripSuffix</code>,
+     <code>StripChars</code>), the conjunct is run as
+     <code>pl.DataFrame({"chrom": contigs}).filter(conjunct)</code>. Set-dependent functions such
+     as <code>is_duplicated</code> or <code>is_unique</code> would evaluate differently on the contig table
+     than on the data rows, so they are excluded and fail open. The surviving
+     names are the conjunct's chrom set. This covers <code>==</code>, <code>!=</code>, <code>is_in</code>,
+     <code>str.starts_with</code> and their boolean combinations without decoding Polars' opaque
+     list literals, and it needs no knowledge of contig spellings: <code>chrom == "1"</code>
+     against a <code>chr1</code> file evaluates to an empty set, which is the right answer.</li>
+<li>a subset of <code>{"start", "end"}</code>: <strong>interpret</strong>. Recognised shapes are
+     <code>Column op Literal(int)</code> in either orientation with <code>op</code> in
+     <code>Eq, Gt, GtEq, Lt, LtEq</code>, and <code>Function Boolean.IsBetween</code> on a column with two
+     integer literals, honouring <code>closed</code> (<code>both</code>, <code>left</code>, <code>right</code>, <code>none</code>).
+     <code>start</code> bounds both sides. <code>end &lt;= b</code> and <code>end &lt; b</code> give an upper bound (because
+     <code>start &lt;= end</code>); <code>end &gt;= a</code> gives nothing. <code>Eq</code> sets both bounds. Anything else,
+     including float literals, marks the conjunct unrecognised. Bounds are normalised
+     to 1-based coordinates before they leave: a lower bound below 1 is dropped, an
+     upper bound below 1 makes the group empty.</li>
+<li>any other root-name set (other columns, or genomic columns mixed with others in
+     one conjunct): ignored, it stays a residual for Polars.</li>
+<li>A group's chrom set is the intersection of its chrom conjuncts (all contigs when
+   there are none). Its bounds are the intersection of its range conjuncts. A group
+   with no recognised genomic conjunct, or with an unrecognised genomic conjunct,
+   disables pushdown for the whole predicate (<code>None</code>), because an <code>Or</code> over it could
+   accept any row.</li>
+<li>A group whose chrom set is empty, or whose lower bound exceeds its upper bound,
+   contributes no regions. If every group is empty the result is <code>[]</code>.</li>
+<li>Regions are the union over groups of one region per chrom in the group's chrom set,
+   carrying the group's bounds. Overlap merging is the engine's job.</li>
+</ol>
+<p>The Polars serialization format is documented as unstable. The module pins the node
+shapes it reads with unit tests against the installed Polars version, and any
+<code>KeyError</code>/<code>TypeError</code> while walking the tree is caught and reported as <code>None</code>.</p>
+<h3 id="header-contigs">Header contigs<a class="headerlink" href="#header-contigs" title="Permanent link">¶</a></h3>
+<p>One new <code>_core</code> function:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">vcf_contigs</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span></code></pre></div>
+<p>It opens a <code>VcfTableProvider</code> and returns the contig ids from the schema metadata the
+provider already emits (<code>bio.vcf.contigs</code>, header order). Using the provider keeps
+plain, bgzip and BCF inputs uniform. <code>annotate()</code> calls it lazily on the first collect
+whose predicate names a genomic column and memoises the result in its closure.</p>
+<h3 id="index-detection-and-warning">Index detection and warning<a class="headerlink" href="#index-detection-and-warning" title="Permanent link">¶</a></h3>
+<p>Index presence is <code>&lt;vcf&gt;.tbi</code> or <code>&lt;vcf&gt;.csi</code> next to the input, the same rule the
+engine's VCF sink uses. When regions were extracted and no index exists, <code>_batch_source</code>
+emits once per <code>annotate()</code> call:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>RuntimeWarning: region filter on '&lt;vcf&gt;' without a tabix/CSI index (&lt;vcf&gt;.tbi or
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>.csi): the whole file is parsed and filtered before annotation. Compress with bgzip
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>and index with tabix for seek-based reads.
+</span></code></pre></div>
+<p>No warning is emitted when the predicate has no genomic restriction, and none when the
+extraction yields <code>[]</code>.</p>
+<h3 id="wiring-in-_batch_source">Wiring in <code>_batch_source</code><a class="headerlink" href="#wiring-in-_batch_source" title="Permanent link">¶</a></h3>
+<p>After the projection-driven flag inference:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">regions</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">if</span> <span class="n">predicate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">genomic_columns</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">predicate</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">root_names</span><span class="p">()):</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">regions</span> <span class="o">=</span> <span class="n">extract_regions</span><span class="p">(</span><span class="n">predicate</span><span class="p">,</span> <span class="n">contigs</span><span class="p">())</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">if</span> <span class="n">regions</span> <span class="o">==</span> <span class="p">[]:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="k">return</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">if</span> <span class="n">regions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">warn_if_unindexed</span><span class="p">()</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">engine_opts</span><span class="p">[</span><span class="s2">"regions"</span><span class="p">]</span> <span class="o">=</span> <span class="n">regions</span>
+</span></code></pre></div>
+<p>Everything downstream is unchanged: the Polars-side <code>filter(predicate)</code> still runs on
+every batch, <code>n_rows</code> still becomes <code>LIMIT</code>, and plugin column handling is untouched.
+<code>_core.pyi</code> gains the <code>vcf_contigs</code> stub.</p>
+<h2 id="rust-bridge-vepyrsrc">Rust bridge (<code>vepyr/src</code>)<a class="headerlink" href="#rust-bridge-vepyrsrc" title="Permanent link">¶</a></h2>
+<ul>
+<li><code>lib.rs</code>: register <code>vcf_contigs</code>. It builds the provider exactly as
+  <code>create_streaming_annotator</code> does, reads <code>VCF_CONTIGS_KEY</code> from the schema metadata
+  and returns the ids. Errors map to <code>PyRuntimeError</code> with the "Failed to open VCF"
+  prefix already used.</li>
+<li><code>annotate.rs</code>: no change. <code>regions</code> travels inside <code>options_json</code>.</li>
+<li><code>Cargo.toml</code>/<code>Cargo.lock</code>: pin bump to the engine revision that carries the feature.</li>
+</ul>
+<h2 id="engine-design-datafusion-bio-function-vep">Engine design (<code>datafusion-bio-function-vep</code>)<a class="headerlink" href="#engine-design-datafusion-bio-function-vep" title="Permanent link">¶</a></h2>
+<h3 id="option">Option<a class="headerlink" href="#option" title="Permanent link">¶</a></h3>
+<p><code>regions</code> in <code>options_json</code>: a JSON array of objects <code>{chrom, start?, end?}</code> in 1-based
+closed coordinates. Validation at plan time (<code>AnnotateFunction::call</code> /
+<code>AnnotateProvider::new</code>), each failure a <code>DataFusionError::Plan</code>:</p>
+<ul>
+<li><code>chrom</code> is a non-empty string; <code>start</code>/<code>end</code>, when present, are integers <code>&gt;= 1</code>
+  with <code>start &lt;= end</code>.</li>
+<li><code>regions</code> together with a VCF shard context (sharded VCF output) is rejected.</li>
+</ul>
+<p>Chrom names are matched to the VCF's contigs through <code>contig_alias_set</code>, the same
+mapping used to match VCF contigs to cache shards, so <code>1</code>/<code>chr1</code> and <code>M</code>/<code>MT</code>/<code>chrM</code>
+spellings are accepted. A region whose chrom is not in the VCF selects nothing.</p>
+<p>Per contig, the intervals are merged into disjoint sorted <strong>runs</strong>; open sides merge as
+expected (an open <code>start</code> means the contig start).</p>
+<h3 id="contig-selection">Contig selection<a class="headerlink" href="#contig-selection" title="Permanent link">¶</a></h3>
+<p>In <code>scan_with_transcript_engine_partitioned</code>, after <code>discover_vcf_contigs</code> and
+<code>select_cache_backed_contigs</code>, contigs without a run are dropped, VCF order preserved.
+An empty selection returns <code>EmptyExec</code> (an empty result, not an error), and cache
+identity validation only touches selected contigs.</p>
+<h3 id="runs-replace-the-single-pass-per-contig">Runs replace the single pass per contig<a class="headerlink" href="#runs-replace-the-single-pass-per-contig" title="Permanent link">¶</a></h3>
+<p>The streaming state machine (<code>StreamState::AnnotatingContig</code> and the prepare/activate
+halves) currently prepares one context per contig and drains one lookup stream. It
+gains a run queue per contig:</p>
+<ul>
+<li><code>prepare_contig_data</code> is unchanged: transcripts, exons, translations, regulatory and
+  motif context are loaded once per contig.</li>
+<li><code>activate_contig_lookups</code> activates the <em>first</em> run; on run completion the state
+  machine activates the next run of the same contig before moving to <code>CleaningUp</code>.</li>
+<li>Each run builds its lookup with the filter
+  <code>chrom = c AND start &gt;= scan_lo AND start &lt; scan_hi</code> (bounds omitted when open), so
+  the VCF provider seeks per run when indexed and applies its record-level filters when
+  not. For Ensembl runs, <code>scan_lo</code>/<code>scan_hi</code> are the run's own bounds. For stateful
+  runs they are the slice's scan window (below).</li>
+<li>Per-run worker state is reset between runs: <code>window_buffer</code>,
+  <code>input_buffer_accumulator</code>, <code>next_input_buffer_id</code>, <code>persisted_buffer_transcripts</code>.
+  The colocated map is per contig and is kept.</li>
+<li>Without <code>regions</code> a contig has exactly one run with open bounds and no slice, which
+  is today's behaviour. The count pass is not run and no warm-up happens, so the
+  default path pays nothing.</li>
+</ul>
+<h3 id="stateful-runs-on-merged-and-refseq">Stateful runs on Merged and RefSeq<a class="headerlink" href="#stateful-runs-on-merged-and-refseq" title="Permanent link">¶</a></h3>
+<p>When the cache source is Merged or RefSeq and the contig has bounded runs:</p>
+<ol>
+<li>Run the existing count pass (<code>count_contig_buffer_boundaries</code>, positions only) once
+   per contig to obtain the buffer grid <code>boundaries</code> (length <code>B+1</code>).</li>
+<li>Map each run <code>[lo, hi]</code> to whole buffers: <code>bk = max{k : boundaries[k].pos &lt;= lo}</code>
+   (0 when none) and <code>bk1 = min{k : boundaries[k].pos &gt; hi}</code> (<code>B</code> when none). Buffer
+   <code>bk</code> may contain rows below <code>lo</code>; including it is a superset and the output filter
+   trims them. Runs whose buffer ranges overlap or touch are merged.</li>
+<li>Build one <code>WorkerGridSlice</code> per merged run with the existing <code>build_grid_slices</code>
+   over the cut pair <code>[bk, bk1]</code> and the contig's <code>overlap_width_bp</code>. That gives
+   <code>scan_lo_pos</code>, <code>skip_leading_rows</code>, <code>warm_up_start_row</code>, <code>emit_start_row</code>,
+   <code>emit_end_row</code> and <code>scan_hi_pos</code> exactly as the sharded workers get them.</li>
+<li>In the lookup drain of the state machine, add the gate the sharded worker
+   (<code>spawn_annotation_from_lookup_sharded</code>) already implements: drop
+   <code>skip_leading_rows</code> position ties at the scan floor, divert rows with rank below
+   <code>emit_start_row</code> into a warm-up list, replay that list through
+   <code>warm_up_worker_state</code> before the first window of the run is dispatched, and
+   rank-stop at <code>emit_end_row</code> by marking the run's lookup done. Warm-up rows also get
+   <code>set_probe_floor_pos(emit_start_pos)</code> so their variation probe is skipped.</li>
+<li>Windows are still cut at exactly <code>input_buffer_size</code> input units from
+   <code>emit_start_row</code>, which is a buffer boundary, so the run's windows coincide with
+   the contig-global grid.</li>
+</ol>
+<p>The warm-up reconstructs the persisted state a serial run would hold at the seam because
+that state only depends on buffers within <code>overlap_width_bp</code> of the seam, the same
+argument that makes the sharded path byte-identical.</p>
+<h3 id="output-filter">Output filter<a class="headerlink" href="#output-filter" title="Permanent link">¶</a></h3>
+<p>Rows emitted by a run are trimmed to <code>start in [lo, hi]</code> inside the engine for every
+source: stateful runs annotate whole buffers, and indexed reads are overlap-based. When
+several original intervals were merged into one run, the trim uses the union of those
+intervals. <code>LIMIT</code> counts rows after the trim.</p>
+<h3 id="cost-profile">Cost profile<a class="headerlink" href="#cost-profile" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensembl run</td>
+<td>one index seek per run, no extra pass</td>
+</tr>
+<tr>
+<td>Count pass (stateful contigs only)</td>
+<td>one positional scan of the contig: seconds with an index, a full-file parse without</td>
+</tr>
+<tr>
+<td>Warm-up (stateful runs only)</td>
+<td>the buffers covering <code>max transcript span + 1 Mb</code> before the run, replayed state-only</td>
+</tr>
+<tr>
+<td>Unindexed input</td>
+<td>full parse with record-level filtering; annotation still restricted</td>
+</tr>
+</tbody>
+</table>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">¶</a></h2>
+<h3 id="engine-unit-tests-rust">Engine unit tests (Rust)<a class="headerlink" href="#engine-unit-tests-rust" title="Permanent link">¶</a></h3>
+<ul>
+<li><code>regions</code> parsing: valid shapes, each validation error, alias matching, merging of
+  overlapping/adjacent/open intervals.</li>
+<li>Buffer mapping: <code>bk</code>/<code>bk1</code> for runs starting mid-buffer, exactly on a boundary, on a
+  position tie across a boundary, with open sides, and beyond the contig end.</li>
+<li>Run merging over the buffer grid.</li>
+<li>Parity on the synthetic HGNC-donation fixture behind
+  <code>warmup_reconstructs_serial_persisted_state</code>: a run starting mid-buffer after the
+  donation must produce the same rows as the full serial pass filtered to the run.</li>
+<li>The default path (no <code>regions</code>) still produces one open run and skips the count pass.</li>
+</ul>
+<h3 id="vepyr-unit-tests-teststest_regionspy-teststest_annotatepy">vepyr unit tests (<code>tests/test_regions.py</code>, <code>tests/test_annotate.py</code>)<a class="headerlink" href="#vepyr-unit-tests-teststest_regionspy-teststest_annotatepy" title="Permanent link">¶</a></h3>
+<ul>
+<li>Extraction table: <code>==</code>, <code>!=</code>, <code>is_in</code>, <code>str.starts_with</code>, boolean combinations of
+  chrom conjuncts, each <code>start</code>/<code>end</code> comparison in both orientations, <code>is_between</code>
+  with every <code>closed</code> mode, mixed non-genomic conjuncts, top-level <code>Or</code> groups,
+  unsatisfiable groups (<code>[]</code>), chrom spelled unlike the file (<code>[]</code>), float literals and
+  mixed-column conjuncts (<code>None</code>).</li>
+<li>With <code>_create_annotator</code> monkeypatched: <code>regions</code> appears in the options only when a
+  genomic predicate is pushed; <code>[]</code> short-circuits without creating an annotator.</li>
+<li>Warning: emitted for the plain <code>input.vcf</code> fixture, absent for <code>input.vcf.gz</code> with
+  its <code>.tbi</code>, emitted once across two collects of the same LazyFrame.</li>
+<li><code>vcf_contigs</code> returns the fixture's header contigs for plain and bgzip inputs.</li>
+</ul>
+<h3 id="golden-fixture-parity-tests-teststest_annotatepy-ensembl-and-merged-caches">Golden-fixture parity tests (<code>tests/test_annotate.py</code>, Ensembl and merged caches)<a class="headerlink" href="#golden-fixture-parity-tests-teststest_annotatepy-ensembl-and-merged-caches" title="Permanent link">¶</a></h3>
+<p>With <code>buffer_size</code> lowered (for example 7) so the 100-variant fixture spans many
+buffers, for each predicate in a table covering single chrom, chrom plus range starting
+mid-buffer, several ranges on one contig, an <code>Or</code> of two contigs, and an empty result:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">pushed</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">reference</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">assert</span> <span class="n">pushed</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">reference</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>everything=True</code> with the reference FASTA, so HGVS, co-located and plugin columns are
+all exercised.</p>
+<h3 id="real-data-parity-gate-e2e-testingscriptsregion_pushdown_paritypy">Real-data parity gate (<code>e2e-testing/scripts/region_pushdown_parity.py</code>)<a class="headerlink" href="#real-data-parity-gate-e2e-testingscriptsregion_pushdown_paritypy" title="Permanent link">¶</a></h3>
+<p>A runner following the <code>comparison</code> package pattern, using the HG002 GRCh38 benchmark
+VCF and the converted caches under <code>~/workspace/data_vepyr/cache/</code>:</p>
+<ol>
+<li>Cut a chr22 slice with <code>bcftools view -r chr22</code>, <code>bgzip</code> and <code>tabix</code>, and keep a
+   plain-text copy without an index.</li>
+<li>For each cache source (Ensembl, Merged, RefSeq) and for a list of regions that start
+   mid-buffer (for example <code>chr22:20000000-25000000</code>, <code>chr22:30000000-30100000</code>, two
+   disjoint ranges, and an open-ended range), compute the reference as
+   <code>annotate(slice).collect()</code> followed by the Polars filter, and the candidate as
+   <code>annotate(slice).filter(p).collect()</code>.</li>
+<li>Assert frame equality including row order, and report wall time for both so the
+   speedup is visible.</li>
+<li>Repeat one region on the unindexed copy: results must still be equal and the
+   warning must be raised.</li>
+</ol>
+<p>This is the release gate for the feature; the fixture tests are the iteration loop.</p>
+<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">¶</a></h2>
+<ul>
+<li><code>docs/dataframes.md</code> (Polars DataFrames): a "Region filters" section with the
+  contract, the supported predicate shapes, the coordinate system, the index warning,
+  and the note that Merged/RefSeq ranges cost a positional count pass per contig.</li>
+<li><code>annotate()</code> docstring: a short pointer to that section.</li>
+<li>Correct the <code>workers</code> documentation to say the LazyFrame path is serial until the
+  parallel LazyFrame path lands.</li>
+</ul>
+<h2 id="delivery">Delivery<a class="headerlink" href="#delivery" title="Permanent link">¶</a></h2>
+<ol>
+<li>Engine PR on <code>datafusion-bio-functions</code>: option, runs, stateful slices, output
+   filter, unit tests. Reviewed and merged first; its SHA is the pin.</li>
+<li>vepyr PR: pin bump, <code>_regions.py</code>, <code>vcf_contigs</code>, wiring, warning, unit and fixture
+   tests, docs, and the e2e runner. The real-data gate runs before merge and its
+   numbers go into the PR description.</li>
+</ol>
+<h2 id="deferred-explicit-annotateregions">Deferred: explicit <code>annotate(regions=...)</code><a class="headerlink" href="#deferred-explicit-annotateregions" title="Permanent link">¶</a></h2>
+<p>Not part of this delivery. The design is recorded here because the follow-up is only
+Python wiring on top of the engine option above.</p>
+<p>New keyword argument, default <code>None</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">regions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Accepted elements, normalised by a <code>_regions.parse_regions()</code> helper:</p>
+<ul>
+<li>a string in tabix/samtools syntax, 1-based closed: <code>"chr22"</code>,
+  <code>"chr22:20000000-25000000"</code>, <code>"chr22:20000000-"</code> (open end), <code>"chr22:-25000000"</code>
+  (open start). Thousands separators are not accepted.</li>
+<li>a tuple <code>(chrom,)</code>, <code>(chrom, start, end)</code> with <code>None</code> for an open side.</li>
+</ul>
+<p>A single string or tuple is treated as a one-element list. Validation raises
+<code>ValueError</code> at call time: empty chrom, non-integer or <code>&lt; 1</code> bounds, <code>start &gt; end</code>,
+an empty list. Intervals on the same chrom are merged in Python so the engine and the
+tests see one canonical list. Chrom spellings are passed through unchanged; the engine
+resolves <code>1</code>/<code>chr1</code> aliases, and a chrom absent from the VCF selects nothing.</p>
+<p>Contract, for an explicit list <code>R</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">annotate</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">regions</span><span class="o">=</span><span class="n">R</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>  <span class="o">==</span>  <span class="n">annotate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">start_in</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+</span></code></pre></div>
+<p>where <code>start_in(R)</code> keeps rows whose <code>chrom</code> is in <code>R</code> and whose <code>start</code> lies inside
+one of <code>R</code>'s intervals for that chrom. The same holds record for record on the VCF
+output path. Unlike a predicate, an explicit list restricts the <em>source</em>, so rows
+outside it never reach the frame or the file.</p>
+<p>On the LazyFrame path the list is the base restriction: it goes into <code>opts["regions"]</code>
+at call time and reaches every collect. When a collect also carries a genomic
+predicate, <code>_batch_source</code> intersects the predicate's regions with the explicit list
+(an <code>_regions.intersect_regions()</code> helper, per chrom, interval by interval) and sends
+the intersection; an empty intersection short-circuits like <code>[]</code> above.</p>
+<p>On the VCF-output path the list goes into the same options and the serial sink honours
+it through the shared streaming scan (<code>annotate_to_vcf</code> reads through
+<code>AnnotateProvider::scan</code>). <code>regions</code> with <code>output_vcf</code> and <code>workers &gt; 1</code> raises
+<code>ValueError("regions with output_vcf requires workers=1")</code> before the engine is
+opened, matching the engine's own rejection. The output header is the input header
+unchanged; only the records are restricted. The index warning fires at <code>annotate()</code>
+call time for an explicit list, so the VCF-output path warns too.</p>
+<p>Tests for the follow-up: <code>parse_regions</code> and <code>intersect_regions</code> tables, forwarding on
+both paths with the annotator and the VCF writer monkeypatched, the <code>workers&gt;1</code>
+rejection, the fixture parity table run through <code>regions=R</code> for the frame and for the
+VCF output (records compared to the whole-file output filtered by <code>POS</code>), and a fifth
+leg of the real-data gate doing the same on the chr22 slice.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>

@@ -1,0 +1,1648 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/superpowers/plans/2026-09-06-lazyframe-workers-vepyr/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>LazyFrame Workers: vepyr Implementation Plan - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#lazyframe-workers-vepyr-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LazyFrame Workers: vepyr Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#global-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-1-index-check-for-workers-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Index check for workers &gt; 1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-pin-the-engine-revision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Pin the engine revision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-golden-fixture-parity-at-workers1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Golden-fixture parity at workers&gt;1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-documentation-and-the-bridge-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Documentation and the bridge comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-real-data-parity-gate-and-workers-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Real-data parity gate and workers sweep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-pull-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Pull request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#self-review-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-review notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="lazyframe-workers-vepyr-implementation-plan">LazyFrame Workers: vepyr Implementation Plan<a class="headerlink" href="#lazyframe-workers-vepyr-implementation-plan" title="Permanent link">¶</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Make <code>vepyr.annotate(..., workers=N).collect()</code> run N annotation pipelines per contig on the engine's new streaming run pool, prove it equals <code>workers=1</code> row for row on fixtures and real data, and correct the documentation that calls the LazyFrame path serial.</p>
+<p><strong>Architecture:</strong> The engine does the work (see the engine plan). vepyr adds one early check (an index is required for <code>workers&gt;1</code> on both output paths), pins the engine revision, tests parity on the golden fixtures at <code>workers&gt;1</code> (plain, with a pushed-down predicate, with <code>head()</code>, with the CSQ column), adds a real-data gate and a timing sweep, and rewrites the <code>workers</code> documentation.</p>
+<p><strong>Tech Stack:</strong> Python 3.10+, Polars, PyO3 0.28 + maturin, pytest, <code>e2e-testing/scripts/comparison</code> helpers (<code>profiles</code>, <code>vcfio</code>).</p>
+<p><strong>Spec:</strong> <code>docs/superpowers/specs/2026-09-06-lazyframe-parallel-workers-design.md</code>. Engine prerequisite: <code>docs/superpowers/plans/2026-09-06-lazyframe-workers-engine.md</code> merged upstream.</p>
+<h2 id="global-constraints">Global Constraints<a class="headerlink" href="#global-constraints" title="Permanent link">¶</a></h2>
+<ul>
+<li>Contract: <code>annotate(..., workers=N).collect()</code> equals <code>annotate(..., workers=1).collect()</code> including row order, on every cache source, with and without a pushed-down predicate, with and without a row limit, with <code>skip_csq</code> in both settings.</li>
+<li><code>workers &gt; 1</code> on either output path requires <code>&lt;vcf&gt;.tbi</code> or <code>&lt;vcf&gt;.csi</code> next to the input; <code>annotate()</code> raises <code>ValueError</code> before any engine call otherwise. The message names the missing index.</li>
+<li>Build with <code>CONDA_PREFIX= VIRTUAL_ENV= RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr</code> (both env vars are set in this shell and make maturin refuse).</li>
+<li>Run tests with <code>CONDA_PREFIX= VIRTUAL_ENV= uv run pytest &lt;path&gt; -v</code>. <code>uv run ruff check .</code> and <code>uv run ruff format .</code> must be clean before each commit; <code>cargo clippy</code> and <code>cargo fmt</code> for the Rust bridge when it changes.</li>
+<li>Work on the existing branch <code>feat/lazyframe-parallel-workers</code> (it already carries the spec commit <code>76f2d1f</code>). Commit messages follow the repo's conventional style (<code>feat(annotate): ...</code>, <code>test: ...</code>, <code>docs: ...</code>, <code>chore: ...</code>) and end with the session trailer from the harness instructions.</li>
+<li><code>CLAUDE.md</code> asks for a GSD entry point before edits; <code>.planning/ROADMAP.md</code> is absent, so <code>/gsd:quick</code> fails. The user approved this design and plan in chat; proceed outside GSD.</li>
+<li>Benchmarks: discard the first run of a session and check the load average before trusting any timing (<code>uptime</code>); the host is shared.</li>
+</ul>
+<hr>
+<h2 id="file-structure">File structure<a class="headerlink" href="#file-structure" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/vepyr/__init__.py</code></td>
+<td><code>_require_index_for_workers(vcf, workers)</code> and its call in <code>annotate()</code>; docstring for <code>workers</code>.</td>
+</tr>
+<tr>
+<td><code>src/annotate.rs</code></td>
+<td>Comment correction only (the streaming path is not drained in parallel by Polars).</td>
+</tr>
+<tr>
+<td><code>tests/test_annotate.py</code></td>
+<td>Index-check tests on both paths (fake annotator / fake writer).</td>
+</tr>
+<tr>
+<td><code>tests/test_lazyframe_workers.py</code> (new)</td>
+<td>Golden-fixture parity at <code>workers&gt;1</code> on Ensembl and merged caches.</td>
+</tr>
+<tr>
+<td><code>Cargo.toml</code>, <code>Cargo.lock</code></td>
+<td>Engine pin bump.</td>
+</tr>
+<tr>
+<td><code>docs/quickstart.md</code>, <code>docs/performance.md</code>, <code>docs/dataframes.md</code></td>
+<td><code>workers</code> applies to both paths; timing table.</td>
+</tr>
+<tr>
+<td><code>e2e-testing/scripts/lazyframe_workers_parity.py</code> (new)</td>
+<td>Real-data parity gate and <code>workers</code> sweep on HG002 contig slices.</td>
+</tr>
+</tbody>
+</table>
+<p>Reference points in <code>src/vepyr/__init__.py</code> at <code>d37e16e</code>:</p>
+<ul>
+<li><code>annotate()</code> signature starts at 1075 (<code>workers: int = 1</code> at 1118, <code>output_vcf</code> at 1125); the <code>workers</code> docstring entry at 1231-1235.</li>
+<li>Validation: <code>if isinstance(workers, bool) or not isinstance(workers, int) or workers &lt;= 0:</code> at 1387.</li>
+<li><code>if workers &gt; 1:</code> adds the option at 1464.</li>
+<li><code>if output_vcf is not None:</code> at 1511 (the VCF-sink branch).</li>
+<li><code>_batch_source</code> at 1740; <code>annotator = _create_annotator(</code> at 1788.</li>
+</ul>
+<hr>
+<h3 id="task-1-index-check-for-workers-1">Task 1: Index check for <code>workers &gt; 1</code><a class="headerlink" href="#task-1-index-check-for-workers-1" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>src/vepyr/__init__.py</code>
+- Test: <code>tests/test_annotate.py</code></p>
+<p><strong>Interfaces:</strong>
+- Produces:
+  </p><div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_require_index_for_workers</span><span class="p">(</span><span class="n">vcf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+  Raises <code>ValueError</code> when <code>workers &gt; 1</code> and neither <code>vcf + ".tbi"</code> nor <code>vcf + ".csi"</code> exists.<p></p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 1: Write the failing tests</strong></li>
+</ul>
+<p>Add to <code>tests/test_annotate.py</code> in the class that holds <code>test_workers_rejects_invalid_values</code> (the golden <code>input.vcf</code> is a plain, unindexed copy of <code>input.vcf.gz</code>):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>    <span class="n">UNINDEXED_VCF</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GOLDEN_DIR</span> <span class="o">/</span> <span class="s2">"input.vcf"</span><span class="p">)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_workers_above_one_requires_index_on_lazyframe_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">calls</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>            <span class="n">vepyr</span><span class="p">,</span> <span class="s2">"_create_annotator"</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">:</span> <span class="n">calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="sa">r</span><span class="s2">"workers&gt;1 requires a tabix-indexed input"</span><span class="p">):</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>            <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">UNINDEXED_VCF</span><span class="p">,</span> <span class="n">CACHE_DIR</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="k">assert</span> <span class="n">calls</span> <span class="o">==</span> <span class="p">[],</span> <span class="s2">"the engine must not be called"</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_workers_above_one_requires_index_on_vcf_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="n">calls</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>            <span class="n">vepyr</span><span class="p">,</span> <span class="s2">"_annotate_vcf"</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">:</span> <span class="n">calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="p">)</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="sa">r</span><span class="s2">"input\.vcf\.tbi"</span><span class="p">):</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>            <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">UNINDEXED_VCF</span><span class="p">,</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>                <span class="n">CACHE_DIR</span><span class="p">,</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>                <span class="n">output_vcf</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"out.vcf"</span><span class="p">),</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>                <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>                <span class="n">workers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>            <span class="p">)</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>        <span class="k">assert</span> <span class="n">calls</span> <span class="o">==</span> <span class="p">[]</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_workers_one_does_not_need_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>        <span class="k">class</span><span class="w"> </span><span class="nc">FakeAnnotator</span><span class="p">:</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>            <span class="n">schema</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">schema</span><span class="p">([</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">())])</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>            <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>                <span class="k">return</span> <span class="nb">iter</span><span class="p">(())</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">vepyr</span><span class="p">,</span> <span class="s2">"_create_annotator"</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">:</span> <span class="n">FakeAnnotator</span><span class="p">())</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>        <span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">UNINDEXED_VCF</span><span class="p">,</span> <span class="n">CACHE_DIR</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lf</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">)</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_workers_above_one_accepts_csi_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>        <span class="n">vcf</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"in.vcf.gz"</span>
+</span><span id="__span-1-50"><a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a>        <span class="n">vcf</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">""</span><span class="p">)</span>
+</span><span id="__span-1-51"><a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a>        <span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"in.vcf.gz.csi"</span><span class="p">)</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">""</span><span class="p">)</span>
+</span><span id="__span-1-52"><a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a>
+</span><span id="__span-1-53"><a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a>        <span class="k">class</span><span class="w"> </span><span class="nc">FakeAnnotator</span><span class="p">:</span>
+</span><span id="__span-1-54"><a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a>            <span class="n">schema</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">schema</span><span class="p">([</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">())])</span>
+</span><span id="__span-1-55"><a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a>
+</span><span id="__span-1-56"><a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a>            <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-1-57"><a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a>                <span class="k">return</span> <span class="nb">iter</span><span class="p">(())</span>
+</span><span id="__span-1-58"><a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a>
+</span><span id="__span-1-59"><a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a>        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">vepyr</span><span class="p">,</span> <span class="s2">"_create_annotator"</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">:</span> <span class="n">FakeAnnotator</span><span class="p">())</span>
+</span><span id="__span-1-60"><a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a>        <span class="n">lf</span> <span class="o">=</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">vcf</span><span class="p">),</span> <span class="n">CACHE_DIR</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-1-61"><a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lf</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The VCF-writer binding is <code>_annotate_vcf</code> (<code>from vepyr._core import annotate_vcf as _annotate_vcf</code>, line 15); <code>test_workers_forward_to_vcf_writer</code> monkeypatches the same attribute.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 2: Run the tests to verify they fail</strong></li>
+</ul>
+<p>Run: <code>CONDA_PREFIX= VIRTUAL_ENV= uv run pytest tests/test_annotate.py -k "requires_index or does_not_need_index or csi_index" -v 2&gt;&amp;1 | tail -15</code>
+Expected: the two <code>requires_index</code> tests fail (no <code>ValueError</code>; the fake is called or the engine is reached); the other two pass.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 3: Implement the check</strong></li>
+</ul>
+<p>Add above <code>annotate()</code> (near the other <code>_</code>-prefixed helpers):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_require_index_for_workers</span><span class="p">(</span><span class="n">vcf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="sd">"""``workers&gt;1`` reads each run's position window by index seek on both</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="sd">    output paths; without an index every run would parse the whole file."""</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">if</span> <span class="n">workers</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">return</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">vcf</span> <span class="o">+</span> <span class="s2">".tbi"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">vcf</span> <span class="o">+</span> <span class="s2">".csi"</span><span class="p">):</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">return</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="sa">f</span><span class="s2">"workers&gt;1 requires a tabix-indexed input (</span><span class="si">{</span><span class="n">vcf</span><span class="si">}</span><span class="s2">.tbi or .csi); "</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="s2">"compress with bgzip and index with tabix, or use workers=1"</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">)</span>
+</span></code></pre></div>
+<p>Call it right after the <code>workers</code> type check in <code>annotate()</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">workers</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"workers must be a positive integer"</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">_require_index_for_workers</span><span class="p">(</span><span class="n">vcf</span><span class="p">,</span> <span class="n">workers</span><span class="p">)</span>
+</span></code></pre></div>
+<p>(<code>vcf</code> is the first parameter of <code>annotate()</code>.) Keep the engine's own sink-side check; this one only runs earlier. <code>tests/test_comparison_annotate.py</code> passes <code>workers=4</code> with a fake <code>vepyr</code> module, so it is unaffected.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 4: Run the tests to verify they pass</strong></li>
+</ul>
+<p>Run: <code>CONDA_PREFIX= VIRTUAL_ENV= uv run pytest tests/test_annotate.py -v 2&gt;&amp;1 | tail -15</code>
+Expected: all pass. <code>test_workers_forward_to_streaming_annotator</code> and <code>test_workers_forward_to_vcf_writer</code> use <code>INPUT_VCF</code> (<code>input.vcf.gz</code>, indexed) and keep passing.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 5: Commit</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>.
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>git<span class="w"> </span>add<span class="w"> </span>src/vepyr/__init__.py<span class="w"> </span>tests/test_annotate.py
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat(annotate): require an indexed input for workers&gt;1 on both paths"</span>
+</span></code></pre></div>
+<hr>
+<h3 id="task-2-pin-the-engine-revision">Task 2: Pin the engine revision<a class="headerlink" href="#task-2-pin-the-engine-revision" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>Cargo.toml</code> (line 79, <code>datafusion-bio-function-vep = { git = ..., rev = "&lt;sha&gt;" ... }</code> and the comment block above it), <code>Cargo.lock</code></p>
+<p><strong>Interfaces:</strong>
+- Consumes: the merge SHA of the engine PR from <code>docs/superpowers/plans/2026-09-06-lazyframe-workers-engine.md</code> Task 7. Until it merges, pin the PR head to let this branch's tests run, and re-pin after merge (as PR #81 did for #239).</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 1: Bump the rev</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">SHA</span><span class="o">=</span>&lt;merge<span class="w"> </span>sha<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>engine<span class="w"> </span>PR&gt;
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">''</span><span class="w"> </span><span class="s2">"s|datafusion-bio-function-vep = { git = \"https://github.com/biodatageeks/datafusion-bio-functions.git\", rev = \"[0-9a-f]*\"|datafusion-bio-function-vep = { git = \"https://github.com/biodatageeks/datafusion-bio-functions.git\", rev = \"</span><span class="nv">$SHA</span><span class="s2">\"|"</span><span class="w"> </span>Cargo.toml
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>grep<span class="w"> </span>-n<span class="w"> </span><span class="s2">"bio-function-vep"</span><span class="w"> </span>Cargo.toml
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>cargo<span class="w"> </span>update<span class="w"> </span>-p<span class="w"> </span>datafusion-bio-function-vep<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-2
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>git<span class="w"> </span>diff<span class="w"> </span>--stat<span class="w"> </span>Cargo.lock
+</span></code></pre></div>
+<p>Add a line to the comment block above the pin: <code># bio-functions &lt;sha7&gt;: streaming run pool, workers&gt;1 on the LazyFrame path (#&lt;PR&gt;)</code>. Never commit a local <code>[patch]</code>.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 2: Rebuild and run the whole suite</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">CONDA_PREFIX</span><span class="o">=</span><span class="w"> </span><span class="nv">VIRTUAL_ENV</span><span class="o">=</span><span class="w"> </span><span class="nv">RUSTFLAGS</span><span class="o">=</span><span class="s2">"-C target-cpu=native"</span><span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--reinstall-package<span class="w"> </span>vepyr<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-2
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">CONDA_PREFIX</span><span class="o">=</span><span class="w"> </span><span class="nv">VIRTUAL_ENV</span><span class="o">=</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-5
+</span></code></pre></div>
+<p>Expected: the full suite passes (golden suites included).</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 3: Commit</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>git<span class="w"> </span>add<span class="w"> </span>Cargo.toml<span class="w"> </span>Cargo.lock
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"chore: bump bio-functions to the streaming run pool"</span>
+</span></code></pre></div>
+<hr>
+<h3 id="task-3-golden-fixture-parity-at-workers1">Task 3: Golden-fixture parity at <code>workers&gt;1</code><a class="headerlink" href="#task-3-golden-fixture-parity-at-workers1" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Create: <code>tests/test_lazyframe_workers.py</code></p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>tests.cache_metadata.copy_cache_with_source_metadata</code>, the golden fixtures (<code>tests/data/golden/input.vcf.gz</code> + <code>.tbi</code>, <code>tests/data/golden/cache</code>, <code>tests/data/golden_merged/cache</code>, <code>tests/data/golden/reference.fa</code>), engine env knob <code>VEP_STREAM_RUN_BUFFERS</code>.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 1: Write the tests</strong></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="sd">"""workers&gt;1 on the LazyFrame path must equal workers=1 row for row, in order.</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="sd">``buffer_size=7`` turns the 100-variant fixture into ~15 input buffers and</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="sd">``VEP_STREAM_RUN_BUFFERS=1`` makes every buffer its own run on the Ensembl</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="sd">cache, so the ordered release crosses a seam at every buffer. The merged cache</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="sd">keeps its four-buffer floor (stateful warm-up), so it is also run with the</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="sd">default run length.</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="sd">"""</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="kn">from</span><span class="w"> </span><span class="nn">tests.cache_metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy_cache_with_source_metadata</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="n">TESTS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="n">GOLDEN_DIR</span> <span class="o">=</span> <span class="n">TESTS_DIR</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"golden"</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="n">MERGED_GOLDEN_DIR</span> <span class="o">=</span> <span class="n">TESTS_DIR</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"golden_merged"</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="n">CACHE_DIR</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GOLDEN_DIR</span> <span class="o">/</span> <span class="s2">"cache"</span><span class="p">)</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="n">INPUT_VCF</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GOLDEN_DIR</span> <span class="o">/</span> <span class="s2">"input.vcf.gz"</span><span class="p">)</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="n">REFERENCE_FASTA</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GOLDEN_DIR</span> <span class="o">/</span> <span class="s2">"reference.fa"</span><span class="p">)</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">"module"</span><span class="p">)</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="k">def</span><span class="w"> </span><span class="nf">ensembl_cache_dir</span><span class="p">(</span><span class="n">tmp_path_factory</span><span class="p">):</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">CACHE_DIR</span><span class="p">):</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>        <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Golden test cache not available"</span><span class="p">)</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>    <span class="n">target</span> <span class="o">=</span> <span class="n">tmp_path_factory</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(</span><span class="s2">"ensembl_cache_with_metadata"</span><span class="p">)</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">copy_cache_with_source_metadata</span><span class="p">(</span><span class="n">CACHE_DIR</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="s2">"ensembl"</span><span class="p">,</span> <span class="s2">"115"</span><span class="p">))</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">"module"</span><span class="p">)</span>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a><span class="k">def</span><span class="w"> </span><span class="nf">merged_cache_dir</span><span class="p">(</span><span class="n">tmp_path_factory</span><span class="p">):</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>    <span class="n">src</span> <span class="o">=</span> <span class="n">MERGED_GOLDEN_DIR</span> <span class="o">/</span> <span class="s2">"cache"</span>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>        <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Merged golden test cache not available"</span><span class="p">)</span>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>    <span class="n">target</span> <span class="o">=</span> <span class="n">tmp_path_factory</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(</span><span class="s2">"merged_cache_with_metadata"</span><span class="p">)</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">copy_cache_with_source_metadata</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="n">target</span><span class="p">,</span> <span class="s2">"merged"</span><span class="p">,</span> <span class="s2">"115"</span><span class="p">))</span>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">[</span><span class="s2">"ensembl"</span><span class="p">,</span> <span class="s2">"merged"</span><span class="p">])</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a><span class="k">def</span><span class="w"> </span><span class="nf">cache_dir</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">ensembl_cache_dir</span><span class="p">,</span> <span class="n">merged_cache_dir</span><span class="p">):</span>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>    <span class="k">return</span> <span class="n">ensembl_cache_dir</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">param</span> <span class="o">==</span> <span class="s2">"ensembl"</span> <span class="k">else</span> <span class="n">merged_cache_dir</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a><span class="k">def</span><span class="w"> </span><span class="nf">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">workers</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>    <span class="k">return</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a>        <span class="n">INPUT_VCF</span><span class="p">,</span>
+</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>        <span class="n">cache_dir</span><span class="p">,</span>
+</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a>        <span class="n">everything</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a>        <span class="n">reference_fasta</span><span class="o">=</span><span class="n">REFERENCE_FASTA</span><span class="p">,</span>
+</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a>        <span class="n">buffer_size</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a>        <span class="n">workers</span><span class="o">=</span><span class="n">workers</span><span class="p">,</span>
+</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a>    <span class="p">)</span>
+</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a>
+</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a>
+</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a><span class="k">def</span><span class="w"> </span><span class="nf">_assert_same</span><span class="p">(</span><span class="n">actual</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a>    <span class="k">assert</span> <span class="n">actual</span><span class="o">.</span><span class="n">columns</span> <span class="o">==</span> <span class="n">expected</span><span class="o">.</span><span class="n">columns</span>
+</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a>    <span class="k">assert</span> <span class="n">actual</span><span class="o">.</span><span class="n">height</span> <span class="o">==</span> <span class="n">expected</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="p">(</span><span class="n">actual</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">expected</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+</span><span id="__span-8-67"><a id="__codelineno-8-67" name="__codelineno-8-67" href="#__codelineno-8-67"></a>    <span class="k">assert</span> <span class="n">actual</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span> <span class="s2">"frames differ (row order included)"</span>
+</span><span id="__span-8-68"><a id="__codelineno-8-68" name="__codelineno-8-68" href="#__codelineno-8-68"></a>
+</span><span id="__span-8-69"><a id="__codelineno-8-69" name="__codelineno-8-69" href="#__codelineno-8-69"></a>
+</span><span id="__span-8-70"><a id="__codelineno-8-70" name="__codelineno-8-70" href="#__codelineno-8-70"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"workers"</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+</span><span id="__span-8-71"><a id="__codelineno-8-71" name="__codelineno-8-71" href="#__codelineno-8-71"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_collect_equals_serial</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">workers</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-8-72"><a id="__codelineno-8-72" name="__codelineno-8-72" href="#__codelineno-8-72"></a>    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">"VEP_STREAM_RUN_BUFFERS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span>
+</span><span id="__span-8-73"><a id="__codelineno-8-73" name="__codelineno-8-73" href="#__codelineno-8-73"></a>    <span class="n">serial</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-74"><a id="__codelineno-8-74" name="__codelineno-8-74" href="#__codelineno-8-74"></a>    <span class="k">assert</span> <span class="n">serial</span><span class="o">.</span><span class="n">height</span> <span class="o">==</span> <span class="mi">100</span>
+</span><span id="__span-8-75"><a id="__codelineno-8-75" name="__codelineno-8-75" href="#__codelineno-8-75"></a>    <span class="n">_assert_same</span><span class="p">(</span><span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">workers</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">(),</span> <span class="n">serial</span><span class="p">)</span>
+</span><span id="__span-8-76"><a id="__codelineno-8-76" name="__codelineno-8-76" href="#__codelineno-8-76"></a>
+</span><span id="__span-8-77"><a id="__codelineno-8-77" name="__codelineno-8-77" href="#__codelineno-8-77"></a>
+</span><span id="__span-8-78"><a id="__codelineno-8-78" name="__codelineno-8-78" href="#__codelineno-8-78"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_collect_equals_serial_with_default_run_length</span><span class="p">(</span><span class="n">merged_cache_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-8-79"><a id="__codelineno-8-79" name="__codelineno-8-79" href="#__codelineno-8-79"></a>    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">delenv</span><span class="p">(</span><span class="s2">"VEP_STREAM_RUN_BUFFERS"</span><span class="p">,</span> <span class="n">raising</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-8-80"><a id="__codelineno-8-80" name="__codelineno-8-80" href="#__codelineno-8-80"></a>    <span class="n">serial</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">merged_cache_dir</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-81"><a id="__codelineno-8-81" name="__codelineno-8-81" href="#__codelineno-8-81"></a>    <span class="n">_assert_same</span><span class="p">(</span><span class="n">_lazy</span><span class="p">(</span><span class="n">merged_cache_dir</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">(),</span> <span class="n">serial</span><span class="p">)</span>
+</span><span id="__span-8-82"><a id="__codelineno-8-82" name="__codelineno-8-82" href="#__codelineno-8-82"></a>
+</span><span id="__span-8-83"><a id="__codelineno-8-83" name="__codelineno-8-83" href="#__codelineno-8-83"></a>
+</span><span id="__span-8-84"><a id="__codelineno-8-84" name="__codelineno-8-84" href="#__codelineno-8-84"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_csq_column_equals_serial</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-8-85"><a id="__codelineno-8-85" name="__codelineno-8-85" href="#__codelineno-8-85"></a>    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">"VEP_STREAM_RUN_BUFFERS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span>
+</span><span id="__span-8-86"><a id="__codelineno-8-86" name="__codelineno-8-86" href="#__codelineno-8-86"></a>    <span class="n">serial</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">skip_csq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-87"><a id="__codelineno-8-87" name="__codelineno-8-87" href="#__codelineno-8-87"></a>    <span class="n">parallel</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">skip_csq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-88"><a id="__codelineno-8-88" name="__codelineno-8-88" href="#__codelineno-8-88"></a>    <span class="k">assert</span> <span class="s2">"CSQ"</span> <span class="ow">in</span> <span class="n">parallel</span><span class="o">.</span><span class="n">columns</span>
+</span><span id="__span-8-89"><a id="__codelineno-8-89" name="__codelineno-8-89" href="#__codelineno-8-89"></a>    <span class="n">_assert_same</span><span class="p">(</span><span class="n">parallel</span><span class="p">,</span> <span class="n">serial</span><span class="p">)</span>
+</span><span id="__span-8-90"><a id="__codelineno-8-90" name="__codelineno-8-90" href="#__codelineno-8-90"></a>
+</span><span id="__span-8-91"><a id="__codelineno-8-91" name="__codelineno-8-91" href="#__codelineno-8-91"></a>
+</span><span id="__span-8-92"><a id="__codelineno-8-92" name="__codelineno-8-92" href="#__codelineno-8-92"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_pushed_down_predicate_composes_with_workers</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-8-93"><a id="__codelineno-8-93" name="__codelineno-8-93" href="#__codelineno-8-93"></a>    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">"VEP_STREAM_RUN_BUFFERS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span>
+</span><span id="__span-8-94"><a id="__codelineno-8-94" name="__codelineno-8-94" href="#__codelineno-8-94"></a>    <span class="n">serial</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-95"><a id="__codelineno-8-95" name="__codelineno-8-95" href="#__codelineno-8-95"></a>    <span class="n">starts</span> <span class="o">=</span> <span class="n">serial</span><span class="p">[</span><span class="s2">"start"</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+</span><span id="__span-8-96"><a id="__codelineno-8-96" name="__codelineno-8-96" href="#__codelineno-8-96"></a>    <span class="n">predicates</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-8-97"><a id="__codelineno-8-97" name="__codelineno-8-97" href="#__codelineno-8-97"></a>        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"chr1"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span><span class="o">.</span><span class="n">is_between</span><span class="p">(</span><span class="n">starts</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">starts</span><span class="p">[</span><span class="mi">40</span><span class="p">]),</span>
+</span><span id="__span-8-98"><a id="__codelineno-8-98" name="__codelineno-8-98" href="#__codelineno-8-98"></a>        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"chr1"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">starts</span><span class="p">[</span><span class="mi">73</span><span class="p">]),</span>
+</span><span id="__span-8-99"><a id="__codelineno-8-99" name="__codelineno-8-99" href="#__codelineno-8-99"></a>        <span class="p">((</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"chr1"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span><span class="o">.</span><span class="n">is_between</span><span class="p">(</span><span class="n">starts</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">starts</span><span class="p">[</span><span class="mi">12</span><span class="p">]))</span>
+</span><span id="__span-8-100"><a id="__codelineno-8-100" name="__codelineno-8-100" href="#__codelineno-8-100"></a>        <span class="o">|</span> <span class="p">((</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"chrom"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"chr1"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span><span class="o">.</span><span class="n">is_between</span><span class="p">(</span><span class="n">starts</span><span class="p">[</span><span class="mi">60</span><span class="p">],</span> <span class="n">starts</span><span class="p">[</span><span class="mi">71</span><span class="p">])),</span>
+</span><span id="__span-8-101"><a id="__codelineno-8-101" name="__codelineno-8-101" href="#__codelineno-8-101"></a>    <span class="p">]</span>
+</span><span id="__span-8-102"><a id="__codelineno-8-102" name="__codelineno-8-102" href="#__codelineno-8-102"></a>    <span class="k">for</span> <span class="n">predicate</span> <span class="ow">in</span> <span class="n">predicates</span><span class="p">:</span>
+</span><span id="__span-8-103"><a id="__codelineno-8-103" name="__codelineno-8-103" href="#__codelineno-8-103"></a>        <span class="n">pushed</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">predicate</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-104"><a id="__codelineno-8-104" name="__codelineno-8-104" href="#__codelineno-8-104"></a>        <span class="n">_assert_same</span><span class="p">(</span><span class="n">pushed</span><span class="p">,</span> <span class="n">serial</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">predicate</span><span class="p">))</span>
+</span><span id="__span-8-105"><a id="__codelineno-8-105" name="__codelineno-8-105" href="#__codelineno-8-105"></a>
+</span><span id="__span-8-106"><a id="__codelineno-8-106" name="__codelineno-8-106" href="#__codelineno-8-106"></a>
+</span><span id="__span-8-107"><a id="__codelineno-8-107" name="__codelineno-8-107" href="#__codelineno-8-107"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_head_matches_serial_prefix</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-8-108"><a id="__codelineno-8-108" name="__codelineno-8-108" href="#__codelineno-8-108"></a>    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">"VEP_STREAM_RUN_BUFFERS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span>
+</span><span id="__span-8-109"><a id="__codelineno-8-109" name="__codelineno-8-109" href="#__codelineno-8-109"></a>    <span class="n">serial</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-110"><a id="__codelineno-8-110" name="__codelineno-8-110" href="#__codelineno-8-110"></a>    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">23</span><span class="p">):</span>
+</span><span id="__span-8-111"><a id="__codelineno-8-111" name="__codelineno-8-111" href="#__codelineno-8-111"></a>        <span class="n">_assert_same</span><span class="p">(</span><span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">(),</span> <span class="n">serial</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+</span><span id="__span-8-112"><a id="__codelineno-8-112" name="__codelineno-8-112" href="#__codelineno-8-112"></a>
+</span><span id="__span-8-113"><a id="__codelineno-8-113" name="__codelineno-8-113" href="#__codelineno-8-113"></a>
+</span><span id="__span-8-114"><a id="__codelineno-8-114" name="__codelineno-8-114" href="#__codelineno-8-114"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_select_composes_with_workers</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+</span><span id="__span-8-115"><a id="__codelineno-8-115" name="__codelineno-8-115" href="#__codelineno-8-115"></a>    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">"VEP_STREAM_RUN_BUFFERS"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)</span>
+</span><span id="__span-8-116"><a id="__codelineno-8-116" name="__codelineno-8-116" href="#__codelineno-8-116"></a>    <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"chrom"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"SYMBOL"</span><span class="p">,</span> <span class="s2">"most_severe_consequence"</span><span class="p">]</span>
+</span><span id="__span-8-117"><a id="__codelineno-8-117" name="__codelineno-8-117" href="#__codelineno-8-117"></a>    <span class="n">serial</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-118"><a id="__codelineno-8-118" name="__codelineno-8-118" href="#__codelineno-8-118"></a>    <span class="n">_assert_same</span><span class="p">(</span><span class="n">_lazy</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">(),</span> <span class="n">serial</span><span class="p">)</span>
+</span><span id="__span-8-119"><a id="__codelineno-8-119" name="__codelineno-8-119" href="#__codelineno-8-119"></a>
+</span><span id="__span-8-120"><a id="__codelineno-8-120" name="__codelineno-8-120" href="#__codelineno-8-120"></a>
+</span><span id="__span-8-121"><a id="__codelineno-8-121" name="__codelineno-8-121" href="#__codelineno-8-121"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_lazyframe_is_rerunnable_at_workers_above_one</span><span class="p">(</span><span class="n">ensembl_cache_dir</span><span class="p">):</span>
+</span><span id="__span-8-122"><a id="__codelineno-8-122" name="__codelineno-8-122" href="#__codelineno-8-122"></a>    <span class="n">lf</span> <span class="o">=</span> <span class="n">_lazy</span><span class="p">(</span><span class="n">ensembl_cache_dir</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-8-123"><a id="__codelineno-8-123" name="__codelineno-8-123" href="#__codelineno-8-123"></a>    <span class="n">first</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-124"><a id="__codelineno-8-124" name="__codelineno-8-124" href="#__codelineno-8-124"></a>    <span class="n">second</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-8-125"><a id="__codelineno-8-125" name="__codelineno-8-125" href="#__codelineno-8-125"></a>    <span class="n">_assert_same</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">first</span><span class="p">)</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 2: Run the tests</strong></li>
+</ul>
+<p>Run: <code>CONDA_PREFIX= VIRTUAL_ENV= uv run pytest tests/test_lazyframe_workers.py -v 2&gt;&amp;1 | tail -25</code>
+Expected: all pass on the pinned engine. If a merged case fails, diff <code>SYMBOL</code>/<code>HGNC_ID</code> first (a seam without warm-up); if an Ensembl case fails on row order, rerun with <code>VEP_PIPELINE_TRACE=1</code> and check that <code>run_pool release</code> events come out in ascending <code>run</code> order.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 3: Commit</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>.
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>git<span class="w"> </span>add<span class="w"> </span>tests/test_lazyframe_workers.py
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"test: LazyFrame workers&gt;1 parity on the golden fixtures"</span>
+</span></code></pre></div>
+<hr>
+<h3 id="task-4-documentation-and-the-bridge-comment">Task 4: Documentation and the bridge comment<a class="headerlink" href="#task-4-documentation-and-the-bridge-comment" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>src/vepyr/__init__.py</code> (docstring lines 1231-1235), <code>src/annotate.rs</code> (comment at 283-288), <code>docs/quickstart.md</code> (189-201), <code>docs/performance.md</code> (tuning table row 108; a new subsection), <code>docs/dataframes.md</code> (any "serial" claim near 234/282/515)</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 1: Docstring</strong></li>
+</ul>
+<p>Replace the <code>workers</code> entry with:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>    workers : int
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>        Number of within-contig annotation pipelines (default: 1) on both
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>        output paths. Values greater than 1 require a tabix-indexed (bgzip +
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>        ``.tbi`` or ``.csi``) input VCF. Results are identical to ``workers=1``
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>        row for row and in the same order; on the ``LazyFrame`` path the
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>        engine holds at most a few runs of output in memory ahead of the
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        consumer.
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 2: Bridge comment</strong></li>
+</ul>
+<p>In <code>src/annotate.rs</code> replace the comment above <code>config.workers = workers;</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="w">    </span><span class="c1">// Single annotation-concurrency knob (vepyr `workers` -&gt; engine `workers`).</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="c1">// The sink's DataFusion `target_partitions` stays 1 so the annotated VCF is</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="c1">// written as a single ordered output; the streaming path runs the engine's</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="c1">// run pool per contig and releases runs in order to one consumer.</span>
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 3: <code>docs/quickstart.md</code></strong></li>
+</ul>
+<p>Replace the paragraph at 189-192 with:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>`workers` controls how many within-contig annotation pipelines run
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>concurrently, on both the LazyFrame and the `output_vcf` path. It requires a
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>tabix-indexed (bgzip + `.tbi` or `.csi`) input VCF. Output is identical to
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>`workers=1`, row order included.
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 4: <code>docs/performance.md</code></strong></li>
+</ul>
+<p>Tuning-table row:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>| `workers` | `1` | Within-contig annotation pipelines on both output paths; values greater than 1 require a tabix-indexed (bgzip + `.tbi`/`.csi`) input VCF. Output is identical to `workers=1`, row order included. |
+</span></code></pre></div>
+<p>Add a subsection after "Region filters", filled from Task 5's sweep:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>### Workers on the LazyFrame path
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Measured with `e2e-testing/scripts/lazyframe_workers_parity.py --release 116 --sweep 1 2 4 8`
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>on HG002 contig slices, `everything=True`, a FASTA, on an Apple Silicon M3 Max
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>(16 cores, 64 GiB). Every frame equalled the `workers=1` frame.
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>| Input | workers | Ensembl | Merged | Peak RSS (Ensembl) |
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>|---|---|---|---|---|
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>| chr22, 50,861 variants | 1 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>| | 2 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>| | 4 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>| | 8 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>| chr1, 323,430 variants | 1 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>| | 2 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>| | 4 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>| | 8 | &lt;s&gt; | &lt;s&gt; | &lt;GB&gt; |
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>
+</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>Each contig is cut into grid-aligned runs; Merged and RefSeq runs replay a
+</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>bounded warm-up at every seam, so they gain a little less than Ensembl. The
+</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>per-contig prepare stays serial, which bounds the speedup on small contigs.
+</span></code></pre></div>
+<p>(The <code>&lt;s&gt;</code>/<code>&lt;GB&gt;</code> cells are filled in Task 5, Step 4; do not commit the table with placeholders.)</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 5: <code>docs/dataframes.md</code></strong></li>
+</ul>
+<p><code>grep -n "serial\|workers" docs/dataframes.md</code>; the measurement notes that say <code>workers=1</code> are statements of how a number was taken and stay. Remove any sentence that says the LazyFrame path does not support <code>workers&gt;1</code>; if none, no change.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 6: Build the docs if the toolchain is present, then commit</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-3<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"mkdocs not installed; skipped"</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>cargo<span class="w"> </span>fmt
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>git<span class="w"> </span>add<span class="w"> </span>src/vepyr/__init__.py<span class="w"> </span>src/annotate.rs<span class="w"> </span>docs/quickstart.md<span class="w"> </span>docs/dataframes.md
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs: workers applies to the LazyFrame path"</span>
+</span></code></pre></div>
+<p><code>docs/performance.md</code> is committed in Task 5 once the table has numbers.</p>
+<hr>
+<h3 id="task-5-real-data-parity-gate-and-workers-sweep">Task 5: Real-data parity gate and <code>workers</code> sweep<a class="headerlink" href="#task-5-real-data-parity-gate-and-workers-sweep" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Create: <code>e2e-testing/scripts/lazyframe_workers_parity.py</code>
+- Modify: <code>docs/performance.md</code> (fill the table from Task 4)</p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>comparison.vcfio.slice_contig(vcf_gz, chrom, out_dir, force=False) -&gt; path</code>, <code>comparison.vcfio.canonical_contig(chrom)</code>, <code>comparison.profiles.default_input(name)</code>, <code>comparison.profiles.cache_dir_for(profile, release)</code>, <code>comparison.profiles.PROFILES</code>, <code>comparison.profiles.RELEASES</code>.
+- Produces: <code>e2e-testing/results/lazyframe_workers/&lt;release&gt;/report.json</code> and <code>report.md</code>; exit status 1 on any mismatch.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 1: Write the runner</strong></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="ch">#!/usr/bin/env python3</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="sd">"""LazyFrame workers&gt;1 parity gate and sweep on real data.</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="sd">For a contig slice of the HG002 benchmark VCF and each cache profile, the</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="sd">reference is `annotate(slice, workers=1).collect()`; every candidate</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="sd">`annotate(slice, workers=N).collect()` must equal it, row order included.</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="sd">With the CSQ column on, the LazyFrame CSQ strings are also compared to the</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="sd">INFO/CSQ field of an `output_vcf` run at the same worker count, row by row.</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="sd">Wall time and peak RSS per worker count are written to the report.</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="sd">Examples:</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="sd">    lazyframe_workers_parity.py --release 116</span>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="sd">    lazyframe_workers_parity.py --release 116 --chrom 1 --sweep 1 2 4 8 --profiles ensembl merged</span>
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="sd">"""</span>
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a>
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+</span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a><span class="kn">import</span><span class="w"> </span><span class="nn">resource</span>
+</span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a><span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+</span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a>
+</span><span id="__span-16-26"><a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a><span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)))</span>
+</span><span id="__span-16-27"><a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a>
+</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>  <span class="c1"># noqa: E402</span>
+</span><span id="__span-16-29"><a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a>
+</span><span id="__span-16-30"><a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a><span class="kn">from</span><span class="w"> </span><span class="nn">comparison</span><span class="w"> </span><span class="kn">import</span> <span class="n">profiles</span><span class="p">,</span> <span class="n">vcfio</span>  <span class="c1"># noqa: E402</span>
+</span><span id="__span-16-31"><a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a>
+</span><span id="__span-16-32"><a id="__codelineno-16-32" name="__codelineno-16-32" href="#__codelineno-16-32"></a><span class="n">INPUT_NAME</span> <span class="o">=</span> <span class="s2">"HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"</span>
+</span><span id="__span-16-33"><a id="__codelineno-16-33" name="__codelineno-16-33" href="#__codelineno-16-33"></a><span class="n">FASTA_NAME</span> <span class="o">=</span> <span class="s2">"Homo_sapiens.GRCh38.dna.primary_assembly.fa"</span>
+</span><span id="__span-16-34"><a id="__codelineno-16-34" name="__codelineno-16-34" href="#__codelineno-16-34"></a><span class="n">DEFAULT_PROFILES</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+</span><span id="__span-16-35"><a id="__codelineno-16-35" name="__codelineno-16-35" href="#__codelineno-16-35"></a>    <span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">profile</span> <span class="ow">in</span> <span class="n">profiles</span><span class="o">.</span><span class="n">PROFILES</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">profile</span><span class="o">.</span><span class="n">flavour</span> <span class="o">==</span> <span class="n">name</span>
+</span><span id="__span-16-36"><a id="__codelineno-16-36" name="__codelineno-16-36" href="#__codelineno-16-36"></a><span class="p">)</span>
+</span><span id="__span-16-37"><a id="__codelineno-16-37" name="__codelineno-16-37" href="#__codelineno-16-37"></a>
+</span><span id="__span-16-38"><a id="__codelineno-16-38" name="__codelineno-16-38" href="#__codelineno-16-38"></a>
+</span><span id="__span-16-39"><a id="__codelineno-16-39" name="__codelineno-16-39" href="#__codelineno-16-39"></a><span class="k">def</span><span class="w"> </span><span class="nf">peak_rss_gb</span><span class="p">():</span>
+</span><span id="__span-16-40"><a id="__codelineno-16-40" name="__codelineno-16-40" href="#__codelineno-16-40"></a>    <span class="n">rss</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrusage</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RUSAGE_SELF</span><span class="p">)</span><span class="o">.</span><span class="n">ru_maxrss</span>
+</span><span id="__span-16-41"><a id="__codelineno-16-41" name="__codelineno-16-41" href="#__codelineno-16-41"></a>    <span class="c1"># macOS reports bytes, Linux kilobytes.</span>
+</span><span id="__span-16-42"><a id="__codelineno-16-42" name="__codelineno-16-42" href="#__codelineno-16-42"></a>    <span class="k">return</span> <span class="n">rss</span> <span class="o">/</span> <span class="mf">1e9</span> <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">"darwin"</span> <span class="k">else</span> <span class="n">rss</span> <span class="o">/</span> <span class="mf">1e6</span>
+</span><span id="__span-16-43"><a id="__codelineno-16-43" name="__codelineno-16-43" href="#__codelineno-16-43"></a>
+</span><span id="__span-16-44"><a id="__codelineno-16-44" name="__codelineno-16-44" href="#__codelineno-16-44"></a>
+</span><span id="__span-16-45"><a id="__codelineno-16-45" name="__codelineno-16-45" href="#__codelineno-16-45"></a><span class="k">def</span><span class="w"> </span><span class="nf">timed</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+</span><span id="__span-16-46"><a id="__codelineno-16-46" name="__codelineno-16-46" href="#__codelineno-16-46"></a>    <span class="n">t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+</span><span id="__span-16-47"><a id="__codelineno-16-47" name="__codelineno-16-47" href="#__codelineno-16-47"></a>    <span class="n">out</span> <span class="o">=</span> <span class="n">fn</span><span class="p">()</span>
+</span><span id="__span-16-48"><a id="__codelineno-16-48" name="__codelineno-16-48" href="#__codelineno-16-48"></a>    <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t</span>
+</span><span id="__span-16-49"><a id="__codelineno-16-49" name="__codelineno-16-49" href="#__codelineno-16-49"></a>
+</span><span id="__span-16-50"><a id="__codelineno-16-50" name="__codelineno-16-50" href="#__codelineno-16-50"></a>
+</span><span id="__span-16-51"><a id="__codelineno-16-51" name="__codelineno-16-51" href="#__codelineno-16-51"></a><span class="k">def</span><span class="w"> </span><span class="nf">profile_annotate_kwargs</span><span class="p">(</span><span class="n">profile</span><span class="p">,</span> <span class="n">release</span><span class="p">):</span>
+</span><span id="__span-16-52"><a id="__codelineno-16-52" name="__codelineno-16-52" href="#__codelineno-16-52"></a>    <span class="n">spec</span> <span class="o">=</span> <span class="n">profiles</span><span class="o">.</span><span class="n">PROFILES</span><span class="p">[</span><span class="n">profile</span><span class="p">]</span>
+</span><span id="__span-16-53"><a id="__codelineno-16-53" name="__codelineno-16-53" href="#__codelineno-16-53"></a>    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">annotate_kwargs</span><span class="p">)</span>
+</span><span id="__span-16-54"><a id="__codelineno-16-54" name="__codelineno-16-54" href="#__codelineno-16-54"></a>    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">plugins</span><span class="p">:</span>
+</span><span id="__span-16-55"><a id="__codelineno-16-55" name="__codelineno-16-55" href="#__codelineno-16-55"></a>        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"plugin_cache_root"</span><span class="p">]</span> <span class="o">=</span> <span class="n">profiles</span><span class="o">.</span><span class="n">plugin_cache_dir_for</span><span class="p">(</span><span class="n">release</span><span class="p">)</span>
+</span><span id="__span-16-56"><a id="__codelineno-16-56" name="__codelineno-16-56" href="#__codelineno-16-56"></a>        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"plugins"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">plugins</span><span class="p">)</span>
+</span><span id="__span-16-57"><a id="__codelineno-16-57" name="__codelineno-16-57" href="#__codelineno-16-57"></a>    <span class="k">return</span> <span class="n">kwargs</span>
+</span><span id="__span-16-58"><a id="__codelineno-16-58" name="__codelineno-16-58" href="#__codelineno-16-58"></a>
+</span><span id="__span-16-59"><a id="__codelineno-16-59" name="__codelineno-16-59" href="#__codelineno-16-59"></a>
+</span><span id="__span-16-60"><a id="__codelineno-16-60" name="__codelineno-16-60" href="#__codelineno-16-60"></a><span class="k">def</span><span class="w"> </span><span class="nf">vcf_csq_by_row</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+</span><span id="__span-16-61"><a id="__codelineno-16-61" name="__codelineno-16-61" href="#__codelineno-16-61"></a><span class="w">    </span><span class="sd">"""INFO/CSQ per data line, in file order ('' when absent)."""</span>
+</span><span id="__span-16-62"><a id="__codelineno-16-62" name="__codelineno-16-62" href="#__codelineno-16-62"></a>    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-16-63"><a id="__codelineno-16-63" name="__codelineno-16-63" href="#__codelineno-16-63"></a>    <span class="k">with</span> <span class="n">vcfio</span><span class="o">.</span><span class="n">open_text</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-16-64"><a id="__codelineno-16-64" name="__codelineno-16-64" href="#__codelineno-16-64"></a>        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-16-65"><a id="__codelineno-16-65" name="__codelineno-16-65" href="#__codelineno-16-65"></a>            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">):</span>
+</span><span id="__span-16-66"><a id="__codelineno-16-66" name="__codelineno-16-66" href="#__codelineno-16-66"></a>                <span class="k">continue</span>
+</span><span id="__span-16-67"><a id="__codelineno-16-67" name="__codelineno-16-67" href="#__codelineno-16-67"></a>            <span class="n">info</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)[</span><span class="mi">7</span><span class="p">]</span>
+</span><span id="__span-16-68"><a id="__codelineno-16-68" name="__codelineno-16-68" href="#__codelineno-16-68"></a>            <span class="n">csq</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-16-69"><a id="__codelineno-16-69" name="__codelineno-16-69" href="#__codelineno-16-69"></a>            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">";"</span><span class="p">):</span>
+</span><span id="__span-16-70"><a id="__codelineno-16-70" name="__codelineno-16-70" href="#__codelineno-16-70"></a>                <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"CSQ="</span><span class="p">):</span>
+</span><span id="__span-16-71"><a id="__codelineno-16-71" name="__codelineno-16-71" href="#__codelineno-16-71"></a>                    <span class="n">csq</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">"CSQ="</span><span class="p">)</span> <span class="p">:]</span>
+</span><span id="__span-16-72"><a id="__codelineno-16-72" name="__codelineno-16-72" href="#__codelineno-16-72"></a>                    <span class="k">break</span>
+</span><span id="__span-16-73"><a id="__codelineno-16-73" name="__codelineno-16-73" href="#__codelineno-16-73"></a>            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">csq</span><span class="p">)</span>
+</span><span id="__span-16-74"><a id="__codelineno-16-74" name="__codelineno-16-74" href="#__codelineno-16-74"></a>    <span class="k">return</span> <span class="n">out</span>
+</span><span id="__span-16-75"><a id="__codelineno-16-75" name="__codelineno-16-75" href="#__codelineno-16-75"></a>
+</span><span id="__span-16-76"><a id="__codelineno-16-76" name="__codelineno-16-76" href="#__codelineno-16-76"></a>
+</span><span id="__span-16-77"><a id="__codelineno-16-77" name="__codelineno-16-77" href="#__codelineno-16-77"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_profile</span><span class="p">(</span><span class="n">vepyr</span><span class="p">,</span> <span class="n">profile</span><span class="p">,</span> <span class="n">release</span><span class="p">,</span> <span class="n">slice_gz</span><span class="p">,</span> <span class="n">fasta</span><span class="p">,</span> <span class="n">sweep</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">):</span>
+</span><span id="__span-16-78"><a id="__codelineno-16-78" name="__codelineno-16-78" href="#__codelineno-16-78"></a>    <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">profiles</span><span class="o">.</span><span class="n">cache_dir_for</span><span class="p">(</span><span class="n">profile</span><span class="p">,</span> <span class="n">release</span><span class="p">)</span>
+</span><span id="__span-16-79"><a id="__codelineno-16-79" name="__codelineno-16-79" href="#__codelineno-16-79"></a>    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">profile_annotate_kwargs</span><span class="p">(</span><span class="n">profile</span><span class="p">,</span> <span class="n">release</span><span class="p">)</span>
+</span><span id="__span-16-80"><a id="__codelineno-16-80" name="__codelineno-16-80" href="#__codelineno-16-80"></a>
+</span><span id="__span-16-81"><a id="__codelineno-16-81" name="__codelineno-16-81" href="#__codelineno-16-81"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">lazy</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+</span><span id="__span-16-82"><a id="__codelineno-16-82" name="__codelineno-16-82" href="#__codelineno-16-82"></a>        <span class="k">return</span> <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-16-83"><a id="__codelineno-16-83" name="__codelineno-16-83" href="#__codelineno-16-83"></a>            <span class="n">slice_gz</span><span class="p">,</span>
+</span><span id="__span-16-84"><a id="__codelineno-16-84" name="__codelineno-16-84" href="#__codelineno-16-84"></a>            <span class="n">cache_dir</span><span class="p">,</span>
+</span><span id="__span-16-85"><a id="__codelineno-16-85" name="__codelineno-16-85" href="#__codelineno-16-85"></a>            <span class="n">everything</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-16-86"><a id="__codelineno-16-86" name="__codelineno-16-86" href="#__codelineno-16-86"></a>            <span class="n">reference_fasta</span><span class="o">=</span><span class="n">fasta</span><span class="p">,</span>
+</span><span id="__span-16-87"><a id="__codelineno-16-87" name="__codelineno-16-87" href="#__codelineno-16-87"></a>            <span class="n">workers</span><span class="o">=</span><span class="n">workers</span><span class="p">,</span>
+</span><span id="__span-16-88"><a id="__codelineno-16-88" name="__codelineno-16-88" href="#__codelineno-16-88"></a>            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+</span><span id="__span-16-89"><a id="__codelineno-16-89" name="__codelineno-16-89" href="#__codelineno-16-89"></a>            <span class="o">**</span><span class="n">extra</span><span class="p">,</span>
+</span><span id="__span-16-90"><a id="__codelineno-16-90" name="__codelineno-16-90" href="#__codelineno-16-90"></a>        <span class="p">)</span>
+</span><span id="__span-16-91"><a id="__codelineno-16-91" name="__codelineno-16-91" href="#__codelineno-16-91"></a>
+</span><span id="__span-16-92"><a id="__codelineno-16-92" name="__codelineno-16-92" href="#__codelineno-16-92"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-16-93"><a id="__codelineno-16-93" name="__codelineno-16-93" href="#__codelineno-16-93"></a>    <span class="n">ok</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-16-94"><a id="__codelineno-16-94" name="__codelineno-16-94" href="#__codelineno-16-94"></a>    <span class="n">reference</span><span class="p">,</span> <span class="n">ref_s</span> <span class="o">=</span> <span class="n">timed</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">lazy</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+</span><span id="__span-16-95"><a id="__codelineno-16-95" name="__codelineno-16-95" href="#__codelineno-16-95"></a>    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span id="__span-16-96"><a id="__codelineno-16-96" name="__codelineno-16-96" href="#__codelineno-16-96"></a>        <span class="p">{</span>
+</span><span id="__span-16-97"><a id="__codelineno-16-97" name="__codelineno-16-97" href="#__codelineno-16-97"></a>            <span class="s2">"profile"</span><span class="p">:</span> <span class="n">profile</span><span class="p">,</span>
+</span><span id="__span-16-98"><a id="__codelineno-16-98" name="__codelineno-16-98" href="#__codelineno-16-98"></a>            <span class="s2">"workers"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-16-99"><a id="__codelineno-16-99" name="__codelineno-16-99" href="#__codelineno-16-99"></a>            <span class="s2">"rows"</span><span class="p">:</span> <span class="n">reference</span><span class="o">.</span><span class="n">height</span><span class="p">,</span>
+</span><span id="__span-16-100"><a id="__codelineno-16-100" name="__codelineno-16-100" href="#__codelineno-16-100"></a>            <span class="s2">"wall_s"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">ref_s</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-16-101"><a id="__codelineno-16-101" name="__codelineno-16-101" href="#__codelineno-16-101"></a>            <span class="s2">"peak_rss_gb"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">peak_rss_gb</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-16-102"><a id="__codelineno-16-102" name="__codelineno-16-102" href="#__codelineno-16-102"></a>            <span class="s2">"equal"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-16-103"><a id="__codelineno-16-103" name="__codelineno-16-103" href="#__codelineno-16-103"></a>        <span class="p">}</span>
+</span><span id="__span-16-104"><a id="__codelineno-16-104" name="__codelineno-16-104" href="#__codelineno-16-104"></a>    <span class="p">)</span>
+</span><span id="__span-16-105"><a id="__codelineno-16-105" name="__codelineno-16-105" href="#__codelineno-16-105"></a>    <span class="k">for</span> <span class="n">workers</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">sweep</span><span class="p">)</span> <span class="o">-</span> <span class="p">{</span><span class="mi">1</span><span class="p">}):</span>
+</span><span id="__span-16-106"><a id="__codelineno-16-106" name="__codelineno-16-106" href="#__codelineno-16-106"></a>        <span class="n">frame</span><span class="p">,</span> <span class="n">wall</span> <span class="o">=</span> <span class="n">timed</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="o">=</span><span class="n">workers</span><span class="p">:</span> <span class="n">lazy</span><span class="p">(</span><span class="n">w</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+</span><span id="__span-16-107"><a id="__codelineno-16-107" name="__codelineno-16-107" href="#__codelineno-16-107"></a>        <span class="n">equal</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">reference</span><span class="p">)</span>
+</span><span id="__span-16-108"><a id="__codelineno-16-108" name="__codelineno-16-108" href="#__codelineno-16-108"></a>        <span class="n">ok</span> <span class="o">&amp;=</span> <span class="n">equal</span>
+</span><span id="__span-16-109"><a id="__codelineno-16-109" name="__codelineno-16-109" href="#__codelineno-16-109"></a>        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span id="__span-16-110"><a id="__codelineno-16-110" name="__codelineno-16-110" href="#__codelineno-16-110"></a>            <span class="p">{</span>
+</span><span id="__span-16-111"><a id="__codelineno-16-111" name="__codelineno-16-111" href="#__codelineno-16-111"></a>                <span class="s2">"profile"</span><span class="p">:</span> <span class="n">profile</span><span class="p">,</span>
+</span><span id="__span-16-112"><a id="__codelineno-16-112" name="__codelineno-16-112" href="#__codelineno-16-112"></a>                <span class="s2">"workers"</span><span class="p">:</span> <span class="n">workers</span><span class="p">,</span>
+</span><span id="__span-16-113"><a id="__codelineno-16-113" name="__codelineno-16-113" href="#__codelineno-16-113"></a>                <span class="s2">"rows"</span><span class="p">:</span> <span class="n">frame</span><span class="o">.</span><span class="n">height</span><span class="p">,</span>
+</span><span id="__span-16-114"><a id="__codelineno-16-114" name="__codelineno-16-114" href="#__codelineno-16-114"></a>                <span class="s2">"wall_s"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">wall</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-16-115"><a id="__codelineno-16-115" name="__codelineno-16-115" href="#__codelineno-16-115"></a>                <span class="s2">"peak_rss_gb"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">peak_rss_gb</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-16-116"><a id="__codelineno-16-116" name="__codelineno-16-116" href="#__codelineno-16-116"></a>                <span class="s2">"equal"</span><span class="p">:</span> <span class="n">equal</span><span class="p">,</span>
+</span><span id="__span-16-117"><a id="__codelineno-16-117" name="__codelineno-16-117" href="#__codelineno-16-117"></a>            <span class="p">}</span>
+</span><span id="__span-16-118"><a id="__codelineno-16-118" name="__codelineno-16-118" href="#__codelineno-16-118"></a>        <span class="p">)</span>
+</span><span id="__span-16-119"><a id="__codelineno-16-119" name="__codelineno-16-119" href="#__codelineno-16-119"></a>    <span class="c1"># CSQ string parity against the VCF sink at the largest worker count.</span>
+</span><span id="__span-16-120"><a id="__codelineno-16-120" name="__codelineno-16-120" href="#__codelineno-16-120"></a>    <span class="n">workers</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">sweep</span><span class="p">)</span>
+</span><span id="__span-16-121"><a id="__codelineno-16-121" name="__codelineno-16-121" href="#__codelineno-16-121"></a>    <span class="n">with_csq</span> <span class="o">=</span> <span class="n">lazy</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="n">skip_csq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</span><span id="__span-16-122"><a id="__codelineno-16-122" name="__codelineno-16-122" href="#__codelineno-16-122"></a>    <span class="n">vcf_out</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">profile</span><span class="si">}</span><span class="s2">_w</span><span class="si">{</span><span class="n">workers</span><span class="si">}</span><span class="s2">.vcf.gz"</span><span class="p">)</span>
+</span><span id="__span-16-123"><a id="__codelineno-16-123" name="__codelineno-16-123" href="#__codelineno-16-123"></a>    <span class="n">vepyr</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-16-124"><a id="__codelineno-16-124" name="__codelineno-16-124" href="#__codelineno-16-124"></a>        <span class="n">slice_gz</span><span class="p">,</span>
+</span><span id="__span-16-125"><a id="__codelineno-16-125" name="__codelineno-16-125" href="#__codelineno-16-125"></a>        <span class="n">cache_dir</span><span class="p">,</span>
+</span><span id="__span-16-126"><a id="__codelineno-16-126" name="__codelineno-16-126" href="#__codelineno-16-126"></a>        <span class="n">everything</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-16-127"><a id="__codelineno-16-127" name="__codelineno-16-127" href="#__codelineno-16-127"></a>        <span class="n">reference_fasta</span><span class="o">=</span><span class="n">fasta</span><span class="p">,</span>
+</span><span id="__span-16-128"><a id="__codelineno-16-128" name="__codelineno-16-128" href="#__codelineno-16-128"></a>        <span class="n">workers</span><span class="o">=</span><span class="n">workers</span><span class="p">,</span>
+</span><span id="__span-16-129"><a id="__codelineno-16-129" name="__codelineno-16-129" href="#__codelineno-16-129"></a>        <span class="n">output_vcf</span><span class="o">=</span><span class="n">vcf_out</span><span class="p">,</span>
+</span><span id="__span-16-130"><a id="__codelineno-16-130" name="__codelineno-16-130" href="#__codelineno-16-130"></a>        <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-16-131"><a id="__codelineno-16-131" name="__codelineno-16-131" href="#__codelineno-16-131"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+</span><span id="__span-16-132"><a id="__codelineno-16-132" name="__codelineno-16-132" href="#__codelineno-16-132"></a>    <span class="p">)</span>
+</span><span id="__span-16-133"><a id="__codelineno-16-133" name="__codelineno-16-133" href="#__codelineno-16-133"></a>    <span class="n">vcf_csq</span> <span class="o">=</span> <span class="n">vcf_csq_by_row</span><span class="p">(</span><span class="n">vcf_out</span><span class="p">)</span>
+</span><span id="__span-16-134"><a id="__codelineno-16-134" name="__codelineno-16-134" href="#__codelineno-16-134"></a>    <span class="n">lf_csq</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="ow">or</span> <span class="s2">""</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">with_csq</span><span class="p">[</span><span class="s2">"CSQ"</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()]</span>
+</span><span id="__span-16-135"><a id="__codelineno-16-135" name="__codelineno-16-135" href="#__codelineno-16-135"></a>    <span class="n">csq_equal</span> <span class="o">=</span> <span class="n">vcf_csq</span> <span class="o">==</span> <span class="n">lf_csq</span>
+</span><span id="__span-16-136"><a id="__codelineno-16-136" name="__codelineno-16-136" href="#__codelineno-16-136"></a>    <span class="n">ok</span> <span class="o">&amp;=</span> <span class="n">csq_equal</span>
+</span><span id="__span-16-137"><a id="__codelineno-16-137" name="__codelineno-16-137" href="#__codelineno-16-137"></a>    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span id="__span-16-138"><a id="__codelineno-16-138" name="__codelineno-16-138" href="#__codelineno-16-138"></a>        <span class="p">{</span>
+</span><span id="__span-16-139"><a id="__codelineno-16-139" name="__codelineno-16-139" href="#__codelineno-16-139"></a>            <span class="s2">"profile"</span><span class="p">:</span> <span class="n">profile</span><span class="p">,</span>
+</span><span id="__span-16-140"><a id="__codelineno-16-140" name="__codelineno-16-140" href="#__codelineno-16-140"></a>            <span class="s2">"workers"</span><span class="p">:</span> <span class="n">workers</span><span class="p">,</span>
+</span><span id="__span-16-141"><a id="__codelineno-16-141" name="__codelineno-16-141" href="#__codelineno-16-141"></a>            <span class="s2">"rows"</span><span class="p">:</span> <span class="n">with_csq</span><span class="o">.</span><span class="n">height</span><span class="p">,</span>
+</span><span id="__span-16-142"><a id="__codelineno-16-142" name="__codelineno-16-142" href="#__codelineno-16-142"></a>            <span class="s2">"wall_s"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-16-143"><a id="__codelineno-16-143" name="__codelineno-16-143" href="#__codelineno-16-143"></a>            <span class="s2">"peak_rss_gb"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-16-144"><a id="__codelineno-16-144" name="__codelineno-16-144" href="#__codelineno-16-144"></a>            <span class="s2">"equal"</span><span class="p">:</span> <span class="n">csq_equal</span><span class="p">,</span>
+</span><span id="__span-16-145"><a id="__codelineno-16-145" name="__codelineno-16-145" href="#__codelineno-16-145"></a>            <span class="s2">"check"</span><span class="p">:</span> <span class="s2">"CSQ vs output_vcf"</span><span class="p">,</span>
+</span><span id="__span-16-146"><a id="__codelineno-16-146" name="__codelineno-16-146" href="#__codelineno-16-146"></a>        <span class="p">}</span>
+</span><span id="__span-16-147"><a id="__codelineno-16-147" name="__codelineno-16-147" href="#__codelineno-16-147"></a>    <span class="p">)</span>
+</span><span id="__span-16-148"><a id="__codelineno-16-148" name="__codelineno-16-148" href="#__codelineno-16-148"></a>    <span class="k">return</span> <span class="n">ok</span><span class="p">,</span> <span class="n">rows</span>
+</span><span id="__span-16-149"><a id="__codelineno-16-149" name="__codelineno-16-149" href="#__codelineno-16-149"></a>
+</span><span id="__span-16-150"><a id="__codelineno-16-150" name="__codelineno-16-150" href="#__codelineno-16-150"></a>
+</span><span id="__span-16-151"><a id="__codelineno-16-151" name="__codelineno-16-151" href="#__codelineno-16-151"></a><span class="k">def</span><span class="w"> </span><span class="nf">write_report</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">rows</span><span class="p">):</span>
+</span><span id="__span-16-152"><a id="__codelineno-16-152" name="__codelineno-16-152" href="#__codelineno-16-152"></a>    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-16-153"><a id="__codelineno-16-153" name="__codelineno-16-153" href="#__codelineno-16-153"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="s2">"report.json"</span><span class="p">),</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-16-154"><a id="__codelineno-16-154" name="__codelineno-16-154" href="#__codelineno-16-154"></a>        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-16-155"><a id="__codelineno-16-155" name="__codelineno-16-155" href="#__codelineno-16-155"></a>    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-16-156"><a id="__codelineno-16-156" name="__codelineno-16-156" href="#__codelineno-16-156"></a>        <span class="s2">"| profile | workers | rows | wall s | peak RSS GB | equal | check |"</span><span class="p">,</span>
+</span><span id="__span-16-157"><a id="__codelineno-16-157" name="__codelineno-16-157" href="#__codelineno-16-157"></a>        <span class="s2">"|---|---|---|---|---|---|---|"</span><span class="p">,</span>
+</span><span id="__span-16-158"><a id="__codelineno-16-158" name="__codelineno-16-158" href="#__codelineno-16-158"></a>    <span class="p">]</span>
+</span><span id="__span-16-159"><a id="__codelineno-16-159" name="__codelineno-16-159" href="#__codelineno-16-159"></a>    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+</span><span id="__span-16-160"><a id="__codelineno-16-160" name="__codelineno-16-160" href="#__codelineno-16-160"></a>        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span id="__span-16-161"><a id="__codelineno-16-161" name="__codelineno-16-161" href="#__codelineno-16-161"></a>            <span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'profile'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'workers'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'rows'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'wall_s'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | "</span>
+</span><span id="__span-16-162"><a id="__codelineno-16-162" name="__codelineno-16-162" href="#__codelineno-16-162"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'peak_rss_gb'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'equal'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'check'</span><span class="p">,</span><span class="w"> </span><span class="s1">'frame vs workers=1'</span><span class="p">)</span><span class="si">}</span><span class="s2"> |"</span>
+</span><span id="__span-16-163"><a id="__codelineno-16-163" name="__codelineno-16-163" href="#__codelineno-16-163"></a>        <span class="p">)</span>
+</span><span id="__span-16-164"><a id="__codelineno-16-164" name="__codelineno-16-164" href="#__codelineno-16-164"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="s2">"report.md"</span><span class="p">),</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-16-165"><a id="__codelineno-16-165" name="__codelineno-16-165" href="#__codelineno-16-165"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-16-166"><a id="__codelineno-16-166" name="__codelineno-16-166" href="#__codelineno-16-166"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span>
+</span><span id="__span-16-167"><a id="__codelineno-16-167" name="__codelineno-16-167" href="#__codelineno-16-167"></a>
+</span><span id="__span-16-168"><a id="__codelineno-16-168" name="__codelineno-16-168" href="#__codelineno-16-168"></a>
+</span><span id="__span-16-169"><a id="__codelineno-16-169" name="__codelineno-16-169" href="#__codelineno-16-169"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span><span id="__span-16-170"><a id="__codelineno-16-170" name="__codelineno-16-170" href="#__codelineno-16-170"></a>    <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+</span><span id="__span-16-171"><a id="__codelineno-16-171" name="__codelineno-16-171" href="#__codelineno-16-171"></a>        <span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="p">,</span> <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span>
+</span><span id="__span-16-172"><a id="__codelineno-16-172" name="__codelineno-16-172" href="#__codelineno-16-172"></a>    <span class="p">)</span>
+</span><span id="__span-16-173"><a id="__codelineno-16-173" name="__codelineno-16-173" href="#__codelineno-16-173"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--release"</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">profiles</span><span class="o">.</span><span class="n">RELEASES</span><span class="p">)</span>
+</span><span id="__span-16-174"><a id="__codelineno-16-174" name="__codelineno-16-174" href="#__codelineno-16-174"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+</span><span id="__span-16-175"><a id="__codelineno-16-175" name="__codelineno-16-175" href="#__codelineno-16-175"></a>        <span class="s2">"--profiles"</span><span class="p">,</span>
+</span><span id="__span-16-176"><a id="__codelineno-16-176" name="__codelineno-16-176" href="#__codelineno-16-176"></a>        <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span>
+</span><span id="__span-16-177"><a id="__codelineno-16-177" name="__codelineno-16-177" href="#__codelineno-16-177"></a>        <span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">DEFAULT_PROFILES</span><span class="p">),</span>
+</span><span id="__span-16-178"><a id="__codelineno-16-178" name="__codelineno-16-178" href="#__codelineno-16-178"></a>        <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">profiles</span><span class="o">.</span><span class="n">PROFILES</span><span class="p">),</span>
+</span><span id="__span-16-179"><a id="__codelineno-16-179" name="__codelineno-16-179" href="#__codelineno-16-179"></a>    <span class="p">)</span>
+</span><span id="__span-16-180"><a id="__codelineno-16-180" name="__codelineno-16-180" href="#__codelineno-16-180"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--chrom"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"22"</span><span class="p">)</span>
+</span><span id="__span-16-181"><a id="__codelineno-16-181" name="__codelineno-16-181" href="#__codelineno-16-181"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--sweep"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+</span><span id="__span-16-182"><a id="__codelineno-16-182" name="__codelineno-16-182" href="#__codelineno-16-182"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+</span><span id="__span-16-183"><a id="__codelineno-16-183" name="__codelineno-16-183" href="#__codelineno-16-183"></a>        <span class="s2">"--input"</span><span class="p">,</span>
+</span><span id="__span-16-184"><a id="__codelineno-16-184" name="__codelineno-16-184" href="#__codelineno-16-184"></a>        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-16-185"><a id="__codelineno-16-185" name="__codelineno-16-185" href="#__codelineno-16-185"></a>        <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Indexed benchmark VCF (default: $DATA/input/</span><span class="si">{</span><span class="n">INPUT_NAME</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span>
+</span><span id="__span-16-186"><a id="__codelineno-16-186" name="__codelineno-16-186" href="#__codelineno-16-186"></a>    <span class="p">)</span>
+</span><span id="__span-16-187"><a id="__codelineno-16-187" name="__codelineno-16-187" href="#__codelineno-16-187"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--fasta"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-16-188"><a id="__codelineno-16-188" name="__codelineno-16-188" href="#__codelineno-16-188"></a>    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--out-dir"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-16-189"><a id="__codelineno-16-189" name="__codelineno-16-189" href="#__codelineno-16-189"></a>    <span class="n">args</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+</span><span id="__span-16-190"><a id="__codelineno-16-190" name="__codelineno-16-190" href="#__codelineno-16-190"></a>
+</span><span id="__span-16-191"><a id="__codelineno-16-191" name="__codelineno-16-191" href="#__codelineno-16-191"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">vepyr</span>
+</span><span id="__span-16-192"><a id="__codelineno-16-192" name="__codelineno-16-192" href="#__codelineno-16-192"></a>
+</span><span id="__span-16-193"><a id="__codelineno-16-193" name="__codelineno-16-193" href="#__codelineno-16-193"></a>    <span class="n">vcf</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">input</span> <span class="ow">or</span> <span class="n">profiles</span><span class="o">.</span><span class="n">default_input</span><span class="p">(</span><span class="n">INPUT_NAME</span><span class="p">)</span>
+</span><span id="__span-16-194"><a id="__codelineno-16-194" name="__codelineno-16-194" href="#__codelineno-16-194"></a>    <span class="n">fasta</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">fasta</span> <span class="ow">or</span> <span class="n">profiles</span><span class="o">.</span><span class="n">default_input</span><span class="p">(</span><span class="n">FASTA_NAME</span><span class="p">)</span>
+</span><span id="__span-16-195"><a id="__codelineno-16-195" name="__codelineno-16-195" href="#__codelineno-16-195"></a>    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">(</span><span class="n">vcf</span><span class="p">,</span> <span class="n">fasta</span><span class="p">):</span>
+</span><span id="__span-16-196"><a id="__codelineno-16-196" name="__codelineno-16-196" href="#__codelineno-16-196"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+</span><span id="__span-16-197"><a id="__codelineno-16-197" name="__codelineno-16-197" href="#__codelineno-16-197"></a>            <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="sa">f</span><span class="s2">"missing input: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-16-198"><a id="__codelineno-16-198" name="__codelineno-16-198" href="#__codelineno-16-198"></a>    <span class="k">if</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">"bgzip"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">"tabix"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-16-199"><a id="__codelineno-16-199" name="__codelineno-16-199" href="#__codelineno-16-199"></a>        <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="s2">"bgzip and tabix are required"</span><span class="p">)</span>
+</span><span id="__span-16-200"><a id="__codelineno-16-200" name="__codelineno-16-200" href="#__codelineno-16-200"></a>    <span class="n">out_dir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">out_dir</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span><span id="__span-16-201"><a id="__codelineno-16-201" name="__codelineno-16-201" href="#__codelineno-16-201"></a>        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))),</span>
+</span><span id="__span-16-202"><a id="__codelineno-16-202" name="__codelineno-16-202" href="#__codelineno-16-202"></a>        <span class="s2">"results"</span><span class="p">,</span>
+</span><span id="__span-16-203"><a id="__codelineno-16-203" name="__codelineno-16-203" href="#__codelineno-16-203"></a>        <span class="s2">"lazyframe_workers"</span><span class="p">,</span>
+</span><span id="__span-16-204"><a id="__codelineno-16-204" name="__codelineno-16-204" href="#__codelineno-16-204"></a>        <span class="n">args</span><span class="o">.</span><span class="n">release</span><span class="p">,</span>
+</span><span id="__span-16-205"><a id="__codelineno-16-205" name="__codelineno-16-205" href="#__codelineno-16-205"></a>    <span class="p">)</span>
+</span><span id="__span-16-206"><a id="__codelineno-16-206" name="__codelineno-16-206" href="#__codelineno-16-206"></a>    <span class="n">slice_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">)</span>
+</span><span id="__span-16-207"><a id="__codelineno-16-207" name="__codelineno-16-207" href="#__codelineno-16-207"></a>    <span class="n">contig</span> <span class="o">=</span> <span class="n">vcfio</span><span class="o">.</span><span class="n">canonical_contig</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">chrom</span><span class="p">)</span>
+</span><span id="__span-16-208"><a id="__codelineno-16-208" name="__codelineno-16-208" href="#__codelineno-16-208"></a>    <span class="n">slice_gz</span> <span class="o">=</span> <span class="n">vcfio</span><span class="o">.</span><span class="n">slice_contig</span><span class="p">(</span><span class="n">vcf</span><span class="p">,</span> <span class="n">contig</span><span class="p">,</span> <span class="n">slice_dir</span><span class="p">)</span>
+</span><span id="__span-16-209"><a id="__codelineno-16-209" name="__codelineno-16-209" href="#__codelineno-16-209"></a>    <span class="k">if</span> <span class="mi">1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">sweep</span><span class="p">:</span>
+</span><span id="__span-16-210"><a id="__codelineno-16-210" name="__codelineno-16-210" href="#__codelineno-16-210"></a>        <span class="n">args</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-16-211"><a id="__codelineno-16-211" name="__codelineno-16-211" href="#__codelineno-16-211"></a>
+</span><span id="__span-16-212"><a id="__codelineno-16-212" name="__codelineno-16-212" href="#__codelineno-16-212"></a>    <span class="n">all_ok</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-16-213"><a id="__codelineno-16-213" name="__codelineno-16-213" href="#__codelineno-16-213"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-16-214"><a id="__codelineno-16-214" name="__codelineno-16-214" href="#__codelineno-16-214"></a>    <span class="k">for</span> <span class="n">profile</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">profiles</span><span class="p">:</span>
+</span><span id="__span-16-215"><a id="__codelineno-16-215" name="__codelineno-16-215" href="#__codelineno-16-215"></a>        <span class="n">ok</span><span class="p">,</span> <span class="n">profile_rows</span> <span class="o">=</span> <span class="n">run_profile</span><span class="p">(</span>
+</span><span id="__span-16-216"><a id="__codelineno-16-216" name="__codelineno-16-216" href="#__codelineno-16-216"></a>            <span class="n">vepyr</span><span class="p">,</span> <span class="n">profile</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">release</span><span class="p">,</span> <span class="n">slice_gz</span><span class="p">,</span> <span class="n">fasta</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sweep</span><span class="p">,</span> <span class="n">out_dir</span>
+</span><span id="__span-16-217"><a id="__codelineno-16-217" name="__codelineno-16-217" href="#__codelineno-16-217"></a>        <span class="p">)</span>
+</span><span id="__span-16-218"><a id="__codelineno-16-218" name="__codelineno-16-218" href="#__codelineno-16-218"></a>        <span class="n">all_ok</span> <span class="o">&amp;=</span> <span class="n">ok</span>
+</span><span id="__span-16-219"><a id="__codelineno-16-219" name="__codelineno-16-219" href="#__codelineno-16-219"></a>        <span class="n">rows</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">profile_rows</span><span class="p">)</span>
+</span><span id="__span-16-220"><a id="__codelineno-16-220" name="__codelineno-16-220" href="#__codelineno-16-220"></a>    <span class="n">write_report</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">rows</span><span class="p">)</span>
+</span><span id="__span-16-221"><a id="__codelineno-16-221" name="__codelineno-16-221" href="#__codelineno-16-221"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"PASS"</span> <span class="k">if</span> <span class="n">all_ok</span> <span class="k">else</span> <span class="s2">"FAIL"</span><span class="p">)</span>
+</span><span id="__span-16-222"><a id="__codelineno-16-222" name="__codelineno-16-222" href="#__codelineno-16-222"></a>    <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">all_ok</span> <span class="k">else</span> <span class="mi">1</span>
+</span><span id="__span-16-223"><a id="__codelineno-16-223" name="__codelineno-16-223" href="#__codelineno-16-223"></a>
+</span><span id="__span-16-224"><a id="__codelineno-16-224" name="__codelineno-16-224" href="#__codelineno-16-224"></a>
+</span><span id="__span-16-225"><a id="__codelineno-16-225" name="__codelineno-16-225" href="#__codelineno-16-225"></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+</span><span id="__span-16-226"><a id="__codelineno-16-226" name="__codelineno-16-226" href="#__codelineno-16-226"></a>    <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</span></code></pre></div>
+<p>Peak RSS is process-wide and monotonic, so the per-row value is the peak up to that point; report the <code>workers=1</code> row from a separate invocation (<code>--sweep 1</code>) when a per-count figure matters. <code>vcfio.open_text</code> handles bgzf.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 2: Gate on chr22, both cache flavours</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uptime<span class="w">   </span><span class="c1"># load average must be near idle</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nb">cd</span><span class="w"> </span>e2e-testing/scripts
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="nv">CONDA_PREFIX</span><span class="o">=</span><span class="w"> </span><span class="nv">VIRTUAL_ENV</span><span class="o">=</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>lazyframe_workers_parity.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--chrom<span class="w"> </span><span class="m">22</span><span class="w"> </span>--sweep<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="m">8</span><span class="w"> </span>--profiles<span class="w"> </span>ensembl<span class="w"> </span>merged<span class="w"> </span>refseq<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
+</span></code></pre></div>
+<p>Expected: every <code>equal</code> is <code>True</code> and the run prints <code>PASS</code>. The CSQ check compares the LazyFrame CSQ strings at <code>workers=8</code> to the VCF sink at <code>workers=8</code>, which is the spec's LazyFrame-versus-VCF gate.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 3: Gate on chr1</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nv">CONDA_PREFIX</span><span class="o">=</span><span class="w"> </span><span class="nv">VIRTUAL_ENV</span><span class="o">=</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>lazyframe_workers_parity.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--chrom<span class="w"> </span><span class="m">1</span><span class="w"> </span>--sweep<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="m">8</span><span class="w"> </span>--profiles<span class="w"> </span>ensembl<span class="w"> </span>merged<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
+</span></code></pre></div>
+<p>Expected: <code>PASS</code>. Run it twice and keep the second (the first run of a session reads slow). If <code>workers=8</code> is not faster than <code>workers=4</code>, rerun with <code>VEP_PROFILE=1</code> and read <code>head_wait</code> and <code>run_pool_runs</code> on the per-contig <code>pipeline_profile</code> line before touching any default; see the spec's measurement plan for the sweep over <code>VEP_STREAM_RUN_BUFFERS</code> and <code>VEP_STREAM_LOOKAHEAD_RUNS</code>.</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 4: Fill the table and commit</strong></li>
+</ul>
+<p>Copy the wall and RSS numbers from <code>e2e-testing/results/lazyframe_workers/116/report.md</code> (chr22 and chr1 runs) into the <code>docs/performance.md</code> table from Task 4; no placeholder cell may remain.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nb">cd</span><span class="w"> </span>~/research/git/vepyr
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>.
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>git<span class="w"> </span>add<span class="w"> </span>e2e-testing/scripts/lazyframe_workers_parity.py<span class="w"> </span>docs/performance.md
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"test(e2e): LazyFrame workers parity gate and sweep; document the numbers"</span>
+</span></code></pre></div>
+<p><code>e2e-testing/results/</code> is not committed (check <code>.gitignore</code>; if it is untracked, leave it).</p>
+<hr>
+<h3 id="task-6-pull-request">Task 6: Pull request<a class="headerlink" href="#task-6-pull-request" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Add: <code>docs/superpowers/plans/2026-09-06-lazyframe-workers-engine.md</code>, <code>docs/superpowers/plans/2026-09-06-lazyframe-workers-vepyr.md</code> (commit them on this branch; the spec is already committed)</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 1: Commit the plans, run everything once more</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>git<span class="w"> </span>add<span class="w"> </span>docs/superpowers/plans/2026-09-06-lazyframe-workers-engine.md<span class="w"> </span>docs/superpowers/plans/2026-09-06-lazyframe-workers-vepyr.md
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs: LazyFrame workers implementation plans"</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="nv">CONDA_PREFIX</span><span class="o">=</span><span class="w"> </span><span class="nv">VIRTUAL_ENV</span><span class="o">=</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-3
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cargo<span class="w"> </span>clippy<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-1
+</span></code></pre></div>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled=""><span class="task-list-indicator"></span></label> <strong>Step 2: Push and open the PR</strong></li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>feat/lazyframe-parallel-workers
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>gh<span class="w"> </span>pr<span class="w"> </span>create<span class="w"> </span>--title<span class="w"> </span><span class="s2">"feat(annotate): workers&gt;1 on the LazyFrame path"</span><span class="w"> </span>--body-file<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="s">## Summary</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="s">- `annotate(..., workers=N).collect()` now runs N annotation pipelines per contig (engine streaming run pool, biodatageeks/datafusion-bio-functions#&lt;PR&gt;); output equals `workers=1` row for row and in order, on Ensembl, Merged and RefSeq</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="s">- composes with pushed-down region predicates, `head()`/LIMIT and column selection</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="s">- `workers&gt;1` requires a tabix/CSI index on both output paths, checked before the engine is called</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="s">- engine pin bumped to &lt;sha&gt;; docs no longer call the LazyFrame path serial; timing table added</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="s">Design: `docs/superpowers/specs/2026-09-06-lazyframe-parallel-workers-design.md`</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a><span class="s">## Test plan</span>
+</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="s">- [x] `tests/test_annotate.py` index checks on both paths</span>
+</span><span id="__span-21-13"><a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="s">- [x] `tests/test_lazyframe_workers.py` golden-fixture parity (Ensembl + merged, `buffer_size=7`, one-buffer runs): plain, CSQ on, predicate, `head()`, `select()`, re-run</span>
+</span><span id="__span-21-14"><a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a><span class="s">- [x] `e2e-testing/scripts/lazyframe_workers_parity.py --release 116` on HG002 chr22 and chr1 at workers 1/2/4/8, CSQ vs `output_vcf` at workers=8:</span>
+</span><span id="__span-21-15"><a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>
+</span><span id="__span-21-16"><a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a><span class="s">&lt;paste the report.md tables&gt;</span>
+</span><span id="__span-21-17"><a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>
+</span><span id="__span-21-18"><a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a><span class="s">🤖 Generated with [Claude Code](https://claude.com/claude-code)</span>
+</span><span id="__span-21-19"><a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a><span class="s">EOF</span>
+</span></code></pre></div>
+<p>Then read the PR body back with <code>gh api repos/{owner}/{repo}/pulls/&lt;n&gt; --jq .body | head</code> (<code>gh pr edit</code> has silently failed on this repo before). If the engine PR was pinned at its head rather than its merge SHA, re-pin after the engine merge (Task 2), rerun Task 3 and the chr22 gate, and push again before merging.</p>
+<hr>
+<h2 id="self-review-notes">Self-review notes<a class="headerlink" href="#self-review-notes" title="Permanent link">¶</a></h2>
+<ul>
+<li>Spec coverage: index check on both paths (T1), pin (T2), fixture parity incl. <code>skip_csq</code> both ways, predicate, <code>head()</code>, both caches, default and one-buffer run lengths (T3), docstring and the three docs pages plus the bridge comment (T4), md5-equivalent LazyFrame-versus-VCF CSQ gate on chr22 and chr1 at <code>workers&gt;1</code> with a 1/2/4/8 sweep and RSS (T5), delivery (T6). The measurement sweep over the engine knobs is in the spec and referenced from T5 Step 3; it changes engine defaults, not vepyr code.</li>
+<li>Names used across tasks: <code>_require_index_for_workers</code>, fixtures <code>ensembl_cache_dir</code>/<code>merged_cache_dir</code>/<code>cache_dir</code>, <code>_lazy</code>, <code>_assert_same</code>, runner <code>run_profile</code>/<code>write_report</code>/<code>vcf_csq_by_row</code>/<code>peak_rss_gb</code>, <code>--sweep</code>.</li>
+<li>Order dependency: T1 needs no engine change; T3, T5 need the pinned engine (T2); T4's table is filled by T5.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>
