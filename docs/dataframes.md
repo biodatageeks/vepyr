@@ -16,12 +16,14 @@ lf = vepyr.annotate(
 df = lf.collect()
 ```
 
-No annotation flags are needed on this path. A frame created without flags
-fills everything the inputs allow: with a `reference_fasta` that is the full
-`--everything` result, without one the HGVS and `everything`-only columns
-stay null because the engine cannot compute them. Flags you pass explicitly
-are honoured as given, and a `select()` decides what actually runs, see
-[below](#what-is-pushed-into-the-engine).
+!!! tip "No columns selected means `everything`"
+    A frame created without annotation flags and collected without a
+    `select()` is the full VEP `--everything` result, provided a
+    `reference_fasta` is given. Without a FASTA the HGVS and
+    `everything`-only columns stay null, because the engine cannot compute
+    them. Add a `select()` and only the flags its columns need are run, see
+    [below](#what-is-pushed-into-the-engine). Flags you pass explicitly are
+    honoured as given.
 
 ## Schema
 
