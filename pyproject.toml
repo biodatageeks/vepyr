@@ -36,6 +36,13 @@ dev = [
     # figures for the scaling benchmarks
     # (performance-tests/vepyr/scripts/plot_vepyr_worker_scaling.py).
     "matplotlib>=3.8",
+    # notebooks/annotate.ipynb, and the Jupyter server an IDE starts for it.
+    # These must be declared, not `uv pip install`ed: `uv sync` prunes anything
+    # missing from uv.lock, which strands a running server with no kernels.
+    # ipywidgets is also user-facing via the `notebook` extra (tqdm.auto bars).
+    "ipykernel>=7.3.0",
+    "jupyterlab>=4.6.3",
+    "ipywidgets>=8.1.8",
 ]
 
 [tool.maturin]
