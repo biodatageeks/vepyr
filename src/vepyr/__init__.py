@@ -1072,6 +1072,19 @@ def _normalize_verify_source(verify_source: bool | str) -> str:
     )
 
 
+def _require_index_for_workers(vcf: str, workers: int) -> None:
+    """``workers>1`` reads each run's position window by index seek on both
+    output paths; without an index every run would parse the whole file."""
+    if workers <= 1:
+        return
+    if os.path.exists(vcf + ".tbi") or os.path.exists(vcf + ".csi"):
+        return
+    raise ValueError(
+        f"workers>1 requires a tabix-indexed input ({vcf}.tbi or .csi); "
+        "compress with bgzip and index with tabix, or use workers=1"
+    )
+
+
 def annotate(
     vcf: str,
     cache_dir: str,
@@ -1386,6 +1399,7 @@ def annotate(
         raise ValueError("buffer_size must be a positive integer")
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
+    _require_index_for_workers(vcf, workers)
     if cache_format != "parquet":
         raise ValueError("cache_format must be 'parquet'")
     _validate_expected_cache_version(expected_cache_version)
