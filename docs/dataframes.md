@@ -493,6 +493,76 @@ chr22 with the four caches, `select(chrom, start, SYMBOL)` takes 1.2 s and
 `select(chrom, start, CADD_PHRED)` 8.4 s, so keep plugin columns out of
 queries that do not need them.
 
+## Workers and the query engine
+
+### `workers`
+
+`workers=N` splits each contig into grid-aligned runs that are annotated
+concurrently and released in order. It applies to the LazyFrame path as well as
+`output_vcf`, and the frame is identical to `workers=1`, row order included.
+
+```python
+lf = vepyr.annotate(
+    "input.vcf.gz",
+    "/data/vepyr_cache/116_GRCh38_ensembl",
+    reference_fasta="GRCh38.fa",
+    workers=8,
+)
+df = lf.collect()
+```
+
+!!! warning "`workers > 1` needs an indexed input"
+    The input VCF must be bgzip-compressed with a `.tbi` or `.csi` index. An
+    unindexed input raises rather than silently falling back.
+
+See [Performance](performance.md#workers-on-the-lazyframe-path) for a sweep
+across worker counts and cache profiles.
+
+### `engine="streaming"`
+
+Polars' streaming engine works on the LazyFrame path and returns exactly the
+same frame, but it does **not** reduce peak memory. vepyr feeds the frame
+through a Polars IO plugin, and `collect()` materializes every batch whichever
+engine plans the query — the streaming engine streams Polars' own operators, not
+the annotation source.
+
+Measured on the release-116 Ensembl cache with `everything=True`, a FASTA and
+the default `skip_csq=True`, on an Apple Silicon M3 Max (16 cores, 64 GiB) while
+other work ran on the host:
+
+| Input | workers | Engine | Wall time | Peak RSS |
+|---|--:|---|--:|--:|
+| chr22, 50,284 variants | 1 | default | 2.5 s | 1.76 GB |
+| | 1 | `streaming` | 2.5 s | 1.82 GB |
+| | 4 | default | 1.6 s | 2.00 GB |
+| | 4 | `streaming` | 1.6 s | 2.04 GB |
+| chr1, 319,349 variants | 1 | default | 17.5 s | 7.85 GB |
+| | 1 | `streaming` | 16.5 s | 7.79 GB |
+| | 4 | default | 7.1 s | 7.69 GB |
+| | 4 | `streaming` | 7.0 s | 7.88 GB |
+
+All eight frames were row-for-row identical. Wall-time differences are within
+run-to-run variance on a shared host; peak RSS is flat.
+
+### What does reduce peak memory
+
+A `filter()` on ordinary (non-coordinate) columns *is* pushed into the IO
+source, on both engines: surviving rows are kept per batch, so a selective
+query never accumulates the rows it discards. On chr1 with `everything=True`:
+
+| Filter | Rows kept | Peak RSS |
+|---|--:|--:|
+| none | 319,349 | 7.85 GB |
+| `MAX_AF > 0.5` | 208,015 | 7.74 GB |
+| `MAX_AF > 0.99` | 41,376 | 6.52 GB |
+
+The effect is real but bounded: dropping 87 % of the rows saved 17 % of peak
+memory, because the annotation engine's working set and the Arrow batches in
+flight dominate the total, and no predicate shrinks those.
+
+To actually bound memory, stream to disk with `sink_parquet` instead — see
+[below](#writing-results-to-disk).
+
 ## Writing results to disk
 
 `collect()` holds the whole result in memory. On chromosome 1 of a

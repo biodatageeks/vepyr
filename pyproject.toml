@@ -23,6 +23,8 @@ docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings>=0.27",
     "mkdocstrings-python>=1.12",
+    # click-to-enlarge for the pre-rendered architecture diagrams
+    "mkdocs-glightbox>=0.4",
 ]
 
 [dependency-groups]

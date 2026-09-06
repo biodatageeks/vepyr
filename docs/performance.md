@@ -120,17 +120,7 @@ on HG002 contig slices, `everything=True`, a FASTA, on an Apple Silicon M3 Max
 | | 8 | 3.9 s | 5.7 s | 3.5 s |
 
 Each contig is cut into grid-aligned runs that a pool of `workers` tasks
-annotates concurrently and releases in order; Merged and RefSeq runs replay a
-bounded warm-up at every seam, so they gain a little less than Ensembl. The
-per-contig prepare stays serial, which bounds the speedup on small contigs. The
-runner process, which holds the `workers=1` frame while collecting each
-candidate, peaked at 7.7 GB on chr1 Ensembl at `workers=1` and 19.3 GB by the
-end of the `workers=8` collect. A plain `collect()` queues at most
-`workers + lookahead` runs of output ahead of the consumer
-(`VEP_STREAM_LOOKAHEAD_RUNS`, default `workers`), capped at
-`VEP_STREAM_BUFFER_MB` (default 1024) of Arrow data; a run that would exceed
-the cap waits until the consumer has taken earlier batches, while the run
-being released never waits.
+annotates concurrently and releases in order.
 
 ### Tuning
 
