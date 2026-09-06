@@ -1245,9 +1245,11 @@ def annotate(
         Number of within-contig annotation pipelines (default: 1) on both
         output paths. Values greater than 1 require a tabix-indexed (bgzip +
         ``.tbi`` or ``.csi``) input VCF. Results are identical to ``workers=1``
-        row for row and in the same order; on the ``LazyFrame`` path the
-        engine holds at most a few runs of output in memory ahead of the
-        consumer.
+        row for row and in the same order. On the ``LazyFrame`` path the
+        engine queues at most ``workers + lookahead`` runs of output ahead of
+        the consumer, capped at ``VEP_STREAM_BUFFER_MB`` (default 1024) of
+        Arrow data; ``VEP_STREAM_LOOKAHEAD_RUNS`` (default ``workers``) sets
+        the lookahead.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
