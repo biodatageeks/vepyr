@@ -50,6 +50,10 @@ theme:
 
 plugins:
   - search
+  - glightbox:
+      # Route Material's #only-light / #only-dark variants into separate
+      # galleries so the lightbox never steps onto the hidden-theme copy.
+      auto_themed: true
   - mkdocstrings:
       default_handler: python
       handlers:

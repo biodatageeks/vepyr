@@ -493,6 +493,29 @@ chr22 with the four caches, `select(chrom, start, SYMBOL)` takes 1.2 s and
 `select(chrom, start, CADD_PHRED)` 8.4 s, so keep plugin columns out of
 queries that do not need them.
 
+## Workers
+
+`workers=N` splits each contig into grid-aligned runs that are annotated
+concurrently and released in order. It applies to the LazyFrame path as well as
+`output_vcf`, and the frame is identical to `workers=1`, row order included.
+
+```python
+lf = vepyr.annotate(
+    "input.vcf.gz",
+    "/data/vepyr_cache/116_GRCh38_ensembl",
+    reference_fasta="GRCh38.fa",
+    workers=8,
+)
+df = lf.collect()
+```
+
+!!! warning "`workers > 1` needs an indexed input"
+    The input VCF must be bgzip-compressed with a `.tbi` or `.csi` index. An
+    unindexed input raises rather than silently falling back.
+
+See [Performance](performance.md#workers-on-the-lazyframe-path) for a sweep
+across worker counts and cache profiles.
+
 ## Writing results to disk
 
 `collect()` holds the whole result in memory. On chromosome 1 of a
