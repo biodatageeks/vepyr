@@ -2011,6 +2011,55 @@ class TestPluginMatchTemplates:
         ).select("chrom", "BYHGVS_score").collect()
         assert calls[-1]["hgvs"] is True
 
+    def test_template_fields_are_honoured_on_a_plain_collect(
+        self, tmp_path, monkeypatch
+    ):
+        # explicit unrelated flag + full collect: the plugin still needs hgvs
+        import vepyr
+
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            af=True,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["byhgvs"],
+        ).collect()
+        opts = calls[-1]
+        assert opts["hgvs"] is True and opts["af"] is True
+        assert "everything" not in opts
+
+    def test_template_fields_with_explicit_other_flags_and_a_select(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            af=True,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["byhgvs"],
+        ).select("chrom", "BYHGVS_score").collect()
+        opts = calls[-1]
+        assert opts["hgvs"] is True
+        assert "af" not in opts, "af is pruned: nothing selected needs it"
+
+    def test_template_fields_on_a_plain_collect_without_fasta_raise(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, _ = self._hgvs_plugin(tmp_path, monkeypatch)
+        lf = vepyr.annotate(
+            "in.vcf", CACHE_DIR, af=True, plugin_cache_root=root, plugins=["byhgvs"]
+        )
+        with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
+            lf.collect()
+
     def test_template_fields_without_fasta_raise(self, tmp_path, monkeypatch):
         import vepyr
 

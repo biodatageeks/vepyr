@@ -147,7 +147,10 @@ def _plugin_column(values, dtype, per_variant: bool):
 
 
 def _flags_for_projection(
-    opts: dict, needed: set[str] | None, available: set[str] | None = None
+    opts: dict,
+    needed: set[str] | None,
+    available: set[str] | None = None,
+    required: frozenset[str] | set[str] = frozenset(),
 ) -> dict:
     """Derive the annotation flags a query needs from the columns it reads.
 
@@ -164,12 +167,41 @@ def _flags_for_projection(
       them without one is an error rather than a column of nulls.
 
     ``available`` is the frame's column set; it limits the no-FASTA warning
-    to columns the frame has. Returns a new dict.
+    to columns the frame has. ``required`` names fields that must be computed
+    whatever the projection, the fields a plugin's match templates read: their
+    groups are switched on even when other flags were given explicitly.
+    Returns a new dict.
     """
     out = dict(opts)
     user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
     user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
     user_any_flag = bool(opts.get("everything")) or user_hgvs or user_colocated
+
+    def _require_fasta(group: frozenset, flag: str, fields: set[str]) -> None:
+        if not out.get("reference_fasta_path"):
+            columns = ", ".join(sorted(fields & group))
+            raise ValueError(
+                f"selecting {columns} needs {flag}, which requires reference_fasta="
+            )
+
+    def _ensure(fields: set[str]) -> None:
+        """Switch on the groups ``fields`` need, whatever the user set."""
+        if fields & _EVERYTHING_ONLY_COLUMNS and not out.get("everything"):
+            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything", fields)
+            out["everything"] = True
+        if out.get("everything"):
+            return
+        if fields & _HGVS_COLUMNS and not any(
+            out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")
+        ):
+            _require_fasta(_HGVS_COLUMNS, "hgvs", fields)
+            out["hgvs"] = True
+        if fields & _COLOCATED_COLUMNS and not any(
+            out.get(key) for key in _COLOCATED_OPTIONS
+        ):
+            for key in _COLOCATED_OPTIONS:
+                out[key] = True
+
     if needed is None or "CSQ" in needed:
         # No projection, or the raw CSQ string (which needs every flag): flags
         # as given, or, when none were given, everything the inputs allow.
@@ -191,21 +223,17 @@ def _flags_for_projection(
                         "for the full result",
                         stacklevel=2,
                     )
+        _ensure(set(required))
         return out
+
+    needed = needed | set(required)
 
     def _needs(group: frozenset) -> bool:
         return bool(needed & group)
 
-    def _require_fasta(group: frozenset, flag: str) -> None:
-        if not out.get("reference_fasta_path"):
-            columns = ", ".join(sorted(needed & group))
-            raise ValueError(
-                f"selecting {columns} needs {flag}, which requires reference_fasta="
-            )
-
     if _needs(_EVERYTHING_ONLY_COLUMNS):
         if not opts.get("everything"):
-            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything")
+            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything", needed)
             out["everything"] = True
         return out  # everything covers every group; sub-options stay as given
 
@@ -221,7 +249,7 @@ def _flags_for_projection(
                 out[key] = True
     else:
         if keep_hgvs and not user_hgvs:
-            _require_fasta(_HGVS_COLUMNS, "hgvs")
+            _require_fasta(_HGVS_COLUMNS, "hgvs", needed)
             out["hgvs"] = True
         if keep_colocated and not user_colocated:
             for key in _COLOCATED_OPTIONS:
@@ -1682,9 +1710,12 @@ def annotate(
             needed = set(with_columns)
             if predicate is not None:
                 needed.update(predicate.meta.root_names())
-            for column in needed & plugin_columns:
-                needed |= plugin_column_inputs[column]
-        engine_opts = _flags_for_projection(_opts, needed, set(polars_schema))
+        # Fields the match templates of every plugin column read, this query
+        # included, must be computed whatever flags were given: a plugin whose
+        # template needs HGVSc is null without hgvs.
+        read_plugins = plugin_columns if needed is None else needed & plugin_columns
+        required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
+        engine_opts = _flags_for_projection(_opts, needed, set(polars_schema), required)
         # The CSQ string is only built when the query reads it or a plugin
         # column parsed out of it.
         if needed is None:
