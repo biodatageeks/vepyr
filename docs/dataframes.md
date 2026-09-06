@@ -133,35 +133,14 @@ entry, such as the frequencies, are stored once as scalars. The input's other
 `INFO` fields and its sample columns are not in the frame; use `output_vcf`
 for those. Add `skip_csq=False` to get the raw `CSQ` string as a column.
 
-`fields="core"` narrows the frame to VEP's default fields:
-
-```python
->>> vepyr.annotate("input.vcf.gz", cache, fields="core").collect_schema()
-Schema({
-    'chrom': String, 'start': UInt32, 'end': UInt32, 'id': String,
-    'ref': String, 'alt': String, 'qual': Float64, 'filter': String,
-    'most_severe_consequence': String,
-    'Allele': String,
-    'Gene': List(String),
-    'Feature': List(String),
-    'Feature_type': List(String),
-    'Consequence': List(String),
-    'cDNA_position': List(String),
-    'CDS_position': List(String),
-    'Protein_position': List(String),
-    'Amino_acids': List(String),
-    'Codons': List(String),
-    'Existing_variation': List(String),
-})
-```
-
-A list keeps exactly those fields in that order. Plugin fields become named
-list columns after the selected block; see [Plugins](plugins.md).
+Plugin values become named list columns; see [Plugins](plugins.md). To
+narrow the frame, `select()` the columns you need (next section); the engine
+then only computes what those columns require.
 
 ## What is pushed into the engine
 
 The frame is backed by a Polars IO plugin that pulls Arrow batches from the
-native annotator. Three things reach the engine:
+native annotator. Two things reach the engine:
 
 - **`head(n)` and `limit(n)`** become a SQL `LIMIT`, so previewing is fast.
 - **A narrowing `select()`**, together with the columns a pushed-down
@@ -178,9 +157,6 @@ native annotator. Three things reach the engine:
   `everything` extras need `reference_fasta`, and selecting them without one
   raises rather than returning nulls. The selected columns are value-identical
   to a run with the flags spelled out.
-- **`fields=`** fixes the layout up front. It cannot be combined with a
-  narrowing `select()`: collecting such a query raises an error, because the
-  two would disagree about which columns exist.
 
 `filter()` itself is applied to each batch after annotation. It bounds memory,
 because a batch is dropped as soon as it has been reduced, but it does not
