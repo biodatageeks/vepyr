@@ -100,6 +100,35 @@ plus a warm-up of the input buffers before the range, which keeps their output
 byte-identical to a whole-file run. Without an index the whole slice is parsed
 and filtered before annotation, so small ranges gain less.
 
+### Workers on the LazyFrame path
+
+Measured with `e2e-testing/scripts/lazyframe_workers_parity.py --release 116 --sweep 1 2 4 8`
+on HG002 contig slices, `everything=True`, a FASTA, on an Apple Silicon M3 Max
+(16 cores, 64 GiB) while other work ran on the host. Every frame equalled the
+`workers=1` frame row for row, and the LazyFrame CSQ column equalled the
+`output_vcf` INFO/CSQ at `workers=8`.
+
+| Input | workers | Ensembl | Merged | RefSeq |
+|---|---|---|---|---|
+| chr22, 50,284 variants | 1 | 2.5 s | 3.5 s | 2.2 s |
+| | 2 | 2.0 s | 2.5 s | 1.6 s |
+| | 4 | 1.2 s | 1.8 s | 1.2 s |
+| | 8 | 0.9 s | 1.7 s | 1.0 s |
+| chr1, 319,349 variants | 1 | 16.7 s | 21.4 s | – |
+| | 2 | 10.1 s | 13.8 s | – |
+| | 4 | 6.4 s | 9.0 s | – |
+| | 8 | 3.9 s | 5.7 s | – |
+
+Each contig is cut into grid-aligned runs that a pool of `workers` tasks
+annotates concurrently and releases in order; Merged and RefSeq runs replay a
+bounded warm-up at every seam, so they gain a little less than Ensembl. The
+per-contig prepare stays serial, which bounds the speedup on small contigs. The
+runner process, which holds the `workers=1` frame while collecting each
+candidate, peaked at 7.7 GB on chr1 Ensembl at `workers=1` and 19.3 GB by the
+end of the `workers=8` collect; a plain `collect()` holds at most
+`workers + lookahead` runs of output ahead of the consumer (see
+`VEP_STREAM_LOOKAHEAD_RUNS`).
+
 ### Tuning
 
 | Parameter | Default | Effect |
