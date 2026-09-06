@@ -10,6 +10,7 @@ nav:
       - Architecture: architecture.md
       - Caches: caches.md
       - Download Ensembl VEP and plugin caches: downloads.md
+      - Polars DataFrames: dataframes.md
       - API: api.md
       - Plugins: plugins.md
       - Performance: performance.md
