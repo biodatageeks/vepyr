@@ -33,8 +33,11 @@ uv run pytest
 # Run a single test
 uv run pytest tests/test_foo.py::test_bar -v
 
-# Run Rust tests
-cargo test
+# Run Rust tests. --no-default-features drops pyo3/extension-module, which
+# suppresses libpython linking: right for the cdylib maturin ships, but it
+# leaves a standalone test binary with Py_None undefined. mimalloc has to be
+# named back because src/lib.rs needs exactly one global allocator.
+cargo test --no-default-features --features mimalloc
 
 # Lint
 cargo clippy
