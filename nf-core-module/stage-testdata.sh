@@ -27,13 +27,16 @@ fi
 
 mkdir -p "${target}"
 
+staging="$(mktemp -d)"
+trap 'rm -rf "${staging}"' EXIT
+
 # The checked-in Parquet shards carry no bio.vep.cache_version /
 # bio.vep.cache_source_type, and the engine refuses a metadata-less cache:
 #   cache identity validation failed ... missing bio.vep.cache_version
 # So stamp the identity while copying, exactly as the pytest fixtures do.
 # The helper rewrites the shards with the parquet-rs writer the engine reads
 # with, and clears any existing target first, which keeps reruns idempotent.
-uv run --project "${repo_root}" python - "${golden}/cache" "${target}/cache" "${repo_root}" <<'PY'
+uv run --project "${repo_root}" python - "${golden}/cache" "${staging}/cache" "${repo_root}" <<'PY'
 import sys
 from pathlib import Path
 
@@ -44,6 +47,13 @@ from tests.cache_metadata import copy_cache_with_source_metadata
 out = copy_cache_with_source_metadata(source, Path(dest), "ensembl", "115")
 print(f"stamped cache -> {out}")
 PY
+
+# The cache ships as an archive, not a directory: modules_testdata_base_path
+# points at raw.githubusercontent.com, which serves blobs rather than directory
+# trees, so Nextflow cannot stage a directory URL. The nf-test extracts it with
+# the UNTAR module. A single top-level `cache/` entry means UNTAR applies
+# --strip-components 1, leaving the entity directories at the cache root.
+tar -czf "${target}/cache.tar.gz" -C "${staging}" cache
 
 cp "${golden}/input.vcf.gz" "${golden}/input.vcf.gz.tbi" "${target}/"
 cp "${golden}/reference.fa" "${golden}/reference.fa.fai" "${target}/"

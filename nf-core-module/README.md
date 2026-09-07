@@ -57,10 +57,19 @@ Treat any *third* failure as a genuine regression.
    genuinely blocks this one.
 4. **PR the test data.** Run `./stage-testdata.sh <dir>`, then copy the resulting
    `data/` tree into a clone of the `modules` branch of nf-core/test-datasets.
-   About 6 MB: a 5.1 MB chr1 Parquet cache, an 875 KB reference FASTA and a
-   100-variant VCF with its index. Unlike `ensemblvep/vep` — whose tests are
-   effectively stubs because its cache is too large to host — this fixture is small
-   enough that the module can assert on real annotation output.
+   About 6 MB: `cache.tar.gz` (the chr1 Parquet cache), an 875 KB reference FASTA
+   with its `.fai`, and a 100-variant VCF with its `.tbi`. Unlike `ensemblvep/vep`
+   — whose tests are effectively stubs because its cache is too large to host —
+   this fixture is small enough that the module can assert on real annotation
+   output.
+
+   The cache is an archive rather than a directory because
+   `modules_testdata_base_path` points at raw.githubusercontent.com, which serves
+   blobs and not directory trees, so Nextflow cannot stage a directory URL.
+   (`ensemblvep/vep` and `snpeff/snpeff` get away with directories only because
+   they read from `s3://annotation-cache/`, where Nextflow can list.) The nf-test
+   extracts it in a `setup` block with the `UNTAR` module, the same pattern
+   `kraken2/kraken2` uses for its database.
 5. **Generate the snapshot.** With 3 and 4 done:
    `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --update-snapshot`
 6. **Open the nf-core/modules PR.**
