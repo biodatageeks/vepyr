@@ -3339,6 +3339,13 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-glightbox" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings" },
+    { name = "mkdocstrings-python" },
+]
 notebook = [
     { name = "ipywidgets" },
 ]
@@ -3356,21 +3363,22 @@ dev = [
     { name = "pytest" },
 ]
 docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-glightbox" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings" },
-    { name = "mkdocstrings-python" },
+    { name = "vepyr", extra = ["docs"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ipywidgets", marker = "extra == 'notebook'", specifier = ">=8.0" },
+    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
+    { name = "mkdocs-glightbox", marker = "extra == 'docs'", specifier = ">=0.4" },
+    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
+    { name = "mkdocstrings", marker = "extra == 'docs'", specifier = ">=0.27" },
+    { name = "mkdocstrings-python", marker = "extra == 'docs'", specifier = ">=1.12" },
     { name = "polars", specifier = ">=1.37.1" },
     { name = "pyarrow", specifier = ">=18.0" },
     { name = "tqdm", specifier = ">=4.60" },
 ]
-provides-extras = ["notebook"]
+provides-extras = ["notebook", "docs"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3383,13 +3391,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=8.0" },
 ]
-docs = [
-    { name = "mkdocs", specifier = ">=1.6" },
-    { name = "mkdocs-glightbox", specifier = ">=0.4" },
-    { name = "mkdocs-material", specifier = ">=9.5" },
-    { name = "mkdocstrings", specifier = ">=0.27" },
-    { name = "mkdocstrings-python", specifier = ">=1.12" },
-]
+docs = [{ name = "vepyr", extras = ["docs"] }]
 
 [[package]]
 name = "virtualenv"

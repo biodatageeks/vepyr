@@ -18,8 +18,6 @@ dependencies = ["pyarrow>=18.0", "polars>=1.37.1", "tqdm>=4.60"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
-
-[dependency-groups]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",
@@ -28,6 +26,12 @@ docs = [
     # click-to-enlarge for the pre-rendered architecture diagrams
     "mkdocs-glightbox>=0.4",
 ]
+
+[dependency-groups]
+# Not a second copy of the list: the group pulls the published `docs` extra in,
+# so `uv sync` installs it by default (see tool.uv.default-groups) while
+# `pip install vepyr[docs]` keeps working.
+docs = ["vepyr[docs]"]
 dev = [
     "pytest>=8.0",
     "polars-bio>=0.26.0",
