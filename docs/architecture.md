@@ -86,6 +86,36 @@ plugin serves a whole annotation buffer — never the whole shard — and the pe
 (`allele_string` plus the match discriminator) happen inside the consequence
 engine as it emits CSQ.
 
+### Polars pushdown
+
+![Polars pushdown data flow](diagrams/polars-pushdown-light.svg#only-light)
+![Polars pushdown data flow](diagrams/polars-pushdown-dark.svg#only-dark)
+
+The LazyFrame is backed by a Polars io source, so the optimizer hands vepyr the
+query's projection, its pushable predicate, and any row limit before annotation
+starts. Each one narrows the work the engine is asked to do:
+
+- **Column pruning drives the flags.** The projection, the columns the predicate
+  reads, and the fields a selected plugin's match templates need form one set of
+  needed columns. Only three flag groups depend on it — HGVS, co-located
+  variants, and the `everything` extras: a group nobody selected has its flags
+  removed so the engine skips it, and a group the caller did not mention is
+  switched on when a column needs it. HGVS and the `everything` extras require
+  `reference_fasta`, so asking for them without one raises rather than yielding
+  a column of nulls. Passing `fields=` already fixes the layout, so combining
+  it with a `select()` raises rather than letting one silently win.
+- **The CSQ string is built on demand.** A query that reads neither `CSQ` nor a
+  plugin column gets neither the string nor the plugin lookup, since plugin
+  values only ever reach the frame through it.
+- **Genomic coordinates become regions.** `chrom`, `start` and `end` conjuncts
+  are extracted into engine `regions`, so unselected contigs are never prepared
+  and an indexed input is read by seek; a predicate that selects nothing skips
+  the scan entirely. See [Polars DataFrames](dataframes.md#region-filters).
+- **A row limit becomes a SQL `LIMIT`.**
+
+Polars re-applies the full predicate to every batch it receives, so pushdown can
+only narrow what the engine reads — never change the result.
+
 ### Memory model
 
 - **Streaming**: annotation results are streamed as Arrow `RecordBatch`es — full datasets are never materialized in memory
