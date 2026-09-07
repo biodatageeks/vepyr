@@ -236,3 +236,15 @@ def test_cli_reports_a_bad_cache_version_and_exits_2(tmp_path, golden_cache):
 
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
+
+
+def test_cli_version_matches_the_installed_package():
+    import vepyr
+
+    result = subprocess.run(
+        [sys.executable, "-m", "vepyr", "--version"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == f"vepyr {vepyr.__version__}"
