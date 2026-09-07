@@ -27,6 +27,9 @@ docs = [
     "mkdocs-glightbox>=0.4",
 ]
 
+[project.scripts]
+vepyr = "vepyr.cli:main"
+
 [dependency-groups]
 # Not a second copy of the list: the group pulls the published `docs` extra in,
 # so `uv sync` installs it by default (see tool.uv.default-groups) while

@@ -12,6 +12,7 @@ options an nf-core module needs. Everything else stays on the Python API.
 from __future__ import annotations
 
 import argparse
+import sys
 from importlib.metadata import version as _package_version
 
 _EPILOG = """\
@@ -134,3 +135,23 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
     if args.plugins is not None:
         kwargs["plugins"] = list(args.plugins)
     return kwargs
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point for the ``vepyr`` console script.
+
+    Returns a process exit code: 0 on success, 2 when the annotation API
+    rejects the request.
+    """
+    args = build_parser().parse_args(argv)
+
+    # Imported here rather than at module scope so `vepyr --help` and
+    # `vepyr --version` do not pay for loading the native extension.
+    import vepyr
+
+    try:
+        vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
+    except (ValueError, FileNotFoundError) as exc:
+        print(f"vepyr: error: {exc}", file=sys.stderr)
+        return 2
+    return 0
