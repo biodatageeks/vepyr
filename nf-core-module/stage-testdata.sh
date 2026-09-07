@@ -6,6 +6,9 @@
 # Copy the resulting data/ tree into a clone of the `modules` branch of
 # nf-core/test-datasets and open a PR. The paths produced here are exactly the
 # ones modules/nf-core/vepyr/annotate/tests/main.nf.test reads.
+#
+# Requires `uv` and the project environment, because the cache cannot simply be
+# copied -- see below. Safe to rerun against the same output directory.
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
@@ -23,7 +26,25 @@ if [[ ! -d "${golden}/cache" ]]; then
 fi
 
 mkdir -p "${target}"
-cp -R "${golden}/cache" "${target}/cache"
+
+# The checked-in Parquet shards carry no bio.vep.cache_version /
+# bio.vep.cache_source_type, and the engine refuses a metadata-less cache:
+#   cache identity validation failed ... missing bio.vep.cache_version
+# So stamp the identity while copying, exactly as the pytest fixtures do.
+# The helper rewrites the shards with the parquet-rs writer the engine reads
+# with, and clears any existing target first, which keeps reruns idempotent.
+uv run --project "${repo_root}" python - "${golden}/cache" "${target}/cache" "${repo_root}" <<'PY'
+import sys
+from pathlib import Path
+
+source, dest, repo_root = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, repo_root)
+from tests.cache_metadata import copy_cache_with_source_metadata
+
+out = copy_cache_with_source_metadata(source, Path(dest), "ensembl", "115")
+print(f"stamped cache -> {out}")
+PY
+
 cp "${golden}/input.vcf.gz" "${golden}/input.vcf.gz.tbi" "${target}/"
 cp "${golden}/reference.fa" "${golden}/reference.fa.fai" "${target}/"
 
