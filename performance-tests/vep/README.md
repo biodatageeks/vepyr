@@ -1,6 +1,12 @@
-# VEP 116 Fork Scaling
+# VEP Fork Scaling
 
 This directory contains VEP 116 WGS fork-scaling scripts and lightweight benchmark outputs.
+
+The same runner supports other matching VEP/cache releases through `RELEASE`
+and `VEP_IMAGE`. On macOS, install `gnu-time` (`brew install gnu-time`); the
+runner selects `gtime` automatically. `TIME_BIN` can override the executable.
+`INPUT_DIR` can point to a prepared small-chromosome input directory without
+changing the cache root in `DATA_VEPYR_DIR`.
 
 Run merged cache benchmark:
 
@@ -56,3 +62,16 @@ python3 performance-tests/vep/scripts/plot_vep_fork_scaling.py \
 ```
 
 The repository output directory intentionally excludes large VCF files.
+
+For a plot with the actual invocation, save the environment assignments and
+runner command to a text file and pass `--command-file command.txt`. The plot
+supports `--release`, `--records`, `--dataset`, `--environment` and `--run-note`
+to describe a scoped run. `--scaling-panels` produces monochrome wall-time and
+speedup panels in PNG, PDF and SVG, preserving fractional seconds. See
+`outputs/115/macos_m2_chr22_20260907/` for the Apple M2 / VEP 115.2 chr22 run.
+
+[Apple M2 results and laptop reproduction guide](outputs/115/macos_m2_chr22_20260907/README.md).
+
+Without `--scaling-panels`, the historical whole-second parsing, TSV columns,
+release 116 default and plot layout are unchanged. Both Linux merged/refseq
+series were checked against the old script: TSV bytes and PNG pixels match.

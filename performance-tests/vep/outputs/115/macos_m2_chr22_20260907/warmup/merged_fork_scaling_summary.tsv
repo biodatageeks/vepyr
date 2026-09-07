@@ -1,0 +1,2 @@
+fork	exit_status	elapsed_wall	max_rss_kb	output_file	time_file	stderr_file
+8	0	1:40.30	25040	/Users/tgambin/workspace/vepyr/performance-tests/vep/outputs/115/macos_m2_chr22_20260907/warmup/HG002_annotated_wgs_everything_hgvs_merged_fork8.vcf	/Users/tgambin/workspace/vepyr/performance-tests/vep/outputs/115/macos_m2_chr22_20260907/warmup/merged_fork8.time.txt	/Users/tgambin/workspace/vepyr/performance-tests/vep/outputs/115/macos_m2_chr22_20260907/warmup/merged_fork8.stderr.txt

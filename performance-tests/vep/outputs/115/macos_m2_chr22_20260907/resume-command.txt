@@ -1,0 +1,10 @@
+cd /Users/tgambin/workspace/vepyr
+env \
+  DATA_VEPYR_DIR=/Users/tgambin/workspace/data_vepyr \
+  INPUT_DIR=/Users/tgambin/workspace/vepyr/performance-tests/vep/outputs/115/macos_m2_chr22_20260907/work/input \
+  RELEASE=115 \
+  VEP_IMAGE=ensemblorg/ensembl-vep:release_115.2 \
+  TIME_BIN=/opt/homebrew/bin/gtime \
+  KEEP_VCFS=1 \
+  OUT_DIR=/Users/tgambin/workspace/vepyr/performance-tests/vep/outputs/115/macos_m2_chr22_20260907/raw \
+  bash performance-tests/vep/scripts/run_vep_fork_scaling.sh merged none

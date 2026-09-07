@@ -26,22 +26,25 @@ class RunRow:
     status: str
     exit_status: str
     elapsed_wall: str
-    elapsed_seconds: int
+    elapsed_seconds: float
     max_rss_kb: str
     time_file: Path
     stderr_file: Path
     warnings_file: Path
 
 
-def elapsed_to_seconds(value: str) -> int:
+def elapsed_to_seconds(value: str, *, fractional: bool = False) -> float:
     parts = value.strip().split(":")
     if len(parts) == 3:
         hours, minutes, seconds = parts
-        return int(hours) * 3600 + int(minutes) * 60 + int(float(seconds))
-    if len(parts) == 2:
+        elapsed = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+    elif len(parts) == 2:
         minutes, seconds = parts
-        return int(minutes) * 60 + int(float(seconds))
-    raise ValueError(f"Unsupported elapsed value: {value}")
+        elapsed = int(minutes) * 60 + float(seconds)
+    else:
+        raise ValueError(f"Unsupported elapsed value: {value}")
+    # Keep historical Linux summaries and labels unchanged in the default mode.
+    return elapsed if fractional else int(elapsed)
 
 
 def seconds_to_label(seconds: int) -> str:
@@ -76,7 +79,7 @@ def fork_from_path(path: Path) -> str:
     return match.group("fork")
 
 
-def discover_rows(input_dir: Path, cache_type: str) -> list[RunRow]:
+def discover_rows(input_dir: Path, cache_type: str, *, fractional: bool = False) -> list[RunRow]:
     rows: list[RunRow] = []
     for time_file in sorted(input_dir.glob(f"{cache_type}_fork*.time.txt"), key=lambda item: fork_sort_key(fork_from_path(item))):
         fork = fork_from_path(time_file)
@@ -88,7 +91,7 @@ def discover_rows(input_dir: Path, cache_type: str) -> list[RunRow]:
         if not elapsed_wall:
             elapsed_seconds = 0
         else:
-            elapsed_seconds = elapsed_to_seconds(elapsed_wall)
+            elapsed_seconds = elapsed_to_seconds(elapsed_wall, fractional=fractional)
         rows.append(
             RunRow(
                 cache_type=cache_type,
@@ -133,7 +136,7 @@ def write_summary(rows: list[RunRow], summary: Path, source_dir: Path) -> None:
                     row.status,
                     row.exit_status,
                     row.elapsed_wall,
-                    row.elapsed_seconds,
+                    int(row.elapsed_seconds) if float(row.elapsed_seconds).is_integer() else row.elapsed_seconds,
                     row.max_rss_kb,
                     row.time_file,
                     row.stderr_file if row.stderr_file.exists() else "",
@@ -143,7 +146,7 @@ def write_summary(rows: list[RunRow], summary: Path, source_dir: Path) -> None:
             )
 
 
-def command_text(cache_type: str, forks: list[str]) -> str:
+def command_text(cache_type: str, forks: list[str], release: str = "116") -> str:
     cache_flag = f"--{cache_type}"
     ordered_forks = sorted((fork for fork in forks if fork != "none"), key=int, reverse=True)
     if "none" in forks:
@@ -151,7 +154,7 @@ def command_text(cache_type: str, forks: list[str]) -> str:
     fork_values = " ".join(ordered_forks)
     return textwrap.dedent(
         f"""\
-        Kod uruchomienia VEP 116 benchmark:
+        Kod uruchomienia VEP {release} benchmark:
         # FORK=none means no --fork argument is passed
         for FORK in {fork_values}; do
           fork_args=(); if [ "$FORK" != "none" ]; then fork_args=(--fork "$FORK"); fi
@@ -183,6 +186,10 @@ def plot_rows(rows: list[RunRow], args: argparse.Namespace) -> None:
     if not ok_rows:
         raise SystemExit(f"No successful runs found in {args.input_dir}")
 
+    if args.scaling_panels:
+        plot_scaling_panels(ok_rows, args)
+        return
+
     labels = [row.fork for row in ok_rows]
     minutes = [row.elapsed_seconds / 60 for row in ok_rows]
     baseline = select_baseline(ok_rows, args.baseline_fork)
@@ -192,7 +199,7 @@ def plot_rows(rows: list[RunRow], args: argparse.Namespace) -> None:
     fig.text(
         0.06,
         0.965,
-        command_text(args.cache_type, labels).replace("$", r"\$"),
+        (args.command_file.read_text() if args.command_file else command_text(args.cache_type, labels, args.release)).replace("$", r"\$"),
         ha="left",
         va="top",
         family="monospace",
@@ -237,6 +244,69 @@ def plot_rows(rows: list[RunRow], args: argparse.Namespace) -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.output, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_scaling_panels(rows: list[RunRow], args: argparse.Namespace) -> None:
+    """Monochrome runtime + speedup figure, with the actual invocation embedded."""
+    baseline = select_baseline(rows, args.baseline_fork)
+    labels = ["no fork" if row.fork == "none" else row.fork for row in rows]
+    times = [row.elapsed_seconds for row in rows]
+    speedups = [baseline.elapsed_seconds / seconds for seconds in times]
+    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 10,
+                         "pdf.fonttype": 42, "svg.fonttype": "none"})
+    fig = plt.figure(figsize=(14, 10), dpi=180)
+    fig.suptitle(args.title, x=0.07, y=0.97, ha="left", fontsize=18, weight="bold")
+    fig.text(0.07, 0.922,
+             f"{args.dataset} | {args.records:,} normalized variants | {args.cache_type} cache {args.release} | --everything --hgvs",
+             fontsize=11)
+    if args.environment:
+        fig.text(0.07, 0.896, args.environment, fontsize=10, color="0.3")
+
+    runtime_ax = fig.add_axes([0.075, 0.51, 0.40, 0.31])
+    speedup_ax = fig.add_axes([0.57, 0.51, 0.36, 0.31])
+    positions = list(range(len(rows)))
+    bars = runtime_ax.bar(positions, times, color=["0.8" if row.fork == "none" else "0.3" for row in rows],
+                          edgecolor="black", linewidth=0.7, width=0.62)
+    runtime_ax.set_title("A  Wall time", loc="left", weight="bold", pad=12)
+    runtime_ax.set_ylabel("Elapsed time (s)")
+    runtime_ax.set_ylim(0, max(times) * 1.20)
+    for bar, seconds in zip(bars, times):
+        runtime_ax.text(bar.get_x() + bar.get_width() / 2, seconds + max(times) * 0.025,
+                        f"{seconds:.2f} s", ha="center", fontsize=10)
+
+    speedup_ax.plot(positions, speedups, "o-", color="black", linewidth=1.6, markersize=6)
+    speedup_ax.axhline(1, color="0.6", linewidth=0.8, linestyle="--")
+    speedup_ax.set_title("B  Speedup", loc="left", weight="bold", pad=12)
+    speedup_ax.set_ylabel(f"Speedup relative to {'no --fork' if baseline.fork == 'none' else '--fork ' + baseline.fork}")
+    speedup_ax.set_ylim(0, max(speedups) * 1.25)
+    for xx, speedup in zip(positions, speedups):
+        speedup_ax.annotate(f"{speedup:.2f}×", (xx, speedup), xytext=(0, 10),
+                            textcoords="offset points", ha="center", fontsize=10)
+    for ax in (runtime_ax, speedup_ax):
+        ax.set_xticks(positions, labels)
+        ax.set_xlabel("VEP --fork")
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.grid(axis="y", color="0.90", linewidth=0.7)
+        ax.set_axisbelow(True)
+
+    fig.text(0.07, 0.443, args.run_note, fontsize=10, color="0.25")
+    fig.text(0.07, 0.393, "Exact benchmark command", fontsize=11, weight="bold")
+    if args.command_file:
+        invocation = args.command_file.read_text().strip()
+        invocation = "\n".join(line for line in invocation.splitlines()
+                               if not line.startswith("#!") and line != "set -euo pipefail").strip()
+    else:
+        invocation = command_text(args.cache_type, [row.fork for row in rows], args.release)
+    fig.text(0.07, 0.365, invocation, va="top", family="monospace", fontsize=8,
+             linespacing=1.5, parse_math=False,
+             bbox={"facecolor": "0.97", "edgecolor": "0.7", "linewidth": 0.7, "pad": 10})
+    fig.text(0.07, 0.06, "Clock: GNU time around docker run; startup and plain-VCF writing included.",
+             fontsize=9, color="0.3")
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    for suffix in (".png", ".pdf", ".svg"):
+        fig.savefig(args.output.with_suffix(suffix), facecolor="white")
+    plt.close(fig)
 
 
 def main() -> None:
@@ -248,9 +318,15 @@ def main() -> None:
     parser.add_argument("--title", required=True)
     parser.add_argument("--records", type=int, default=DEFAULT_RECORDS)
     parser.add_argument("--baseline-fork", default="none")
+    parser.add_argument("--release", default="116")
+    parser.add_argument("--command-file", type=Path, help="Embed the exact saved invocation instead of a generic example")
+    parser.add_argument("--scaling-panels", action="store_true", help="Monochrome wall-time and speedup panels; exports PNG/PDF/SVG")
+    parser.add_argument("--environment", default="")
+    parser.add_argument("--dataset", default="HG002 GRCh38")
+    parser.add_argument("--run-note", default="One run per setting; exploratory benchmark.")
     args = parser.parse_args()
 
-    rows = discover_rows(args.input_dir, args.cache_type)
+    rows = discover_rows(args.input_dir, args.cache_type, fractional=args.scaling_panels)
     write_summary(rows, args.summary, args.input_dir)
     plot_rows(rows, args)
 
