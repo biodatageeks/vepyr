@@ -15,10 +15,9 @@ vepyr is a Python library with a native Rust core, built on top of [Apache DataF
 
 The main public operations are:
 
-- `build_cache()` — download, extract, and convert complete Ensembl VEP offline caches
-- `build_cache_entity()` — release-aware targeted conversion of one raw cache entity
-- `build_plugin_cache()` — build a per-chromosome plugin cache from a source manifest
-- `annotate()` — annotate VCF files against converted caches
+- **Build a VEP cache** — `build_cache()` downloads, extracts, and converts an Ensembl VEP offline cache; `entity` and `chroms` narrow the build to one raw entity or a subset of contigs
+- **Build a plugin cache** — `build_plugin_cache()` builds a per-chromosome plugin cache from a source manifest
+- **Annotate** — `annotate()` annotates VCF files against converted caches
 
 This layer handles validation, download orchestration, progress reporting, and conversion of Arrow batches to Polars LazyFrames. It also resolves plugin source manifests: `build_plugin_cache()` materializes `plugins/<name>/<name>.source.toml` from the public [vepyr-plugins](https://github.com/biodatageeks/vepyr-plugins) repository at a git tag via a throwaway `git worktree`, and records the immutable commit the tag resolved to.
 
@@ -28,20 +27,9 @@ This layer handles validation, download orchestration, progress reporting, and c
 
 Bridges Python and Rust via [PyO3](https://pyo3.rs/). Key exports:
 
-- `convert_entity()` — convert a single cache entity to Parquet
-- `create_annotator()` — create a `StreamingAnnotator` that yields PyArrow `RecordBatch`es
-- `annotate_vcf()` — annotate and write directly to VCF
-- `build_plugin_cache()` — drive a plugin cache build and install the result
-
-Errors are normalized to `PyRuntimeError` at this boundary.
-
-Installing a plugin cache is this layer's own responsibility rather than the
-engine's. A build writes to a staging tree (`.overwrite-<plugin>.<unique>`) and
-only swaps it into place under `plugin/<name>/` once every chromosome has
-succeeded, setting the previous cache aside as `.previous-<plugin>.<unique>`. If
-an interrupted overwrite leaves the live directory missing, the next build
-recovers it from the single set-aside copy. Concurrent builds of the same plugin
-therefore never delete or build into each other's tree.
+- **Build a VEP cache** — `build_cache()` converts Ensembl cache entities to Parquet, all of them or one at a time
+- **Build a plugin cache** — `build_plugin_cache()` drives the build and installs the result
+- **Annotate** — `create_annotator()` yields PyArrow `RecordBatch`es, `annotate_vcf()` writes directly to VCF
 
 ### Rust engine
 

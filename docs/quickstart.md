@@ -8,6 +8,13 @@
 pip install vepyr
 ```
 
+### From conda
+
+!!! note "In progress"
+
+    A conda package is being prepared for [bioconda](https://bioconda.github.io/).
+    It is not published yet — use PyPI or a source build until it lands.
+
 ### From source (for development)
 
 vepyr requires a Rust toolchain and Python 3.10+.
@@ -30,7 +37,7 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 3. Verify:
 
 ```bash
-uv run python -c "import vepyr; print('build_cache_entity' in vepyr.__all__)"
+uv run python -c "import vepyr; print('build_cache' in vepyr.__all__)"
 # True
 ```
 
@@ -127,20 +134,23 @@ results = vepyr.build_cache(
 )
 ```
 
-To rebuild a single raw entity without converting the full cache:
+To rebuild a single raw entity without converting the full cache, pass
+`entity` (and optionally `chroms`):
 
 ```python
-results = vepyr.build_cache_entity(
+results = vepyr.build_cache(
     release=116,
     cache_dir="/data/vepyr_cache",
-    entity="motif",
     cache_type="merged",
+    entity="motif",
     local_cache="/data/ensembl_vep/homo_sapiens_merged/116_GRCh38",
     overwrite=True,
 )
 ```
 
-This uses the same strict release/source validation as `build_cache()`.
+A targeted build uses the same strict release/source validation as a full one
+and writes into the same `<release>_<assembly>_<cache_type>` directory, leaving
+the other entities untouched.
 
 #### Options
 
@@ -153,7 +163,33 @@ This uses the same strict release/source validation as `build_cache()`.
 
 ## Annotating variants
 
-### Basic annotation
+### Writing annotated VCF output
+
+Write results directly to a VCF file with a `CSQ` INFO field:
+
+```python
+import vepyr
+
+out_path = vepyr.annotate(
+    vcf="input.vcf.gz",
+    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
+    everything=True,
+    reference_fasta="GRCh38.fa",
+    output_vcf="annotated.vcf.gz",  # .vcf.gz for bgzf, .vcf for plain
+)
+print(f"Wrote annotated VCF to {out_path}")
+```
+
+For the supported scope the records are **byte-identical to Ensembl VEP's own
+`--everything --hgvs` output** — not merely equivalent — so the file is a drop-in
+replacement wherever a VEP VCF is expected. Only the provenance header lines
+(wall-clock time, cache paths, tool versions) differ, since they can never match.
+The e2e suite verifies this by hashing the record bodies of both files; see
+[Checking byte-level agreement](testing-vep.md#checking-byte-level-agreement).
+
+### Annotating to a Polars LazyFrame
+
+Omit `output_vcf` and `annotate()` returns a Polars LazyFrame instead:
 
 ```python
 import vepyr
@@ -201,18 +237,3 @@ df = vepyr.annotate(
 
 Filtering the LazyFrame on `chrom`, `start` or `end` is pushed into the
 engine before annotation; see [Polars DataFrames](dataframes.md#region-filters).
-
-### Writing annotated VCF output
-
-Write results directly to a VCF file instead of returning a LazyFrame:
-
-```python
-out_path = vepyr.annotate(
-    vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    everything=True,
-    reference_fasta="GRCh38.fa",
-    output_vcf="annotated.vcf.gz",  # .vcf.gz for bgzf, .vcf for plain
-)
-print(f"Wrote annotated VCF to {out_path}")
-```

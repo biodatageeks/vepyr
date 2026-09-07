@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
-from vepyr._core import build_cache_entity as _build_cache_entity
 from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
@@ -25,7 +24,6 @@ from vepyr._regions import GENOMIC_COLUMNS, extract_regions
 __all__ = [
     "annotate",
     "build_cache",
-    "build_cache_entity",
     "build_plugin_cache",
     "cache_contig_identity",
     "supported_vep_targets",
@@ -644,6 +642,8 @@ def build_cache(
     cache_dir: str,
     *,
     cache_type: str,
+    entity: str | None = None,
+    chroms: list[str] | None = None,
     species: str = "homo_sapiens",
     assembly: str = "GRCh38",
     partitions: int = 8,
@@ -665,6 +665,16 @@ def build_cache(
     cache_type : str
         Required Ensembl VEP cache type: ``"ensembl"``, ``"merged"``, or
         ``"refseq"``.
+    entity : str or None
+        Build a single raw entity instead of the whole cache, leaving the rest
+        of the output directory untouched. One of ``"variation"``,
+        ``"transcript"``, ``"exon"``, ``"translation"``, ``"regulatory"``, or
+        ``"motif"``; the raw ``translation`` entity produces the
+        ``translation_core`` and ``translation_sift`` Parquet datasets.
+        ``None`` (default) builds every entity.
+    chroms : list[str] or None
+        Restrict the build to specific contigs (e.g. ``["chrX"]``). ``None``
+        (default) builds every contig.
     species : str
         Species name (default: ``"homo_sapiens"``).
     assembly : str
@@ -702,6 +712,8 @@ def build_cache(
     """
 
     _validate_cache_type(cache_type)
+    if entity is not None:
+        _validate_cache_entity(entity)
     expected_cache_version = _cache_version_for_release(release)
     if cache_format != "parquet":
         raise ValueError("cache_format must be 'parquet'")
@@ -764,12 +776,14 @@ def build_cache(
         entity_stats = _build_cache(
             cache_root,
             output_dir,
+            entity,
             partitions,
             cache_format,
             native_cb,
             cache_type,
             overwrite,
             expected_cache_version,
+            chroms,
         )
     finally:
         if _bars is not None:
@@ -782,76 +796,13 @@ def build_cache(
         for path, rows in parquet_files:
             all_results.append((path, rows))
 
-    log.info("Done. Wrote %d Parquet datasets to %s", len(all_results), output_dir)
-    return all_results
-
-
-def build_cache_entity(
-    release: int,
-    cache_dir: str,
-    entity: str,
-    *,
-    cache_type: str,
-    species: str = "homo_sapiens",
-    assembly: str = "GRCh38",
-    partitions: int = 8,
-    local_cache: str | None = None,
-    download_retries: int = 10,
-    overwrite: bool = False,
-    chroms: list[str] | None = None,
-) -> list[tuple[str, int]]:
-    """Download or open an Ensembl VEP cache and convert one raw entity.
-
-    This is the targeted counterpart to :func:`build_cache`. It applies the
-    same exact release/source validation and writes into the same
-    ``<release>_<assembly>_<cache_type>`` output directory. ``entity`` must be
-    one of ``variation``, ``transcript``, ``exon``, ``translation``,
-    ``regulatory``, or ``motif``. The raw ``translation`` entity produces the
-    ``translation_core`` and ``translation_sift`` Parquet datasets.
-
-    ``chroms`` restricts the rebuild to specific contigs (e.g. ``["chrX"]``);
-    ``None`` rebuilds every contig.
-
-    Returns a flattened list of ``(parquet_file_path, row_count)`` pairs.
-    """
-
-    _validate_cache_type(cache_type)
-    _validate_cache_entity(entity)
-    expected_cache_version = _cache_version_for_release(release)
-    cache_root = _resolve_raw_cache(
-        release,
-        cache_dir,
-        cache_type=cache_type,
-        species=species,
-        assembly=assembly,
-        local_cache=local_cache,
-        download_retries=download_retries,
-    )
-    output_dir = os.path.join(cache_dir, f"{release}_{assembly}_{cache_type}")
-
-    entity_stats = _build_cache_entity(
-        cache_root,
-        output_dir,
-        entity,
-        partitions,
-        cache_type,
-        overwrite,
-        expected_cache_version,
-        chroms,
-    )
-
-    results = [
-        (path, rows)
-        for _entity_name, parquet_files, _legacy_stats in entity_stats
-        for path, rows in parquet_files
-    ]
     log.info(
         "Done. Wrote %d Parquet datasets for %s to %s",
-        len(results),
-        entity,
+        len(all_results),
+        entity or "all entities",
         output_dir,
     )
-    return results
+    return all_results
 
 
 DEFAULT_PLUGINS_REPO_URL = "https://github.com/biodatageeks/vepyr-plugins.git"

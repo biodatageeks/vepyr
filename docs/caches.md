@@ -940,14 +940,14 @@ vepyr.build_cache(
 # → /Users/mwiewior/workspace/data_vepyr/116_GRCh38_merged/<entity>/chr*.parquet
 ```
 
-For a targeted rebuild, use the same release-aware public contract:
+For a targeted rebuild, pass `entity` to the same builder:
 
 ```python
-vepyr.build_cache_entity(
+vepyr.build_cache(
     release=116,
     cache_dir="/Users/mwiewior/workspace/data_vepyr",
-    entity="motif",
     cache_type="merged",
+    entity="motif",
     local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
     overwrite=True,
 )
@@ -955,9 +955,9 @@ vepyr.build_cache_entity(
 
 Valid raw entities are `variation`, `transcript`, `exon`, `translation`,
 `regulatory`, and `motif`. `translation` produces both `translation_core` and
-`translation_sift`. The targeted builder derives the expected Parquet cache
+`translation_sift`. A targeted build derives the expected Parquet cache
 version from `release` and rejects a conflicting raw-cache release/source
-before writing output, exactly like the full builder.
+before writing output, exactly like a full one.
 
 ### Rebuilding a single contig
 
@@ -967,11 +967,11 @@ the hours a full conversion needs, which is what makes a targeted cache fix
 practical to iterate on:
 
 ```python
-vepyr.build_cache_entity(
+vepyr.build_cache(
     release=116,
     cache_dir="/Users/mwiewior/workspace/data_vepyr",
-    entity="translation",
     cache_type="merged",
+    entity="translation",
     local_cache="/data/ensembl-vep/homo_sapiens_merged/116_GRCh38",
     overwrite=True,
     chroms=["chrX"],

@@ -262,7 +262,7 @@ uv run python rebuild_release_cache.py \
 
 Use this when a change is isolated to one raw entity: `variation`,
 `transcript`, `exon`, `translation`, `regulatory`, or `motif`. It invokes the
-public release-aware `vepyr.build_cache_entity()` API and validates every
+public release-aware `vepyr.build_cache(entity=...)` API and validates every
 manifest shard, footer row count, schema, and Parquet identity value before
 swapping. Every generated entity must contain rows except the deliberately
 empty VEP 115 motif entity; entity-specific checks also enforce the release-116
