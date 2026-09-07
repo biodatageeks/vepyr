@@ -20,7 +20,7 @@ vepyr is a Python library backed by a native Rust engine that provides:
 ## Key features
 
 - **Python-first API** — build complete or targeted caches with
-  `build_cache()` / `build_cache_entity()`, then annotate with `annotate()`
+  `build_cache()`, then annotate with `annotate()`
 - **Polars integration** — annotation results returned as `polars.LazyFrame` for efficient downstream analysis
 - **VCF output** — write annotated VCFs with CSQ in the INFO column, compatible with downstream tools
 - **Streaming engine** — built on Apache Arrow and DataFusion for memory-efficient processing of large datasets

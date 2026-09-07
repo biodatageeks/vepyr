@@ -3,18 +3,23 @@ site_url: https://biodatageeks.org/vepyr/
 repo_url: https://github.com/biodatageeks/vepyr
 repo_name: biodatageeks/vepyr
 
+# Internal planning notes and design specs live under docs/superpowers/ and are
+# not part of the published site.
+exclude_docs: |
+  superpowers/
+
 nav:
   - Home:
       - Home: index.md
       - Quick start: quickstart.md
       - Architecture: architecture.md
       - Caches: caches.md
-      - Download Ensembl VEP and plugin caches: downloads.md
+      - Plugins: plugins.md
       - Polars DataFrames: dataframes.md
       - API: api.md
-      - Plugins: plugins.md
       - Performance: performance.md
       - Testing vs Ensembl VEP: testing-vep.md
+      - Download Ensembl VEP and plugin caches: downloads.md
       - Developers: developers.md
       - Contact: contact.md
 

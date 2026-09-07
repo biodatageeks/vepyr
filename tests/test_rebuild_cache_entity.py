@@ -336,16 +336,15 @@ def test_main_uses_public_release_aware_builder_and_retains_backup(tmp_path):
     live_motif = target / "motif"
     _write_motif(live_motif, shard_count=1)
 
-    def fake_build_cache_entity(
+    def fake_build_cache(
         release: int,
         cache_dir: str,
-        entity: str,
         **kwargs,
     ) -> list[tuple[str, int]]:
         assert release == 116
-        assert entity == "motif"
         assert kwargs == {
             "cache_type": "merged",
+            "entity": "motif",
             "partitions": 3,
             "local_cache": str(source),
             "overwrite": True,
@@ -355,8 +354,8 @@ def test_main_uses_public_release_aware_builder_and_retains_backup(tmp_path):
         return [(str(shard), 2) for shard in shards]
 
     with patch(
-        "vepyr.build_cache_entity",
-        side_effect=fake_build_cache_entity,
+        "vepyr.build_cache",
+        side_effect=fake_build_cache,
     ) as public_builder:
         result = rebuild.main(
             [
@@ -393,22 +392,21 @@ def test_main_rebuilds_requested_non_motif_entity(tmp_path):
     live_variation = target / "variation"
     _write_generic_entity(live_variation, "variation")
 
-    def fake_build_cache_entity(
+    def fake_build_cache(
         release: int,
         cache_dir: str,
-        entity: str,
         **kwargs,
     ) -> list[tuple[str, int]]:
         assert release == 116
-        assert entity == "variation"
+        assert kwargs["entity"] == "variation"
         assert kwargs["cache_type"] == "merged"
         staged = Path(cache_dir) / "116_GRCh38_merged" / "variation"
         shards = _write_generic_entity(staged, "variation", shard_count=1)
         return [(str(shard), 2) for shard in shards]
 
     with patch(
-        "vepyr.build_cache_entity",
-        side_effect=fake_build_cache_entity,
+        "vepyr.build_cache",
+        side_effect=fake_build_cache,
     ):
         result = rebuild.main(
             [
@@ -454,7 +452,7 @@ def test_main_dry_run_performs_preflight_without_building(tmp_path, capsys):
     target = tmp_path / "115_GRCh38_merged"
     target.mkdir()
 
-    with patch("vepyr.build_cache_entity") as public_builder:
+    with patch("vepyr.build_cache") as public_builder:
         result = rebuild.main(
             [
                 "--release",
@@ -474,7 +472,7 @@ def test_main_dry_run_performs_preflight_without_building(tmp_path, capsys):
 
 
 def test_main_blocked_preflight_does_not_build(tmp_path, capsys):
-    with patch("vepyr.build_cache_entity") as public_builder:
+    with patch("vepyr.build_cache") as public_builder:
         result = rebuild.main(
             [
                 "--run",
@@ -502,17 +500,16 @@ def test_main_rejects_empty_targeted_rebuild_before_swap(tmp_path, capsys):
     live_transcript = target / "transcript"
     _write_generic_entity(live_transcript, "transcript")
 
-    def fake_build_cache_entity(
+    def fake_build_cache(
         _release: int,
         cache_dir: str,
-        _entity: str,
         **_kwargs,
     ) -> list[tuple[str, int]]:
         staged = Path(cache_dir) / "116_GRCh38_merged" / "transcript"
         _write_generic_entity(staged, "transcript", shard_count=0)
         return []
 
-    with patch("vepyr.build_cache_entity", side_effect=fake_build_cache_entity):
+    with patch("vepyr.build_cache", side_effect=fake_build_cache):
         result = rebuild.main(
             [
                 "--run",
@@ -553,10 +550,9 @@ def test_main_rejects_targeted_cross_chrom_redistribution_with_equal_total(
     live_transcript = target / "transcript"
     _rewrite_transcript_distribution(live_transcript, {"chr1": 1, "chr2": 1})
 
-    def fake_build_cache_entity(
+    def fake_build_cache(
         _release: int,
         cache_dir: str,
-        _entity: str,
         **_kwargs,
     ) -> list[tuple[str, int]]:
         staged = Path(cache_dir) / "116_GRCh38_merged" / "transcript"
@@ -566,7 +562,7 @@ def test_main_rejects_targeted_cross_chrom_redistribution_with_equal_total(
             (str(staged / "chr2.parquet"), 2),
         ]
 
-    with patch("vepyr.build_cache_entity", side_effect=fake_build_cache_entity):
+    with patch("vepyr.build_cache", side_effect=fake_build_cache):
         result = rebuild.main(
             [
                 "--run",
@@ -598,10 +594,9 @@ def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):
     live_motif = target / "motif"
     _write_motif(live_motif, shard_count=1)
 
-    def fake_build_cache_entity(
+    def fake_build_cache(
         _release: int,
         cache_dir: str,
-        _entity: str,
         **_kwargs,
     ) -> list[tuple[str, int]]:
         staged_motif = Path(cache_dir) / "116_GRCh38_merged" / "motif"
@@ -619,8 +614,8 @@ def test_main_restores_live_motif_when_swap_fails(tmp_path, monkeypatch):
 
     with (
         patch(
-            "vepyr.build_cache_entity",
-            side_effect=fake_build_cache_entity,
+            "vepyr.build_cache",
+            side_effect=fake_build_cache,
         ),
         pytest.raises(OSError, match="injected motif swap failure"),
     ):

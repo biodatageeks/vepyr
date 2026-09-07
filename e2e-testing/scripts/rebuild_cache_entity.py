@@ -2,8 +2,8 @@
 """Safely rebuild one raw entity of a converted VEP cache.
 
 The command is a dry run unless ``--run`` is supplied. A real rebuild uses
-the public, release-aware :func:`vepyr.build_cache_entity` API, writes into a
-sibling staging directory, validates every manifest-referenced Parquet shard,
+the public, release-aware :func:`vepyr.build_cache` API with ``entity=``,
+writes into a sibling staging directory, validates every manifest-referenced Parquet shard,
 and swaps only after release/source metadata, schemas, and row counts pass.
 Entity-specific checks cover the release-116 variation and motif contracts.
 The previous generated entity directories are retained as timestamped backups.
@@ -554,11 +554,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"building {raw_entity} in {staging_parent} ...")
     started = time.monotonic()
     try:
-        results = vepyr.build_cache_entity(
+        results = vepyr.build_cache(
             int(release),
             str(staging_parent),
-            raw_entity,
             cache_type=cache_type,
+            entity=raw_entity,
             partitions=args.partitions,
             local_cache=str(source),
             overwrite=True,

@@ -115,22 +115,33 @@ fn cache_contig_identity_json(
     })
 }
 
-/// Build all entities from an Ensembl VEP cache.
+/// Build entities from an Ensembl VEP cache.
+///
+/// `entity` selects a single raw entity -- one of "variation", "transcript",
+/// "exon", "translation", "regulatory", "motif" -- leaving the rest of the cache
+/// directory untouched; `None` builds every entity. A schema change usually
+/// affects one entity, and rebuilding the whole cache to pick it up costs an
+/// hour and tens of gigabytes.
+///
+/// `chroms` restricts the build to specific contigs; an empty list means no
+/// filter, matching `CacheBuilder::with_chrom_filter`.
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false, expected_cache_version=None))]
+#[pyo3(signature = (cache_root, output_dir, entity=None, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false, expected_cache_version=None, chroms=None))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
     cache_root: &str,
     output_dir: &str,
+    entity: Option<&str>,
     partitions: usize,
     cache_format: &str,
     on_progress: Option<Py<PyAny>>,
     cache_source_type: &str,
     overwrite: bool,
     expected_cache_version: Option<String>,
+    chroms: Option<Vec<String>>,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
@@ -149,6 +160,9 @@ fn build_cache(
     if let Some(expected_cache_version) = expected_cache_version {
         builder = builder.with_expected_cache_version(expected_cache_version);
     }
+    if let Some(chroms) = chroms {
+        builder = builder.with_chrom_filter(chroms);
+    }
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(partitions)
@@ -159,9 +173,13 @@ fn build_cache(
     // Release the GIL so tokio worker threads can run in parallel.
     // The progress callback re-acquires it via Python::with_gil() when needed.
     let stats = py.detach(|| {
-        rt.block_on(builder.build_all()).map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
+        rt.block_on(async {
+            match entity {
+                Some(entity) => builder.build_entity(entity).await,
+                None => builder.build_all().await,
+            }
         })
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}")))
     })?;
 
     // Convert EntityStats to Python-friendly tuples
@@ -177,63 +195,6 @@ fn build_cache(
         .collect();
 
     Ok(result)
-}
-
-/// Build a single entity from an Ensembl VEP cache, leaving the rest of the
-/// cache directory untouched.
-///
-/// A schema change usually affects one entity, and rebuilding the whole cache
-/// to pick it up costs an hour and tens of gigabytes. `entity` is one of
-/// "variation", "transcript", "exon", "translation", "regulatory", "motif".
-///
-/// Returns the same `(entity, [(parquet_path, rows)], None)` shape as
-/// [`build_cache`].
-#[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, entity, partitions=8, cache_source_type="ensembl", overwrite=true, expected_cache_version=None, chroms=None))]
-#[allow(clippy::type_complexity, clippy::too_many_arguments)]
-fn build_cache_entity(
-    py: Python<'_>,
-    cache_root: &str,
-    output_dir: &str,
-    entity: &str,
-    partitions: usize,
-    cache_source_type: &str,
-    overwrite: bool,
-    expected_cache_version: Option<String>,
-    chroms: Option<Vec<String>>,
-) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
-    let cache_source_type = parse_cache_source_type(cache_source_type)?;
-
-    let mut builder = CacheBuilder::new(cache_root, output_dir)
-        .with_partitions(partitions)
-        .with_cache_format(CacheFormat::Parquet)
-        .with_cache_source_type(cache_source_type)
-        .with_overwrite(overwrite);
-    if let Some(expected_cache_version) = expected_cache_version {
-        builder = builder.with_expected_cache_version(expected_cache_version);
-    }
-    // Restrict the rebuild to specific contigs. An empty list means no filter,
-    // matching `CacheBuilder::with_chrom_filter`.
-    if let Some(chroms) = chroms {
-        builder = builder.with_chrom_filter(chroms);
-    }
-
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(partitions)
-        .enable_all()
-        .build()
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
-
-    let stats = py.detach(|| {
-        rt.block_on(builder.build_entity(entity)).map_err(|e| {
-            pyo3::exceptions::PyRuntimeError::new_err(format!("Cache build failed: {e}"))
-        })
-    })?;
-
-    Ok(stats
-        .into_iter()
-        .map(|s| (s.entity, s.parquet_files, None))
-        .collect())
 }
 
 /// Build a plugin cache (all chroms, or a filtered set) from a source manifest.
@@ -798,7 +759,6 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = env_logger::try_init();
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
-    m.add_function(wrap_pyfunction!(build_cache_entity, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(vcf_contigs, m)?)?;

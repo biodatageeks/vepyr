@@ -185,7 +185,9 @@ frame has.
 ## What is pushed into the engine
 
 The frame is backed by a Polars IO plugin that pulls Arrow batches from the
-native annotator. Three things reach the engine:
+native annotator. Three things reach the engine — the
+[Polars pushdown diagram](architecture.md#polars-pushdown) shows how they
+travel from the query to the annotator:
 
 - **`head(n)` and `limit(n)`** become a SQL `LIMIT`, so previewing is fast.
 - **A `filter()` on `chrom`, `start` or `end`** restricts the input before

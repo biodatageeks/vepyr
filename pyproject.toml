@@ -28,6 +28,10 @@ docs = [
 ]
 
 [dependency-groups]
+# Not a second copy of the list: the group pulls the published `docs` extra in,
+# so `uv sync` installs it by default (see tool.uv.default-groups) while
+# `pip install vepyr[docs]` keeps working.
+docs = ["vepyr[docs]"]
 dev = [
     "pytest>=8.0",
     "polars-bio>=0.26.0",
@@ -46,6 +50,11 @@ dev = [
     "jupyterlab>=4.6.3",
     "ipywidgets>=8.1.8",
 ]
+
+[tool.uv]
+# Install the docs group alongside dev, so `uv run mkdocs build` works with no
+# extra flag. The Pages workflow reads the same list out of dependency-groups.
+default-groups = ["dev", "docs"]
 
 [tool.maturin]
 module-name = "vepyr._core"

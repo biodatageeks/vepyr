@@ -15,10 +15,9 @@ vepyr is a Python library with a native Rust core, built on top of [Apache DataF
 
 The main public operations are:
 
-- `build_cache()` — download, extract, and convert complete Ensembl VEP offline caches
-- `build_cache_entity()` — release-aware targeted conversion of one raw cache entity
-- `build_plugin_cache()` — build a per-chromosome plugin cache from a source manifest
-- `annotate()` — annotate VCF files against converted caches
+- **Build a VEP cache** — `build_cache()` downloads, extracts, and converts an Ensembl VEP offline cache; `entity` and `chroms` narrow the build to one raw entity or a subset of contigs
+- **Build a plugin cache** — `build_plugin_cache()` builds a per-chromosome plugin cache from a source manifest
+- **Annotate** — `annotate()` annotates VCF files against converted caches
 
 This layer handles validation, download orchestration, progress reporting, and conversion of Arrow batches to Polars LazyFrames. It also resolves plugin source manifests: `build_plugin_cache()` materializes `plugins/<name>/<name>.source.toml` from the public [vepyr-plugins](https://github.com/biodatageeks/vepyr-plugins) repository at a git tag via a throwaway `git worktree`, and records the immutable commit the tag resolved to.
 
@@ -28,20 +27,9 @@ This layer handles validation, download orchestration, progress reporting, and c
 
 Bridges Python and Rust via [PyO3](https://pyo3.rs/). Key exports:
 
-- `convert_entity()` — convert a single cache entity to Parquet
-- `create_annotator()` — create a `StreamingAnnotator` that yields PyArrow `RecordBatch`es
-- `annotate_vcf()` — annotate and write directly to VCF
-- `build_plugin_cache()` — drive a plugin cache build and install the result
-
-Errors are normalized to `PyRuntimeError` at this boundary.
-
-Installing a plugin cache is this layer's own responsibility rather than the
-engine's. A build writes to a staging tree (`.overwrite-<plugin>.<unique>`) and
-only swaps it into place under `plugin/<name>/` once every chromosome has
-succeeded, setting the previous cache aside as `.previous-<plugin>.<unique>`. If
-an interrupted overwrite leaves the live directory missing, the next build
-recovers it from the single set-aside copy. Concurrent builds of the same plugin
-therefore never delete or build into each other's tree.
+- **Build a VEP cache** — `build_cache()` converts Ensembl cache entities to Parquet, all of them or one at a time
+- **Build a plugin cache** — `build_plugin_cache()` drives the build and installs the result
+- **Annotate** — `create_annotator()` yields PyArrow `RecordBatch`es, `annotate_vcf()` writes directly to VCF
 
 ### Rust engine
 
@@ -97,6 +85,36 @@ no plugin support at all. When plugins are selected, one page-scoped read per
 plugin serves a whole annotation buffer — never the whole shard — and the per-transcript probes
 (`allele_string` plus the match discriminator) happen inside the consequence
 engine as it emits CSQ.
+
+### Polars pushdown
+
+![Polars pushdown data flow](diagrams/polars-pushdown-light.svg#only-light)
+![Polars pushdown data flow](diagrams/polars-pushdown-dark.svg#only-dark)
+
+The LazyFrame is backed by a Polars io source, so the optimizer hands vepyr the
+query's projection, its pushable predicate, and any row limit before annotation
+starts. Each one narrows the work the engine is asked to do:
+
+- **Column pruning drives the flags.** The projection, the columns the predicate
+  reads, and the fields a selected plugin's match templates need form one set of
+  needed columns. Only three flag groups depend on it — HGVS, co-located
+  variants, and the `everything` extras: a group nobody selected has its flags
+  removed so the engine skips it, and a group the caller did not mention is
+  switched on when a column needs it. HGVS and the `everything` extras require
+  `reference_fasta`, so asking for them without one raises rather than yielding
+  a column of nulls. Passing `fields=` already fixes the layout, so combining
+  it with a `select()` raises rather than letting one silently win.
+- **The CSQ string is built on demand.** A query that reads neither `CSQ` nor a
+  plugin column gets neither the string nor the plugin lookup, since plugin
+  values only ever reach the frame through it.
+- **Genomic coordinates become regions.** `chrom`, `start` and `end` conjuncts
+  are extracted into engine `regions`, so unselected contigs are never prepared
+  and an indexed input is read by seek; a predicate that selects nothing skips
+  the scan entirely. See [Polars DataFrames](dataframes.md#region-filters).
+- **A row limit becomes a SQL `LIMIT`.**
+
+Polars re-applies the full predicate to every batch it receives, so pushdown can
+only narrow what the engine reads — never change the result.
 
 ### Memory model
 

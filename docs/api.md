@@ -5,11 +5,6 @@
       show_root_heading: true
       show_source: false
 
-::: vepyr.build_cache_entity
-    options:
-      show_root_heading: true
-      show_source: false
-
 ::: vepyr.build_plugin_cache
     options:
       show_root_heading: true

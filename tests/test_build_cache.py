@@ -12,7 +12,6 @@ import pytest
 
 import vepyr
 from vepyr._core import build_cache as _build_cache
-from vepyr._core import build_cache_entity as _build_cache_entity
 
 TESTS_DIR = Path(__file__).parent
 ENSEMBL_CACHE_DIR = TESTS_DIR / "data" / "ensembl_cache"
@@ -94,25 +93,21 @@ class TestBuildCacheSignature:
         assert "variation_cold_data_page_rows" not in sig.parameters
 
 
-class TestBuildCacheEntitySignature:
-    """Verify the targeted public cache builder is release-aware."""
+class TestBuildCacheTargetedSignature:
+    """Verify the targeted build is a keyword on the single public builder."""
 
-    def test_is_public(self):
-        assert "build_cache_entity" in vepyr.__all__
-        assert callable(vepyr.build_cache_entity)
+    def test_entity_builder_is_not_separately_public(self):
+        assert "build_cache_entity" not in vepyr.__all__
+        assert not hasattr(vepyr, "build_cache_entity")
 
-    def test_has_required_release_cache_dir_and_entity(self):
-        sig = inspect.signature(vepyr.build_cache_entity)
-        for name in ("release", "cache_dir", "entity"):
-            assert sig.parameters[name].default is inspect._empty
-
-    def test_cache_type_is_required_keyword_only(self):
-        param = inspect.signature(vepyr.build_cache_entity).parameters["cache_type"]
-        assert param.default is inspect._empty
+    @pytest.mark.parametrize("name", ["entity", "chroms"])
+    def test_targeting_keywords_default_to_the_whole_cache(self, name):
+        param = inspect.signature(vepyr.build_cache).parameters[name]
+        assert param.default is None
         assert param.kind is inspect.Parameter.KEYWORD_ONLY
 
     def test_overwrite_is_safe_by_default(self):
-        param = inspect.signature(vepyr.build_cache_entity).parameters["overwrite"]
+        param = inspect.signature(vepyr.build_cache).parameters["overwrite"]
         assert param.default is False
 
 
@@ -143,10 +138,10 @@ class TestNativeBuildCacheSignature:
         assert "variation_cold_row_group_rows" not in sig.parameters
         assert "variation_cold_data_page_rows" not in sig.parameters
 
-    def test_entity_builder_exposes_identity_contract(self):
-        sig = inspect.signature(_build_cache_entity)
-        assert sig.parameters["cache_source_type"].default == "ensembl"
-        assert sig.parameters["expected_cache_version"].default is None
+    def test_targeting_params_default_to_the_whole_cache(self):
+        sig = inspect.signature(_build_cache)
+        assert sig.parameters["entity"].default is None
+        assert sig.parameters["chroms"].default is None
 
 
 class TestBuildCacheValidation:
@@ -230,8 +225,8 @@ class TestBuildCacheValidation:
                 show_progress=False,
             )
 
-        assert mock_native.call_args.args[5] == cache_type
-        assert mock_native.call_args.args[7] == "115"
+        assert mock_native.call_args.args[6] == cache_type
+        assert mock_native.call_args.args[8] == "115"
 
     @pytest.mark.parametrize(
         ("cache_type", "raw_parent"),
@@ -263,7 +258,7 @@ class TestBuildCacheValidation:
         assert mock_native.call_args.args[0] == str(raw_cache)
 
 
-class TestBuildCacheEntityValidation:
+class TestBuildCacheTargetedValidation:
     @pytest.mark.parametrize(
         "entity",
         ["variation", "transcript", "exon", "translation", "regulatory", "motif"],
@@ -272,7 +267,7 @@ class TestBuildCacheEntityValidation:
         local_cache = tmp_path / "raw"
         local_cache.mkdir()
 
-        with patch("vepyr._build_cache_entity") as mock_native:
+        with patch("vepyr._build_cache") as mock_native:
             mock_native.return_value = [
                 (
                     entity,
@@ -280,13 +275,15 @@ class TestBuildCacheEntityValidation:
                     None,
                 )
             ]
-            result = vepyr.build_cache_entity(
+            result = vepyr.build_cache(
                 116,
                 str(tmp_path / "out"),
-                entity,
                 cache_type="merged",
+                entity=entity,
+                chroms=["chr21"],
                 local_cache=str(local_cache),
                 overwrite=True,
+                show_progress=False,
             )
 
         assert result == [(f"/out/{entity}/chr1.parquet", 17)]
@@ -295,58 +292,60 @@ class TestBuildCacheEntityValidation:
             str(tmp_path / "out" / "116_GRCh38_merged"),
             entity,
             8,
+            "parquet",
+            None,
             "merged",
             True,
             "116",
-            None,
+            ["chr21"],
         )
 
     @pytest.mark.parametrize("entity", ["translation_core", "translation_sift", "bad"])
     def test_rejects_non_raw_entity_before_io(self, entity):
         with pytest.raises(ValueError, match="Invalid cache entity"):
-            vepyr.build_cache_entity(
+            vepyr.build_cache(
                 115,
                 "/tmp/fake",
-                entity,
                 cache_type="ensembl",
+                entity=entity,
             )
 
     @pytest.mark.parametrize("release", [114, 117])
     def test_rejects_unsupported_release_before_io(self, release):
         with pytest.raises(ValueError, match="Unsupported expected_cache_version"):
-            vepyr.build_cache_entity(
+            vepyr.build_cache(
                 release,
                 "/tmp/fake",
-                "motif",
                 cache_type="ensembl",
+                entity="motif",
             )
 
     @pytest.mark.parametrize("release", [True, "115", 115.2])
     def test_release_requires_a_non_boolean_integer(self, release):
         with pytest.raises(TypeError, match="release must be an integer"):
-            vepyr.build_cache_entity(
+            vepyr.build_cache(
                 release,
                 "/tmp/fake",
-                "motif",
                 cache_type="ensembl",
+                entity="motif",
             )
 
     def test_rejects_invalid_cache_type_before_io(self):
         with pytest.raises(ValueError, match="Invalid cache_type"):
-            vepyr.build_cache_entity(
+            vepyr.build_cache(
                 115,
                 "/tmp/fake",
-                "motif",
                 cache_type="invalid",
+                entity="motif",
             )
 
     def test_local_cache_must_exist(self):
         with pytest.raises(FileNotFoundError, match="Local cache directory not found"):
-            vepyr.build_cache_entity(
+            vepyr.build_cache(
                 115,
                 "/tmp/fake",
-                "motif",
                 cache_type="ensembl",
+                entity="motif",
                 local_cache="/nonexistent/path",
             )
 
@@ -380,9 +379,9 @@ class TestBuildCacheProgressCallback:
         #                on_progress, cache_source_type, overwrite,
         #                expected_cache_version)
         call_args = mock_native.call_args
-        assert call_args[0][4] is cb
-        assert call_args[0][5] == "ensembl"
-        assert call_args[0][7] == "115"
+        assert call_args[0][5] is cb
+        assert call_args[0][6] == "ensembl"
+        assert call_args[0][8] == "115"
 
     @patch("vepyr._build_cache")
     def test_show_progress_false_no_tqdm(self, mock_native):
@@ -402,9 +401,9 @@ class TestBuildCacheProgressCallback:
             os.rmdir("/tmp/test_vepyr_cache_np")
 
         call_args = mock_native.call_args
-        assert call_args[0][4] is None
-        assert call_args[0][5] == "ensembl"
-        assert call_args[0][7] == "115"
+        assert call_args[0][5] is None
+        assert call_args[0][6] == "ensembl"
+        assert call_args[0][8] == "115"
 
     @patch("vepyr._build_cache")
     def test_returns_flat_parquet_list(self, mock_native):
@@ -452,7 +451,7 @@ class TestBuildCacheProgressCallback:
         )
 
         assert mock_native.call_args.args[1] == str(tmp_path / "115_GRCh38_merged")
-        assert mock_native.call_args.args[3] == "parquet"
+        assert mock_native.call_args.args[4] == "parquet"
 
 
 @pytest.fixture(scope="module")
@@ -471,6 +470,7 @@ def built_cache(skip_if_no_ensembl_cache):
     native_result = _build_cache(
         str(ENSEMBL_CACHE_DIR),
         _tmpdir,
+        None,
         2,
         "parquet",
         None,
@@ -1028,6 +1028,7 @@ class TestBuildCacheIntegration:
             _build_cache(
                 str(ENSEMBL_CACHE_DIR),
                 out,
+                None,
                 1,
                 "parquet",
                 cb,
@@ -1079,14 +1080,17 @@ class TestBuildCacheIntegration:
             assert all(isinstance(p, str) and isinstance(r, int) for p, r in result)
             assert sum(r for _, r in result) == 4445
 
-    def test_python_build_cache_entity_end_to_end(self, skip_if_no_ensembl_cache):
+    def test_python_build_cache_single_entity_end_to_end(
+        self, skip_if_no_ensembl_cache
+    ):
         with tempfile.TemporaryDirectory() as out:
-            result = vepyr.build_cache_entity(
+            result = vepyr.build_cache(
                 115,
                 out,
-                "transcript",
                 cache_type="ensembl",
+                entity="transcript",
                 local_cache=str(ENSEMBL_CACHE_DIR),
+                show_progress=False,
             )
 
             assert result
