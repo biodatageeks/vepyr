@@ -12,7 +12,7 @@ process VEPYR_ANNOTATE {
     input:
     tuple val(meta), path(vcf), path(tbi)
     tuple val(meta2), path(cache)
-    tuple val(meta3), path(fasta)
+    tuple val(meta3), path(fasta), path(fai)
     val cache_version
     tuple val(meta4), path(plugin_cache)
 
@@ -29,6 +29,8 @@ process VEPYR_ANNOTATE {
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
+    // vepyr opens the reference through its .fai and does not build one, so the
+    // index must be staged alongside the FASTA or --everything/--hgvsc fail.
     def reference = fasta ? "--fasta ${fasta}" : ''
     def version_arg = cache_version ? "--cache_version ${cache_version}" : ''
     def plugin_arg = plugin_cache ? "--plugin_cache_root ${plugin_cache}" : ''

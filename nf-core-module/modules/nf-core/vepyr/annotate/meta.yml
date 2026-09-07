@@ -67,6 +67,14 @@ input:
           `--everything`.
         pattern: "*.{fasta,fa}"
         ontologies: []
+    - fai:
+        type: file
+        description: |
+          samtools/faidx index of the reference FASTA. Required whenever the
+          FASTA is supplied: vepyr opens the reference through its index and
+          does not build one.
+        pattern: "*.fai"
+        ontologies: []
   - cache_version:
       type: integer
       description: |

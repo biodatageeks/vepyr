@@ -26,7 +26,8 @@ nextflow_process {
                 ])
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa', checkIfExists: true)
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.fai', checkIfExists: true)
                 ])
                 input[3] = 115
                 input[4] = [[], []]
@@ -58,7 +59,7 @@ nextflow_process {
                     []
                 ])
                 input[1] = channel.value([[ id:'cache' ], []])
-                input[2] = channel.value([[ id:'GRCh38' ], []])
+                input[2] = channel.value([[ id:'GRCh38' ], [], []])
                 input[3] = []
                 input[4] = [[], []]
                 """
