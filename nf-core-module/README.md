@@ -36,9 +36,25 @@ Treat any *third* failure as a genuine regression.
    `vepyr --version` / `vepyr annotate --help` test commands added in
    `bioconda-recipe/meta.yaml`. Bumping the open PR rather than filing a follow-up
    avoids ever publishing a container without a `vepyr` executable.
+
+   As of 2026-09-07 that PR is open with every check green (Lint, Linux, OSX-64,
+   ARM) for py310-py313 on linux-64 / osx-64 / osx-arm64, so the bump is the only
+   thing standing between it and a merge.
+
+   Its `@BiocondaBot please fetch artifacts` run does publish Docker images, but
+   they are **not usable here**: they are tarballs inside the linux-64 zip, loaded
+   with `docker load`, not registry-hosted — and they are built from 0.5.0, which
+   has no `vepyr` executable at all.
 3. **Resolve the container URIs.** Replace `PLACEHOLDER_DOCKER_URI` and
-   `PLACEHOLDER_SINGULARITY_URI` in `main.nf` with the Seqera Wave image built from
-   `environment.yml`.
+   `PLACEHOLDER_SINGULARITY_URI` in `main.nf` with a Seqera Wave image built from
+   `environment.yml` (https://seqera.io/containers/ emits both the Docker and the
+   Singularity URI for a package list).
+
+   Note this cannot be a plain `quay.io/biocontainers/vepyr:...` image. Bioconda
+   publishes one container per package, and `environment.yml` needs two — vepyr for
+   annotation and htslib for the `tabix` call that indexes the output. Wave builds
+   the combined image, and it can only do so once vepyr is on bioconda, so step 2
+   genuinely blocks this one.
 4. **PR the test data.** Run `./stage-testdata.sh <dir>`, then copy the resulting
    `data/` tree into a clone of the `modules` branch of nf-core/test-datasets.
    About 6 MB: a 5.1 MB chr1 Parquet cache, an 875 KB reference FASTA and a
