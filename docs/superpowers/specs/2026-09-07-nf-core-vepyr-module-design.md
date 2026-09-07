@@ -23,7 +23,7 @@ Reference module: `modules/nf-core/ensemblvep/vep` in nf-core/modules.
 | How the module invokes vepyr | A real `vepyr` console script | `template`/heredoc Python makes `ext.args` pass-through awkward and draws review pushback. A CLI also supplies `vepyr --version` for the versions topic. |
 | CLI scope | `annotate` only | `build_cache` is an operator step, not a pipeline step. Leaves `vepyr/buildcache` as a later module. |
 | Flag vocabulary | Ensembl VEP's spelling, underscores | Matches the project's drop-in-parity thesis; `ext.args` written for `ensemblvep/vep` transfers as the flag set grows. |
-| Flag count | Minimal — 10 | Only flags that are already proven. See "Flag selection" below. |
+| Flag count | Minimal — 11 | Only flags that are already proven. See "Flag selection" below. |
 | Plugins | In v1 | Zero engine work, best-tested option in the suite, and adding a module input later is a breaking change in nf-core. |
 | Output | bgzf VCF + tabix index | Matches `ensemblvep/vep`'s contract. |
 | Test fixtures | PR to nf-core/test-datasets | Convention; the existing golden fixture is already the right scale. |

@@ -76,6 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Enable all annotation features (80-field CSQ).",
     )
     vep.add_argument(
+        "--hgvsc",
+        action="store_true",
+        help="Add HGVS coding-sequence notation. Requires --fasta.",
+    )
+    vep.add_argument(
         "--fork",
         "--workers",
         dest="fork",
@@ -127,6 +132,8 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
         kwargs["reference_fasta"] = args.fasta
     if args.everything:
         kwargs["everything"] = True
+    if args.hgvsc:
+        kwargs["hgvsc"] = True
     if args.cache_version is not None:
         # annotate() validates this as a string.
         kwargs["expected_cache_version"] = str(args.cache_version)

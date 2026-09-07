@@ -24,6 +24,7 @@ vepyr annotate \
 | `--dir_cache DIR` | Parquet cache directory. Required. |
 | `--fasta FILE` | Reference FASTA. Required by `--everything`. |
 | `--everything` | Enable all annotation features (80-field CSQ). |
+| `--hgvsc` | Add HGVS coding-sequence notation. Requires `--fasta`. |
 | `--fork N`, `--workers N` | Annotation pipelines to run. Default 1. |
 | `--cache_version N` | Assert the cache version in the Parquet metadata. |
 | `--plugin_cache_root DIR` | Root of a plugin cache tree. |
@@ -32,6 +33,10 @@ vepyr annotate \
 
 Flag names follow Ensembl VEP's own spelling, so `ext.args` strings written for
 `vep` carry over as the flag set grows.
+
+VEP's `--hgvs` and `--hgvsp` are not implemented yet. `--hgvsc` gives the coding
+notation on its own, without the cost of the full `--everything` layout; for the
+protein notation, use `--everything`.
 
 ## Notes
 

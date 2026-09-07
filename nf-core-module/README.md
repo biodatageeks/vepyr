@@ -67,7 +67,7 @@ Treat any *third* failure as a genuine regression.
 
 ## Scope
 
-Ten flags, covering the configuration validated against Ensembl VEP
+Eleven flags, covering the configuration validated against Ensembl VEP
 (`--everything` with `--fasta`) plus what a workflow engine needs. The pick family,
 HGVS sub-flags, AF sub-flags and `--fields` are all additive later and need no
 engine work — see `docs/superpowers/specs/2026-09-07-nf-core-vepyr-module-design.md`.

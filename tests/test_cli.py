@@ -54,6 +54,31 @@ def test_fork_and_workers_are_the_same_knob(flag):
     assert kwargs["workers"] == 8
 
 
+def test_hgvsc_is_forwarded():
+    kwargs = annotate_kwargs(_parse(*MINIMAL, "--hgvsc", "--fasta", "ref.fa"))
+    assert kwargs["hgvsc"] is True
+
+
+def test_hgvsc_without_fasta_is_rejected_by_the_api(monkeypatch, capsys):
+    # The CLI does not pre-validate this; annotate() raises and main() turns it
+    # into exit 2. Guards the pairing rather than duplicating the check.
+    import vepyr
+
+    from vepyr.cli import main
+
+    def boom(vcf, cache_dir, **kwargs):
+        raise ValueError(
+            "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
+        )
+
+    monkeypatch.setattr(vepyr, "annotate", boom)
+    code = main(
+        ["annotate", "-i", "in.vcf", "-o", "o.vcf", "--dir_cache", "/c", "--hgvsc"]
+    )
+    assert code == 2
+    assert "reference_fasta is required" in capsys.readouterr().err
+
+
 def test_cache_version_is_passed_as_a_string():
     # annotate() validates expected_cache_version as a string ("116"), but the
     # CLI takes an int so `--cache_version 116x` is rejected by argparse.
