@@ -193,12 +193,15 @@ pyproject.toml                   + [project.scripts]; version 0.6.0
 tests/test_cli.py                new
 docs/cli.md, mkdocs.yml          new page — meta.yml's documentation URL must resolve
 bioconda-recipe/meta.yaml        bump to 0.6.0, add a CLI smoke test
-nf-core-module/vepyr/annotate/   main.nf, meta.yml, environment.yml,
-                                 tests/{main.nf.test,nextflow.config}, README.md
+nf-core-module/                  .nf-core.yml, README.md, stage-testdata.sh
+  modules/nf-core/vepyr/annotate/ main.nf, meta.yml, environment.yml,
+                                 tests/{main.nf.test,nextflow.config}
 ```
 
-`nf-core-module/` mirrors the upstream directory shape so it copies verbatim into a
-nf-core/modules fork; its README records the copy target and the upstream blockers.
+`nf-core-module/` is laid out as a miniature nf-core/modules repository: the full
+upstream path means `modules/nf-core/vepyr/` copies verbatim into a fork, and the
+`.nf-core.yml` marker (repo-local only, never copied) lets `nf-core modules lint`
+run against it. The README records the copy target and the upstream blockers.
 
 ## 7. Out of scope
 
