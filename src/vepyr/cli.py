@@ -142,6 +142,12 @@ def main(argv: list[str] | None = None) -> int:
 
     Returns a process exit code: 0 on success, 2 when the annotation API
     rejects the request.
+
+    ``RuntimeError`` is caught alongside the argument-validation errors
+    because the Rust boundary surfaces every engine failure as a
+    ``PyRuntimeError`` -- a bad cache version, an unreadable VCF and a
+    missing contig all arrive that way, and each is a user error rather than
+    a bug worth a traceback.
     """
     args = build_parser().parse_args(argv)
 
@@ -151,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
-    except (ValueError, FileNotFoundError) as exc:
+    except (ValueError, FileNotFoundError, RuntimeError) as exc:
         print(f"vepyr: error: {exc}", file=sys.stderr)
         return 2
     return 0

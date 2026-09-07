@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
+import gzip
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
+from tests.cache_metadata import copy_cache_with_source_metadata
 from vepyr.cli import annotate_kwargs, build_parser
+
+GOLDEN_DIR = Path(__file__).parent / "data" / "golden"
+GOLDEN_CACHE = GOLDEN_DIR / "cache"
+GOLDEN_INPUT = GOLDEN_DIR / "input.vcf.gz"
+GOLDEN_FASTA = GOLDEN_DIR / "reference.fa"
 
 
 def _parse(*argv: str):
@@ -148,3 +159,80 @@ def test_api_errors_become_exit_2_without_a_traceback(monkeypatch, capsys, error
     captured = capsys.readouterr()
     assert "cache is unusable" in captured.err
     assert "Traceback" not in captured.err
+
+
+@pytest.fixture(scope="module")
+def golden_cache(tmp_path_factory):
+    """The golden cache, stamped with the source metadata annotate() requires."""
+    if not GOLDEN_CACHE.is_dir():
+        pytest.skip("Golden test cache not available")
+    target = tmp_path_factory.mktemp("cli_golden_cache")
+    return str(copy_cache_with_source_metadata(GOLDEN_CACHE, target, "ensembl", "115"))
+
+
+def test_cli_annotates_the_golden_fixture(tmp_path, golden_cache):
+    output = tmp_path / "annotated.vcf.gz"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(output),
+            "--dir_cache",
+            golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
+            "--everything",
+            "--cache_version",
+            "115",
+            "--no_progress",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert output.exists()
+
+    with gzip.open(output, "rt") as handle:
+        lines = handle.read().splitlines()
+
+    header = [line for line in lines if line.startswith("##")]
+    records = [line for line in lines if not line.startswith("#")]
+
+    # The fixture holds 100 variants; annotation must not drop or duplicate any.
+    assert len(records) == 100
+    assert any(line.startswith("##INFO=<ID=CSQ,") for line in header)
+    assert all("CSQ=" in line.split("\t")[7] for line in records)
+
+
+def test_cli_reports_a_bad_cache_version_and_exits_2(tmp_path, golden_cache):
+    output = tmp_path / "annotated.vcf.gz"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(output),
+            "--dir_cache",
+            golden_cache,
+            "--cache_version",
+            "116",
+            "--no_progress",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
