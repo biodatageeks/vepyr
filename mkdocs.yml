@@ -12,6 +12,7 @@ nav:
   - Home:
       - Home: index.md
       - Quick start: quickstart.md
+      - Command line: cli.md
       - Architecture: architecture.md
       - Caches: caches.md
       - Plugins: plugins.md
