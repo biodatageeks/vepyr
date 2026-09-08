@@ -21,6 +21,8 @@ vepyr is a Python library backed by a native Rust engine that provides:
 
 - **Python-first API** — build complete or targeted caches with
   `build_cache()`, then annotate with `annotate()`
+- **Command line** — `vepyr annotate` covers the VCF-in / VCF-out path from a
+  shell or a workflow engine, with Ensembl VEP's own flag spelling
 - **Polars integration** — annotation results returned as `polars.LazyFrame` for efficient downstream analysis
 - **VCF output** — write annotated VCFs with CSQ in the INFO column, compatible with downstream tools
 - **Streaming engine** — built on Apache Arrow and DataFusion for memory-efficient processing of large datasets
@@ -39,25 +41,41 @@ vepyr is a Python library backed by a native Rust engine that provides:
 
 ## Quick example
 
-```python
-import vepyr
+=== "Python"
 
-# Build cache from a local Ensembl VEP offline cache
-results = vepyr.build_cache(
-    release=115,
-    cache_dir="/data/vepyr_cache",
-    cache_type="ensembl",
-    local_cache="/data/ensembl_vep/homo_sapiens/115_GRCh38",
-)
+    ```python
+    import vepyr
 
-# Annotate variants
-lf = vepyr.annotate(
-    vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    everything=True,
-    reference_fasta="GRCh38.fa",
-)
+    # Build cache from a local Ensembl VEP offline cache
+    results = vepyr.build_cache(
+        release=115,
+        cache_dir="/data/vepyr_cache",
+        cache_type="ensembl",
+        local_cache="/data/ensembl_vep/homo_sapiens/115_GRCh38",
+    )
 
-df = lf.collect()
-print(df.select("chrom", "start", "ref", "alt", "SYMBOL", "Consequence", "IMPACT"))
-```
+    # Annotate variants
+    lf = vepyr.annotate(
+        vcf="input.vcf.gz",
+        cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
+        everything=True,
+        reference_fasta="GRCh38.fa",
+    )
+
+    df = lf.collect()
+    print(df.select("chrom", "start", "ref", "alt", "SYMBOL", "Consequence", "IMPACT"))
+    ```
+
+=== "Command line"
+
+    ```bash
+    vepyr annotate \
+        -i input.vcf.gz \
+        -o annotated.vcf.gz \
+        --dir_cache /data/vepyr_cache/parquet/115_GRCh38_ensembl \
+        --fasta GRCh38.fa \
+        --everything \
+        --fork 8
+    ```
+
+    See [Command line](cli.md) for the full flag set.
