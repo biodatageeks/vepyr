@@ -1,10 +1,10 @@
 # Bioconda recipe for vepyr 0.6.0
 
-> **Status.** `meta.yaml` is bumped to 0.6.0, the first release carrying the
-> `vepyr` console script that the nf-core module wraps. The `sha256` is still
-> the 0.5.0 digest and **must be replaced** with the 0.6.0 sdist digest once
-> that is on PyPI. The validation results below are the 0.5.0 run; 0.6.0 has
-> not been validated yet.
+> **Status.** `meta.yaml` targets 0.6.0, the first release carrying the `vepyr`
+> console script that the nf-core module wraps, with the released 0.6.0 sdist
+> digest in place. Awaiting Bioconda CI on the bumped
+> [PR](https://github.com/bioconda/bioconda-recipes/pull/68869); the local
+> validation recorded below is still the 0.5.0 run.
 
 This recipe follows the source-build approach used by
 [polars-bio in bioconda-recipes#67602](https://github.com/bioconda/bioconda-recipes/pull/67602).
@@ -15,18 +15,24 @@ Submitted as [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recip
 
 ## Release source
 
-The recipe builds from the PyPI source distribution. The digest currently in
-`meta.yaml` is the **0.5.0** one, verified against that archive:
+The recipe builds from the [PyPI 0.6.0 source
+distribution](https://pypi.org/project/vepyr/0.6.0/#files), with SHA-256
+verified by hashing the downloaded archive rather than trusting the API
+response:
 
 ```text
-1afe1824512e211f084e298fc86fa964e9516bcc87086ea02dde4a045237d538
+7a28e6bc6f25d550e46765df0a94a7ca27a4a3d3e77ca778da0940d0c7a7a7ad
 ```
 
-Replace it with the 0.6.0 digest before submitting the bump:
+The sdist was also checked to carry `src/vepyr/cli.py`, `src/vepyr/__main__.py`
+and the `[project.scripts] vepyr = "vepyr.cli:main"` entry — without those the
+built container has no `vepyr` executable and the nf-core module cannot run.
+
+To re-derive the digest for a future bump:
 
 ```bash
-curl -sL https://pypi.org/pypi/vepyr/0.6.0/json | \
-    python -c "import json,sys; print(json.load(sys.stdin)['urls'][-1]['digests']['sha256'])"
+curl -sLO https://files.pythonhosted.org/packages/source/v/vepyr/vepyr-<version>.tar.gz
+shasum -a 256 vepyr-<version>.tar.gz
 ```
 
 The Python requirement (`>=3.10`) and runtime dependency bounds come from the
@@ -71,7 +77,10 @@ remains covered by the upstream release tests.
 
 ## Validation (0.5.0)
 
-These results are for 0.5.0. The 0.6.0 bump has not been validated.
+These results are for 0.5.0, the version Bioconda CI last ran. The 0.6.0 bump
+changes only `version`, `sha256`, and the two CLI smoke-test commands, so it
+re-runs the same build on new sources; treat the CI run on the bumped PR as the
+authoritative result.
 
 Local validation on 2026-09-06:
 
