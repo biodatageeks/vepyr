@@ -84,13 +84,12 @@ Bioconda CI passed on 2026-09-08 for commit `ea0e8cb4`:
 - Lint, Linux Tests, OSX-64 Tests, and `build and test (ARM)` all passed;
   `Summary` green. (`Mergify Merge Queue` reports `neutral`, which is the queue
   check idling, not a failure.)
-- The build matrix is unchanged from the 0.5.0 run — Python 3.10-3.13 across
-  linux-64, osx-64 and osx-arm64 — since the bump touches only `version`,
-  `sha256` and the two CLI test commands. The per-package listing and the Linux
-  mulled container tests are **not** re-confirmed for this commit: Bioconda runs
-  the whole matrix inside one job per platform, so that detail only appears in a
-  `@BiocondaBot please fetch artifacts` comment, which has not been run on
-  `ea0e8cb4`. Run it there if the per-variant record matters.
+- All 12 packages built and passed their recipe tests — Python 3.10, 3.11, 3.12
+  and 3.13 on each of linux-64, osx-64 and osx-arm64 — and Linux container images
+  were built for all four Python variants. Confirmed by running
+  `@BiocondaBot please fetch artifacts` on `ea0e8cb4`; the check results alone do
+  not show this, because Bioconda runs the whole matrix inside one job per
+  platform.
 
 Local validation on 2026-09-08, against the published 0.6.0 wheel in an isolated
 Python 3.12 environment — all five of the recipe's `test: commands:` entries:
@@ -112,7 +111,7 @@ Source checks:
 
 ### 0.5.0 (superseded)
 
-Kept for the per-variant record the 0.6.0 run has not reproduced.
+Kept as history; 0.6.0 above reproduces the same coverage.
 
 Local validation on 2026-09-06:
 
