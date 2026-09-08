@@ -1,7 +1,8 @@
 name: vepyr_annotate
 description: Annotate a VCF with Ensembl VEP consequences using vepyr, a Rust
   reimplementation of the Variant Effect Predictor. Annotation features are
-  controlled through `task.ext.args`.
+  controlled through `task.ext.args`, except for `--fork`, which the module
+  derives from `task.cpus` and drops to 1 when the input VCF has no index.
 keywords:
   - annotation
   - vcf

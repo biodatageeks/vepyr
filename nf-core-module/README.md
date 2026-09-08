@@ -82,4 +82,10 @@ HGVS sub-flags, AF sub-flags and `--fields` are all additive later and need no
 engine work — see `docs/superpowers/specs/2026-09-07-nf-core-vepyr-module-design.md`.
 
 Note that unknown flags are a hard error, so an `ext.args` string copied from an
-`ensemblvep/vep` config will fail the task if it carries a flag outside that ten.
+`ensemblvep/vep` config will fail the task if it carries a flag outside that eleven.
+
+`--fork` is the one flag `ext.args` cannot set. The module emits it after `${args}`
+so its computed value always wins: `--fork`/`--workers` are a single argparse
+option, the last occurrence wins, and a user-supplied one would otherwise defeat
+the unindexed-input fallback in `main.nf` and fail the task. Use the `cpus`
+directive to control parallelism.

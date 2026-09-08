@@ -37,6 +37,12 @@ process VEPYR_ANNOTATE {
     // --fork above 1 requires a tabix/CSI index on the input; vepyr raises
     // without one. Fall back to a single pipeline so a missing index costs
     // throughput rather than failing the task.
+    //
+    // The flag is emitted *after* ${args} rather than before it, the one place
+    // this module overrides the user: --fork and --workers are a single
+    // argparse option, so the last occurrence wins, and an ext.args carrying
+    // either spelling would silently defeat the fallback and fail the task.
+    // Parallelism belongs to the cpus directive here.
     def fork = tbi ? task.cpus : 1
     """
     vepyr annotate \\
@@ -46,9 +52,9 @@ process VEPYR_ANNOTATE {
         ${reference} \\
         ${version_arg} \\
         ${plugin_arg} \\
+        ${args} \\
         --fork ${fork} \\
-        --no_progress \\
-        ${args}
+        --no_progress
 
     tabix ${args2} ${prefix}.vcf.gz
     """
