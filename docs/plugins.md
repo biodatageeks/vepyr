@@ -91,6 +91,18 @@ vepyr.annotate(
 )
 ```
 
+The same run from the [command line](cli.md#plugins):
+
+```bash
+vepyr annotate \
+    -i sample.vcf \
+    -o sample.annotated.vcf \
+    --dir_cache /data/115_GRCh38_merged \
+    --fasta Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+    --everything \
+    --plugin_cache_root /data/plugin_cache
+```
+
 ### Plugin-only annotation
 
 Pass `fields="core"` to emit VEP's eleven VCF-side default fields followed by
@@ -147,6 +159,9 @@ vepyr.annotate(
 | `["clinvar", "cadd"]` | only those two |
 | `[]` | none; equivalent to a plugin-free run |
 | `["nope"]` | `ValueError`, listing the plugins that *are* available |
+
+On the command line the same selection is a repeated `--plugin`, in the same
+significant order: `--plugin clinvar --plugin cadd`.
 
 Order is significant: `plugins=["clinvar", "cadd"]` emits the ClinVar block
 before the CADD block in both the CSQ header and every CSQ value. Duplicates

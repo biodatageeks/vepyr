@@ -33,16 +33,21 @@ uv run pytest
 # Run a single test
 uv run pytest tests/test_foo.py::test_bar -v
 
-# Run Rust tests
-cargo test
+# Run Rust tests. --no-default-features drops pyo3/extension-module, which
+# suppresses libpython linking: right for the cdylib maturin ships, but it
+# leaves a standalone test binary with Py_None undefined. mimalloc has to be
+# named back because src/lib.rs needs exactly one global allocator.
+cargo test --no-default-features --features mimalloc
 
-# Lint
+# Lint. ruff is not a declared dependency -- it is pinned in
+# .pre-commit-config.yaml, so `uv run ruff` finds nothing in .venv and falls
+# through to pyenv. Note the hook passes --fix, so this rewrites code.
 cargo clippy
-uv run ruff check .
+uv run pre-commit run ruff --all-files
 
 # Format
 cargo fmt
-uv run ruff format .
+uv run pre-commit run ruff-format --all-files
 ```
 
 ## Architecture

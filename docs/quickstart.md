@@ -8,6 +8,9 @@
 pip install vepyr
 ```
 
+This installs the Python package and a `vepyr` executable — see
+[Command line](cli.md).
+
 ### From conda
 
 !!! note "In progress"
@@ -39,6 +42,7 @@ RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 ```bash
 uv run python -c "import vepyr; print('build_cache' in vepyr.__all__)"
 # True
+uv run vepyr --version
 ```
 
 ## Getting a cache
@@ -162,6 +166,25 @@ the other entities untouched.
 | `cache_type` | required | Ensembl VEP cache type: `ensembl`, `merged`, or `refseq` |
 
 ## Annotating variants
+
+### From the command line
+
+The quickest path from a VCF to an annotated VCF needs no Python at all:
+
+```bash
+vepyr annotate \
+    -i input.vcf.gz \
+    -o annotated.vcf.gz \
+    --dir_cache ~/vepyr_cache/116_GRCh38_merged \
+    --fasta GRCh38.fa \
+    --everything \
+    --fork 8
+```
+
+The flags follow Ensembl VEP's own spelling. The command covers the VCF-in /
+VCF-out path only; the LazyFrame path below is Python-side. See
+[Command line](cli.md) for the full flag set, the plugin flags and the exit
+codes.
 
 ### Writing annotated VCF output
 

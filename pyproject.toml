@@ -1,6 +1,6 @@
 [project]
 name = "vepyr"
-version = "0.5.0"
+version = "0.6.0"
 description = "VEP Yielding Performant Results — Python interface for Ensembl VEP annotation in Rust"
 readme = "README.md"
 authors = [
@@ -26,6 +26,9 @@ docs = [
     # click-to-enlarge for the pre-rendered architecture diagrams
     "mkdocs-glightbox>=0.4",
 ]
+
+[project.scripts]
+vepyr = "vepyr.cli:main"
 
 [dependency-groups]
 # Not a second copy of the list: the group pulls the published `docs` extra in,

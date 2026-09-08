@@ -17,9 +17,9 @@
 **vepyr** (/ˈvaɪpər/) — VEP Yielding Performant Results — is a blazing-fast Rust
 reimplementation of Ensembl's [Variant Effect
 Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html), exposed as a
-Python library. It builds and uses Ensembl VEP caches locally, annotates VCF
-input through a native DataFusion engine, and returns results as a
-`polars.LazyFrame` or a VCF with `CSQ` in the `INFO` column.
+Python library and a `vepyr` command. It builds and uses Ensembl VEP caches
+locally, annotates VCF input through a native DataFusion engine, and returns
+results as a `polars.LazyFrame` or a VCF with `CSQ` in the `INFO` column.
 
 ## 📚 Documentation
 
@@ -28,6 +28,7 @@ input through a native DataFusion engine, and returns results as a
 | | |
 |---|---|
 | [Quick start](https://biodatageeks.org/vepyr/quickstart/) | Install, get a cache, annotate |
+| [Command line](https://biodatageeks.org/vepyr/cli/) | `vepyr annotate`, VCF in, VCF out |
 | [Download Ensembl VEP and plugin caches](https://biodatageeks.org/vepyr/downloads/) | Prebuilt release-116 caches |
 | [Caches](https://biodatageeks.org/vepyr/caches/) | Cache types, entity schemas, CSQ output fields |
 | [Plugins](https://biodatageeks.org/vepyr/plugins/) | CADD, SpliceAI, AlphaMissense, ClinVar, dbNSFP |
@@ -38,6 +39,18 @@ input through a native DataFusion engine, and returns results as a
 
 ```bash
 pip install vepyr
+```
+
+This installs both the Python package and a `vepyr` executable:
+
+```bash
+vepyr annotate \
+    -i input.vcf.gz \
+    -o annotated.vcf.gz \
+    --dir_cache ~/vepyr_cache/116_GRCh38_ensembl \
+    --fasta GRCh38.fa \
+    --everything \
+    --fork 8
 ```
 
 See [Developers](https://biodatageeks.org/vepyr/developers/) for building from
