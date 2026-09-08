@@ -2,9 +2,9 @@
 
 > **Status.** `meta.yaml` targets 0.6.0, the first release carrying the `vepyr`
 > console script that the nf-core module wraps, with the released 0.6.0 sdist
-> digest in place. Awaiting Bioconda CI on the bumped
-> [PR](https://github.com/bioconda/bioconda-recipes/pull/68869); the local
-> validation recorded below is still the 0.5.0 run.
+> digest in place. Bioconda CI is green on the bumped
+> [PR](https://github.com/bioconda/bioconda-recipes/pull/68869) (`ea0e8cb4`),
+> which is awaiting merge.
 
 This recipe follows the source-build approach used by
 [polars-bio in bioconda-recipes#67602](https://github.com/bioconda/bioconda-recipes/pull/67602).
@@ -75,12 +75,44 @@ runtime dependencies and temporary data, so they can run in the mulled container
 without a downloaded VEP cache or external test files. Full annotation parity
 remains covered by the upstream release tests.
 
-## Validation (0.5.0)
+## Validation
 
-These results are for 0.5.0, the version Bioconda CI last ran. The 0.6.0 bump
-changes only `version`, `sha256`, and the two CLI smoke-test commands, so it
-re-runs the same build on new sources; treat the CI run on the bumped PR as the
-authoritative result.
+### 0.6.0
+
+Bioconda CI passed on 2026-09-08 for commit `ea0e8cb4`:
+
+- Lint, Linux Tests, OSX-64 Tests, and `build and test (ARM)` all passed;
+  `Summary` green. (`Mergify Merge Queue` reports `neutral`, which is the queue
+  check idling, not a failure.)
+- The build matrix is unchanged from the 0.5.0 run — Python 3.10-3.13 across
+  linux-64, osx-64 and osx-arm64 — since the bump touches only `version`,
+  `sha256` and the two CLI test commands. The per-package listing and the Linux
+  mulled container tests are **not** re-confirmed for this commit: Bioconda runs
+  the whole matrix inside one job per platform, so that detail only appears in a
+  `@BiocondaBot please fetch artifacts` comment, which has not been run on
+  `ea0e8cb4`. Run it there if the per-variant record matters.
+
+Local validation on 2026-09-08, against the published 0.6.0 wheel in an isolated
+Python 3.12 environment — all five of the recipe's `test: commands:` entries:
+
+- `pip check` — no broken requirements.
+- `vepyr --version` → `vepyr 0.6.0`.
+- `vepyr annotate --help` → the annotate usage block.
+- The compiled-VEP-targets assertion → `compiled VEP targets passed`.
+- The native VCF scan → `native VCF scan passed`.
+
+Source checks:
+
+- The sdist SHA-256 was verified by hashing the downloaded archive, and agrees
+  with what the PyPI API reports.
+- The sdist was confirmed to contain `src/vepyr/cli.py`, `src/vepyr/__main__.py`
+  and the `[project.scripts] vepyr = "vepyr.cli:main"` entry — the whole point of
+  the bump, since a 0.5.0 container has no `vepyr` executable for the nf-core
+  module to call.
+
+### 0.5.0 (superseded)
+
+Kept for the per-variant record the 0.6.0 run has not reproduced.
 
 Local validation on 2026-09-06:
 
