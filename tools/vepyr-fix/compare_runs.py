@@ -152,7 +152,7 @@ def main() -> int:
         gap = expected - workers
         if gap:
             sys.exit(
-                f"{root}: {label} is missing worker {sorted(gap)} -- step 7 gates at "
+                f"{root}: {label} is missing worker {sorted(gap)} -- step 8 gates at "
                 f"{sorted(expected)}, and comparing only what both sides happen to "
                 f"have would pass a run that never measured the rest"
             )
