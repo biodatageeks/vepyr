@@ -22,6 +22,7 @@ nav:
       - Testing vs Ensembl VEP: testing-vep.md
       - Download Ensembl VEP and plugin caches: downloads.md
       - Developers: developers.md
+      - Applying a fix (runbook): runbooks/applying-a-vepyr-fix.md
       - Contact: contact.md
 
 theme:
