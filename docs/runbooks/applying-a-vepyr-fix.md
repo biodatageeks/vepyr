@@ -7,6 +7,11 @@ host's own earlier numbers. Capture both **before** touching code, so the
 end-state comparison means something. A baseline taken after the change is not
 a baseline.
 
+Which of the three repos the fix belongs in is settled the same way — by
+reading all three before proposing anything, and by having a human confirm the
+plan that comes out of it. Step 1 is that gate, and nothing else starts until
+it clears.
+
 Harnesses this skill drives, all already in the repo:
 `performance-tests/vepyr/scripts/` (worker scaling) and
 `e2e-testing/scripts/` (md5 concordance and the parity gate).
@@ -18,7 +23,7 @@ annotation behaviour or the VCF reader — the shape of the issues filed as
 `biodatageeks/vepyr#92`–`#99`.
 
 **Out of scope:** merging. This skill takes the work to the point where a human
-can review and merge it, and stops there — see step 8. Also out of scope:
+can review and merge it, and stops there — see step 9. Also out of scope:
 adding a plugin (use the `vep-add-plugin` skill), rebuilding or republishing
 caches, and cutting a release. Those have their own gates and their own
 runbooks.
@@ -33,17 +38,144 @@ df -g "$DATA_VEPYR_DIR"                         # plain output above 1 worker wa
 RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
 ```
 
+None of that edits code, so it may run before step 1's confirmation. Nothing
+after it may.
+
 That last line is the build every measured run uses (`docs/performance.md`,
 `docs/developers.md`). It is a release build with native CPU instructions, so a
 benchmark taken against a `maturin develop` tree is measuring a different
 binary and is not comparable with anything. Use the same command, with the same
-`RUSTFLAGS`, for the baseline in step 1 and the re-verification in step 8 — a
+`RUSTFLAGS`, for the baseline in step 2 and the re-verification in step 8 — a
 flag that differs between the bookends silently turns a codegen difference into
 an apparent regression or win.
 
 ## Workflow
 
-### 1. Capture the baseline — both halves, before any edit
+### 1. Analyse all three repos, plan the fix, and get the plan confirmed
+
+A fix belongs in the repo that owns the behaviour, and that is rarely the repo
+the issue was filed in. Deciding ownership from the vepyr side alone is how a
+defect gets patched one layer above where it lives, which passes the golden gate
+and leaves the bug in place for every other caller.
+
+**This is a hard gate.** No edit to any file in any of the three checkouts —
+not the fix, not the failing test, not a Cargo pin, not a scratch `[patch]` —
+until a human has read the plan and said to proceed. The read-only preparation
+in *Before you start* is the only thing that may precede it.
+
+#### 1a. Dispatch one analysis agent per repo, in a single message
+
+Check the checkouts first. They are ordinary working trees left on whatever
+branch was last used, while `Cargo.toml` pins specific tags or revs, so an
+analysis of a drifted tree describes code vepyr does not use:
+
+```bash
+grep -nE 'datafusion-bio.*(tag|rev) *=' Cargo.toml
+for r in datafusion-bio-formats datafusion-bio-functions; do
+  echo "== $r"
+  git -C ~/research/git/$r log --oneline -1
+  git -C ~/research/git/$r status --porcelain | head   # uncommitted state distorts every finding
+done
+```
+
+Then three read-only agents, all three calls in **one** message — dispatched one
+per turn they serialise, and the analysis costs three times the wall clock for
+the same answer:
+
+| Agent | Checkout | Owns |
+|---|---|---|
+| formats | `~/research/git/datafusion-bio-formats` | the VCF reader, the Ensembl cache table providers, Arrow schemas |
+| functions | `~/research/git/datafusion-bio-functions` | the annotation engine, consequence and HGVS, CSQ assembly, plugin lookup |
+| vepyr | this repo | the Python API, LazyFrame and VCF output, the pins, the e2e and perf harnesses |
+
+Give each one the issue text or the user's description **verbatim**. An agent
+handed a paraphrase answers about the paraphrase, and the paraphrase is where
+the assumption you are trying to test already lives.
+
+Each answers the same five questions, quoting `file:line` rather than
+summarising:
+
+1. Where does the behaviour actually live — the code path the report describes,
+   and the entry point that reaches it?
+2. Is this repo the **owner** of the defect, a **carrier** of it, or untouched?
+   Name the evidence for the verdict.
+3. What here already covers it — tests, fixtures, golden data — and what does
+   that coverage *not* reach?
+4. Blast radius: what else reads the code that would change, and which callers
+   would see a behaviour difference?
+5. If the fix lands upstream of this repo, what has to move here — a pin bump
+   only, or a signature or behaviour change too?
+
+Question 3 is the one that repays being explicit. The chr1 golden holds 91 SNVs
+and 9 indels with no MNV, no multi-allelic site and no `ALT=.` record, and the
+VCF reader has four separate record loops of which the indexed one — the path
+tabix input takes — is invisible to a grep for `read_record`. "Covered" and
+"reached by the fixtures we run" are different claims.
+
+#### 1b. Write the plan to a dated artifact
+
+`docs/superpowers/plans/YYYY-MM-DD-<slug>.md`, in the shape of the files already
+there. It states:
+
+- the defect in one paragraph, and the record shape that triggers it;
+- which repo owns the fix, and why each of the other two does or does not change;
+- the failing test that will prove it and the repo it goes in, naming the
+  fixture — and saying outright if no existing fixture can see the defect;
+- the change itself, per repo, in dependency order;
+- what the pin cascade will look like;
+- which gate is expected to move — parity, performance, both, neither — and by
+  how much.
+
+A file rather than a conversation, because the analysis has to outlive the
+context that produced it: steps 8 and 9 re-read this to check the fix did what
+it said it would, and a fix whose expected gate movement was never written down
+cannot be held to it afterwards.
+
+#### 1c. Ask the questions the analysis raised
+
+One batched round, and only questions whose answers change the work: which repo
+to fix in when ownership is genuinely ambiguous, whether an observed difference
+is a bug or an intended divergence from Ensembl VEP, which of several
+VEP-compatible spellings of an output is the correct one, whether the scope
+covers a related record shape the agents turned up.
+
+Do not ask what the three agents were dispatched to answer. A question about
+whether some function exists, asked after sending an agent to read it, costs a
+round trip and reads as not having done the analysis.
+
+#### 1d. Stop, and get the go-ahead
+
+Post the artifact path, the ownership decision, the failing test you intend to
+write, the open questions, and the expected gate movement. Then wait.
+
+**Gate:** an explicit human go-ahead. "Proceed", "looks good", "yes" all count.
+Silence, a reply about something else, and your own judgement that the plan is
+obviously right do not.
+
+#### Red flags — stop and return to 1a
+
+- *"The issue already says exactly what to do."* Issues name symptoms. The
+  analysis names the owner. `#92`–`#99` were filed from a test run, not from
+  reading the engine.
+- *"I'll write the failing test while I wait."* A test is an edit, and it
+  encodes the ownership decision that has not been confirmed yet.
+- *"Only vepyr changes, so a three-repo analysis is overkill."* That is the
+  analysis's conclusion, not its precondition.
+- *"The baseline takes 15 minutes — start it and analyse meanwhile."* No. A plan
+  that reroutes the fix to a different layer can change which harness the
+  baseline should run at all, and a discarded sweep costs 15 minutes and ~29 GB
+  of I/O. Sequential.
+
+| Excuse | Reality |
+|---|---|
+| "It's a one-line fix" | The line is not the work. A one-line engine change still needs a pin cascade through two repos and both gates re-run. |
+| "The user already told me the fix" | Then the analysis is quick and the confirmation is one message. Neither is the part worth skipping. |
+| "I read vepyr and it is clearly there" | A single-repo read is exactly how the wrong layer gets patched — see the four record loops above. |
+| "I'll confirm the plan once I have working code" | Working code is a sunk cost that biases the confirmation toward accepting it. Confirm the plan while it is still cheap to change. |
+| "Three agents for a small fix is wasteful" | They run in parallel and only read. The expensive cycle is the one where the fix lands in the wrong repo and the whole PR stack is rewritten. |
+| "Nobody is answering right now" | Then the work waits. This gate has no timeout. |
+
+### 2. Capture the baseline — both halves, before any edit
 
 Put everything in one run directory so the final comparison is a diff, not a
 memory exercise:
@@ -194,9 +326,10 @@ digest differs and you need the offending records.
 say so — you cannot attribute a later mismatch to your fix when the starting
 point was already red.
 
-### 2. Reproduce the defect with a test that fails now
+### 3. Reproduce the defect with a test that fails now
 
-Write the failing test before the fix, in the repo that owns the behaviour. The
+Write the failing test before the fix, in the repo step 1 identified as the
+owner of the behaviour. The
 issues filed for this project already carry proposed tests with positive
 controls; reuse them rather than inventing new ones. A fix whose test never
 failed proves nothing about the fix.
@@ -206,7 +339,7 @@ SNVs and 9 indels with no MNV, no multi-allelic site and no `ALT=.` record, so a
 green golden gate is not evidence for those paths — add a fixture that contains
 the shape you are fixing.
 
-### 3. Implement in dependency order
+### 4. Implement in dependency order
 
 `datafusion-bio-formats` → `datafusion-bio-functions` → `vepyr`. While
 iterating, point the downstream repos at your local checkouts with a temporary
@@ -232,7 +365,7 @@ Guard each one. Chained with `&&` and followed by the lint, a clippy failure
 would be overwritten by the lint's clean exit and the block would report
 success with the Rust side still red.
 
-### 4. Open one PR per repo, with the pin cascade
+### 5. Open one PR per repo, with the pin cascade
 
 Open upstream first and pin each downstream PR to the **head commit** of the PR
 below it, so reviewers see a tree that builds:
@@ -246,9 +379,9 @@ below it, so reviewers see a tree that builds:
 Write the body from a file. `gh pr edit` reports success and changes nothing, so
 edit through the API and read the body back to confirm:
 
-Open them as drafts. The gates in step 7 have not run yet, so a PR that looks
+Open them as drafts. The gates in step 8 have not run yet, so a PR that looks
 ready before it is verified invites a review of unproven work — and `gh pr
-ready` in step 8 is then the honest signal that it has been. Draft PRs still
+ready` in step 9 is then the honest signal that it has been. Draft PRs still
 fire `claude-code-review.yml`, which has no draft guard, so the review loop is
 not delayed by this.
 
@@ -291,7 +424,7 @@ PATCH that silently kept the old text, and printing the first few lines proves
 only that the fetch worked — a body that lost everything below the prefix would
 still look right.
 
-### 5. Ask both reviewers
+### 6. Ask both reviewers
 
 Each repo runs `claude-code-review.yml` automatically when a PR opens or gets
 new commits. The two on-demand reviewers answer comments:
@@ -313,7 +446,7 @@ review` from `claude[bot]`. Codex has no committed workflow in any of the three
 repos — it is a GitHub App on the repo — so if no reply arrives, check the app
 rather than hunting for a broken workflow file.
 
-### 6. Iterate to green, watching for three signals
+### 7. Iterate to green, watching for three signals
 
 Three things are worth waking for, and nothing else: a check that did not
 pass, new review activity, and the run reaching fully concluded. If your harness
@@ -379,7 +512,7 @@ filter like `length` would not, because it emits one value per page.
 
 Emit pending checks as well as concluded ones. Dropping them makes a check that
 is still running — or wedged — indistinguishable from one that does not exist,
-and the hand-off in step 8 would then see nothing wrong. Note the fallback has
+and the hand-off in step 9 would then see nothing wrong. Note the fallback has
 to test for an empty string explicitly: a pending `CheckRun` carries
 `conclusion: ""` and `status: "IN_PROGRESS"`, and `//` falls back only on `null`
 or `false`, so `.conclusion // .status` yields the empty string and silently
@@ -401,7 +534,7 @@ Address the review directly by id rather than listing and filtering: a single
 object needs no `--paginate`, so a review past the first page cannot go missing
 from the lookup the way it could from a list.
 
-Step 6's gate asks whether both reviewers have examined the current head, and
+Step 7's gate asks whether both reviewers have examined the current head, and
 only the reviews endpoint can answer that: a reviewer with no findings leaves a
 review and no comments at all, so a comments-only loop sees silence and
 cannot tell a clean pass from a reviewer that never ran. Including the commit in
@@ -420,9 +553,9 @@ finding unseen.
 
 **Re-pin downstream after every upstream push.** This is the step that is easy
 to skip and expensive to miss. A review fix landing on the formats branch moves
-its head, but the functions PR still pins the commit from step 4, and vepyr
+its head, but the functions PR still pins the commit from step 5, and vepyr
 still pins the old functions head. All three PRs then go green independently
-while the tree a reviewer reads — and the tree step 7 measures — silently
+while the tree a reviewer reads — and the tree step 8 measures — silently
 excludes the fixes you just made. So after any upstream push, walk the cascade
 in dependency order before re-requesting review or running a gate:
 
@@ -468,15 +601,15 @@ done
 concluded green and no bot finding is left unanswered. One repo going green
 while another has an open finding is not green.
 
-### 7. Re-verify against the baseline, on the stacked branches
+### 8. Re-verify against the baseline, on the stacked branches
 
-Run step 1 again, byte for byte the same commands and the same `RUSTFLAGS`, into
+Run step 2 again, byte for byte the same commands and the same `RUSTFLAGS`, into
 a `final/` directory beside `baseline/`, then set `BASE` and `FINAL` to the two
 absolute run directories for the comparisons below. Same host, same session shape, warm-up
 discarded again. Nothing is merged at this point, so measure the vepyr PR branch
 with its pin still on the functions PR head — that stack is exactly what a
 reviewer will read. Check first that every pin points at its upstream PR's
-current head, per step 6: measuring a stale cascade produces numbers for code
+current head, per step 7: measuring a stale cascade produces numbers for code
 nobody is going to merge.
 
 **Quality gate:** every body digest matches in strict mode, and
@@ -497,7 +630,7 @@ uv run python "$ROOT/tools/vepyr-fix/compare_runs.py" \
   "$BASE/archive" "$FINAL/archive" || exit 1
 ```
 
-Absolute path on purpose: step 1 leaves the shell in `$ROOT/e2e-testing/scripts`,
+Absolute path on purpose: step 2 leaves the shell in `$ROOT/e2e-testing/scripts`,
 and a relative path would resolve under that directory and fail before comparing
 anything. Guarding the sweeps the same way matters for the same reason — a
 `sweep` that propagates its status is no use if the caller discards it, which
@@ -537,7 +670,7 @@ and state plainly which gate passed and which did not. If wall time moved but no
 phase did, suspect the host rather than the change, and say that instead of
 claiming a win.
 
-### 8. Hand off for human review — do not merge
+### 9. Hand off for human review — do not merge
 
 Merging is the human's call, always, even when all three PRs are green and both
 gates passed. Green means the work is ready to be judged, not that it is
@@ -563,7 +696,7 @@ phases and exits nonzero at the first that fails:
    because half an hour of silent polling is what a broken credential looks like
    otherwise.
 4. **Refuse if that run produced new feedback.** A review can conclude green
-   while carrying a finding, so the check status cannot answer step 6's
+   while carrying a finding, so the check status cannot answer step 7's
    requirement that nothing is left unanswered. The bot comment and review ids
    are compared against the snapshot.
 5. **Only then post the hand-off comment.**
