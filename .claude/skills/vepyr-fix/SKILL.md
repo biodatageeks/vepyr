@@ -318,38 +318,53 @@ as they arrive:
 ```bash
 prev=""
 while true; do
-  cur=""
+  cur=""; failed=""
   for e in $PRS; do
-    r=${e%%:*}; n=${e##*:}
-    checks=$(gh pr checks "$n" --repo "biodatageeks/$r" --json name,bucket \
-               --jq ".[] | select(.bucket!=\"pending\") | \"$r \(.name): \(.bucket)\"") \
-      || { echo "QUERY FAILED: checks $r#$n"; sleep 120; continue 2; }
-    bots=$(gh pr view "$n" --repo "biodatageeks/$r" --json comments \
-             --jq ".comments[] | select(.author.login|test(\"bot\")) | \"$r comment \(.createdAt)\"") \
-      || { echo "QUERY FAILED: comments $r#$n"; sleep 120; continue 2; }
+    r=${e%%:*}; n=${e##*:}; repo="biodatageeks/$r"
+
+    # statusCheckRollup, NOT `gh pr checks`: that command exits 8 while any check
+    # is pending and nonzero when one fails, so its exit status reports the checks
+    # rather than the query, and treating it as a query failure would print an
+    # error through the whole normal review lifecycle.
+    checks=$(gh pr view "$n" --repo "$repo" --json statusCheckRollup \
+      --jq '.statusCheckRollup[] | select((.conclusion // "") != "") | "'"$r"' \(.name): \(.conclusion)"') \
+      || failed="$failed checks:$r"
+
+    # Two endpoints, because they hold different things: a bot's inline findings
+    # are PULL REQUEST REVIEW comments, while `gh pr view --json comments` returns
+    # only the issue-comment thread. Polling just the latter yields a green
+    # snapshot with every finding invisible.
+    findings=$(gh api "repos/$repo/pulls/$n/comments" \
+      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' finding \(.id)"') \
+      || failed="$failed findings:$r"
+    remarks=$(gh api "repos/$repo/issues/$n/comments" \
+      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' comment \(.id)"') \
+      || failed="$failed comments:$r"
+
     cur="$cur$checks
-$bots
+$findings
+$remarks
 "
   done
-  cur=$(echo "$cur" | sort)
+
+  # A monitor that has lost authentication must not look like a quiet green stack.
+  [ -n "$failed" ] && echo "QUERY FAILED:$failed"
+  cur=$(echo "$cur" | sort -u)
   comm -13 <(echo "$prev") <(echo "$cur")
   prev=$cur
   sleep 120
 done
 ```
 
-Two things this gets right that the obvious version does not. A literal `<n>` is
-not a placeholder to the shell, it is input redirection from a file called `n`,
-so the query fails and the trailing `sort` reports success. And swallowing
-`gh` errors with `2>/dev/null` makes a monitor that has lost authentication look
-exactly like a quiet green stack: it emits nothing, forever. Say so out loud
-instead.
-
-Address each finding on its merits. Reviewer feedback here is frequently about
-measurement rather than code, and a bot can be wrong — verify a claim against
-the source before acting on it, and say so in the thread when you disagree.
-Push your fix, then re-pin the cascade below **before** asking anyone to look
-again — the pin commits change what a reviewer would be reviewing.
+Three traps here, each of which makes the monitor lie in a different way. A
+literal `<n>` is not a placeholder to the shell but input redirection from a file
+called `n`, so the query fails and a trailing `sort` reports success. `gh pr
+checks` exits 8 whenever a check is pending and nonzero when one fails, so its
+status describes the checks and not the query — guard on it and the monitor
+cries failure through the entire normal lifecycle. And review findings are not
+issue comments: on a PR of this kind the two endpoints differ by a wide margin,
+so polling only `gh pr view --json comments` reaches a green snapshot with every
+finding unseen.
 
 **Re-pin downstream after every upstream push.** This is the step that is easy
 to skip and expensive to miss. A review fix landing on the formats branch moves
