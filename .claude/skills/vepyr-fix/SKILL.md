@@ -262,9 +262,15 @@ set -o pipefail
 
 # Record the number each repo's PR got. They differ, and reusing one number
 # across the three comments on unrelated PRs — or silently acts on the wrong one.
+BRANCH="fix/your-slug"   # the same branch name in all three repos, already pushed in each
+
 PRS=""
 for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
-  url=$(gh pr create --draft --repo "biodatageeks/$r" \
+  # --head is required here. --repo picks the target repository, but --head still
+  # defaults to the CURRENT branch, so a loop running in one working tree would
+  # propose this checkout's branch to the other two repos — failing, or worse,
+  # opening a PR for the wrong branch.
+  url=$(gh pr create --draft --repo "biodatageeks/$r" --head "$BRANCH" \
           --title "..." --body-file "/tmp/pr-$r.md") || exit 1
   PRS="$PRS $r:${url##*/}"
 done
@@ -346,7 +352,7 @@ while true; do
     # appears in neither list above. Keyed by commit, so "codex has looked at
     # the current head" becomes an observable event rather than an assumption.
     reviews=$(gh api --paginate "repos/$repo/pulls/$n/reviews" \
-      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' review \(.user.login) \(.commit_id[0:7]) \(.state) id=\(.id) body_chars=\((.body//"")|length)"') \
+      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$repo"'#'"$n"' review \(.user.login) \(.commit_id[0:7]) \(.state) id=\(.id) body_chars=\((.body//"")|length)"') \
       || failed="$failed reviews:$r"
 
     cur="$cur$checks
@@ -379,8 +385,14 @@ bot reviewed the head while the finding stayed invisible. The length says
 whether there is anything to read and the id says where to read it:
 
 ```bash
-gh api "repos/$repo/pulls/$n/reviews" --jq '.[] | select(.id == <id>) | .body'
+# Each review line carries its own repo#number, so this needs nothing from the
+# monitor's shell — which matters, because the monitor is occupying one.
+gh api "repos/<owner/repo>/pulls/<number>/reviews/<id>" --jq .body
 ```
+
+Address the review directly by id rather than listing and filtering: a single
+object needs no `--paginate`, so a review past the first page cannot go missing
+from the lookup the way it could from a list.
 
 Step 6's gate asks whether both reviewers have examined the current head, and
 only the reviews endpoint can answer that: a reviewer with no findings leaves a
