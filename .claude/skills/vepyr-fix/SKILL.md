@@ -346,7 +346,7 @@ while true; do
     # appears in neither list above. Keyed by commit, so "codex has looked at
     # the current head" becomes an observable event rather than an assumption.
     reviews=$(gh api --paginate "repos/$repo/pulls/$n/reviews" \
-      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' review \(.user.login) \(.commit_id[0:7]) \(.state)"') \
+      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' review \(.user.login) \(.commit_id[0:7]) \(.state) id=\(.id) body_chars=\((.body//"")|length)"') \
       || failed="$failed reviews:$r"
 
     cur="$cur$checks
@@ -371,6 +371,16 @@ newest findings are the ones that fall off. A monitor that silently reads only
 the first page reports green while the findings it has not fetched go
 unaddressed. The per-item `--jq` filters concatenate cleanly across pages; a
 filter like `length` would not, because it emits one value per page.
+
+Carry the review id and its body length, not just the state. A reviewer can put
+a finding in the review body itself, and `COMMENTED` with feedback then looks
+identical to `COMMENTED` with nothing to say — the monitor would report that the
+bot reviewed the head while the finding stayed invisible. The length says
+whether there is anything to read and the id says where to read it:
+
+```bash
+gh api "repos/$repo/pulls/$n/reviews" --jq '.[] | select(.id == <id>) | .body'
+```
 
 Step 6's gate asks whether both reviewers have examined the current head, and
 only the reviews endpoint can answer that: a reviewer with no findings leaves a
