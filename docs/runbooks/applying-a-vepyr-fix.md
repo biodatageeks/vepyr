@@ -133,6 +133,53 @@ VCF reader has four separate record loops of which the indexed one — the path
 tabix input takes — is invisible to a grep for `read_record`. "Covered" and
 "reached by the fixtures we run" are different claims.
 
+#### 1a-bis. Confirm the shape of the fix in the Ensembl VEP 116 source
+
+**Mandatory, and it is not satisfied by reading the issue or by comparing
+outputs.** Before the plan is written, the rule being ported must be quoted from
+the Ensembl source at the pinned release, with `file:line`. Both repos, because
+the logic is split across them:
+
+```bash
+# VEP itself -- the parser, the output factory, the flag handling
+git -C ~/research/git/ensembl-vep show release/116.0:modules/Bio/EnsEMBL/VEP/<file>
+
+# ensembl-variation -- allele trimming, HGVS notation, consequence calling
+git -C ~/research/git/ensembl-variation show origin/release/116:modules/Bio/EnsEMBL/Variation/<file>
+```
+
+Check the release actually matters before trusting a line number from elsewhere:
+
+```bash
+git -C ~/research/git/ensembl-vep diff --stat release/115.2 release/116.0 -- <path>
+```
+
+`ensembl-variation` has no `release/115.2` or `release/116.0` **tags** — only
+`origin/release/115` and `origin/release/116` branches. A `git diff` between two
+revs that do not exist silently compares nothing and exits 0, which reads
+exactly like "the file is identical". Verify the revs resolve before believing
+an empty diff.
+
+Two failures this gate exists to prevent, both of which have happened:
+
+- **Reading half the rule.** `vepyr#95` derived VEP's allele trimming from
+  `Parser/VCF.pm` alone and concluded "one leading base, indels only, never a
+  suffix". The other half is `Parser.pm:881`, an ungated `minimise_alleles()`
+  that fires whenever the original REF/ALT differ in length. Implementing the
+  issue as written would have regressed every shared-suffix indel.
+- **Inferring a rule from a handful of records.** During the same fix, HGVS
+  minimisation was made conditional on "has a real CDS coordinate", inferred
+  from four regressing records that all happened to be intronic. The actual rule
+  is in `TranscriptVariationAllele.pm:1510-1514`: Ensembl clips the alleles and
+  then *restores the untrimmed ones* for transcripts carrying `_rna_edit`
+  attributes. The inferred rule and the real one agree on the sample and
+  disagree in general.
+
+So: **a rule that matches the observed records is a hypothesis, not the rule.**
+State it in the plan as a quotation from the source, and say which records
+confirm it. If the source cannot be found, say so in the plan rather than
+inferring — an inferred rule is a defect with a passing test.
+
 #### 1b. Write the plan to a dated artifact
 
 `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`, in the shape of the files already
@@ -357,6 +404,11 @@ do not, stop and say so — you cannot attribute a later mismatch to your fix wh
 the starting point was already red.
 
 ### 3. Reproduce the defect with a test that fails now
+
+Before writing it, re-read the rule you quoted in step 1a-bis. The test encodes
+the rule, so a test built from observed behaviour rather than from the source
+locks in whatever the engine happens to do.
+
 
 Write the failing test before the fix, in the repo step 1 identified as the
 owner of the behaviour. The
