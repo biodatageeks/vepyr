@@ -1,0 +1,303 @@
+---
+name: vepyr-fix
+description: Apply a vepyr correctness or performance fix end to end across datafusion-bio-formats, datafusion-bio-functions and vepyr. Capture a perf and md5 parity baseline before any edit, implement, open one draft PR per repo with the pin cascade, drive the codex and claude review loop to green, then re-verify against the baseline before declaring anything ready. It never merges. It hands green, verified PRs to a human for the final review and leaves the merge and the post-merge re-pin to them. Use this whenever the user wants to fix, implement or land a VEP parity bug, act on a filed vepyr issue, change the annotation engine or the VCF reader, or asks for PRs across the engine repos, even when they name only one repo, because a pin bump in the others is almost always required.
+---
+
+# Applying a vepyr fix
+
+A vepyr fix usually spans three repos, and the two things that decide whether it
+landed well are measured on this machine rather than argued about: byte-level
+md5 parity against Ensembl VEP, and wall/phase timings compared to the same
+host's own earlier numbers. Capture both **before** touching code, so the
+end-state comparison means something. A baseline taken after the change is not
+a baseline.
+
+Harnesses this skill drives, all already in the repo:
+`performance-tests/vepyr/scripts/` (worker scaling) and
+`e2e-testing/scripts/` (md5 concordance and the parity gate).
+
+## Scope
+
+**In scope:** one fix, or a small coherent group of fixes, that changes
+annotation behaviour or the VCF reader — the shape of the issues filed as
+`biodatageeks/vepyr#92`–`#99`.
+
+**Out of scope:** merging. This skill takes the work to the point where a human
+can review and merge it, and stops there — see step 8. Also out of scope:
+adding a plugin (use the `vep-add-plugin` skill), rebuilding or republishing
+caches, and cutting a release. Those have their own gates and their own
+runbooks.
+
+## Before you start
+
+```bash
+export DATA_VEPYR_DIR=~/workspace/data_vepyr   # required, no default; every path below hangs off it
+uptime                                          # this host is SHARED — see Measurement traps
+df -g "$DATA_VEPYR_DIR"                         # plain output above 1 worker wants ~65 GiB free
+
+RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr
+```
+
+That last line is the build every measured run uses (`docs/performance.md`,
+`docs/developers.md`). It is a release build with native CPU instructions, so a
+benchmark taken against a `maturin develop` tree is measuring a different
+binary and is not comparable with anything. Use the same command, with the same
+`RUSTFLAGS`, for the baseline in step 1 and the re-verification in step 8 — a
+flag that differs between the bookends silently turns a codegen difference into
+an apparent regression or win.
+
+## Workflow
+
+### 1. Capture the baseline — both halves, before any edit
+
+Put everything in one run directory so the final comparison is a diff, not a
+memory exercise:
+
+```bash
+RUN=e2e-testing/results/fix-$(date +%Y%m%d-%H%M)/baseline && mkdir -p "$RUN"
+```
+
+**Performance.** The trace is the signal that matters; wall clock is only a
+coarse alarm. Export the tracing variables, because the runner does not set
+them:
+
+```bash
+export VEP_PIPELINE_TRACE=1 VEP_ENGINE_PROFILE=1
+cd performance-tests/vepyr/scripts
+
+./run_vepyr_merged_worker_scaling.sh 8      2>"$RUN/warmup.err"   # DISCARD this one
+./run_vepyr_merged_worker_scaling.sh 8 1    2>"$RUN/perf.err" | tee "$RUN/perf.out"
+```
+
+The whole sweep is about 15 minutes, so none of this is a costly ceremony. The
+first run of a session reads about 35% slow at 8 workers, so the warm-up is
+still not optional — without it the baseline is inflated and the final comparison
+looks like a free win. The wrapper takes bare worker integers after its flags
+(`--force`, `--compression plain|bgzf|gzip`,
+`--require-separate-filesystems`). To raise the runner's 40 GiB floor, call the
+Python runner directly, since the wrapper does not forward that flag:
+
+```bash
+uv run python run_vepyr_worker_scaling.py \
+  --input-vcf "$DATA_VEPYR_DIR/input/HG002_normalized.vcf.gz" \
+  --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" --cache-type merged \
+  --reference-fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
+  --ssd-output-dir /tmp/vepyr-perf --archive-dir "$DATA_VEPYR_DIR/archive" \
+  --expected-records 4096123 --minimum-free-gib 65 --workers 8 1
+```
+
+`4096123` is the record count of the normalized HG002 input, which is the
+`bcftools norm -m -both` output of the GIAB benchmark (`docs/testing-vep.md`).
+Annotating raw multi-allelic input is a different measurement and a different
+correctness question, so keep to the normalized file.
+
+**Quality.** Hash the bodies in strict mode. `canonical` is the default and it
+rewrites QUAL and sorts INFO keys before hashing, which is useful for triage
+and wrong for a parity claim:
+
+```bash
+cd e2e-testing/scripts
+uv run python run_comparison.py --release 116 --chroms all \
+  --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out"
+uv run python verify_parity_gate.py --release 116 --profile merged --chroms 1-22 \
+  | tee "$RUN/gate.out"
+```
+
+The two scripts take contigs differently: `run_comparison.py` wants names or
+`all`, while `verify_parity_gate.py` also expands numeric ranges like `1-22`.
+Passing `1-22` to the former treats it as one contig name and compares nothing.
+
+`md5_concordance.py` hashes header and body separately and excludes the `##VEP=`
+and `##datafusion-bio-function-vep=` provenance lines, so a body match is a real
+record-for-record match and a header mismatch alone is usually just provenance.
+Use `--pair VEP_VCF VEPYR_VCF --explain` on a single chromosome when a body
+digest differs and you need the offending records.
+
+**Gate:** the baseline body digests must already match. If they do not, stop and
+say so — you cannot attribute a later mismatch to your fix when the starting
+point was already red.
+
+### 2. Reproduce the defect with a test that fails now
+
+Write the failing test before the fix, in the repo that owns the behaviour. The
+issues filed for this project already carry proposed tests with positive
+controls; reuse them rather than inventing new ones. A fix whose test never
+failed proves nothing about the fix.
+
+Note which harness can even see the defect. The chr1 golden fixture holds 91
+SNVs and 9 indels with no MNV, no multi-allelic site and no `ALT=.` record, so a
+green golden gate is not evidence for those paths — add a fixture that contains
+the shape you are fixing.
+
+### 3. Implement in dependency order
+
+`datafusion-bio-formats` → `datafusion-bio-functions` → `vepyr`. While
+iterating, point the downstream repos at your local checkouts with a temporary
+Cargo `[patch]` rather than pushing to get a rev, and remember that the patch is
+scratch state that must not reach a PR.
+
+While iterating locally, `env -u CONDA_PREFIX uv run maturin develop` is the
+faster rebuild. Both `VIRTUAL_ENV` and `CONDA_PREFIX` are set on this machine
+and maturin refuses that combination, and the refusal is quiet: the previously
+built extension in `.venv` keeps serving, so you test old code believing it is
+new. Rebuild with the native release command before any timing.
+
+Lint through pre-commit, never directly — `uv run ruff` finds nothing in
+`.venv` and falls through to pyenv:
+
+```bash
+cargo fmt && cargo clippy --all-targets -- -D warnings
+uv run pre-commit run ruff --all-files     # note: the hook passes --fix and rewrites code
+```
+
+### 4. Open one PR per repo, with the pin cascade
+
+Open upstream first and pin each downstream PR to the **head commit** of the PR
+below it, so reviewers see a tree that builds:
+
+| PR | pins |
+|---|---|
+| formats | nothing |
+| functions | formats PR head |
+| vepyr | functions PR head |
+
+Write the body from a file. `gh pr edit` reports success and changes nothing, so
+edit through the API and read the body back to confirm:
+
+Open them as drafts. The gates in step 7 have not run yet, so a PR that looks
+ready before it is verified invites a review of unproven work — and `gh pr
+ready` in step 8 is then the honest signal that it has been. Draft PRs still
+fire `claude-code-review.yml`, which has no draft guard, so the review loop is
+not delayed by this.
+
+```bash
+gh pr create --draft --repo biodatageeks/<repo> --title "..." --body-file /tmp/pr-body.md
+gh api -X PATCH repos/biodatageeks/<repo>/pulls/<n> -f body="$(cat /tmp/pr-body.md)"
+gh api repos/biodatageeks/<repo>/pulls/<n> --jq .body | head -5
+```
+
+### 5. Ask both reviewers
+
+Each repo runs `claude-code-review.yml` automatically when a PR opens or gets
+new commits. The two on-demand reviewers answer comments:
+
+```bash
+for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
+  gh pr comment <n> --repo "biodatageeks/$r" --body "@codex review"
+  gh pr comment <n> --repo "biodatageeks/$r" --body "@claude review"
+done
+```
+
+`@codex review` draws a reply from `chatgpt-codex-connector[bot]` and `@claude
+review` from `claude[bot]`. Codex has no committed workflow in any of the three
+repos — it is a GitHub App on the repo — so if no reply arrives, check the app
+rather than hunting for a broken workflow file.
+
+### 6. Iterate to green under a monitor
+
+Rather than polling by hand, arm one persistent monitor that emits a line
+whenever a check concludes or a new bot comment lands, then work on the findings
+as they arrive:
+
+```bash
+prev=""
+while true; do
+  cur=$(for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
+          gh pr checks <n> --repo "biodatageeks/$r" --json name,bucket \
+            --jq ".[] | select(.bucket!=\"pending\") | \"$r \(.name): \(.bucket)\"" 2>/dev/null
+          gh pr view <n> --repo "biodatageeks/$r" --json comments \
+            --jq ".comments[] | select(.author.login|test(\"bot\")) | \"$r comment \(.createdAt)\"" 2>/dev/null
+        done | sort)
+  comm -13 <(echo "$prev") <(echo "$cur")
+  prev=$cur
+  sleep 120
+done
+```
+
+Address each finding on its merits. Reviewer feedback here is frequently about
+measurement rather than code, and a bot can be wrong — verify a claim against
+the source before acting on it, and say so in the thread when you disagree.
+Push, then re-comment `@claude review` to get a fresh pass; a review does not
+re-run itself on a push.
+
+**Gate:** green means, simultaneously across all three PRs, that every check has
+concluded green and no bot finding is left unanswered. One repo going green
+while another has an open finding is not green.
+
+### 7. Re-verify against the baseline, on the stacked branches
+
+Run step 1 again, byte for byte the same commands and the same `RUSTFLAGS`, into
+a `final/` directory beside `baseline/`. Same host, same session shape, warm-up
+discarded again. Nothing is merged at this point, so measure the vepyr PR branch
+with its pin still on the functions PR head — that stack is exactly what a
+reviewer will read.
+
+**Quality gate:** every body digest matches in strict mode, and
+`verify_parity_gate.py` exits 0.
+
+**Performance gate:** no phase duration in the `[VEP_PIPELINE_TRACE]` lines
+regresses by more than 5%, and total wall time stays within 10% at both 1 and 8
+workers. The trace lines carry `stage=`, `event=` and `*_ms=` fields on stderr,
+so compare them stage by stage:
+
+```bash
+grep -h VEP_PIPELINE_TRACE baseline/perf.err | sed 's/t_ms=[0-9.]*//' | sort > /tmp/base.trace
+grep -h VEP_PIPELINE_TRACE final/perf.err    | sed 's/t_ms=[0-9.]*//' | sort > /tmp/final.trace
+diff /tmp/base.trace /tmp/final.trace
+```
+
+Report the outcome as a table of baseline against final for both worker counts,
+and state plainly which gate passed and which did not. If wall time moved but no
+phase did, suspect the host rather than the change, and say that instead of
+claiming a win.
+
+### 8. Hand off for human review — do not merge
+
+Merging is the human's call, always, even when all three PRs are green and both
+gates passed. Green means the work is ready to be judged, not that it is
+approved. So take each PR out of draft, post the evidence, and stop:
+
+```bash
+for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
+  gh pr ready <n> --repo "biodatageeks/$r"
+  gh pr comment <n> --repo "biodatageeks/$r" --body-file /tmp/handoff.md
+done
+```
+
+The hand-off comment carries what a reviewer needs and cannot easily rederive:
+the baseline-against-final table for both worker counts, which gates passed,
+the md5 mode used, the commit each pin points at, and every bot finding with
+how it was addressed. Then say in the conversation that the PRs are ready and
+name what is left for a person to do:
+
+- merge in dependency order, formats then functions then vepyr;
+- after each merge, rewrite the downstream pin from the PR head to the **merge
+  commit**, so no merged tree points at a commit that only ever existed on a
+  branch.
+
+Leave both to them. Do not merge, do not enable auto-merge, and do not push the
+post-merge re-pin ahead of the merge it depends on. If the reviewer asks you to
+merge, that is a fresh instruction for that specific merge and does not
+generalise to the rest of the stack.
+
+## Measurement traps
+
+Each of these has cost a full cycle before now.
+
+- **The host is shared.** A concurrent build elsewhere on the machine doubled
+  wall time and inflated CPU-seconds. Check `uptime` before trusting any
+  timing, and re-run rather than reasoning about a number taken under load.
+- **Discard the first run.** About 35% slow at 8 workers, every session.
+- **Attribute by ablation, not by phase boundary.** Deriving cause from RSS
+  deltas at phase boundaries produced four wrong attributions in one session.
+  Flip the flag and re-measure instead.
+- **Peak RSS needs a subprocess per configuration.** An in-process sweep reports
+  a cumulative high-water mark, not the cost of each configuration.
+- **Prefer the trace to the wall.** Phase durations settled in two runs what 24
+  whole-genome wall-clock runs could not.
+- **Build the bookends identically.** Same command, same `RUSTFLAGS`. A native
+  release build against a dev build is not a regression, it is a different
+  binary.
+- **Numbers compare only within one host.** The perf README documents server
+  paths under another user's home; those numbers are not comparable with this
+  Mac's.
