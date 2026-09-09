@@ -71,24 +71,36 @@ the separate archive directories and the record floor this needs:
 export VEP_PIPELINE_TRACE=1 VEP_ENGINE_PROFILE=1
 cd "$ROOT/performance-tests/vepyr/scripts"
 
-sweep() {  # $1 = archive dir, rest = worker counts
+sweep() {  # $1 = archive dir, rest = worker counts — one invocation each
   local archive="$1"; shift
-  uv run python run_vepyr_worker_scaling.py \
-    --input-vcf "$DATA_VEPYR_DIR/input/HG002_normalized.vcf.gz" \
-    --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" --cache-type merged \
-    --reference-fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
-    --ssd-output-dir /tmp/vepyr-perf --archive-dir "$archive" \
-    --expected-records 4096123 --minimum-free-gib 65 --force --workers "$@"
-  # Each WGS output is ~29 GB (`output_bytes: 29418788410` in the checked-in
-  # performance-tests metrics) and the gate never reads it — only `summary.tsv`
-  # and the per-worker traces. Drop it now, or the warm-up plus two measured
-  # runs need ~88 GB on top of the 65 GiB the runner checks for per worker.
-  rm -f "$archive"/*.vcf "$archive"/*.vcf.gz
+  local status=0
+  for w in "$@"; do
+    uv run python run_vepyr_worker_scaling.py \
+      --input-vcf "$DATA_VEPYR_DIR/input/HG002_normalized.vcf.gz" \
+      --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" --cache-type merged \
+      --reference-fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
+      --ssd-output-dir /tmp/vepyr-perf --archive-dir "$archive" \
+      --expected-records 4096123 --minimum-free-gib 65 --force --workers "$w" \
+      || status=$?
+    # Each WGS output is ~29 GB (`output_bytes: 29418788410` in the checked-in
+    # performance-tests metrics) and the gate never reads it — only `summary.tsv`
+    # and the per-worker traces. This has to happen BETWEEN workers: the runner
+    # re-checks free space before each one (`run_vepyr_worker_scaling.py:266-272`),
+    # so a single `--workers 8 1` call would archive 29 GB and then fail worker 1
+    # on the space check it just invalidated.
+    rm -f "$archive"/*.vcf "$archive"/*.vcf.gz
+    [ "$status" -eq 0 ] || break
+  done
+  return "$status"   # the rm must not become the function's exit status
 }
 
 sweep "$RUN/warmup" 8        # DISCARD: first run of a session reads ~35% slow at 8 workers
 sweep "$RUN/archive" 8 1     # measured
 ```
+
+One worker per invocation is what makes the cleanup effective, and saving the
+runner's status is what stops a failed sweep from looking successful — `rm`
+would otherwise be the last command and supply the function's exit code.
 
 If you have a second volume, put the archive on it and add
 `--require-separate-filesystems`. The runner checks free space per worker
@@ -145,12 +157,12 @@ set -o pipefail   # without this, tee's success hides a nonzero exit below
 cd "$ROOT/e2e-testing/scripts"
 
 uv run python run_comparison.py --release 116 --chroms all --bgzf \
-  | tee "$RUN/field.out"                       # populates `comparison` in each report
+  | tee "$RUN/field.out" || exit 1             # populates `comparison` in each report
 uv run python verify_parity_gate.py --release 116 --profile merged --chroms 1-22 \
-  | tee "$RUN/gate.out"
+  | tee "$RUN/gate.out" || exit 1
 
 uv run python run_comparison.py --release 116 --chroms all \
-  --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out"
+  --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out" || exit 1
 cp -r "$ROOT/e2e-testing/reports" "$RUN/reports"
 ```
 
@@ -158,7 +170,11 @@ cp -r "$ROOT/e2e-testing/reports" "$RUN/reports"
 contig mismatches (`comparison/cli.py:695`) and `verify_parity_gate.py` exits
 nonzero on a gate failure, but a plain `cmd | tee f` reports tee's status, so
 without it the recipe sails past exactly the failures that should stop it and
-declares a red baseline green.
+declares a red baseline green. `pipefail` alone is not enough either: it makes
+the failure visible in the pipeline's status but does not stop the block, and
+the trailing `cp` would then supply a zero exit for the whole thing. Hence the
+explicit `|| exit 1` after each pipeline — run the block as a script, not by
+pasting it into a shell you care about.
 
 The md5 pass overwrites the reports the gate just read, so copy them into the
 run directory, and re-run field mode before ever re-running the gate against
