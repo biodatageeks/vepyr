@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# A scripted stand-in for `gh`, so handoff.sh's mutating phases can be tested
+# without touching a real pull request. Reads canned state from $FAKE_DIR and
+# appends every mutating call to $FAKE_DIR/calls.log.
+#
+# State files, all optional:
+#   rollup.<step>.json   statusCheckRollup, picked by the current step counter
+#   comments.<step>.json inline review comments
+#   reviews.<step>.json  submitted reviews
+#   fail                 a substring; any command containing it exits 1
+set -o pipefail
+D=${FAKE_DIR:?FAKE_DIR unset}
+step=$(cat "$D/step" 2>/dev/null || echo 0)
+
+log() { printf '%s\n' "$*" >> "$D/calls.log"; }
+
+# State advances when `gh pr ready` is called, not on reads. That models the
+# real thing: marking ready is what triggers a new check run and can draw new
+# review feedback, so `.0` files are the pre-ready world and `.1` the post-ready
+# one. Advancing on reads instead would let a snapshot taken in phase 2 already
+# contain the finding phase 4 is supposed to notice.
+bump() { echo $((step + 1)) > "$D/step"; }
+
+pick() { # $1 = basename; newest file at or below the current step
+  local base=$1 i
+  for ((i=step; i>=0; i--)); do
+    [ -f "$D/$base.$i.json" ] && { echo "$D/$base.$i.json"; return; }
+  done
+  echo "$D/$base.0.json"
+}
+
+if [ -f "$D/fail" ] && grep -qF "$(cat "$D/fail")" <<<"$*"; then
+  echo "fake-gh: forced failure" >&2; exit 1
+fi
+
+case "$1 $2" in
+  "pr view")
+    jqexpr=""; json=""; for a in "$@"; do
+      [ "$prev" = "--jq" ] && jqexpr=$a; [ "$prev" = "--json" ] && json=$a; prev=$a
+    done
+    if [ "$json" = "isDraft" ]; then
+      [ -f "$D/already_ready" ] && echo false || echo true
+      exit 0
+    fi
+    f=$(pick rollup)
+    jq -r "$jqexpr" "$f" ;;
+  "pr ready")
+    log "ready $3"
+    # An already-ready PR accepts the command but causes no transition, so no
+    # new check run appears — the case a rerun after refused feedback hits.
+    [ -f "$D/already_ready" ] || bump
+    ;;
+  "pr comment") log "comment $3"; ;;
+  "api "*|"api")
+    jqexpr=""; for a in "$@"; do [ "$prev" = "--jq" ] && jqexpr=$a; prev=$a; done
+    url=""; for a in "$@"; do case $a in repos/*) url=$a;; esac; done
+    case "$url" in
+      */comments) f=$(pick comments) ;;
+      */reviews)  f=$(pick reviews)  ;;
+      *) echo "fake-gh: unhandled api $url" >&2; exit 2 ;;
+    esac
+    jq -r "$jqexpr" "$f" ;;
+  *) echo "fake-gh: unhandled: $*" >&2; exit 2 ;;
+esac

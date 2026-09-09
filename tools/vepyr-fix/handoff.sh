@@ -80,6 +80,16 @@ findings() {
   echo "$out" | sort -u
 }
 
+# id + base64 body. A review body can carry a finding, but bots also post a
+# fixed summary body on every pass, so the discriminator is whether the body is
+# one we have seen before on this PR — not whether it is empty.
+review_bodies() {
+  local repo=$1 n=$2 out
+  out=$(gh api --paginate "repos/$repo/pulls/$n/reviews" \
+    --jq '.[]|select(.user.login|test("\\[bot\\]"))|"\(.id)\t\(.body|@base64)"') || return 2
+  echo "$out" | sort -u
+}
+
 reviews_of() {
   local repo=$1 n=$2 out
   out=$(gh api --paginate "repos/$repo/pulls/$n/reviews" \
@@ -97,8 +107,15 @@ done
 for e in $PRS; do
   repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
   sig "$repo" "$n" > "/tmp/handoff-$k.sig.before" || exit 2
-  findings   "$repo" "$n" > "/tmp/handoff-$k.findings.before" || exit 2
-  reviews_of "$repo" "$n" > "/tmp/handoff-$k.reviews.before"  || exit 2
+  findings       "$repo" "$n" > "/tmp/handoff-$k.findings.before" || exit 2
+  reviews_of     "$repo" "$n" > "/tmp/handoff-$k.reviews.before"  || exit 2
+  review_bodies  "$repo" "$n" > "/tmp/handoff-$k.bodies.before"   || exit 2
+
+  # Whether this PR was still a draft decides what phase 3 may require. Marking
+  # an already-ready PR ready again causes no transition, so no new check run
+  # appears — waiting for one would hang a rerun after refused feedback.
+  draft=$(gh pr view "$n" --repo "$repo" --json isDraft --jq .isDraft) || exit 2
+  echo "$draft" > "/tmp/handoff-$k.wasdraft"
   gh pr ready "$n" --repo "$repo" || exit 1
 done
 
@@ -106,6 +123,14 @@ done
 for e in $PRS; do
   repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
   before=$(cat "/tmp/handoff-$k.sig.before") || exit 2
+  # Only a draft->ready transition triggers a fresh run. On a rerun the PR is
+  # already ready, so there is nothing new to wait for and the current state is
+  # what a reviewer sees.
+  if [ "$(cat "/tmp/handoff-$k.wasdraft")" != "true" ]; then
+    echo "$repo#$n: already ready, no new run to await"
+    gate "$repo" "$n" || { echo "$repo#$n is not green" >&2; exit 1; }
+    continue
+  fi
   seen_new=0
   for _ in $(seq "$TRIES"); do
     now=$(sig "$repo" "$n") || { echo "$repo#$n: rollup query failed" >&2; exit 2; }
@@ -131,6 +156,17 @@ for e in $PRS; do
 
   new_reviews=$(comm -13 "/tmp/handoff-$k.reviews.before" "/tmp/handoff-$k.reviews.after")
   [ -n "$new_reviews" ] && echo "$repo#$n: reviews submitted since ready: $(echo "$new_reviews" | tr '\n' ' ')"
+
+  # A review whose body we have never seen before is a finding, not a template.
+  review_bodies "$repo" "$n" > "/tmp/handoff-$k.bodies.after" || exit 2
+  cut -f2 "/tmp/handoff-$k.bodies.before" | sort -u > "/tmp/handoff-$k.seenbodies"
+  novel=$(cut -f2 "/tmp/handoff-$k.bodies.after" | sort -u | comm -13 "/tmp/handoff-$k.seenbodies" -)
+  if [ -n "$novel" ]; then
+    echo "$repo#$n: a review arrived carrying a body not seen before on this PR." >&2
+    echo "read it and re-run; only inline findings are matched automatically:" >&2
+    echo "$novel" | while read -r b64; do echo "$b64" | base64 --decode | head -5; echo "---"; done >&2
+    exit 1
+  fi
 
   new=$(comm -13 "/tmp/handoff-$k.findings.before" "/tmp/handoff-$k.findings.after") || exit 2
   if [ -n "$new" ]; then

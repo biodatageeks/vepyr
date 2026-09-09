@@ -23,6 +23,9 @@ Its executables are in `tools/vepyr-fix/`:
   wall time and peak RSS, at both worker counts. Exits nonzero on a regression,
   and also when there is nothing to compare, so an empty measurement can never
   read as a pass.
+- `tests/test_handoff.sh` — drives all five hand-off phases against a stubbed
+  `gh`. Run it after editing `handoff.sh`; its mutating phases cannot otherwise
+  be exercised without altering a real pull request.
 - `handoff.sh` — the hand-off. Five ordered phases, refusing if any check is
   red or still running, if the check that marking ready triggers never appears,
   or if new review feedback arrived that nobody has answered.

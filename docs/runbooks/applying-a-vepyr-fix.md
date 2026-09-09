@@ -568,6 +568,15 @@ phases and exits nonzero at the first that fails:
    are compared against the snapshot.
 5. **Only then post the hand-off comment.**
 
+Change it under test. `tools/vepyr-fix/tests/test_handoff.sh` drives all five
+phases against a stubbed `gh`, so the mutating ones can be exercised without
+touching a real pull request — which is why they were wrong for three rounds
+running. Run it after any edit:
+
+```bash
+tools/vepyr-fix/tests/test_handoff.sh
+```
+
 The hand-off comment carries what a reviewer needs and cannot easily rederive:
 the baseline-against-final table for both worker counts, which gates passed,
 the md5 mode used, the commit each pin points at, and every bot finding with
