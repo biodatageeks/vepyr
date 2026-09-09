@@ -333,7 +333,7 @@ while true; do
     # rather than the query, and treating it as a query failure would print an
     # error through the whole normal review lifecycle.
     checks=$(gh pr view "$n" --repo "$repo" --json statusCheckRollup \
-      --jq '.statusCheckRollup[] | select((.conclusion // "") != "") | "'"$r"' \(.name): \(.conclusion)"') \
+      --jq '.statusCheckRollup[] | "'"$r"' \(.name): \(if (.conclusion // "") == "" then (.status // .state // "UNKNOWN") else .conclusion end)"') \
       || failed="$failed checks:$r"
 
     # Two endpoints, because they hold different things: a bot's inline findings
@@ -377,6 +377,14 @@ newest findings are the ones that fall off. A monitor that silently reads only
 the first page reports green while the findings it has not fetched go
 unaddressed. The per-item `--jq` filters concatenate cleanly across pages; a
 filter like `length` would not, because it emits one value per page.
+
+Emit pending checks as well as concluded ones. Dropping them makes a check that
+is still running — or wedged — indistinguishable from one that does not exist,
+and the hand-off in step 8 would then see nothing wrong. Note the fallback has
+to test for an empty string explicitly: a pending `CheckRun` carries
+`conclusion: ""` and `status: "IN_PROGRESS"`, and `//` falls back only on `null`
+or `false`, so `.conclusion // .status` yields the empty string and silently
+loses the state.
 
 Carry the review id and its body length, not just the state. A reviewer can put
 a finding in the review body itself, and `COMMENTED` with feedback then looks
@@ -527,6 +535,18 @@ gates passed. Green means the work is ready to be judged, not that it is
 approved. So take each PR out of draft, post the evidence, and stop:
 
 ```bash
+# Prove every check concluded green before anything leaves draft. The monitor is
+# informational; this is the gate. A check still running is a refusal, not a
+# detail — "the others went green" is exactly how a stuck one gets handed off.
+for e in $PRS; do
+  r=${e%%:*}; n=${e##*:}; repo="biodatageeks/$r"
+  roll=$(gh pr view "$n" --repo "$repo" --json statusCheckRollup \
+    --jq '.statusCheckRollup[] | "\(.name)\t\(if (.conclusion // "") == "" then (.status // .state // "UNKNOWN") else .conclusion end)"') || exit 1
+  [ -n "$roll" ] || { echo "$repo#$n: no checks reported at all"; exit 1; }
+  echo "$roll" | awk -F'\t' '$2=="SUCCESS"||$2=="SKIPPED"||$2=="NEUTRAL"{next}
+    {print "'"$repo"'#'"$n"': "$1" is "$2; bad++} END{exit bad?1:0}' || exit 1
+done
+
 for e in $PRS; do
   r=${e%%:*}; n=${e##*:}
   gh pr ready "$n" --repo "biodatageeks/$r" || exit 1
