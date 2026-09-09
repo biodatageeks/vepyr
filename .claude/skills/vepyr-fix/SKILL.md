@@ -535,50 +535,29 @@ gates passed. Green means the work is ready to be judged, not that it is
 approved. So take each PR out of draft, post the evidence, and stop:
 
 ```bash
-# Every check concluded green, for one PR. Exit 1 means not yet, 2 means the
-# query itself failed — a distinction the wait loop below needs.
-gate() {
-  local repo="$1" n="$2" roll
-  roll=$(gh pr view "$n" --repo "$repo" --json statusCheckRollup \
-    --jq '.statusCheckRollup[] | "\(.name)\t\(if (.conclusion // "") == "" then (.status // .state // "UNKNOWN") else .conclusion end)"') || return 2
-  [ -n "$roll" ] || { echo "$repo#$n: no checks reported at all"; return 2; }
-  echo "$roll" | awk -F'\t' -v id="$repo#$n" '
-    $2=="SUCCESS"||$2=="SKIPPED"||$2=="NEUTRAL"{next}
-    {print id": "$1" is "$2; bad++} END{exit bad?1:0}'
-}
-
-# 1. Nothing leaves draft while anything is red or still running.
-for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gate "biodatageeks/$r" "$n" || exit 1
-done
-
-# 2. Mark ready. This re-triggers claude-code-review.yml, which lists
-#    ready_for_review among its events, so each PR goes transiently pending
-#    again — gating before this point says nothing about the checks it starts.
-for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gh pr ready "$n" --repo "biodatageeks/$r" || exit 1
-done
-
-# 3. Wait out the checks that step 2 started, then gate again. Only now is
-#    "ready" a claim about the state a reviewer will actually see.
-for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}; repo="biodatageeks/$r"
-  for _ in $(seq 60); do gate "$repo" "$n" >/dev/null 2>&1 && break; sleep 30; done
-  gate "$repo" "$n" || { echo "$repo#$n did not settle green after ready_for_review"; exit 1; }
-done
-
-# 4. Only then, the hand-off comment.
-for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gh pr comment "$n" --repo "biodatageeks/$r" --body-file /tmp/handoff.md || exit 1
-done
+bash "$ROOT/.claude/skills/vepyr-fix/scripts/handoff.sh" "$PRS" /tmp/handoff.md
 ```
 
-Guard every one of these. A hand-off that half succeeds — one PR still a draft
-while its comment claims the stack is ready — is worse than one that fails
-outright, because nobody goes looking.
+This is a script rather than a block of shell in a document because the ordering
+is the whole point and it took three review rounds to get right. It runs five
+phases and exits nonzero at the first that fails:
+
+1. **Refuse while anything is red or running.** Nothing leaves draft otherwise.
+2. **Snapshot, then mark ready.** The current check-run set and the current bot
+   feedback are both recorded first.
+3. **Wait for the run that marking ready started.** `ready_for_review` is one of
+   `claude-code-review.yml`'s trigger events, so a gate that runs before this
+   says nothing about the check it causes — and GitHub takes a moment to
+   register the new run, so a poll that accepts the first green rollup it sees
+   is reading the *previous* result. It waits for the check-run set to change
+   before accepting any green. A query failure aborts rather than retrying,
+   because half an hour of silent polling is what a broken credential looks like
+   otherwise.
+4. **Refuse if that run produced new feedback.** A review can conclude green
+   while carrying a finding, so the check status cannot answer step 6's
+   requirement that nothing is left unanswered. The bot comment and review ids
+   are compared against the snapshot.
+5. **Only then post the hand-off comment.**
 
 The hand-off comment carries what a reviewer needs and cannot easily rederive:
 the baseline-against-final table for both worker counts, which gates passed,
