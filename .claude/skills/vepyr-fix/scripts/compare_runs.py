@@ -91,6 +91,10 @@ def read_summary(root: Path) -> dict[str, dict[str, float]]:
                     f"{path}: worker {worker} has no numeric annotation_seconds/"
                     f"max_rss_kb -- the run did not report, fix the run"
                 )
+    if not out:
+        # A header-only summary.tsv would otherwise leave nothing to iterate, so
+        # the wall and RSS bars would be skipped and the run still called a PASS.
+        sys.exit(f"{path}: no data rows -- the sweep recorded nothing")
     return out
 
 
@@ -98,6 +102,9 @@ def compare_summary(base: Path, final: Path, wall_pct: float, rss_pct: float) ->
     """Print the wall/RSS table and count how many bars were exceeded."""
     before, after = read_summary(base), read_summary(final)
     workers = sorted(before.keys() | after.keys(), key=int)
+    if not workers:
+        print("no worker rows to compare", file=sys.stderr)
+        return 1
     failures = 0
 
     print(f"\n{'workers':>7} {'metric':>8} {'base':>14} {'final':>14} {'delta':>8}")

@@ -253,9 +253,26 @@ fire `claude-code-review.yml`, which has no draft guard, so the review loop is
 not delayed by this.
 
 ```bash
-gh pr create --draft --repo biodatageeks/<repo> --title "..." --body-file /tmp/pr-body.md
-gh api -X PATCH repos/biodatageeks/<repo>/pulls/<n> -f body="$(cat /tmp/pr-body.md)"
-gh api repos/biodatageeks/<repo>/pulls/<n> --jq .body | head -5
+set -o pipefail
+
+# Record the number each repo's PR got. They differ, and reusing one number
+# across the three comments on unrelated PRs — or silently acts on the wrong one.
+PRS=""
+for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
+  url=$(gh pr create --draft --repo "biodatageeks/$r" \
+          --title "..." --body-file "/tmp/pr-$r.md") || exit 1
+  PRS="$PRS $r:${url##*/}"
+done
+echo "PRS=$PRS"   # e.g. " datafusion-bio-formats:41 datafusion-bio-functions:207 vepyr:100"
+
+# gh pr edit reports success and changes nothing, so patch through the API and
+# read the body back. `| head` would otherwise mask a failed fetch with its own
+# clean exit, which is why pipefail is set above.
+for e in $PRS; do
+  r=${e%%:*}; n=${e##*:}
+  gh api -X PATCH "repos/biodatageeks/$r/pulls/$n" -f body="$(cat "/tmp/pr-$r.md")" >/dev/null || exit 1
+  gh api "repos/biodatageeks/$r/pulls/$n" --jq .body | head -5 || exit 1
+done
 ```
 
 ### 5. Ask both reviewers
@@ -264,11 +281,16 @@ Each repo runs `claude-code-review.yml` automatically when a PR opens or gets
 new commits. The two on-demand reviewers answer comments:
 
 ```bash
-for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
-  gh pr comment <n> --repo "biodatageeks/$r" --body "@codex review"
-  gh pr comment <n> --repo "biodatageeks/$r" --body "@claude review"
+for e in $PRS; do
+  r=${e%%:*}; n=${e##*:}
+  gh pr comment "$n" --repo "biodatageeks/$r" --body "@codex review"  || exit 1
+  gh pr comment "$n" --repo "biodatageeks/$r" --body "@claude review" || exit 1
 done
 ```
+
+Guard both. If the codex request fails and the claude one succeeds, an unguarded
+loop still returns zero and the workflow walks into its "both reviewers" gate
+with only one of them having looked.
 
 `@codex review` draws a reply from `chatgpt-codex-connector[bot]` and `@claude
 review` from `claude[bot]`. Codex has no committed workflow in any of the three
@@ -299,8 +321,18 @@ done
 Address each finding on its merits. Reviewer feedback here is frequently about
 measurement rather than code, and a bot can be wrong — verify a claim against
 the source before acting on it, and say so in the thread when you disagree.
-Push, then re-comment `@claude review` to get a fresh pass; a review does not
-re-run itself on a push.
+Push, then re-request **both** reviewers on the repos you pushed to. Neither
+re-runs itself on a push, and codex in particular has no synchronize-triggered
+workflow at all, so without a fresh `@codex review` it never sees the commits
+you are actually proposing:
+
+```bash
+for e in $PRS; do
+  r=${e%%:*}; n=${e##*:}
+  gh pr comment "$n" --repo "biodatageeks/$r" --body "@codex review"  || exit 1
+  gh pr comment "$n" --repo "biodatageeks/$r" --body "@claude review" || exit 1
+done
+```
 
 **Re-pin downstream after every upstream push.** This is the step that is easy
 to skip and expensive to miss. A review fix landing on the formats branch moves
@@ -400,11 +432,16 @@ gates passed. Green means the work is ready to be judged, not that it is
 approved. So take each PR out of draft, post the evidence, and stop:
 
 ```bash
-for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
-  gh pr ready <n> --repo "biodatageeks/$r"
-  gh pr comment <n> --repo "biodatageeks/$r" --body-file /tmp/handoff.md
+for e in $PRS; do
+  r=${e%%:*}; n=${e##*:}
+  gh pr ready "$n" --repo "biodatageeks/$r" || exit 1
+  gh pr comment "$n" --repo "biodatageeks/$r" --body-file /tmp/handoff.md || exit 1
 done
 ```
+
+Guard `gh pr ready` too. A hand-off that half succeeds — one PR still a draft
+while its comment claims the stack is ready — is worse than one that fails
+outright, because nobody goes looking.
 
 The hand-off comment carries what a reviewer needs and cannot easily rederive:
 the baseline-against-final table for both worker counts, which gates passed,
