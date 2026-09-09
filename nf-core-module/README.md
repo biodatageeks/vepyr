@@ -84,6 +84,28 @@ Treat any *third* failure as a genuine regression.
    this runs.
 4. **Open the nf-core/modules PR.**
 
+## Testing the container on Apple Silicon
+
+The biocontainers image is linux-64 only, and it **cannot run under emulation on
+Apple Silicon**. Docker's amd64 guest advertises only up to `sse4_2`, with no AVX,
+so Rust-built extensions abort immediately:
+
+```
+$ docker run --platform linux/amd64 quay.io/biocontainers/vepyr:0.6.0--py312h46b6c60_0 \
+      sh -c 'python -c "import vepyr"; echo EXIT=$?'
+EXIT=132          # 128 + SIGILL
+```
+
+This is the emulator, not the package. In the same image `polars` — a third-party
+Rust extension nobody here builds — fails identically, while `pyarrow` (C++, with
+runtime CPU dispatch) imports fine. Bioconda CI's native x86-64 Linux and mulled
+container tests pass.
+
+The practical consequence: `nf-test` runs of this module on an Apple Silicon Mac
+will fail in a way that looks like a module bug and is not one. Run them on x86-64,
+or build an arm64 image — Wave can, whereas bioconda publishes linux-64 containers
+only.
+
 ## Scope
 
 Eleven flags, covering the configuration validated against Ensembl VEP
