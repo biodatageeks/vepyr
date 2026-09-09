@@ -108,6 +108,23 @@ echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-rev
 out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
 check "exit 0" 0 "$rc"; check "comment posted" 1 "$(calls comment)"
 
+echo "13. a MULTILINE historical template does not exempt a later finding"
+setup; green T1 > "$D/rollup.0.json"; green T2 > "$D/rollup.1.json"
+ids > "$D/comments.0.json"
+ML='<!-- codex-pull-request-review-summary -->\n## Summary\nno findings'
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"'"$ML"'"}]' > "$D/reviews.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"'"$ML"'"},{"id":2,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary -->\nP1: still broken"}]' > "$D/reviews.1.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 1" 1 "$rc"; check "no comment" 0 "$(calls comment)"
+
+echo "14. a MULTILINE template repeated is still clean"
+setup; green T1 > "$D/rollup.0.json"; green T2 > "$D/rollup.1.json"
+ids > "$D/comments.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"'"$ML"'"}]' > "$D/reviews.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"'"$ML"'"},{"id":2,"user":{"login":"codex[bot]"},"body":"'"$ML"'"}]' > "$D/reviews.1.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 0" 0 "$rc"; check "comment posted" 1 "$(calls comment)"
+
 echo
 echo "passed=$pass failed=$fail"
 [ "$fail" -eq 0 ]

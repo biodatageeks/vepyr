@@ -50,6 +50,14 @@ TRIES=${HANDOFF_MAX_POLLS:-60}
 # a body this PR has already shown — with commit shas and timestamps normalised
 # out so the same template on a later commit still matches.
 CLEAN_BODY_MARKER=${HANDOFF_CLEAN_BODY_MARKER:-codex-pull-request-review-summary}
+# One line per body, whatever the body contains. Storing normalised bodies
+# directly makes every LINE a record, and `grep -F` treats a multiline pattern
+# as a set of alternatives — between them, a marker line from a multiline
+# template would match a later body that merely starts the same way.
+body_digest() {
+  normalise_body | { command -v sha256sum >/dev/null 2>&1 && sha256sum || shasum -a 256; } | cut -d' ' -f1
+}
+
 normalise_body() {
   sed -E -e 's/[0-9a-f]{7,40}/SHA/g' \
          -e 's/[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z?/TS/g' \
@@ -180,7 +188,7 @@ for e in $PRS; do
   : > "/tmp/handoff-$k.templates"
   while IFS=$(printf '\t') read -r _ b64; do
     [ -n "$b64" ] || continue
-    printf '%s' "$b64" | base64 --decode 2>/dev/null | normalise_body >> "/tmp/handoff-$k.templates"
+    printf '%s' "$b64" | base64 --decode 2>/dev/null | body_digest >> "/tmp/handoff-$k.templates"
   done < "/tmp/handoff-$k.bodies.before"
   sort -u "/tmp/handoff-$k.templates" -o "/tmp/handoff-$k.templates"
 
@@ -190,9 +198,9 @@ for e in $PRS; do
     grep -qx "$rid" "/tmp/handoff-$k.seenreviews" && continue
     body=$(printf '%s' "$b64" | base64 --decode 2>/dev/null)
     [ -z "$body" ] && continue
-    norm=$(printf '%s' "$body" | normalise_body)
+    dgst=$(printf '%s' "$body" | body_digest)
     if printf '%s' "$body" | grep -qF "$CLEAN_BODY_MARKER" \
-       && grep -qxF "$norm" "/tmp/handoff-$k.templates"; then
+       && grep -qxF "$dgst" "/tmp/handoff-$k.templates"; then
       continue
     fi
     echo "$repo#$n: review $rid carries a body that is not this PR's routine summary:" >&2
