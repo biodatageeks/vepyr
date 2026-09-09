@@ -41,12 +41,20 @@ key() { printf '%s' "$1" | tr -c 'A-Za-z0-9_' '_'; }
 
 POLL=${HANDOFF_POLL_SECONDS:-30}
 TRIES=${HANDOFF_MAX_POLLS:-60}
-# A review body containing this marker is the reviewer's routine summary, posted
-# on every pass including clean ones. Anything else in a NEW review body is
-# treated as a finding. Matching on the template rather than on bodies seen
-# before matters: a reviewer that repeats an earlier finding verbatim gets a new
-# review id, and history-based matching would wave it through as already seen.
+# Recognising the reviewer's routine summary needs BOTH tests, because each
+# alone lets one real case through:
+#   * containment alone exempts a body carrying the marker AND a finding;
+#   * "matches some body seen before" alone exempts a finding the reviewer
+#     repeats verbatim, since that text is already in the history.
+# So a new body is clean only when it carries the marker AND matches, in full,
+# a body this PR has already shown — with commit shas and timestamps normalised
+# out so the same template on a later commit still matches.
 CLEAN_BODY_MARKER=${HANDOFF_CLEAN_BODY_MARKER:-codex-pull-request-review-summary}
+normalise_body() {
+  sed -E -e 's/[0-9a-f]{7,40}/SHA/g' \
+         -e 's/[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z?/TS/g' \
+         -e 's/[[:space:]]+/ /g' -e 's/^ //' -e 's/ $//'
+}
 
 # 0 every check concluded green; 1 not yet; 2 the query itself failed.
 gate() {
@@ -167,14 +175,27 @@ for e in $PRS; do
   # has been considered; the body decides whether it says anything.
   review_bodies "$repo" "$n" > "/tmp/handoff-$k.bodies.after" || exit 2
   cut -f1 "/tmp/handoff-$k.bodies.before" | sort -u > "/tmp/handoff-$k.seenreviews"
+  # The templates this PR has already shown, normalised. A new body is clean
+  # only if it matches one of them in full.
+  : > "/tmp/handoff-$k.templates"
+  while IFS=$(printf '\t') read -r _ b64; do
+    [ -n "$b64" ] || continue
+    printf '%s' "$b64" | base64 --decode 2>/dev/null | normalise_body >> "/tmp/handoff-$k.templates"
+  done < "/tmp/handoff-$k.bodies.before"
+  sort -u "/tmp/handoff-$k.templates" -o "/tmp/handoff-$k.templates"
+
   body_finding=0
   while IFS=$(printf '\t') read -r rid b64; do
     [ -n "$rid" ] || continue
     grep -qx "$rid" "/tmp/handoff-$k.seenreviews" && continue
     body=$(printf '%s' "$b64" | base64 --decode 2>/dev/null)
     [ -z "$body" ] && continue
-    printf '%s' "$body" | grep -qF "$CLEAN_BODY_MARKER" && continue
-    echo "$repo#$n: review $rid carries a body that is not the routine summary:" >&2
+    norm=$(printf '%s' "$body" | normalise_body)
+    if printf '%s' "$body" | grep -qF "$CLEAN_BODY_MARKER" \
+       && grep -qxF "$norm" "/tmp/handoff-$k.templates"; then
+      continue
+    fi
+    echo "$repo#$n: review $rid carries a body that is not this PR's routine summary:" >&2
     printf '%s\n' "$body" | head -8 >&2
     body_finding=1
   done < "/tmp/handoff-$k.bodies.after"

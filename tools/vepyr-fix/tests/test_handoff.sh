@@ -93,6 +93,21 @@ echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-rev
 out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
 check "exit 0" 0 "$rc"; check "comment posted" 1 "$(calls comment)"
 
+echo "11. a finding appended to the clean marker is still refused"
+setup; green T1 > "$D/rollup.0.json"; green T2 > "$D/rollup.1.json"
+ids > "$D/comments.0.json"; ids 1 > "$D/reviews.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"'"$CLEAN"'"},{"id":2,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary -->\nP1: still broken"}]' > "$D/reviews.1.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 1" 1 "$rc"; check "no comment" 0 "$(calls comment)"
+
+echo "12. the template with only volatile parts changed is still clean"
+setup; green T1 > "$D/rollup.0.json"; green T2 > "$D/rollup.1.json"
+ids > "$D/comments.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary --> reviewed abc1234 at 2026-09-09T10:00:00Z"}]' > "$D/reviews.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary --> reviewed abc1234 at 2026-09-09T10:00:00Z"},{"id":2,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary --> reviewed def5678 at 2026-09-09T11:22:33Z"}]' > "$D/reviews.1.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 0" 0 "$rc"; check "comment posted" 1 "$(calls comment)"
+
 echo
 echo "passed=$pass failed=$fail"
 [ "$fail" -eq 0 ]
