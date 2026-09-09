@@ -79,11 +79,23 @@ sweep() {  # $1 = archive dir, rest = worker counts
     --reference-fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
     --ssd-output-dir /tmp/vepyr-perf --archive-dir "$archive" \
     --expected-records 4096123 --minimum-free-gib 65 --force --workers "$@"
+  # Each WGS output is ~29 GB (`output_bytes: 29418788410` in the checked-in
+  # performance-tests metrics) and the gate never reads it — only `summary.tsv`
+  # and the per-worker traces. Drop it now, or the warm-up plus two measured
+  # runs need ~88 GB on top of the 65 GiB the runner checks for per worker.
+  rm -f "$archive"/*.vcf "$archive"/*.vcf.gz
 }
 
 sweep "$RUN/warmup" 8        # DISCARD: first run of a session reads ~35% slow at 8 workers
 sweep "$RUN/archive" 8 1     # measured
 ```
+
+If you have a second volume, put the archive on it and add
+`--require-separate-filesystems`. The runner checks free space per worker
+against the SSD directory, so archiving onto the same filesystem it is
+measuring recovers nothing between workers — it prints a note saying so
+(`run_vepyr_worker_scaling.py:242-244`). The `rm` above is what makes a
+single-volume machine viable.
 
 `--force` on the measured sweep is load-bearing. The runner refuses to start
 when any SSD or archive artifact for that worker count already exists
@@ -129,6 +141,7 @@ leaves `comparison` null because that field is only populated in field mode
 gate on it, then take the digests:
 
 ```bash
+set -o pipefail   # without this, tee's success hides a nonzero exit below
 cd "$ROOT/e2e-testing/scripts"
 
 uv run python run_comparison.py --release 116 --chroms all --bgzf \
@@ -140,6 +153,12 @@ uv run python run_comparison.py --release 116 --chroms all \
   --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out"
 cp -r "$ROOT/e2e-testing/reports" "$RUN/reports"
 ```
+
+`set -o pipefail` is not decoration. `run_comparison.py` returns 1 when any
+contig mismatches (`comparison/cli.py:695`) and `verify_parity_gate.py` exits
+nonzero on a gate failure, but a plain `cmd | tee f` reports tee's status, so
+without it the recipe sails past exactly the failures that should stop it and
+declares a red baseline green.
 
 The md5 pass overwrites the reports the gate just read, so copy them into the
 run directory, and re-run field mode before ever re-running the gate against
@@ -263,6 +282,24 @@ the source before acting on it, and say so in the thread when you disagree.
 Push, then re-comment `@claude review` to get a fresh pass; a review does not
 re-run itself on a push.
 
+**Re-pin downstream after every upstream push.** This is the step that is easy
+to skip and expensive to miss. A review fix landing on the formats branch moves
+its head, but the functions PR still pins the commit from step 4, and vepyr
+still pins the old functions head. All three PRs then go green independently
+while the tree a reviewer reads — and the tree step 7 measures — silently
+excludes the fixes you just made. So after any upstream push, walk the cascade
+in dependency order before re-requesting review or running a gate:
+
+```bash
+formats=$(gh pr view <n> --repo biodatageeks/datafusion-bio-formats --json headRefOid --jq .headRefOid)
+# bump the formats rev in datafusion-bio-functions, cargo check, commit, push
+functions=$(gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json headRefOid --jq .headRefOid)
+# bump the functions rev in vepyr, rebuild, commit, push
+```
+
+Confirm each pin resolves to the commit you meant before moving on, because a
+pin that silently kept its old value is indistinguishable from a green run.
+
 **Gate:** green means, simultaneously across all three PRs, that every check has
 concluded green and no bot finding is left unanswered. One repo going green
 while another has an open finding is not green.
@@ -274,7 +311,9 @@ a `final/` directory beside `baseline/`, then set `BASE` and `FINAL` to the two
 absolute run directories for the comparisons below. Same host, same session shape, warm-up
 discarded again. Nothing is merged at this point, so measure the vepyr PR branch
 with its pin still on the functions PR head — that stack is exactly what a
-reviewer will read.
+reviewer will read. Check first that every pin points at its upstream PR's
+current head, per step 6: measuring a stale cascade produces numbers for code
+nobody is going to merge.
 
 **Quality gate:** every body digest matches in strict mode, and
 `verify_parity_gate.py` exits 0.
@@ -283,24 +322,28 @@ reviewer will read.
 
 | Metric | Source | Bar |
 |---|---|---|
-| phase durations | `[VEP_PIPELINE_TRACE]` on stderr | no phase regresses >5% |
+| phase durations | `[VEP_PIPELINE_TRACE]` in `archive/merged_workers<N>.stderr.txt` | no phase regresses >5% |
 | total wall | `annotation_seconds` in `summary.tsv` | within 10% |
 | peak RSS | `max_rss_kb` in `summary.tsv` | within 10% |
 
-The trace lines carry `stage=`, `event=` and `*_ms=` fields, so compare them
-stage by stage:
+Compare the phases with the bundled script:
 
 ```bash
-trace() { grep -h VEP_PIPELINE_TRACE "$1"/archive/merged_workers*.stderr.txt \
-            | sed 's/t_ms=[0-9.]*//' | sort; }
-trace "$BASE" > /tmp/base.trace && trace "$FINAL" > /tmp/final.trace
-test -s /tmp/base.trace && test -s /tmp/final.trace || {
-  echo "no trace lines captured — the gate would pass on nothing"; exit 1; }
-diff /tmp/base.trace /tmp/final.trace
+uv run python .claude/skills/vepyr-fix/scripts/compare_traces.py \
+  "$BASE/archive" "$FINAL/archive" --max-regression-pct 5
 ```
 
-The emptiness check is the point. Two empty trace files diff clean and would
-otherwise report a green performance gate having measured nothing at all.
+The comparison is a bundled script rather than a shell one-liner for two
+reasons a `diff` cannot handle. Every `*_ms` value moves slightly between real
+runs, so byte equality rejects changes far below the 5% allowance and the gate
+becomes noise. And the traces live in one file per worker count, so they have to
+be compared per worker — a regression at 8 workers and a matching speed-up at 1
+would otherwise cancel out. The script sums each
+`(worker, stage, event, metric)` duration, ignores phases under 50 ms where
+relative swings mean nothing, exits 1 on a regression past the threshold, and
+exits nonzero rather than reporting a pass when either side has no trace lines
+at all. A phase present on one side only is also a failure: that is a shape
+change in the pipeline, not noise.
 
 Wall and memory come from the two summary files, joined on worker count. Compare
 `annotation_seconds`, not `process_elapsed_wall` — the latter is formatted for
