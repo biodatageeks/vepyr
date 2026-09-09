@@ -41,6 +41,12 @@ key() { printf '%s' "$1" | tr -c 'A-Za-z0-9_' '_'; }
 
 POLL=${HANDOFF_POLL_SECONDS:-30}
 TRIES=${HANDOFF_MAX_POLLS:-60}
+# A review body containing this marker is the reviewer's routine summary, posted
+# on every pass including clean ones. Anything else in a NEW review body is
+# treated as a finding. Matching on the template rather than on bodies seen
+# before matters: a reviewer that repeats an earlier finding verbatim gets a new
+# review id, and history-based matching would wave it through as already seen.
+CLEAN_BODY_MARKER=${HANDOFF_CLEAN_BODY_MARKER:-codex-pull-request-review-summary}
 
 # 0 every check concluded green; 1 not yet; 2 the query itself failed.
 gate() {
@@ -157,14 +163,23 @@ for e in $PRS; do
   new_reviews=$(comm -13 "/tmp/handoff-$k.reviews.before" "/tmp/handoff-$k.reviews.after")
   [ -n "$new_reviews" ] && echo "$repo#$n: reviews submitted since ready: $(echo "$new_reviews" | tr '\n' ' ')"
 
-  # A review whose body we have never seen before is a finding, not a template.
+  # Inspect the body of every review that is NEW by id. Identity decides what
+  # has been considered; the body decides whether it says anything.
   review_bodies "$repo" "$n" > "/tmp/handoff-$k.bodies.after" || exit 2
-  cut -f2 "/tmp/handoff-$k.bodies.before" | sort -u > "/tmp/handoff-$k.seenbodies"
-  novel=$(cut -f2 "/tmp/handoff-$k.bodies.after" | sort -u | comm -13 "/tmp/handoff-$k.seenbodies" -)
-  if [ -n "$novel" ]; then
-    echo "$repo#$n: a review arrived carrying a body not seen before on this PR." >&2
-    echo "read it and re-run; only inline findings are matched automatically:" >&2
-    echo "$novel" | while read -r b64; do echo "$b64" | base64 --decode | head -5; echo "---"; done >&2
+  cut -f1 "/tmp/handoff-$k.bodies.before" | sort -u > "/tmp/handoff-$k.seenreviews"
+  body_finding=0
+  while IFS=$(printf '\t') read -r rid b64; do
+    [ -n "$rid" ] || continue
+    grep -qx "$rid" "/tmp/handoff-$k.seenreviews" && continue
+    body=$(printf '%s' "$b64" | base64 --decode 2>/dev/null)
+    [ -z "$body" ] && continue
+    printf '%s' "$body" | grep -qF "$CLEAN_BODY_MARKER" && continue
+    echo "$repo#$n: review $rid carries a body that is not the routine summary:" >&2
+    printf '%s\n' "$body" | head -8 >&2
+    body_finding=1
+  done < "/tmp/handoff-$k.bodies.after"
+  if [ "$body_finding" = 1 ]; then
+    echo "address it and re-run; only inline findings are matched automatically" >&2
     exit 1
   fi
 

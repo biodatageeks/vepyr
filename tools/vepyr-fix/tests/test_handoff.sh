@@ -14,7 +14,11 @@ pass=0; fail=0
 
 green()   { echo '{"statusCheckRollup":[{"name":"lint","conclusion":"SUCCESS","status":"COMPLETED","startedAt":"'"$1"'"}]}'; }
 pending() { echo '{"statusCheckRollup":[{"name":"lint","conclusion":"","status":"IN_PROGRESS","startedAt":"'"$1"'"}]}'; }
-ids()     { printf '['; local sep=""; for i in "$@"; do printf '%s{"id":%s,"user":{"login":"codex[bot]"},"body":"x"}' "$sep" "$i"; sep=","; done; printf ']\n'; }
+# Routine reviews carry the reviewer's summary template, which is what a clean
+# pass looks like. A fixture body of "x" would be a finding under the body rule,
+# so it must not be the default here.
+CLEAN='<!-- codex-pull-request-review-summary --> no findings'
+ids()     { printf '['; local sep=""; for i in "$@"; do printf '%s{"id":%s,"user":{"login":"codex[bot]"},"body":"%s"}' "$sep" "$i" "$CLEAN"; sep=","; done; printf ']\n'; }
 
 setup() { D=$(mktemp -d); export FAKE_DIR=$D; echo 0 > "$D/step"; : > "$D/calls.log"; }
 calls() { grep -c "^$1" "$FAKE_DIR/calls.log" 2>/dev/null || true; }
@@ -65,6 +69,29 @@ echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"## Codex Review Summary"}]'
 echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"## Codex Review Summary"},{"id":2,"user":{"login":"codex[bot]"},"body":"P1: this is broken"}]' > "$D/reviews.1.json"
 out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
 check "exit 1" 1 "$rc"; check "no comment" 0 "$(calls comment)"
+
+echo "8. phase 3 polls a post-ready check from pending to green"
+setup; green T1 > "$D/rollup.0.json"; pending T2 > "$D/rollup.1.json"; green T2 > "$D/rollup.3.json"
+ids > "$D/comments.0.json"; ids > "$D/reviews.0.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 0" 0 "$rc"; check "comment posted" 1 "$(calls comment)"
+check "actually waited (more than one rollup read)" 1 "$([ "$(cat "$D/rstep")" -gt 2 ] && echo 1 || echo 0)"
+
+echo "9. a repeated finding body is refused even though the text was seen before"
+setup; green T1 > "$D/rollup.0.json"; green T2 > "$D/rollup.1.json"
+ids > "$D/comments.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"P1: this is broken"}]' > "$D/reviews.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"P1: this is broken"},{"id":2,"user":{"login":"codex[bot]"},"body":"P1: this is broken"}]' > "$D/reviews.1.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 1" 1 "$rc"; check "no comment" 0 "$(calls comment)"
+
+echo "10. the clean summary template is not treated as a finding"
+setup; green T1 > "$D/rollup.0.json"; green T2 > "$D/rollup.1.json"
+ids > "$D/comments.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary -->\nall clear"}]' > "$D/reviews.0.json"
+echo '[{"id":1,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary -->\nall clear"},{"id":2,"user":{"login":"codex[bot]"},"body":"<!-- codex-pull-request-review-summary -->\nall clear"}]' > "$D/reviews.1.json"
+out=$(bash "$SCRIPT" "o/r:100" "$0" 2>&1); rc=$?
+check "exit 0" 0 "$rc"; check "comment posted" 1 "$(calls comment)"
 
 echo
 echo "passed=$pass failed=$fail"

@@ -11,6 +11,11 @@
 set -o pipefail
 D=${FAKE_DIR:?FAKE_DIR unset}
 step=$(cat "$D/step" 2>/dev/null || echo 0)
+# Reads advance the scenario only AFTER ready, so phase 3's pending-to-green
+# polling can be modelled: without this every post-ready read is stuck on the
+# same file and that loop is never exercised.
+rstep=$(cat "$D/rstep" 2>/dev/null || echo 0)
+idx=$((step + rstep))
 
 log() { printf '%s\n' "$*" >> "$D/calls.log"; }
 
@@ -21,9 +26,9 @@ log() { printf '%s\n' "$*" >> "$D/calls.log"; }
 # contain the finding phase 4 is supposed to notice.
 bump() { echo $((step + 1)) > "$D/step"; }
 
-pick() { # $1 = basename; newest file at or below the current step
+pick() { # $1 = basename; newest file at or below the current index
   local base=$1 i
-  for ((i=step; i>=0; i--)); do
+  for ((i=idx; i>=0; i--)); do
     [ -f "$D/$base.$i.json" ] && { echo "$D/$base.$i.json"; return; }
   done
   echo "$D/$base.0.json"
@@ -43,6 +48,7 @@ case "$1 $2" in
       exit 0
     fi
     f=$(pick rollup)
+    [ "$step" -ge 1 ] && echo $((rstep + 1)) > "$D/rstep"
     jq -r "$jqexpr" "$f" ;;
   "pr ready")
     log "ready $3"
