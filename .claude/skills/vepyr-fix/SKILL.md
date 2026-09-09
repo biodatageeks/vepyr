@@ -228,9 +228,14 @@ Lint through pre-commit, never directly — `uv run ruff` finds nothing in
 `.venv` and falls through to pyenv:
 
 ```bash
-cargo fmt && cargo clippy --all-targets -- -D warnings
-uv run pre-commit run ruff --all-files     # note: the hook passes --fix and rewrites code
+cargo fmt || exit 1
+cargo clippy --all-targets -- -D warnings || exit 1
+uv run pre-commit run ruff --all-files || exit 1   # the hook passes --fix and rewrites code
 ```
+
+Guard each one. Chained with `&&` and followed by the lint, a clippy failure
+would be overwritten by the lint's clean exit and the block would report
+success with the Rust side still red.
 
 ### 4. Open one PR per repo, with the pin cascade
 
@@ -271,9 +276,16 @@ echo "PRS=$PRS"   # e.g. " datafusion-bio-formats:41 datafusion-bio-functions:20
 for e in $PRS; do
   r=${e%%:*}; n=${e##*:}
   gh api -X PATCH "repos/biodatageeks/$r/pulls/$n" -f body="$(cat "/tmp/pr-$r.md")" >/dev/null || exit 1
-  gh api "repos/biodatageeks/$r/pulls/$n" --jq .body | head -5 || exit 1
+  gh api "repos/biodatageeks/$r/pulls/$n" --jq .body > "/tmp/readback-$r.md" || exit 1
+  diff -q "/tmp/pr-$r.md" "/tmp/readback-$r.md" \
+    || { echo "$r: PR body does not match what was sent"; exit 1; }
 done
 ```
+
+Compare the whole body, not a prefix. The point of the read-back is to catch a
+PATCH that silently kept the old text, and printing the first few lines proves
+only that the fetch worked — a body that lost everything below the prefix would
+still look right.
 
 ### 5. Ask both reviewers
 
@@ -306,33 +318,38 @@ as they arrive:
 ```bash
 prev=""
 while true; do
-  cur=$(for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
-          gh pr checks <n> --repo "biodatageeks/$r" --json name,bucket \
-            --jq ".[] | select(.bucket!=\"pending\") | \"$r \(.name): \(.bucket)\"" 2>/dev/null
-          gh pr view <n> --repo "biodatageeks/$r" --json comments \
-            --jq ".comments[] | select(.author.login|test(\"bot\")) | \"$r comment \(.createdAt)\"" 2>/dev/null
-        done | sort)
+  cur=""
+  for e in $PRS; do
+    r=${e%%:*}; n=${e##*:}
+    checks=$(gh pr checks "$n" --repo "biodatageeks/$r" --json name,bucket \
+               --jq ".[] | select(.bucket!=\"pending\") | \"$r \(.name): \(.bucket)\"") \
+      || { echo "QUERY FAILED: checks $r#$n"; sleep 120; continue 2; }
+    bots=$(gh pr view "$n" --repo "biodatageeks/$r" --json comments \
+             --jq ".comments[] | select(.author.login|test(\"bot\")) | \"$r comment \(.createdAt)\"") \
+      || { echo "QUERY FAILED: comments $r#$n"; sleep 120; continue 2; }
+    cur="$cur$checks
+$bots
+"
+  done
+  cur=$(echo "$cur" | sort)
   comm -13 <(echo "$prev") <(echo "$cur")
   prev=$cur
   sleep 120
 done
 ```
 
+Two things this gets right that the obvious version does not. A literal `<n>` is
+not a placeholder to the shell, it is input redirection from a file called `n`,
+so the query fails and the trailing `sort` reports success. And swallowing
+`gh` errors with `2>/dev/null` makes a monitor that has lost authentication look
+exactly like a quiet green stack: it emits nothing, forever. Say so out loud
+instead.
+
 Address each finding on its merits. Reviewer feedback here is frequently about
 measurement rather than code, and a bot can be wrong — verify a claim against
 the source before acting on it, and say so in the thread when you disagree.
-Push, then re-request **both** reviewers on the repos you pushed to. Neither
-re-runs itself on a push, and codex in particular has no synchronize-triggered
-workflow at all, so without a fresh `@codex review` it never sees the commits
-you are actually proposing:
-
-```bash
-for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gh pr comment "$n" --repo "biodatageeks/$r" --body "@codex review"  || exit 1
-  gh pr comment "$n" --repo "biodatageeks/$r" --body "@claude review" || exit 1
-done
-```
+Push your fix, then re-pin the cascade below **before** asking anyone to look
+again — the pin commits change what a reviewer would be reviewing.
 
 **Re-pin downstream after every upstream push.** This is the step that is easy
 to skip and expensive to miss. A review fix landing on the formats branch moves
@@ -343,14 +360,32 @@ excludes the fixes you just made. So after any upstream push, walk the cascade
 in dependency order before re-requesting review or running a gate:
 
 ```bash
-formats=$(gh pr view <n> --repo biodatageeks/datafusion-bio-formats --json headRefOid --jq .headRefOid)
+num() { for e in $PRS; do case $e in "$1":*) echo "${e##*:}"; return;; esac; done; return 1; }
+
+formats=$(gh pr view "$(num datafusion-bio-formats)" \
+  --repo biodatageeks/datafusion-bio-formats --json headRefOid --jq .headRefOid) || exit 1
 # bump the formats rev in datafusion-bio-functions, cargo check, commit, push
-functions=$(gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json headRefOid --jq .headRefOid)
+functions=$(gh pr view "$(num datafusion-bio-functions)" \
+  --repo biodatageeks/datafusion-bio-functions --json headRefOid --jq .headRefOid) || exit 1
 # bump the functions rev in vepyr, rebuild, commit, push
 ```
 
 Confirm each pin resolves to the commit you meant before moving on, because a
 pin that silently kept its old value is indistinguishable from a green run.
+
+Only once the whole cascade is pushed, re-request both reviewers. Neither
+re-runs itself on a push, and codex has no synchronize-triggered workflow at
+all, so without a fresh `@codex review` it never sees the commits you are
+proposing — and asking before the pin commits exist means it reviews a head you
+are about to replace:
+
+```bash
+for e in $PRS; do
+  r=${e%%:*}; n=${e##*:}
+  gh pr comment "$n" --repo "biodatageeks/$r" --body "@codex review"  || exit 1
+  gh pr comment "$n" --repo "biodatageeks/$r" --body "@claude review" || exit 1
+done
+```
 
 **Gate:** green means, simultaneously across all three PRs, that every check has
 concluded green and no bot finding is left unanswered. One repo going green

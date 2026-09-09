@@ -131,6 +131,9 @@ def main() -> int:
     parser.add_argument("--max-regression-pct", type=float, default=5.0)
     parser.add_argument("--max-wall-pct", type=float, default=10.0)
     parser.add_argument("--max-rss-pct", type=float, default=10.0)
+    # Both sides omitting the same worker leaves no missing key to notice, so the
+    # expected set has to be stated rather than inferred from what is present.
+    parser.add_argument("--expect-workers", default="1,8")
     # Sub-millisecond phases swing wildly in relative terms and mean nothing.
     parser.add_argument("--floor-ms", type=float, default=50.0)
     args = parser.parse_args()
@@ -138,6 +141,21 @@ def main() -> int:
     base, final = read_archive(args.base), read_archive(args.final)
     if not base or not final:
         sys.exit("one side produced no phase durations -- refusing to report a pass")
+
+    expected = {w.strip() for w in args.expect_workers.split(",") if w.strip()}
+    for label, root, workers in (
+        ("trace", args.base, {k[0] for k in base}),
+        ("trace", args.final, {k[0] for k in final}),
+        ("summary", args.base, set(read_summary(args.base))),
+        ("summary", args.final, set(read_summary(args.final))),
+    ):
+        gap = expected - workers
+        if gap:
+            sys.exit(
+                f"{root}: {label} is missing worker {sorted(gap)} -- step 7 gates at "
+                f"{sorted(expected)}, and comparing only what both sides happen to "
+                f"have would pass a run that never measured the rest"
+            )
 
     rows, regressions, missing = [], [], []
     for key in sorted(base.keys() | final.keys()):
