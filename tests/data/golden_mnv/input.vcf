@@ -1,0 +1,10 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=chr1,length=248956422,assembly=human_GRCh38_no_alt_analysis_set.fasta>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	451000	.	TCC	TGC	50	PASS	.
+chr1	604358	.	GGT	GAT	50	PASS	.
+chr1	604360	.	T	C	50	PASS	.
+chr1	611317	.	AG	AA	50	PASS	.
+chr1	818464	.	CCT	CTT	50	PASS	.
+chr1	826577	.	ACTA	AA	50	PASS	.

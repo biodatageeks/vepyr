@@ -11,15 +11,36 @@ import os
 import resource
 import sys
 import time
+import tomllib
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
 COMPRESSED_SUFFIXES = (".gz", ".bgz", ".bgzf")
 
-# The published numbers pin the engine build they were measured against.
-# Declare a different one to benchmark another release.
-REQUIRED_VEPYR_VERSION = os.environ.get("VEPYR_EXPECTED_VERSION", "0.3.0")
+
+# Guard against benchmarking a stale build: `uv sync` can silently leave an old
+# extension in place, and the numbers would then describe code nobody is
+# shipping. The expectation defaults to the version this checkout declares, so
+# it tracks releases instead of rotting -- a hard-coded default went stale at
+# 0.3.0 and made every later run fail until it was overridden by hand.
+# `VEPYR_EXPECTED_VERSION` still pins an explicit release when reproducing
+# published numbers.
+def _declared_vepyr_version() -> str:
+    pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    try:
+        with open(pyproject, "rb") as fh:
+            return tomllib.load(fh)["project"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        # Not fatal: fall back to whatever is installed, so a checkout without a
+        # readable pyproject degrades to "no version guard" rather than refusing
+        # to benchmark at all.
+        return importlib.metadata.version("vepyr")
+
+
+REQUIRED_VEPYR_VERSION = (
+    os.environ.get("VEPYR_EXPECTED_VERSION") or _declared_vepyr_version()
+)
 
 # getrusage reports the peak resident set in bytes on macOS and in kilobytes
 # on Linux, so the benchmark numbers are only comparable after normalising.
