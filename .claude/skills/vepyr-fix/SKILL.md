@@ -341,9 +341,18 @@ while true; do
       --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' comment \(.id)"') \
       || failed="$failed comments:$r"
 
+    # Third endpoint, and the only one that can show a CLEAN pass. A reviewer
+    # with nothing to say submits a review carrying no inline comment, so it
+    # appears in neither list above. Keyed by commit, so "codex has looked at
+    # the current head" becomes an observable event rather than an assumption.
+    reviews=$(gh api --paginate "repos/$repo/pulls/$n/reviews" \
+      --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' review \(.user.login) \(.commit_id[0:7]) \(.state)"') \
+      || failed="$failed reviews:$r"
+
     cur="$cur$checks
 $findings
 $remarks
+$reviews
 "
   done
 
@@ -363,7 +372,14 @@ the first page reports green while the findings it has not fetched go
 unaddressed. The per-item `--jq` filters concatenate cleanly across pages; a
 filter like `length` would not, because it emits one value per page.
 
-Four traps here, each of which makes the monitor lie in a different way. A
+Step 6's gate asks whether both reviewers have examined the current head, and
+only the reviews endpoint can answer that: a reviewer with no findings leaves a
+review and no comments at all, so a comments-only monitor sees silence and
+cannot tell a clean pass from a reviewer that never ran. Including the commit in
+that line is what makes "looked at *this* head" checkable, rather than "looked
+at some head once".
+
+Five traps here, each of which makes the monitor lie in a different way. A
 literal `<n>` is not a placeholder to the shell but input redirection from a file
 called `n`, so the query fails and a trailing `sort` reports success. `gh pr
 checks` exits 8 whenever a check is pending and nonzero when one fails, so its
