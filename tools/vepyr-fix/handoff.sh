@@ -32,7 +32,12 @@ done
 # Snapshot keys must include the repository: two repos can hand out the same PR
 # number, and keying on the number alone lets the later one overwrite the
 # earlier one's signature and feedback.
-key() { echo "$1" | tr '/:' '__'; }
+# Any character that is not [A-Za-z0-9_], so the key is safe as a FILENAME.
+# It is deliberately never used as a shell variable name: repository names
+# contain hyphens, `eval "sig_a-b=..."` is not an assignment but a command, and
+# its failure is easy to leave unchecked — which is how a bogus signature gets
+# compared against and the stale pre-ready green gets accepted.
+key() { printf '%s' "$1" | tr -c 'A-Za-z0-9_' '_'; }
 
 POLL=${HANDOFF_POLL_SECONDS:-30}
 TRIES=${HANDOFF_MAX_POLLS:-60}
@@ -91,8 +96,7 @@ done
 # --- 2. snapshot, then mark ready -------------------------------------------
 for e in $PRS; do
   repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
-  s=$(sig "$repo" "$n") || exit 2
-  eval "sig_${k}=\$s"
+  sig "$repo" "$n" > "/tmp/handoff-$k.sig.before" || exit 2
   findings   "$repo" "$n" > "/tmp/handoff-$k.findings.before" || exit 2
   reviews_of "$repo" "$n" > "/tmp/handoff-$k.reviews.before"  || exit 2
   gh pr ready "$n" --repo "$repo" || exit 1
@@ -101,7 +105,7 @@ done
 # --- 3. wait for the ready-triggered run to appear, then to go green ---------
 for e in $PRS; do
   repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
-  eval "before=\$sig_${k}"
+  before=$(cat "/tmp/handoff-$k.sig.before") || exit 2
   seen_new=0
   for _ in $(seq "$TRIES"); do
     now=$(sig "$repo" "$n") || { echo "$repo#$n: rollup query failed" >&2; exit 2; }

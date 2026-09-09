@@ -427,7 +427,17 @@ excludes the fixes you just made. So after any upstream push, walk the cascade
 in dependency order before re-requesting review or running a gate:
 
 ```bash
-num() { for e in $PRS; do case $e in "$1":*) echo "${e##*:}"; return;; esac; done; return 1; }
+# PRS entries are owner-qualified, so match on the repository name after the
+# last slash — passing a bare name must still resolve, or the head lookups
+# below silently get an empty selector and gh falls back to the current branch.
+num() {
+  for e in $PRS; do
+    repo=${e%%:*}
+    [ "${repo##*/}" = "$1" ] || [ "$repo" = "$1" ] || continue
+    echo "${e##*:}"; return
+  done
+  echo "no PR recorded for $1" >&2; return 1
+}
 
 formats=$(gh pr view "$(num datafusion-bio-formats)" \
   --repo biodatageeks/datafusion-bio-formats --json headRefOid --jq .headRefOid) || exit 1
