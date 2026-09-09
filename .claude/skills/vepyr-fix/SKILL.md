@@ -94,8 +94,8 @@ sweep() {  # $1 = archive dir, rest = worker counts — one invocation each
   return "$status"   # the rm must not become the function's exit status
 }
 
-sweep "$RUN/warmup" 8        # DISCARD: first run of a session reads ~35% slow at 8 workers
-sweep "$RUN/archive" 8 1     # measured
+sweep "$RUN/warmup" 8    || exit 1   # DISCARD: first run of a session reads ~35% slow at 8 workers
+sweep "$RUN/archive" 8 1 || exit 1   # measured
 ```
 
 One worker per invocation is what makes the cleanup effective, and saving the
@@ -349,9 +349,16 @@ nobody is going to merge.
 One command checks all three and returns a verdict:
 
 ```bash
-uv run python .claude/skills/vepyr-fix/scripts/compare_runs.py \
+uv run python "$ROOT/.claude/skills/vepyr-fix/scripts/compare_runs.py" \
   "$BASE/archive" "$FINAL/archive" || exit 1
 ```
+
+Absolute path on purpose: step 1 leaves the shell in `$ROOT/e2e-testing/scripts`,
+and a relative path would resolve under that directory and fail before comparing
+anything. Guarding the sweeps the same way matters for the same reason — a
+`sweep` that propagates its status is no use if the caller discards it, which
+would let a failed warm-up be followed by a measured run that returns 0 for the
+whole block.
 
 Its exit status is the gate: 0 when every bar holds, 1 when any is exceeded, and
 nonzero rather than a pass when there is nothing to compare. It ends on a
