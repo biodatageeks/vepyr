@@ -54,46 +54,61 @@ Put everything in one run directory so the final comparison is a diff, not a
 memory exercise:
 
 ```bash
-RUN=e2e-testing/results/fix-$(date +%Y%m%d-%H%M)/baseline && mkdir -p "$RUN"
+ROOT=$(git rev-parse --show-toplevel)
+RUN="$ROOT/e2e-testing/results/fix-$(date +%Y%m%d-%H%M)/baseline" && mkdir -p "$RUN"
 ```
 
-**Performance.** The trace is the signal that matters; wall clock is only a
-coarse alarm. Export the tracing variables, because the runner does not set
-them:
+Resolve `RUN` to an absolute path. The steps below change directory, and a
+relative run directory would put the redirections somewhere under the script
+directory that was never created.
+
+**Performance.** The trace is the signal that matters; wall clock and memory are
+coarser alarms. Export the tracing variables, because the runner does not set
+them, then drive the Python runner directly — the shell wrappers cannot express
+the separate archive directories and the record floor this needs:
 
 ```bash
 export VEP_PIPELINE_TRACE=1 VEP_ENGINE_PROFILE=1
-cd performance-tests/vepyr/scripts
+cd "$ROOT/performance-tests/vepyr/scripts"
 
-./run_vepyr_merged_worker_scaling.sh 8      2>"$RUN/warmup.err"   # DISCARD this one
-./run_vepyr_merged_worker_scaling.sh 8 1    2>"$RUN/perf.err" | tee "$RUN/perf.out"
+sweep() {  # $1 = archive dir, rest = worker counts
+  local archive="$1"; shift
+  uv run python run_vepyr_worker_scaling.py \
+    --input-vcf "$DATA_VEPYR_DIR/input/HG002_normalized.vcf.gz" \
+    --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" --cache-type merged \
+    --reference-fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
+    --ssd-output-dir /tmp/vepyr-perf --archive-dir "$archive" \
+    --expected-records 4096123 --minimum-free-gib 65 --force --workers "$@"
+}
+
+sweep "$RUN/warmup" 8        # DISCARD: first run of a session reads ~35% slow at 8 workers
+sweep "$RUN/archive" 8 1     # measured
 ```
 
-The whole sweep is about 15 minutes, so none of this is a costly ceremony. The
-first run of a session reads about 35% slow at 8 workers, so the warm-up is
-still not optional — without it the baseline is inflated and the final comparison
-looks like a free win. The wrapper takes bare worker integers after its flags
-(`--force`, `--compression plain|bgzf|gzip`,
-`--require-separate-filesystems`). To raise the runner's 40 GiB floor, call the
-Python runner directly, since the wrapper does not forward that flag:
+`--force` on the measured sweep is load-bearing. The runner refuses to start
+when any SSD or archive artifact for that worker count already exists
+(`run_vepyr_worker_scaling.py:289-293`), so after a warm-up at 8 workers the
+measured sweep would die before annotating anything. The separate archive
+directory keeps the discarded warm-up out of the measured summary.
+
+The whole sweep is about 15 minutes, so none of this is a costly ceremony.
+
+Everything the gate reads lands under `$RUN/archive`:
+
+| Evidence | Where |
+|---|---|
+| wall and peak RSS per worker count | `summary.tsv`, columns `annotation_seconds` and `max_rss_kb` |
+| `[VEP_PIPELINE_TRACE]` phase lines | `merged_workers<N>.stderr.txt` |
+
+The trace is **not** on the runner's own stderr. Each annotation child's stderr
+goes to its own artifact, which is then archived
+(`run_vepyr_worker_scaling.py:330-333`, `:346`), so redirecting the runner's
+stderr captures only its progress chatter. Confirm the traces are really there
+before trusting any later comparison, because an empty trace file silently
+compares equal to another empty one and reads as "no regression":
 
 ```bash
-uv run python run_vepyr_worker_scaling.py \
-  --input-vcf "$DATA_VEPYR_DIR/input/HG002_normalized.vcf.gz" \
-  --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" --cache-type merged \
-  --reference-fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
-  --ssd-output-dir /tmp/vepyr-perf --archive-dir "$DATA_VEPYR_DIR/archive" \
-  --expected-records 4096123 --minimum-free-gib 65 --workers 8 1
-```
-
-Peak memory comes out of the same run, so there is nothing extra to invoke.
-`run_vepyr_worker_scaling.py` records `max_rss_kb` per worker count into
-`$DATA_VEPYR_DIR/archive/summary.tsv`, alongside `annotation_seconds` and
-`process_elapsed_wall`. Copy that file into the run directory before the next
-sweep appends to it:
-
-```bash
-cp "$DATA_VEPYR_DIR/archive/summary.tsv" "$RUN/summary.tsv"
+grep -c VEP_PIPELINE_TRACE "$RUN"/archive/merged_workers*.stderr.txt
 ```
 
 `4096123` is the record count of the normalized HG002 input, which is the
@@ -105,13 +120,31 @@ correctness question, so keep to the normalized file.
 rewrites QUAL and sorts INFO keys before hashing, which is useful for triage
 and wrong for a parity claim:
 
+Order matters here, and not for a cosmetic reason. Both comparison modes write
+to the same per-contig report path (`comparison/cli.py:466`), and md5 mode
+leaves `comparison` null because that field is only populated in field mode
+(`:418-419`). `verify_parity_gate.py:398-400` rejects a report whose
+`comparison` is not a dict, so running md5 first makes the gate fail with
+"comparison is missing or null" even when parity is perfect. Run field mode,
+gate on it, then take the digests:
+
 ```bash
-cd e2e-testing/scripts
-uv run python run_comparison.py --release 116 --chroms all \
-  --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out"
+cd "$ROOT/e2e-testing/scripts"
+
+uv run python run_comparison.py --release 116 --chroms all --bgzf \
+  | tee "$RUN/field.out"                       # populates `comparison` in each report
 uv run python verify_parity_gate.py --release 116 --profile merged --chroms 1-22 \
   | tee "$RUN/gate.out"
+
+uv run python run_comparison.py --release 116 --chroms all \
+  --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out"
+cp -r "$ROOT/e2e-testing/reports" "$RUN/reports"
 ```
+
+The md5 pass overwrites the reports the gate just read, so copy them into the
+run directory, and re-run field mode before ever re-running the gate against
+that directory. There is no `--report-dir` on `run_comparison.py` to keep the
+two apart — the path is fixed at `cli.py:588`.
 
 The two scripts take contigs differently: `run_comparison.py` wants names or
 `all`, while `verify_parity_gate.py` also expands numeric ranges like `1-22`.
@@ -237,7 +270,8 @@ while another has an open finding is not green.
 ### 7. Re-verify against the baseline, on the stacked branches
 
 Run step 1 again, byte for byte the same commands and the same `RUSTFLAGS`, into
-a `final/` directory beside `baseline/`. Same host, same session shape, warm-up
+a `final/` directory beside `baseline/`, then set `BASE` and `FINAL` to the two
+absolute run directories for the comparisons below. Same host, same session shape, warm-up
 discarded again. Nothing is merged at this point, so measure the vepyr PR branch
 with its pin still on the functions PR head — that stack is exactly what a
 reviewer will read.
@@ -257,10 +291,16 @@ The trace lines carry `stage=`, `event=` and `*_ms=` fields, so compare them
 stage by stage:
 
 ```bash
-grep -h VEP_PIPELINE_TRACE baseline/perf.err | sed 's/t_ms=[0-9.]*//' | sort > /tmp/base.trace
-grep -h VEP_PIPELINE_TRACE final/perf.err    | sed 's/t_ms=[0-9.]*//' | sort > /tmp/final.trace
+trace() { grep -h VEP_PIPELINE_TRACE "$1"/archive/merged_workers*.stderr.txt \
+            | sed 's/t_ms=[0-9.]*//' | sort; }
+trace "$BASE" > /tmp/base.trace && trace "$FINAL" > /tmp/final.trace
+test -s /tmp/base.trace && test -s /tmp/final.trace || {
+  echo "no trace lines captured — the gate would pass on nothing"; exit 1; }
 diff /tmp/base.trace /tmp/final.trace
 ```
+
+The emptiness check is the point. Two empty trace files diff clean and would
+otherwise report a green performance gate having measured nothing at all.
 
 Wall and memory come from the two summary files, joined on worker count. Compare
 `annotation_seconds`, not `process_elapsed_wall` — the latter is formatted for
@@ -269,7 +309,7 @@ reading (`0:15:03`) and does not subtract:
 ```bash
 cols() { awk -F'\t' 'NR==1{for(i=1;i<=NF;i++)h[$i]=i;next}
   {print $h["workers"], $h["annotation_seconds"], $h["max_rss_kb"]}' "$1" | sort; }
-join <(cols baseline/summary.tsv) <(cols final/summary.tsv)
+join <(cols "$BASE/archive/summary.tsv") <(cols "$FINAL/archive/summary.tsv")
 ```
 
 `annotation_seconds` is read out of the run's metrics file, so it is empty when
