@@ -267,17 +267,20 @@ for r in datafusion-bio-formats datafusion-bio-functions vepyr; do
   # opening a PR for the wrong branch.
   url=$(gh pr create --draft --repo "biodatageeks/$r" --head "$BRANCH" \
           --title "..." --body-file "/tmp/pr-$r.md") || exit 1
-  PRS="$PRS $r:${url##*/}"
+  PRS="$PRS biodatageeks/$r:${url##*/}"
 done
-echo "PRS=$PRS"   # e.g. " datafusion-bio-formats:41 datafusion-bio-functions:207 vepyr:100"
+# Owner-qualified on purpose: `gh --repo` requires OWNER/REPO and rejects a bare
+# name, and every consumer below — including tools/vepyr-fix/handoff.sh — takes
+# the repository straight out of this list rather than rebuilding it.
+echo "PRS=$PRS"   # e.g. " biodatageeks/datafusion-bio-formats:41 biodatageeks/vepyr:100"
 
 # gh pr edit reports success and changes nothing, so patch through the API and
 # read the body back. `| head` would otherwise mask a failed fetch with its own
 # clean exit, which is why pipefail is set above.
 for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gh api -X PATCH "repos/biodatageeks/$r/pulls/$n" -f body="$(cat "/tmp/pr-$r.md")" >/dev/null || exit 1
-  gh api "repos/biodatageeks/$r/pulls/$n" --jq .body > "/tmp/readback-$r.md" || exit 1
+  repo=${e%%:*}; n=${e##*:}; r=${repo##*/}
+  gh api -X PATCH "repos/$repo/pulls/$n" -f body="$(cat "/tmp/pr-$r.md")" >/dev/null || exit 1
+  gh api "repos/$repo/pulls/$n" --jq .body > "/tmp/readback-$r.md" || exit 1
   diff -q "/tmp/pr-$r.md" "/tmp/readback-$r.md" \
     || { echo "$r: PR body does not match what was sent"; exit 1; }
 done
@@ -295,9 +298,9 @@ new commits. The two on-demand reviewers answer comments:
 
 ```bash
 for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gh pr comment "$n" --repo "biodatageeks/$r" --body "@codex review"  || exit 1
-  gh pr comment "$n" --repo "biodatageeks/$r" --body "@claude review" || exit 1
+  repo=${e%%:*}; n=${e##*:}
+  gh pr comment "$n" --repo "$repo" --body "@codex review"  || exit 1
+  gh pr comment "$n" --repo "$repo" --body "@claude review" || exit 1
 done
 ```
 
@@ -323,7 +326,7 @@ prev=""
 while true; do
   cur=""; failed=""
   for e in $PRS; do
-    r=${e%%:*}; n=${e##*:}; repo="biodatageeks/$r"
+    repo=${e%%:*}; n=${e##*:}; r=${repo##*/}
 
     # statusCheckRollup, NOT `gh pr checks`: that command exits 8 while any check
     # is pending and nonzero when one fails, so its exit status reports the checks
@@ -445,9 +448,9 @@ are about to replace:
 
 ```bash
 for e in $PRS; do
-  r=${e%%:*}; n=${e##*:}
-  gh pr comment "$n" --repo "biodatageeks/$r" --body "@codex review"  || exit 1
-  gh pr comment "$n" --repo "biodatageeks/$r" --body "@claude review" || exit 1
+  repo=${e%%:*}; n=${e##*:}
+  gh pr comment "$n" --repo "$repo" --body "@codex review"  || exit 1
+  gh pr comment "$n" --repo "$repo" --body "@claude review" || exit 1
 done
 ```
 

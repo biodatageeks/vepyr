@@ -2,7 +2,10 @@
 # Take a stack of PRs from "green in draft" to "handed off", in the only order
 # that is actually safe.
 #
-#   handoff.sh "<repo:number> ..." /path/to/handoff.md
+#   handoff.sh "<owner/repo:number> ..." /path/to/handoff.md
+#
+# Entries must be owner-qualified: `gh --repo` requires [HOST/]OWNER/REPO and
+# rejects a bare name outright, so a bare entry aborts phase 1 every time.
 #
 # The ordering matters more than any individual check. Marking a PR ready
 # re-triggers the review workflow (claude-code-review.yml lists
@@ -15,9 +18,21 @@
 # feedback arrived that this run has not seen.
 set -o pipefail
 
-PRS=${1:?usage: handoff.sh "<repo:number> ..." <handoff-body-file>}
-BODY=${2:?usage: handoff.sh "<repo:number> ..." <handoff-body-file>}
+PRS=${1:?usage: handoff.sh "<owner/repo:number> ..." <handoff-body-file>}
+BODY=${2:?usage: handoff.sh "<owner/repo:number> ..." <handoff-body-file>}
 [ -r "$BODY" ] || { echo "cannot read handoff body: $BODY" >&2; exit 2; }
+
+for e in $PRS; do
+  case ${e%%:*} in
+    */*) ;;
+    *) echo "entry '$e' is not owner-qualified; gh --repo needs OWNER/REPO" >&2; exit 2;;
+  esac
+done
+
+# Snapshot keys must include the repository: two repos can hand out the same PR
+# number, and keying on the number alone lets the later one overwrite the
+# earlier one's signature and feedback.
+key() { echo "$1" | tr '/:' '__'; }
 
 POLL=${HANDOFF_POLL_SECONDS:-30}
 TRIES=${HANDOFF_MAX_POLLS:-60}
@@ -41,12 +56,30 @@ sig() {
     --jq '[.statusCheckRollup[] | "\(.name)@\(.startedAt // "")"] | sort | join(",")'
 }
 
-# Every bot finding and review, inline or review-body. A review that concludes
-# green can still carry feedback, so the count is what decides, not the check.
-feedback() {
-  { gh api --paginate "repos/$1/pulls/$2/comments" --jq '.[]|select(.user.login|test("\\[bot\\]"))|.id'
-    gh api --paginate "repos/$1/pulls/$2/reviews"  --jq '.[]|select(.user.login|test("\\[bot\\]"))|.id'
-  } | sort -u
+# Bot findings, meaning INLINE review comments. Deliberately not review
+# submissions: a reviewer with nothing to say still submits one (codex posts a
+# fixed summary body either way), so counting those would refuse every clean
+# run and the happy path could never complete.
+#
+# The gap this leaves is a bot that puts a finding only in a review body and
+# never inline. Phase 4 prints new review ids for that reason, so they can be
+# read, but does not fail on them.
+#
+# Each query is checked on its own: in `{ a; b; } | sort` the group's status is
+# b's and sort succeeds regardless, so a failed first query would otherwise pass
+# silently as an empty snapshot.
+findings() {
+  local repo=$1 n=$2 out
+  out=$(gh api --paginate "repos/$repo/pulls/$n/comments" \
+    --jq '.[]|select(.user.login|test("\\[bot\\]"))|.id') || return 2
+  echo "$out" | sort -u
+}
+
+reviews_of() {
+  local repo=$1 n=$2 out
+  out=$(gh api --paginate "repos/$repo/pulls/$n/reviews" \
+    --jq '.[]|select(.user.login|test("\\[bot\\]"))|.id') || return 2
+  echo "$out" | sort -u
 }
 
 # --- 1. nothing leaves draft while anything is red or still running ----------
@@ -57,16 +90,18 @@ done
 
 # --- 2. snapshot, then mark ready -------------------------------------------
 for e in $PRS; do
-  repo=${e%%:*}; n=${e##*:}
-  eval "sig_${n}=\$(sig '$repo' '$n')" || exit 2
-  feedback "$repo" "$n" > "/tmp/handoff-feedback-$n.before" || exit 2
+  repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
+  s=$(sig "$repo" "$n") || exit 2
+  eval "sig_${k}=\$s"
+  findings   "$repo" "$n" > "/tmp/handoff-$k.findings.before" || exit 2
+  reviews_of "$repo" "$n" > "/tmp/handoff-$k.reviews.before"  || exit 2
   gh pr ready "$n" --repo "$repo" || exit 1
 done
 
 # --- 3. wait for the ready-triggered run to appear, then to go green ---------
 for e in $PRS; do
-  repo=${e%%:*}; n=${e##*:}
-  eval "before=\$sig_${n}"
+  repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
+  eval "before=\$sig_${k}"
   seen_new=0
   for _ in $(seq "$TRIES"); do
     now=$(sig "$repo" "$n") || { echo "$repo#$n: rollup query failed" >&2; exit 2; }
@@ -86,12 +121,18 @@ done
 
 # --- 4. refuse if that run produced feedback nobody has answered -------------
 for e in $PRS; do
-  repo=${e%%:*}; n=${e##*:}
-  feedback "$repo" "$n" > "/tmp/handoff-feedback-$n.after" || exit 2
-  if ! new=$(comm -13 "/tmp/handoff-feedback-$n.before" "/tmp/handoff-feedback-$n.after") || [ -n "$new" ]; then
-    echo "$repo#$n: new bot feedback arrived after ready_for_review:" >&2
+  repo=${e%%:*}; n=${e##*:}; k=$(key "$e")
+  findings   "$repo" "$n" > "/tmp/handoff-$k.findings.after" || exit 2
+  reviews_of "$repo" "$n" > "/tmp/handoff-$k.reviews.after"  || exit 2
+
+  new_reviews=$(comm -13 "/tmp/handoff-$k.reviews.before" "/tmp/handoff-$k.reviews.after")
+  [ -n "$new_reviews" ] && echo "$repo#$n: reviews submitted since ready: $(echo "$new_reviews" | tr '\n' ' ')"
+
+  new=$(comm -13 "/tmp/handoff-$k.findings.before" "/tmp/handoff-$k.findings.after") || exit 2
+  if [ -n "$new" ]; then
+    echo "$repo#$n: new inline findings arrived after ready_for_review:" >&2
     echo "$new" >&2
-    echo "address it and re-run; a green check is not the same as no findings" >&2
+    echo "address them and re-run; a green check is not the same as no findings" >&2
     exit 1
   fi
 done
