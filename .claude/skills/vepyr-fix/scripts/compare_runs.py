@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Compare VEP_PIPELINE_TRACE phase durations between two benchmark archives.
+"""Compare two benchmark archives on all three gated metrics and return a verdict.
+
+Phase durations, total wall and peak RSS are one command because they are one
+gate: a human reading three tables and deciding is exactly how a regression gets
+waved through. This exits nonzero if any bar is exceeded, so the workflow stops
+on its own.
 
 An exact diff of two trace files is useless: every `*_ms` value moves a little
 between runs, so byte equality rejects changes far below any sensible threshold.
@@ -11,7 +16,7 @@ Reads `*_workers<N>.stderr.txt` from each archive directory, sums each
 (worker, stage, event, metric) duration, and fails when any of them regresses
 by more than the allowed percentage.
 
-    compare_traces.py BASE_ARCHIVE FINAL_ARCHIVE [--max-regression-pct 5]
+    compare_runs.py BASE_ARCHIVE FINAL_ARCHIVE
 
 Exit 0 when every phase is within tolerance, 1 on a regression, 2 when there is
 nothing to compare -- an empty trace must never read as "no regression".
@@ -59,11 +64,66 @@ def read_archive(root: Path) -> dict[tuple[str, str, str, str], float]:
     return dict(totals)
 
 
+def read_summary(root: Path) -> dict[str, dict[str, float]]:
+    """Per worker count, the numeric wall and peak RSS the runner recorded.
+
+    `annotation_seconds` comes from the run's metrics file and is empty when that
+    file is missing. An empty value means the run did not report, not that it was
+    instant, so it is an error rather than a zero.
+    """
+    path = root / "summary.tsv"
+    if not path.exists():
+        sys.exit(f"no summary.tsv under {root} -- nothing to compare")
+
+    import csv
+
+    out: dict[str, dict[str, float]] = {}
+    with path.open(newline="") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            worker = row["workers"]
+            try:
+                out[worker] = {
+                    "wall_s": float(row["annotation_seconds"]),
+                    "rss_kb": float(row["max_rss_kb"]),
+                }
+            except (KeyError, ValueError):
+                sys.exit(
+                    f"{path}: worker {worker} has no numeric annotation_seconds/"
+                    f"max_rss_kb -- the run did not report, fix the run"
+                )
+    return out
+
+
+def compare_summary(base: Path, final: Path, wall_pct: float, rss_pct: float) -> int:
+    """Print the wall/RSS table and count how many bars were exceeded."""
+    before, after = read_summary(base), read_summary(final)
+    workers = sorted(before.keys() | after.keys(), key=int)
+    failures = 0
+
+    print(f"\n{'workers':>7} {'metric':>8} {'base':>14} {'final':>14} {'delta':>8}")
+    for worker in workers:
+        if worker not in before or worker not in after:
+            side = "final" if worker not in after else "baseline"
+            print(f"worker {worker} is absent from the {side} run", file=sys.stderr)
+            failures += 1
+            continue
+        for metric, bar, unit in (("wall_s", wall_pct, "s"), ("rss_kb", rss_pct, "KB")):
+            b, a = before[worker][metric], after[worker][metric]
+            pct = ((a - b) / b * 100) if b else float("inf")
+            over = pct > bar
+            failures += over
+            flag = f"  <-- OVER {bar:g}%" if over else ""
+            print(f"{worker:>7} {metric:>8} {b:>14.1f} {a:>14.1f} {pct:>+7.1f}%{flag}")
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("base", type=Path)
     parser.add_argument("final", type=Path)
     parser.add_argument("--max-regression-pct", type=float, default=5.0)
+    parser.add_argument("--max-wall-pct", type=float, default=10.0)
+    parser.add_argument("--max-rss-pct", type=float, default=10.0)
     # Sub-millisecond phases swing wildly in relative terms and mean nothing.
     parser.add_argument("--floor-ms", type=float, default=50.0)
     args = parser.parse_args()
@@ -104,9 +164,15 @@ def main() -> int:
         f"{args.max_regression_pct}%, {len(missing)} present on only one side"
     )
 
+    summary_failures = compare_summary(
+        args.base, args.final, args.max_wall_pct, args.max_rss_pct
+    )
+
     # A phase that exists on one side only is a shape change, not noise: the
     # pipeline did something different, which is exactly what the gate is for.
-    return 1 if regressions or missing else 0
+    failed = len(regressions) + len(missing) + summary_failures
+    print(f"\nVERDICT: {'FAIL' if failed else 'PASS'} ({failed} bar(s) exceeded)")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

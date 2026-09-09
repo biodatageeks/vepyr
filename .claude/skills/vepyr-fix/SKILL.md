@@ -132,7 +132,11 @@ before trusting any later comparison, because an empty trace file silently
 compares equal to another empty one and reads as "no regression":
 
 ```bash
-grep -c VEP_PIPELINE_TRACE "$RUN"/archive/merged_workers*.stderr.txt
+for f in "$RUN"/archive/merged_workers*.stderr.txt; do
+  n=$(grep -c VEP_PIPELINE_TRACE "$f" || true)
+  echo "$f: $n trace lines"
+  [ "$n" -gt 0 ] || { echo "no trace lines in $f — VEP_PIPELINE_TRACE was not set"; exit 1; }
+done
 ```
 
 `4096123` is the record count of the normalized HG002 input, which is the
@@ -342,38 +346,33 @@ nobody is going to merge.
 | total wall | `annotation_seconds` in `summary.tsv` | within 10% |
 | peak RSS | `max_rss_kb` in `summary.tsv` | within 10% |
 
-Compare the phases with the bundled script:
+One command checks all three and returns a verdict:
 
 ```bash
-uv run python .claude/skills/vepyr-fix/scripts/compare_traces.py \
-  "$BASE/archive" "$FINAL/archive" --max-regression-pct 5
+uv run python .claude/skills/vepyr-fix/scripts/compare_runs.py \
+  "$BASE/archive" "$FINAL/archive" || exit 1
 ```
 
-The comparison is a bundled script rather than a shell one-liner for two
-reasons a `diff` cannot handle. Every `*_ms` value moves slightly between real
-runs, so byte equality rejects changes far below the 5% allowance and the gate
-becomes noise. And the traces live in one file per worker count, so they have to
-be compared per worker — a regression at 8 workers and a matching speed-up at 1
-would otherwise cancel out. The script sums each
-`(worker, stage, event, metric)` duration, ignores phases under 50 ms where
-relative swings mean nothing, exits 1 on a regression past the threshold, and
-exits nonzero rather than reporting a pass when either side has no trace lines
-at all. A phase present on one side only is also a failure: that is a shape
-change in the pipeline, not noise.
+Its exit status is the gate: 0 when every bar holds, 1 when any is exceeded, and
+nonzero rather than a pass when there is nothing to compare. It ends on a
+`VERDICT:` line, so the result is one thing to read rather than three tables to
+weigh up.
 
-Wall and memory come from the two summary files, joined on worker count. Compare
-`annotation_seconds`, not `process_elapsed_wall` — the latter is formatted for
-reading (`0:15:03`) and does not subtract:
+All three metrics live in one command deliberately. Three separate tables and a
+human deciding is how a regression gets waved through, and every gate in this
+skill has to be able to fail on its own. The script sums each
+`(worker, stage, event, metric)` duration from the per-worker traces, ignores
+phases under 50 ms where relative swings are meaningless, and reads
+`annotation_seconds` and `max_rss_kb` per worker from `summary.tsv`. Two
+deliberate refusals: a phase present on only one side fails, because that is a
+shape change in the pipeline rather than noise; and an empty
+`annotation_seconds` is an error rather than a zero, because it means the run
+did not report, not that it was instant.
 
-```bash
-cols() { awk -F'\t' 'NR==1{for(i=1;i<=NF;i++)h[$i]=i;next}
-  {print $h["workers"], $h["annotation_seconds"], $h["max_rss_kb"]}' "$1" | sort; }
-join <(cols "$BASE/archive/summary.tsv") <(cols "$FINAL/archive/summary.tsv")
-```
-
-`annotation_seconds` is read out of the run's metrics file, so it is empty when
-that file is missing. An empty column means the run did not report, not that it
-took no time — fix the run rather than the comparison.
+A byte diff could not do this. Every `*_ms` value moves slightly between real
+runs, so exact equality rejects changes far below the 5% allowance, and the
+traces are per worker, so concatenating them would let a regression at 8 workers
+cancel against a speed-up at 1.
 
 Read RSS with the floor in mind. A large fixed allocation dominates the peak, so
 a change that adds real memory to the variable part can still come in under a
