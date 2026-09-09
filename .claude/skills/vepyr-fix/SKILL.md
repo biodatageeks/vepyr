@@ -86,6 +86,16 @@ uv run python run_vepyr_worker_scaling.py \
   --expected-records 4096123 --minimum-free-gib 65 --workers 8 1
 ```
 
+Peak memory comes out of the same run, so there is nothing extra to invoke.
+`run_vepyr_worker_scaling.py` records `max_rss_kb` per worker count into
+`$DATA_VEPYR_DIR/archive/summary.tsv`, alongside `annotation_seconds` and
+`process_elapsed_wall`. Copy that file into the run directory before the next
+sweep appends to it:
+
+```bash
+cp "$DATA_VEPYR_DIR/archive/summary.tsv" "$RUN/summary.tsv"
+```
+
 `4096123` is the record count of the normalized HG002 input, which is the
 `bcftools norm -m -both` output of the GIAB benchmark (`docs/testing-vep.md`).
 Annotating raw multi-allelic input is a different measurement and a different
@@ -235,16 +245,43 @@ reviewer will read.
 **Quality gate:** every body digest matches in strict mode, and
 `verify_parity_gate.py` exits 0.
 
-**Performance gate:** no phase duration in the `[VEP_PIPELINE_TRACE]` lines
-regresses by more than 5%, and total wall time stays within 10% at both 1 and 8
-workers. The trace lines carry `stage=`, `event=` and `*_ms=` fields on stderr,
-so compare them stage by stage:
+**Performance gate**, three metrics, each at both 1 and 8 workers:
+
+| Metric | Source | Bar |
+|---|---|---|
+| phase durations | `[VEP_PIPELINE_TRACE]` on stderr | no phase regresses >5% |
+| total wall | `annotation_seconds` in `summary.tsv` | within 10% |
+| peak RSS | `max_rss_kb` in `summary.tsv` | within 10% |
+
+The trace lines carry `stage=`, `event=` and `*_ms=` fields, so compare them
+stage by stage:
 
 ```bash
 grep -h VEP_PIPELINE_TRACE baseline/perf.err | sed 's/t_ms=[0-9.]*//' | sort > /tmp/base.trace
 grep -h VEP_PIPELINE_TRACE final/perf.err    | sed 's/t_ms=[0-9.]*//' | sort > /tmp/final.trace
 diff /tmp/base.trace /tmp/final.trace
 ```
+
+Wall and memory come from the two summary files, joined on worker count. Compare
+`annotation_seconds`, not `process_elapsed_wall` — the latter is formatted for
+reading (`0:15:03`) and does not subtract:
+
+```bash
+cols() { awk -F'\t' 'NR==1{for(i=1;i<=NF;i++)h[$i]=i;next}
+  {print $h["workers"], $h["annotation_seconds"], $h["max_rss_kb"]}' "$1" | sort; }
+join <(cols baseline/summary.tsv) <(cols final/summary.tsv)
+```
+
+`annotation_seconds` is read out of the run's metrics file, so it is empty when
+that file is missing. An empty column means the run did not report, not that it
+took no time — fix the run rather than the comparison.
+
+Read RSS with the floor in mind. A large fixed allocation dominates the peak, so
+a change that adds real memory to the variable part can still come in under a
+percentage bar on the total. If RSS moved at all, say by how much in absolute
+terms rather than only as a ratio, and check whether it moved at one worker
+count and not the other — that asymmetry usually points at per-worker buffers
+rather than at a shared structure.
 
 Report the outcome as a table of baseline against final for both worker counts,
 and state plainly which gate passed and which did not. If wall time moved but no
@@ -293,6 +330,11 @@ Each of these has cost a full cycle before now.
   Flip the flag and re-measure instead.
 - **Peak RSS needs a subprocess per configuration.** An in-process sweep reports
   a cumulative high-water mark, not the cost of each configuration.
+  `run_vepyr_worker_scaling.py` already gets this right — it reads one child's
+  usage through `os.wait4` rather than `RUSAGE_CHILDREN`, which would carry every
+  earlier worker count's peak into the later ones, and it normalises the macOS
+  bytes against Linux kilobytes difference. So read `max_rss_kb` from its
+  `summary.tsv` instead of measuring memory yourself.
 - **Prefer the trace to the wall.** Phase durations settled in two runs what 24
   whole-genome wall-clock runs could not.
 - **Build the bookends identically.** Same command, same `RUSTFLAGS`. A native
