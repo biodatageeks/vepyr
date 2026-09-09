@@ -334,10 +334,10 @@ while true; do
     # are PULL REQUEST REVIEW comments, while `gh pr view --json comments` returns
     # only the issue-comment thread. Polling just the latter yields a green
     # snapshot with every finding invisible.
-    findings=$(gh api "repos/$repo/pulls/$n/comments" \
+    findings=$(gh api --paginate "repos/$repo/pulls/$n/comments" \
       --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' finding \(.id)"') \
       || failed="$failed findings:$r"
-    remarks=$(gh api "repos/$repo/issues/$n/comments" \
+    remarks=$(gh api --paginate "repos/$repo/issues/$n/comments" \
       --jq '.[] | select(.user.login|test("\\[bot\\]")) | "'"$r"' comment \(.id)"') \
       || failed="$failed comments:$r"
 
@@ -356,7 +356,14 @@ $remarks
 done
 ```
 
-Three traps here, each of which makes the monitor lie in a different way. A
+`--paginate` on both comment queries, not decoration: the API returns 30 items
+per page and a PR under active review passes that quickly, after which the
+newest findings are the ones that fall off. A monitor that silently reads only
+the first page reports green while the findings it has not fetched go
+unaddressed. The per-item `--jq` filters concatenate cleanly across pages; a
+filter like `length` would not, because it emits one value per page.
+
+Four traps here, each of which makes the monitor lie in a different way. A
 literal `<n>` is not a placeholder to the shell but input redirection from a file
 called `n`, so the query fails and a trailing `sort` reports success. `gh pr
 checks` exits 8 whenever a check is pending and nonzero when one fails, so its
