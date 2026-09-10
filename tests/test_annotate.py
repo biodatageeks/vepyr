@@ -169,9 +169,20 @@ def text_plugin_cache(metadata_cache_dir, tmp_path_factory):
     root = tmp_path_factory.mktemp("text_plugin")
     repo = _init_full_repo(root, manifest=_UTF8_MANIFEST)
     source = root / "demo.tsv"
-    # Two spaces, and a tab+space run. The source is tab-delimited, so the tab
-    # goes in via the second row's value only after the column split.
-    source.write_text("1\t604358\tG\tC\ttwo  spaces\n1\t604360\tT\tC\ta-b\n")
+    # Three values, one per golden variant:
+    #   604358  a plain two-space run
+    #   604360  a MIXED run -- space + vertical tab + space. A literal tab
+    #           cannot be used: the source is tab-delimited, so it would split
+    #           the column. U+000B is Perl `\s` and is not a delimiter, and it
+    #           is also the character `char::is_ascii_whitespace` omits, so this
+    #           row fails if the engine ever swaps to that predicate.
+    #   611317  the control: a `-` INSIDE a value is untouched (only a value
+    #           that IS `-` blanks).
+    source.write_text(
+        "1\t604358\tG\tC\ttwo  spaces\n"
+        "1\t604360\tT\tC\tmixed \x0b run\n"
+        "1\t611317\tA\tG\ta-b\n"
+    )
     plugin_root = root / "pc"
     built = vepyr.build_plugin_cache(
         "demo",
@@ -182,7 +193,7 @@ def text_plugin_cache(metadata_cache_dir, tmp_path_factory):
         plugins_repo=str(repo),
         chroms=["1"],
     )
-    assert built == [("chr1", 2, 0, 2)]
+    assert built == [("chr1", 3, 0, 3)]
     return str(plugin_root)
 
 
@@ -231,6 +242,10 @@ class TestCsqValueEscaping:
 
         assert "two_spaces" in values, sorted(values)
         assert "two__spaces" not in values, "whitespace run was not collapsed"
+        # A mixed run collapses to ONE underscore too -- `\s+` is one rule over
+        # the whole set, not a per-character rule applied repeatedly.
+        assert "mixed_run" in values, sorted(values)
+        assert "mixed__run" not in values, "mixed whitespace run was not collapsed"
 
     def test_whitespace_run_collapses_in_the_lazyframe(
         self, text_plugin_cache, metadata_cache_dir
@@ -246,6 +261,7 @@ class TestCsqValueEscaping:
         ).collect()
         values = set(frame["DEMO"].drop_nulls().to_list())
         assert "two_spaces" in values, sorted(values)
+        assert "mixed_run" in values, sorted(values)
         # A `-` inside a value is untouched -- only a value that IS `-` blanks.
         assert "a-b" in values, sorted(values)
 
