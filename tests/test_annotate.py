@@ -2668,3 +2668,76 @@ class TestNonVariantRecords:
             assert seen["options"]["allow_non_variant"] is True
         finally:
             os.unlink(out_path)
+
+    def test_the_vcf_progress_bar_completes_when_records_are_dropped(self, monkeypatch):
+        """A dropped record is read but never written, so the bar falls short.
+
+        The bar's total is the input count while it advances by rows written.
+        The engine drops non-variant `ALT=.` records, so an input of three
+        records with one of them non-variant writes two lines and the bar
+        would close at 2/3. Finishing the run means the whole input was
+        consumed, so it must read 100%.
+        """
+        import vepyr
+
+        bar_cls, bars = TestLazyFrameProgress._recording_tqdm()
+        monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            # Three input records, two written: one was dropped.
+            on_batch_written(2, 2, 3)
+            return 2
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+        try:
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, output_vcf=out_path)
+        finally:
+            os.unlink(out_path)
+
+        assert bars, "a progress bar should have been created"
+        assert bars[0].total == 3
+        assert bars[0].n == 3, "the bar must reach its total once the input is consumed"
+        assert bars[0].closed
+
+    def test_a_failed_vcf_run_does_not_snap_the_progress_bar(self, monkeypatch):
+        """Only consuming the input means 100% -- a crash does not."""
+        import vepyr
+
+        bar_cls, bars = TestLazyFrameProgress._recording_tqdm()
+        monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
+
+        def failing_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            on_batch_written(1, 1, 3)
+            raise RuntimeError("VCF annotation failed: boom")
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", failing_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+        try:
+            with pytest.raises(RuntimeError, match="boom"):
+                vepyr.annotate(INPUT_VCF, CACHE_DIR, output_vcf=out_path)
+        finally:
+            os.unlink(out_path)
+
+        assert bars[0].n == 1, "a failed run must not claim the input was consumed"
+        assert bars[0].closed

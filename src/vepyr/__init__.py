@@ -1519,6 +1519,7 @@ def annotate(
                     mininterval=0,
                 )
                 _pending_updates = queue.SimpleQueue()
+                _bar_seen = {"advanced": 0, "total": 0}
 
                 def callback(batch_rows, total_rows, total_input):
                     _pending_updates.put((batch_rows, total_rows, total_input))
@@ -1561,7 +1562,9 @@ def annotate(
                         break
                     if total_input > 0 and _pbar.total != total_input:
                         _pbar.total = total_input
+                        _bar_seen["total"] = total_input
                     _pbar.update(batch_rows)
+                    _bar_seen["advanced"] += batch_rows
                     _pbar.refresh()
 
             t = threading.Thread(target=_run, daemon=True)
@@ -1573,6 +1576,19 @@ def annotate(
             if _error[0] is not None:
                 raise _error[0]
             rows = _result[0]
+            # The bar counts the INPUT, but advances by rows written, and the
+            # two differ when the engine drops a record: a non-variant `ALT=.`
+            # is removed rather than annotated, so it is read but never
+            # written. Reaching here means the whole input was consumed, so
+            # close the gap. Only on success -- a crash does not mean "that
+            # was all of it".
+            #
+            # Counted here rather than read back off the bar: `update` is the
+            # only method the suite's tqdm stand-ins all implement.
+            if _pbar is not None:
+                _remaining = _bar_seen["total"] - _bar_seen["advanced"]
+                if _remaining > 0:
+                    _pbar.update(_remaining)
         finally:
             if _pbar is not None:
                 _pbar.close()
