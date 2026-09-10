@@ -92,7 +92,7 @@ serde_json = "1"
 # top of it yet; move to that tag when one is. bio-formats stays declared by tag
 # on both sides, per the note above, so the formats crates resolve to a single
 # source.
-# bio-functions c208d15: the head of biodatageeks/datafusion-bio-functions#243
+# bio-functions b470460: the MERGE commit of biodatageeks/datafusion-bio-functions#243
 # (vepyr#93 -- a CSQ whitespace RUN now collapses to one underscore, per
 # OutputFactory/VCF.pm:403 `s/\s+/\_/g`, and the engine's two CSQ escapers
 # became one function). Two behaviour notes for this repo: a bare `-` in a
@@ -100,8 +100,8 @@ serde_json = "1"
 # which VCF.pm:449 puts in @fields), so it reaches the LazyFrame as null via the
 # `.replace("", None)` in _plugin_column; and DOMAINS deliberately keeps
 # per-character escaping, because VEP's rule there (OutputFactory.pm:1505) has
-# no quantifier. Still pinned by rev, not tag -- this is a PR head, so re-pin to
-# the merge commit once #243 lands.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "c208d1583ffb0894c66ae753d4a03ac50f83d1d7", features = ["cache-builder"] }
+# no quantifier. Pinned by rev rather than tag because no release has been cut
+# on top of the merge yet; move to that tag when one is.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b47046054da605429572d34cbf3fb3d0ecb3c294", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
