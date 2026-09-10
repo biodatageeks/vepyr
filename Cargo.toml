@@ -90,6 +90,6 @@ serde_json = "1"
 # trimmed). Re-pin to the MERGE COMMIT once that PR merges, then to the next
 # release tag. bio-formats stays declared by tag on both sides, per the note
 # above, so the formats crates still resolve to a single source.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "14f8fef67f73e13ab85d78b342d91cad48fd9562", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "46d8c20a4b4284047d942496edb8d9b51c4fcd28", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
