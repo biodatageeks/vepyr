@@ -34,6 +34,12 @@ csq_field = "DEMO"
 type = "Float32"
 """
 
+# A manifest whose value column is Utf8 rather than Float32, so a plugin value
+# can carry text -- the only CSQ path whose input bytes are under test control.
+_UTF8_MANIFEST = _FULL_MANIFEST.replace(
+    "CAST(score AS FLOAT) AS demo_score", "score AS demo_score"
+).replace('type = "Float32"', 'type = "Utf8"')
+
 # A manifest whose sole [[source]] carries a part -- the shape a {part: path}
 # mapping addresses.
 _PARTED_MANIFEST = _FULL_MANIFEST.replace(
@@ -66,15 +72,18 @@ def _init_full_repo(
     multi_source: bool = False,
     parted: bool = False,
     md5: str | None = None,
+    manifest: str | None = None,
 ) -> Path:
     """A plugins repo whose demo manifest the Rust builder can load.
 
     ``md5`` adds the provenance keys (``url`` + ``md5``) to the sole
     ``[[source]]`` so the build verifies the file ``source_path`` resolves to.
+    ``manifest`` overrides the body outright, for a plugin whose value column is
+    not the default ``Float32``.
     """
     repo = root / "vepyr-plugins-full"
     (repo / "plugins" / "demo").mkdir(parents=True)
-    base = _PARTED_MANIFEST if parted else _FULL_MANIFEST
+    base = manifest or (_PARTED_MANIFEST if parted else _FULL_MANIFEST)
     if md5 is not None:
         base = base.replace(
             'path = "placeholder.tsv.gz"\n',
