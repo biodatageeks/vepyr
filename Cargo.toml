@@ -114,10 +114,10 @@ serde_json = "1"
 # options_json through as the LazyFrame path does; and the flag keeps the record
 # with NO CSQ, which is what VEP's VCF writer emits, so on the LazyFrame path it
 # arrives as a null CSQ rather than a missing row. bio-formats does not move:
-# its part of this fix is reader-contract tests only (biodatageeks/
-# datafusion-bio-formats#... , branch fix/alt-dot-non-variant), which change no
-# src logic, so v1.12.1 still describes the artifact. Pinned by rev because no
-# release has been cut on top of it; move to that tag when one is.
+# its part of this fix is reader-contract tests only
+# (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
+# v1.12.1 still describes the artifact. Pinned by rev because no release has
+# been cut on top of it; move to that tag when one is.
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7d32d1a00382e2e64692125915684f93e742e2cc", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
