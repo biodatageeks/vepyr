@@ -1085,6 +1085,8 @@ def annotate(
     # Custom plugin caches
     plugin_cache_root: str | None = None,
     plugins: list[str] | tuple[str, ...] | None = None,
+    # Input record handling
+    allow_non_variant: bool = False,
     # Output mode
     output_vcf: str | None = None,
     preserve_record_layout: bool = True,
@@ -1235,6 +1237,15 @@ def annotate(
         Compression is auto-detected from the file extension: ``.vcf`` for
         plain text, ``.vcf.gz`` or ``.vcf.bgz`` for block-gzipped (bgzf).
         Override with the ``compression`` parameter.
+    allow_non_variant : bool
+        Keep records that carry no alternate allele -- ``ALT=.`` (default:
+        False). Ensembl VEP drops such a record entirely unless
+        ``--allow_non_variant`` is given, and vepyr does the same: by default
+        it is absent from the output, exactly as VEP leaves it out. With this
+        on, the record is emitted with its original ALT and no consequence
+        annotation -- no ``CSQ`` key on the VCF path, a null ``CSQ`` on the
+        LazyFrame path. Note VEP tests only the *first* ALT, so ``ALT=.,C`` is
+        non-variant while ``ALT=C,.`` is an ordinary record.
     preserve_record_layout : bool
         Write each record's INFO fields in the order the input wrote them, and
         its own FORMAT keys (default: True). Both are per record and neither
@@ -1472,6 +1483,8 @@ def annotate(
             opts["plugins"] = list(plugins)
     elif plugin_cache_root is not None:
         opts["plugin_cache_root"] = plugin_cache_root
+    if allow_non_variant:
+        opts["allow_non_variant"] = True
     if not preserve_record_layout:
         opts["preserve_record_layout"] = False
 

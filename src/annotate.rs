@@ -345,6 +345,19 @@ pub fn annotate_to_vcf_file(
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
 
+    // Keep records with no alternate allele (`ALT=.`) instead of dropping
+    // them, as Ensembl VEP's --allow_non_variant does. Off by default, which
+    // is VEP's default too.
+    //
+    // This mapping is load-bearing: unlike the LazyFrame path, which
+    // interpolates `options_json` into the SQL verbatim, this path re-parses
+    // the JSON and copies each option into the config by hand, so an option
+    // without a line here silently does nothing on `output_vcf=`.
+    config.allow_non_variant = opts
+        .get("allow_non_variant")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
     // Release the GIL so the Python background thread (in __init__.py) can
     // let Jupyter's main thread pump display updates for tqdm progress bars.
     // The on_batch_written callback re-acquires the GIL via Python::with_gil().
