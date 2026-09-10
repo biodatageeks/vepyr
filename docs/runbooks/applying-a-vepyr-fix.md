@@ -14,7 +14,7 @@ it clears.
 
 Harnesses this skill drives, all already in the repo:
 `performance-tests/vepyr/scripts/` (worker scaling) and
-`e2e-testing/scripts/` (md5 concordance and the parity gate).
+`e2e-testing/scripts/` (md5 concordance; the field-mode parity gate is triage only).
 
 ## Scope
 
@@ -92,6 +92,27 @@ Give each one the issue text or the user's description **verbatim**. An agent
 handed a paraphrase answers about the paraphrase, and the paraphrase is where
 the assumption you are trying to test already lives.
 
+**Tell each agent, in the prompt, that it must not mutate the checkout** — no
+`git checkout`, `switch`, `restore`, `pull`, `fetch`, `stash`, or commit. These
+are the human's working trees, and an agent that "helpfully" moves one onto the
+pinned rev destroys the very drift it was sent to report, then reports the tree
+was already correct. Saying "read-only" is not enough; name the commands.
+This has actually happened: an analysis agent checked out `master` and pulled,
+then reported HEAD already equalled the pin.
+
+Point them instead at a source that cannot be mutated:
+
+```bash
+# The exact pinned rev, immutable, already on disk from the last cargo build:
+ls ~/.cargo/git/checkouts/datafusion-bio-functions-*/<short-rev>/
+# Or read any path at any rev without touching the worktree:
+git -C ~/research/git/<repo> show <rev>:<path>
+```
+
+Have them state, in their report, which source they read and whether the line
+numbers they quote also hold on the drifted branch — the two often differ, and a
+`file:line` that is only true on a branch nobody builds is worse than no anchor.
+
 Each answers the same five questions, quoting `file:line` rather than
 summarising:
 
@@ -111,6 +132,53 @@ and 9 indels with no MNV, no multi-allelic site and no `ALT=.` record, and the
 VCF reader has four separate record loops of which the indexed one — the path
 tabix input takes — is invisible to a grep for `read_record`. "Covered" and
 "reached by the fixtures we run" are different claims.
+
+#### 1a-bis. Confirm the shape of the fix in the Ensembl VEP 116 source
+
+**Mandatory, and it is not satisfied by reading the issue or by comparing
+outputs.** Before the plan is written, the rule being ported must be quoted from
+the Ensembl source at the pinned release, with `file:line`. Both repos, because
+the logic is split across them:
+
+```bash
+# VEP itself -- the parser, the output factory, the flag handling
+git -C ~/research/git/ensembl-vep show release/116.0:modules/Bio/EnsEMBL/VEP/<file>
+
+# ensembl-variation -- allele trimming, HGVS notation, consequence calling
+git -C ~/research/git/ensembl-variation show origin/release/116:modules/Bio/EnsEMBL/Variation/<file>
+```
+
+Check the release actually matters before trusting a line number from elsewhere:
+
+```bash
+git -C ~/research/git/ensembl-vep diff --stat release/115.2 release/116.0 -- <path>
+```
+
+`ensembl-variation` has no `release/115.2` or `release/116.0` **tags** — only
+`origin/release/115` and `origin/release/116` branches. A `git diff` between two
+revs that do not exist silently compares nothing and exits 0, which reads
+exactly like "the file is identical". Verify the revs resolve before believing
+an empty diff.
+
+Two failures this gate exists to prevent, both of which have happened:
+
+- **Reading half the rule.** `vepyr#95` derived VEP's allele trimming from
+  `Parser/VCF.pm` alone and concluded "one leading base, indels only, never a
+  suffix". The other half is `Parser.pm:881`, an ungated `minimise_alleles()`
+  that fires whenever the original REF/ALT differ in length. Implementing the
+  issue as written would have regressed every shared-suffix indel.
+- **Inferring a rule from a handful of records.** During the same fix, HGVS
+  minimisation was made conditional on "has a real CDS coordinate", inferred
+  from four regressing records that all happened to be intronic. The actual rule
+  is in `TranscriptVariationAllele.pm:1510-1514`: Ensembl clips the alleles and
+  then *restores the untrimmed ones* for transcripts carrying `_rna_edit`
+  attributes. The inferred rule and the real one agree on the sample and
+  disagree in general.
+
+So: **a rule that matches the observed records is a hypothesis, not the rule.**
+State it in the plan as a quotation from the source, and say which records
+confirm it. If the source cannot be found, say so in the plan rather than
+inferring — an inferred rule is a defect with a passing test.
 
 #### 1b. Write the plan to a dated artifact
 
@@ -271,62 +339,76 @@ done
 Annotating raw multi-allelic input is a different measurement and a different
 correctness question, so keep to the normalized file.
 
-**Quality.** Hash the bodies in strict mode. `canonical` is the default and it
-rewrites QUAL and sorts INFO keys before hashing, which is useful for triage
-and wrong for a parity claim:
+**Quality. Run the md5 comparator only.** Strict-mode body digests are the whole
+quality gate for a fix — do not run field mode, and do not run
+`verify_parity_gate.py`, as part of the routine loop. Field mode is a triage
+tool, reached for only when a digest actually moves (see below).
 
-Order matters here, and not for a cosmetic reason. Both comparison modes write
-to the same per-contig report path (`comparison/cli.py:466`), and md5 mode
-leaves `comparison` null because that field is only populated in field mode
-(`:418-419`). `verify_parity_gate.py:398-400` rejects a report whose
-`comparison` is not a dict, so running md5 first makes the gate fail with
-"comparison is missing or null" even when parity is perfect. Run field mode,
-gate on it, then take the digests:
+Why md5 alone. A strict body digest is a record-for-record, byte-level claim
+over every contig; field mode is a per-field *subset* comparison, which is
+weaker as an assertion and roughly four times slower — about 85 minutes against
+about 20 for the same 22 autosomes, and the quality half runs twice, once here
+and once at step 8. Paying ~3 hours for the weaker evidence is the wrong trade.
+
+`canonical` is the default md5 mode and it rewrites QUAL and sorts INFO keys
+before hashing, which is useful for triage and wrong for a parity claim. Always
+pass `--md5-mode strict`.
 
 ```bash
-set -o pipefail   # without this, tee's success hides a nonzero exit below
+set -o pipefail
 cd "$ROOT/e2e-testing/scripts"
 
-uv run python run_comparison.py --release 116 --chroms all --bgzf \
-  | tee "$RUN/field.out" || exit 1             # populates `comparison` in each report
-uv run python verify_parity_gate.py --release 116 --profile merged --chroms 1-22 \
-  | tee "$RUN/gate.out" || exit 1
-
 uv run python run_comparison.py --release 116 --chroms all \
-  --comparison-mode md5 --md5-mode strict --bgzf | tee "$RUN/md5.out" || exit 1
-cp -r "$ROOT/e2e-testing/reports" "$RUN/reports"
+  --comparison-mode md5 --md5-mode strict --bgzf > "$RUN/md5.out" 2>&1 || exit 1
+cp -r "$ROOT/e2e-testing/reports" "$RUN/reports" || exit 1
 ```
 
-`set -o pipefail` is not decoration. `run_comparison.py` returns 1 when any
-contig mismatches (`comparison/cli.py:695`) and `verify_parity_gate.py` exits
-nonzero on a gate failure, but a plain `cmd | tee f` reports tee's status, so
-without it the recipe sails past exactly the failures that should stop it and
-declares a red baseline green. `pipefail` alone is not enough either: it makes
-the failure visible in the pipeline's status but does not stop the block, and
-the trailing `cp` would then supply a zero exit for the whole thing. Hence the
-explicit `|| exit 1` after each pipeline — run the block as a script, not by
-pasting it into a shell you care about.
+Redirect rather than `tee`. `run_comparison.py` returns 1 when any contig
+mismatches (`comparison/cli.py:695`), but a plain `cmd | tee f` reports tee's
+status, so a piped recipe sails past exactly the failure that should stop it and
+declares a red baseline green. `set -o pipefail` makes such a failure visible in
+a pipeline's status but does not stop the block, so keep the explicit `|| exit 1`
+and run this as a script, not by pasting it into a shell you care about. The
+run also emits a tqdm progress bar per contig, which floods a captured log —
+another reason to send it to a file rather than through the conversation.
 
-The md5 pass overwrites the reports the gate just read, so copy them into the
-run directory, and re-run field mode before ever re-running the gate against
-that directory. There is no `--report-dir` on `run_comparison.py` to keep the
-two apart — the path is fixed at `cli.py:588`.
+**Do not add `verify_parity_gate.py` to this block.** It cannot run on md5-mode
+reports and will fail in a way that looks like a parity failure but is not.
+Both modes write the same per-contig report path (`comparison/cli.py:466`) and
+the report is rewritten wholesale on each run (`:438-457`), so an md5 pass
+leaves `comparison` null; `verify_parity_gate.py:398-400` then raises
+"comparison is missing or null" even when parity is perfect. The gate requires a
+field-mode run to have populated that field first. `cli.py:705-730` prints a
+targeted error saying exactly this, so if you see it, this is why.
 
-The two scripts take contigs differently: `run_comparison.py` wants names or
-`all`, while `verify_parity_gate.py` also expands numeric ranges like `1-22`.
-Passing `1-22` to the former treats it as one contig name and compares nothing.
+**When a digest does move**, then and only then reach for the slower evidence,
+scoped to the offending contig rather than the whole corpus:
+
+```bash
+uv run python md5_concordance.py --pair VEP_VCF VEPYR_VCF --explain   # the records
+uv run python run_comparison.py --release 116 --chroms chr7 --bgzf    # field detail
+uv run python verify_parity_gate.py --release 116 --profile merged --chroms 7
+```
 
 `md5_concordance.py` hashes header and body separately and excludes the `##VEP=`
 and `##datafusion-bio-function-vep=` provenance lines, so a body match is a real
 record-for-record match and a header mismatch alone is usually just provenance.
-Use `--pair VEP_VCF VEPYR_VCF --explain` on a single chromosome when a body
-digest differs and you need the offending records.
 
-**Gate:** the baseline body digests must already match. If they do not, stop and
-say so — you cannot attribute a later mismatch to your fix when the starting
-point was already red.
+The two scripts take contigs differently: `run_comparison.py` wants names or
+`all`, while `verify_parity_gate.py` also expands numeric ranges like `1-22`.
+Passing `1-22` to the former treats it as one contig name and compares nothing,
+and exits clean while doing so.
+
+**Gate:** the baseline body digests must already match, on every contig. If they
+do not, stop and say so — you cannot attribute a later mismatch to your fix when
+the starting point was already red.
 
 ### 3. Reproduce the defect with a test that fails now
+
+Before writing it, re-read the rule you quoted in step 1a-bis. The test encodes
+the rule, so a test built from observed behaviour rather than from the source
+locks in whatever the engine happens to do.
+
 
 Write the failing test before the fix, in the repo step 1 identified as the
 owner of the behaviour. The
@@ -612,8 +694,9 @@ reviewer will read. Check first that every pin points at its upstream PR's
 current head, per step 7: measuring a stale cascade produces numbers for code
 nobody is going to merge.
 
-**Quality gate:** every body digest matches in strict mode, and
-`verify_parity_gate.py` exits 0.
+**Quality gate:** every body digest matches in strict mode, on every contig —
+the same md5-only command as step 2, and no field-mode or `verify_parity_gate.py`
+run unless a digest moved and you are triaging it.
 
 **Performance gate**, three metrics, each at both 1 and 8 workers:
 
