@@ -155,6 +155,102 @@ def demo_plugin_cache(metadata_cache_dir, tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
+def text_plugin_cache(metadata_cache_dir, tmp_path_factory):
+    """A one-plugin cache whose ``DEMO`` value is text carrying a whitespace run.
+
+    The escapers are not reachable from Python, and no cache or golden fixture
+    contains a multi-character whitespace run, so a plugin string value is the
+    only CSQ path whose input bytes are under test control (vepyr#93).
+    """
+    from tests.test_build_plugin_cache import _UTF8_MANIFEST, _init_full_repo
+
+    import vepyr
+
+    root = tmp_path_factory.mktemp("text_plugin")
+    repo = _init_full_repo(root, manifest=_UTF8_MANIFEST)
+    source = root / "demo.tsv"
+    # Two spaces, and a tab+space run. The source is tab-delimited, so the tab
+    # goes in via the second row's value only after the column split.
+    source.write_text("1\t604358\tG\tC\ttwo  spaces\n1\t604360\tT\tC\ta-b\n")
+    plugin_root = root / "pc"
+    built = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(source),
+        cache_dir=metadata_cache_dir,
+        plugin_cache_root=str(plugin_root),
+        plugins_repo=str(repo),
+        chroms=["1"],
+    )
+    assert built == [("chr1", 2, 0, 2)]
+    return str(plugin_root)
+
+
+class TestCsqValueEscaping:
+    """vepyr#93 -- a whitespace RUN in a CSQ value collapses to ONE underscore.
+
+    Ensembl VEP's rule is ``s/\\s+/\\_/g`` (``OutputFactory/VCF.pm:403``), which
+    is quantified. The engine escaped per character, so ``two  spaces`` came out
+    as ``two__spaces``. The golden gate cannot see this: no golden value holds a
+    whitespace run, and DOMAINS -- the field whose source values do carry spaces
+    -- is empty on every entry of every golden fixture.
+    """
+
+    def test_whitespace_run_collapses_to_one_underscore_in_vcf(
+        self, text_plugin_cache, metadata_cache_dir, tmp_path
+    ):
+        import vepyr
+
+        output = tmp_path / "escaping.vcf"
+        vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            fields="core",
+            plugin_cache_root=text_plugin_cache,
+            plugins=["demo"],
+            output_vcf=str(output),
+            show_progress=False,
+        )
+        # DEMO is the last CSQ sub-field, so the plugin value is the last token
+        # of each entry. Take the entries that actually hit the plugin.
+        values = set()
+        for line in output.read_text().splitlines():
+            if line.startswith("#"):
+                continue
+            info = line.split("\t")[7]
+            csq = next(
+                (f[len("CSQ=") :] for f in info.split(";") if f.startswith("CSQ=")),
+                None,
+            )
+            if csq is None:
+                continue
+            for entry in csq.split(","):
+                token = entry.split("|")[-1]
+                if token:
+                    values.add(token)
+
+        assert "two_spaces" in values, sorted(values)
+        assert "two__spaces" not in values, "whitespace run was not collapsed"
+
+    def test_whitespace_run_collapses_in_the_lazyframe(
+        self, text_plugin_cache, metadata_cache_dir
+    ):
+        import vepyr
+
+        frame = vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            fields="core",
+            plugin_cache_root=text_plugin_cache,
+            plugins=["demo"],
+        ).collect()
+        values = set(frame["DEMO"].drop_nulls().to_list())
+        assert "two_spaces" in values, sorted(values)
+        # A `-` inside a value is untouched -- only a value that IS `-` blanks.
+        assert "a-b" in values, sorted(values)
+
+
+@pytest.fixture(scope="module")
 def partial_plugin_cache(demo_plugin_cache, tmp_path_factory):
     """The plugin-cache analogue of ``partial_cache_dir``: ``manifest.json``
     lists contigs whose shards were never downloaded, ahead of the one that was.
