@@ -85,11 +85,13 @@ serde_json = "1"
 # its reference, so `tag = "v1.12.1"` and a `rev =` of the same commit are two
 # sources. bio-function-vep declares bio-formats by tag, so vepyr declares it the
 # same way -- otherwise the formats crates compile twice and the E0308 above returns.
-# TEMPORARY: pinned to the head of biodatageeks/datafusion-bio-functions
-# `fix/mnv-allele-trim-parity` (vepyr#95 -- same-length alleles are no longer
-# trimmed). Re-pin to the MERGE COMMIT once that PR merges, then to the next
-# release tag. bio-formats stays declared by tag on both sides, per the note
-# above, so the formats crates still resolve to a single source.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "46d8c20a4b4284047d942496edb8d9b51c4fcd28", features = ["cache-builder"] }
+# bio-functions 97aa8ca: the merge commit of biodatageeks/datafusion-bio-functions#242
+# (vepyr#95 -- same-length alleles are no longer trimmed, and HGVS is computed
+# from the clipped allele except on transcripts carrying `_rna_edit`
+# attributes). Pinned by rev rather than tag because no release has been cut on
+# top of it yet; move to that tag when one is. bio-formats stays declared by tag
+# on both sides, per the note above, so the formats crates resolve to a single
+# source.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "97aa8ca5e43d9d54794214dc821eaa1ad26e3e4d", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
