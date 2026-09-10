@@ -11,7 +11,7 @@
 <text x="309.0" y="113.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#555555"><tspan x="309.0" dy="0.0" font-weight="400">Human GRCh38 · SNVs + indels · releases 115 / 116</tspan><tspan x="309.0" dy="25.4" font-weight="400">Ensembl / RefSeq / merged · --everything · HGVS</tspan></text>
 <rect x="1085" y="94" width="220" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
 <text x="1195.0" y="118.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1195.0" dy="0.0" font-weight="700">Added interfaces</tspan></text>
-<text x="1329.0" y="113.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1329.0" dy="0.0" font-weight="400">Arrow streaming · lazy queries · SQL / expressions · plugin manifests</tspan><tspan x="1329.0" dy="24.1" font-weight="400">SV parity not qualified; multi-sample VCF I/O supported, cohort parity not qualified</tspan></text>
+<text x="1329.0" y="113.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1329.0" dy="0.0" font-weight="400">Arrow streaming · lazy queries · DataFrame API / SQL · declarative plugins</tspan><tspan x="1329.0" dy="24.1" font-weight="400">SV parity not qualified; multi-sample VCF I/O supported, cohort parity not qualified</tspan></text>
 <rect x="300" y="270" width="1330" height="207" rx="14" fill="white" stroke="#111111" stroke-width="1.6" stroke-dasharray="8 6"/>
 <rect x="323" y="253" width="315" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
 <text x="480.5" y="277.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="480.5" dy="0.0" font-weight="700">Native Rust / DataFusion</tspan></text>
@@ -28,7 +28,7 @@
 <rect x="1740" y="310" width="275" height="110" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
 <text x="1877.5" y="346.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1877.5" dy="0.0" font-weight="700">Polars LazyFrame</tspan><tspan x="1877.5" dy="25.4" font-weight="400">lazy IO source</tspan><tspan x="1877.5" dy="25.4" font-weight="400">executes on demand</tspan></text>
 <rect x="2110" y="321" width="245" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
-<text x="2232.5" y="359.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="2232.5" dy="0.0" font-weight="700">SQL / expressions</tspan><tspan x="2232.5" dy="24.1" font-weight="400">filter · join · sink</tspan></text>
+<text x="2232.5" y="359.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="2232.5" dy="0.0" font-weight="700">DataFrame API / SQL</tspan><tspan x="2232.5" dy="24.1" font-weight="400">filter · join · sink</tspan></text>
 <text x="2094.0" y="286.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="2094.0" dy="0.0" font-weight="400">Polars / polars-bio</tspan></text>
 <polyline points="235,365 330,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)"/>
 <polyline points="550,365 675,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)"/>
@@ -58,58 +58,58 @@
 <polyline points="569,628 990,750" fill="none" stroke="#888888" stroke-width="1.5"/>
 <rect x="40" y="750" width="950" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5"/>
 <text x="66.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="66.0" dy="0.0" font-weight="700">A2</tspan></text>
-<text x="136.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="136.0" dy="0.0" font-weight="700">Cache directory</tspan></text>
+<text x="136.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="136.0" dy="0.0" font-weight="700">Cache construction</tspan></text>
 <rect x="914" y="768" width="48" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
 <text x="938.0" y="794.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="938.0" dy="0.0" font-weight="700">i</tspan></text>
-<rect x="66" y="832" width="235" height="70" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
-<text x="183.5" y="861.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="183.5" dy="0.0" font-weight="700">Ensembl VEP cache</tspan><tspan x="183.5" dy="24.1" font-weight="400">Storable / Sereal</tspan></text>
-<rect x="366" y="832" width="255" height="70" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
-<text x="493.5" y="862.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="493.5" dy="0.0" font-weight="700">vepyr.build_cache()</tspan><tspan x="493.5" dy="22.9" font-weight="400">entity + chromosome</tspan></text>
-<rect x="686" y="832" width="275" height="70" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
-<text x="823.5" y="861.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="823.5" dy="0.0" font-weight="700">Parquet shards</tspan><tspan x="823.5" dy="24.1" font-weight="400">+ chromosome manifests</tspan></text>
-<polyline points="301,867 366,867" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)"/>
-<polyline points="621,867 686,867" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)"/>
-<text x="79.0" y="942.0" text-anchor="start" font-family="Courier New, monospace" font-size="22" font-weight="700" fill="#111111"><tspan x="79.0" dy="0.0" font-weight="700">cache_dir/   [release + source identity]</tspan></text>
-<polyline points="94,966 94,1215" fill="none" stroke="#888888" stroke-width="1.2"/>
-<polyline points="94,981 124,981" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="988.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="700" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="700">variation/</tspan></text>
-<polyline points="94,1020 124,1020" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="1027.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">transcript/</tspan></text>
-<polyline points="94,1059 124,1059" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="1066.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">exon/</tspan></text>
-<polyline points="94,1098 124,1098" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="1105.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_core/</tspan></text>
-<polyline points="94,1137 124,1137" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="1144.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_sift/</tspan></text>
-<polyline points="94,1176 124,1176" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="1183.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">regulatory/</tspan></text>
-<polyline points="94,1215 124,1215" fill="none" stroke="#888888" stroke-width="1.2"/>
-<text x="138.0" y="1222.2" text-anchor="start" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">motif/  [116]</tspan></text>
-<rect x="641" y="961" width="319" height="38" rx="0" fill="white" stroke="#111111" stroke-width="2"/>
-<text x="800.5" y="987.7" text-anchor="middle" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="800.5" dy="0.0" font-weight="700">chr1.parquet</tspan></text>
-<polyline points="400,980 641,980" fill="none" stroke="#111111" stroke-width="1.2"/>
-<rect x="587" y="964" width="42" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
-<text x="608.0" y="988.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="608.0" dy="0.0" font-weight="700">ii</tspan></text>
-<text x="548.0" y="1025.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Each entity: chr*.parquet + manifest</tspan></text>
-<text x="79.0" y="1267.9" text-anchor="start" font-family="Courier New, monospace" font-size="19" font-weight="700" fill="#111111"><tspan x="79.0" dy="0.0" font-weight="700">plugin_cache_root/plugin/cadd/</tspan></text>
-<rect x="134" y="1290" width="299" height="40" rx="0" fill="white" stroke="#111111" stroke-width="2"/>
-<text x="283.5" y="1317.3" text-anchor="middle" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="283.5" dy="0.0" font-weight="700">manifest.json</tspan></text>
-<rect x="79" y="1293" width="42" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
-<text x="100.0" y="1316.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="white"><tspan x="100.0" dy="0.0" font-weight="700">iii</tspan></text>
-<polyline points="433,1290 544,1048" fill="none" stroke="#888888" stroke-width="1.3"/>
-<polyline points="433,1330 544,1330" fill="none" stroke="#888888" stroke-width="1.3"/>
-<rect x="544" y="1048" width="418" height="282" rx="0" fill="white" stroke="#888888" stroke-width="1.5"/>
-<rect x="544" y="1048" width="418" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
-<text x="753.0" y="1073.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="white"><tspan x="753.0" dy="0.0" font-weight="700">iii   CADD · provenance manifest</tspan></text>
-<rect x="558" y="1094" width="390" height="66" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5"/>
-<text x="568.0" y="1122.1" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="568.0" dy="0.0" font-weight="700">cache_source_version</tspan><tspan x="568.0" dy="22.9" font-weight="400">&lt;requested ref&gt;@&lt;commit SHA&gt;</tspan></text>
-<rect x="558" y="1170" width="390" height="90" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
-<text x="568.0" y="1198.7" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="568.0" dy="0.0" font-weight="700">sources[] · one entry per input</tspan><tspan x="568.0" dy="22.9" font-weight="400">part · upstream url</tspan><tspan x="568.0" dy="22.9" font-weight="400">md5 / verified_md5*</tspan></text>
-<text x="562.0" y="1287.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="562.0" dy="0.0" font-weight="400">*Actual digest when verified.</tspan><tspan x="562.0" dy="21.6" font-weight="400">Also: file / index fingerprints.</tspan></text>
-<text x="79.0" y="1360.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="79.0" dy="0.0" font-weight="400">chr*.parquet · tiers inherited from variation</tspan></text>
-<text x="548.0" y="1360.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">JSON sidecar, not repeated in each row</tspan></text>
-<polyline points="960,961 1100,750" fill="none" stroke="#888888" stroke-width="1.5"/>
-<polyline points="960,999 1100,1380" fill="none" stroke="#888888" stroke-width="1.5"/>
+<rect x="66" y="832" width="238" height="72" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
+<text x="185.0" y="862.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="185.0" dy="0.0" font-weight="700">Ensembl VEP cache</tspan><tspan x="185.0" dy="24.1" font-weight="400">Storable / Sereal</tspan></text>
+<rect x="348" y="832" width="324" height="72" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
+<text x="510.0" y="862.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="700">vepyr.build_cache()</tspan><tspan x="510.0" dy="24.1" font-weight="400">Ensembl cache conversion</tspan></text>
+<rect x="66" y="968" width="238" height="98" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
+<text x="185.0" y="1000.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="185.0" dy="0.0" font-weight="700">Plugin source files</tspan><tspan x="185.0" dy="22.9" font-weight="400">TSV / CSV / Parquet</tspan><tspan x="185.0" dy="22.9" font-weight="400">VCF / BED (4 columns)</tspan></text>
+<rect x="348" y="932" width="324" height="134" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
+<rect x="348" y="932" width="324" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
+<text x="510.0" y="956.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="510.0" dy="0.0" font-weight="700">Declarative plugin · TOML</tspan></text>
+<text x="510.0" y="996.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="700">vepyr.build_plugin_cache()</tspan></text>
+<text x="510.0" y="1027.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="400">SQL ingestion</tspan><tspan x="510.0" dy="22.9" font-weight="400">schema + output field mapping</tspan></text>
+<rect x="754" y="864" width="207" height="200" rx="0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="857.5" y="914.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="857.5" dy="0.0" font-weight="700">Parquet shards</tspan></text>
+<text x="857.5" y="971.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="857.5" dy="0.0" font-weight="400">Core + plugins</tspan><tspan x="857.5" dy="24.1" font-weight="400">per chromosome</tspan><tspan x="857.5" dy="24.1" font-weight="400">+ metadata</tspan></text>
+<text x="723.0" y="844.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="723.0" dy="0.0" font-weight="400">Shared storage format</tspan></text>
+<text x="754.0" y="1089.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="754.0" dy="0.0" font-weight="400">Separate schemas</tspan></text>
+<polyline points="304,868 348,868" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)"/>
+<polyline points="304,1017 348,1017" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)"/>
+<polyline points="672,868 710,868 710,922 754,922" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)"/>
+<polyline points="672,1017 710,1017 710,997 754,997" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)"/>
+<text x="79.0" y="1122.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="700" fill="#111111"><tspan x="79.0" dy="0.0" font-weight="700">cache_dir/  [release + source]</tspan></text>
+<polyline points="94,1142 94,1321" fill="none" stroke="#888888" stroke-width="1.2"/>
+<polyline points="94,1153 124,1153" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1159.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="700" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="700">variation/</tspan></text>
+<polyline points="94,1181 124,1181" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1187.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">transcript/</tspan></text>
+<polyline points="94,1209 124,1209" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1215.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">exon/</tspan></text>
+<polyline points="94,1237 124,1237" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1243.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_core/</tspan></text>
+<polyline points="94,1265 124,1265" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1271.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_sift/</tspan></text>
+<polyline points="94,1293 124,1293" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1299.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">regulatory/</tspan></text>
+<polyline points="94,1321 124,1321" fill="none" stroke="#888888" stroke-width="1.2"/>
+<text x="138.0" y="1327.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">motif/  [116]</tspan></text>
+<rect x="641" y="1137" width="319" height="38" rx="0" fill="white" stroke="#111111" stroke-width="2"/>
+<text x="800.5" y="1163.7" text-anchor="middle" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="800.5" dy="0.0" font-weight="700">chr1.parquet</tspan></text>
+<polyline points="400,1156 641,1156" fill="none" stroke="#111111" stroke-width="1.2"/>
+<rect x="587" y="1140" width="42" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5"/>
+<text x="608.0" y="1164.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="608.0" dy="0.0" font-weight="700">ii</tspan></text>
+<text x="548.0" y="1197.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Each entity: chr*.parquet + manifest</tspan></text>
+<text x="534.0" y="1232.6" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="700" fill="#111111"><tspan x="534.0" dy="0.0" font-weight="700">plugin_cache_root/plugin/&lt;name&gt;/</tspan></text>
+<rect x="544" y="1248" width="418" height="60" rx="0" fill="white" stroke="#111111" stroke-width="1.5"/>
+<text x="753.0" y="1273.1" text-anchor="middle" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="753.0" dy="0.0" font-weight="400">chr1.parquet · chr2.parquet · …</tspan><tspan x="753.0" dy="22.9" font-weight="400">manifest.json · provenance</tspan></text>
+<text x="548.0" y="1330.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Warm/cold tiers inherited from variation</tspan></text>
+<text x="79.0" y="1363.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="79.0" dy="0.0" font-weight="400">vepyr data plugins: TOML + SQL  |  VEP plugin API: Perl modules</tspan></text>
+<polyline points="960,1137 1100,750" fill="none" stroke="#888888" stroke-width="1.5"/>
+<polyline points="960,1175 1100,1380" fill="none" stroke="#888888" stroke-width="1.5"/>
 <rect x="1100" y="750" width="1260" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5"/>
 <text x="1128.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="1128.0" dy="0.0" font-weight="700">A3</tspan></text>
 <text x="1198.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="1198.0" dy="0.0" font-weight="700">variation/chr1.parquet</tspan></text>

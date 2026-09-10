@@ -178,7 +178,7 @@ def build_scene(performance_uri: str) -> Scene:
     tag(40, 94, 250, "VEP-compatible scope")
     note(305, 86, 720, "Human GRCh38 · SNVs + indels · releases 115 / 116\nEnsembl / RefSeq / merged · --everything · HGVS", 20, 66)
     tag(1085, 94, 220, "Added interfaces")
-    note(1325, 86, 1030, "Arrow streaming · lazy queries · SQL / expressions · plugin manifests\nSV parity not qualified; multi-sample VCF I/O supported, cohort parity not qualified", 19, 66)
+    note(1325, 86, 1030, "Arrow streaming · lazy queries · DataFrame API / SQL · declarative plugins\nSV parity not qualified; multi-sample VCF I/O supported, cohort parity not qualified", 19, 66)
 
     boundary = s.box(300, 270, 1330, 207, "", dashed=True,
                      stroke_width=1.6, radius=14)
@@ -191,7 +191,7 @@ def build_scene(performance_uri: str) -> Scene:
             font_size=20, align="center")
     arrow = s.box(1290, 321, 275, 88, "Arrow RecordBatch\nstream", font_size=22)
     lf = s.box(1740, 310, 275, 110, "Polars LazyFrame\nlazy IO source\nexecutes on demand", font_size=20)
-    consumer = s.box(2110, 321, 245, 88, "SQL / expressions\nfilter · join · sink", font_size=19)
+    consumer = s.box(2110, 321, 245, 88, "DataFrame API / SQL\nfilter · join · sink", font_size=19)
     note(2090, 265, 270, "Polars / polars-bio", 19, 30)
     for a, b in ((source, provider), (provider, engine), (engine, arrow), (arrow, lf), (lf, consumer)):
         s.edge(a.x + a.width, 365, b.x, 365, source=a, target=b, width=2.2)
@@ -226,51 +226,50 @@ def build_scene(performance_uri: str) -> Scene:
     s.edge(569, 628, 990, 750, arrow=False, color=LINE, width=1.5,
            source=cache_focus, target=cache_frame)
     s.elements.append(cache_frame)
-    heading(62, 764, 900, "A2", "Cache directory")
+    heading(62, 764, 900, "A2", "Cache construction")
     tag(914, 768, 48, "i", 21)
 
-    raw = s.box(66, 832, 235, 70, "Ensembl VEP cache\nStorable / Sereal", font_size=19)
-    build = s.box(366, 832, 255, 70, "vepyr.build_cache()\nentity + chromosome", font_size=18)
-    built = s.box(686, 832, 275, 70, "Parquet shards\n+ chromosome manifests", font_size=19)
-    s.edge(301, 867, 366, 867, source=raw, target=build)
-    s.edge(621, 867, 686, 867, source=build, target=built)
-    s.label(75, 918, 730, 32, "cache_dir/   [release + source identity]", font_size=22, mono=True, weight=700)
+    # Two builders converge on a storage format, not a shared table/schema.
+    raw = s.box(66, 832, 238, 72, "Ensembl VEP cache\nStorable / Sereal", font_size=19)
+    build = s.box(348, 832, 324, 72, "vepyr.build_cache()\nEnsembl cache conversion", font_size=19)
+    plugin_input = s.box(66, 968, 238, 98,
+                         "Plugin source files\nTSV / CSV / Parquet\nVCF / BED (4 columns)", font_size=18)
+    plugin_build = s.box(348, 932, 324, 134, "", stroke_width=1.5)
+    tag(348, 932, 324, "Declarative plugin · TOML", 19)
+    s.label(359, 974, 302, 32, "vepyr.build_plugin_cache()", font_size=18, weight=700, align="center")
+    s.label(359, 1009, 302, 47, "SQL ingestion\nschema + output field mapping", font_size=18, align="center")
+    built = s.box(754, 864, 207, 200, "", stroke_width=2)
+    s.label(762, 888, 191, 36, "Parquet shards", font_size=22, weight=700, align="center")
+    s.label(762, 939, 191, 99, "Core + plugins\nper chromosome\n+ metadata", font_size=19, align="center")
+    note(719, 823, 243, "Shared storage format", 18, 29)
+    note(750, 1070, 212, "Separate schemas", 17, 27)
+    s.edge(304, 868, 348, 868, source=raw, target=build)
+    s.edge(304, 1017, 348, 1017, source=plugin_input, target=plugin_build)
+    s.edge(672, 868, 754, 922, via=((710, 868), (710, 922)), source=build, target=built)
+    s.edge(672, 1017, 754, 997, via=((710, 1017), (710, 997)), source=plugin_build, target=built)
+
+    s.label(75, 1100, 490, 30, "cache_dir/  [release + source]", font_size=20, mono=True, weight=700)
 
     entity_rows = ["variation/", "transcript/", "exon/", "translation_core/",
                    "translation_sift/", "regulatory/", "motif/  [116]"]
-    s.edge(94, 966, 94, 1215, arrow=False, color=LINE, width=1.2)
+    s.edge(94, 1142, 94, 1321, arrow=False, color=LINE, width=1.2)
     for index, entity in enumerate(entity_rows):
-        yy = 962 + index * 39
-        s.edge(94, yy + 19, 124, yy + 19, arrow=False, color=LINE, width=1.2)
-        s.label(134, yy, 330, 37, entity, font_size=21, mono=True, weight=700 if index == 0 else 400)
-    chosen = s.box(641, 961, 319, 38, "chr1.parquet", font_size=21, mono=True, stroke_width=2)
-    s.edge(400, 980, 641, 980, arrow=False, width=1.2)
-    tag(587, 964, 42, "ii", 19)
-    note(544, 1006, 418, "Each entity: chr*.parquet + manifest", 17, 27)
-
-    # Plugin provenance is cache-level JSON, not the core row provenance block.
-    s.label(75, 1245, 451, 32, "plugin_cache_root/plugin/cadd/", font_size=19, mono=True, weight=700)
-    plugin_manifest = s.box(134, 1290, 299, 40, "manifest.json", font_size=20, mono=True, stroke_width=2)
-    tag(79, 1293, 42, "iii", 18)
-    provenance_frame = Box("plugin-provenance-frame", 544, 1048, 418, 282, [""], stroke=LINE)
-    s.edge(433, 1290, 544, 1048, arrow=False, color=LINE, width=1.3,
-           source=plugin_manifest, target=provenance_frame)
-    s.edge(433, 1330, 544, 1330, arrow=False, color=LINE, width=1.3,
-           source=plugin_manifest, target=provenance_frame)
-    s.elements.append(provenance_frame)
-    tag(544, 1048, 418, "iii   CADD · provenance manifest", 20)
-    s.box(558, 1094, 390, 66, "cache_source_version\n<requested ref>@<commit SHA>",
-          font_size=18, mono=True, align="left", fill=SOFT)
-    s.box(558, 1170, 390, 90, "sources[] · one entry per input\npart · upstream url\nmd5 / verified_md5*",
-          font_size=18, mono=True, align="left")
-    note(558, 1268, 390, "*Actual digest when verified.\nAlso: file / index fingerprints.", 17, 49)
-    note(75, 1339, 451, "chr*.parquet · tiers inherited from variation", 17, 30)
-    note(544, 1339, 418, "JSON sidecar, not repeated in each row", 17, 30)
+        yy = 1138 + index * 28
+        s.edge(94, yy + 15, 124, yy + 15, arrow=False, color=LINE, width=1.2)
+        s.label(134, yy, 330, 28, entity, font_size=20, mono=True, weight=700 if index == 0 else 400)
+    chosen = s.box(641, 1137, 319, 38, "chr1.parquet", font_size=21, mono=True, stroke_width=2)
+    s.edge(400, 1156, 641, 1156, arrow=False, width=1.2)
+    tag(587, 1140, 42, "ii", 19)
+    note(544, 1178, 418, "Each entity: chr*.parquet + manifest", 17, 27)
+    s.label(530, 1211, 432, 30, "plugin_cache_root/plugin/<name>/", font_size=18, mono=True, weight=700)
+    s.box(544, 1248, 418, 60, "chr1.parquet · chr2.parquet · …\nmanifest.json · provenance", font_size=18, mono=True, bold_first=False)
+    note(544, 1310, 418, "Warm/cold tiers inherited from variation", 17, 28)
+    note(75, 1343, 887, "vepyr data plugins: TOML + SQL  |  VEP plugin API: Perl modules", 18, 28)
 
     shard_frame = Box("shard-zoom-frame", 1100, 750, 1260, 630, [""], stroke=LINE)
-    s.edge(960, 961, 1100, 750, arrow=False, color=LINE, width=1.5,
+    s.edge(960, 1137, 1100, 750, arrow=False, color=LINE, width=1.5,
            source=chosen, target=shard_frame)
-    s.edge(960, 999, 1100, 1380, arrow=False, color=LINE, width=1.5,
+    s.edge(960, 1175, 1100, 1380, arrow=False, color=LINE, width=1.5,
            source=chosen, target=shard_frame)
     s.elements.append(shard_frame)
     heading(1124, 764, 1190, "A3", "variation/chr1.parquet")
