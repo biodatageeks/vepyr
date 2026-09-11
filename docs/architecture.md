@@ -39,7 +39,7 @@ The heavy lifting happens here:
 
 - **Cache conversion** (`convert.rs`): reads Ensembl's Storable/Sereal `.gz` files via `EnsemblCacheTableProvider`, runs DataFusion SQL queries, and writes sorted Parquet files with tuned row groups.
 - **Annotation** (`annotate.rs`): registers VCF and cache table providers with DataFusion, builds SQL queries with `annotate_vep()` / `lookup_variants()` UDFs, and streams results as Arrow `RecordBatch`es. `plugin_cache_root` and `plugins` are passed through to the engine, which appends the selected plugins' CSQ fields to the output.
-- **Plugin caches**: no vepyr-side module — the build and the lookup both live in `datafusion-bio-function-vep`'s `plugin_cache` module (`builder`, `source_manifest`, `source_verify`, `lookup`). `src/lib.rs` only drives it and installs the result.
+- **Plugin caches**: no vepyr-side module — the build and the lookup (point probes and interval trees) both live in `datafusion-bio-function-vep`'s `plugin_cache` module (`builder`, `source_manifest`, `source_verify`, `lookup`). `src/lib.rs` only drives it and installs the result.
 
 ### Upstream crates
 

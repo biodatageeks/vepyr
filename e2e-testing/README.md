@@ -306,6 +306,8 @@ the runner works before and after those files are reorganised.
 | `merged_flag_pick_allele` | `--merged --flag_pick_allele` | `HG002_annotated_wgs_everything_hgvs_merged_flag_pick_allele.vcf.gz` |
 | `merged_flag_pick_allele_gene` | `--merged --flag_pick_allele_gene` | `HG002_annotated_wgs_everything_hgvs_merged_pick.vcf.gz` |
 | `refseq` | `--refseq` baseline | `HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz` |
+| `merged_plugins` | `--merged` + SpliceAI, CADD, AlphaMissense, dbNSFP, ClinVar | `plugins/HG002_chr{N}_5plugins_vep116_caddfix.vcf.gz` (per contig) |
+| `merged_phenotypeorthologous` | `--merged --plugin PhenotypeOrthologous` | `plugins/HG002_chr{N}_phenotypeorthologous_vep116.vcf.gz` (per contig) |
 
 The baseline Ensembl, merged, and RefSeq profiles are qualified and available
 for both supported releases:
