@@ -42,6 +42,7 @@ directory.
 | `--everything` | Enable all annotation features (80-field CSQ). |
 | `--hgvsc` | Add HGVS coding-sequence notation. Requires `--fasta`. |
 | `--fork N`, `--workers N` | Annotation pipelines to run. Default 1. |
+| `--allow_non_variant` | Keep `ALT=.` records instead of dropping them, as VEP does. |
 | `--cache_version N` | Assert the cache version in the Parquet metadata. |
 | `--plugin_cache_root DIR` | Root of a plugin cache tree. |
 | `--plugin NAME` | Restrict to this plugin. Repeatable; order is CSQ block order. |
@@ -91,6 +92,12 @@ with a `.tbi` or `.csi` beside it, or the run fails. Results are identical to
 
 **No index is written.** The output is bgzf but unindexed; run `tabix` afterwards
 if you need one.
+
+**Records with no alternate allele are dropped.** A record whose first `ALT` is
+`.` carries no alternate allele, and — as Ensembl VEP does — it is left out of
+the output entirely, silently. `--allow_non_variant` writes it through instead,
+with its original `ALT` and no `CSQ` key. Only the first `ALT` is tested, so
+`ALT=.,C` is non-variant while `ALT=C,.` is an ordinary record.
 
 **Unknown flags are an error.** A VEP flag this interface does not implement — say
 `--pick` — fails the run rather than being ignored, so a stale command line can

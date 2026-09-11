@@ -167,25 +167,6 @@ the other entities untouched.
 
 ## Annotating variants
 
-### From the command line
-
-The quickest path from a VCF to an annotated VCF needs no Python at all:
-
-```bash
-vepyr annotate \
-    -i input.vcf.gz \
-    -o annotated.vcf.gz \
-    --dir_cache ~/vepyr_cache/116_GRCh38_merged \
-    --fasta GRCh38.fa \
-    --everything \
-    --fork 8
-```
-
-The flags follow Ensembl VEP's own spelling. The command covers the VCF-in /
-VCF-out path only; the LazyFrame path below is Python-side. See
-[Command line](cli.md) for the full flag set, the plugin flags and the exit
-codes.
-
 ### Writing annotated VCF output
 
 Write results directly to a VCF file with a `CSQ` INFO field:
@@ -260,3 +241,22 @@ df = vepyr.annotate(
 
 Filtering the LazyFrame on `chrom`, `start` or `end` is pushed into the
 engine before annotation; see [Polars DataFrames](dataframes.md#region-filters).
+
+### From the command line
+
+The quickest path from a VCF to an annotated VCF needs no Python at all:
+
+```bash
+vepyr annotate \
+    -i input.vcf.gz \
+    -o annotated.vcf.gz \
+    --dir_cache ~/vepyr_cache/116_GRCh38_merged \
+    --fasta GRCh38.fa \
+    --everything \
+    --fork 8
+```
+
+The flags follow Ensembl VEP's own spelling. The command covers the VCF-in /
+VCF-out path only; the LazyFrame path above is Python-side. See
+[Command line](cli.md) for the full flag set, the plugin flags and the exit
+codes.
