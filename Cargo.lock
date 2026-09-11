@@ -1213,6 +1213,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "datafusion-bio-format-gff"
+version = "1.12.1"
+source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.12.1#419be98562b3fdbebbfdbd5a236205247ec56a67"
+dependencies = [
+ "async-compression",
+ "async-stream",
+ "async-trait",
+ "bytes",
+ "datafusion",
+ "datafusion-bio-format-core",
+ "env_logger",
+ "flate2",
+ "futures",
+ "futures-util",
+ "log",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
+ "noodles-gff",
+ "noodles-tabix",
+ "opendal",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "datafusion-bio-format-vcf"
 version = "1.12.1"
 source = "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.12.1#419be98562b3fdbebbfdbd5a236205247ec56a67"
@@ -1246,7 +1273,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.18.1"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=4b0bd00b5f4c5a40a40886cd6c0d230bb91a5554#4b0bd00b5f4c5a40a40886cd6c0d230bb91a5554"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=a07f940932138d0d01499cb1b12771be1c2e392c#a07f940932138d0d01499cb1b12771be1c2e392c"
 dependencies = [
  "ahash",
  "async-trait",
@@ -1257,6 +1284,7 @@ dependencies = [
  "datafusion-bio-format-bed",
  "datafusion-bio-format-core",
  "datafusion-bio-format-ensembl-cache",
+ "datafusion-bio-format-gff",
  "datafusion-bio-format-vcf",
  "flate2",
  "futures",
@@ -3278,6 +3306,24 @@ dependencies = [
  "memchr",
  "noodles-bgzf 0.36.0",
  "noodles-core 0.16.0",
+]
+
+[[package]]
+name = "noodles-gff"
+version = "0.59.0"
+source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
+dependencies = [
+ "bstr",
+ "futures",
+ "indexmap",
+ "lexical-core",
+ "log",
+ "memchr",
+ "noodles-bgzf 0.49.0",
+ "noodles-core 0.20.0",
+ "noodles-csi",
+ "percent-encoding",
+ "tokio",
 ]
 
 [[package]]
