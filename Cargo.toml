@@ -102,7 +102,8 @@ serde_json = "1"
 # per-character escaping, because VEP's rule there (OutputFactory.pm:1505) has
 # no quantifier. Pinned by rev rather than tag because no release has been cut
 # on top of the merge yet; move to that tag when one is.
-# bio-functions 13d590a: vepyr#97 -- a record whose FIRST ALT is `.` carries no
+# bio-functions 4b0bd00: the MERGE commit of biodatageeks/datafusion-bio-functions#245
+# (vepyr#97 -- a record whose FIRST ALT is `.` carries no
 # alternate allele, and Ensembl drops it outright (Parser/VCF.pm:259-266 returns
 # without building a VariationFeature) unless --allow_non_variant is given. We
 # were annotating it as a one-base deletion with frameshift consequences,
@@ -116,8 +117,8 @@ serde_json = "1"
 # arrives as a null CSQ rather than a missing row. bio-formats does not move:
 # its part of this fix is reader-contract tests only
 # (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
-# v1.12.1 still describes the artifact. Pinned by rev because no release has
-# been cut on top of it; move to that tag when one is.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "13d590adae05993fee8835d2d4ef3bb5e3fc9e2d", features = ["cache-builder"] }
+# v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
+# no release has been cut on top of the merge yet; move to that tag when one is.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4b0bd00b5f4c5a40a40886cd6c0d230bb91a5554", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
