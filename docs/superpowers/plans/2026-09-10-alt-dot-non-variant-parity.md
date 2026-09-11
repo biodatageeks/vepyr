@@ -496,3 +496,154 @@ Both quoted, both out of scope, both recorded so a later reader knows they were 
   VEP. vepyr has no `process_ref_homs`.
 - `--dont_skip` does **not** resurrect an `ALT=.` record — it is consulted at
   `Parser.pm:189`, after a VF exists, and one never is. (It *does* resurrect `<NON_REF>`.)
+
+---
+
+## 11. Review outcome (2026-09-10/11)
+
+Three PRs: `datafusion-bio-formats#252`, `datafusion-bio-functions#245`, `vepyr#104`.
+Two full review rounds from both `chatgpt-codex-connector[bot]` and `claude[bot]`.
+
+### Findings that changed the code
+
+| # | Repo | Sev | Finding | Outcome |
+|---|---|---|---|---|
+| R1 | functions | P1 | `limit_buffered` counts buffered **input** rows against a pushed-down LIMIT, but annotation can now emit fewer. | **Real, and worse than reported.** Fixed `ab24a28`, tested `b2eb0f9`. |
+| R2 | functions | P1 | A dropped non-variant still consumes one `--buffer_size` input unit; Ensembl builds no VF and consumes none. | **Premise correct, deliberately not fixed.** Documented `13d590a`, bounded by a new vepyr test. See below. |
+| R3 | formats | P2 | The "BGZF" test did not reach the unindexed branch — the adjacent `.tbi` is auto-discovered, routing it through the indexed reader. | **Real, and it defeated this PR's own four-loop claim.** Fixed `8f011eb`. |
+| R4 | formats | P2 | `Some(vec!["chr1"])` passed as `format_fields`, not a region filter — a silent no-op that read as meaningful. | Real. Fixed `892b733`. |
+| R5 | vepyr | P2 | Progress bar totals the input but advances by rows written, so a dropped record leaves it short. | Real. Fixed `7de0fe4`. |
+| R6 | vepyr | nit | `#...` placeholder in the pin provenance note. | Real. Fixed `f63559d`. |
+| R7 | functions | minor | No same-repo test for the *effect* (batch masking), only for the `alt_kind` predicate. | Fair. Extracted `limit_satisfied_by_buffer` + 6 tests, `b2eb0f9`. |
+| R8 | functions | minor | Dead `alt_allele == "*"` branch in the cache-miss arm. | Verified dead, removed `b2eb0f9`. |
+
+**R1 detail, because it is the one that mattered.** The failure is not an
+undercount. Stopping the lookup while holding a buffer *below*
+`input_buffer_size` — which the window dispatch deliberately refuses to cut
+mid-stream, to stay aligned with VEP's InputBuffer boundaries — leaves nothing
+able to progress: no window dispatches, no rows emit, and the state machine
+falls through to "no window to produce and nothing in flight", which calls
+`abort_annotation_lookup_partitions`. The query returns short **and** discards
+the buffered remainder, with later real variants never read. Not strictly new:
+`filter_batch_to_bounds` has dropped rows for region queries all along; this
+change made it reachable far more often.
+
+### One finding declined, with reasons
+
+**R2 — the input-unit divergence — is real and is left open.** `alt_input_units`
+returns 1 for an empty or `.` ALT, against its own stated rule that units are
+parsed VariationFeatures; a non-variant record parses to zero, so it should cost
+0, and a dropped record can shift every later buffer boundary by one. On a
+merged cache, which carries state across buffers, that could change the
+annotation of the *real* variants around it.
+
+Not fixed here for two reasons, both verified rather than asserted:
+
+1. **The fix is not local.** Both paths that fill `window_buffer` slice batches
+   by contig-global **row rank**, not units — `annotate_lookup_run`'s
+   `global_row` against `emit_start`/`emit_end`, and
+   `apply_lookup_batch_message`'s run gate with its `emit_end_row`. Making a row
+   cost nothing, or removing it before buffering (the same fix), desynchronises
+   that seam in two places, which would move it for real variants.
+2. **No gate can validate it.** The parity corpus holds zero `ALT=.` records in
+   4,096,123, so a change could only be shown not to break the common path. The
+   tightest fixture that could exhibit a boundary move — six merged-cache
+   variants with a non-variant record wedged in the middle, at `buffer_size` 2,
+   3 and 5000 — annotates **byte-identically** either way
+   (`test_a_dropped_record_does_not_shift_buffer_boundaries`).
+
+So the risk is bounded and written down at the divergence, rather than fixed
+blind. **This is the one piece of follow-up work the stack knowingly leaves
+open, and it is the human's call whether it blocks the merge.**
+
+### One finding declined as out of scope
+
+**R-progress (functions P2), the `on_batch_written` contract.** Codex wanted it
+to advance by processed input rows, matching the sharded path. It is a
+documented public callback whose parameters are rows *written*, so changing its
+meaning would silently alter what existing callers are told. The user-visible
+symptom — the progress bar — is fixed in vepyr instead. The serial/sharded
+reporting inconsistency is real and wants its own PR.
+
+### Defects introduced during the fix and caught before hand-off
+
+Recorded because they are the useful part of the history:
+
+- The first colocated-probe guard used `continue`, but that exec emits one output
+  row per input row, so it deleted the record from the pipeline before annotation
+  saw it — `allow_non_variant=true` then had nothing to keep, and the engine
+  profile showed the batch arriving two rows short. Fixed by giving the row an
+  empty probe set instead (`7d32d1a`).
+- The progress fix first read `_pbar.n`, which works against real tqdm and breaks
+  `FakeTqdm` in `test_notebook_progress_updates_on_main_thread`. Now counted
+  locally, using only `update`.
+
+---
+
+## 12. Gate results (2026-09-11)
+
+Same host, same session shape, same build command and `RUSTFLAGS="-C target-cpu=native"`
+for both bookends. Warm-up run and discarded in each. Measured on the vepyr PR
+branch with its pin on the functions PR head — the stack a reviewer reads.
+
+Run directory: `e2e-testing/results/fix-20260910-2012/{baseline,final}`.
+
+### Quality — PASS, no movement, exactly as predicted in §7
+
+22/22 autosomes, `md5 strict: body MATCH`, 4,096,123 records, both runs. Zero
+mismatches. As §1 predicted: the corpus holds no `ALT=.` record, no multi-allelic
+record, and all 512 `ALT=*` records are standalone and keep the unchanged star
+arm, so any movement here would have been a regression rather than the fix
+showing up.
+
+### Performance — PASS
+
+`tools/vepyr-fix/compare_runs.py` exit 0, `VERDICT: PASS (0 bar(s) exceeded)`.
+
+| metric | workers | baseline | final | delta | bar |
+|---|---|---|---|---|---|
+| `annotation_seconds` | 8 | 93.50 | 84.83 | **−9.3%** | ±10% |
+| `annotation_seconds` | 1 | 323.61 | 318.69 | −1.5% | ±10% |
+| `max_rss_kb` | 8 | 9,247,680 | 9,867,568 | **+6.7%** (+605 MiB) | ±10% |
+| `max_rss_kb` | 1 | 3,972,192 | 4,063,696 | +2.3% (+89 MiB) | ±10% |
+
+11 trace phases compared, **0 over the 5% bar, 0 present on only one side**.
+Every phase moved between −6.0% and +1.5%; the only regression is
+`8/grid_plans/done` at +1.5%.
+
+### Reading the two movements honestly
+
+**The 9.3% wall-clock win at 8 workers is not claimed as a speed-up.** No phase
+moved by more than 6%, and the wall moved further than any phase — which per the
+runbook's own guidance points at the host, not the change. The mechanism agrees:
+on this corpus the new code executes one `split('|').next()` and two string
+comparisons per row, and the drop path never fires at all, because there is no
+`ALT=.` record to drop. There is nothing here that could make the pipeline 9%
+faster. Host variance.
+
+**The RSS increase is within the bar and is read as variance, not cost.** Stated
+in absolute terms as the runbook asks: +89 MiB at one worker, +605 MiB at eight.
+It rose at both counts, and the per-worker delta is roughly consistent
+(89 MiB × 8 ≈ 712 MiB vs 605 MiB observed), which would normally point at a
+per-worker buffer. But the change allocates nothing on this corpus: `dropped_rows`
+is a `Vec::new()` that never allocates because no row is ever dropped,
+`filter_record_batch` is never called, `alt_kind` allocates nothing, and
+`limit_satisfied_by_buffer` is pure arithmetic. So there is no mechanism for the
+change to cost 605 MiB, and a single repeat of the 8-worker run would settle it
+if a reviewer wants that rather than this reasoning.
+
+### Measurement notes
+
+- The first attempt at the measured sweep aborted: the runner re-checks free
+  space before each worker count, and APFS had not reclaimed the warm-up's 29 GB
+  output in time (48.6 GiB seen against the 65 GiB floor). The warm-up itself had
+  already completed, so the measured sweep was re-run on its own with a
+  space-settle loop between workers. The discard-the-first-run requirement was
+  still met.
+- Free space had to be recovered first: 24 GB of `target/` directories from the
+  two engine worktrees created for this fix had taken the volume to 54 GiB, below
+  the runner's floor. Removing them restored 74 GiB, close enough to the
+  baseline's 76.9 GiB to keep the runs comparable.
+- Trace line counts are identical between the bookends (9,356 at one worker;
+  4,324 at eight), so the comparison is over the same pipeline shape rather than
+  a changed one.
