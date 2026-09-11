@@ -197,6 +197,122 @@ def text_plugin_cache(metadata_cache_dir, tmp_path_factory):
     return str(plugin_root)
 
 
+@pytest.fixture(scope="module")
+def interval_plugin_cache(metadata_cache_dir, tmp_path_factory):
+    """An interval (gene-span) plugin built from tests/data/plugin_gff/demo.gff3.
+
+    Row 1 spans 600000-605000 for ENSG00000225880 (covers the golden variants
+    at 604358 and 604360 but not 611317); row 2 is the one-base span 604360 for
+    ENSG00000293331 with no mouse attributes.
+    """
+    from tests.test_build_plugin_cache import _GFF_MANIFEST, _init_full_repo
+
+    import vepyr
+
+    root = tmp_path_factory.mktemp("interval_plugin")
+    repo = _init_full_repo(root, manifest=_GFF_MANIFEST)
+    plugin_root = root / "pc"
+    built = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(TESTS_DIR / "data" / "plugin_gff" / "demo.gff3"),
+        cache_dir=metadata_cache_dir,
+        plugin_cache_root=str(plugin_root),
+        plugins_repo=str(repo),
+        chroms=["1"],
+    )
+    # Interval shards carry no tier information: every row is cold.
+    assert built == [("chr1", 2, 0, 2)]
+    return str(plugin_root)
+
+
+def _plugin_tails(vcf_path, n_fields):
+    """{(pos, gene): plugin tail} for every CSQ entry, tail = last n_fields tokens."""
+    out = {}
+    for line in Path(vcf_path).read_text().splitlines():
+        if line.startswith("#"):
+            continue
+        cols = line.split("\t")
+        pos = int(cols[1])
+        csq = next(
+            (f[len("CSQ=") :] for f in cols[7].split(";") if f.startswith("CSQ=")),
+            None,
+        )
+        if csq is None:
+            continue
+        for entry in csq.split(","):
+            tokens = entry.split("|")
+            gene = tokens[1]  # fields="core": Allele|Gene|Feature|Feature_type|...
+            out[(pos, gene)] = "|".join(tokens[-n_fields:])
+    return out
+
+
+class TestIntervalPlugin:
+    """lookup = "interval": span overlap + {Gene}, first row in file order, VEP escaping."""
+
+    def test_gene_span_gates_and_values_escape_like_vep(
+        self, interval_plugin_cache, metadata_cache_dir, tmp_path
+    ):
+        import vepyr
+
+        output = tmp_path / "interval.vcf"
+        vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            fields="core",
+            plugin_cache_root=interval_plugin_cache,
+            plugins=["demo"],
+            output_vcf=str(output),
+            show_progress=False,
+        )
+        header = next(
+            line
+            for line in output.read_text().splitlines()
+            if line.startswith("##INFO=<ID=CSQ")
+        )
+        assert header.rstrip('">').endswith(
+            "Demo_Mouse_geneid|Demo_Mouse_phenotype|Demo_Rat_geneid|Demo_Rat_phenotype"
+        ), "alphabetical field order"
+        tails = _plugin_tails(output, 4)
+        # Inside the LINC00115 span: all four fields; VEP escaping of the
+        # leading space, the comma, the pipe and the whitespace runs.
+        assert tails[(604358, "ENSG00000225880")] == (
+            "ENSMUSG00000000001|abnormal_coat/hair_pigmentation&hyperactivity"
+            "|ENSRNOG00000000001|_leading_space&two&_comma"
+        )
+        # Same variant, the other gene: its one-base span starts at 604360 -> miss.
+        assert tails[(604358, "ENSG00000293331")] == "|||"
+        # Boundary: span [604360, 604360] overlaps the variant at 604360; no
+        # mouse attributes -> empty.
+        assert tails[(604360, "ENSG00000293331")] == "||ENSRNOG00000000002|rat_only"
+        # Gene id matches but the variant lies outside the span (VEP's flank
+        # rule) -> miss.
+        assert tails[(611317, "ENSG00000225880")] == "|||"
+
+    def test_lazyframe_columns_are_per_transcript_lists(
+        self, interval_plugin_cache, metadata_cache_dir
+    ):
+        import polars as pl
+
+        import vepyr
+
+        lf = vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            plugin_cache_root=interval_plugin_cache,
+            plugins=["demo"],
+            show_progress=False,
+        )
+        df = lf.select(
+            "start", "Gene", "Demo_Rat_geneid", "Demo_Rat_phenotype"
+        ).collect()
+        assert df.schema["Demo_Rat_geneid"] == pl.List(pl.String)
+        row = df.filter(pl.col("start") == 604358).row(0, named=True)
+        genes, rat = row["Gene"], row["Demo_Rat_geneid"]
+        assert rat[genes.index("ENSG00000225880")] == "ENSRNOG00000000001"
+        assert rat[genes.index("ENSG00000293331")] is None
+
+
 class TestCsqValueEscaping:
     """vepyr#93 -- a whitespace RUN in a CSQ value collapses to ONE underscore.
 
