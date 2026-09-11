@@ -251,7 +251,9 @@ Release: `minor` bump → `v0.2.0` after merge.
   sub-fields in the CSQ header, and writes a `.plugins` sidecar.
 - `e2e-testing/scripts/generate_vep_phenotypeorthologous_references.sh [chroms]`:
   resumable per-contig driver, default chr1-22, `VEP_REFERENCE_JOBS=2`.
-- `source_identity.sh`: add the GFF path.
+- The reference builder records its own provenance sidecar (plugin sha256 and
+  the source url + md5); the file is md5-pinned rather than rolling, so
+  `source_identity.sh` is not extended.
 - Tests: `tests/data/plugin_gff/` synthetic GFF3 covering two golden chr1
   variants (one inside a gene span with a matching gene, one transcript
   whose variant lies outside its gene span) and a value with `,`, `|` and a
