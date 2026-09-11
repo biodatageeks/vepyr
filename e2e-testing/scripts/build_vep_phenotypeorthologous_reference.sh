@@ -40,20 +40,25 @@ sha256_file() {
 # ---------------------------------------------------------------------------
 # 1. Source data and plugin code, both pinned by digest
 # ---------------------------------------------------------------------------
+# Several builders may run at once (the generator's default is two jobs), so
+# every download goes to a per-process partial and is only moved into place if
+# nobody else got there first; the digest checks below validate whichever copy
+# won. `mv -n` never overwrites, so a concurrent winner is left untouched.
+fetch_once() {  # $1 = url, $2 = destination
+  local partial="$2.partial.$$"
+  [[ -s "$2" ]] && return 0
+  curl --fail --silent --show-error -o "$partial" "$1"
+  mv -n "$partial" "$2" 2>/dev/null || true
+  rm -f "$partial"
+}
 for f in "$SRC_NAME" "$SRC_NAME.tbi"; do
-  if [[ ! -s "$SRC_DIR/$f" ]]; then
-    curl --fail --silent --show-error -o "$SRC_DIR/$f.partial" "$SRC_URL${f#"$SRC_NAME"}"
-    mv "$SRC_DIR/$f.partial" "$SRC_DIR/$f"
-  fi
+  fetch_once "$SRC_URL${f#"$SRC_NAME"}" "$SRC_DIR/$f"
 done
 [[ "$(md5_file "$SRC_DIR/$SRC_NAME")" == "$SRC_MD5" ]] || { echo "ERROR: $SRC_NAME md5 mismatch" >&2; exit 1; }
 [[ "$(md5_file "$SRC_DIR/$SRC_NAME.tbi")" == "$TBI_MD5" ]] || { echo "ERROR: $SRC_NAME.tbi md5 mismatch" >&2; exit 1; }
 
-if [[ ! -s "$PLUGIN_DIR/PhenotypeOrthologous.pm" ]]; then
-  curl --fail --silent --show-error \
-    -o "$PLUGIN_DIR/PhenotypeOrthologous.pm" \
-    "https://raw.githubusercontent.com/Ensembl/VEP_plugins/$PLUGIN_COMMIT/PhenotypeOrthologous.pm"
-fi
+fetch_once "https://raw.githubusercontent.com/Ensembl/VEP_plugins/$PLUGIN_COMMIT/PhenotypeOrthologous.pm" \
+  "$PLUGIN_DIR/PhenotypeOrthologous.pm"
 actual="$(sha256_file "$PLUGIN_DIR/PhenotypeOrthologous.pm")"
 [[ "$actual" == "$PLUGIN_SHA256" ]] || { echo "ERROR: PhenotypeOrthologous.pm sha256 $actual != $PLUGIN_SHA256" >&2; exit 1; }
 

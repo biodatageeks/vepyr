@@ -24,6 +24,7 @@ REF_DIR="$DATA/output/116/plugins"
 LOG_DIR="$REF_DIR/po_comparison_logs"
 WORKERS="${VEP_COMPARISON_WORKERS:-4}"
 BUILDER="$SCRIPT_DIR/build_vep_phenotypeorthologous_reference.sh"
+GENERATOR="$SCRIPT_DIR/generate_vep_phenotypeorthologous_references.sh"
 mkdir -p "$LOG_DIR"
 
 if [[ "$#" -gt 0 ]]; then chroms=("$@"); else chroms=({1..22}); fi
@@ -46,8 +47,13 @@ fail=0
 [[ -s "$SRC" ]] || "$BUILDER" 22 >/dev/null   # the builder downloads and md5-checks the source
 build_shards | tee "$LOG_DIR/build.log"
 for chrom in "${chroms[@]}"; do
-  ref="$REF_DIR/HG002_chr${chrom}_phenotypeorthologous_vep116.vcf.gz"
-  [[ -s "$ref" && -s "$ref.tbi" ]] || "$BUILDER" "$chrom" > "$LOG_DIR/reference_chr${chrom}.log" 2>&1
+  # The generator validates an existing reference against the builder's pinned
+  # plugin sha256 and source md5 (its `.plugins` sidecar) and the four-field
+  # header, rebuilding a stale one, so a reference from an older plugin file or
+  # source can never be compared against the freshly built cache.
+  if ! VEP_REFERENCE_JOBS=1 "$GENERATOR" "$chrom" > "$LOG_DIR/reference_chr${chrom}.log" 2>&1; then
+    echo "FAIL chr${chrom}: reference build/validation failed, see $LOG_DIR/reference_chr${chrom}.log" >&2; fail=1; continue
+  fi
   if ! (cd "$REPO_DIR" && uv run python e2e-testing/scripts/run_comparison.py \
       --release 116 --profile merged_phenotypeorthologous --chroms "$chrom" \
       --plugin-cache "$PLUGIN_CACHE" --workers "$WORKERS" --bgzf --force) \
