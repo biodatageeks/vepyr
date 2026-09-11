@@ -2507,3 +2507,300 @@ class TestLazyFrameProgress:
 
         assert bars[0].total == 1000
         assert bars[0].closed
+
+
+NON_VARIANT_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t604358\t.\tG\tC\t50\tPASS\t.
+chr1\t604360\t.\tT\t.\t50\tPASS\t.
+chr1\t611317\t.\tA\tG\t50\tPASS\t.
+"""
+
+# The same three records with a second alternate allele on the middle one.
+# Ensembl tests only the FIRST alt (Parser/VCF.pm:259 `$alts->[0] eq '.'`), so
+# `C,.` is an ordinary record and `.,C` is not.
+DOT_NOT_FIRST_VCF = NON_VARIANT_VCF.replace(
+    "chr1\t604360\t.\tT\t.\t50", "chr1\t604360\t.\tT\tC,.\t50"
+)
+DOT_FIRST_VCF = NON_VARIANT_VCF.replace(
+    "chr1\t604360\t.\tT\t.\t50", "chr1\t604360\t.\tT\t.,C\t50"
+)
+
+
+class TestNonVariantRecords:
+    """`ALT=.` carries no alternate allele, so it is not a variant.
+
+    Ensembl drops such a record without building a VariationFeature at all
+    (`Parser/VCF.pm:259-266`), silently and from every output format, unless
+    `--allow_non_variant` is given. vepyr annotated it as a one-base deletion
+    with frameshift consequences instead -- biodatageeks/vepyr#97.
+
+    The golden fixture cannot see this: 100 chr1 records, 91 SNVs and 9 indels,
+    no `ALT=.` among them, so the golden gate stays green either way.
+    """
+
+    @staticmethod
+    def _data_lines(path):
+        return [
+            line
+            for line in Path(path).read_text().splitlines()
+            if line and not line.startswith("#")
+        ]
+
+    def _annotate(self, cache_dir, tmp_path, source, name, **kwargs):
+        import vepyr
+
+        src = tmp_path / f"{name}.vcf"
+        src.write_text(source)
+        out = tmp_path / f"{name}.out.vcf"
+        vepyr.annotate(
+            str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
+        )
+        return self._data_lines(out)
+
+    def test_an_alt_less_record_is_dropped(self, metadata_cache_dir, tmp_path):
+        """t/Parser_VCF.t:305-310 -- no ALT, no variant, no consequence."""
+        data = self._annotate(
+            metadata_cache_dir, tmp_path, NON_VARIANT_VCF, "nonvariant"
+        )
+
+        assert [line.split("\t")[1] for line in data] == ["604358", "611317"], (
+            "the ALT-less record must be dropped, and its neighbours kept"
+        )
+        assert "frameshift_variant" not in "\n".join(data), (
+            "no frameshift may be invented from a missing ALT"
+        )
+
+    def test_allow_non_variant_keeps_the_record_without_a_consequence(
+        self, metadata_cache_dir, tmp_path
+    ):
+        """With the flag the record comes back, carrying no CSQ.
+
+        That is what VEP's VCF writer produces: `OutputFactory/VCF.pm:341-353`
+        appends no key at all when a record has no consequences.
+        """
+        data = self._annotate(
+            metadata_cache_dir,
+            tmp_path,
+            NON_VARIANT_VCF,
+            "allowed",
+            allow_non_variant=True,
+        )
+
+        assert len(data) == 3
+        middle = data[1]
+        assert middle.split("\t")[1] == "604360"
+        assert middle.split("\t")[4] == ".", "the ALT must survive as `.`"
+        assert "CSQ=" not in middle, "a non-variant record gets no consequence"
+        # The controls are still annotated.
+        assert "CSQ=" in data[0] and "CSQ=" in data[2]
+
+    def test_a_dot_that_is_not_the_first_alt_is_an_ordinary_record(
+        self, metadata_cache_dir, tmp_path
+    ):
+        """`ALT=C,.` is NOT non-variant: VEP tests only `$alts->[0]`.
+
+        Guarding on the whole joined ALT string instead of its first token
+        would wrongly drop this record.
+        """
+        data = self._annotate(
+            metadata_cache_dir, tmp_path, DOT_NOT_FIRST_VCF, "dotsecond"
+        )
+
+        assert [line.split("\t")[1] for line in data] == [
+            "604358",
+            "604360",
+            "611317",
+        ], "a record whose first ALT is a real allele must be kept"
+
+    def test_a_dot_that_is_the_first_alt_is_non_variant(
+        self, metadata_cache_dir, tmp_path
+    ):
+        """`ALT=.,C` IS non-variant, because its first ALT is the dot."""
+        data = self._annotate(metadata_cache_dir, tmp_path, DOT_FIRST_VCF, "dotfirst")
+
+        assert [line.split("\t")[1] for line in data] == ["604358", "611317"]
+
+    def test_allow_non_variant_forwards_to_the_vcf_writer(self, monkeypatch):
+        """The kwarg has to reach the engine, and be absent when false.
+
+        The VCF output path does not pass `options_json` through: it re-parses
+        it and hand-copies each option into `AnnotateVcfConfig`, so a flag
+        without a line in `src/annotate.rs` is silently inert here while the
+        LazyFrame path works. This is the cheap gate for that gap.
+        """
+        import vepyr
+
+        seen = {}
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            seen["options"] = json.loads(options_json)
+            return 0
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+        try:
+            vepyr.annotate(
+                INPUT_VCF, CACHE_DIR, output_vcf=out_path, show_progress=False
+            )
+            assert "allow_non_variant" not in seen["options"], (
+                "the key must be absent when the flag is off, as VEP's default is"
+            )
+
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                output_vcf=out_path,
+                show_progress=False,
+                allow_non_variant=True,
+            )
+            assert seen["options"]["allow_non_variant"] is True
+        finally:
+            os.unlink(out_path)
+
+    def test_the_vcf_progress_bar_completes_when_records_are_dropped(self, monkeypatch):
+        """A dropped record is read but never written, so the bar falls short.
+
+        The bar's total is the input count while it advances by rows written.
+        The engine drops non-variant `ALT=.` records, so an input of three
+        records with one of them non-variant writes two lines and the bar
+        would close at 2/3. Finishing the run means the whole input was
+        consumed, so it must read 100%.
+        """
+        import vepyr
+
+        bar_cls, bars = TestLazyFrameProgress._recording_tqdm()
+        monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
+
+        def fake_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            # Three input records, two written: one was dropped.
+            on_batch_written(2, 2, 3)
+            return 2
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+        try:
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, output_vcf=out_path)
+        finally:
+            os.unlink(out_path)
+
+        assert bars, "a progress bar should have been created"
+        assert bars[0].total == 3
+        assert bars[0].n == 3, "the bar must reach its total once the input is consumed"
+        assert bars[0].closed
+
+    def test_a_failed_vcf_run_does_not_snap_the_progress_bar(self, monkeypatch):
+        """Only consuming the input means 100% -- a crash does not."""
+        import vepyr
+
+        bar_cls, bars = TestLazyFrameProgress._recording_tqdm()
+        monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
+
+        def failing_annotate_vcf(
+            vcf_path,
+            cache_dir,
+            output_path,
+            options_json,
+            show_progress,
+            compression,
+            on_batch_written,
+        ):
+            on_batch_written(1, 1, 3)
+            raise RuntimeError("VCF annotation failed: boom")
+
+        monkeypatch.setattr(vepyr, "_annotate_vcf", failing_annotate_vcf)
+
+        with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
+            out_path = f.name
+        try:
+            with pytest.raises(RuntimeError, match="boom"):
+                vepyr.annotate(INPUT_VCF, CACHE_DIR, output_vcf=out_path)
+        finally:
+            os.unlink(out_path)
+
+        assert bars[0].n == 1, "a failed run must not claim the input was consumed"
+        assert bars[0].closed
+
+    # The input VCF for the buffer-boundary test: six real variants drawn from
+    # the golden fixture, with one non-variant record in the middle.
+    _BOUNDARY_HEADER = (
+        "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    )
+    _BOUNDARY_VARIANTS = [
+        "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\t.",
+        "chr1\t604358\t.\tG\tC\t50\tPASS\t.",
+        "chr1\t604360\t.\tT\tC\t50\tPASS\t.",
+        "chr1\t611317\t.\tA\tG\t50\tPASS\t.",
+        "chr1\t631859\t.\tCG\tC\t50\tPASS\t.",
+        "chr1\t779047\t.\tG\tA\t50\tPASS\t.",
+    ]
+    _NON_VARIANT_LINE = "chr1\t604359\t.\tA\t.\t50\tPASS\t."
+
+    @pytest.mark.parametrize("buffer_size", [2, 3, 5000])
+    def test_a_dropped_record_does_not_shift_buffer_boundaries(
+        self, metadata_cache_dir, tmp_path, buffer_size
+    ):
+        """A dropped record must annotate exactly as if it were never there.
+
+        Ensembl never builds a VariationFeature for a non-variant record
+        (`Parser/VCF.pm:263-266`), so it never enters the InputBuffer and
+        never consumes one of the `--buffer_size` slots. If vepyr counts it as
+        an input unit instead, the buffer boundaries move, and on a merged
+        cache -- which carries state across buffers -- that can change the
+        annotation of the *real* variants around it.
+
+        So: the same six variants, with and without a non-variant record
+        wedged in the middle, must produce byte-identical output. Run at small
+        buffer sizes, because at the 5000 default all seven records land in
+        one buffer and no boundary can move.
+        """
+        import vepyr
+
+        with_nv = tmp_path / f"with_nv_{buffer_size}.vcf"
+        without_nv = tmp_path / f"without_nv_{buffer_size}.vcf"
+        variants = self._BOUNDARY_VARIANTS
+        with_nv.write_text(
+            self._BOUNDARY_HEADER
+            + "\n".join(variants[:2] + [self._NON_VARIANT_LINE] + variants[2:])
+            + "\n"
+        )
+        without_nv.write_text(self._BOUNDARY_HEADER + "\n".join(variants) + "\n")
+
+        outs = []
+        for src in (with_nv, without_nv):
+            out = tmp_path / f"{src.stem}.out.vcf"
+            vepyr.annotate(
+                str(src),
+                metadata_cache_dir,
+                output_vcf=str(out),
+                show_progress=False,
+                buffer_size=buffer_size,
+            )
+            outs.append(self._data_lines(out))
+
+        assert outs[0] == outs[1], (
+            f"at buffer_size={buffer_size}, a dropped non-variant record changed "
+            "the annotation of the surrounding real variants"
+        )

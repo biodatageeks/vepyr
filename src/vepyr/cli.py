@@ -90,6 +90,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Annotation pipelines to run. N>1 needs a tabix-indexed input.",
     )
     vep.add_argument(
+        "--allow_non_variant",
+        action="store_true",
+        help="Keep ALT=. records instead of dropping them, as VEP does.",
+    )
+    vep.add_argument(
         "--cache_version",
         type=int,
         metavar="N",
@@ -134,6 +139,8 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
         kwargs["everything"] = True
     if args.hgvsc:
         kwargs["hgvsc"] = True
+    if args.allow_non_variant:
+        kwargs["allow_non_variant"] = True
     if args.cache_version is not None:
         # annotate() validates this as a string.
         kwargs["expected_cache_version"] = str(args.cache_version)

@@ -1085,6 +1085,8 @@ def annotate(
     # Custom plugin caches
     plugin_cache_root: str | None = None,
     plugins: list[str] | tuple[str, ...] | None = None,
+    # Input record handling
+    allow_non_variant: bool = False,
     # Output mode
     output_vcf: str | None = None,
     preserve_record_layout: bool = True,
@@ -1235,6 +1237,15 @@ def annotate(
         Compression is auto-detected from the file extension: ``.vcf`` for
         plain text, ``.vcf.gz`` or ``.vcf.bgz`` for block-gzipped (bgzf).
         Override with the ``compression`` parameter.
+    allow_non_variant : bool
+        Keep records that carry no alternate allele -- ``ALT=.`` (default:
+        False). Ensembl VEP drops such a record entirely unless
+        ``--allow_non_variant`` is given, and vepyr does the same: by default
+        it is absent from the output, exactly as VEP leaves it out. With this
+        on, the record is emitted with its original ALT and no consequence
+        annotation -- no ``CSQ`` key on the VCF path, a null ``CSQ`` on the
+        LazyFrame path. Note VEP tests only the *first* ALT, so ``ALT=.,C`` is
+        non-variant while ``ALT=C,.`` is an ordinary record.
     preserve_record_layout : bool
         Write each record's INFO fields in the order the input wrote them, and
         its own FORMAT keys (default: True). Both are per record and neither
@@ -1472,6 +1483,8 @@ def annotate(
             opts["plugins"] = list(plugins)
     elif plugin_cache_root is not None:
         opts["plugin_cache_root"] = plugin_cache_root
+    if allow_non_variant:
+        opts["allow_non_variant"] = True
     if not preserve_record_layout:
         opts["preserve_record_layout"] = False
 
@@ -1506,6 +1519,7 @@ def annotate(
                     mininterval=0,
                 )
                 _pending_updates = queue.SimpleQueue()
+                _bar_seen = {"advanced": 0, "total": 0}
 
                 def callback(batch_rows, total_rows, total_input):
                     _pending_updates.put((batch_rows, total_rows, total_input))
@@ -1548,7 +1562,9 @@ def annotate(
                         break
                     if total_input > 0 and _pbar.total != total_input:
                         _pbar.total = total_input
+                        _bar_seen["total"] = total_input
                     _pbar.update(batch_rows)
+                    _bar_seen["advanced"] += batch_rows
                     _pbar.refresh()
 
             t = threading.Thread(target=_run, daemon=True)
@@ -1560,6 +1576,19 @@ def annotate(
             if _error[0] is not None:
                 raise _error[0]
             rows = _result[0]
+            # The bar counts the INPUT, but advances by rows written, and the
+            # two differ when the engine drops a record: a non-variant `ALT=.`
+            # is removed rather than annotated, so it is read but never
+            # written. Reaching here means the whole input was consumed, so
+            # close the gap. Only on success -- a crash does not mean "that
+            # was all of it".
+            #
+            # Counted here rather than read back off the bar: `update` is the
+            # only method the suite's tqdm stand-ins all implement.
+            if _pbar is not None:
+                _remaining = _bar_seen["total"] - _bar_seen["advanced"]
+                if _remaining > 0:
+                    _pbar.update(_remaining)
         finally:
             if _pbar is not None:
                 _pbar.close()
