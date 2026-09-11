@@ -28,6 +28,7 @@ results as a `polars.LazyFrame` or a VCF with `CSQ` in the `INFO` column.
 | | |
 |---|---|
 | [Quick start](https://biodatageeks.org/vepyr/quickstart/) | Install, get a cache, annotate |
+| [Polars DataFrames](https://biodatageeks.org/vepyr/dataframes/) | Schema, region filters, `filter_vep` in Polars |
 | [Command line](https://biodatageeks.org/vepyr/cli/) | `vepyr annotate`, VCF in, VCF out |
 | [Download Ensembl VEP and plugin caches](https://biodatageeks.org/vepyr/downloads/) | Prebuilt release-116 caches |
 | [Caches](https://biodatageeks.org/vepyr/caches/) | Cache types, entity schemas, CSQ output fields |
