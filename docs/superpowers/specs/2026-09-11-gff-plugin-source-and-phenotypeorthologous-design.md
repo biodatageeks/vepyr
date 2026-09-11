@@ -36,7 +36,6 @@ Out of scope:
 - GO, or any transcript-keyed lookup.
 - Teaching the cache-QA tool (branch `feat/cache-qa-profile`) the interval
   shard shape. The cache is published by hand, as the v0.1.1 caches were.
-- A COITree-backed interval index. See §4.3.
 
 ## 3. Reference behaviour (VEP_plugins release/116, `PhenotypeOrthologous.pm`)
 
@@ -144,12 +143,14 @@ Build (`build.rs`, `normalize.rs`, `join.rs`, `write.rs`):
 Runtime (`lookup.rs`, `registry.rs`, `annotate_provider.rs`):
 
 - New `IntervalLookup::open(shard)`: reads the whole per-chromosome shard
-  once (projection `start, end, <match…>, <value…>`) into
-  `HashMap<Vec<Option<String>>, Vec<IntervalRow>>` keyed by the discriminator
-  tuple, each vector in file order. Shards are small (PhenotypeOrthologous:
-  at most 1,754 rows on chr1).
+  once (projection `start, end, <match…>, <value…>`) into a `Vec<IntervalRow>`
+  in file order plus one `coitrees::COITree<usize, u32>` per discriminator
+  tuple (`HashMap<Vec<Option<String>>, COITree>`), the tree metadata being
+  the row's file ordinal. The crate already depends on `coitrees` and uses
+  the same `COITree<usize, u32>` shape for transcripts.
 - `probe(vf_start, vf_end, &match_values) -> Option<&[PluginScalar]>`
-  returns the first row with `start <= vf_end && end >= vf_start`.
+  queries the bucket's tree for the closed span and returns the overlapping
+  row with the smallest ordinal, which is VEP's first-in-file record.
 - `PluginRegistry::open` branches on `manifest.lookup` into
   `PluginLookupKind::{Point(PluginLookup), Interval(IntervalLookup)}`;
   `take_buffer_all` skips interval plugins; `probe_all` receives the
@@ -164,9 +165,8 @@ Runtime (`lookup.rs`, `registry.rs`, `annotate_provider.rs`):
 - Values go through `csq::format_scalar`, so escaping is the shared engine
   rule. Header descriptions come from `value_columns[].description`.
 
-Limitation, documented: a discriminator-less interval plugin scans its
-chromosome's rows linearly per probe. Acceptable for tracks of a few thousand
-intervals; a COITree index is the upgrade path if a large track arrives.
+A discriminator-less interval plugin has a single bucket and the same
+`O(log n + k)` query, so dense region tracks cost no more than gene tracks.
 
 ### 4.3 Tests (engine)
 
@@ -176,7 +176,8 @@ intervals; a COITree index is the upgrade path if a large track arrives.
 - Build: an interval manifest over the synthetic GFF yields the expected
   schema, order and `tier = 1`; dedup keeps the first of two identical keys.
 - Runtime: overlap at both boundaries, insertion span, discriminator miss,
-  first-in-file-order tie-break, escaping of `,`, `|`, whitespace and a
+  first-in-file-order tie-break with three overlapping rows (the tree's
+  visit order is not file order), escaping of `,`, `|`, whitespace and a
   leading space.
 - Regression: the existing point-lookup tests and the golden benchmark are
   untouched; enabling an interval plugin adds exactly its four columns.

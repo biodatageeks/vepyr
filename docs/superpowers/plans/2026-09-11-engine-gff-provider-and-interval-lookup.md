@@ -4,9 +4,9 @@
 
 **Goal:** Let a plugin source manifest read a GFF3 file (`provider = "gff"`) and declare an interval-keyed lookup (`lookup = "interval"`) so the PhenotypeOrthologous plugin can be built and probed by the engine.
 
-**Architecture:** Two stacked PRs on `biodatageeks/datafusion-bio-functions`. PR 1 adds a `ProviderKind::Gff` arm on top of `datafusion-bio-format-gff`'s `GffTableProvider` (flat attribute columns, per-chromosome slicing through the existing tabix materialiser). PR 2 adds a `LookupKind` (`point` today, new `interval`) that drops `allele_string`, skips the variation tier join at build time, and at runtime loads the whole per-chromosome shard into a discriminator-keyed interval map probed with the variant's VEP-normalised span.
+**Architecture:** Two stacked PRs on `biodatageeks/datafusion-bio-functions`. PR 1 adds a `ProviderKind::Gff` arm on top of `datafusion-bio-format-gff`'s `GffTableProvider` (flat attribute columns, per-chromosome slicing through the existing tabix materialiser). PR 2 adds a `LookupKind` (`point` today, new `interval`) that drops `allele_string`, skips the variation tier join at build time, and at runtime loads the whole per-chromosome shard into per-discriminator COITrees probed with the variant's VEP-normalised span (first overlapping row in file order wins).
 
-**Tech Stack:** Rust 2021, DataFusion 53, Arrow/Parquet 58, `datafusion-bio-format-gff` tag `v1.12.1`, noodles (bgzf/tabix/csi) at the workspace revs, serde/toml.
+**Tech Stack:** Rust 2021, DataFusion 53, Arrow/Parquet 58, `datafusion-bio-format-gff` tag `v1.12.1`, `coitrees` 0.4 (already a dependency; same `COITree<usize, u32>` idiom as `transcript_consequence.rs:886-963`), noodles (bgzf/tabix/csi) at the workspace revs, serde/toml.
 
 **Spec:** `docs/superpowers/specs/2026-09-11-gff-plugin-source-and-phenotypeorthologous-design.md` (in vepyr).
 
@@ -965,8 +965,8 @@ git commit -m "feat(plugin-cache): build interval shards without allele or tier 
 **Interfaces:**
 - Produces:
   ```rust
-  pub struct IntervalLookup { rows: HashMap<Vec<Option<String>>, Vec<IntervalRow>>, n_values: usize }
-  struct IntervalRow { start: u32, end: u32, values: Vec<PluginScalar> }
+  pub struct IntervalLookup { rows: Vec<IntervalRow>, trees: HashMap<Vec<Option<String>>, COITree<usize, u32>>, n_values: usize }
+  struct IntervalRow { values: Vec<PluginScalar> }   // file order == Vec index == tree metadata
   impl IntervalLookup {
       pub async fn open(shard: &Path, match_columns: Vec<String>, value_columns: Vec<String>) -> Result<Self>;
       pub fn probe(&self, span_start: u32, span_end: u32, match_values: &[Option<String>]) -> Option<&[PluginScalar]>;
@@ -982,16 +982,18 @@ git commit -m "feat(plugin-cache): build interval shards without allele or tier 
         let matches = vec![MatchColumn { column: "gene_id".into(), template: "{Gene}".into() }];
         let vals = vec![ValueColumn { column: "rat".into(), csq_field: "PO_Rat".into(), ty: ValueType::Utf8, description: None }];
         let schema = plugin_output_schema(LookupKind::Interval, &matches, &vals);
-        // Two rows for ENSG1 (file order: the wider one first) and one for ENSG2.
+        // Three rows for ENSG1 in file order wide, narrow, late (all cover 160;
+        // a tree visits them in its own order, so the ordinal tie-break is what
+        // makes "wide" win) and one row for ENSG2 with no value.
         let batch = RecordBatch::try_new(
             schema.clone(),
             vec![
-                Arc::new(StringArray::from(vec!["1", "1", "1"])),
-                Arc::new(UInt32Array::from(vec![100u32, 150, 400])),
-                Arc::new(UInt32Array::from(vec![300u32, 200, 500])),
-                Arc::new(StringArray::from(vec!["ENSG1", "ENSG1", "ENSG2"])),
-                Arc::new(StringArray::from(vec![Some("wide"), Some("narrow"), None])),
-                Arc::new(Int8Array::from(vec![1i8, 1, 1])),
+                Arc::new(StringArray::from(vec!["1", "1", "1", "1"])),
+                Arc::new(UInt32Array::from(vec![100u32, 150, 155, 400])),
+                Arc::new(UInt32Array::from(vec![300u32, 200, 350, 500])),
+                Arc::new(StringArray::from(vec!["ENSG1", "ENSG1", "ENSG1", "ENSG2"])),
+                Arc::new(StringArray::from(vec![Some("wide"), Some("narrow"), Some("late"), None])),
+                Arc::new(Int8Array::from(vec![1i8, 1, 1, 1])),
             ],
         )
         .unwrap();
@@ -1008,13 +1010,14 @@ git commit -m "feat(plugin-cache): build interval shards without allele or tier 
         let lk = IntervalLookup::open(&path, vec!["gene_id".into()], vec!["rat".into()]).await.unwrap();
         let g1 = [Some("ENSG1".to_string())];
         let g2 = [Some("ENSG2".to_string())];
-        // inside both spans → first in file order
+        // inside all three ENSG1 spans → first in FILE order, whatever the tree visits first
         assert_eq!(lk.probe(160, 160, &g1).unwrap(), &[PluginScalar::Str("wide".into())]);
+        // only "late" covers 320..350
+        assert_eq!(lk.probe(320, 320, &g1).unwrap(), &[PluginScalar::Str("late".into())]);
         // boundaries are inclusive
         assert_eq!(lk.probe(300, 300, &g1).unwrap(), &[PluginScalar::Str("wide".into())]);
         assert_eq!(lk.probe(99, 100, &g1).unwrap(), &[PluginScalar::Str("wide".into())]);
-        assert!(lk.probe(301, 301, &g1).is_none());
-        // a span that only touches the narrow row still returns it? no: 150-200 lies inside 100-300 too
+        assert!(lk.probe(351, 351, &g1).is_none());
         // an insertion span [pos, pos+1] straddling a start boundary
         assert_eq!(lk.probe(399, 400, &g2).unwrap(), &[PluginScalar::Null]);
         // discriminator gate
@@ -1031,21 +1034,22 @@ Expected: compile error, `IntervalLookup` undefined.
 - [ ] **Step 3: Implement** (append to `lookup.rs`)
 
 ```rust
-/// One interval row: inclusive 1-based span plus its values in shard order.
+/// One interval row's values, in shard column order. Its position in
+/// `IntervalLookup::rows` is the file ordinal, which is also the COITree
+/// metadata, so the tie-break "first record in file order" is a `min` over
+/// the ordinals the tree reports.
 struct IntervalRow {
-    start: u32,
-    end: u32,
     values: Vec<PluginScalar>,
 }
 
-/// Whole-shard, discriminator-keyed interval lookup for [`LookupKind::Interval`]
-/// plugins. Shards are small (one row per feature, thousands per chromosome), so
-/// the file is read once at open and probed synchronously. Rows keep file order
-/// inside each discriminator bucket; `probe` returns the first overlapping one,
-/// which is what a tabix-backed Ensembl plugin sees. A plugin with no match
-/// columns has a single bucket and scans it linearly.
+/// Whole-shard interval lookup for [`LookupKind::Interval`] plugins: one
+/// `COITree` per discriminator tuple over closed 1-based spans, read once at
+/// open and probed synchronously. `probe` returns the overlapping row with the
+/// smallest file ordinal, which is the record a tabix-backed Ensembl plugin
+/// takes. A plugin with no match columns has a single tree.
 pub struct IntervalLookup {
-    rows: HashMap<Vec<Option<String>>, Vec<IntervalRow>>,
+    rows: Vec<IntervalRow>,
+    trees: HashMap<Vec<Option<String>>, COITree<usize, u32>>,
     n_values: usize,
 }
 
@@ -1073,7 +1077,8 @@ impl IntervalLookup {
             .map_err(|e| DataFusionError::Execution(format!("build interval stream: {e}")))?;
         let n_match = match_columns.len();
         let n_values = value_columns.len();
-        let mut rows: HashMap<Vec<Option<String>>, Vec<IntervalRow>> = HashMap::new();
+        let mut rows: Vec<IntervalRow> = Vec::new();
+        let mut intervals: HashMap<Vec<Option<String>>, Vec<Interval<usize>>> = HashMap::new();
         while let Some(b) = stream.try_next().await.map_err(|e| DataFusionError::Execution(format!("read interval batch: {e}")))? {
             // Projection keeps file column order: start, end, match…, value…
             let schema = b.schema();
@@ -1093,10 +1098,21 @@ impl IntervalLookup {
                 for &i in &value_idx {
                     values.push(decode_scalar(b.column(i).as_ref(), r)?);
                 }
-                rows.entry(key).or_default().push(IntervalRow { start: start.value(r), end: end.value(r), values });
+                let ordinal = rows.len();
+                rows.push(IntervalRow { values });
+                // Closed 1-based span; positions fit i32 for every contig.
+                intervals.entry(key).or_default().push(Interval::new(
+                    i32::try_from(start.value(r)).unwrap_or(i32::MAX),
+                    i32::try_from(end.value(r)).unwrap_or(i32::MAX),
+                    ordinal,
+                ));
             }
         }
-        Ok(Self { rows, n_values })
+        let trees = intervals
+            .into_iter()
+            .map(|(key, ivs)| (key, COITree::new(&ivs)))
+            .collect();
+        Ok(Self { rows, trees, n_values })
     }
 
     pub fn n_values(&self) -> usize {
@@ -1107,16 +1123,22 @@ impl IntervalLookup {
     /// under the given discriminators; `None` on a miss or a `None` discriminator
     /// that the shard stores as `Some`.
     pub fn probe(&self, span_start: u32, span_end: u32, match_values: &[Option<String>]) -> Option<&[PluginScalar]> {
-        self.rows
-            .get(match_values)?
-            .iter()
-            .find(|row| row.start <= span_end && row.end >= span_start)
-            .map(|row| row.values.as_slice())
+        let tree = self.trees.get(match_values)?;
+        let (first, last) = (
+            i32::try_from(span_start).unwrap_or(i32::MAX),
+            i32::try_from(span_end).unwrap_or(i32::MAX),
+        );
+        let mut best: Option<usize> = None;
+        tree.query(first, last, |node| {
+            let ordinal = *GenericInterval::<usize>::metadata(node);
+            best = Some(best.map_or(ordinal, |b| b.min(ordinal)));
+        });
+        best.map(|i| self.rows[i].values.as_slice())
     }
 }
 ```
 
-(`HashMap::get` with a `&[Option<String>]` key works because `Vec<T>: Borrow<[T]>`.)
+Imports: `use coitrees::{COITree, GenericInterval, Interval, IntervalTree};` (the `IntervalTree` trait provides `query`). `HashMap::get` with a `&[Option<String>]` key works because `Vec<T>: Borrow<[T]>`.
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -1127,7 +1149,7 @@ Expected: PASS.
 
 ```bash
 git add datafusion/bio-function-vep/src/plugin_cache/lookup.rs
-git commit -m "feat(plugin-cache): IntervalLookup, whole-shard span probe keyed by discriminators"
+git commit -m "feat(plugin-cache): IntervalLookup, per-discriminator COITrees probed by variant span"
 ```
 
 ### Task 7: Registry branch and `probe_all` span
@@ -1359,7 +1381,7 @@ git add -A datafusion/bio-function-vep/src/plugin_cache/mod.rs datafusion/bio-fu
 git commit -m "docs(plugin-cache): document lookup = interval"
 git push -u origin feat/plugin-interval-lookup
 gh pr create --draft --base feat/plugin-gff-provider --title "feat(plugin-cache): interval lookup kind for span-keyed plugins" --body-file <(cat <<'EOF'
-Adds `lookup = "interval"` to plugin manifests. Interval shards carry `(chrom, start, end, <match…>, <values…>, tier=1)`, skip the variation tier join, and are probed at runtime by overlap with the variant's VEP-normalised span plus the usual match discriminators (first row in file order wins, as a tabix-backed Ensembl plugin returns records).
+Adds `lookup = "interval"` to plugin manifests. Interval shards carry `(chrom, start, end, <match…>, <values…>, tier=1)`, skip the variation tier join, and are probed at runtime through per-discriminator COITrees by overlap with the variant's VEP-normalised span (first row in file order wins, as a tabix-backed Ensembl plugin returns records).
 
 Second half of the PhenotypeOrthologous port (gene-keyed via `{Gene}`). Stacked on #<PR1>. Spec: vepyr `docs/superpowers/specs/2026-09-11-gff-plugin-source-and-phenotypeorthologous-design.md`.
 

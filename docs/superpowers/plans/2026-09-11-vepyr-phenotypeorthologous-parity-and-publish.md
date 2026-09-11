@@ -35,7 +35,7 @@ uv run python e2e-testing/scripts/run_comparison.py --release 116 --profile merg
   --plugin-cache ~/workspace/data_vepyr/plugin_cache_v0.1.1 --workers 4 --bgzf --force
 uv run python e2e-testing/scripts/md5_concordance.py \
   --pair e2e-testing/results/116/fast_chr22/vep_chr22_merged_plugins.vcf \
-         e2e-testing/results/116/fast_chr22/vepyr_chr22_merged_plugins.vcf.gz --mode strict
+         e2e-testing/results/116/fast_chr22/vepyr_parquet_chr22_merged_plugins.vcf.gz --mode strict
 ```
 
 Expected: report `124/124 fields at 100%`, strict concordance exit 0. Copy the two md5 lines into `e2e-testing/reports/baseline_merged_plugins_chr22_2026-09-11.txt` (untracked, reports/ is gitignored) for the re-check in Task V9.
@@ -254,6 +254,10 @@ git commit -m "test: interval (gene-span) plugin fixture — span gating and VEP
 - Modify: `e2e-testing/scripts/comparison/profiles.py:63-70` (constants), `:138-152` (profiles dict)
 - Modify: `tests/test_comparison_profiles.py:188-196` (`_write_plugin_reference(tmp_path, chrom=22, profile="merged_plugins")`) and new tests
 - Modify: `tests/test_verify_parity_gate.py:364-382` (add `merged_phenotypeorthologous` to the refusal parametrisation)
+- Modify: `e2e-testing/scripts/comparison/cli.py:14-21` (`DESCRIPTION` example) and `:136-141` (`--plugin-cache` help)
+- Modify: `tests/test_comparison_cli.py:350-372` (parametrise the two plugin-profile tests over both plugin profiles)
+
+`run_comparison.py` is a 16-line shim over `comparison.cli.main`, and the CLI's `--profile` choices are `sorted(profiles.PROFILES)` (`cli.py:44-46`), so registering the profile in `profiles.py` is what exposes `--profile merged_phenotypeorthologous`; the steps below make that visible in the help text and pin it with tests.
 
 - [ ] **Step 1: Write the failing tests** (`tests/test_comparison_profiles.py`)
 
@@ -272,6 +276,32 @@ def test_phenotypeorthologous_profile_attaches_only_that_plugin(tmp_path, monkey
 ```
 
 Generalise `_write_plugin_reference` to take `profile="merged_plugins"` and use `profiles.PROFILES[profile].vep_per_contig`.
+
+In `tests/test_comparison_cli.py`, parametrise the two existing plugin-profile tests and add a choices test:
+
+```python
+@pytest.mark.parametrize("profile", ["merged_plugins", "merged_phenotypeorthologous"])
+def test_main_passes_the_single_requested_contig_to_resolve(monkeypatch, profile):
+    seen = {}
+
+    def fake_resolve(*args, **kwargs):
+        seen.update(kwargs)
+        raise profiles.ProfileUnavailable("stop here")
+
+    monkeypatch.setattr(profiles, "resolve", fake_resolve)
+    rc = cli.main(["--release", "116", "--profile", profile, "--chroms", "22"])
+    assert rc == 2
+    assert seen["chrom"] == "chr22"
+
+
+def test_phenotypeorthologous_profile_is_a_cli_choice(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["--release", "116", "--profile", "no_such_profile"])
+    assert excinfo.value.code == 2
+    assert "merged_phenotypeorthologous" in capsys.readouterr().err
+```
+
+(argparse lists the valid choices in its error, so the second test proves the new profile is selectable from `run_comparison.py`.)
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -302,16 +332,25 @@ and in `PROFILES`:
 
 In `tests/test_verify_parity_gate.py`, extend the plugin-refusal test's parametrisation with `"merged_phenotypeorthologous"`.
 
+In `cli.py`, add to `DESCRIPTION`:
+
+```
+    run_comparison.py --release 116 --profile merged_phenotypeorthologous --chroms 22 \
+        --plugin-cache ~/workspace/data_vepyr/plugin_cache_v0.2.0   # one plugin, its own reference
+```
+
+and change the `--plugin-cache` help to `"Plugin cache root, used only by plugin profiles (merged_plugins, merged_phenotypeorthologous); default: $DATA/cache/plugin_cache_<release>"`.
+
 - [ ] **Step 4: Run to verify**
 
-Run: `uv run pytest tests/test_comparison_profiles.py tests/test_verify_parity_gate.py -q`
-Expected: PASS.
+Run: `uv run pytest tests/test_comparison_profiles.py tests/test_comparison_cli.py tests/test_verify_parity_gate.py -q && uv run python e2e-testing/scripts/run_comparison.py --help | grep -c phenotypeorthologous`
+Expected: tests PASS; the help mentions the profile at least twice (choices + example).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add e2e-testing/scripts/comparison/profiles.py tests/test_comparison_profiles.py tests/test_verify_parity_gate.py
-git commit -m "feat(e2e): merged_phenotypeorthologous comparison profile"
+git add e2e-testing/scripts/comparison/profiles.py e2e-testing/scripts/comparison/cli.py tests/test_comparison_profiles.py tests/test_comparison_cli.py tests/test_verify_parity_gate.py
+git commit -m "feat(e2e): merged_phenotypeorthologous profile in run_comparison.py"
 ```
 
 ### Task V4: Oracle scripts
@@ -519,6 +558,96 @@ git add e2e-testing/scripts/build_vep_phenotypeorthologous_reference.sh e2e-test
 git commit -m "feat(e2e): VEP 116 PhenotypeOrthologous reference builder and resumable driver"
 ```
 
+### Task V4b: End-to-end comparison runner for the profile
+
+**Files:**
+- Create: `e2e-testing/scripts/run_phenotypeorthologous_comparison.sh`
+
+**Interfaces:**
+- `./run_phenotypeorthologous_comparison.sh [chroms…]` (default `1..22`). Env: `DATA_VEPYR_DIR`, `VEPYR_PLUGIN_REPO` (default `~/research/git/vepyr-plugins`), `VEPYR_PLUGIN_REF` (git ref of the catalog manifest, default `v0.2.0`), `VEPYR_PLUGIN_CACHE` (default `$DATA/plugin_cache_po_<ref>`), `VEP_COMPARISON_WORKERS` (default 4). Per chromosome: builds the reference if missing (Task V4 builder), builds the shard through `vepyr.build_plugin_cache` with strict verification, runs `run_comparison.py --profile merged_phenotypeorthologous`, then `md5_concordance.py --mode strict`, and records `strict_chr<N>.exit` under `$DATA/output/116/plugins/po_comparison_logs/`. Exit code 1 if any chromosome fails. This is the single command behind Tasks V5 and V6.
+- Result files it reads (written by `run_comparison.py`): `e2e-testing/results/116/fast_chr<N>/vep_chr<N>_merged_phenotypeorthologous.vcf` (`vcfio.slice_vep`, `vcfio.py:366`) and `…/vepyr_parquet_chr<N>_merged_phenotypeorthologous.vcf.gz` (`cli.py:394-397`: `vepyr_{BACKEND}_{chrom}_{suffix}{ext}` with `BACKEND = "parquet"`, `chrom` canonical `chrN`, `ext = .vcf.gz` under `--bgzf`).
+
+- [ ] **Step 1: Write the runner**
+
+```bash
+#!/usr/bin/env bash
+# Build the PhenotypeOrthologous shard(s), compare vepyr with the VEP 116
+# reference through run_comparison.py --profile merged_phenotypeorthologous,
+# and gate each chromosome on strict body/header md5 concordance.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+DATA="${DATA_VEPYR_DIR:-$HOME/workspace/data_vepyr}"
+export DATA_VEPYR_DIR="$DATA"
+PLUGIN_REPO="${VEPYR_PLUGIN_REPO:-$HOME/research/git/vepyr-plugins}"
+PLUGIN_REF="${VEPYR_PLUGIN_REF:-v0.2.0}"
+PLUGIN_CACHE="${VEPYR_PLUGIN_CACHE:-$DATA/plugin_cache_po_${PLUGIN_REF//\//_}}"
+CACHE_DIR="$DATA/cache/116_GRCh38_merged"
+SRC="$DATA/plugin_input/phenotypeorthologous/PhenotypesOrthologous_homo_sapiens_112_GRCh38.gff3.gz"
+REF_DIR="$DATA/output/116/plugins"
+LOG_DIR="$REF_DIR/po_comparison_logs"
+WORKERS="${VEP_COMPARISON_WORKERS:-4}"
+BUILDER="$SCRIPT_DIR/build_vep_phenotypeorthologous_reference.sh"
+mkdir -p "$LOG_DIR"
+
+if [[ "$#" -gt 0 ]]; then chroms=("$@"); else chroms=({1..22}); fi
+
+# One build call for every requested chromosome: the builder verifies the
+# source once and stages all shards before committing any of them.
+build_shards() {
+  local list; list="$(printf '"%s",' "${chroms[@]}")"
+  (cd "$REPO_DIR" && uv run python - <<PYBUILD
+import vepyr
+print(vepyr.build_plugin_cache(
+    "phenotypeorthologous", "$PLUGIN_REF",
+    source_path="$SRC", cache_dir="$CACHE_DIR", plugin_cache_root="$PLUGIN_CACHE",
+    chroms=[${list%,}], plugins_repo="$PLUGIN_REPO", overwrite=True, verify_source="strict"))
+PYBUILD
+  )
+}
+
+fail=0
+[[ -s "$SRC" ]] || "$BUILDER" 22 >/dev/null   # the builder downloads and md5-checks the source
+build_shards | tee "$LOG_DIR/build.log"
+for chrom in "${chroms[@]}"; do
+  ref="$REF_DIR/HG002_chr${chrom}_phenotypeorthologous_vep116.vcf.gz"
+  [[ -s "$ref" && -s "$ref.tbi" ]] || "$BUILDER" "$chrom" > "$LOG_DIR/reference_chr${chrom}.log" 2>&1
+  if ! (cd "$REPO_DIR" && uv run python e2e-testing/scripts/run_comparison.py \
+      --release 116 --profile merged_phenotypeorthologous --chroms "$chrom" \
+      --plugin-cache "$PLUGIN_CACHE" --workers "$WORKERS" --bgzf --force) \
+      > "$LOG_DIR/compare_chr${chrom}.log" 2>&1; then
+    echo "FAIL chr${chrom}: comparison error, see $LOG_DIR/compare_chr${chrom}.log" >&2; fail=1; continue
+  fi
+  results="$REPO_DIR/e2e-testing/results/116/fast_chr${chrom}"
+  if (cd "$REPO_DIR" && uv run python e2e-testing/scripts/md5_concordance.py \
+        --pair "$results/vep_chr${chrom}_merged_phenotypeorthologous.vcf" \
+               "$results/vepyr_parquet_chr${chrom}_merged_phenotypeorthologous.vcf.gz" \
+        --mode strict --explain --explain-limit 0) > "$LOG_DIR/strict_chr${chrom}.log" 2>&1; then
+    echo 0 > "$LOG_DIR/strict_chr${chrom}.exit"; echo "PASS chr${chrom}: strict md5 concordant"
+  else
+    echo 1 > "$LOG_DIR/strict_chr${chrom}.exit"; echo "FAIL chr${chrom}: see $LOG_DIR/strict_chr${chrom}.log" >&2; fail=1
+  fi
+done
+exit "$fail"
+```
+
+- [ ] **Step 2: Smoke-run on chr22 against the catalog branch** (before `v0.2.0` exists)
+
+```bash
+chmod +x e2e-testing/scripts/run_phenotypeorthologous_comparison.sh
+VEPYR_PLUGIN_REF=feat/phenotypeorthologous e2e-testing/scripts/run_phenotypeorthologous_comparison.sh 22
+```
+
+Expected: `PASS chr22: strict md5 concordant` and a `e2e-testing/reports/fast_chr22_merged_phenotypeorthologous_116_report.json` showing the four fields with `both_nonempty_unequal = 0`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add e2e-testing/scripts/run_phenotypeorthologous_comparison.sh
+git commit -m "feat(e2e): one-command PhenotypeOrthologous build + compare + strict gate"
+```
+
 ### Task V5: Build the chr22 cache and run the parity gate
 
 - [ ] **Step 1: Build chr22 + chr1 from the catalog branch** (the manifest lives on the vepyr-plugins branch until `v0.2.0` exists; `_resolve_plugin_manifest` accepts any git ref)
@@ -540,17 +669,14 @@ EOF
 
 Expected: `[('chr22', 377, 0, 377)]` then `[('chr1', 1754, 0, 1754)]`.
 
-- [ ] **Step 2: chr22 comparison, strict md5, workers 1 vs 4**
+- [ ] **Step 2: chr22 comparison, strict md5, workers 1 vs 4** (the Task V4b runner does build + compare + strict; run it twice with different worker counts and compare the two vepyr outputs)
 
 ```bash
 for w in 1 4; do
-  uv run python e2e-testing/scripts/run_comparison.py --release 116 --profile merged_phenotypeorthologous \
-    --chroms 22 --plugin-cache ~/workspace/data_vepyr/plugin_cache_dev_po --workers $w --bgzf --force
-  cp e2e-testing/results/116/fast_chr22/vepyr_chr22_merged_phenotypeorthologous.vcf.gz /tmp/po_w$w.vcf.gz
+  VEPYR_PLUGIN_REF=feat/phenotypeorthologous VEPYR_PLUGIN_CACHE=~/workspace/data_vepyr/plugin_cache_dev_po \
+    VEP_COMPARISON_WORKERS=$w e2e-testing/scripts/run_phenotypeorthologous_comparison.sh 22
+  cp e2e-testing/results/116/fast_chr22/vepyr_parquet_chr22_merged_phenotypeorthologous.vcf.gz /tmp/po_w$w.vcf.gz
 done
-uv run python e2e-testing/scripts/md5_concordance.py --pair \
-  e2e-testing/results/116/fast_chr22/vep_chr22_merged_phenotypeorthologous.vcf \
-  /tmp/po_w4.vcf.gz --mode strict --explain --explain-limit 0
 uv run python e2e-testing/scripts/md5_concordance.py --pair /tmp/po_w1.vcf.gz /tmp/po_w4.vcf.gz --mode strict
 ```
 
@@ -558,7 +684,7 @@ Expected: the field report shows the four `PhenotypeOrthologous_*` fields with `
 
 - [ ] **Step 3: chr1**
 
-Run the V4 builder for chr1, then the same comparison with `--chroms 1 --workers 4`. Expected: 100% and strict PASS.
+`VEPYR_PLUGIN_REF=feat/phenotypeorthologous VEPYR_PLUGIN_CACHE=~/workspace/data_vepyr/plugin_cache_dev_po e2e-testing/scripts/run_phenotypeorthologous_comparison.sh 1` (builds the chr1 reference on first use, about an hour). Expected: 100% and `PASS chr1`.
 
 - [ ] **Step 4: Record** the report paths and md5s in the PR description draft (`e2e-testing/reports/fast_chr22_merged_phenotypeorthologous_116_*`).
 
@@ -578,26 +704,12 @@ Re-running the same command after an interruption skips completed contigs. Progr
 - [ ] **Step 2: When complete, per-contig gate**
 
 ```bash
-uv run python - <<'EOF'
-import vepyr, os
-D = os.path.expanduser("~/workspace/data_vepyr")
-vepyr.build_plugin_cache("phenotypeorthologous", "feat/phenotypeorthologous",
-    source_path=f"{D}/plugin_input/phenotypeorthologous/PhenotypesOrthologous_homo_sapiens_112_GRCh38.gff3.gz",
-    cache_dir=f"{D}/cache/116_GRCh38_merged", plugin_cache_root=f"{D}/plugin_cache_dev_po",
-    chroms=[str(c) for c in range(1, 23)], plugins_repo=os.path.expanduser("~/research/git/vepyr-plugins"),
-    overwrite=True, verify_source="strict")
-EOF
-for c in $(seq 1 22); do
-  uv run python e2e-testing/scripts/run_comparison.py --release 116 --profile merged_phenotypeorthologous \
-    --chroms $c --plugin-cache ~/workspace/data_vepyr/plugin_cache_dev_po --workers 4 --bgzf --force
-  uv run python e2e-testing/scripts/md5_concordance.py --pair \
-    e2e-testing/results/116/fast_chr$c/vep_chr${c}_merged_phenotypeorthologous.vcf \
-    e2e-testing/results/116/fast_chr$c/vepyr_chr${c}_merged_phenotypeorthologous.vcf.gz --mode strict \
-    && echo "chr$c strict PASS" || echo "chr$c strict FAIL"
-done | tee ~/workspace/data_vepyr/output/116/plugins/logs/po_strict_summary.txt
+VEPYR_PLUGIN_REF=feat/phenotypeorthologous VEPYR_PLUGIN_CACHE=~/workspace/data_vepyr/plugin_cache_dev_po \
+  e2e-testing/scripts/run_phenotypeorthologous_comparison.sh 2>&1 \
+  | tee ~/workspace/data_vepyr/output/116/plugins/logs/po_strict_summary.txt
 ```
 
-Expected: 22 × `strict PASS`. This is the gate for tagging the Hub cache (Task V8).
+Expected: 22 × `PASS chr<N>: strict md5 concordant` and exit 0. This is the gate for tagging the Hub cache (Task V8).
 
 ### Task V7: Docs
 
@@ -640,6 +752,9 @@ Emitted-order row: `PhenotypeOrthologous_Mouse_geneid`, `PhenotypeOrthologous_Mo
     (`HG002_chr{N}_phenotypeorthologous_vep116.vcf.gz`), produced by
     `build_vep_phenotypeorthologous_reference.sh <chrom>` or, for chr1–22,
     the resumable `generate_vep_phenotypeorthologous_references.sh`.
+    `run_phenotypeorthologous_comparison.sh [chroms…]` chains the shard
+    build, `run_comparison.py --profile merged_phenotypeorthologous` and the
+    strict md5 gate in one command.
 ```
 
 - [ ] **Step 3: Build docs and commit**
@@ -668,7 +783,7 @@ EOF
 
 Expected: 25 entries; `chrY` with `rows=0` and no shard; `chrMT` 13 rows; total rows 16,404 (the four unplaced contigs' 5 rows are outside the 25). `manifest.json` has `"lookup": "interval"`, `cache_source_version: "v0.2.0@<sha>"`, `sources[0].verified_md5 == md5`.
 
-- [ ] **Step 2: Re-run the chr22 strict gate against this exact root** (`--plugin-cache ~/workspace/data_vepyr/plugin_cache_v0.2.0`). Expected: PASS.
+- [ ] **Step 2: Re-run the chr22 strict gate against this exact root**: `VEPYR_PLUGIN_REF=v0.2.0 VEPYR_PLUGIN_CACHE=~/workspace/data_vepyr/plugin_cache_v0.2.0 e2e-testing/scripts/run_phenotypeorthologous_comparison.sh 22` (the build step rebuilds chr22 in place from the same tag, byte-identical). Expected: `PASS chr22`.
 
 - [ ] **Step 3: Write the card** `~/workspace/data_vepyr/plugin_cache_v0.2.0/plugin/phenotypeorthologous/README.md`, following `biodatageeks/vepyr_116_GRCh38_plugin_clinvar`'s card structure (download it with `hf download … README.md`): title, what it is, source url/md5/verified md5/.tbi md5, `cache_source_version`, lookup kind + match rule, CSQ fields and header descriptions, per-contig row table (from `manifest.json`), licence (Ensembl data, free use), how to download into `<root>/plugin/phenotypeorthologous/`, parity statement (chr1–22 strict concordance against VEP 116.0, date).
 

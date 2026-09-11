@@ -367,7 +367,8 @@ inherited from the variation cache — every per-variant scoring plugin.
 or region tracks). The shard drops `allele_string`, skips the tier join, keeps
 file order per `(start)`, and at runtime a row matches when its `[start, end]`
 overlaps the variant's VEP-normalised span **and** every `[[match_column]]`
-discriminator agrees; the first row in file order wins. Decide by reading the
+discriminator agrees (an interval tree per discriminator, so dense tracks are
+fine); the first row in file order wins. Decide by reading the
 Ensembl plugin's `run()`: if it calls `get_data($vf->{chr}, $vf_start,
 $vf_end)` and filters by an id, that is `interval` + a template such as
 `{Gene}`. `allele_match` is rejected for `interval`.
