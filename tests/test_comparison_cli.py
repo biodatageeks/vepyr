@@ -353,6 +353,27 @@ def test_main_forwards_the_sole_contig_to_profile_resolution(monkeypatch):
     assert seen["chrom"] == "chr22"
 
 
+@pytest.mark.parametrize("profile", ["merged_plugins", "merged_phenotypeorthologous"])
+def test_plugin_profiles_pass_the_single_requested_contig(monkeypatch, profile):
+    seen = {}
+
+    def fake_resolve(*args, **kwargs):
+        seen.update(kwargs)
+        raise profiles.ProfileUnavailable("stop here")
+
+    monkeypatch.setattr(profiles, "resolve", fake_resolve)
+    rc = cli.main(["--release", "116", "--profile", profile, "--chroms", "22"])
+    assert rc == 2
+    assert seen["chrom"] == "chr22"
+
+
+def test_phenotypeorthologous_profile_is_a_cli_choice(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["--release", "116", "--profile", "no_such_profile"])
+    assert excinfo.value.code == 2
+    assert "merged_phenotypeorthologous" in capsys.readouterr().err
+
+
 def test_main_passes_no_contig_when_several_are_requested(monkeypatch):
     seen = {}
 

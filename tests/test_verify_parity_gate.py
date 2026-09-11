@@ -361,10 +361,11 @@ def test_gate_rejects_format_only_counts_for_unexpected_fields(tmp_path):
         _validate(value, tmp_path)
 
 
-def test_gate_refuses_plugin_profiles():
+@pytest.mark.parametrize("profile", ["merged_plugins", "merged_phenotypeorthologous"])
+def test_gate_refuses_plugin_profiles(profile):
     """Plugin profiles are comparison scenarios; the gate pins the core contract."""
     with pytest.raises(gate.GateError, match="plugins"):
-        gate.expected_csq_fields("merged_plugins")
+        gate.expected_csq_fields(profile)
 
 
 def test_gate_refuses_the_plugin_base_profile_too():

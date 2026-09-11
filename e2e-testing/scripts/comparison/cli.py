@@ -18,6 +18,8 @@ Examples:
     run_comparison.py --release 115 --chroms 22            # one contig
     run_comparison.py --release 116 --profile merged --chroms 1 2 22
     run_comparison.py --release 115 --bgzf --workers 4 --force
+    run_comparison.py --release 116 --profile merged_phenotypeorthologous --chroms 22 \\
+        --plugin-cache ~/workspace/data_vepyr/plugin_cache_v0.2.0   # one plugin, its own reference
 """
 
 
@@ -137,7 +139,8 @@ def parse_args(argv=None):
         "--plugin-cache",
         default=None,
         help="Plugin cache root, used only by plugin profiles "
-        "(default: $DATA/cache/plugin_cache_<release>)",
+        "(merged_plugins, merged_phenotypeorthologous); "
+        "default: $DATA/cache/plugin_cache_<release>",
     )
 
     args = p.parse_args(argv)
