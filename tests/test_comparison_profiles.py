@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from comparison import profiles
 
@@ -218,8 +220,9 @@ def test_phenotypeorthologous_profile_attaches_only_that_plugin(tmp_path, monkey
 
     resolved = profiles.resolve("merged_phenotypeorthologous", "116", chrom=22)
     assert resolved.annotate_kwargs["plugins"] == ["phenotypeorthologous"]
-    assert resolved.vep_vcf.endswith("HG002_chr22_phenotypeorthologous_vep116.vcf.gz")
-    assert "/plugins/" in resolved.vep_vcf
+    ref = Path(resolved.vep_vcf)
+    assert ref.name == "HG002_chr22_phenotypeorthologous_vep116.vcf.gz"
+    assert ref.parent.name == "plugins"
 
 
 def test_plugin_profile_fails_when_the_plugin_cache_is_missing(tmp_path, monkeypatch):
