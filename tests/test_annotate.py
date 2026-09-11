@@ -2741,3 +2741,66 @@ class TestNonVariantRecords:
 
         assert bars[0].n == 1, "a failed run must not claim the input was consumed"
         assert bars[0].closed
+
+    # The input VCF for the buffer-boundary test: six real variants drawn from
+    # the golden fixture, with one non-variant record in the middle.
+    _BOUNDARY_HEADER = (
+        "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    )
+    _BOUNDARY_VARIANTS = [
+        "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\t.",
+        "chr1\t604358\t.\tG\tC\t50\tPASS\t.",
+        "chr1\t604360\t.\tT\tC\t50\tPASS\t.",
+        "chr1\t611317\t.\tA\tG\t50\tPASS\t.",
+        "chr1\t631859\t.\tCG\tC\t50\tPASS\t.",
+        "chr1\t779047\t.\tG\tA\t50\tPASS\t.",
+    ]
+    _NON_VARIANT_LINE = "chr1\t604359\t.\tA\t.\t50\tPASS\t."
+
+    @pytest.mark.parametrize("buffer_size", [2, 3, 5000])
+    def test_a_dropped_record_does_not_shift_buffer_boundaries(
+        self, metadata_cache_dir, tmp_path, buffer_size
+    ):
+        """A dropped record must annotate exactly as if it were never there.
+
+        Ensembl never builds a VariationFeature for a non-variant record
+        (`Parser/VCF.pm:263-266`), so it never enters the InputBuffer and
+        never consumes one of the `--buffer_size` slots. If vepyr counts it as
+        an input unit instead, the buffer boundaries move, and on a merged
+        cache -- which carries state across buffers -- that can change the
+        annotation of the *real* variants around it.
+
+        So: the same six variants, with and without a non-variant record
+        wedged in the middle, must produce byte-identical output. Run at small
+        buffer sizes, because at the 5000 default all seven records land in
+        one buffer and no boundary can move.
+        """
+        import vepyr
+
+        with_nv = tmp_path / f"with_nv_{buffer_size}.vcf"
+        without_nv = tmp_path / f"without_nv_{buffer_size}.vcf"
+        variants = self._BOUNDARY_VARIANTS
+        with_nv.write_text(
+            self._BOUNDARY_HEADER
+            + "\n".join(variants[:2] + [self._NON_VARIANT_LINE] + variants[2:])
+            + "\n"
+        )
+        without_nv.write_text(self._BOUNDARY_HEADER + "\n".join(variants) + "\n")
+
+        outs = []
+        for src in (with_nv, without_nv):
+            out = tmp_path / f"{src.stem}.out.vcf"
+            vepyr.annotate(
+                str(src),
+                metadata_cache_dir,
+                output_vcf=str(out),
+                show_progress=False,
+                buffer_size=buffer_size,
+            )
+            outs.append(self._data_lines(out))
+
+        assert outs[0] == outs[1], (
+            f"at buffer_size={buffer_size}, a dropped non-variant record changed "
+            "the annotation of the surrounding real variants"
+        )
