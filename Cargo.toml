@@ -119,6 +119,6 @@ serde_json = "1"
 # (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
 # v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
 # no release has been cut on top of the merge yet; move to that tag when one is.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "00c64b0d2bbf9b1f2138c30623ee57f0b83c8f35", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9f74fd9caa0682d4706f0d0f7e83bfa38eface94", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
