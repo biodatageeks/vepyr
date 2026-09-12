@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`datafusion-bio-format-ensembl-cache`** — reads Ensembl VEP offline cache directories (Storable/Sereal `.gz` files) into DataFusion `TableProvider`s with Arrow schemas for variations, transcripts, exons, translations, regulatory/motif features
 
 The Python package exposes:
-1. Ensembl cache conversion to Parquet and fjall (embedded KV store) formats
+1. Ensembl cache conversion to a point-lookup Parquet cache
 2. Variant annotation against converted caches
 
 ## Build & Development

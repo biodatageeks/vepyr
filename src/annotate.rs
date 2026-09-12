@@ -149,12 +149,11 @@ pub fn annotate_to_vcf_file(
     })?;
     let workers = workers_from_options(&opts);
 
-    // The annotation store uses the engine's fixed backend token, which upstream
-    // still names "lance" (a vestigial identifier — the actual storage is
-    // Parquet). The variation cache is Parquet, carried via `cache_format` in
-    // `options_json`. Keep the two decoupled.
+    // The annotation store backend and the variation cache format are separate
+    // axes upstream, and Parquet is now the only legal value for either; the
+    // cache format itself travels in `options_json`.
     let _ = &cache_format;
-    let backend = "lance";
+    let backend = "parquet";
     let rt = runtime_for_workers(workers)?;
 
     let vcf_compression = match compression {
@@ -489,10 +488,9 @@ pub fn create_streaming_annotator(
     let rt = runtime_for_workers(workers)?;
 
     let (stream, schema) = rt.block_on(async {
-        // Annotation store uses the engine's fixed backend token (vestigially
-        // named "lance" upstream; storage is Parquet). The variation cache is
-        // Parquet, selected by `cache_format` in options_json.
-        let backend = "lance";
+        // Annotation store backend; Parquet is the only value the engine
+        // accepts. The variation cache format travels in `options_json`.
+        let backend = "parquet";
         let session_partitions = worker_thread_count(workers);
 
         let config = SessionConfig::new().with_target_partitions(session_partitions);

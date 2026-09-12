@@ -126,7 +126,7 @@ fn cache_contig_identity_json(
 /// `chroms` restricts the build to specific contigs; an empty list means no
 /// filter, matching `CacheBuilder::with_chrom_filter`.
 ///
-/// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
+/// Returns a list of `(entity, [(parquet_path, rows)])`.
 #[pyfunction]
 #[pyo3(signature = (cache_root, output_dir, entity=None, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false, expected_cache_version=None, chroms=None))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
@@ -142,7 +142,7 @@ fn build_cache(
     overwrite: bool,
     expected_cache_version: Option<String>,
     chroms: Option<Vec<String>>,
-) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
+) -> PyResult<Vec<(String, Vec<(String, usize)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid cache_format: {err}"))
@@ -183,15 +183,9 @@ fn build_cache(
     })?;
 
     // Convert EntityStats to Python-friendly tuples
-    let result: Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)> = stats
+    let result: Vec<(String, Vec<(String, usize)>)> = stats
         .into_iter()
-        .map(|s| {
-            // The legacy fjall backend has been removed; the dependency no
-            // longer carries an `fjall_stats` field. Keep the tuple shape for
-            // the backward-compatible Python API (always `None`).
-            let fjall: Option<(u64, u64, u64, f64)> = None;
-            (s.entity, s.parquet_files, fjall)
-        })
+        .map(|s| (s.entity, s.parquet_files))
         .collect();
 
     Ok(result)

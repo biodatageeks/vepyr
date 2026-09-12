@@ -268,13 +268,7 @@ class TestBuildCacheTargetedValidation:
         local_cache.mkdir()
 
         with patch("vepyr._build_cache") as mock_native:
-            mock_native.return_value = [
-                (
-                    entity,
-                    [(f"/out/{entity}/chr1.parquet", 17)],
-                    None,
-                )
-            ]
+            mock_native.return_value = [(entity, [(f"/out/{entity}/chr1.parquet", 17)])]
             result = vepyr.build_cache(
                 116,
                 str(tmp_path / "out"),
@@ -409,12 +403,8 @@ class TestBuildCacheProgressCallback:
     def test_returns_flat_parquet_list(self, mock_native):
         """Return value should be flattened to [(path, rows)]."""
         mock_native.return_value = [
-            (
-                "variation",
-                [("/out/variation/chr1.parquet", 1000)],
-                (500, 400, 2048, 1.5),
-            ),
-            ("transcript", [("/out/transcript/chr1.parquet", 200)], None),
+            ("variation", [("/out/variation/chr1.parquet", 1000)]),
+            ("transcript", [("/out/transcript/chr1.parquet", 200)]),
         ]
 
         os.makedirs("/tmp/test_vepyr_cache_ret", exist_ok=True)
@@ -476,11 +466,11 @@ def built_cache(skip_if_no_ensembl_cache):
         None,
     )
     flat_result = []
-    for entity, files, _stats in native_result:
+    for entity, files in native_result:
         flat_result.extend(files)
 
     tables: dict = {}
-    for entity, files, _ in native_result:
+    for entity, files in native_result:
         entity_tables = [pq.read_table(path) for path, _ in files]
         tables[entity] = (
             pa.concat_tables(entity_tables, promote_options="default")
@@ -967,8 +957,7 @@ class TestBuildCacheIntegration:
     def test_parquet_variation_layout(self, built_cache):
         out, _, native_result, _ = built_cache
         var = [s for s in native_result if s[0] == "variation"][0]
-        _, _, stats = var
-        assert stats is None
+        assert len(var) == 2, "build_cache returns (entity, parquet_files)"
         var_dir = os.path.join(out, "variation")
         assert os.path.isfile(os.path.join(var_dir, "chr22.parquet"))
         assert os.path.isfile(os.path.join(var_dir, "chrom_manifest.json"))

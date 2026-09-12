@@ -1273,9 +1273,8 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.19.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=9f74fd9caa0682d4706f0d0f7e83bfa38eface94#9f74fd9caa0682d4706f0d0f7e83bfa38eface94"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=e0317551d5e47e9a81ed50539213c232bde11f2b#e0317551d5e47e9a81ed50539213c232bde11f2b"
 dependencies = [
- "ahash",
  "async-trait",
  "bytes",
  "chrono",
@@ -1288,12 +1287,10 @@ dependencies = [
  "datafusion-bio-format-vcf",
  "flate2",
  "futures",
- "hashbrown 0.16.1",
  "indicatif",
  "libc",
  "log",
  "md-5",
- "nohash-hasher",
  "noodles-bgzf 0.49.0",
  "noodles-core 0.16.0",
  "noodles-core 0.20.0",
@@ -1301,7 +1298,6 @@ dependencies = [
  "noodles-fasta",
  "noodles-tabix",
  "parquet",
- "rapidhash",
  "serde",
  "serde_json",
  "smallvec",
@@ -3191,12 +3187,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nohash-hasher"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
-
-[[package]]
 name = "noodles"
 version = "0.113.0"
 source = "git+https://github.com/biodatageeks/noodles.git?rev=42a3c0165617b7b8f9f5c5905287968eef92e31e#42a3c0165617b7b8f9f5c5905287968eef92e31e"
@@ -4216,15 +4206,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
 dependencies = [
  "getrandom 0.3.4",
-]
-
-[[package]]
-name = "rapidhash"
-version = "4.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5e48930979c155e2f33aa36ab3119b5ee81332beb6482199a8ecd6029b80b59"
-dependencies = [
- "rustversion",
 ]
 
 [[package]]
