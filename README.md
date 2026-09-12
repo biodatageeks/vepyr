@@ -5,6 +5,10 @@
 [![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://pypi.org/project/vepyr/#files)
 ![GitHub License](https://img.shields.io/github/license/biodatageeks/vepyr)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/vepyr)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/vepyr)
+[![Bioconda](https://img.shields.io/conda/vn/bioconda/vepyr?label=bioconda)](https://anaconda.org/bioconda/vepyr)
+[![Bioconda - Downloads](https://img.shields.io/conda/dn/bioconda/vepyr?label=bioconda%20downloads)](https://anaconda.org/bioconda/vepyr)
+[![Bioconda - Platforms](https://img.shields.io/conda/pn/bioconda/vepyr?label=bioconda%20platforms)](https://anaconda.org/bioconda/vepyr)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/biodatageeks/vepyr)
 
 ![CI](https://github.com/biodatageeks/vepyr/actions/workflows/ci.yml/badge.svg?branch=master)
@@ -42,7 +46,14 @@ results as a `polars.LazyFrame` or a VCF with `CSQ` in the `INFO` column.
 pip install vepyr
 ```
 
-This installs both the Python package and a `vepyr` executable:
+or from [bioconda](https://anaconda.org/bioconda/vepyr)
+(linux-64, osx-64, osx-arm64):
+
+```bash
+conda install -c conda-forge -c bioconda vepyr
+```
+
+Either installs both the Python package and a `vepyr` executable:
 
 ```bash
 vepyr annotate \

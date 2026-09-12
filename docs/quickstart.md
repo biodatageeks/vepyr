@@ -11,12 +11,20 @@ pip install vepyr
 This installs the Python package and a `vepyr` executable — see
 [Command line](cli.md).
 
-### From conda
+### From bioconda
 
-!!! note "In progress"
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/vepyr)
+[![Bioconda](https://img.shields.io/conda/vn/bioconda/vepyr?label=bioconda)](https://anaconda.org/bioconda/vepyr)
+[![Bioconda - Platforms](https://img.shields.io/conda/pn/bioconda/vepyr?label=bioconda%20platforms)](https://anaconda.org/bioconda/vepyr)
 
-    A conda package is being prepared for [bioconda](https://bioconda.github.io/).
-    It is not published yet — use PyPI or a source build until it lands.
+```bash
+conda install -c conda-forge -c bioconda vepyr
+```
+
+The package is built for linux-64, osx-64 and osx-arm64 and ships the same
+`vepyr` executable. A new release reaches bioconda after its recipe update is
+merged, so it can trail PyPI by a few days — check the badge above for the
+current version.
 
 ### From source (for development)
 
