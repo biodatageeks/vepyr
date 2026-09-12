@@ -710,7 +710,7 @@ class TestAnnotate:
             )
 
     def test_sink_vcf(self, metadata_cache_dir):
-        """Writing to VCF via polars-bio sink_vcf should work."""
+        """Collected annotations should write out as a tab-separated file."""
         import vepyr
 
         lf = vepyr.annotate(
@@ -719,11 +719,6 @@ class TestAnnotate:
             everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
-
-        try:
-            import polars_bio  # noqa: F401
-        except ImportError:
-            pytest.skip("polars-bio not installed")
 
         with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
             out_path = f.name
