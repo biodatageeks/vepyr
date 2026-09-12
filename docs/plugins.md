@@ -688,8 +688,9 @@ a short chain of SQL objects:
 | `parquet` | Built-in DataFusion Parquet reader. |
 | `vcf` | `VcfTableProvider` from bio-formats. Every INFO field the header declares is exposed and `ingest_sql` projects down to what it needs; set `record_layout` on the source to carry the raw record through. |
 | `bed` | `BedTableProvider` from bio-formats, BED4 only — `chrom`, `start`, `end`, `name`, whatever the file's variant. |
+| `gff` | `GffTableProvider` from bio-formats — the eight fixed GFF3 columns plus one flat `Utf8` column per key in `[source.gff].attributes` (percent-decoded, never trimmed). `index = "tabix"` slices per chromosome. |
 
-All five are implemented. `vcf` and `bed` take their zero/one-based
+All six are implemented. `vcf`, `bed` and `gff` take their zero/one-based
 interpretation from the manifest's `coordinate_system` rather than the file's
 own convention, so `ingest_sql` always sees the system the manifest declares.
 
