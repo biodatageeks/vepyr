@@ -103,11 +103,37 @@ jobs:
           uv sync --python ${{ matrix.python-version }}
           uv run pytest -v
 
+  # Linux arm64 on a native GitHub arm runner, not cross-compiled, so the
+  # same host that builds the wheel also runs the suite. One interpreter for
+  # the same abi3 reasoning as the Windows job above.
+  linux-arm64-tests:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v5
+      - name: Install VCF command-line tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bcftools tabix
+      - name: Build and test
+        run: |
+          uv python install ${{ matrix.python-version }}
+          uv sync --python ${{ matrix.python-version }}
+          uv run pytest -v
+
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.target == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       matrix:
-        target: [x86_64]
+        target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels

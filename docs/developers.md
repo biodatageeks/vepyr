@@ -65,7 +65,7 @@ uv run mkdocs build
 uv run maturin build --release
 ```
 
-Wheels are produced for Linux (x86_64), macOS (x86_64, aarch64), and Windows (x64).
+Wheels are produced for Linux (x86_64, aarch64), macOS (x86_64, aarch64), and Windows (x64).
 
 ## Smoke test
 

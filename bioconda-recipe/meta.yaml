@@ -72,8 +72,9 @@ about:
   dev_url: https://github.com/biodatageeks/vepyr
 
 extra:
-  # Matches the Unix platforms exercised by the upstream 0.6.0 wheel builds.
+  # Matches the Unix platforms exercised by the upstream wheel builds.
   additional-platforms:
+    - linux-aarch64
     - osx-arm64
   recipe-maintainers:
     - mwiewior

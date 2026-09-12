@@ -110,12 +110,12 @@ jobs:
 
   linux:
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.target == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     permissions:
       contents: read
     strategy:
       matrix:
-        target: [x86_64]
+        target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
         with:
