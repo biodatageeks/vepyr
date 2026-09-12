@@ -23,20 +23,8 @@ def build_cache(
     cache_source_type: str = "ensembl",
     overwrite: bool = False,
     expected_cache_version: str | None = None,
-) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
+) -> list[tuple[str, list[tuple[str, int]]]]:
     """Build all cache entities from an Ensembl VEP cache."""
-    ...
-
-def build_cache_entity(
-    cache_root: str,
-    output_dir: str,
-    entity: str,
-    partitions: int = 8,
-    cache_source_type: str = "ensembl",
-    overwrite: bool = True,
-    expected_cache_version: str | None = None,
-) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
-    """Build one raw cache entity from an Ensembl VEP cache."""
     ...
 
 def build_plugin_cache(

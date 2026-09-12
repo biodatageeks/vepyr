@@ -792,7 +792,7 @@ def build_cache(
 
     # Flatten entity stats into the simple (path, rows) list for backward compat
     all_results: list[tuple[str, int]] = []
-    for _entity_name, parquet_files, _legacy_stats in entity_stats:
+    for _entity_name, parquet_files in entity_stats:
         for path, rows in parquet_files:
             all_results.append((path, rows))
 
