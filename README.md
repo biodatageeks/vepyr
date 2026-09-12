@@ -32,7 +32,7 @@ results as a `polars.LazyFrame` or a VCF with `CSQ` in the `INFO` column.
 | [Command line](https://biodatageeks.org/vepyr/cli/) | `vepyr annotate`, VCF in, VCF out |
 | [Download Ensembl VEP and plugin caches](https://biodatageeks.org/vepyr/downloads/) | Prebuilt release-116 caches |
 | [Caches](https://biodatageeks.org/vepyr/caches/) | Cache types, entity schemas, CSQ output fields |
-| [Plugins](https://biodatageeks.org/vepyr/plugins/) | CADD, SpliceAI, AlphaMissense, ClinVar, dbNSFP |
+| [Plugins](https://biodatageeks.org/vepyr/plugins/) | CADD, SpliceAI, AlphaMissense, ClinVar, dbNSFP, PhenotypeOrthologous |
 | [API reference](https://biodatageeks.org/vepyr/api/) | `build_cache()`, `annotate()`, … |
 | [Performance](https://biodatageeks.org/vepyr/performance/) | Benchmarks vs Ensembl VEP |
 

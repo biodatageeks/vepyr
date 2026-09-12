@@ -156,7 +156,9 @@ type come from the plugin's manifest, not from the CSQ text it travels in:
 - A plugin keyed on a transcript feature, such as SpliceAI (by gene symbol)
   or AlphaMissense (by protein change), gives one value per consequence
   entry, aligned with `Consequence`: `SpliceAI_pred_DP_AG: List(Int32)`,
-  `am_pathogenicity: List(Float32)`.
+  `am_pathogenicity: List(Float32)`. Interval plugins such as
+  PhenotypeOrthologous (gene span + `Gene`) are lists too, empty on entries
+  whose transcript lies outside the matching span.
 - The element type is the manifest's `type`: `Utf8`, `Int32` or `Float32`.
   CADD's scores are declared `Utf8` so the VCF reproduces the source digits
   exactly, which is why `CADD_PHRED` is a string; cast it when you need a

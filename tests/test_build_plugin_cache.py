@@ -40,6 +40,48 @@ _UTF8_MANIFEST = _FULL_MANIFEST.replace(
     "CAST(score AS FLOAT) AS demo_score", "score AS demo_score"
 ).replace('type = "Float32"', 'type = "Utf8"')
 
+# A gene-span GFF source with an interval lookup keyed by {Gene}. Mirrors
+# plugins/phenotypeorthologous in vepyr-plugins, at fixture scale.
+_GFF_MANIFEST = '''\
+plugin_name = "demo"
+coordinate_system = "1-based"
+lookup = "interval"
+field_order = "alphabetical"
+ingest_sql = """
+SELECT chrom, start, "end", gene_id,
+       "Mouse_gene_id" AS mouse_gene_id, "Mouse_Orthologous_phenotype" AS mouse_phenotype,
+       "Rat_gene_id" AS rat_gene_id, "Rat_Orthologous_phenotype" AS rat_phenotype
+FROM plugin_demo_src
+"""
+
+[[source]]
+provider = "gff"
+path = "placeholder.gff3"
+  [source.gff]
+  attributes = ["gene_id", "Mouse_gene_id", "Mouse_Orthologous_phenotype", "Rat_gene_id", "Rat_Orthologous_phenotype"]
+
+[[match_column]]
+column = "gene_id"
+template = "{Gene}"
+
+[[value_columns]]
+column = "mouse_gene_id"
+csq_field = "Demo_Mouse_geneid"
+type = "Utf8"
+[[value_columns]]
+column = "mouse_phenotype"
+csq_field = "Demo_Mouse_phenotype"
+type = "Utf8"
+[[value_columns]]
+column = "rat_gene_id"
+csq_field = "Demo_Rat_geneid"
+type = "Utf8"
+[[value_columns]]
+column = "rat_phenotype"
+csq_field = "Demo_Rat_phenotype"
+type = "Utf8"
+'''
+
 # A manifest whose sole [[source]] carries a part -- the shape a {part: path}
 # mapping addresses.
 _PARTED_MANIFEST = _FULL_MANIFEST.replace(

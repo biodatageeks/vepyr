@@ -191,26 +191,28 @@ source and map it to CSQ fields.
 |---|---|---|---|
 | `plugin_name` | string | yes | Plugin identifier; also the cache directory name. |
 | `coordinate_system` | `1-based` \| `0-based-half-open` | yes | How `ingest_sql` reads positions. Drives the build-time shift to the variation cache's 1-based convention, and for `vcf`/`bed` sources it also sets the provider's own flag so both agree. |
-| `ingest_sql` | string | yes | `SELECT` over the raw source table(s). MUST project `chrom`, `start`, `end`, `allele_string` (`ref/alt`), plus any discriminator and value columns. |
+| `ingest_sql` | string | yes | `SELECT` over the raw source table(s). MUST project `chrom`, `start`, `end`, `allele_string` (`ref/alt`), plus any discriminator and value columns. With `lookup = "interval"` there is no `allele_string`. |
 | `[[source]]` | table array | yes, 1+ | The raw file(s) — see below. |
 | `[[value_columns]]` | table array | yes, 1+ | The emitted CSQ fields — see below. |
 | `[[match_column]]` | table array | no (default none) | Per-transcript discriminator(s) — see below. Omit for per-variant plugins. |
 | `allele_match` | `exact` \| `minimised` | no (default `exact`) | Which comparison the plugin's own Ensembl implementation uses. See [Allele matching](#allele-matching-exact-vs-minimised) — it is a statement about upstream, not a tuning knob. |
 | `field_order` | `declared` \| `alphabetical` | no (default `declared`) | Order of this plugin's fields in CSQ. `declared` mirrors Ensembl `--custom`, `alphabetical` mirrors `--plugin`. |
 | `assume_unique` | bool | no (default `false`) | Declare that the source never repeats a probe key, skipping the dedup pass. The build **samples the data to check the claim** rather than trusting it. |
+| `lookup` | `point` \| `interval` | no (default `point`) | `point`: exact probe on `(start, allele_string, discriminators)` with variation-inherited tiering. `interval`: rows are genomic spans with no allele; a row matches when its `[start, end]` overlaps the variant's VEP-normalised span (insertion coordinates swapped, as Ensembl's tabix plugins do) and every discriminator agrees; the first row in file order wins. Use it for gene or region tracks (PhenotypeOrthologous). `allele_match` is rejected with `interval`. |
 
 ### `[[source]]`
 
 | Key | Type | Required | Description |
 |---|---|---|---|
-| `provider` | `csv` \| `tsv` \| `parquet` \| `vcf` \| `bed` | yes | Reader for this file. All five work — see [Table providers](#build-pipeline-table-providers-tables-views). |
+| `provider` | `csv` \| `tsv` \| `parquet` \| `vcf` \| `bed` \| `gff` | yes | Reader for this file — see [Table providers](#build-pipeline-table-providers-tables-views). `gff` needs a `[source.gff]` table. |
 | `path` | string | yes | Placeholder; **always** overridden at build time by `source_path`. |
 | `url` | string | yes | Provenance: the canonical **upstream** download URL of this raw file (the publisher's FTP/bucket, never a mirror or a Drive share). Pin a dated release where the top-level file moves (e.g. ClinVar's weekly `clinvar.vcf.gz`). When the built input is a local re-compression of the upstream file (e.g. a BGZF+tabix rebuild of a plain gzip), `url` still names the upstream file. Never fetched; copied into the built cache's `manifest.json` and quoted in verification errors. |
 | `md5` | string | yes | Provenance: 32 lowercase hex MD5 of the file at `url`. Take it from the publisher's checksum file where one exists (CADD `MD5SUMs`, ClinVar `.md5`, GCS object metadata), otherwise compute it on the downloaded copy and say so in a comment. This is the digest the build [verifies](#source-verification) `source_path` against. A manifest keeps this one digest; when the build input is a derived artifact of `url` (AlphaMissense's BGZF+tabix re-compression of the upstream plain gzip) the preprocessing is documented in the plugin's README and the build runs with `verify_source="warn"` or `False`. |
 | `part` | string | no | Names this source when a manifest declares several. Registers as `plugin_<name>_src_<part>`, and makes `source_path` take a `{part: path}` mapping. |
-| `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. On `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
+| `index` | `tabix` | no | Random-access index. Explicit rather than inferred from a `.gz` suffix, because ordinary gzip is not seekable. Valid for `csv`/`tsv`/`vcf`/`gff`; on `csv`/`tsv` it **requires** `compression = "gzip"` (i.e. BGZF) — a plain gzip source with `index = "tabix"` is rejected at parse time. |
 | `record_layout` | bool | no (default `false`) | `vcf` sources only: carry the raw record layout through the provider. |
-| `[source.csv]` | table | for `csv`/`tsv` | Parsing options — see below. Not used by `parquet`/`vcf`/`bed`. |
+| `[source.csv]` | table | for `csv`/`tsv` | Parsing options — see below. Not used by `parquet`/`vcf`/`bed`/`gff`. |
+| `[source.gff]` | table | for `gff` | Attribute projection — see below. |
 
 ### `[source.csv]`
 
@@ -221,6 +223,12 @@ source and map it to CSQ fields.
 | `comment` | string | none | Lines starting with this are skipped (e.g. `"#"`). |
 | `compression` | string | none | `"gzip"` is the recognised value. gzip inputs are decompressed to a temp file first, since DataFusion is built without the `compression` feature. |
 | `schema` | array of `{name, type}` | empty | Ordered column list for headerless or explicitly typed input. `type` is `Utf8`, `Float32` or `Int32` — declaring everything `Utf8` and casting in `ingest_sql` is the common pattern. |
+
+### `[source.gff]`
+
+| Key | Type | Required | Description |
+|---|---|---|---|
+| `attributes` | array of strings | yes | GFF3 attribute keys exposed as flat nullable `Utf8` columns named exactly like the key (quote them in SQL: `"Rat_gene_id"`). Values are percent-decoded and not trimmed; an absent key is NULL. The fixed columns are `chrom, start, end, type, source, score, strand, phase`. With `index = "tabix"` the BGZF file is sliced per chromosome; plain or gzip GFF is read whole. |
 
 ### `[[match_column]]`
 
@@ -625,6 +633,12 @@ then a derived **`tier`** column (Int8: `0` = warm, `1` = cold). The variation
 frequency columns used to compute the tier are **not** stored — only the tier
 survives.
 
+For `lookup = "interval"` caches `allele_string` is absent and `tier` is always
+`1`: interval rows have no allele to inherit a tier from, so the variation join
+is skipped and rows are written in `(start, file order)`. At runtime the whole
+per-chromosome shard is loaded into one interval tree per discriminator value
+and probed with the variant's span.
+
 
 --8<-- "includes/cache-internals.md"
 
@@ -674,15 +688,16 @@ a short chain of SQL objects:
 | `parquet` | Built-in DataFusion Parquet reader. |
 | `vcf` | `VcfTableProvider` from bio-formats. Every INFO field the header declares is exposed and `ingest_sql` projects down to what it needs; set `record_layout` on the source to carry the raw record through. |
 | `bed` | `BedTableProvider` from bio-formats, BED4 only — `chrom`, `start`, `end`, `name`, whatever the file's variant. |
+| `gff` | `GffTableProvider` from bio-formats — the eight fixed GFF3 columns plus one flat `Utf8` column per key in `[source.gff].attributes` (percent-decoded, never trimmed). `index = "tabix"` slices per chromosome. |
 
-All five are implemented. `vcf` and `bed` take their zero/one-based
+All six are implemented. `vcf`, `bed` and `gff` take their zero/one-based
 interpretation from the manifest's `coordinate_system` rather than the file's
 own convention, so `ingest_sql` always sees the system the manifest declares.
 
 ## Supported plugins
 
-All five plugins below are implemented and validated against the golden Ensembl
-VEP 116 reference. Four have a **prebuilt cache** published on Hugging Face —
+All six plugins below are implemented and validated against the golden Ensembl
+VEP 116 reference. Five have a **prebuilt cache** published on Hugging Face —
 see [Plugin caches](downloads.md#plugin-caches) for the download commands.
 
 | Plugin | CSQ fields | Discriminator | Allele match | Prebuilt cache | Source |
@@ -692,6 +707,7 @@ see [Plugin caches](downloads.md#plugin-caches) for the download commands.
 | **AlphaMissense** | 2 | `{ref_aa}{Protein_position}{alt_aa}` | `minimised` | [`…plugin_alphamissense`](downloads.md#plugin-caches) | [Zenodo](https://zenodo.org/records/8208688) |
 | **ClinVar** | 6 | — (per variant) | `minimised` | [`…plugin_clinvar`](downloads.md#plugin-caches) | [ncbi.nlm.nih.gov/clinvar](https://www.ncbi.nlm.nih.gov/clinvar/) |
 | **dbNSFP** | 19 | `{ref_aa}/{alt_aa}` | `exact` | **not published** — build locally | [dbNSFP](https://www.dbnsfp.org/) |
+| **PhenotypeOrthologous** | 4 | `{Gene}` + gene-span overlap (`lookup = "interval"`) | — | [`…plugin_phenotypeorthologous`](downloads.md#plugin-caches) | [Ensembl FTP](https://ftp.ensembl.org/pub/release-116/variation/PhenotypeOrthologous/) |
 
 The CSQ fields each plugin emits, **in emitted order**:
 
@@ -702,6 +718,7 @@ The CSQ fields each plugin emits, **in emitted order**:
 | AlphaMissense | `am_class`, `am_pathogenicity` |
 | ClinVar | `ClinVar`, `ClinVar_CLNSIG`, `ClinVar_CLNREVSTAT`, `ClinVar_CLNDN`, `ClinVar_CLNVC`, `ClinVar_CLNVI` |
 | dbNSFP | `CADD_phred`, `CADD_raw`, `GERP++_RS`, `MetaLR_pred`, `MetaLR_score`, `MetaSVM_pred`, `MetaSVM_score`, `MutationTaster_pred`, `MutationTaster_score`, `PROVEAN_pred`, `PROVEAN_score`, `Polyphen2_HDIV_score`, `Polyphen2_HVAR_score`, `REVEL_score`, `SIFT4G_pred`, `SIFT4G_score`, `VEST4_score`, `phastCons100way_vertebrate`, `phyloP100way_vertebrate` |
+| PhenotypeOrthologous | `PhenotypeOrthologous_Mouse_geneid`, `PhenotypeOrthologous_Mouse_phenotype`, `PhenotypeOrthologous_Rat_geneid`, `PhenotypeOrthologous_Rat_phenotype` |
 
 !!! note "Emitted order is not manifest order"
     A manifest's `field_order` decides this, and it is not the order the
@@ -712,7 +729,7 @@ The CSQ fields each plugin emits, **in emitted order**:
     | `declared` (default) | manifest declaration order | Ensembl `--custom` |
     | `alphabetical` | sorted by CSQ field name | Ensembl `--plugin` |
 
-    Four of the five are `alphabetical`, because Ensembl loads them with
+    Five of the six are `alphabetical`, because Ensembl loads them with
     `--plugin`. ClinVar is `declared`, because it is loaded with `--custom` —
     which is why it is the one plugin whose emitted order matches how its
     manifest reads. `dbNSFP` carries its own `CADD_phred`/`CADD_raw`, distinct
@@ -729,5 +746,6 @@ The CSQ fields each plugin emits, **in emitted order**:
 !!! warning "Licence terms differ per plugin"
     **CADD**, **SpliceAI** and **AlphaMissense** restrict use to academic /
     non-profit research; commercial use needs a licence from the respective
-    provider. **ClinVar** is unrestricted (NCBI public domain). Each Hugging
+    provider. **ClinVar** is unrestricted (NCBI public domain) and
+    **PhenotypeOrthologous** is Ensembl data, free for any use. Each Hugging
     Face dataset card carries the specific terms.

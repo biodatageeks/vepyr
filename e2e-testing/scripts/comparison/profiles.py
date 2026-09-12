@@ -68,6 +68,11 @@ _PLUGIN_REFERENCE = (
 )
 # What generate_vep_plugin_references.sh actually writes, per contig.
 _PLUGIN_PER_CONTIG = "HG002_chr{chrom}_5plugins_vep116_caddfix"
+# PhenotypeOrthologous is compared on its own reference (only that plugin
+# loaded), one file per contig like the five-plugin set; written by
+# generate_vep_phenotypeorthologous_references.sh.
+_PO_REFERENCE = "HG002_annotated_wgs_everything_hgvs_merged_phenotypeorthologous"
+_PO_PER_CONTIG = "HG002_chr{chrom}_phenotypeorthologous_vep116"
 
 
 def plugin_reference_basename():
@@ -148,6 +153,14 @@ PROFILES = {
         vep_basename=_PLUGIN_REFERENCE,
         suffix="merged_plugins_base",
         vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
+    ),
+    "merged_phenotypeorthologous": Profile(
+        flavour="merged",
+        vep_basename=_PO_REFERENCE,
+        suffix="merged_phenotypeorthologous",
+        plugins=("phenotypeorthologous",),
+        vep_per_contig=_PO_PER_CONTIG,
         vep_subdir="plugins",
     ),
     "merged_pick_allele_gene": Profile(

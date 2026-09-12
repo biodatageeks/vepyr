@@ -419,6 +419,14 @@ uv run python run_comparison.py --release 116 --profile merged_plugins --chroms 
     restricts itself to the shared fields, which separates a core-field
     difference from anything the plugin machinery introduced.
 
+    `merged_phenotypeorthologous` reads its own per-contig reference
+    (`HG002_chr{N}_phenotypeorthologous_vep116.vcf.gz`), produced by
+    `build_vep_phenotypeorthologous_reference.sh <chrom>` or, for chr1–22,
+    the resumable `generate_vep_phenotypeorthologous_references.sh`.
+    `run_phenotypeorthologous_comparison.sh [chroms…]` chains the shard
+    build, `run_comparison.py --profile merged_phenotypeorthologous` and the
+    strict md5 gate in one command.
+
     These are comparison scenarios, not release gates. `verify_parity_gate.py`
     pins the Ensembl core CSQ contract and refuses a plugin profile outright
     rather than silently gating a field set it does not describe.

@@ -182,7 +182,7 @@ print(lf.head().collect())
 
 ## Plugin caches
 
-Four plugin caches are published on Hugging Face, built against the release-116
+Five plugin caches are published on Hugging Face, built against the release-116
 GRCh38 variation cache above. They are the exact output
 [`build_plugin_cache`](api.md#vepyr.build_plugin_cache) would have produced —
 see [Plugins](plugins.md) for what a plugin cache is and how the values reach
@@ -194,13 +194,16 @@ the CSQ output.
 | SpliceAI | [`vepyr_116_GRCh38_plugin_spliceai`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_spliceai) | 24 G | Ensembl 110 masked SNV MANE (model v1.3.1) |
 | AlphaMissense | [`vepyr_116_GRCh38_plugin_alphamissense`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_alphamissense) | 545 M | hg38 canonical, 2023 release |
 | ClinVar | [`vepyr_116_GRCh38_plugin_clinvar`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_clinvar) | 77 M | GRCh38 weekly, `fileDate=2026-07-06` |
+| PhenotypeOrthologous | [`vepyr_116_GRCh38_plugin_phenotypeorthologous`](https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_plugin_phenotypeorthologous) | < 10 M | Ensembl release-116 GFF3 (`…_112_GRCh38.gff3.gz`) |
 
 Each repository holds `chr1.parquet` … `chr22.parquet` plus the plugin
-`manifest.json`. **Autosomes only** — chrX, chrY and chrM are not covered. Every
-dataset card documents its full source provenance, schema, CSQ field mapping and
-licence.
+`manifest.json`. The four score caches are **autosomes only** — chrX, chrY and
+chrM are not covered; the PhenotypeOrthologous cache also carries `chrX` and
+`chrMT` (its source has no chrY rows, which the manifest lists with 0 rows).
+Every dataset card documents its full source provenance, schema, CSQ field
+mapping and licence.
 
-!!! warning "Three of the four are non-commercial only"
+!!! warning "Three of the five are non-commercial only"
     **CADD**, **SpliceAI** and **AlphaMissense** restrict use to academic /
     non-profit research; commercial use needs a licence from the respective
     provider. Only the ClinVar cache is unrestricted (NCBI public domain). Each

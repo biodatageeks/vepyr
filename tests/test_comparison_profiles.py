@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from comparison import profiles
 
@@ -185,11 +187,11 @@ def test_default_input_returns_the_preferred_path_when_neither_exists(
     assert profiles.default_input("ref.fa") == str(tmp_path / "input" / "ref.fa")
 
 
-def _write_plugin_reference(tmp_path, chrom=22):
-    """Create the per-contig plugin reference generate_vep_plugin_references.sh writes."""
+def _write_plugin_reference(tmp_path, chrom=22, profile="merged_plugins"):
+    """Create the per-contig plugin reference the reference generators write."""
     ref_dir = tmp_path / "output" / "116" / "plugins"
     ref_dir.mkdir(parents=True, exist_ok=True)
-    name = profiles.PROFILES["merged_plugins"].vep_per_contig.format(chrom=chrom)
+    name = profiles.PROFILES[profile].vep_per_contig.format(chrom=chrom)
     (ref_dir / f"{name}.vcf.gz").write_text("")
     return ref_dir / f"{name}.vcf.gz"
 
@@ -207,6 +209,20 @@ def test_plugin_profile_resolves_and_injects_the_plugin_cache_root(
 
     assert resolved.plugin_cache_root == str(plugin_cache)
     assert resolved.annotate_kwargs["plugin_cache_root"] == str(plugin_cache)
+
+
+def test_phenotypeorthologous_profile_attaches_only_that_plugin(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    plugin_cache = tmp_path / "cache" / "plugin_cache_116"
+    plugin_cache.mkdir(parents=True)
+    _write_plugin_reference(tmp_path, chrom=22, profile="merged_phenotypeorthologous")
+
+    resolved = profiles.resolve("merged_phenotypeorthologous", "116", chrom=22)
+    assert resolved.annotate_kwargs["plugins"] == ["phenotypeorthologous"]
+    ref = Path(resolved.vep_vcf)
+    assert ref.name == "HG002_chr22_phenotypeorthologous_vep116.vcf.gz"
+    assert ref.parent.name == "plugins"
 
 
 def test_plugin_profile_fails_when_the_plugin_cache_is_missing(tmp_path, monkeypatch):
