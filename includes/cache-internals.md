@@ -1,7 +1,8 @@
-Every cache — the Ensembl variation/transcript/… entities and the custom plugin
-caches — uses the same point-lookup-optimized Parquet layout, so a lookup reads
-only the handful of pages that could contain the queried positions rather than
-scanning the whole file.
+The Ensembl `variation` and `translation_sift` entities and custom plugin caches
+share Parquet writer settings for point lookups. The position-based layout below
+describes variation and plugin shards; `translation_sift` is sorted by its
+encoded `key`. Page indexes let a lookup read the pages that could contain the
+queried positions.
 
 ### Parquet storage
 
@@ -11,11 +12,32 @@ The writer properties are tuned for random point lookups, not scans:
 |---|---|---|
 | Compression | ZSTD, level 3 | Good ratio; fast enough to decode per page. |
 | Dictionary encoding | **disabled** | Avoids a per-take dictionary load; ZSTD recovers the ratio (the no-dict file is actually smaller). |
-| Data page size | ≤ 4 KiB | Small pages → fine-grained page index → a lookup touches minimal bytes. |
-| Data page row count | ≤ 512 rows | Bounds how many rows a single page decode yields. |
+| Data page size target | 4 KiB, best effort | Evaluated between write batches; actual pages can be larger. |
+| Write batch size | 1,024 values (parquet-rs default) | Sets the granularity at which page limits are checked. |
+| Observed variation page row count | Typically ~1,024 rows | Measured in shipped variation shards; not a fixed page size or a guaranteed upper bound. |
 | Statistics | **Page-level** | Emits `ColumnIndex` + `OffsetIndex` in the footer — the read-side position→page directory. |
 | Row group size | 1,000,000 rows | Large groups keep footer/metadata overhead low; the page index gives intra-group resolution. |
 | Sorting columns | `(tier, start)` | Physical clustering — see [Sorting within a shard](#sorting-within-a-shard). |
+
+The shipped merged-116 `chr22.parquet` has a median of **1,024 rows per page**
+for `start`, `allele_string`, and `dbsnp_ids`, measured from the `OffsetIndex`.
+For `start`, individual pages range from 5 to 1,535 rows. Page boundaries vary
+with column values, nested lists, incoming batches, and row-group tails;
+lookups use the indexes rather than assuming a fixed page length.
+See [the page-layout measurements](https://github.com/biodatageeks/datafusion-bio-functions/issues/249).
+
+!!! note "Write-batch defaults and page-row limits are different"
+    The current writer requests a 512-row page limit, but parquet-rs checks it
+    between write batches of 1,024 values. That explains the typical 1,024-row
+    pages; the configured 512 is not a physical page-size guarantee.
+
+    In [parquet-rs 58.0.0](https://github.com/apache/arrow-rs/blob/58.0.0/parquet/src/file/properties.rs),
+    the default **write batch** is 1,024, while the default **page-row limit** is
+    20,000. Removing `set_data_page_row_count_limit(512)` therefore changes the
+    writer's behaviour. A 40,960-row probe with the same 4 KiB target and
+    dictionary encoding disabled produced 1,024-row integer pages in both cases,
+    but Boolean pages grew from 1,024 to 20,480 rows when the row limit was
+    omitted. A 1,024-row target must be set explicitly; it remains best effort.
 
 ### Sorting within a shard
 
@@ -48,9 +70,10 @@ column data is read until the ranges are known.
 
 ### Row groups
 
-Shards use 1,000,000-row row groups. Row groups bound the footer metadata size;
-within a group the small (≤ 512-row) pages plus the page index provide the actual
-point-lookup resolution. A whole chromosome is typically one or a few row groups.
+Point-lookup shards use row groups of up to 1,000,000 rows. Within each group,
+the page indexes provide lookup resolution at the actual page boundaries, with
+typical variation pages of ~1,024 rows. Large chromosomes span many groups:
+the shipped merged-116 variation cache has 145 for chr1 and 16 for chr22.
 
 ### Runtime lookup — async reader + monotonic cursor, in batches
 
@@ -64,7 +87,7 @@ pages:
 2. **Locate** — a `start`-only projected read over just those pages (a
    `RowSelection` built from the ranges) streams `start` values back in batches
    through a **`CoalescingAsyncReader`** — an async Parquet reader that merges
-   nearby page byte-ranges (within a 512 KiB gap) into single I/O calls. A
+   nearby page byte-ranges (within a 64 KiB gap) into single I/O calls. A
    **monotonic row-offset cursor** advances exactly one step per streamed row,
    staying in lockstep with the selection, and records the exact file offset of
    every row whose `start` is in the buffer's probe set. The cursor only moves
