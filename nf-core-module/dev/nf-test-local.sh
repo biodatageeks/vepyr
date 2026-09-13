@@ -88,10 +88,28 @@ if ! untar_complete; then
 fi
 
 testdata="${module_root}/.testdata"
-# reference.fa.gz marks the current (release-116, chr22) test data; an older
-# .testdata without it is restaged.
-if [[ ! -f "${testdata}/data/genomics/homo_sapiens/vepyr/reference.fa.gz" ]]; then
+# Restage whenever anything the staged data is built from changes: the staging
+# scripts and the chr22 fixture they cut it from. The hash of those inputs is
+# stored beside .testdata/data; a missing or different hash restages, so a
+# local run never tests data built by an older stage_testdata.py or fixture.
+fixture="${module_root}/../tests/data/hg002_chr22"
+stage_inputs=(
+    stage-testdata.sh
+    stage_testdata.py
+    "${fixture}/prepare.py"
+    "${fixture}/input_chr22.vcf.gz"
+    "${fixture}/chr22.fa.gz"
+    "${fixture}"/cache/*/*
+)
+if command -v sha256sum >/dev/null 2>&1; then
+    stage_hash="$(cat "${stage_inputs[@]}" | sha256sum | cut -d' ' -f1)"
+else
+    stage_hash="$(cat "${stage_inputs[@]}" | shasum -a 256 | cut -d' ' -f1)"
+fi
+stage_stamp="${testdata}/stage-inputs.sha256"
+if [[ "$(cat "${stage_stamp}" 2>/dev/null)" != "${stage_hash}" ]]; then
     ./stage-testdata.sh "${testdata}"
+    echo "${stage_hash}" > "${stage_stamp}"
 fi
 
 # dev/tests/hg002_chr22.nf.test reads the offline VEP parity fixture in place.
