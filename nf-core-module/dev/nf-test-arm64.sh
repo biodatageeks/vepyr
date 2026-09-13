@@ -21,6 +21,10 @@ module_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${module_root}"
 
 nf_test="${NF_TEST:-nf-test}"
+if ! command -v "${nf_test}" >/dev/null 2>&1; then
+    echo "nf-test not found (${nf_test}); see 'nf-test setup' in nf-core-module/README.md" >&2
+    exit 1
+fi
 image="${VEPYR_DEV_IMAGE:-vepyr-dev:0.7.0-arm64}"
 untar_ref="6d46786420b4d7bc88eba026eb389c0c5535d120"
 

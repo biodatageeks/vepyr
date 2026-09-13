@@ -18,7 +18,27 @@ so no arm64 Wave image can be built from `environment.yml`, and the amd64 image
 dies with SIGILL under emulation (no AVX). Until then, `dev/` holds a stand-in:
 
 ```bash
-NF_TEST=/path/to/nf-test ./dev/nf-test-arm64.sh
+./dev/nf-test-arm64.sh
+```
+
+### nf-test setup
+
+nf-test has no Homebrew formula. Its installer writes an `nf-test` launcher into
+the *current directory* (and the jar into `~/.nf-test/`), so run it from a
+directory on your `PATH` — not from the repository root:
+
+```bash
+mkdir -p ~/.local/bin && cd ~/.local/bin
+curl -fsSL https://get.nf-test.com | bash
+cd - && nf-test version
+```
+
+Needs Java 11+ (the one Nextflow uses). If `~/.local/bin` is not on `PATH`, add
+`export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc`. The runner uses `nf-test`
+from `PATH`; to pick a different one, set `NF_TEST`:
+
+```bash
+NF_TEST="$(which nf-test)" ./dev/nf-test-arm64.sh
 ```
 
 It builds `dev/Dockerfile` (the `environment.yml` packages, with vepyr from its
