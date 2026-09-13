@@ -41,11 +41,12 @@ workflow {
         [ id: file(params.cache).name ],
         file(params.cache, checkIfExists: true, type: 'dir')
     ])
+    // A bgzip FASTA needs its .gzi next to the .fai; a plain FASTA has only the .fai.
+    def fai = file("${params.fasta}.fai", checkIfExists: true)
     fasta = channel.value([
         [ id: 'GRCh38' ],
         file(params.fasta, checkIfExists: true),
-        // bgzip FASTA: pass [ fai, gzi ]; plain FASTA: just the .fai
-        [ file("${params.fasta}.fai", checkIfExists: true), file("${params.fasta}.gzi", checkIfExists: true) ]
+        params.fasta.endsWith('.gz') ? [ fai, file("${params.fasta}.gzi", checkIfExists: true) ] : fai
     ])
 
     VEPYR_ANNOTATE(vcf, cache, fasta, params.cache_version, [[], []])
