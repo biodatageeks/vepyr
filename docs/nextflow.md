@@ -203,3 +203,18 @@ platforms, and `-profile conda` uses `environment.yml` directly.
     `arm64` profile above does. Running the amd64 image under emulation on Apple
     Silicon fails with `SIGILL` (exit 132): Docker's emulated x86_64 guest has no
     AVX, which the native extension uses.
+
+    The same applies to Singularity and Apptainer: `main.nf` names the amd64
+    image for them too. On an arm64 host, override it with the arm64 image from
+    the table above:
+
+    ```groovy
+    process {
+        withName: 'VEPYR_ANNOTATE' {
+            container = 'oras://community.wave.seqera.io/library/htslib_pip_python_vepyr:15625539a599a8eb'
+        }
+    }
+    ```
+
+    nf-core modules name a single image per engine; pipelines choose the
+    architecture in their own config, as the `arm64` profile above does for Docker.

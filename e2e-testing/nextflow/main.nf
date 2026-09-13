@@ -103,6 +103,12 @@ process SLICE_CONTIG {
     """
     { tabix -H ${vcf}; tabix ${vcf} ${chrom}; } | bgzip -c > input_${chrom}.vcf.gz
     tabix -p vcf input_${chrom}.vcf.gz
+    # A contig with no records (a --chroms typo, or one absent from the input)
+    # would otherwise compare two empty bodies and report MATCH.
+    if [ -z "\$(tabix input_${chrom}.vcf.gz ${chrom} | head -n 1)" ]; then
+        echo "no records for ${chrom} in ${vcf}" >&2
+        exit 1
+    fi
     """
 }
 
@@ -129,7 +135,7 @@ process COMPARE_MD5 {
     }
     read -r vepyr_md5 vepyr_records < <(bgzip -dc ${annotated} | grep -v '^#' | body_digest)
     read -r vep_md5 vep_records < <(tabix ${vep_vcf} ${chrom} | body_digest)
-    if [ "\$vepyr_md5" = "\$vep_md5" ] && [ "\$vepyr_records" = "\$vep_records" ]; then
+    if [ "\$vepyr_records" -gt 0 ] && [ "\$vepyr_md5" = "\$vep_md5" ] && [ "\$vepyr_records" = "\$vep_records" ]; then
         status=MATCH
     else
         status=DIFFER
