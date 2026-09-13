@@ -22,40 +22,42 @@ Both failures are upstream blockers rather than defects, and both clear on their
 own once the steps below are done:
 
 - `bioconda_version` — `bioconda::vepyr=0.6.0` cannot be resolved because vepyr is
-  not on bioconda yet (step 2).
+  not on bioconda yet — it clears when #68869 merges.
 - `test_snapshot_exists` — `main.nf.test.snap` can only be produced by a real run
-  (step 5).
+  (step 3).
 
 Treat any *third* failure as a genuine regression.
 
 ## Remaining work, in order
 
-1. **Release vepyr 0.6.0 to PyPI.** The CLI this module wraps first ships in 0.6.0.
-2. **Update [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recipes/pull/68869) to 0.6.0.**
-   Bump `version`, replace `sha256` with the 0.6.0 sdist digest, and keep the
-   `vepyr --version` / `vepyr annotate --help` test commands added in
-   `bioconda-recipe/meta.yaml`. Bumping the open PR rather than filing a follow-up
-   avoids ever publishing a container without a `vepyr` executable.
+**Done (2026-09-08):**
 
-   As of 2026-09-07 that PR is open with every check green (Lint, Linux, OSX-64,
-   ARM) for py310-py313 on linux-64 / osx-64 / osx-arm64, so the bump is the only
-   thing standing between it and a merge.
+- ~~Release vepyr 0.6.0 to PyPI.~~ The CLI this module wraps first ships in
+  0.6.0. sdist `7a28e6bc6f25d550e46765df0a94a7ca27a4a3d3e77ca778da0940d0c7a7a7ad`,
+  verified to carry `src/vepyr/cli.py`, `src/vepyr/__main__.py` and the
+  `[project.scripts] vepyr = "vepyr.cli:main"` entry.
+- ~~Bump [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recipes/pull/68869)
+  to 0.6.0.~~ Pushed as `ea0e8cb4`, PR retitled "Add vepyr 0.6.0". Bumping the
+  open PR rather than filing a follow-up avoids ever publishing a container
+  without a `vepyr` executable. **Not yet merged** — that merge is what unblocks
+  step 1 below.
 
-   Its `@BiocondaBot please fetch artifacts` run does publish Docker images, but
-   they are **not usable here**: they are tarballs inside the linux-64 zip, loaded
-   with `docker load`, not registry-hosted — and they are built from 0.5.0, which
-   has no `vepyr` executable at all.
-3. **Resolve the container URIs.** Replace `PLACEHOLDER_DOCKER_URI` and
+1. **Resolve the container URIs.** Replace `PLACEHOLDER_DOCKER_URI` and
    `PLACEHOLDER_SINGULARITY_URI` in `main.nf` with a Seqera Wave image built from
    `environment.yml` (https://seqera.io/containers/ emits both the Docker and the
    Singularity URI for a package list).
 
-   Note this cannot be a plain `quay.io/biocontainers/vepyr:...` image. Bioconda
+   This cannot be a plain `quay.io/biocontainers/vepyr:...` image. Bioconda
    publishes one container per package, and `environment.yml` needs two — vepyr for
    annotation and htslib for the `tabix` call that indexes the output. Wave builds
-   the combined image, and it can only do so once vepyr is on bioconda, so step 2
-   genuinely blocks this one.
-4. **PR the test data.** Run `./stage-testdata.sh <dir>`, then copy the resulting
+   the combined image, and it can only do so once vepyr is *on* bioconda, so the
+   recipe merge above genuinely blocks this step.
+
+   Note also that #68869's `@BiocondaBot please fetch artifacts` run publishes
+   Docker images which look like they would serve: they are not registry-hosted,
+   only tarballs inside the linux-64 zip loaded with `docker load`, and they are
+   single-package vepyr images with no `tabix`.
+2. **PR the test data.** Run `./stage-testdata.sh <dir>`, then copy the resulting
    `data/` tree into a clone of the `modules` branch of nf-core/test-datasets.
    About 6 MB: `cache.tar.gz` (the chr1 Parquet cache), an 875 KB reference FASTA
    with its `.fai`, and a 100-variant VCF with its `.tbi`. Unlike `ensemblvep/vep`
@@ -70,9 +72,39 @@ Treat any *third* failure as a genuine regression.
    they read from `s3://annotation-cache/`, where Nextflow can list.) The nf-test
    extracts it in a `setup` block with the `UNTAR` module, the same pattern
    `kraken2/kraken2` uses for its database.
-5. **Generate the snapshot.** With 3 and 4 done:
+
+   This step does not depend on the recipe merge and can run in parallel with 1.
+3. **Generate the snapshot.** With 1 and 2 done:
    `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --update-snapshot`
-6. **Open the nf-core/modules PR.**
+
+   This is the real gate, not a formality. Every bug review found in this module
+   was in input staging — a missing `.fai`, an unstamped cache, a directory URL
+   that cannot be fetched — and none were reachable from the Python test suite,
+   which reads its fixtures in place. Nothing exercises Nextflow's staging until
+   this runs.
+4. **Open the nf-core/modules PR.**
+
+## Testing the container on Apple Silicon
+
+The biocontainers image is linux-64 only, and it **cannot run under emulation on
+Apple Silicon**. Docker's amd64 guest advertises only up to `sse4_2`, with no AVX,
+so Rust-built extensions abort immediately:
+
+```
+$ docker run --platform linux/amd64 quay.io/biocontainers/vepyr:0.6.0--py312h46b6c60_0 \
+      sh -c 'python -c "import vepyr"; echo EXIT=$?'
+EXIT=132          # 128 + SIGILL
+```
+
+This is the emulator, not the package. In the same image `polars` — a third-party
+Rust extension nobody here builds — fails identically, while `pyarrow` (C++, with
+runtime CPU dispatch) imports fine. Bioconda CI's native x86-64 Linux and mulled
+container tests pass.
+
+The practical consequence: `nf-test` runs of this module on an Apple Silicon Mac
+will fail in a way that looks like a module bug and is not one. Run them on x86-64,
+or build an arm64 image — Wave can, whereas bioconda publishes linux-64 containers
+only.
 
 ## Scope
 

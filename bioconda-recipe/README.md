@@ -1,10 +1,10 @@
 # Bioconda recipe for vepyr 0.6.0
 
-> **Status.** `meta.yaml` is bumped to 0.6.0, the first release carrying the
-> `vepyr` console script that the nf-core module wraps. The `sha256` is still
-> the 0.5.0 digest and **must be replaced** with the 0.6.0 sdist digest once
-> that is on PyPI. The validation results below are the 0.5.0 run; 0.6.0 has
-> not been validated yet.
+> **Status.** `meta.yaml` targets 0.6.0, the first release carrying the `vepyr`
+> console script that the nf-core module wraps, with the released 0.6.0 sdist
+> digest in place. Bioconda CI is green on the bumped
+> [PR](https://github.com/bioconda/bioconda-recipes/pull/68869) (`ea0e8cb4`),
+> which is awaiting merge.
 
 This recipe follows the source-build approach used by
 [polars-bio in bioconda-recipes#67602](https://github.com/bioconda/bioconda-recipes/pull/67602).
@@ -15,18 +15,24 @@ Submitted as [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recip
 
 ## Release source
 
-The recipe builds from the PyPI source distribution. The digest currently in
-`meta.yaml` is the **0.5.0** one, verified against that archive:
+The recipe builds from the [PyPI 0.6.0 source
+distribution](https://pypi.org/project/vepyr/0.6.0/#files), with SHA-256
+verified by hashing the downloaded archive rather than trusting the API
+response:
 
 ```text
-1afe1824512e211f084e298fc86fa964e9516bcc87086ea02dde4a045237d538
+7a28e6bc6f25d550e46765df0a94a7ca27a4a3d3e77ca778da0940d0c7a7a7ad
 ```
 
-Replace it with the 0.6.0 digest before submitting the bump:
+The sdist was also checked to carry `src/vepyr/cli.py`, `src/vepyr/__main__.py`
+and the `[project.scripts] vepyr = "vepyr.cli:main"` entry — without those the
+built container has no `vepyr` executable and the nf-core module cannot run.
+
+To re-derive the digest for a future bump:
 
 ```bash
-curl -sL https://pypi.org/pypi/vepyr/0.6.0/json | \
-    python -c "import json,sys; print(json.load(sys.stdin)['urls'][-1]['digests']['sha256'])"
+curl -sLO https://files.pythonhosted.org/packages/source/v/vepyr/vepyr-<version>.tar.gz
+shasum -a 256 vepyr-<version>.tar.gz
 ```
 
 The Python requirement (`>=3.10`) and runtime dependency bounds come from the
@@ -69,9 +75,43 @@ runtime dependencies and temporary data, so they can run in the mulled container
 without a downloaded VEP cache or external test files. Full annotation parity
 remains covered by the upstream release tests.
 
-## Validation (0.5.0)
+## Validation
 
-These results are for 0.5.0. The 0.6.0 bump has not been validated.
+### 0.6.0
+
+Bioconda CI passed on 2026-09-08 for commit `ea0e8cb4`:
+
+- Lint, Linux Tests, OSX-64 Tests, and `build and test (ARM)` all passed;
+  `Summary` green. (`Mergify Merge Queue` reports `neutral`, which is the queue
+  check idling, not a failure.)
+- All 12 packages built and passed their recipe tests — Python 3.10, 3.11, 3.12
+  and 3.13 on each of linux-64, osx-64 and osx-arm64 — and Linux container images
+  were built for all four Python variants. Confirmed by running
+  `@BiocondaBot please fetch artifacts` on `ea0e8cb4`; the check results alone do
+  not show this, because Bioconda runs the whole matrix inside one job per
+  platform.
+
+Local validation on 2026-09-08, against the published 0.6.0 wheel in an isolated
+Python 3.12 environment — all five of the recipe's `test: commands:` entries:
+
+- `pip check` — no broken requirements.
+- `vepyr --version` → `vepyr 0.6.0`.
+- `vepyr annotate --help` → the annotate usage block.
+- The compiled-VEP-targets assertion → `compiled VEP targets passed`.
+- The native VCF scan → `native VCF scan passed`.
+
+Source checks:
+
+- The sdist SHA-256 was verified by hashing the downloaded archive, and agrees
+  with what the PyPI API reports.
+- The sdist was confirmed to contain `src/vepyr/cli.py`, `src/vepyr/__main__.py`
+  and the `[project.scripts] vepyr = "vepyr.cli:main"` entry — the whole point of
+  the bump, since a 0.5.0 container has no `vepyr` executable for the nf-core
+  module to call.
+
+### 0.5.0 (superseded)
+
+Kept as history; 0.6.0 above reproduces the same coverage.
 
 Local validation on 2026-09-06:
 
