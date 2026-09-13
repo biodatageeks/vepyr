@@ -1,0 +1,4 @@
+# Local arm64 test run (dev/nf-test-arm64.sh)
+.nf-test/
+.testdata/
+modules/nf-core/untar/

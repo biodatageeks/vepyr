@@ -3,7 +3,7 @@ process VEPYR_ANNOTATE {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    // TODO Replace both URIs once bioconda-recipes#68869 ships vepyr 0.6.0 and
+    // TODO Replace both URIs once bioconda-recipes#69191 ships vepyr 0.7.0 and
     // the Seqera Wave image for this environment.yml has been built.
     container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
         ? 'PLACEHOLDER_SINGULARITY_URI'
@@ -30,7 +30,8 @@ process VEPYR_ANNOTATE {
     def args2 = task.ext.args2 ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
     // vepyr opens the reference through its .fai and does not build one, so the
-    // index must be staged alongside the FASTA or --everything/--hgvsc fail.
+    // index must be staged alongside the FASTA or --everything/--hgvsc fail. A
+    // bgzip FASTA also needs its .gzi: pass [ fai, gzi ] in the fai slot.
     def reference = fasta ? "--fasta ${fasta}" : ''
     def version_arg = cache_version ? "--cache_version ${cache_version}" : ''
     def plugin_arg = plugin_cache ? "--plugin_cache_root ${plugin_cache}" : ''

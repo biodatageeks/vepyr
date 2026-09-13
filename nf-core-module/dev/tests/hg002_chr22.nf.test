@@ -1,0 +1,70 @@
+// Ensembl VEP parity on all 50,861 normalized HG002 chr22 records, offline.
+//
+// Reads the trimmed fixture in tests/data/hg002_chr22 (see its prepare.py) and
+// asserts the record-body md5 Ensembl VEP 116 --everything produced — the
+// strict digest md5_concordance.py computes. No VEP output is stored.
+//
+// Not part of the nf-core submission: run through dev/nf-test-arm64.sh, which
+// points params.hg002_chr22 at the fixture.
+nextflow_process {
+
+    name "Test Process VEPYR_ANNOTATE - HG002 chr22 VEP parity"
+    script "../../modules/nf-core/vepyr/annotate/main.nf"
+    process "VEPYR_ANNOTATE"
+
+    tag "vepyr/annotate"
+    tag "vep_parity"
+
+    test("homo_sapiens - hg002 chr22 - everything - matches Ensembl VEP 116") {
+        config "../../modules/nf-core/vepyr/annotate/tests/nextflow.config"
+
+        when {
+            process {
+                """
+                def fixture = params.hg002_chr22
+                input[0] = channel.of([
+                    [ id:'hg002_chr22' ],
+                    file(fixture + '/input_chr22.vcf.gz', checkIfExists: true),
+                    file(fixture + '/input_chr22.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = channel.value([
+                    [ id:'116_GRCh38_ensembl_chr22' ],
+                    file(fixture + '/cache', checkIfExists: true)
+                ])
+                // A bgzf FASTA opens only with its .gzi, so it rides in the index slot.
+                input[2] = channel.value([
+                    [ id:'GRCh38_chr22' ],
+                    file(fixture + '/chr22.fa.gz', checkIfExists: true),
+                    [
+                        file(fixture + '/chr22.fa.gz.fai', checkIfExists: true),
+                        file(fixture + '/chr22.fa.gz.gzi', checkIfExists: true)
+                    ]
+                ])
+                input[3] = 116
+                input[4] = [[], []]
+                """
+            }
+        }
+
+        then {
+            // md5 over record lines exactly as written, headers excluded.
+            def md5 = java.security.MessageDigest.getInstance('MD5')
+            def records = 0
+            new java.util.zip.GZIPInputStream(new FileInputStream(process.out.vcf[0][1].toString()))
+                .withReader('UTF-8') { reader ->
+                    reader.eachLine { line ->
+                        if (!line.startsWith('#')) {
+                            md5.update((line + '\n').getBytes('UTF-8'))
+                            records++
+                        }
+                    }
+                }
+
+            assertAll(
+                { assert process.success },
+                { assert records == 50861 },
+                { assert md5.digest().encodeHex().toString() == 'f0a0a7021c498d2b4e38c9caf5959f77' }
+            )
+        }
+    }
+}
