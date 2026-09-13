@@ -60,8 +60,9 @@ cd nf-core-module
 ```
 
 The runner picks the host's platform, reads that platform's Docker image from
-`meta.yml`, fetches the UNTAR module the golden test needs, stages the golden
-fixture into `.testdata/` and runs both test files with `dev/nf-test.config`.
+`meta.yml`, fetches the UNTAR module the module test needs, stages the test data
+into `.testdata/` with `stage-testdata.sh`, and runs both test files with
+`dev/nf-test.config`.
 Extra arguments go to `nf-test`.
 
 | Host | Platform picked | Image (from `meta.yml`) |
@@ -99,6 +100,49 @@ Overrides:
 The golden snapshot (`main.nf.test.snap`) waits for the fixture on
 nf-core/test-datasets — see step 3 below — so do not commit one produced from
 the local `.testdata/`.
+
+### Running nf-test directly
+
+`dev/nf-test-local.sh` sets everything up; to run `nf-test` yourself — say,
+against published test data instead of `.testdata/` — set the variables
+`dev/nf-test.config` reads and run from `nf-core-module/`:
+
+```bash
+cd nf-core-module
+
+# Module tests, test data from the nf-core/test-datasets#2270 branch (Apple Silicon)
+VEPYR_DOCKER_PLATFORM=linux/arm64 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0 \
+VEPYR_NF_TESTDATA=https://raw.githubusercontent.com/mwiewior/test-datasets/vepyr-annotate/data/ \
+nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --config dev/nf-test.config
+
+# Offline VEP parity test
+VEPYR_DOCKER_PLATFORM=linux/arm64 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0 \
+VEPYR_HG002_CHR22="$PWD/../tests/data/hg002_chr22" \
+nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
+```
+
+| Variable | Read by | Value |
+|---|---|---|
+| `VEPYR_DOCKER_PLATFORM` | `dev/local.config` | `linux/arm64` (Apple Silicon, Linux aarch64) or `linux/amd64` (Linux x86_64) |
+| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:d7cf9a888587f5b0` (arm64) or `…:00a5ec7681bdfa20` (amd64) |
+| `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above at the #2270 branch. |
+| `VEPYR_HG002_CHR22` | `dev/local.config` | absolute path to `tests/data/hg002_chr22`; the parity test only |
+
+The test appends file paths to `VEPYR_NF_TESTDATA`, so the base URL itself is
+never fetched — opening it in a browser gives 404, because
+raw.githubusercontent.com serves files, not directories.
+
+The module test needs `modules/nf-core/untar/`; `dev/nf-test-local.sh` fetches
+it on first run.
+
+**Snapshots.** Each run of `main.nf.test` compares against, or creates,
+`modules/nf-core/vepyr/annotate/tests/main.nf.test.snap`. A leftover file from
+an earlier run — for instance one where a task failed and nf-test recorded empty
+outputs — fails the next run with `Different Snapshot`. Delete it, or pass
+`--update-snapshot` to rewrite it. Commit one only when it comes from nf-core's
+published URLs (`VEPYR_NF_TESTDATA` unset), after #2270 merges.
 
 ## Linting
 
