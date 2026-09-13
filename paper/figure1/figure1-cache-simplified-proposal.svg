@@ -1,0 +1,431 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="2200" viewBox="0 0 2400 2200" role="img">
+<defs>
+<marker id="arrow-ink" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#111111" /></marker>
+<marker id="arrow-muted" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#555555" /></marker>
+</defs>
+<rect width="100%" height="100%" fill="white" />
+<text x="44.0" y="61.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="44.0" dy="0.0" font-weight="700">A1</tspan></text>
+<text x="114.0" y="59.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="114.0" dy="0.0" font-weight="700">Annotation architecture</tspan></text>
+<rect x="40" y="94" width="250" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="165.0" y="118.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="165.0" dy="0.0" font-weight="700">VEP-compatible scope</tspan></text>
+<text x="309.0" y="113.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#555555"><tspan x="309.0" dy="0.0" font-weight="400">Human GRCh38 · SNVs + indels · releases 115 / 116</tspan><tspan x="309.0" dy="25.4" font-weight="400">Ensembl / RefSeq / merged · --everything · HGVS</tspan></text>
+<rect x="1085" y="94" width="220" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="1195.0" y="118.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1195.0" dy="0.0" font-weight="700">Added interfaces</tspan></text>
+<text x="1329.0" y="113.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1329.0" dy="0.0" font-weight="400">Arrow streaming · lazy queries · DataFrame API / SQL · declarative plugins</tspan><tspan x="1329.0" dy="24.1" font-weight="400">SV parity not qualified; multi-sample VCF I/O supported, cohort parity not qualified</tspan></text>
+<rect x="300" y="270" width="1330" height="207" rx="14" fill="white" stroke="#111111" stroke-width="1.6" stroke-dasharray="8 6" />
+<rect x="323" y="253" width="315" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="480.5" y="277.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="480.5" dy="0.0" font-weight="700">Native Rust / DataFusion</tspan></text>
+<rect x="60" y="321" width="175" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="147.5" y="359.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#111111"><tspan x="147.5" dy="0.0" font-weight="700">Input VCF</tspan><tspan x="147.5" dy="26.7" font-weight="400">BGZF + index</tspan></text>
+<rect x="330" y="321" width="220" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="440.0" y="359.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="440.0" dy="0.0" font-weight="700">VCF</tspan><tspan x="440.0" dy="27.9" font-weight="400">TableProvider</tspan></text>
+<rect x="675" y="296" width="495" height="148" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<rect x="695" y="312" width="455" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="922.5" y="338.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="922.5" dy="0.0" font-weight="700">annotate_vep() · table function</tspan></text>
+<text x="922.5" y="386.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="922.5" dy="0.0" font-weight="400">Allele match → SO consequences + HGVS</tspan><tspan x="922.5" dy="25.4" font-weight="400">Known variants / AF · optional plugins</tspan></text>
+<rect x="1290" y="321" width="275" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1427.5" y="359.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="1427.5" dy="0.0" font-weight="700">Arrow RecordBatch</tspan><tspan x="1427.5" dy="27.9" font-weight="400">stream</tspan></text>
+<rect x="1740" y="310" width="275" height="110" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1877.5" y="346.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1877.5" dy="0.0" font-weight="700">Polars LazyFrame</tspan><tspan x="1877.5" dy="25.4" font-weight="400">lazy IO source</tspan><tspan x="1877.5" dy="25.4" font-weight="400">executes on demand</tspan></text>
+<rect x="2110" y="321" width="245" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="2232.5" y="359.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="2232.5" dy="0.0" font-weight="700">DataFrame API / SQL</tspan><tspan x="2232.5" dy="24.1" font-weight="400">filter · join · sink</tspan></text>
+<text x="2094.0" y="286.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="2094.0" dy="0.0" font-weight="400">Polars / polars-bio</tspan></text>
+<polyline points="235,365 330,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="550,365 675,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="1170,365 1290,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="1565,365 1740,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="2015,365 2110,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="1877,310 1877,210 923,210 923,296" fill="none" stroke="#111111" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#arrow-ink)" />
+<text x="1412.5" y="175.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1412.5" dy="0.0" font-weight="400">PUSH-DOWN: selected columns · genomic regions · LIMIT</tspan><tspan x="1412.5" dy="25.4" font-weight="400">Needed HGVS / known-variant / CSQ / plugin work only</tspan></text>
+<text x="1729.0" y="461.4" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1729.0" dy="0.0" font-weight="400">AF / consequence predicates:</tspan><tspan x="1729.0" dy="24.1" font-weight="400">filter annotated batches</tspan></text>
+<rect x="60" y="531" width="500" height="88" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="310.0" y="569.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="310.0" dy="0.0" font-weight="700">Partitioned Parquet cache</tspan><tspan x="310.0" dy="27.9" font-weight="400">Core entities + optional plugin caches</tspan></text>
+<rect x="51" y="522" width="518" height="106" rx="0" fill="none" stroke="#888888" stroke-width="1.5" stroke-dasharray="8 6" />
+<rect x="61" y="504" width="44" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="83.0" y="530.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="83.0" dy="0.0" font-weight="700">i</tspan></text>
+<rect x="715" y="514" width="455" height="115" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="942.5" y="553.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="942.5" dy="0.0" font-weight="700">Cache access</tspan><tspan x="942.5" dy="25.4" font-weight="400">Variation / plugins: page lookup</tspan><tspan x="942.5" dy="25.4" font-weight="400">Transcript context: scan → COITree</tspan></text>
+<polyline points="560,575 715,575" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="923,514 923,444" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="1290" y="622" width="275" height="65" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1427.5" y="649.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1427.5" dy="0.0" font-weight="700">Reference FASTA</tspan><tspan x="1427.5" dy="24.1" font-weight="400">HGVS / sequence context</tspan></text>
+<polyline points="1290,655 1220,655 1220,420 1170,420" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="2110" y="519" width="245" height="80" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="2232.5" y="553.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="2232.5" dy="0.0" font-weight="700">Annotated VCF</tspan><tspan x="2232.5" dy="25.4" font-weight="400">CSQ + INFO / FORMAT</tspan></text>
+<polyline points="1427,409 1427,559 2110,559" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<text x="1664.0" y="643.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1664.0" dy="0.0" font-weight="400">Reference workflow: VEP → VCF → filter_vep</tspan><tspan x="1664.0" dy="24.1" font-weight="400">Solid arrows: data. Dashed return: query demand.</tspan></text>
+<polyline points="51,628 40,750" fill="none" stroke="#888888" stroke-width="1.5" />
+<polyline points="569,628 990,750" fill="none" stroke="#888888" stroke-width="1.5" />
+<rect x="40" y="750" width="950" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5" />
+<text x="66.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="66.0" dy="0.0" font-weight="700">A2</tspan></text>
+<text x="136.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="136.0" dy="0.0" font-weight="700">Cache construction</tspan></text>
+<rect x="914" y="768" width="48" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="938.0" y="794.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="938.0" dy="0.0" font-weight="700">i</tspan></text>
+<rect x="66" y="832" width="238" height="72" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="185.0" y="862.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="185.0" dy="0.0" font-weight="700">Ensembl VEP cache</tspan><tspan x="185.0" dy="24.1" font-weight="400">Storable / Sereal</tspan></text>
+<rect x="348" y="832" width="324" height="72" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="510.0" y="862.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="700">vepyr.build_cache()</tspan><tspan x="510.0" dy="24.1" font-weight="400">Ensembl cache conversion</tspan></text>
+<rect x="66" y="968" width="238" height="98" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="185.0" y="1000.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="185.0" dy="0.0" font-weight="700">Plugin source files</tspan><tspan x="185.0" dy="22.9" font-weight="400">TSV / CSV / Parquet</tspan><tspan x="185.0" dy="22.9" font-weight="400">VCF / BED (4 columns)</tspan></text>
+<rect x="348" y="932" width="324" height="134" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<rect x="348" y="932" width="324" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="510.0" y="956.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="510.0" dy="0.0" font-weight="700">Declarative plugin · TOML</tspan></text>
+<text x="510.0" y="996.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="700">vepyr.build_plugin_cache()</tspan></text>
+<text x="510.0" y="1027.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="400">SQL ingestion</tspan><tspan x="510.0" dy="22.9" font-weight="400">schema + output field mapping</tspan></text>
+<rect x="754" y="864" width="207" height="200" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="857.5" y="914.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="857.5" dy="0.0" font-weight="700">Parquet shards</tspan></text>
+<text x="857.5" y="971.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="857.5" dy="0.0" font-weight="400">Core + plugins</tspan><tspan x="857.5" dy="24.1" font-weight="400">per chromosome</tspan><tspan x="857.5" dy="24.1" font-weight="400">+ metadata</tspan></text>
+<text x="723.0" y="844.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="723.0" dy="0.0" font-weight="400">Shared storage format</tspan></text>
+<text x="754.0" y="1089.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="754.0" dy="0.0" font-weight="400">Separate schemas</tspan></text>
+<polyline points="304,868 348,868" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="304,1017 348,1017" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="672,868 710,868 710,922 754,922" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="672,1017 710,1017 710,997 754,997" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<text x="79.0" y="1122.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="700" fill="#111111"><tspan x="79.0" dy="0.0" font-weight="700">cache_dir/  [release + source]</tspan></text>
+<polyline points="94,1142 94,1321" fill="none" stroke="#888888" stroke-width="1.2" />
+<polyline points="94,1153 124,1153" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1159.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="700" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="700">variation/</tspan></text>
+<polyline points="94,1181 124,1181" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1187.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">transcript/</tspan></text>
+<polyline points="94,1209 124,1209" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1215.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">exon/</tspan></text>
+<polyline points="94,1237 124,1237" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1243.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_core/</tspan></text>
+<polyline points="94,1265 124,1265" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1271.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_sift/</tspan></text>
+<polyline points="94,1293 124,1293" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1299.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">regulatory/</tspan></text>
+<polyline points="94,1321 124,1321" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1327.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">motif/  [116]</tspan></text>
+<rect x="641" y="1137" width="319" height="38" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="800.5" y="1163.7" text-anchor="middle" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="800.5" dy="0.0" font-weight="700">chr1.parquet</tspan></text>
+<polyline points="400,1156 641,1156" fill="none" stroke="#111111" stroke-width="1.2" />
+<rect x="587" y="1140" width="42" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="608.0" y="1164.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="608.0" dy="0.0" font-weight="700">ii</tspan></text>
+<text x="548.0" y="1197.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Each entity: chr*.parquet + manifest</tspan></text>
+<text x="534.0" y="1232.6" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="700" fill="#111111"><tspan x="534.0" dy="0.0" font-weight="700">plugin_cache_root/plugin/&lt;name&gt;/</tspan></text>
+<rect x="544" y="1248" width="418" height="60" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="753.0" y="1273.1" text-anchor="middle" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="753.0" dy="0.0" font-weight="400">chr1.parquet · chr2.parquet · …</tspan><tspan x="753.0" dy="22.9" font-weight="400">manifest.json · provenance</tspan></text>
+<text x="548.0" y="1330.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Warm/cold tiers inherited from variation</tspan></text>
+<text x="79.0" y="1363.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="79.0" dy="0.0" font-weight="400">vepyr data plugins: TOML + SQL  |  VEP plugin API: Perl modules</tspan></text>
+<polyline points="960,1137 1100,750" fill="none" stroke="#888888" stroke-width="1.5" />
+<polyline points="960,1175 1100,1380" fill="none" stroke="#888888" stroke-width="1.5" />
+<rect x="1100" y="750" width="1260" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5" />
+<text x="1134.0" y="798.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="33" font-weight="700" fill="#111111"><tspan x="1134.0" dy="0.0" font-weight="700">A3</tspan></text>
+<text x="1208.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="1208.0" dy="0.0" font-weight="700">Frequency-aware cache lookup</tspan></text>
+<rect x="1134" y="840" width="214" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="1241.0" y="872.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#111111"><tspan x="1241.0" dy="0.0" font-weight="700">Input variants</tspan></text>
+<rect x="1162" y="896" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="1183" y="896" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="1204" y="896" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="1225" y="896" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="1246" y="896" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="1267" y="896" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="1288" y="896" width="12" height="12" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<rect x="1309" y="896" width="12" height="12" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<polyline points="1350,884 1445,884" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="1447" y="840" width="513" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="1703.5" y="893.5" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#111111"><tspan x="1703.5" dy="0.0" font-weight="700">Retrieve records and match alleles</tspan></text>
+<polyline points="1962,884 2059,884" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="2061" y="840" width="265" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="2193.5" y="877.2" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#111111"><tspan x="2193.5" dy="0.0" font-weight="700">Known-variant</tspan><tspan x="2193.5" dy="31.8" font-weight="400">annotations</tspan></text>
+<polyline points="1134,957 2326,957" fill="none" stroke="#dedede" stroke-width="1" />
+<text x="1134.0" y="997.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#111111"><tspan x="1134.0" dy="0.0" font-weight="700">Same cache records, different layouts</tspan></text>
+<text x="1979.0" y="997.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#111111"><tspan x="1979.0" dy="0.0" font-weight="700">Pages read</tspan></text>
+<text x="1979.0" y="1028.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#777777"><tspan x="1979.0" dy="0.0" font-weight="400">Position column only</tspan></text>
+<polyline points="1939,978 1939,1311" fill="none" stroke="#dedede" stroke-width="1" />
+<text x="1134.0" y="1038.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="1134.0" dy="0.0" font-weight="700">Position-sorted</tspan></text>
+<rect x="1134" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1142,1058 1142,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1150,1058 1150,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1158,1058 1158,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1166,1058 1166,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1174,1058 1174,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1182,1058 1182,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1190,1058 1190,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1198" y="1055" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1206,1058 1206,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1214,1058 1214,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1222,1058 1222,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1230,1058 1230,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1238,1058 1238,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1246,1058 1246,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1254,1058 1254,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1262" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1270,1058 1270,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1278,1058 1278,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1286,1058 1286,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1294,1058 1294,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1302,1058 1302,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1310,1058 1310,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1318,1058 1318,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1326" y="1055" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1334,1058 1334,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1342,1058 1342,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1350,1058 1350,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1358,1058 1358,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1366,1058 1366,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1374,1058 1374,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1382,1058 1382,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1390" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1398,1058 1398,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1406,1058 1406,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1414,1058 1414,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1422,1058 1422,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1430,1058 1430,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1438,1058 1438,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1446,1058 1446,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1454" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1462,1058 1462,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1470,1058 1470,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1478,1058 1478,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1486,1058 1486,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1494,1058 1494,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1502,1058 1502,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1510,1058 1510,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1518" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1526,1058 1526,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1534,1058 1534,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1542,1058 1542,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1550,1058 1550,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1558,1058 1558,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1566,1058 1566,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1574,1058 1574,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1582" y="1055" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1590,1058 1590,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1598,1058 1598,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1606,1058 1606,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1614,1058 1614,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1622,1058 1622,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1630,1058 1630,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1638,1058 1638,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1646" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1654,1058 1654,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1662,1058 1662,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1670,1058 1670,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1678,1058 1678,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1686,1058 1686,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1694,1058 1694,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1702,1058 1702,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1710" y="1055" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1718,1058 1718,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1726,1058 1726,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1734,1058 1734,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1742,1058 1742,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1750,1058 1750,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1758,1058 1758,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1766,1058 1766,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1774" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1782,1058 1782,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1790,1058 1790,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1798,1058 1798,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1806,1058 1806,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1814,1058 1814,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1822,1058 1822,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1830,1058 1830,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1838" y="1055" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1846,1058 1846,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1854,1058 1854,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1862,1058 1862,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1870,1058 1870,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1878,1058 1878,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1886,1058 1886,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1894,1058 1894,1096" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1143" y="1065" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1279" y="1065" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1415" y="1065" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1551" y="1065" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1687" y="1065" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1823" y="1065" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1487" y="1065" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="1871" y="1065" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="1134" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1262" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1390" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1454" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1518" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1646" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1774" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1838" y="1055" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<text x="1134.0" y="1147.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="1134.0" dy="0.0" font-weight="700">Frequency-grouped</tspan></text>
+<rect x="1134" y="1164" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1142,1167 1142,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1150,1167 1150,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1158,1167 1158,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1166,1167 1166,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1174,1167 1174,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1182,1167 1182,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1190,1167 1190,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1198" y="1164" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1206,1167 1206,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1214,1167 1214,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1222,1167 1222,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1230,1167 1230,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1238,1167 1238,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1246,1167 1246,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1254,1167 1254,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1262" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1270,1167 1270,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1278,1167 1278,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1286,1167 1286,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1294,1167 1294,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1302,1167 1302,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1310,1167 1310,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1318,1167 1318,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1326" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1334,1167 1334,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1342,1167 1342,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1350,1167 1350,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1358,1167 1358,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1366,1167 1366,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1374,1167 1374,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1382,1167 1382,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1390" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1398,1167 1398,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1406,1167 1406,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1414,1167 1414,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1422,1167 1422,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1430,1167 1430,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1438,1167 1438,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1446,1167 1446,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1454" y="1164" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1462,1167 1462,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1470,1167 1470,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1478,1167 1478,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1486,1167 1486,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1494,1167 1494,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1502,1167 1502,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1510,1167 1510,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1518" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1526,1167 1526,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1534,1167 1534,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1542,1167 1542,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1550,1167 1550,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1558,1167 1558,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1566,1167 1566,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1574,1167 1574,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1582" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1590,1167 1590,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1598,1167 1598,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1606,1167 1606,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1614,1167 1614,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1622,1167 1622,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1630,1167 1630,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1638,1167 1638,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1646" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1654,1167 1654,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1662,1167 1662,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1670,1167 1670,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1678,1167 1678,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1686,1167 1686,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1694,1167 1694,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1702,1167 1702,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1710" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1718,1167 1718,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1726,1167 1726,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1734,1167 1734,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1742,1167 1742,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1750,1167 1750,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1758,1167 1758,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1766,1167 1766,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1774" y="1164" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="1782,1167 1782,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1790,1167 1790,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1798,1167 1798,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1806,1167 1806,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1814,1167 1814,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1822,1167 1822,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1830,1167 1830,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1838" y="1164" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="1846,1167 1846,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1854,1167 1854,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1862,1167 1862,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1870,1167 1870,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1878,1167 1878,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1886,1167 1886,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="1894,1167 1894,1205" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="1143" y="1174" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1151" y="1174" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1159" y="1174" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1175" y="1174" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1191" y="1174" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1199" y="1174" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="1479" y="1174" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="1847" y="1174" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="1134" y="1164" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1198" y="1164" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1454" y="1164" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="1838" y="1164" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<polyline points="1134,1215 1214,1215" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="1134,1211 1134,1219" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="1214,1211 1214,1219" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="1214,1215 1902,1215" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="1214,1211 1214,1219" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="1902,1211 1902,1219" fill="none" stroke="#111111" stroke-width="1.2" />
+<text x="1177.0" y="1243.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#111111"><tspan x="1177.0" dy="0.0" font-weight="700">warm</tspan></text>
+<text x="1555.0" y="1243.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#111111"><tspan x="1555.0" dy="0.0" font-weight="400">cold</tspan></text>
+<text x="1899.0" y="1242.7" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#777777"><tspan x="1899.0" dy="0.0" font-weight="400">Both tiers queried</tspan></text>
+<rect x="1136" y="1280" width="12" height="16" rx="0" fill="#111111" stroke="#111111" stroke-width="1.2" />
+<text x="1158.0" y="1295.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="1158.0" dy="0.0" font-weight="400">common hit</tspan></text>
+<rect x="1351" y="1280" width="12" height="16" rx="0" fill="white" stroke="#111111" stroke-width="1.6" />
+<text x="1373.0" y="1295.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="1373.0" dy="0.0" font-weight="400">rare hit</tspan></text>
+<rect x="1521" y="1279" width="28" height="18" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<text x="1559.0" y="1295.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="1559.0" dy="0.0" font-weight="400">page read</tspan></text>
+<text x="1900.0" y="1294.8" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#777777"><tspan x="1900.0" dy="0.0" font-weight="400">schematic</tspan></text>
+<rect x="1980" y="1062" width="259.44" height="30" rx="0" fill="#b6b6b6" stroke="#111111" stroke-width="0" />
+<text x="2250.4" y="1085.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="2250.4" dy="0.0" font-weight="700">920</tspan></text>
+<rect x="1980" y="1171" width="62.04" height="30" rx="0" fill="#111111" stroke="#111111" stroke-width="0" />
+<text x="2053.0" y="1194.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="2053.0" dy="0.0" font-weight="700">220</tspan></text>
+<polyline points="1980,1222 2262,1222" fill="none" stroke="#777777" stroke-width="1" />
+<polyline points="1980.0,1222 1980.0,1228" fill="none" stroke="#777777" stroke-width="1" />
+<text x="1980.0" y="1251.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#777777"><tspan x="1980.0" dy="0.0" font-weight="400">0</tspan></text>
+<polyline points="2121.0,1222 2121.0,1228" fill="none" stroke="#777777" stroke-width="1" />
+<text x="2121.0" y="1251.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#777777"><tspan x="2121.0" dy="0.0" font-weight="400">500</tspan></text>
+<polyline points="2262.0,1222 2262.0,1228" fill="none" stroke="#777777" stroke-width="1" />
+<text x="2262.0" y="1251.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#777777"><tspan x="2262.0" dy="0.0" font-weight="400">1,000</tspan></text>
+<text x="1979.0" y="1298.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#111111"><tspan x="1979.0" dy="0.0" font-weight="700">76% fewer pages</tspan></text>
+<polyline points="1134,1330 2326,1330" fill="none" stroke="#dedede" stroke-width="1" />
+<text x="1134.0" y="1360.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#777777"><tspan x="1134.0" dy="0.0" font-weight="400">HG002 chr22 · one 5,000-record buffer · VEP 116 merged cache</tspan></text>
+<text x="44.0" y="1458.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="44.0" dy="0.0" font-weight="700">B</tspan></text>
+<text x="114.0" y="1456.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="114.0" dy="0.0" font-weight="700">Quality validation</tspan></text>
+<rect x="55" y="1492" width="620" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="1518.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="365.0" dy="0.0" font-weight="700">1  Component-level unit tests</tspan></text>
+<rect x="55" y="1538" width="196" height="118" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="65.0" y="1567.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="65.0" dy="0.0" font-weight="700">Formats</tspan><tspan x="65.0" dy="24.1" font-weight="400">VCF / cache I/O</tspan><tspan x="65.0" dy="24.1" font-weight="400">schemas +</tspan><tspan x="65.0" dy="24.1" font-weight="400">metadata</tspan></text>
+<rect x="267" y="1538" width="196" height="118" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="277.0" y="1567.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="277.0" dy="0.0" font-weight="700">Rust engine</tspan><tspan x="277.0" dy="24.1" font-weight="400">alleles +</tspan><tspan x="277.0" dy="24.1" font-weight="400">intervals</tspan><tspan x="277.0" dy="24.1" font-weight="400">HGVS + plugins</tspan></text>
+<rect x="479" y="1538" width="196" height="118" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="489.0" y="1567.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="489.0" dy="0.0" font-weight="700">Python API</tspan><tspan x="489.0" dy="24.1" font-weight="400">arguments +</tspan><tspan x="489.0" dy="24.1" font-weight="400">outputs</tspan><tspan x="489.0" dy="24.1" font-weight="400">lazy execution</tspan></text>
+<rect x="55" y="1690" width="620" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="1716.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="365.0" dy="0.0" font-weight="700">2  Ported VEP behavior</tspan></text>
+<text x="64.0" y="1763.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">allele matching</tspan></text>
+<text x="374.0" y="1763.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="374.0" dy="0.0" font-weight="400">SO + coding / splice</tspan></text>
+<text x="64.0" y="1802.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">HGVS + 3′ shift</tspan></text>
+<text x="374.0" y="1802.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="374.0" dy="0.0" font-weight="400">pick / ranking</tspan></text>
+<text x="64.0" y="1841.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">known variants + AF</tspan></text>
+<text x="374.0" y="1841.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="374.0" dy="0.0" font-weight="400">regulatory / motifs</tspan></text>
+<rect x="55" y="1891" width="620" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="1917.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="365.0" dy="0.0" font-weight="700">3  End-to-end VEP comparison</tspan></text>
+<text x="64.0" y="1957.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">Six release/source profiles · HG002 chr1–22</tspan><tspan x="64.0" dy="25.4" font-weight="400">4,096,123 variants per profile</tspan><tspan x="64.0" dy="25.4" font-weight="400">Zero CSQ mismatches in archived field gates</tspan></text>
+<rect x="60" y="2029" width="610" height="55" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="2063.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="365.0" dy="0.0" font-weight="400">115 / 116 × Ensembl (80), RefSeq (85), merged (86 fields)</tspan></text>
+<text x="64.0" y="2127.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="64.0" dy="0.0" font-weight="400">Separate harness: strict / canonical VCF-body MD5.</tspan><tspan x="64.0" dy="22.9" font-weight="400">Field gates are not presented as MD5 validation.</tspan></text>
+<text x="739.0" y="1458.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="739.0" dy="0.0" font-weight="700">C</tspan></text>
+<text x="809.0" y="1456.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="809.0" dy="0.0" font-weight="700">Performance</tspan></text>
+<image x="730" y="1493" width="945" height="623" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDEwIiBoZWlnaHQ9IjY2NSIgdmlld0JveD0iMCAwIDEwMTAgNjY1Ij4KPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0id2hpdGUiLz4KPGcgZm9udC1mYW1pbHk9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiPgo8dGV4dCB4PSIzNS4wIiB5PSI0MS4wIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPkxpbnV4IC8geDg2LTY0LCBtZXJnZWQgV0dTPC90ZXh0Pgo8bGluZSB4MT0iOTciIHkxPSIzNTIuOCIgeDI9IjU3NCIgeTI9IjM1Mi44IiBzdHJva2U9IiNkZGRkZGQiIHN0cm9rZS13aWR0aD0iMSIvPgo8dGV4dCB4PSI4Ny4wIiB5PSIzNTcuOCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzU1NTU1NSI+MiBtaW48L3RleHQ+CjxsaW5lIHgxPSI5NyIgeTE9IjMwNi4zIiB4Mj0iNTc0IiB5Mj0iMzA2LjMiIHN0cm9rZT0iI2RkZGRkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+Cjx0ZXh0IHg9Ijg3LjAiIHk9IjMxMS4zIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjNTU1NTU1Ij41IG1pbjwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMjcxLjIiIHgyPSI1NzQiIHkyPSIyNzEuMiIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMjc2LjIiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjEwIG1pbjwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMjE1LjYiIHgyPSI1NzQiIHkyPSIyMTUuNiIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMjIwLjYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjMwIG1pbjwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMTgwLjQiIHgyPSI1NzQiIHkyPSIxODAuNCIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMTg1LjQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjEgaDwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMTI0LjgiIHgyPSI1NzQiIHkyPSIxMjQuOCIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMTI5LjgiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjMgaDwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iODkuNiIgeDI9IjU3NCIgeTI9Ijg5LjYiIHN0cm9rZT0iI2RkZGRkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+Cjx0ZXh0IHg9Ijg3LjAiIHk9Ijk0LjYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjYgaDwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iNzMiIHgyPSI5NyIgeTI9IjM2MiIgc3Ryb2tlPSIjMTExMTExIiBzdHJva2Utd2lkdGg9IjEuNCIvPgo8bGluZSB4MT0iOTciIHkxPSIzNjIiIHgyPSI1NzQiIHkyPSIzNjIiIHN0cm9rZT0iIzExMTExMSIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KPHRleHQgeD0iOTcuMCIgeT0iMzg2LjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxMTExMTEiPjE8L3RleHQ+Cjx0ZXh0IHg9IjIxNi4yIiB5PSIzODYuMCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+MjwvdGV4dD4KPHRleHQgeD0iMzM1LjUiIHk9IjM4Ni4wIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTExMTExIj40PC90ZXh0Pgo8dGV4dCB4PSI0NTQuOCIgeT0iMzg2LjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxMTExMTEiPjg8L3RleHQ+Cjx0ZXh0IHg9IjU3NC4wIiB5PSIzODYuMCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+MTY8L3RleHQ+Cjx0ZXh0IHg9IjMzNS41IiB5PSI0MDUuMCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+Zm9ya3MgLyB3b3JrZXJzPC90ZXh0Pgo8dGV4dCB4PSI0OS4wIiB5PSIyMTcuNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzU1NTU1NSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDQ5IDIxNy41KSI+cHJvY2VzcyB3YWxsIHRpbWUgKGxvZyBzY2FsZSk8L3RleHQ+Cjxwb2x5bGluZSBwb2ludHM9Ijk3LjAsOTAuMCAyMTYuMiwxMDcuNiAzMzUuNSwxMzAuNyA0NTQuOCwxNTEuOSA1NzQuMCwxNjguMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPgo8cmVjdCB4PSI5My4wIiB5PSI4Ni4wIiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iMjEyLjIiIHk9IjEwMy42IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iMzMxLjUiIHk9IjEyNi43IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDUwLjgiIHk9IjE0Ny45IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNTcwLjAiIHk9IjE2NC4zIiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHBvbHlsaW5lIHBvaW50cz0iOTcuMCwyODAuMiAyMTYuMiwzMDcuOCAzMzUuNSwzMjAuOCA0NTQuOCwzMzAuMSA1NzQuMCwzMzQuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTExMTExIiBzdHJva2Utd2lkdGg9IjMiLz4KPGNpcmNsZSBjeD0iOTcuMCIgY3k9IjI4MC4yIiByPSI0LjUiIGZpbGw9IiMxMTExMTEiLz4KPGNpcmNsZSBjeD0iMjE2LjIiIGN5PSIzMDcuOCIgcj0iNC41IiBmaWxsPSIjMTExMTExIi8+CjxjaXJjbGUgY3g9IjMzNS41IiBjeT0iMzIwLjgiIHI9IjQuNSIgZmlsbD0iIzExMTExMSIvPgo8Y2lyY2xlIGN4PSI0NTQuOCIgY3k9IjMzMC4xIiByPSI0LjUiIGZpbGw9IiMxMTExMTEiLz4KPGNpcmNsZSBjeD0iNTc0LjAiIGN5PSIzMzQuMyIgcj0iNC41IiBmaWxsPSIjMTExMTExIi8+CjxsaW5lIHgxPSI0MTYiIHkxPSI5MyIgeDI9IjQ0NCIgeTI9IjkzIiBzdHJva2U9IiM2NjY2NjYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA0Ii8+Cjx0ZXh0IHg9IjQ1Mi4wIiB5PSI5OC4wIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPkVuc2VtYmwgVkVQPC90ZXh0Pgo8bGluZSB4MT0iNDE2IiB5MT0iMTE3IiB4Mj0iNDQ0IiB5Mj0iMTE3IiBzdHJva2U9IiMxMTExMTEiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI0NTIuMCIgeT0iMTIyLjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzExMTExMSI+dmVweXI8L3RleHQ+CjxyZWN0IHg9IjM4Mi43NSIgeT0iMjcwLjEwMzY1NTU0MTgzODIiIHdpZHRoPSIxNDQiIGhlaWdodD0iMzQiIHJ4PSIwIiBmaWxsPSIjZWVlZWVlIiBzdHJva2U9IiMxMTExMTEiIHN0cm9rZS13aWR0aD0iMS41Ii8+Cjx0ZXh0IHg9IjQ1NC44IiB5PSIyOTIuMSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+MzMuN3ggYXQgODwvdGV4dD4KPHRleHQgeD0iNjIwLjAiIHk9IjQxLjAiIGZvbnQtc2l6ZT0iMTciIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzExMTExMSI+bWFjT1MgLyBhcm02NCwgbWVyZ2VkIFdHUzwvdGV4dD4KPHJlY3QgeD0iNjIwIiB5PSI1NSIgd2lkdGg9IjM1NSIgaGVpZ2h0PSIzNTUiIHJ4PSIwIiBmaWxsPSIjZmFmYWZhIiBzdHJva2U9IiM5OTk5OTkiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KPHRleHQgeD0iNzk3LjUiIHk9IjIyMC41IiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2NjY2Ij5EQVRBIFJFUVVJUkVEPC90ZXh0Pgo8dGV4dCB4PSI3OTcuNSIgeT0iMjUyLjUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM1NTU1NTUiPnBhaXJlZCBWRVAgKyB2ZXB5ciBydW5zPC90ZXh0Pgo8dGV4dCB4PSIzNS4wIiB5PSI0MzMuMCIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjMTExMTExIj5Qb3N0LWFubm90YXRpb24gZmlsdGVyaW5nIChzYW1lIHJhcmUtdmFyaWFudCBwcmVkaWNhdGUpPC90ZXh0Pgo8cmVjdCB4PSIzNSIgeT0iNDQ1IiB3aWR0aD0iOTQwIiBoZWlnaHQ9IjE4MiIgcng9IjAiIGZpbGw9IndoaXRlIiBzdHJva2U9IiNkZGRkZGQiIHN0cm9rZS13aWR0aD0iMS41Ii8+Cjx0ZXh0IHg9IjUzLjAiIHk9IjQ4My4wIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPlZFUDwvdGV4dD4KPHRleHQgeD0iMTEzLjAiIHk9IjQ4My4wIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPmFubm90YXRlICDihpIgIFZDRiAg4oaSICBmaWx0ZXJfdmVwPC90ZXh0Pgo8dGV4dCB4PSI1My4wIiB5PSI1MjQuMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjMTExMTExIj52ZXB5cjwvdGV4dD4KPHRleHQgeD0iMTEzLjAiIHk9IjUyNC4wIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPmFubm90YXRlICDihpIgIExhenlGcmFtZSAg4oaSICBwcmVkaWNhdGU8L3RleHQ+CjxyZWN0IHg9IjY4NSIgeT0iNDY5IiB3aWR0aD0iMjY2IiBoZWlnaHQ9Ijc4IiByeD0iMCIgZmlsbD0iI2Y0ZjRmNCIgc3Ryb2tlPSIjNzc3Nzc3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNyA1Ii8+Cjx0ZXh0IHg9IjgxOC4wIiB5PSI1MDEuMCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+QkVOQ0hNQVJLIFBFTkRJTkc8L3RleHQ+Cjx0ZXh0IHg9IjgxOC4wIiB5PSI1MjUuMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzU1NTU1NSI+cnVudGltZSArIHBlYWsgUlNTPC90ZXh0Pgo8dGV4dCB4PSI1My4wIiB5PSI1ODIuMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjMTExMTExIj5QcmVkaWNhdGU6IGdub21BRGdfQUYgJmx0OyAwLjAxIE9SIGdub21BRGdfQUYgSVMgTlVMTDwvdGV4dD4KPHRleHQgeD0iNTMuMCIgeT0iNjA3LjAiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzU1NTU1NSI+Q29tcGFyZSBpZGVudGljYWwgaW5wdXQsIGNhY2hlLCBvdXRwdXQgc2VtYW50aWNzLCB3YXJtIGNhY2hlIHN0YXRlIGFuZCBzdG9yYWdlLjwvdGV4dD4KPHRleHQgeD0iMzUuMCIgeT0iNjU0LjAiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzU1NTU1NSI+SEcwMDIgY2hyMeKAkzIyIMK3IDQsMDk2LDEyMyB2YXJpYW50cyDCtyAxMTYgbWVyZ2VkIMK3IC0tZXZlcnl0aGluZyArIEhHVlMgwrcgcHJvY2VzcyB3YWxsIHRpbWU8L3RleHQ+CjwvZz4KPC9zdmc+Cg==" preserveAspectRatio="xMidYMid meet" />
+<text x="750.0" y="2156.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="750.0" dy="0.0" font-weight="400">Preliminary single runs; paired repeats and filter timings remain pending.</tspan></text>
+<text x="1739.0" y="1458.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="1739.0" dy="0.0" font-weight="700">D</tspan></text>
+<text x="1809.0" y="1456.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="1809.0" dy="0.0" font-weight="700">Contracts + filtering</tspan></text>
+<rect x="1750" y="1492" width="595" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="2047.5" y="1518.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="2047.5" dy="0.0" font-weight="700">Input</tspan></text>
+<text x="1759.0" y="1564.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1759.0" dy="0.0" font-weight="400">Normalize: bcftools norm -f ref.fa -m -both</tspan><tspan x="1759.0" dy="25.4" font-weight="400">Matching assembly, FASTA and cache release</tspan><tspan x="1759.0" dy="25.4" font-weight="400">BGZF + TBI/CSI for workers &gt; 1 and region seeks</tspan></text>
+<rect x="1750" y="1653" width="595" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="2047.5" y="1679.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="2047.5" dy="0.0" font-weight="700">Output</tspan></text>
+<text x="1759.0" y="1721.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1759.0" dy="0.0" font-weight="400">VCF: original INFO / FORMAT + CSQ</tspan><tspan x="1759.0" dy="25.4" font-weight="400">LazyFrame: typed variant rows + aligned lists</tspan><tspan x="1759.0" dy="25.4" font-weight="400">sink_* streams; collect() materializes</tspan><tspan x="1759.0" dy="25.4" font-weight="400">No direct reimplementation of filter_vep</tspan></text>
+<text x="1754.0" y="1855.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="1754.0" dy="0.0" font-weight="700">Same predicate: rare or unknown allele frequency</tspan></text>
+<rect x="1750" y="1880" width="595" height="91" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="1760.0" y="1909.2" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="1760.0" dy="0.0" font-weight="700">VEP + filter_vep</tspan><tspan x="1760.0" dy="22.9" font-weight="400">filter_vep --filter</tspan><tspan x="1760.0" dy="22.9" font-weight="400">"gnomADg_AF &lt; 0.01 or not gnomADg_AF"</tspan></text>
+<rect x="1750" y="1989" width="595" height="112" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1760.0" y="2017.3" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="1760.0" dy="0.0" font-weight="700">Polars SQL (variants = lf)</tspan><tspan x="1760.0" dy="22.9" font-weight="400">SELECT * FROM variants</tspan><tspan x="1760.0" dy="22.9" font-weight="400">WHERE gnomADg_AF &lt; 0.01</tspan><tspan x="1760.0" dy="22.9" font-weight="400">   OR gnomADg_AF IS NULL</tspan></text>
+<text x="1759.0" y="2141.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="1759.0" dy="0.0" font-weight="400">Per-CSQ predicates need aligned explode / any.</tspan><tspan x="1759.0" dy="22.9" font-weight="400">Ontology expansion must be explicit.</tspan></text>
+<title>Figure 1 — simplified frequency-aware cache proposal</title><desc>A separate Figure 1 proposal. Cache diagrams are schematic; the chart reports 920 versus 220 position pages for one buffer, transcribed from Marek's image-panelC.png. Both warm and cold tiers remain queryable.</desc></svg>

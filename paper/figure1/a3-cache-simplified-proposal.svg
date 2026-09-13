@@ -1,0 +1,282 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="630" viewBox="0 0 1260 630" role="img">
+<defs>
+<marker id="arrow-ink" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#111111" /></marker>
+<marker id="arrow-muted" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#555555" /></marker>
+</defs>
+<rect width="100%" height="100%" fill="white" />
+<text x="34.0" y="48.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="33" font-weight="700" fill="#111111"><tspan x="34.0" dy="0.0" font-weight="700">A3</tspan></text>
+<text x="108.0" y="47.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="108.0" dy="0.0" font-weight="700">Frequency-aware cache lookup</tspan></text>
+<rect x="34" y="90" width="214" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="141.0" y="122.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#111111"><tspan x="141.0" dy="0.0" font-weight="700">Input variants</tspan></text>
+<rect x="62" y="146" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="83" y="146" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="104" y="146" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="125" y="146" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="146" y="146" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="167" y="146" width="12" height="12" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<rect x="188" y="146" width="12" height="12" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<rect x="209" y="146" width="12" height="12" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<polyline points="250,134 345,134" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="347" y="90" width="513" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="603.5" y="143.5" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#111111"><tspan x="603.5" dy="0.0" font-weight="700">Retrieve records and match alleles</tspan></text>
+<polyline points="862,134 959,134" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="961" y="90" width="265" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="1093.5" y="127.2" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#111111"><tspan x="1093.5" dy="0.0" font-weight="700">Known-variant</tspan><tspan x="1093.5" dy="31.8" font-weight="400">annotations</tspan></text>
+<polyline points="34,207 1226,207" fill="none" stroke="#dedede" stroke-width="1" />
+<text x="34.0" y="247.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#111111"><tspan x="34.0" dy="0.0" font-weight="700">Same cache records, different layouts</tspan></text>
+<text x="879.0" y="247.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#111111"><tspan x="879.0" dy="0.0" font-weight="700">Pages read</tspan></text>
+<text x="879.0" y="278.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#777777"><tspan x="879.0" dy="0.0" font-weight="400">Position column only</tspan></text>
+<polyline points="839,228 839,561" fill="none" stroke="#dedede" stroke-width="1" />
+<text x="34.0" y="288.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="34.0" dy="0.0" font-weight="700">Position-sorted</tspan></text>
+<rect x="34" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="42,308 42,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="50,308 50,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="58,308 58,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="66,308 66,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="74,308 74,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="82,308 82,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="90,308 90,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="98" y="305" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="106,308 106,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="114,308 114,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="122,308 122,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="130,308 130,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="138,308 138,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="146,308 146,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="154,308 154,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="162" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="170,308 170,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="178,308 178,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="186,308 186,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="194,308 194,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="202,308 202,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="210,308 210,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="218,308 218,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="226" y="305" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="234,308 234,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="242,308 242,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="250,308 250,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="258,308 258,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="266,308 266,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="274,308 274,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="282,308 282,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="290" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="298,308 298,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="306,308 306,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="314,308 314,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="322,308 322,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="330,308 330,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="338,308 338,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="346,308 346,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="354" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="362,308 362,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="370,308 370,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="378,308 378,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="386,308 386,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="394,308 394,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="402,308 402,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="410,308 410,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="418" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="426,308 426,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="434,308 434,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="442,308 442,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="450,308 450,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="458,308 458,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="466,308 466,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="474,308 474,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="482" y="305" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="490,308 490,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="498,308 498,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="506,308 506,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="514,308 514,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="522,308 522,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="530,308 530,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="538,308 538,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="546" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="554,308 554,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="562,308 562,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="570,308 570,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="578,308 578,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="586,308 586,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="594,308 594,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="602,308 602,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="610" y="305" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="618,308 618,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="626,308 626,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="634,308 634,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="642,308 642,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="650,308 650,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="658,308 658,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="666,308 666,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="674" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="682,308 682,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="690,308 690,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="698,308 698,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="706,308 706,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="714,308 714,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="722,308 722,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="730,308 730,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="738" y="305" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="746,308 746,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="754,308 754,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="762,308 762,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="770,308 770,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="778,308 778,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="786,308 786,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="794,308 794,346" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="43" y="315" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="179" y="315" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="315" y="315" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="451" y="315" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="587" y="315" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="723" y="315" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="387" y="315" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="771" y="315" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="34" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="162" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="290" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="354" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="418" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="546" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="674" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="738" y="305" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<text x="34.0" y="397.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="34.0" dy="0.0" font-weight="700">Frequency-grouped</tspan></text>
+<rect x="34" y="414" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="42,417 42,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="50,417 50,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="58,417 58,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="66,417 66,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="74,417 74,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="82,417 82,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="90,417 90,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="98" y="414" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="106,417 106,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="114,417 114,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="122,417 122,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="130,417 130,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="138,417 138,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="146,417 146,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="154,417 154,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="162" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="170,417 170,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="178,417 178,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="186,417 186,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="194,417 194,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="202,417 202,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="210,417 210,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="218,417 218,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="226" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="234,417 234,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="242,417 242,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="250,417 250,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="258,417 258,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="266,417 266,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="274,417 274,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="282,417 282,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="290" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="298,417 298,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="306,417 306,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="314,417 314,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="322,417 322,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="330,417 330,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="338,417 338,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="346,417 346,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="354" y="414" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="362,417 362,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="370,417 370,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="378,417 378,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="386,417 386,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="394,417 394,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="402,417 402,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="410,417 410,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="418" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="426,417 426,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="434,417 434,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="442,417 442,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="450,417 450,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="458,417 458,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="466,417 466,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="474,417 474,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="482" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="490,417 490,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="498,417 498,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="506,417 506,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="514,417 514,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="522,417 522,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="530,417 530,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="538,417 538,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="546" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="554,417 554,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="562,417 562,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="570,417 570,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="578,417 578,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="586,417 586,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="594,417 594,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="602,417 602,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="610" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="618,417 618,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="626,417 626,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="634,417 634,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="642,417 642,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="650,417 650,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="658,417 658,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="666,417 666,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="674" y="414" width="64" height="44" rx="0" fill="white" stroke="#777777" stroke-width="0.8" />
+<polyline points="682,417 682,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="690,417 690,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="698,417 698,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="706,417 706,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="714,417 714,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="722,417 722,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="730,417 730,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="738" y="414" width="64" height="44" rx="0" fill="#f0f0f0" stroke="#777777" stroke-width="0.8" />
+<polyline points="746,417 746,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="754,417 754,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="762,417 762,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="770,417 770,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="778,417 778,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="786,417 786,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<polyline points="794,417 794,455" fill="none" stroke="#d4d4d4" stroke-width="0.6" />
+<rect x="43" y="424" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="51" y="424" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="59" y="424" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="75" y="424" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="91" y="424" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="99" y="424" width="6" height="24" rx="0" fill="#111111" stroke="#111111" stroke-width="0.7" />
+<rect x="379" y="424" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="747" y="424" width="6" height="24" rx="0" fill="white" stroke="#111111" stroke-width="1.4" />
+<rect x="34" y="414" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="98" y="414" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="354" y="414" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<rect x="738" y="414" width="64" height="44" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<polyline points="34,465 114,465" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="34,461 34,469" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="114,461 114,469" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="114,465 802,465" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="114,461 114,469" fill="none" stroke="#111111" stroke-width="1.2" />
+<polyline points="802,461 802,469" fill="none" stroke="#111111" stroke-width="1.2" />
+<text x="77.0" y="493.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#111111"><tspan x="77.0" dy="0.0" font-weight="700">warm</tspan></text>
+<text x="455.0" y="493.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#111111"><tspan x="455.0" dy="0.0" font-weight="400">cold</tspan></text>
+<text x="799.0" y="492.7" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#777777"><tspan x="799.0" dy="0.0" font-weight="400">Both tiers queried</tspan></text>
+<rect x="36" y="530" width="12" height="16" rx="0" fill="#111111" stroke="#111111" stroke-width="1.2" />
+<text x="58.0" y="545.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="58.0" dy="0.0" font-weight="400">common hit</tspan></text>
+<rect x="251" y="530" width="12" height="16" rx="0" fill="white" stroke="#111111" stroke-width="1.6" />
+<text x="273.0" y="545.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="273.0" dy="0.0" font-weight="400">rare hit</tspan></text>
+<rect x="421" y="529" width="28" height="18" rx="0" fill="none" stroke="#111111" stroke-width="2.6" />
+<text x="459.0" y="545.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="459.0" dy="0.0" font-weight="400">page read</tspan></text>
+<text x="800.0" y="544.8" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#777777"><tspan x="800.0" dy="0.0" font-weight="400">schematic</tspan></text>
+<rect x="880" y="312" width="259.44" height="30" rx="0" fill="#b6b6b6" stroke="#111111" stroke-width="0" />
+<text x="1150.4" y="335.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="1150.4" dy="0.0" font-weight="700">920</tspan></text>
+<rect x="880" y="421" width="62.04" height="30" rx="0" fill="#111111" stroke="#111111" stroke-width="0" />
+<text x="953.0" y="444.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#111111"><tspan x="953.0" dy="0.0" font-weight="700">220</tspan></text>
+<polyline points="880,472 1162,472" fill="none" stroke="#777777" stroke-width="1" />
+<polyline points="880.0,472 880.0,478" fill="none" stroke="#777777" stroke-width="1" />
+<text x="880.0" y="501.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#777777"><tspan x="880.0" dy="0.0" font-weight="400">0</tspan></text>
+<polyline points="1021.0,472 1021.0,478" fill="none" stroke="#777777" stroke-width="1" />
+<text x="1021.0" y="501.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#777777"><tspan x="1021.0" dy="0.0" font-weight="400">500</tspan></text>
+<polyline points="1162.0,472 1162.0,478" fill="none" stroke="#777777" stroke-width="1" />
+<text x="1162.0" y="501.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#777777"><tspan x="1162.0" dy="0.0" font-weight="400">1,000</tspan></text>
+<text x="879.0" y="548.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#111111"><tspan x="879.0" dy="0.0" font-weight="700">76% fewer pages</tspan></text>
+<polyline points="34,580 1226,580" fill="none" stroke="#dedede" stroke-width="1" />
+<text x="34.0" y="610.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#777777"><tspan x="34.0" dy="0.0" font-weight="400">HG002 chr22 · one 5,000-record buffer · VEP 116 merged cache</tspan></text>
+<title>A3 — Frequency-aware cache lookup</title><desc>A separate Figure 1 proposal. Cache diagrams are schematic; the chart reports 920 versus 220 position pages for one buffer, transcribed from Marek's image-panelC.png. Both warm and cold tiers remain queryable.</desc></svg>
