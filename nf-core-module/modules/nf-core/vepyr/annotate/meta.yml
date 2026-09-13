@@ -1,8 +1,5 @@
 name: vepyr_annotate
-description: Annotate a VCF with Ensembl VEP consequences using vepyr, a Rust
-  reimplementation of the Variant Effect Predictor. Annotation features are
-  controlled through `task.ext.args`, except for `--fork`, which the module
-  derives from `task.cpus` and drops to 1 when the input VCF has no index.
+description: Annotate a VCF with Ensembl VEP consequences using vepyr, a Rust reimplementation of the Variant Effect Predictor. Annotation features are controlled through `task.ext.args`, except for `--fork`, which the module derives from `task.cpus` and drops to 1 when the input VCF has no index.
 keywords:
   - annotation
   - vcf
@@ -157,3 +154,27 @@ authors:
   - "@mwiewior"
 maintainers:
   - "@mwiewior"
+containers:
+  docker:
+    linux/amd64:
+      name: community.wave.seqera.io/library/htslib_pip_python_vepyr:00a5ec7681bdfa20
+      build_id: bd-00a5ec7681bdfa20_1
+      scan_id: sc-47b6d36fd8e5ee60_1
+    linux/arm64:
+      name: community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0
+      build_id: bd-d7cf9a888587f5b0_1
+      scan_id: sc-c27fc99ebfb512f3_1
+  singularity:
+    linux/amd64:
+      name: oras://community.wave.seqera.io/library/htslib_pip_python_vepyr:acf4dcc00f540d69
+      build_id: bd-acf4dcc00f540d69_1
+      https: https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/da/daf7d8ab28e941364554727d23f3c58a2e0b273e0ba3c40c6e13114a77c07103/data
+    linux/arm64:
+      name: oras://community.wave.seqera.io/library/htslib_pip_python_vepyr:15625539a599a8eb
+      build_id: bd-15625539a599a8eb_1
+      https: https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/1f/1fe07e8ca8ffcfa6495dd0500d14f1854dc2b2b407be4302c4ac1e58b5152c95/data
+  conda:
+    linux/amd64:
+      lock_file: modules/nf-core/vepyr/annotate/.conda-lock/linux_amd64-bd-00a5ec7681bdfa20_1.txt
+    linux/arm64:
+      lock_file: modules/nf-core/vepyr/annotate/.conda-lock/linux_arm64-bd-d7cf9a888587f5b0_1.txt

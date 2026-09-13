@@ -6,5 +6,13 @@ channels:
 dependencies:
   # renovate: datasource=conda depName=bioconda/htslib
   - bioconda::htslib=1.24
-  # renovate: datasource=conda depName=bioconda/vepyr
-  - bioconda::vepyr=0.7.0
+  # renovate: datasource=conda depName=conda-forge/pip
+  - conda-forge::pip=26.2.1
+  # renovate: datasource=conda depName=conda-forge/python
+  - conda-forge::python=3.12.14
+  # vepyr comes from PyPI until bioconda ships 0.7.0 for linux-64 and
+  # linux-aarch64 (bioconda-recipes#69191); then swap this for
+  # bioconda::vepyr=0.7.0 and rebuild the containers.
+  - pip:
+      # renovate: datasource=pypi depName=vepyr
+      - vepyr==0.7.0

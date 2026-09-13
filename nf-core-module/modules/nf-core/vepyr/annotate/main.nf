@@ -3,11 +3,12 @@ process VEPYR_ANNOTATE {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    // TODO Replace both URIs once bioconda-recipes#69191 ships vepyr 0.7.0 and
-    // the Seqera Wave image for this environment.yml has been built.
+    // vepyr is installed from PyPI (see environment.yml). Once bioconda ships 0.7.0
+    // for linux-64 and linux-aarch64 (bioconda-recipes#69191), switch it to
+    // bioconda::vepyr and rerun `nf-core modules containers create vepyr/annotate`.
     container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
-        ? 'PLACEHOLDER_SINGULARITY_URI'
-        : 'PLACEHOLDER_DOCKER_URI'}"
+        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/da/daf7d8ab28e941364554727d23f3c58a2e0b273e0ba3c40c6e13114a77c07103/data'
+        : 'community.wave.seqera.io/library/htslib_pip_python_vepyr:00a5ec7681bdfa20'}"
 
     input:
     tuple val(meta), path(vcf), path(tbi)

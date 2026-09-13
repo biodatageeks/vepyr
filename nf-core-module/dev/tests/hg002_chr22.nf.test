@@ -4,7 +4,7 @@
 // asserts the record-body md5 Ensembl VEP 116 --everything produced — the
 // strict digest md5_concordance.py computes. No VEP output is stored.
 //
-// Not part of the nf-core submission: run through dev/nf-test-arm64.sh, which
+// Not part of the nf-core submission: run through dev/nf-test-local.sh, which
 // points params.hg002_chr22 at the fixture.
 nextflow_process {
 
@@ -47,10 +47,14 @@ nextflow_process {
         }
 
         then {
+            def expectedMd5 = 'f0a0a7021c498d2b4e38c9caf5959f77'
+            def expectedRecords = 50861
+
             // md5 over record lines exactly as written, headers excluded.
+            def outVcf = java.nio.file.Paths.get(process.out.vcf[0][1].toString())
             def md5 = java.security.MessageDigest.getInstance('MD5')
             def records = 0
-            new java.util.zip.GZIPInputStream(new FileInputStream(process.out.vcf[0][1].toString()))
+            new java.util.zip.GZIPInputStream(new FileInputStream(outVcf.toString()))
                 .withReader('UTF-8') { reader ->
                     reader.eachLine { line ->
                         if (!line.startsWith('#')) {
@@ -59,11 +63,36 @@ nextflow_process {
                         }
                     }
                 }
+            def bodyMd5 = md5.digest().encodeHex().toString()
+
+            // The output sits in the task work dir, next to the staged inputs
+            // (symlinks back into the fixture) and the script Nextflow ran.
+            def taskDir = outVcf.parent
+            def staged = { name -> taskDir.resolve(name).toRealPath() }
+            // .command.sh continues with Nextflow's topic/eval capture; keep only
+            // the module's own script.
+            def command = java.nio.file.Files.readString(taskDir.resolve('.command.sh'))
+                .readLines()
+                .takeWhile { !it.startsWith('# capture process environment') }
+                .findAll { !it.startsWith('#!') && it.trim() }
+                .collect { '    ' + it }
+                .join('\n')
+            println """
+            |  task work dir : ${taskDir}
+            |  input vcf     : ${staged('input_chr22.vcf.gz')}
+            |  cache         : ${staged('cache')}
+            |  fasta         : ${staged('chr22.fa.gz')}
+            |  output vcf    : ${outVcf}
+            |  records       : ${records} (expected ${expectedRecords})
+            |  body md5      : ${bodyMd5} (expected ${expectedMd5})
+            |  command (.command.sh):
+            |${command}
+            |""".stripMargin()
 
             assertAll(
                 { assert process.success },
-                { assert records == 50861 },
-                { assert md5.digest().encodeHex().toString() == 'f0a0a7021c498d2b4e38c9caf5959f77' }
+                { assert records == expectedRecords },
+                { assert bodyMd5 == expectedMd5 }
             )
         }
     }
