@@ -1,0 +1,4 @@
+# Local test run (dev/nf-test-local.sh)
+.nf-test/
+.testdata/
+modules/nf-core/untar/

@@ -3,7 +3,8 @@
 `vepyr annotate` is a VCF-in / VCF-out shell over [`annotate()`](api.md). It
 covers the configuration validated against Ensembl VEP — `--everything` with a
 reference FASTA — plus the options a workflow engine needs. Everything else,
-including the Polars `LazyFrame` path, stays on the [Python API](api.md).
+including the Polars `LazyFrame` path, stays on the [Python API](api.md). For
+Nextflow, the [`vepyr/annotate` module](nextflow.md) wraps this command.
 
 `pip install vepyr` (or `conda install -c conda-forge -c bioconda vepyr`)
 installs a `vepyr` executable alongside the library; no separate package is

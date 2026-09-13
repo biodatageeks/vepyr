@@ -11,54 +11,177 @@ cp -R modules/nf-core/vepyr /path/to/modules-fork/modules/nf-core/
 lint` treats this directory as a modules repository. nf-core/modules has its own
 copies — do not copy these upstream.
 
+## Testing
+
+The module ships Seqera Wave containers for `linux/amd64` and `linux/arm64`,
+built by `nf-core modules containers create vepyr/annotate` from
+`environment.yml` and listed under `containers:` in `meta.yml`. vepyr comes from
+its PyPI wheel inside them until bioconda ships 0.7.0 for linux-64 and
+linux-aarch64 ([bioconda-recipes#69191](https://github.com/bioconda/bioconda-recipes/pull/69191));
+then `environment.yml` switches to `bioconda::vepyr` and the containers are
+rebuilt.
+
+`main.nf` names only the amd64 image. `dev/` holds a runner that tests with the
+image for the host's own platform, plus an offline VEP parity test; it is not
+part of the nf-core submission.
+
+### Shared setup
+
+Needed on every host:
+
+- **Docker** — Docker Desktop on macOS; Docker Engine on Linux, with your user
+  allowed to run `docker` without `sudo`.
+- **Nextflow** (>= 24.10.2) and **Java 11+**.
+- **uv** and the project environment (`uv sync` at the repository root):
+  `stage-testdata.sh` uses it to build and verify the test data (it also needs
+  samtools, bgzip and tabix on `PATH`).
+- **Git LFS fixtures** — `git lfs pull` at the repository root, so the Parquet
+  caches and the chr22 FASTA are real files rather than pointers.
+- **nf-test** — no Homebrew formula exists. The installer writes an `nf-test`
+  launcher into the *current directory* (and the jar into `~/.nf-test/`), so run
+  it from a directory on your `PATH`, not from the repository:
+
+  ```bash
+  mkdir -p ~/.local/bin && cd ~/.local/bin
+  curl -fsSL https://get.nf-test.com | bash
+  cd - && nf-test version
+  ```
+
+  If `~/.local/bin` is not on `PATH`, add `export PATH="$HOME/.local/bin:$PATH"`
+  to `~/.zshrc` or `~/.bashrc`.
+
+### Running the tests
+
+Same command on every host:
+
+```bash
+cd nf-core-module
+./dev/nf-test-local.sh
+```
+
+The runner picks the host's platform, reads that platform's Docker image from
+`meta.yml`, fetches the UNTAR module the module test needs, stages the test data
+into `.testdata/` with `stage-testdata.sh`, and runs both test files with
+`dev/nf-test.config`.
+Extra arguments go to `nf-test`.
+
+| Host | Platform picked | Image (from `meta.yml`) |
+|---|---|---|
+| Apple Silicon (macOS) | `linux/arm64` | `containers.docker.linux/arm64` |
+| Linux aarch64 | `linux/arm64` | `containers.docker.linux/arm64` |
+| Linux x86_64 | `linux/amd64` | `containers.docker.linux/amd64` (the one `main.nf` names) |
+
+Always test on the host's native platform. On Apple Silicon the amd64 image dies
+with SIGILL under emulation — Docker's emulated guest has no AVX — which says
+nothing about the module or the package.
+
+Overrides:
+
+| Variable | Default | Use |
+|---|---|---|
+| `NF_TEST` | `nf-test` on `PATH` | a different nf-test, e.g. `NF_TEST="$(which nf-test)"` |
+| `VEPYR_DOCKER_PLATFORM` | from `uname -m` | force `linux/arm64` or `linux/amd64` |
+| `VEPYR_CONTAINER` | the `meta.yml` image for the platform | test another image, e.g. one built from an unreleased engine |
+
+### What runs
+
+- `modules/nf-core/vepyr/annotate/tests/main.nf.test` — the submission tests:
+  1,000 HG002 chr22 records against a release-116 cache with `--everything`,
+  and a stub.
+- `dev/tests/hg002_chr22.nf.test` — offline Ensembl VEP parity. All 50,861
+  normalized HG002 chr22 records annotated with `--everything` must reproduce
+  the record-body md5 of VEP 116 (`f0a0a7021c498d2b4e38c9caf5959f77`). It prints
+  the task work dir, the input, cache, FASTA and output paths, and the exact
+  `vepyr annotate` command. It reads `tests/data/hg002_chr22/` (~30 MB, Parquet
+  and FASTA in LFS): a cache trimmed to the rows that run reads, plus a bgzip
+  FASTA passed with `[ fai, gzi ]` in the index slot. Rebuild it from the
+  repository root with `uv run python tests/data/hg002_chr22/prepare.py`.
+
+The golden snapshot (`main.nf.test.snap`) waits for the fixture on
+nf-core/test-datasets — see step 3 below — so do not commit one produced from
+the local `.testdata/`.
+
+### Running nf-test directly
+
+`dev/nf-test-local.sh` sets everything up; to run `nf-test` yourself — say,
+against published test data instead of `.testdata/` — set the variables
+`dev/nf-test.config` reads and run from `nf-core-module/`:
+
+```bash
+cd nf-core-module
+
+# Module tests, test data from the nf-core/test-datasets#2270 branch (Apple Silicon)
+VEPYR_DOCKER_PLATFORM=linux/arm64 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0 \
+VEPYR_NF_TESTDATA=https://raw.githubusercontent.com/mwiewior/test-datasets/vepyr-annotate/data/ \
+nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --config dev/nf-test.config
+
+# Offline VEP parity test
+VEPYR_DOCKER_PLATFORM=linux/arm64 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0 \
+VEPYR_HG002_CHR22="$PWD/../tests/data/hg002_chr22" \
+nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
+```
+
+| Variable | Read by | Value |
+|---|---|---|
+| `VEPYR_DOCKER_PLATFORM` | `dev/local.config` | `linux/arm64` (Apple Silicon, Linux aarch64) or `linux/amd64` (Linux x86_64) |
+| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:d7cf9a888587f5b0` (arm64) or `…:00a5ec7681bdfa20` (amd64) |
+| `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above at the #2270 branch. |
+| `VEPYR_HG002_CHR22` | `dev/local.config` | absolute path to `tests/data/hg002_chr22`; the parity test only |
+
+The test appends file paths to `VEPYR_NF_TESTDATA`, so the base URL itself is
+never fetched — opening it in a browser gives 404, because
+raw.githubusercontent.com serves files, not directories.
+
+The module test needs `modules/nf-core/untar/`; `dev/nf-test-local.sh` fetches
+it on first run.
+
+**Snapshots.** Each run of `main.nf.test` compares against, or creates,
+`modules/nf-core/vepyr/annotate/tests/main.nf.test.snap`. A leftover file from
+an earlier run — for instance one where a task failed and nf-test recorded empty
+outputs — fails the next run with `Different Snapshot`. Delete it, or pass
+`--update-snapshot` to rewrite it. Commit one only when it comes from nf-core's
+published URLs (`VEPYR_NF_TESTDATA` unset), after #2270 merges.
+
 ## Linting
 
 ```bash
 uvx --from nf-core nf-core modules lint vepyr/annotate
 ```
 
-Requires `nextflow` on `PATH`. Current result: **53 passed, 0 warnings, 2 failed**.
-Both failures are upstream blockers rather than defects, and both clear on their
-own once the steps below are done:
+Requires `nextflow` on `PATH`. Current result: **72 passed, 0 warnings, 1 failed**.
+The failure is an upstream blocker rather than a defect, and clears once the
+steps below are done:
 
-- `bioconda_version` — `bioconda::vepyr=0.6.0` cannot be resolved because vepyr is
-  not on bioconda yet (step 2).
 - `test_snapshot_exists` — `main.nf.test.snap` can only be produced by a real run
-  (step 5).
+  against the published test data (step 4).
 
-Treat any *third* failure as a genuine regression.
+Treat any *second* failure as a genuine regression.
 
 ## Remaining work, in order
 
-1. **Release vepyr 0.6.0 to PyPI.** The CLI this module wraps first ships in 0.6.0.
-2. **Update [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recipes/pull/68869) to 0.6.0.**
-   Bump `version`, replace `sha256` with the 0.6.0 sdist digest, and keep the
-   `vepyr --version` / `vepyr annotate --help` test commands added in
-   `bioconda-recipe/meta.yaml`. Bumping the open PR rather than filing a follow-up
-   avoids ever publishing a container without a `vepyr` executable.
+1. **~~Get vepyr onto bioconda.~~** Done: 0.6.0 merged in
+   [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recipes/pull/68869)
+   (linux-64, osx-64, osx-arm64 only).
+2. **~~Resolve the container URIs.~~** Done with vepyr from PyPI:
+   `nf-core modules containers create vepyr/annotate` built Docker and
+   Singularity images for linux/amd64 and linux/arm64, wrote them and the conda
+   lock files into `meta.yml`, and set the amd64 URIs in `main.nf`.
 
-   As of 2026-09-07 that PR is open with every check green (Lint, Linux, OSX-64,
-   ARM) for py310-py313 on linux-64 / osx-64 / osx-arm64, so the bump is the only
-   thing standing between it and a merge.
-
-   Its `@BiocondaBot please fetch artifacts` run does publish Docker images, but
-   they are **not usable here**: they are tarballs inside the linux-64 zip, loaded
-   with `docker load`, not registry-hosted — and they are built from 0.5.0, which
-   has no `vepyr` executable at all.
-3. **Resolve the container URIs.** Replace `PLACEHOLDER_DOCKER_URI` and
-   `PLACEHOLDER_SINGULARITY_URI` in `main.nf` with a Seqera Wave image built from
-   `environment.yml` (https://seqera.io/containers/ emits both the Docker and the
-   Singularity URI for a package list).
-
-   Note this cannot be a plain `quay.io/biocontainers/vepyr:...` image. Bioconda
-   publishes one container per package, and `environment.yml` needs two — vepyr for
-   annotation and htslib for the `tabix` call that indexes the output. Wave builds
-   the combined image, and it can only do so once vepyr is on bioconda, so step 2
-   genuinely blocks this one.
-4. **PR the test data.** Run `./stage-testdata.sh <dir>`, then copy the resulting
-   `data/` tree into a clone of the `modules` branch of nf-core/test-datasets.
-   About 6 MB: `cache.tar.gz` (the chr1 Parquet cache), an 875 KB reference FASTA
-   with its `.fai`, and a 100-variant VCF with its `.tbi`. Unlike `ensemblvep/vep`
+   When [bioconda-recipes#69191](https://github.com/bioconda/bioconda-recipes/pull/69191)
+   ships 0.7.0 for linux-64 and linux-aarch64, replace the `pip:` entry in
+   `environment.yml` with `bioconda::vepyr=0.7.0` and rerun that command. (That PR
+   supersedes the BiocondaBot autobump #69182, which does not add linux-aarch64;
+   its ARM job passes build and tests but hits CircleCI's one-hour limit, because
+   the recipe builds every Python version although vepyr is abi3.)
+3. **PR the test data** ([nf-core/test-datasets#2270](https://github.com/nf-core/test-datasets/pull/2270)).
+   `./stage-testdata.sh <dir>` builds it from the offline chr22 fixture in
+   `tests/data/hg002_chr22` and verifies it against Ensembl VEP 116: 1,000
+   normalized HG002 chr22 records from chr22:20572272-21735973 (chosen for
+   coding, SIFT, motif and regulatory annotations) with their `.tbi`, a bgzip
+   GRCh38 `22:1-21745973` FASTA with `.fai` and `.gzi`, and `cache.tar.gz`, a
+   release-116 `ensembl` cache trimmed to the rows those records read. Unlike `ensemblvep/vep`
    — whose tests are effectively stubs because its cache is too large to host —
    this fixture is small enough that the module can assert on real annotation
    output.
@@ -70,9 +193,9 @@ Treat any *third* failure as a genuine regression.
    they read from `s3://annotation-cache/`, where Nextflow can list.) The nf-test
    extracts it in a `setup` block with the `UNTAR` module, the same pattern
    `kraken2/kraken2` uses for its database.
-5. **Generate the snapshot.** With 3 and 4 done:
+4. **Generate the snapshot.** With 2 and 3 done:
    `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --update-snapshot`
-6. **Open the nf-core/modules PR.**
+5. **Open the nf-core/modules PR.**
 
 ## Scope
 

@@ -24,6 +24,8 @@ vepyr is a Python library backed by a native Rust engine that provides:
 - **Polars integration** — annotation results returned as `polars.LazyFrame` for efficient downstream analysis
 - **Command line** — `vepyr annotate` covers the VCF-in / VCF-out path from a
   shell or a workflow engine, with Ensembl VEP's own flag spelling
+- **Nextflow module** — `vepyr/annotate`, an nf-core-style module with containers
+  for linux/amd64 and linux/arm64 — see [Nextflow](nextflow.md)
 - **VCF output** — write annotated VCFs with CSQ in the INFO column, compatible with downstream tools
 - **Streaming engine** — built on Apache Arrow and DataFusion for memory-efficient processing of large datasets
 - **Point-lookup Parquet cache** — partitioned, page-indexed Parquet shards for fast co-located variant lookups

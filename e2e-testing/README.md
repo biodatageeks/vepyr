@@ -165,6 +165,57 @@ The aggregate summary contains a per-contig performance table, root cause
 classification with GitHub issue links, field-level delta vs the previous
 benchmark, and mismatch examples per field.
 
+### `nextflow/` -- the same HG002 run through the nf-core module
+
+A Nextflow pipeline that annotates the normalized HG002 VCF with the
+[`vepyr/annotate` nf-core module](../nf-core-module/) instead of the Python API,
+reading the same workspace as `run_comparison.py`. Per contig it slices the
+normalized input (as `vcfio.slice_contig` does), runs `VEPYR_ANNOTATE` with
+`--everything` in the module's own container, and compares the record-body md5
+against the same contig of the Ensembl VEP reference -- the strict digest
+`md5_concordance.py` computes. It fails if any contig differs.
+
+Needs Docker, Nextflow and the workspace inputs below; no Python environment or
+vepyr build. The container matching the host architecture is picked
+automatically (arm64 on Apple Silicon).
+
+```bash
+cd nextflow
+
+# All autosomes, merged profile, release 116
+nextflow run main.nf
+
+# A few contigs, another profile; -resume reuses finished contigs
+nextflow run main.nf --profile ensembl --chroms chr21,chr22 -resume
+
+# Annotate only
+nextflow run main.nf --compare false
+```
+
+| Parameter | Default | |
+|---|---|---|
+| `--release` | `116` | `115` or `116`; selects the cache and the VEP reference |
+| `--profile` | `merged` | `merged`, `ensembl`, `refseq`, `merged_plugins` or `merged_phenotypeorthologous`; the pick-mode profiles are not available because `vepyr annotate` does not implement them |
+| `--chroms` | `all` | `chr1`-`chr22`, or a comma-separated list |
+| `--compare` | `true` | body md5 against the VEP reference |
+| `--data_dir` | `$DATA_VEPYR_DIR`, else `~/workspace/data_vepyr` | workspace root |
+| `--vcf` | `results/{release}/_shared/normalized.vcf.gz`, else `$DATA/input/HG002_normalized.vcf.gz` | normalized input (bgzip + `.tbi`) |
+| `--fasta` | `$DATA/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa` | needs `.fai` |
+| `--cache` | `$DATA/cache/{release}_GRCh38_{profile}` | Parquet cache |
+| `--vep` | the profile's reference under `$DATA/output/{release dir}/`, per contig from `plugins/` when it exists | needs `.tbi` |
+| `--plugin_cache` | `$DATA/cache/plugin_cache_{release}` | plugin profiles only; passed to the module, with `--plugin` flags in the reference's CSQ order |
+| `--workers` | `4` | `--fork` per contig |
+| `--max_parallel` | `2` | contigs annotated at once |
+| `--outdir` | `e2e-testing/results` | |
+
+Like `run_comparison.py`, `$DATA/{input,cache}/` falls back to the legacy
+`$DATA/` root.
+
+**Output**, under `results/{release}/nextflow_{profile}/`:
+`vepyr_parquet_{chrom}_{profile}.vcf.gz` (+ `.tbi`) per contig, and
+`md5_summary.tsv` with `chrom`, record counts, both body md5s and `MATCH` or
+`DIFFER`. Work files stay in `nextflow/work/` (ignored by git).
+
 ### `md5_concordance.py` -- byte-level agreement with Ensembl VEP
 
 `run_comparison.py` answers "is the annotation content the same?" by comparing
@@ -363,6 +414,9 @@ e2e-testing/
       annotate.py                      # the only vepyr importer
       report.py                        # aggregation, classification, Markdown
       cli.py                           # argparse and orchestration
+  nextflow/
+    main.nf                            # HG002 via the nf-core vepyr/annotate module
+    nextflow.config                    # params, per-architecture containers
   reports/
     fast_{chrom}_{profile}_{release}_report.json      # per-contig results
     fast_{span}_{profile}_{release}_summary_*.md      # timestamped aggregates
@@ -370,6 +424,7 @@ e2e-testing/
     {release}/
       _shared/normalized.vcf.gz        # normalized input, shared by every contig
       fast_{chrom}/                    # per-contig intermediate files
+      nextflow_{profile}/              # nextflow/ outputs and md5_summary.tsv
 ```
 
 Reports predating the release axis (`fast_{chrom}_{profile}_report.json`) are

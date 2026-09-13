@@ -19,7 +19,7 @@ nextflow_process {
             process {
                 """
                 input[0] = Channel.of([
-                    [ id:'115_GRCh38_ensembl' ],
+                    [ id:'116_GRCh38_ensembl' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
                 ])
                 """
@@ -39,12 +39,16 @@ nextflow_process {
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz.tbi', checkIfExists: true)
                 ])
                 input[1] = UNTAR.out.untar.collect()
+                // bgzip FASTA: its .gzi rides in the index slot with the .fai.
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa', checkIfExists: true),
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.fai', checkIfExists: true)
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
+                    [
+                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.fai', checkIfExists: true),
+                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.gzi', checkIfExists: true)
+                    ]
                 ])
-                input[3] = 115
+                input[3] = 116
                 input[4] = [[], []]
                 """
             }

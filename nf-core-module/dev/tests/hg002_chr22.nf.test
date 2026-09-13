@@ -1,0 +1,99 @@
+// Ensembl VEP parity on all 50,861 normalized HG002 chr22 records, offline.
+//
+// Reads the trimmed fixture in tests/data/hg002_chr22 (see its prepare.py) and
+// asserts the record-body md5 Ensembl VEP 116 --everything produced — the
+// strict digest md5_concordance.py computes. No VEP output is stored.
+//
+// Not part of the nf-core submission: run through dev/nf-test-local.sh, which
+// points params.hg002_chr22 at the fixture.
+nextflow_process {
+
+    name "Test Process VEPYR_ANNOTATE - HG002 chr22 VEP parity"
+    script "../../modules/nf-core/vepyr/annotate/main.nf"
+    process "VEPYR_ANNOTATE"
+
+    tag "vepyr/annotate"
+    tag "vep_parity"
+
+    test("homo_sapiens - hg002 chr22 - everything - matches Ensembl VEP 116") {
+        config "../../modules/nf-core/vepyr/annotate/tests/nextflow.config"
+
+        when {
+            process {
+                """
+                def fixture = params.hg002_chr22
+                input[0] = channel.of([
+                    [ id:'hg002_chr22' ],
+                    file(fixture + '/input_chr22.vcf.gz', checkIfExists: true),
+                    file(fixture + '/input_chr22.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = channel.value([
+                    [ id:'116_GRCh38_ensembl_chr22' ],
+                    file(fixture + '/cache', checkIfExists: true)
+                ])
+                // A bgzf FASTA opens only with its .gzi, so it rides in the index slot.
+                input[2] = channel.value([
+                    [ id:'GRCh38_chr22' ],
+                    file(fixture + '/chr22.fa.gz', checkIfExists: true),
+                    [
+                        file(fixture + '/chr22.fa.gz.fai', checkIfExists: true),
+                        file(fixture + '/chr22.fa.gz.gzi', checkIfExists: true)
+                    ]
+                ])
+                input[3] = 116
+                input[4] = [[], []]
+                """
+            }
+        }
+
+        then {
+            def expectedMd5 = 'f0a0a7021c498d2b4e38c9caf5959f77'
+            def expectedRecords = 50861
+
+            // md5 over record lines exactly as written, headers excluded.
+            def outVcf = java.nio.file.Paths.get(process.out.vcf[0][1].toString())
+            def md5 = java.security.MessageDigest.getInstance('MD5')
+            def records = 0
+            new java.util.zip.GZIPInputStream(new FileInputStream(outVcf.toString()))
+                .withReader('UTF-8') { reader ->
+                    reader.eachLine { line ->
+                        if (!line.startsWith('#')) {
+                            md5.update((line + '\n').getBytes('UTF-8'))
+                            records++
+                        }
+                    }
+                }
+            def bodyMd5 = md5.digest().encodeHex().toString()
+
+            // The output sits in the task work dir, next to the staged inputs
+            // (symlinks back into the fixture) and the script Nextflow ran.
+            def taskDir = outVcf.parent
+            def staged = { name -> taskDir.resolve(name).toRealPath() }
+            // .command.sh continues with Nextflow's topic/eval capture; keep only
+            // the module's own script.
+            def command = java.nio.file.Files.readString(taskDir.resolve('.command.sh'))
+                .readLines()
+                .takeWhile { !it.startsWith('# capture process environment') }
+                .findAll { !it.startsWith('#!') && it.trim() }
+                .collect { '    ' + it }
+                .join('\n')
+            println """
+            |  task work dir : ${taskDir}
+            |  input vcf     : ${staged('input_chr22.vcf.gz')}
+            |  cache         : ${staged('cache')}
+            |  fasta         : ${staged('chr22.fa.gz')}
+            |  output vcf    : ${outVcf}
+            |  records       : ${records} (expected ${expectedRecords})
+            |  body md5      : ${bodyMd5} (expected ${expectedMd5})
+            |  command (.command.sh):
+            |${command}
+            |""".stripMargin()
+
+            assertAll(
+                { assert process.success },
+                { assert records == expectedRecords },
+                { assert bodyMd5 == expectedMd5 }
+            )
+        }
+    }
+}

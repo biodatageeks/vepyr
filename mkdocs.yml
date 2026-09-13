@@ -17,6 +17,7 @@ nav:
       - Plugins: plugins.md
       - Polars DataFrames: dataframes.md
       - Command line: cli.md
+      - Nextflow: nextflow.md
       - API: api.md
       - Performance: performance.md
       - Testing vs Ensembl VEP: testing-vep.md
