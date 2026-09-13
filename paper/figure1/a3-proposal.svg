@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="630" viewBox="1100 750 1260 630">
+<defs>
+<marker id="arrow-ink" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#111111" /></marker>
+<marker id="arrow-muted" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#555555" /></marker>
+</defs>
+<rect width="1260" height="630" fill="white" x="1100" y="750" />
+<rect x="1100" y="750" width="1260" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5" />
+<text x="1128.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="1128.0" dy="0.0" font-weight="700">A3</tspan></text>
+<text x="1198.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="1198.0" dy="0.0" font-weight="700">Selective reads · variation/chr1.parquet</tspan></text>
+<rect x="2286" y="768" width="48" height="34" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="2310.0" y="794.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="2310.0" dy="0.0" font-weight="700">ii</tspan></text>
+<text x="1130.0" y="844.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="1130.0" dy="0.0" font-weight="400">Row groups → columns</tspan><tspan x="1130.0" dy="22.9" font-weight="400">→ pages (schematic)</tspan></text>
+<rect x="1380" y="827" width="336" height="40" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="1548.0" y="853.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1548.0" dy="0.0" font-weight="400">Requested chr1 positions</tspan></text>
+<rect x="1858" y="827" width="455" height="40" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="2085.5" y="853.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="2085.5" dy="0.0" font-weight="400">Required fields + matching dependencies</tspan></text>
+<polyline points="1481,867 1481,895" fill="none" stroke="#111111" stroke-width="1.5" stroke-dasharray="8 6" marker-end="url(#arrow-ink)" />
+<polyline points="1981,867 1981,895" fill="none" stroke="#111111" stroke-width="1.5" stroke-dasharray="8 6" marker-end="url(#arrow-ink)" />
+<rect x="1126" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1231.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1231.0" dy="0.0" font-weight="700">1  Load metadata</tspan></text>
+<rect x="1376" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1481.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1481.0" dy="0.0" font-weight="700">2  Resolve pages</tspan></text>
+<rect x="1626" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1731.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1731.0" dy="0.0" font-weight="700">3  Locate rows</tspan></text>
+<rect x="1876" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1981.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1981.0" dy="0.0" font-weight="700">4  Take payload</tspan></text>
+<rect x="2126" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="2231.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="2231.0" dy="0.0" font-weight="700">5  Return rows</tspan></text>
+<polyline points="1336,923 1374,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<polyline points="1586,923 1624,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<polyline points="1836,923 1874,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<polyline points="2086,923 2124,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<rect x="1126" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1184.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1184.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1238.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1238.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="1292.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1292.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1134" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1147.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1147.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1161" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1164" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1032" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1215" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1218" y="1010" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1218" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1269" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1272" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1134" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1147.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1147.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1161" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1164" y="1089" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1215" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1218" y="1089" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1218" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1269" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1272" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1134" y="1172" width="194" height="20" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1231.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="white"><tspan x="1231.0" dy="0.0" font-weight="400">Footer + page indexes</tspan></text>
+<rect x="1376" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1434.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1434.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1488.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1488.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="1542.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1542.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1384" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1397.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1397.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1411" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1414" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1414" y="1032" width="42" height="18" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<rect x="1414" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1465" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1468" y="1010" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1468" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1519" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1522" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1384" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1397.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1397.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1411" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1414" y="1089" width="42" height="18" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<rect x="1414" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1414" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1465" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1468" y="1089" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1468" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1519" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1522" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1384" y="1172" width="194" height="20" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<text x="1481.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="#555555"><tspan x="1481.0" dy="0.0" font-weight="400">…</tspan></text>
+<rect x="1626" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1684.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1684.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1738.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1738.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="1792.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1792.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1634" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1647.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1647.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1661" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1664" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1664" y="1032" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1669,1041.0 1701,1041.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1664" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1715" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1718" y="1010" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1718" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1769" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1772" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1634" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1647.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1647.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1661" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1664" y="1089" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1669,1098.0 1701,1098.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1664" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1664" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1715" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1718" y="1089" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1718" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1769" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1772" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1634" y="1172" width="194" height="20" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<text x="1731.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="#555555"><tspan x="1731.0" dy="0.0" font-weight="400">…</tspan></text>
+<rect x="1876" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1934.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1934.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1988.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1988.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="2042.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="2042.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1884" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1897.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1897.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1911" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1914" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1914" y="1032" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1919,1041.0 1951,1041.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1914" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1965" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1968" y="1010" width="42" height="29" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1973,1024.5 2005,1024.5" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1968" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2019" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="2022" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1884" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1897.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1897.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1911" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1914" y="1089" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1919,1098.0 1951,1098.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1914" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1914" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1965" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1968" y="1089" width="42" height="29" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1973,1103.5 2005,1103.5" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1968" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2019" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="2022" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1884" y="1172" width="194" height="20" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<text x="1981.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="#555555"><tspan x="1981.0" dy="0.0" font-weight="400">…</tspan></text>
+<text x="2231.0" y="996.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="2231.0" dy="0.0" font-weight="700">Arrow cache rows</tspan></text>
+<rect x="2132" y="1013" width="198" height="99" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<rect x="2132" y="1013" width="198" height="30" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1" />
+<text x="2170.5" y="1033.5" text-anchor="middle" font-family="Courier New, monospace" font-size="15" font-weight="400" fill="#111111"><tspan x="2170.5" dy="0.0" font-weight="400">start</tspan></text>
+<text x="2269.5" y="1033.5" text-anchor="middle" font-family="Courier New, monospace" font-size="15" font-weight="400" fill="#111111"><tspan x="2269.5" dy="0.0" font-weight="400">payload</tspan></text>
+<polyline points="2209,1013 2209,1112" fill="none" stroke="#111111" stroke-width="1" />
+<polyline points="2144,1061 2194,1061" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2222,1061 2314,1061" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2144,1095 2194,1095" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2222,1095 2314,1095" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2231,1113 2231,1145" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<rect x="2132" y="1146" width="198" height="51" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="2231.0" y="1168.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#111111"><tspan x="2231.0" dy="0.0" font-weight="400">Allele match</tspan><tspan x="2231.0" dy="21.6" font-weight="400">+ annotation</tspan></text>
+<text x="1232.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1232.0" dy="0.0" font-weight="400">Schema + page indexes</tspan><tspan x="1232.0" dy="20.3" font-weight="400">Build PageDir</tspan></text>
+<text x="1482.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1482.0" dy="0.0" font-weight="400">PageDir: start min–max</tspan><tspan x="1482.0" dy="20.3" font-weight="400">Candidate row ranges</tspan></text>
+<text x="1732.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1732.0" dy="0.0" font-weight="400">Read start pages only</tspan><tspan x="1732.0" dy="20.3" font-weight="400">Exact position offsets</tspan></text>
+<text x="1982.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1982.0" dy="0.0" font-weight="400">Read required pages</tspan><tspan x="1982.0" dy="20.3" font-weight="400">Select located rows</tspan></text>
+<text x="2232.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="2232.0" dy="0.0" font-weight="400">Cache lookup result</tspan><tspan x="2232.0" dy="20.3" font-weight="400">feeds the A1 engine</tspan></text>
+<polyline points="1126,1270 2336,1270" fill="none" stroke="#b8b8b8" stroke-width="1" />
+<text x="1130.0" y="1300.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#111111"><tspan x="1130.0" dy="0.0" font-weight="400">K: start  |  P: required payload  |  X: other fields</tspan></text>
+<rect x="1692" y="1287" width="23" height="13" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<text x="1725.0" y="1299.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111111"><tspan x="1725.0" dy="0.0" font-weight="400">not accessed</tspan></text>
+<rect x="1858" y="1287" width="23" height="13" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="1891.0" y="1299.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111111"><tspan x="1891.0" dy="0.0" font-weight="400">candidate</tspan></text>
+<rect x="2018" y="1287" width="23" height="13" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="2053.0" y="1299.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111111"><tspan x="2053.0" dy="0.0" font-weight="400">read; white line = selected row</tspan></text>
+<text x="1130.0" y="1336.4" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="1130.0" dy="0.0" font-weight="400">Both warm/cold sorted runs are searched; tiers are not row groups.</tspan><tspan x="1130.0" dy="21.6" font-weight="400">Schematic access states, not measured I/O; page boundaries differ across columns.</tspan></text>
+</svg>

@@ -1,0 +1,342 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="2200" viewBox="0 0 2400 2200">
+<defs>
+<marker id="arrow-ink" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#111111" /></marker>
+<marker id="arrow-muted" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#555555" /></marker>
+</defs>
+<rect width="100%" height="100%" fill="white" />
+<text x="44.0" y="61.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="44.0" dy="0.0" font-weight="700">A1</tspan></text>
+<text x="114.0" y="59.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="114.0" dy="0.0" font-weight="700">Annotation architecture</tspan></text>
+<rect x="40" y="94" width="250" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="165.0" y="118.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="165.0" dy="0.0" font-weight="700">VEP-compatible scope</tspan></text>
+<text x="309.0" y="113.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#555555"><tspan x="309.0" dy="0.0" font-weight="400">Human GRCh38 · SNVs + indels · releases 115 / 116</tspan><tspan x="309.0" dy="25.4" font-weight="400">Ensembl / RefSeq / merged · --everything · HGVS</tspan></text>
+<rect x="1085" y="94" width="220" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="1195.0" y="118.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1195.0" dy="0.0" font-weight="700">Added interfaces</tspan></text>
+<text x="1329.0" y="113.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1329.0" dy="0.0" font-weight="400">Arrow streaming · lazy queries · DataFrame API / SQL · declarative plugins</tspan><tspan x="1329.0" dy="24.1" font-weight="400">SV parity not qualified; multi-sample VCF I/O supported, cohort parity not qualified</tspan></text>
+<rect x="300" y="270" width="1330" height="207" rx="14" fill="white" stroke="#111111" stroke-width="1.6" stroke-dasharray="8 6" />
+<rect x="323" y="253" width="315" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="480.5" y="277.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="480.5" dy="0.0" font-weight="700">Native Rust / DataFusion</tspan></text>
+<rect x="60" y="321" width="175" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="147.5" y="359.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#111111"><tspan x="147.5" dy="0.0" font-weight="700">Input VCF</tspan><tspan x="147.5" dy="26.7" font-weight="400">BGZF + index</tspan></text>
+<rect x="330" y="321" width="220" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="440.0" y="359.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="440.0" dy="0.0" font-weight="700">VCF</tspan><tspan x="440.0" dy="27.9" font-weight="400">TableProvider</tspan></text>
+<rect x="675" y="296" width="495" height="148" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<rect x="695" y="312" width="455" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="922.5" y="338.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="922.5" dy="0.0" font-weight="700">annotate_vep() · table function</tspan></text>
+<text x="922.5" y="386.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="922.5" dy="0.0" font-weight="400">Allele match → SO consequences + HGVS</tspan><tspan x="922.5" dy="25.4" font-weight="400">Known variants / AF · optional plugins</tspan></text>
+<rect x="1290" y="321" width="275" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1427.5" y="359.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="1427.5" dy="0.0" font-weight="700">Arrow RecordBatch</tspan><tspan x="1427.5" dy="27.9" font-weight="400">stream</tspan></text>
+<rect x="1740" y="310" width="275" height="110" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1877.5" y="346.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1877.5" dy="0.0" font-weight="700">Polars LazyFrame</tspan><tspan x="1877.5" dy="25.4" font-weight="400">lazy IO source</tspan><tspan x="1877.5" dy="25.4" font-weight="400">executes on demand</tspan></text>
+<rect x="2110" y="321" width="245" height="88" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="2232.5" y="359.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="2232.5" dy="0.0" font-weight="700">DataFrame API / SQL</tspan><tspan x="2232.5" dy="24.1" font-weight="400">filter · join · sink</tspan></text>
+<text x="2094.0" y="286.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="2094.0" dy="0.0" font-weight="400">Polars / polars-bio</tspan></text>
+<polyline points="235,365 330,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="550,365 675,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="1170,365 1290,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="1565,365 1740,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="2015,365 2110,365" fill="none" stroke="#111111" stroke-width="2.2" marker-end="url(#arrow-ink)" />
+<polyline points="1877,310 1877,210 923,210 923,296" fill="none" stroke="#111111" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#arrow-ink)" />
+<text x="1412.5" y="175.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1412.5" dy="0.0" font-weight="400">PUSH-DOWN: selected columns · genomic regions · LIMIT</tspan><tspan x="1412.5" dy="25.4" font-weight="400">Needed HGVS / known-variant / CSQ / plugin work only</tspan></text>
+<text x="1729.0" y="461.4" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1729.0" dy="0.0" font-weight="400">AF / consequence predicates:</tspan><tspan x="1729.0" dy="24.1" font-weight="400">filter annotated batches</tspan></text>
+<rect x="60" y="531" width="500" height="88" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="310.0" y="569.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="310.0" dy="0.0" font-weight="700">Partitioned Parquet cache</tspan><tspan x="310.0" dy="27.9" font-weight="400">Core entities + optional plugin caches</tspan></text>
+<rect x="51" y="522" width="518" height="106" rx="0" fill="none" stroke="#888888" stroke-width="1.5" stroke-dasharray="8 6" />
+<rect x="61" y="504" width="44" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="83.0" y="530.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="83.0" dy="0.0" font-weight="700">i</tspan></text>
+<rect x="715" y="514" width="455" height="115" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="942.5" y="553.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="942.5" dy="0.0" font-weight="700">Cache access</tspan><tspan x="942.5" dy="25.4" font-weight="400">Variation / plugins: page lookup</tspan><tspan x="942.5" dy="25.4" font-weight="400">Transcript context: scan → COITree</tspan></text>
+<polyline points="560,575 715,575" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="923,514 923,444" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="1290" y="622" width="275" height="65" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1427.5" y="649.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1427.5" dy="0.0" font-weight="700">Reference FASTA</tspan><tspan x="1427.5" dy="24.1" font-weight="400">HGVS / sequence context</tspan></text>
+<polyline points="1290,655 1220,655 1220,420 1170,420" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<rect x="2110" y="519" width="245" height="80" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="2232.5" y="553.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="2232.5" dy="0.0" font-weight="700">Annotated VCF</tspan><tspan x="2232.5" dy="25.4" font-weight="400">CSQ + INFO / FORMAT</tspan></text>
+<polyline points="1427,409 1427,559 2110,559" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<text x="1664.0" y="643.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="1664.0" dy="0.0" font-weight="400">Reference workflow: VEP → VCF → filter_vep</tspan><tspan x="1664.0" dy="24.1" font-weight="400">Solid arrows: data. Dashed return: query demand.</tspan></text>
+<polyline points="51,628 40,750" fill="none" stroke="#888888" stroke-width="1.5" />
+<polyline points="569,628 990,750" fill="none" stroke="#888888" stroke-width="1.5" />
+<rect x="40" y="750" width="950" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5" />
+<text x="66.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="66.0" dy="0.0" font-weight="700">A2</tspan></text>
+<text x="136.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="136.0" dy="0.0" font-weight="700">Cache construction</tspan></text>
+<rect x="914" y="768" width="48" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="938.0" y="794.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="938.0" dy="0.0" font-weight="700">i</tspan></text>
+<rect x="66" y="832" width="238" height="72" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="185.0" y="862.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="185.0" dy="0.0" font-weight="700">Ensembl VEP cache</tspan><tspan x="185.0" dy="24.1" font-weight="400">Storable / Sereal</tspan></text>
+<rect x="348" y="832" width="324" height="72" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="510.0" y="862.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="700">vepyr.build_cache()</tspan><tspan x="510.0" dy="24.1" font-weight="400">Ensembl cache conversion</tspan></text>
+<rect x="66" y="968" width="238" height="98" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="185.0" y="1000.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="185.0" dy="0.0" font-weight="700">Plugin source files</tspan><tspan x="185.0" dy="22.9" font-weight="400">TSV / CSV / Parquet</tspan><tspan x="185.0" dy="22.9" font-weight="400">VCF / BED (4 columns)</tspan></text>
+<rect x="348" y="932" width="324" height="134" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<rect x="348" y="932" width="324" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="510.0" y="956.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="510.0" dy="0.0" font-weight="700">Declarative plugin · TOML</tspan></text>
+<text x="510.0" y="996.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="700">vepyr.build_plugin_cache()</tspan></text>
+<text x="510.0" y="1027.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="510.0" dy="0.0" font-weight="400">SQL ingestion</tspan><tspan x="510.0" dy="22.9" font-weight="400">schema + output field mapping</tspan></text>
+<rect x="754" y="864" width="207" height="200" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="857.5" y="914.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="857.5" dy="0.0" font-weight="700">Parquet shards</tspan></text>
+<text x="857.5" y="971.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="857.5" dy="0.0" font-weight="400">Core + plugins</tspan><tspan x="857.5" dy="24.1" font-weight="400">per chromosome</tspan><tspan x="857.5" dy="24.1" font-weight="400">+ metadata</tspan></text>
+<text x="723.0" y="844.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="723.0" dy="0.0" font-weight="400">Shared storage format</tspan></text>
+<text x="754.0" y="1089.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="754.0" dy="0.0" font-weight="400">Separate schemas</tspan></text>
+<polyline points="304,868 348,868" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="304,1017 348,1017" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="672,868 710,868 710,922 754,922" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="672,1017 710,1017 710,997 754,997" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<text x="79.0" y="1122.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="700" fill="#111111"><tspan x="79.0" dy="0.0" font-weight="700">cache_dir/  [release + source]</tspan></text>
+<polyline points="94,1142 94,1321" fill="none" stroke="#888888" stroke-width="1.2" />
+<polyline points="94,1153 124,1153" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1159.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="700" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="700">variation/</tspan></text>
+<polyline points="94,1181 124,1181" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1187.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">transcript/</tspan></text>
+<polyline points="94,1209 124,1209" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1215.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">exon/</tspan></text>
+<polyline points="94,1237 124,1237" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1243.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_core/</tspan></text>
+<polyline points="94,1265 124,1265" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1271.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">translation_sift/</tspan></text>
+<polyline points="94,1293 124,1293" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1299.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">regulatory/</tspan></text>
+<polyline points="94,1321 124,1321" fill="none" stroke="#888888" stroke-width="1.2" />
+<text x="138.0" y="1327.3" text-anchor="start" font-family="Courier New, monospace" font-size="20" font-weight="400" fill="#111111"><tspan x="138.0" dy="0.0" font-weight="400">motif/  [116]</tspan></text>
+<rect x="641" y="1137" width="319" height="38" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="800.5" y="1163.7" text-anchor="middle" font-family="Courier New, monospace" font-size="21" font-weight="400" fill="#111111"><tspan x="800.5" dy="0.0" font-weight="700">chr1.parquet</tspan></text>
+<polyline points="400,1156 641,1156" fill="none" stroke="#111111" stroke-width="1.2" />
+<rect x="587" y="1140" width="42" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="608.0" y="1164.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="608.0" dy="0.0" font-weight="700">ii</tspan></text>
+<text x="548.0" y="1197.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Each entity: chr*.parquet + manifest</tspan></text>
+<text x="534.0" y="1232.6" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="700" fill="#111111"><tspan x="534.0" dy="0.0" font-weight="700">plugin_cache_root/plugin/&lt;name&gt;/</tspan></text>
+<rect x="544" y="1248" width="418" height="60" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="753.0" y="1273.1" text-anchor="middle" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="753.0" dy="0.0" font-weight="400">chr1.parquet · chr2.parquet · …</tspan><tspan x="753.0" dy="22.9" font-weight="400">manifest.json · provenance</tspan></text>
+<text x="548.0" y="1330.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="548.0" dy="0.0" font-weight="400">Warm/cold tiers inherited from variation</tspan></text>
+<text x="79.0" y="1363.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="79.0" dy="0.0" font-weight="400">vepyr data plugins: TOML + SQL  |  VEP plugin API: Perl modules</tspan></text>
+<polyline points="960,1137 1100,750" fill="none" stroke="#888888" stroke-width="1.5" />
+<polyline points="960,1175 1100,1380" fill="none" stroke="#888888" stroke-width="1.5" />
+<rect x="1100" y="750" width="1260" height="630" rx="0" fill="white" stroke="#888888" stroke-width="1.5" />
+<text x="1128.0" y="797.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="1128.0" dy="0.0" font-weight="700">A3</tspan></text>
+<text x="1198.0" y="795.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="1198.0" dy="0.0" font-weight="700">Selective reads · variation/chr1.parquet</tspan></text>
+<rect x="2286" y="768" width="48" height="34" rx="0" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="2310.0" y="794.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="2310.0" dy="0.0" font-weight="700">ii</tspan></text>
+<text x="1130.0" y="844.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="1130.0" dy="0.0" font-weight="400">Row groups → columns</tspan><tspan x="1130.0" dy="22.9" font-weight="400">→ pages (schematic)</tspan></text>
+<rect x="1380" y="827" width="336" height="40" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="1548.0" y="853.9" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1548.0" dy="0.0" font-weight="400">Requested chr1 positions</tspan></text>
+<rect x="1858" y="827" width="455" height="40" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="2085.5" y="853.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="2085.5" dy="0.0" font-weight="400">Required fields + matching dependencies</tspan></text>
+<polyline points="1481,867 1481,895" fill="none" stroke="#111111" stroke-width="1.5" stroke-dasharray="8 6" marker-end="url(#arrow-ink)" />
+<polyline points="1981,867 1981,895" fill="none" stroke="#111111" stroke-width="1.5" stroke-dasharray="8 6" marker-end="url(#arrow-ink)" />
+<rect x="1126" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1231.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1231.0" dy="0.0" font-weight="700">1  Load metadata</tspan></text>
+<rect x="1376" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1481.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1481.0" dy="0.0" font-weight="700">2  Resolve pages</tspan></text>
+<rect x="1626" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1731.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1731.0" dy="0.0" font-weight="700">3  Locate rows</tspan></text>
+<rect x="1876" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1981.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="1981.0" dy="0.0" font-weight="700">4  Take payload</tspan></text>
+<rect x="2126" y="900" width="210" height="47" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="2231.0" y="930.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="white"><tspan x="2231.0" dy="0.0" font-weight="700">5  Return rows</tspan></text>
+<polyline points="1336,923 1374,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<polyline points="1586,923 1624,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<polyline points="1836,923 1874,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<polyline points="2086,923 2124,923" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<rect x="1126" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1184.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1184.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1238.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1238.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="1292.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1292.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1134" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1147.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1147.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1161" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1164" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1032" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1215" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1218" y="1010" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1218" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1269" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1272" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1134" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1147.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1147.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1161" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1164" y="1089" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1164" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1215" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1218" y="1089" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1218" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1269" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1272" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1272" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1134" y="1172" width="194" height="20" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="1231.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="white"><tspan x="1231.0" dy="0.0" font-weight="400">Footer + page indexes</tspan></text>
+<rect x="1376" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1434.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1434.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1488.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1488.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="1542.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1542.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1384" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1397.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1397.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1411" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1414" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1414" y="1032" width="42" height="18" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<rect x="1414" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1465" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1468" y="1010" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1468" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1519" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1522" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1384" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1397.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1397.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1411" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1414" y="1089" width="42" height="18" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<rect x="1414" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1414" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1465" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1468" y="1089" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1468" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1519" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1522" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1522" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1384" y="1172" width="194" height="20" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<text x="1481.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="#555555"><tspan x="1481.0" dy="0.0" font-weight="400">…</tspan></text>
+<rect x="1626" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1684.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1684.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1738.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1738.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="1792.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1792.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1634" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1647.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1647.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1661" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1664" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1664" y="1032" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1669,1041.0 1701,1041.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1664" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1715" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1718" y="1010" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1718" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1769" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1772" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1634" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1647.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1647.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1661" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1664" y="1089" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1669,1098.0 1701,1098.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1664" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1664" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1715" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1718" y="1089" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1718" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1769" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1772" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1772" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1634" y="1172" width="194" height="20" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<text x="1731.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="#555555"><tspan x="1731.0" dy="0.0" font-weight="400">…</tspan></text>
+<rect x="1876" y="972" width="210" height="225" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1934.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1934.0" dy="0.0" font-weight="700">K</tspan></text>
+<text x="1988.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="1988.0" dy="0.0" font-weight="700">P</tspan></text>
+<text x="2042.0" y="994.7" text-anchor="middle" font-family="Courier New, monospace" font-size="17" font-weight="700" fill="#111111"><tspan x="2042.0" dy="0.0" font-weight="700">X</tspan></text>
+<rect x="1884" y="1005" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1897.0" y="1043.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1897.0" dy="0.0" font-weight="400">0</tspan></text>
+<rect x="1911" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1914" y="1010" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1914" y="1032" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1919,1041.0 1951,1041.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1914" y="1054" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1965" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1968" y="1010" width="42" height="29" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1973,1024.5 2005,1024.5" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1968" y="1043" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2019" y="1009" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="2022" y="1010" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1028" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1055" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1884" y="1084" width="194" height="73" rx="0" fill="white" stroke="#999999" stroke-width="1" />
+<text x="1897.0" y="1122.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" fill="#555555"><tspan x="1897.0" dy="0.0" font-weight="400">1</tspan></text>
+<rect x="1911" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1914" y="1089" width="42" height="18" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1919,1098.0 1951,1098.0" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1914" y="1111" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1914" y="1133" width="42" height="18" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1965" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="1968" y="1089" width="42" height="29" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<polyline points="1973,1103.5 2005,1103.5" fill="none" stroke="white" stroke-width="1.6" />
+<rect x="1968" y="1122" width="42" height="29" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2019" y="1088" width="48" height="64" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<rect x="2022" y="1089" width="42" height="14" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1107" width="42" height="23" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="2022" y="1134" width="42" height="17" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<rect x="1884" y="1172" width="194" height="20" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" />
+<text x="1981.0" y="1190.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="400" fill="#555555"><tspan x="1981.0" dy="0.0" font-weight="400">…</tspan></text>
+<text x="2231.0" y="996.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="2231.0" dy="0.0" font-weight="700">Arrow cache rows</tspan></text>
+<rect x="2132" y="1013" width="198" height="99" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<rect x="2132" y="1013" width="198" height="30" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1" />
+<text x="2170.5" y="1033.5" text-anchor="middle" font-family="Courier New, monospace" font-size="15" font-weight="400" fill="#111111"><tspan x="2170.5" dy="0.0" font-weight="400">start</tspan></text>
+<text x="2269.5" y="1033.5" text-anchor="middle" font-family="Courier New, monospace" font-size="15" font-weight="400" fill="#111111"><tspan x="2269.5" dy="0.0" font-weight="400">payload</tspan></text>
+<polyline points="2209,1013 2209,1112" fill="none" stroke="#111111" stroke-width="1" />
+<polyline points="2144,1061 2194,1061" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2222,1061 2314,1061" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2144,1095 2194,1095" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2222,1095 2314,1095" fill="none" stroke="#111111" stroke-width="3" />
+<polyline points="2231,1113 2231,1145" fill="none" stroke="#111111" stroke-width="1.8" marker-end="url(#arrow-ink)" />
+<rect x="2132" y="1146" width="198" height="51" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="2231.0" y="1168.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#111111"><tspan x="2231.0" dy="0.0" font-weight="400">Allele match</tspan><tspan x="2231.0" dy="21.6" font-weight="400">+ annotation</tspan></text>
+<text x="1232.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1232.0" dy="0.0" font-weight="400">Schema + page indexes</tspan><tspan x="1232.0" dy="20.3" font-weight="400">Build PageDir</tspan></text>
+<text x="1482.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1482.0" dy="0.0" font-weight="400">PageDir: start min–max</tspan><tspan x="1482.0" dy="20.3" font-weight="400">Candidate row ranges</tspan></text>
+<text x="1732.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1732.0" dy="0.0" font-weight="400">Read start pages only</tspan><tspan x="1732.0" dy="20.3" font-weight="400">Exact position offsets</tspan></text>
+<text x="1982.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1982.0" dy="0.0" font-weight="400">Read required pages</tspan><tspan x="1982.0" dy="20.3" font-weight="400">Select located rows</tspan></text>
+<text x="2232.0" y="1227.7" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="2232.0" dy="0.0" font-weight="400">Cache lookup result</tspan><tspan x="2232.0" dy="20.3" font-weight="400">feeds the A1 engine</tspan></text>
+<polyline points="1126,1270 2336,1270" fill="none" stroke="#b8b8b8" stroke-width="1" />
+<text x="1130.0" y="1300.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#111111"><tspan x="1130.0" dy="0.0" font-weight="400">K: start  |  P: required payload  |  X: other fields</tspan></text>
+<rect x="1692" y="1287" width="23" height="13" rx="0" fill="white" stroke="#b8b8b8" stroke-width="1" stroke-dasharray="8 6" />
+<text x="1725.0" y="1299.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111111"><tspan x="1725.0" dy="0.0" font-weight="400">not accessed</tspan></text>
+<rect x="1858" y="1287" width="23" height="13" rx="0" fill="white" stroke="#111111" stroke-width="2" />
+<text x="1891.0" y="1299.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111111"><tspan x="1891.0" dy="0.0" font-weight="400">candidate</tspan></text>
+<rect x="2018" y="1287" width="23" height="13" rx="0" fill="#111111" stroke="#111111" stroke-width="1" />
+<text x="2053.0" y="1299.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111111"><tspan x="2053.0" dy="0.0" font-weight="400">read; white line = selected row</tspan></text>
+<text x="1130.0" y="1336.4" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="1130.0" dy="0.0" font-weight="400">Both warm/cold sorted runs are searched; tiers are not row groups.</tspan><tspan x="1130.0" dy="21.6" font-weight="400">Schematic access states, not measured I/O; page boundaries differ across columns.</tspan></text>
+<text x="44.0" y="1458.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="44.0" dy="0.0" font-weight="700">B</tspan></text>
+<text x="114.0" y="1456.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="114.0" dy="0.0" font-weight="700">Quality validation</tspan></text>
+<rect x="55" y="1492" width="620" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="1518.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="365.0" dy="0.0" font-weight="700">1  Component-level unit tests</tspan></text>
+<rect x="55" y="1538" width="196" height="118" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="65.0" y="1567.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="65.0" dy="0.0" font-weight="700">Formats</tspan><tspan x="65.0" dy="24.1" font-weight="400">VCF / cache I/O</tspan><tspan x="65.0" dy="24.1" font-weight="400">schemas +</tspan><tspan x="65.0" dy="24.1" font-weight="400">metadata</tspan></text>
+<rect x="267" y="1538" width="196" height="118" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="277.0" y="1567.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="277.0" dy="0.0" font-weight="700">Rust engine</tspan><tspan x="277.0" dy="24.1" font-weight="400">alleles +</tspan><tspan x="277.0" dy="24.1" font-weight="400">intervals</tspan><tspan x="277.0" dy="24.1" font-weight="400">HGVS + plugins</tspan></text>
+<rect x="479" y="1538" width="196" height="118" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="489.0" y="1567.7" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="489.0" dy="0.0" font-weight="700">Python API</tspan><tspan x="489.0" dy="24.1" font-weight="400">arguments +</tspan><tspan x="489.0" dy="24.1" font-weight="400">outputs</tspan><tspan x="489.0" dy="24.1" font-weight="400">lazy execution</tspan></text>
+<rect x="55" y="1690" width="620" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="1716.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="365.0" dy="0.0" font-weight="700">2  Ported VEP behavior</tspan></text>
+<text x="64.0" y="1763.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">allele matching</tspan></text>
+<text x="374.0" y="1763.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="374.0" dy="0.0" font-weight="400">SO + coding / splice</tspan></text>
+<text x="64.0" y="1802.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">HGVS + 3′ shift</tspan></text>
+<text x="374.0" y="1802.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="374.0" dy="0.0" font-weight="400">pick / ranking</tspan></text>
+<text x="64.0" y="1841.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">known variants + AF</tspan></text>
+<text x="374.0" y="1841.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="374.0" dy="0.0" font-weight="400">regulatory / motifs</tspan></text>
+<rect x="55" y="1891" width="620" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="1917.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="365.0" dy="0.0" font-weight="700">3  End-to-end VEP comparison</tspan></text>
+<text x="64.0" y="1957.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="64.0" dy="0.0" font-weight="400">Six release/source profiles · HG002 chr1–22</tspan><tspan x="64.0" dy="25.4" font-weight="400">4,096,123 variants per profile</tspan><tspan x="64.0" dy="25.4" font-weight="400">Zero CSQ mismatches in archived field gates</tspan></text>
+<rect x="60" y="2029" width="610" height="55" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="365.0" y="2063.1" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="365.0" dy="0.0" font-weight="400">115 / 116 × Ensembl (80), RefSeq (85), merged (86 fields)</tspan></text>
+<text x="64.0" y="2127.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="64.0" dy="0.0" font-weight="400">Separate harness: strict / canonical VCF-body MD5.</tspan><tspan x="64.0" dy="22.9" font-weight="400">Field gates are not presented as MD5 validation.</tspan></text>
+<text x="739.0" y="1458.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="739.0" dy="0.0" font-weight="700">C</tspan></text>
+<text x="809.0" y="1456.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="809.0" dy="0.0" font-weight="700">Performance</tspan></text>
+<image x="730" y="1493" width="945" height="623" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDEwIiBoZWlnaHQ9IjY2NSIgdmlld0JveD0iMCAwIDEwMTAgNjY1Ij4KPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0id2hpdGUiLz4KPGcgZm9udC1mYW1pbHk9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiPgo8dGV4dCB4PSIzNS4wIiB5PSI0MS4wIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPkxpbnV4IC8geDg2LTY0LCBtZXJnZWQgV0dTPC90ZXh0Pgo8bGluZSB4MT0iOTciIHkxPSIzNTIuOCIgeDI9IjU3NCIgeTI9IjM1Mi44IiBzdHJva2U9IiNkZGRkZGQiIHN0cm9rZS13aWR0aD0iMSIvPgo8dGV4dCB4PSI4Ny4wIiB5PSIzNTcuOCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzU1NTU1NSI+MiBtaW48L3RleHQ+CjxsaW5lIHgxPSI5NyIgeTE9IjMwNi4zIiB4Mj0iNTc0IiB5Mj0iMzA2LjMiIHN0cm9rZT0iI2RkZGRkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+Cjx0ZXh0IHg9Ijg3LjAiIHk9IjMxMS4zIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjNTU1NTU1Ij41IG1pbjwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMjcxLjIiIHgyPSI1NzQiIHkyPSIyNzEuMiIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMjc2LjIiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjEwIG1pbjwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMjE1LjYiIHgyPSI1NzQiIHkyPSIyMTUuNiIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMjIwLjYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjMwIG1pbjwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMTgwLjQiIHgyPSI1NzQiIHkyPSIxODAuNCIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMTg1LjQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjEgaDwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iMTI0LjgiIHgyPSI1NzQiIHkyPSIxMjQuOCIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHRleHQgeD0iODcuMCIgeT0iMTI5LjgiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjMgaDwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iODkuNiIgeDI9IjU3NCIgeTI9Ijg5LjYiIHN0cm9rZT0iI2RkZGRkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+Cjx0ZXh0IHg9Ijg3LjAiIHk9Ijk0LjYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM1NTU1NTUiPjYgaDwvdGV4dD4KPGxpbmUgeDE9Ijk3IiB5MT0iNzMiIHgyPSI5NyIgeTI9IjM2MiIgc3Ryb2tlPSIjMTExMTExIiBzdHJva2Utd2lkdGg9IjEuNCIvPgo8bGluZSB4MT0iOTciIHkxPSIzNjIiIHgyPSI1NzQiIHkyPSIzNjIiIHN0cm9rZT0iIzExMTExMSIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KPHRleHQgeD0iOTcuMCIgeT0iMzg2LjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxMTExMTEiPjE8L3RleHQ+Cjx0ZXh0IHg9IjIxNi4yIiB5PSIzODYuMCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+MjwvdGV4dD4KPHRleHQgeD0iMzM1LjUiIHk9IjM4Ni4wIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTExMTExIj40PC90ZXh0Pgo8dGV4dCB4PSI0NTQuOCIgeT0iMzg2LjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxMTExMTEiPjg8L3RleHQ+Cjx0ZXh0IHg9IjU3NC4wIiB5PSIzODYuMCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+MTY8L3RleHQ+Cjx0ZXh0IHg9IjMzNS41IiB5PSI0MDUuMCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+Zm9ya3MgLyB3b3JrZXJzPC90ZXh0Pgo8dGV4dCB4PSI0OS4wIiB5PSIyMTcuNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzU1NTU1NSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDQ5IDIxNy41KSI+cHJvY2VzcyB3YWxsIHRpbWUgKGxvZyBzY2FsZSk8L3RleHQ+Cjxwb2x5bGluZSBwb2ludHM9Ijk3LjAsOTAuMCAyMTYuMiwxMDcuNiAzMzUuNSwxMzAuNyA0NTQuOCwxNTEuOSA1NzQuMCwxNjguMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPgo8cmVjdCB4PSI5My4wIiB5PSI4Ni4wIiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iMjEyLjIiIHk9IjEwMy42IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iMzMxLjUiIHk9IjEyNi43IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDUwLjgiIHk9IjE0Ny45IiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNTcwLjAiIHk9IjE2NC4zIiB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHBvbHlsaW5lIHBvaW50cz0iOTcuMCwyODAuMiAyMTYuMiwzMDcuOCAzMzUuNSwzMjAuOCA0NTQuOCwzMzAuMSA1NzQuMCwzMzQuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTExMTExIiBzdHJva2Utd2lkdGg9IjMiLz4KPGNpcmNsZSBjeD0iOTcuMCIgY3k9IjI4MC4yIiByPSI0LjUiIGZpbGw9IiMxMTExMTEiLz4KPGNpcmNsZSBjeD0iMjE2LjIiIGN5PSIzMDcuOCIgcj0iNC41IiBmaWxsPSIjMTExMTExIi8+CjxjaXJjbGUgY3g9IjMzNS41IiBjeT0iMzIwLjgiIHI9IjQuNSIgZmlsbD0iIzExMTExMSIvPgo8Y2lyY2xlIGN4PSI0NTQuOCIgY3k9IjMzMC4xIiByPSI0LjUiIGZpbGw9IiMxMTExMTEiLz4KPGNpcmNsZSBjeD0iNTc0LjAiIGN5PSIzMzQuMyIgcj0iNC41IiBmaWxsPSIjMTExMTExIi8+CjxsaW5lIHgxPSI0MTYiIHkxPSI5MyIgeDI9IjQ0NCIgeTI9IjkzIiBzdHJva2U9IiM2NjY2NjYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA0Ii8+Cjx0ZXh0IHg9IjQ1Mi4wIiB5PSI5OC4wIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPkVuc2VtYmwgVkVQPC90ZXh0Pgo8bGluZSB4MT0iNDE2IiB5MT0iMTE3IiB4Mj0iNDQ0IiB5Mj0iMTE3IiBzdHJva2U9IiMxMTExMTEiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI0NTIuMCIgeT0iMTIyLjAiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzExMTExMSI+dmVweXI8L3RleHQ+CjxyZWN0IHg9IjM4Mi43NSIgeT0iMjcwLjEwMzY1NTU0MTgzODIiIHdpZHRoPSIxNDQiIGhlaWdodD0iMzQiIHJ4PSIwIiBmaWxsPSIjZWVlZWVlIiBzdHJva2U9IiMxMTExMTEiIHN0cm9rZS13aWR0aD0iMS41Ii8+Cjx0ZXh0IHg9IjQ1NC44IiB5PSIyOTIuMSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+MzMuN3ggYXQgODwvdGV4dD4KPHRleHQgeD0iNjIwLjAiIHk9IjQxLjAiIGZvbnQtc2l6ZT0iMTciIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzExMTExMSI+bWFjT1MgLyBhcm02NCwgbWVyZ2VkIFdHUzwvdGV4dD4KPHJlY3QgeD0iNjIwIiB5PSI1NSIgd2lkdGg9IjM1NSIgaGVpZ2h0PSIzNTUiIHJ4PSIwIiBmaWxsPSIjZmFmYWZhIiBzdHJva2U9IiM5OTk5OTkiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KPHRleHQgeD0iNzk3LjUiIHk9IjIyMC41IiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2NjY2Ij5EQVRBIFJFUVVJUkVEPC90ZXh0Pgo8dGV4dCB4PSI3OTcuNSIgeT0iMjUyLjUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM1NTU1NTUiPnBhaXJlZCBWRVAgKyB2ZXB5ciBydW5zPC90ZXh0Pgo8dGV4dCB4PSIzNS4wIiB5PSI0MzMuMCIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjMTExMTExIj5Qb3N0LWFubm90YXRpb24gZmlsdGVyaW5nIChzYW1lIHJhcmUtdmFyaWFudCBwcmVkaWNhdGUpPC90ZXh0Pgo8cmVjdCB4PSIzNSIgeT0iNDQ1IiB3aWR0aD0iOTQwIiBoZWlnaHQ9IjE4MiIgcng9IjAiIGZpbGw9IndoaXRlIiBzdHJva2U9IiNkZGRkZGQiIHN0cm9rZS13aWR0aD0iMS41Ii8+Cjx0ZXh0IHg9IjUzLjAiIHk9IjQ4My4wIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPlZFUDwvdGV4dD4KPHRleHQgeD0iMTEzLjAiIHk9IjQ4My4wIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPmFubm90YXRlICDihpIgIFZDRiAg4oaSICBmaWx0ZXJfdmVwPC90ZXh0Pgo8dGV4dCB4PSI1My4wIiB5PSI1MjQuMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjMTExMTExIj52ZXB5cjwvdGV4dD4KPHRleHQgeD0iMTEzLjAiIHk9IjUyNC4wIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNDAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiMxMTExMTEiPmFubm90YXRlICDihpIgIExhenlGcmFtZSAg4oaSICBwcmVkaWNhdGU8L3RleHQ+CjxyZWN0IHg9IjY4NSIgeT0iNDY5IiB3aWR0aD0iMjY2IiBoZWlnaHQ9Ijc4IiByeD0iMCIgZmlsbD0iI2Y0ZjRmNCIgc3Ryb2tlPSIjNzc3Nzc3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNyA1Ii8+Cjx0ZXh0IHg9IjgxOC4wIiB5PSI1MDEuMCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzExMTExMSI+QkVOQ0hNQVJLIFBFTkRJTkc8L3RleHQ+Cjx0ZXh0IHg9IjgxOC4wIiB5PSI1MjUuMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzU1NTU1NSI+cnVudGltZSArIHBlYWsgUlNTPC90ZXh0Pgo8dGV4dCB4PSI1My4wIiB5PSI1ODIuMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjMTExMTExIj5QcmVkaWNhdGU6IGdub21BRGdfQUYgJmx0OyAwLjAxIE9SIGdub21BRGdfQUYgSVMgTlVMTDwvdGV4dD4KPHRleHQgeD0iNTMuMCIgeT0iNjA3LjAiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzU1NTU1NSI+Q29tcGFyZSBpZGVudGljYWwgaW5wdXQsIGNhY2hlLCBvdXRwdXQgc2VtYW50aWNzLCB3YXJtIGNhY2hlIHN0YXRlIGFuZCBzdG9yYWdlLjwvdGV4dD4KPHRleHQgeD0iMzUuMCIgeT0iNjU0LjAiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzU1NTU1NSI+SEcwMDIgY2hyMeKAkzIyIMK3IDQsMDk2LDEyMyB2YXJpYW50cyDCtyAxMTYgbWVyZ2VkIMK3IC0tZXZlcnl0aGluZyArIEhHVlMgwrcgcHJvY2VzcyB3YWxsIHRpbWU8L3RleHQ+CjwvZz4KPC9zdmc+Cg==" preserveAspectRatio="xMidYMid meet" />
+<text x="750.0" y="2156.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="750.0" dy="0.0" font-weight="400">Preliminary single runs; paired repeats and filter timings remain pending.</tspan></text>
+<text x="1739.0" y="1458.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="1739.0" dy="0.0" font-weight="700">D</tspan></text>
+<text x="1809.0" y="1456.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#111111"><tspan x="1809.0" dy="0.0" font-weight="700">Contracts + filtering</tspan></text>
+<rect x="1750" y="1492" width="595" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="2047.5" y="1518.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="2047.5" dy="0.0" font-weight="700">Input</tspan></text>
+<text x="1759.0" y="1564.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1759.0" dy="0.0" font-weight="400">Normalize: bcftools norm -f ref.fa -m -both</tspan><tspan x="1759.0" dy="25.4" font-weight="400">Matching assembly, FASTA and cache release</tspan><tspan x="1759.0" dy="25.4" font-weight="400">BGZF + TBI/CSI for workers &gt; 1 and region seeks</tspan></text>
+<rect x="1750" y="1653" width="595" height="34" rx="2" fill="#111111" stroke="#111111" stroke-width="1.5" />
+<text x="2047.5" y="1679.0" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="white"><tspan x="2047.5" dy="0.0" font-weight="700">Output</tspan></text>
+<text x="1759.0" y="1721.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1759.0" dy="0.0" font-weight="400">VCF: original INFO / FORMAT + CSQ</tspan><tspan x="1759.0" dy="25.4" font-weight="400">LazyFrame: typed variant rows + aligned lists</tspan><tspan x="1759.0" dy="25.4" font-weight="400">sink_* streams; collect() materializes</tspan><tspan x="1759.0" dy="25.4" font-weight="400">No direct reimplementation of filter_vep</tspan></text>
+<text x="1754.0" y="1855.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="1754.0" dy="0.0" font-weight="700">Same predicate: rare or unknown allele frequency</tspan></text>
+<rect x="1750" y="1880" width="595" height="91" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.5" />
+<text x="1760.0" y="1909.2" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="1760.0" dy="0.0" font-weight="700">VEP + filter_vep</tspan><tspan x="1760.0" dy="22.9" font-weight="400">filter_vep --filter</tspan><tspan x="1760.0" dy="22.9" font-weight="400">"gnomADg_AF &lt; 0.01 or not gnomADg_AF"</tspan></text>
+<rect x="1750" y="1989" width="595" height="112" rx="0" fill="white" stroke="#111111" stroke-width="1.5" />
+<text x="1760.0" y="2017.3" text-anchor="start" font-family="Courier New, monospace" font-size="18" font-weight="400" fill="#111111"><tspan x="1760.0" dy="0.0" font-weight="700">Polars SQL (variants = lf)</tspan><tspan x="1760.0" dy="22.9" font-weight="400">SELECT * FROM variants</tspan><tspan x="1760.0" dy="22.9" font-weight="400">WHERE gnomADg_AF &lt; 0.01</tspan><tspan x="1760.0" dy="22.9" font-weight="400">   OR gnomADg_AF IS NULL</tspan></text>
+<text x="1759.0" y="2141.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="1759.0" dy="0.0" font-weight="400">Per-CSQ predicates need aligned explode / any.</tspan><tspan x="1759.0" dy="22.9" font-weight="400">Ontology expansion must be explicit.</tspan></text>
+</svg>
