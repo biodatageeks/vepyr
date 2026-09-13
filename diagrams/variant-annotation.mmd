@@ -1,0 +1,14 @@
+graph LR
+    A[Input VCF] --> B[VCF TableProvider]
+    C[Parquet Cache] --> D[Cache TableProvider]
+    B --> E[DataFusion Session]
+    D --> E
+    E --> F["annotate_vep() UDF"]
+    F --> G[COITree<br/>interval matching]
+    G --> H[Consequence Engine<br/>SO terms, HGVS, protein]
+    P[Plugin shards] --> Q[Page-scoped take<br/>per annotation buffer]
+    F --> Q
+    Q --> H
+    H --> I[Arrow RecordBatches]
+    I --> J[Polars LazyFrame]
+    I --> K[VCF Output]

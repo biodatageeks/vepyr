@@ -1,0 +1,6 @@
+graph LR
+    A[Ensembl FTP<br/>.tar.gz] --> B[Download &<br/>Extract]
+    B --> C[Storable/Sereal<br/>.gz files]
+    C --> D[EnsemblCacheTableProvider]
+    D --> E[DataFusion SQL<br/>sort & partition]
+    E --> F[Partitioned Parquet shards<br/>+ chrom_manifest.json]
