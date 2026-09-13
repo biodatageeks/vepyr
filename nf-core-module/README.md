@@ -33,7 +33,8 @@ Needed on every host:
   allowed to run `docker` without `sudo`.
 - **Nextflow** (>= 24.10.2) and **Java 11+**.
 - **uv** and the project environment (`uv sync` at the repository root):
-  `stage-testdata.sh` uses it to stamp the golden cache.
+  `stage-testdata.sh` uses it to build and verify the test data (it also needs
+  samtools, bgzip and tabix on `PATH`).
 - **Git LFS fixtures** — `git lfs pull` at the repository root, so the Parquet
   caches and the chr22 FASTA are real files rather than pointers.
 - **nf-test** — no Homebrew formula exists. The installer writes an `nf-test`
@@ -84,7 +85,8 @@ Overrides:
 ### What runs
 
 - `modules/nf-core/vepyr/annotate/tests/main.nf.test` — the submission tests:
-  100 golden chr1 variants with `--everything`, and a stub.
+  1,000 HG002 chr22 records against a release-116 cache with `--everything`,
+  and a stub.
 - `dev/tests/hg002_chr22.nf.test` — offline Ensembl VEP parity. All 50,861
   normalized HG002 chr22 records annotated with `--everything` must reproduce
   the record-body md5 of VEP 116 (`f0a0a7021c498d2b4e38c9caf5959f77`). It prints
@@ -129,10 +131,13 @@ Treat any *second* failure as a genuine regression.
    supersedes the BiocondaBot autobump #69182, which does not add linux-aarch64;
    its ARM job passes build and tests but hits CircleCI's one-hour limit, because
    the recipe builds every Python version although vepyr is abi3.)
-3. **PR the test data.** Run `./stage-testdata.sh <dir>`, then copy the resulting
-   `data/` tree into a clone of the `modules` branch of nf-core/test-datasets.
-   About 6 MB: `cache.tar.gz` (the chr1 Parquet cache), an 875 KB reference FASTA
-   with its `.fai`, and a 100-variant VCF with its `.tbi`. Unlike `ensemblvep/vep`
+3. **PR the test data** ([nf-core/test-datasets#2270](https://github.com/nf-core/test-datasets/pull/2270)).
+   `./stage-testdata.sh <dir>` builds it from the offline chr22 fixture in
+   `tests/data/hg002_chr22` and verifies it against Ensembl VEP 116: 1,000
+   normalized HG002 chr22 records from chr22:20572272-21735973 (chosen for
+   coding, SIFT, motif and regulatory annotations) with their `.tbi`, a bgzip
+   GRCh38 `22:1-21745973` FASTA with `.fai` and `.gzi`, and `cache.tar.gz`, a
+   release-116 `ensembl` cache trimmed to the rows those records read. Unlike `ensemblvep/vep`
    — whose tests are effectively stubs because its cache is too large to host —
    this fixture is small enough that the module can assert on real annotation
    output.

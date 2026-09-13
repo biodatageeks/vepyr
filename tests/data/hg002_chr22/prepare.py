@@ -210,8 +210,12 @@ def trim_cache(full_vcf: Path, input_vcf: Path, dest: Path) -> None:
         out = out_dir / SHARD
         out.unlink(missing_ok=True)
         if table.num_rows == 0:
-            # DataFusion's writer panics on a zero-batch input.
-            pq.write_table(table, str(out))
+            # No shard, only an empty manifest, as tests/data/golden/_cache_prep.py
+            # does: DataFusion's writer panics on a zero-batch input, and a
+            # pyarrow-written shard lacks the page index the engine requires.
+            (out_dir / "chrom_manifest.json").write_text("[]\n")
+            print(f"  {entity}: 0 rows (manifest only)")
+            return
         else:
             ctx.register_record_batches("shard", [table.combine_chunks().to_batches()])
             ctx.sql(

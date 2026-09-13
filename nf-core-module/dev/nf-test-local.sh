@@ -72,7 +72,9 @@ if [[ ! -f "${untar_dir}/main.nf" ]]; then
 fi
 
 testdata="${module_root}/.testdata"
-if [[ ! -f "${testdata}/data/genomics/homo_sapiens/vepyr/cache.tar.gz" ]]; then
+# reference.fa.gz marks the current (release-116, chr22) test data; an older
+# .testdata without it is restaged.
+if [[ ! -f "${testdata}/data/genomics/homo_sapiens/vepyr/reference.fa.gz" ]]; then
     ./stage-testdata.sh "${testdata}"
 fi
 
