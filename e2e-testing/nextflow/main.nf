@@ -118,10 +118,17 @@ process COMPARE_MD5 {
 
     script:
     """
-    vepyr_md5=\$(bgzip -dc ${annotated} | grep -v '^#' | md5sum | cut -d' ' -f1)
-    vepyr_records=\$(bgzip -dc ${annotated} | grep -vc '^#' || true)
-    vep_md5=\$(tabix ${vep_vcf} ${chrom} | md5sum | cut -d' ' -f1)
-    vep_records=\$(tabix ${vep_vcf} ${chrom} | wc -l | tr -d ' ')
+    # One pass per stream: md5 over the record lines as written, and their count.
+    body_digest() {
+        python -c 'import hashlib, sys
+    md5, n = hashlib.md5(), 0
+    for line in sys.stdin.buffer:
+        md5.update(line)
+        n += 1
+    print(md5.hexdigest(), n)'
+    }
+    read -r vepyr_md5 vepyr_records < <(bgzip -dc ${annotated} | grep -v '^#' | body_digest)
+    read -r vep_md5 vep_records < <(tabix ${vep_vcf} ${chrom} | body_digest)
     if [ "\$vepyr_md5" = "\$vep_md5" ] && [ "\$vepyr_records" = "\$vep_records" ]; then
         status=MATCH
     else

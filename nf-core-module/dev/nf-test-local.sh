@@ -63,12 +63,28 @@ echo "platform ${VEPYR_DOCKER_PLATFORM}, container ${VEPYR_CONTAINER}"
 
 untar_ref="6d46786420b4d7bc88eba026eb389c0c5535d120"
 untar_dir="modules/nf-core/untar"
-if [[ ! -f "${untar_dir}/main.nf" ]]; then
-    mkdir -p "${untar_dir}"
-    for f in main.nf meta.yml environment.yml; do
-        curl -fsSL -o "${untar_dir}/${f}" \
+untar_files=(main.nf meta.yml environment.yml)
+untar_complete() {
+    local f
+    for f in "${untar_files[@]}"; do
+        [[ -s "${untar_dir}/${f}" ]] || return 1
+    done
+}
+# Fetch into a temporary directory and move it into place only when every file
+# arrived: an interrupted curl can leave a partial file behind, and a module
+# directory missing a file would otherwise be reused on every later run.
+if ! untar_complete; then
+    untar_tmp="$(mktemp -d "${module_root}/.untar.XXXXXX")"
+    trap 'rm -rf "${untar_tmp}"' EXIT
+    for f in "${untar_files[@]}"; do
+        curl -fsSL --retry 3 -o "${untar_tmp}/${f}" \
             "https://raw.githubusercontent.com/nf-core/modules/${untar_ref}/modules/nf-core/untar/${f}"
     done
+    chmod 755 "${untar_tmp}" # mktemp -d creates it 0700
+    rm -rf "${untar_dir}"
+    mkdir -p "$(dirname "${untar_dir}")"
+    mv "${untar_tmp}" "${untar_dir}"
+    trap - EXIT
 fi
 
 testdata="${module_root}/.testdata"
