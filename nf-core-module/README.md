@@ -38,6 +38,7 @@ Needs Java 11+ (the one Nextflow uses). If `~/.local/bin` is not on `PATH`, add
 from `PATH`; to pick a different one, set `NF_TEST`:
 
 ```bash
+cd nf-core-module
 NF_TEST="$(which nf-test)" ./dev/nf-test-arm64.sh
 ```
 
