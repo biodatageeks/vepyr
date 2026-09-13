@@ -278,16 +278,20 @@ def main() -> None:
         if not path.exists():
             raise SystemExit(f"missing source: {path}")
 
-    input_vcf = SCRIPT_DIR / "input_chr22.vcf.gz"
-    fasta = SCRIPT_DIR / "chr22.fa.gz"
-    cache = SCRIPT_DIR / "cache"
+    # Build the whole fixture in a scratch directory; the tracked files are only
+    # replaced once both parity checks pass, so a failed run leaves them intact.
+    with tempfile.TemporaryDirectory(dir=SCRIPT_DIR.parent) as tmp:
+        stage = Path(tmp) / "stage"
+        stage.mkdir()
+        input_vcf = stage / "input_chr22.vcf.gz"
+        fasta = stage / "chr22.fa.gz"
+        cache = stage / "cache"
 
-    print(f"1. Slicing {CHROM} from {VCF_SRC}")
-    slice_input(input_vcf)
-    print(f"2. Slicing FASTA contig {FASTA_CHROM} from {FASTA_SRC}")
-    slice_fasta(fasta)
+        print(f"1. Slicing {CHROM} from {VCF_SRC}")
+        slice_input(input_vcf)
+        print(f"2. Slicing FASTA contig {FASTA_CHROM} from {FASTA_SRC}")
+        slice_fasta(fasta)
 
-    with tempfile.TemporaryDirectory() as tmp:
         full_vcf = Path(tmp) / "full.vcf.gz"
         print(f"3. Annotating against the full cache {CACHE_SRC}")
         annotate(input_vcf, CACHE_SRC, fasta, full_vcf)
@@ -304,6 +308,20 @@ def main() -> None:
         digest = body_digest(trimmed_vcf)
         if digest != (EXPECTED_BODY_MD5, EXPECTED_RECORDS):
             raise SystemExit(f"trimmed cache does not reproduce VEP: {digest}")
+
+        print("6. Replacing the fixture")
+        for name in (
+            "input_chr22.vcf.gz",
+            "input_chr22.vcf.gz.tbi",
+            "chr22.fa.gz",
+            "chr22.fa.gz.fai",
+            "chr22.fa.gz.gzi",
+        ):
+            os.replace(stage / name, SCRIPT_DIR / name)
+        old_cache = Path(tmp) / "old_cache"
+        if (SCRIPT_DIR / "cache").exists():
+            os.replace(SCRIPT_DIR / "cache", old_cache)
+        os.replace(cache, SCRIPT_DIR / "cache")
 
     size = sum(f.stat().st_size for f in SCRIPT_DIR.rglob("*") if f.is_file())
     print(

@@ -93,14 +93,18 @@ testdata="${module_root}/.testdata"
 # stored beside .testdata/data; a missing or different hash restages, so a
 # local run never tests data built by an older stage_testdata.py or fixture.
 fixture="${module_root}/../tests/data/hg002_chr22"
+# nullglob: an empty cache entity directory contributes nothing instead of a
+# literal pattern that cat cannot open.
+shopt -s nullglob
 stage_inputs=(
     stage-testdata.sh
     stage_testdata.py
     "${fixture}/prepare.py"
-    "${fixture}/input_chr22.vcf.gz"
-    "${fixture}/chr22.fa.gz"
+    "${fixture}"/input_chr22.vcf.gz*
+    "${fixture}"/chr22.fa.gz*
     "${fixture}"/cache/*/*
 )
+shopt -u nullglob
 if command -v sha256sum >/dev/null 2>&1; then
     stage_hash="$(cat "${stage_inputs[@]}" | sha256sum | cut -d' ' -f1)"
 else
