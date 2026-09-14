@@ -1,11 +1,36 @@
-# nf-core module: `vepyr/annotate`
+# nf-core module `vepyr/annotate` and subworkflow `vcf_annotate_vepyr`
 
 Staging area for the nf-core/modules submission. `modules/nf-core/vepyr/annotate/`
-mirrors the upstream path, so it copies verbatim into a nf-core/modules fork:
+and `subworkflows/nf-core/vcf_annotate_vepyr/` mirror the upstream paths, so they
+copy verbatim into a nf-core/modules fork:
 
 ```bash
 cp -R modules/nf-core/vepyr /path/to/modules-fork/modules/nf-core/
+cp -R subworkflows/nf-core/vcf_annotate_vepyr /path/to/modules-fork/subworkflows/nf-core/
 ```
+
+The subworkflow runs nf-core's existing `bcftools/norm` module before
+`VEPYR_ANNOTATE` when `val_normalize` is true (pipelines should default it to
+true), so a raw VCF goes through end to end. The module itself stays a single
+tool. `BCFTOOLS_NORM` is configured through its `ext.args`; the configuration
+validated against Ensembl VEP splits multiallelic records without left-aligning:
+
+```groovy
+withName: 'BCFTOOLS_NORM' {
+    ext.args   = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
+    ext.prefix = { "${meta.id}.norm" }
+}
+```
+
+`--do-not-normalize` matters: `bcftools/norm` always passes `--fasta-ref`, and
+without the flag bcftools also left-aligns indels, which the parity inputs never
+were. It also fails outright when the FASTA and VCF name contigs differently
+(`22` vs `chr22`), a mismatch vepyr itself tolerates. Keep the `ext.prefix`
+whenever `meta.id` can equal the input VCF's basename: `bcftools/norm` writes
+`${meta.id}.vcf.gz` over its own staged input, a symlink, and so truncates the
+original file. `VEPYR_ANNOTATE` stages its input under `input/`, so the
+normalized file reaching it under its own output name is harmless; the
+subworkflow tests leave the prefix unset to cover exactly that.
 
 `.nf-core.yml` and `tests/config/nf-test.config` exist only so `nf-core modules
 lint` treats this directory as a modules repository. nf-core/modules has its own
@@ -15,11 +40,8 @@ copies — do not copy these upstream.
 
 The module ships Seqera Wave containers for `linux/amd64` and `linux/arm64`,
 built by `nf-core modules containers create vepyr/annotate` from
-`environment.yml` and listed under `containers:` in `meta.yml`. vepyr comes from
-its PyPI wheel inside them until bioconda ships 0.7.0 for linux-64 and
-linux-aarch64 ([bioconda-recipes#69191](https://github.com/bioconda/bioconda-recipes/pull/69191));
-then `environment.yml` switches to `bioconda::vepyr` and the containers are
-rebuilt.
+`environment.yml` (`bioconda::vepyr` and `bioconda::htslib`) and listed under
+`containers:` in `meta.yml`.
 
 `main.nf` names only the amd64 image. `dev/` holds a runner that tests with the
 image for the host's own platform, plus an offline VEP parity test; it is not
@@ -60,9 +82,11 @@ cd nf-core-module
 ```
 
 The runner picks the host's platform, reads that platform's Docker image from
-`meta.yml`, fetches the UNTAR module the module test needs, stages the test data
-into `.testdata/` with `stage-testdata.sh`, and runs both test files with
-`dev/nf-test.config`.
+`meta.yml`, fetches the pinned upstream UNTAR and `bcftools/norm` modules the
+tests need, stages the test data into `.testdata/` with `stage-testdata.sh`, and
+runs all four test files with `dev/nf-test.config`. `bcftools/norm`'s image is
+linux/amd64 only; `dev/local.config` runs it under emulation, which works
+because bcftools, unlike vepyr, needs no AVX.
 Extra arguments go to `nf-test`.
 
 | Host | Platform picked | Image (from `meta.yml`) |
@@ -88,6 +112,16 @@ Overrides:
 - `modules/nf-core/vepyr/annotate/tests/main.nf.test` — the submission tests:
   1,000 HG002 chr22 records against a release-116 cache with `--everything`,
   and a stub.
+- `subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test` — the subworkflow
+  submission tests on the same data: with normalization, without it, and a stub.
+  The published input has no multiallelic records, so both annotated outputs are
+  identical; these tests prove the wiring, the parity test below the effect.
+- `dev/tests/hg002_chr22_normalize.nf.test` — end-to-end parity through the
+  subworkflow: the raw HG002 chr22 benchmark records (`raw_chr22.vcf.gz`, 50,284
+  records, 577 multiallelic, chr22 of the v4.2.1 benchmark VCF, unmodified) go
+  through `BCFTOOLS_NORM` and `VEPYR_ANNOTATE` and must reproduce the same VEP 116
+  md5 on the resulting 50,861 records. The split-only normalization reproduces
+  `input_chr22.vcf.gz` byte for byte in the record body.
 - `dev/tests/hg002_chr22.nf.test` — offline Ensembl VEP parity. All 50,861
   normalized HG002 chr22 records annotated with `--everything` must reproduce
   the record-body md5 of VEP 116 (`f0a0a7021c498d2b4e38c9caf5959f77`). It prints
@@ -112,13 +146,13 @@ cd nf-core-module
 
 # Module tests, test data from the nf-core/test-datasets#2270 branch (Apple Silicon)
 VEPYR_DOCKER_PLATFORM=linux/arm64 \
-VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b \
 VEPYR_NF_TESTDATA=https://raw.githubusercontent.com/mwiewior/test-datasets/vepyr-annotate/data/ \
 nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --config dev/nf-test.config
 
 # Offline VEP parity test
 VEPYR_DOCKER_PLATFORM=linux/arm64 \
-VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b \
 VEPYR_HG002_CHR22="$PWD/../tests/data/hg002_chr22" \
 nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 ```
@@ -126,7 +160,7 @@ nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 | Variable | Read by | Value |
 |---|---|---|
 | `VEPYR_DOCKER_PLATFORM` | `dev/local.config` | `linux/arm64` (Apple Silicon, Linux aarch64) or `linux/amd64` (Linux x86_64) |
-| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:d7cf9a888587f5b0` (arm64) or `…:00a5ec7681bdfa20` (amd64) |
+| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:806fe605983a885b` (arm64) or `…:84d01ceaf76003ed` (amd64) |
 | `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above at the #2270 branch. |
 | `VEPYR_HG002_CHR22` | `dev/local.config` | absolute path to `tests/data/hg002_chr22`; the parity test only |
 
@@ -148,11 +182,13 @@ published URLs (`VEPYR_NF_TESTDATA` unset), after #2270 merges.
 
 ```bash
 uvx --from nf-core nf-core modules lint vepyr/annotate
+uvx --from nf-core nf-core subworkflows lint vcf_annotate_vepyr
 ```
 
-Requires `nextflow` on `PATH`. Current result: **72 passed, 0 warnings, 1 failed**.
-The failure is an upstream blocker rather than a defect, and clears once the
-steps below are done:
+Requires `nextflow` on `PATH`. Current results: module **74 passed, 0 warnings,
+1 failed**; subworkflow **20 passed, 0 warnings, 1 failed**. Both failures are the
+same upstream blocker rather than a defect, and clear once the steps below are
+done:
 
 - `test_snapshot_exists` — `main.nf.test.snap` can only be produced by a real run
   against the published test data (step 4).
@@ -161,20 +197,15 @@ Treat any *second* failure as a genuine regression.
 
 ## Remaining work, in order
 
-1. **~~Get vepyr onto bioconda.~~** Done: 0.6.0 merged in
-   [bioconda-recipes#68869](https://github.com/bioconda/bioconda-recipes/pull/68869)
-   (linux-64, osx-64, osx-arm64 only).
-2. **~~Resolve the container URIs.~~** Done with vepyr from PyPI:
-   `nf-core modules containers create vepyr/annotate` built Docker and
-   Singularity images for linux/amd64 and linux/arm64, wrote them and the conda
-   lock files into `meta.yml`, and set the amd64 URIs in `main.nf`.
-
-   When [bioconda-recipes#69191](https://github.com/bioconda/bioconda-recipes/pull/69191)
-   ships 0.7.0 for linux-64 and linux-aarch64, replace the `pip:` entry in
-   `environment.yml` with `bioconda::vepyr=0.7.0` and rerun that command. (That PR
-   supersedes the BiocondaBot autobump #69182, which does not add linux-aarch64;
-   its ARM job passes build and tests but hits CircleCI's one-hour limit, because
-   the recipe builds every Python version although vepyr is abi3.)
+1. **~~Get vepyr onto bioconda.~~** Done: 0.7.0 merged in
+   [bioconda-recipes#69191](https://github.com/bioconda/bioconda-recipes/pull/69191)
+   for linux-64, linux-aarch64, osx-64 and osx-arm64, as a single abi3 build
+   (`python >=3.10`).
+2. **~~Resolve the container URIs.~~** Done: `nf-core modules containers create
+   vepyr/annotate` built Docker and Singularity images of `bioconda::vepyr=0.7.0`
+   for linux/amd64 and linux/arm64, wrote them and the conda lock files into
+   `meta.yml`, and set the amd64 URIs in `main.nf`. Rerun it whenever
+   `environment.yml` changes.
 3. **PR the test data** ([nf-core/test-datasets#2270](https://github.com/nf-core/test-datasets/pull/2270)).
    `./stage-testdata.sh <dir>` builds it from the offline chr22 fixture in
    `tests/data/hg002_chr22` and verifies it against Ensembl VEP 116: 1,000
@@ -193,9 +224,13 @@ Treat any *second* failure as a genuine regression.
    they read from `s3://annotation-cache/`, where Nextflow can list.) The nf-test
    extracts it in a `setup` block with the `UNTAR` module, the same pattern
    `kraken2/kraken2` uses for its database.
-4. **Generate the snapshot.** With 2 and 3 done:
-   `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --update-snapshot`
-5. **Open the nf-core/modules PR.**
+4. **Generate the snapshots.** With 2 and 3 done, against nf-core's published
+   URLs (`VEPYR_NF_TESTDATA` unset):
+   `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test --update-snapshot`
+5. **Open the nf-core/modules PR for the module** (`vepyr/annotate`).
+6. **Open a second PR for the subworkflow** (`vcf_annotate_vepyr`) once the module
+   is merged: nf-core reviews subworkflows separately, and the subworkflow's
+   `components` must already exist upstream (`bcftools/norm` does).
 
 ## Scope
 

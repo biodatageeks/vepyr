@@ -3,15 +3,14 @@ process VEPYR_ANNOTATE {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    // vepyr is installed from PyPI (see environment.yml). Once bioconda ships 0.7.0
-    // for linux-64 and linux-aarch64 (bioconda-recipes#69191), switch it to
-    // bioconda::vepyr and rerun `nf-core modules containers create vepyr/annotate`.
     container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/da/daf7d8ab28e941364554727d23f3c58a2e0b273e0ba3c40c6e13114a77c07103/data'
-        : 'community.wave.seqera.io/library/htslib_pip_python_vepyr:00a5ec7681bdfa20'}"
+        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/da/dae579b8f2a3713d997875e16195f386b0fced234c8c9338549d16ed06eb9d83/data'
+        : 'community.wave.seqera.io/library/htslib_vepyr:84d01ceaf76003ed'}"
 
     input:
-    tuple val(meta), path(vcf), path(tbi)
+    // Staged under input/ so an input named ${prefix}.vcf.gz (e.g. the output of
+    // an upstream module using the same meta.id) never collides with -o.
+    tuple val(meta), path(vcf, stageAs: 'input/*'), path(tbi, stageAs: 'input/*')
     tuple val(meta2), path(cache)
     tuple val(meta3), path(fasta), path(fai)
     val cache_version

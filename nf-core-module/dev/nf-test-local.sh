@@ -61,31 +61,41 @@ fi
 export VEPYR_CONTAINER
 echo "platform ${VEPYR_DOCKER_PLATFORM}, container ${VEPYR_CONTAINER}"
 
-untar_ref="6d46786420b4d7bc88eba026eb389c0c5535d120"
-untar_dir="modules/nf-core/untar"
-untar_files=(main.nf meta.yml environment.yml)
-untar_complete() {
-    local f
-    for f in "${untar_files[@]}"; do
-        [[ -s "${untar_dir}/${f}" ]] || return 1
+module_files=(main.nf meta.yml environment.yml)
+# fetch_module <component> <nf-core/modules commit>: vendor an upstream module
+# the tests need (UNTAR for the module test setup, BCFTOOLS_NORM for the
+# subworkflow). Fetch into a temporary directory and move it into place only
+# when every file arrived: an interrupted curl can leave a partial file behind,
+# and a module directory missing a file would otherwise be reused on every run.
+fetch_module() {
+    local component="$1" ref="$2" f missing=0
+    local dir="modules/nf-core/${component}"
+    # .fetched-ref records the commit the files came from, so a directory left
+    # by another branch or an older pin is refetched rather than reused.
+    [[ "$(cat "${dir}/.fetched-ref" 2>/dev/null)" == "${ref}" ]] || missing=1
+    for f in "${module_files[@]}"; do
+        [[ -s "${dir}/${f}" ]] || missing=1
     done
-}
-# Fetch into a temporary directory and move it into place only when every file
-# arrived: an interrupted curl can leave a partial file behind, and a module
-# directory missing a file would otherwise be reused on every later run.
-if ! untar_complete; then
-    untar_tmp="$(mktemp -d "${module_root}/.untar.XXXXXX")"
-    trap 'rm -rf "${untar_tmp}"' EXIT
-    for f in "${untar_files[@]}"; do
-        curl -fsSL --retry 3 -o "${untar_tmp}/${f}" \
-            "https://raw.githubusercontent.com/nf-core/modules/${untar_ref}/modules/nf-core/untar/${f}"
+    if [[ "${missing}" -eq 0 ]]; then
+        return 0
+    fi
+    # Global, not local: the EXIT trap runs after this function has returned
+    # when curl fails under set -e or the run is interrupted.
+    fetch_tmp="$(mktemp -d "${module_root}/.module.XXXXXX")"
+    trap 'rm -rf "${fetch_tmp}"' EXIT
+    for f in "${module_files[@]}"; do
+        curl -fsSL --retry 3 -o "${fetch_tmp}/${f}" \
+            "https://raw.githubusercontent.com/nf-core/modules/${ref}/modules/nf-core/${component}/${f}"
     done
-    chmod 755 "${untar_tmp}" # mktemp -d creates it 0700
-    rm -rf "${untar_dir}"
-    mkdir -p "$(dirname "${untar_dir}")"
-    mv "${untar_tmp}" "${untar_dir}"
+    echo "${ref}" > "${fetch_tmp}/.fetched-ref"
+    chmod 755 "${fetch_tmp}" # mktemp -d creates it 0700
+    rm -rf "${dir}"
+    mkdir -p "$(dirname "${dir}")"
+    mv "${fetch_tmp}" "${dir}"
     trap - EXIT
-fi
+}
+fetch_module untar 6d46786420b4d7bc88eba026eb389c0c5535d120
+fetch_module bcftools/norm 56155f73713bc32c5343b59f05d968794c1b596d
 
 testdata="${module_root}/.testdata"
 # Restage whenever anything the staged data is built from changes: the staging
@@ -116,10 +126,12 @@ if [[ "$(cat "${stage_stamp}" 2>/dev/null)" != "${stage_hash}" ]]; then
     echo "${stage_hash}" > "${stage_stamp}"
 fi
 
-# dev/tests/hg002_chr22.nf.test reads the offline VEP parity fixture in place.
+# dev/tests/hg002_chr22*.nf.test read the offline VEP parity fixture in place.
 VEPYR_NF_TESTDATA="${testdata}/data/" \
 VEPYR_HG002_CHR22="${module_root}/../tests/data/hg002_chr22" \
     "${nf_test}" test \
     modules/nf-core/vepyr/annotate/tests/main.nf.test \
+    subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test \
     dev/tests/hg002_chr22.nf.test \
+    dev/tests/hg002_chr22_normalize.nf.test \
     --config dev/nf-test.config "$@"
