@@ -8,7 +8,9 @@ process VEPYR_ANNOTATE {
         : 'community.wave.seqera.io/library/htslib_vepyr:84d01ceaf76003ed'}"
 
     input:
-    tuple val(meta), path(vcf), path(tbi)
+    // Staged under input/ so an input named ${prefix}.vcf.gz (e.g. the output of
+    // an upstream module using the same meta.id) never collides with -o.
+    tuple val(meta), path(vcf, stageAs: 'input/*'), path(tbi, stageAs: 'input/*')
     tuple val(meta2), path(cache)
     tuple val(meta3), path(fasta), path(fai)
     val cache_version

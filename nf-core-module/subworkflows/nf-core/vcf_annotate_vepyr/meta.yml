@@ -17,8 +17,11 @@ description: |
   }
   ```
 
-  Give the two steps different `ext.prefix` values: both write `<prefix>.vcf.gz`,
-  and vepyr cannot write its output over the staged input of the same name.
+  Keep the `BCFTOOLS_NORM` `ext.prefix` whenever `meta.id` can equal the input
+  VCF's basename (`sample.vcf.gz` with `id: 'sample'`): bcftools/norm writes
+  `${meta.id}.vcf.gz` over its own staged input, a symlink, which truncates the
+  original file. `VEPYR_ANNOTATE` stages its input under `input/` and needs no
+  distinct prefix.
 keywords:
   - vcf
   - annotation

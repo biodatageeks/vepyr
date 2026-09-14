@@ -68,25 +68,27 @@ module_files=(main.nf meta.yml environment.yml)
 # when every file arrived: an interrupted curl can leave a partial file behind,
 # and a module directory missing a file would otherwise be reused on every run.
 fetch_module() {
-    local component="$1" ref="$2" dir="modules/nf-core/$1" f tmp missing=0
+    local component="$1" ref="$2" f missing=0
+    local dir="modules/nf-core/${component}"
     for f in "${module_files[@]}"; do
         [[ -s "${dir}/${f}" ]] || missing=1
     done
     if [[ "${missing}" -eq 0 ]]; then
         return 0
     fi
-    tmp="$(mktemp -d "${module_root}/.module.XXXXXX")"
+    # Global, not local: the EXIT trap runs after this function has returned
+    # when curl fails under set -e or the run is interrupted.
+    fetch_tmp="$(mktemp -d "${module_root}/.module.XXXXXX")"
+    trap 'rm -rf "${fetch_tmp}"' EXIT
     for f in "${module_files[@]}"; do
-        if ! curl -fsSL --retry 3 -o "${tmp}/${f}" \
-            "https://raw.githubusercontent.com/nf-core/modules/${ref}/modules/nf-core/${component}/${f}"; then
-            rm -rf "${tmp}"
-            return 1
-        fi
+        curl -fsSL --retry 3 -o "${fetch_tmp}/${f}" \
+            "https://raw.githubusercontent.com/nf-core/modules/${ref}/modules/nf-core/${component}/${f}"
     done
-    chmod 755 "${tmp}" # mktemp -d creates it 0700
+    chmod 755 "${fetch_tmp}" # mktemp -d creates it 0700
     rm -rf "${dir}"
     mkdir -p "$(dirname "${dir}")"
-    mv "${tmp}" "${dir}"
+    mv "${fetch_tmp}" "${dir}"
+    trap - EXIT
 }
 fetch_module untar 6d46786420b4d7bc88eba026eb389c0c5535d120
 fetch_module bcftools/norm 56155f73713bc32c5343b59f05d968794c1b596d

@@ -25,8 +25,12 @@ withName: 'BCFTOOLS_NORM' {
 `--do-not-normalize` matters: `bcftools/norm` always passes `--fasta-ref`, and
 without the flag bcftools also left-aligns indels, which the parity inputs never
 were. It also fails outright when the FASTA and VCF name contigs differently
-(`22` vs `chr22`), a mismatch vepyr itself tolerates. Keep the `ext.prefix`:
-both steps write `<prefix>.vcf.gz`.
+(`22` vs `chr22`), a mismatch vepyr itself tolerates. Keep the `ext.prefix`
+whenever `meta.id` can equal the input VCF's basename: `bcftools/norm` writes
+`${meta.id}.vcf.gz` over its own staged input, a symlink, and so truncates the
+original file. `VEPYR_ANNOTATE` stages its input under `input/`, so the
+normalized file reaching it under its own output name is harmless; the
+subworkflow tests leave the prefix unset to cover exactly that.
 
 `.nf-core.yml` and `tests/config/nf-test.config` exist only so `nf-core modules
 lint` treats this directory as a modules repository. nf-core/modules has its own

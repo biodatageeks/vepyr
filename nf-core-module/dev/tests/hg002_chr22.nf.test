@@ -79,7 +79,7 @@ nextflow_process {
                 .join('\n')
             println """
             |  task work dir : ${taskDir}
-            |  input vcf     : ${staged('input_chr22.vcf.gz')}
+            |  input vcf     : ${staged('input/input_chr22.vcf.gz')}
             |  cache         : ${staged('cache')}
             |  fasta         : ${staged('chr22.fa.gz')}
             |  output vcf    : ${outVcf}
