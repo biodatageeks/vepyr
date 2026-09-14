@@ -113,7 +113,40 @@ vepyr annotates records as given. The parity inputs were normalized with
 To run that step in the same pipeline, use the `vcf_annotate_vepyr` subworkflow,
 which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes the
 same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
-normalize. Configure the normalization as validated:
+normalize.
+
+The subworkflow is staged in this repository next to the module, and it needs
+both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
+paths nf-core tooling uses:
+
+```bash
+mkdir -p my-pipeline/subworkflows/nf-core
+cp -R vepyr/nf-core-module/subworkflows/nf-core/vcf_annotate_vepyr my-pipeline/subworkflows/nf-core/
+
+# bcftools/norm: in an nf-core pipeline, `nf-core modules install bcftools/norm`.
+# Otherwise copy it at the commit the subworkflow is tested against:
+ref=56155f73713bc32c5343b59f05d968794c1b596d
+mkdir -p my-pipeline/modules/nf-core/bcftools/norm
+for f in main.nf meta.yml environment.yml; do
+    curl -fsSL -o my-pipeline/modules/nf-core/bcftools/norm/$f \
+        https://raw.githubusercontent.com/nf-core/modules/$ref/modules/nf-core/bcftools/norm/$f
+done
+```
+
+In the example above, include the subworkflow instead of the module and call it
+with the same channels plus `true`:
+
+```groovy title="main.nf"
+include { VCF_ANNOTATE_VEPYR } from './subworkflows/nf-core/vcf_annotate_vepyr/main'
+
+// ... vcf, cache and fasta channels as in the example above ...
+
+    VCF_ANNOTATE_VEPYR(vcf, cache, fasta, params.cache_version, [[], []], true)
+
+    VCF_ANNOTATE_VEPYR.out.vcf_tbi.view { meta, annotated, tbi -> "${meta.id}: ${annotated}" }
+```
+
+Configure the normalization as validated:
 
 ```groovy
 process {

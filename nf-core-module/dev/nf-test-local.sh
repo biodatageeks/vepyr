@@ -70,6 +70,9 @@ module_files=(main.nf meta.yml environment.yml)
 fetch_module() {
     local component="$1" ref="$2" f missing=0
     local dir="modules/nf-core/${component}"
+    # .fetched-ref records the commit the files came from, so a directory left
+    # by another branch or an older pin is refetched rather than reused.
+    [[ "$(cat "${dir}/.fetched-ref" 2>/dev/null)" == "${ref}" ]] || missing=1
     for f in "${module_files[@]}"; do
         [[ -s "${dir}/${f}" ]] || missing=1
     done
@@ -84,6 +87,7 @@ fetch_module() {
         curl -fsSL --retry 3 -o "${fetch_tmp}/${f}" \
             "https://raw.githubusercontent.com/nf-core/modules/${ref}/modules/nf-core/${component}/${f}"
     done
+    echo "${ref}" > "${fetch_tmp}/.fetched-ref"
     chmod 755 "${fetch_tmp}" # mktemp -d creates it 0700
     rm -rf "${dir}"
     mkdir -p "$(dirname "${dir}")"
