@@ -126,15 +126,16 @@ process {
 
 Without `--do-not-normalize`, bcftools also left-aligns indels against the
 reference, and it fails when the FASTA and VCF name contigs differently. The
-index from `--write-index=tbi` lets vepyr use more than one pipeline.
+index from `--write-index=tbi` lets vepyr use more than one pipeline. On the
+raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
+116 `--everything` record-body md5.
 
 !!! warning "Keep the `ext.prefix` when sample ids match file names"
     `bcftools/norm` writes `${meta.id}.vcf.gz`. If `meta.id` equals the input
     VCF's basename (`sample.vcf.gz` with `id: 'sample'`), it writes over its own
     staged input, which is a symlink to your file, and truncates the original.
     The `.norm` prefix avoids that. `VEPYR_ANNOTATE` stages its input under
-    `input/`, so it needs no distinct prefix of its own. On the raw HG002 chr22 benchmark records this subworkflow
-reproduces the Ensembl VEP 116 `--everything` record-body md5.
+    `input/`, so it needs no distinct prefix of its own.
 
 ## Inputs
 
