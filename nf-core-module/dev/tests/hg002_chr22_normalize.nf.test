@@ -1,0 +1,84 @@
+// End-to-end Ensembl VEP parity through the subworkflow, offline: the raw HG002
+// chr22 benchmark records (50,284, 577 multiallelic) go through BCFTOOLS_NORM
+// with the split-only configuration from meta.yml, then VEPYR_ANNOTATE, and the
+// annotated output must reproduce the record-body md5 of Ensembl VEP 116
+// --everything on the 50,861 normalized records.
+//
+// Not part of the nf-core submission: run through dev/nf-test-local.sh, which
+// points params.hg002_chr22 at tests/data/hg002_chr22.
+nextflow_workflow {
+
+    name "Test Subworkflow VCF_ANNOTATE_VEPYR - HG002 chr22 raw input VEP parity"
+    script "../../subworkflows/nf-core/vcf_annotate_vepyr/main.nf"
+    workflow "VCF_ANNOTATE_VEPYR"
+    config "../../subworkflows/nf-core/vcf_annotate_vepyr/tests/nextflow.config"
+
+    tag "subworkflows/vcf_annotate_vepyr"
+    tag "vep_parity"
+
+    test("homo_sapiens - hg002 chr22 raw - normalize - everything - matches Ensembl VEP 116") {
+
+        when {
+            workflow {
+                """
+                def fixture = params.hg002_chr22
+                input[0] = channel.of([
+                    [ id:'hg002_chr22' ],
+                    file(fixture + '/raw_chr22.vcf.gz', checkIfExists: true),
+                    file(fixture + '/raw_chr22.vcf.gz.tbi', checkIfExists: true)
+                ])
+                input[1] = channel.value([
+                    [ id:'116_GRCh38_ensembl_chr22' ],
+                    file(fixture + '/cache', checkIfExists: true)
+                ])
+                input[2] = channel.value([
+                    [ id:'GRCh38_chr22' ],
+                    file(fixture + '/chr22.fa.gz', checkIfExists: true),
+                    [
+                        file(fixture + '/chr22.fa.gz.fai', checkIfExists: true),
+                        file(fixture + '/chr22.fa.gz.gzi', checkIfExists: true)
+                    ]
+                ])
+                input[3] = 116
+                input[4] = [[], []]
+                input[5] = true
+                """
+            }
+        }
+
+        then {
+            def expectedMd5 = 'f0a0a7021c498d2b4e38c9caf5959f77'
+            def expectedRecords = 50861
+
+            // md5 over record lines exactly as written, headers excluded.
+            def outVcf = java.nio.file.Paths.get(workflow.out.vcf_tbi[0][1].toString())
+            def md5 = java.security.MessageDigest.getInstance('MD5')
+            def records = 0
+            new java.util.zip.GZIPInputStream(new FileInputStream(outVcf.toString()))
+                .withReader('UTF-8') { reader ->
+                    reader.eachLine { line ->
+                        if (!line.startsWith('#')) {
+                            md5.update((line + '\n').getBytes('UTF-8'))
+                            records++
+                        }
+                    }
+                }
+            def bodyMd5 = md5.digest().encodeHex().toString()
+            def tasks = workflow.trace.tasks().collect { it.name }
+
+            println """
+            |  tasks         : ${tasks.join(', ')}
+            |  output vcf    : ${outVcf}
+            |  records       : ${records} (expected ${expectedRecords})
+            |  body md5      : ${bodyMd5} (expected ${expectedMd5})
+            |""".stripMargin()
+
+            assertAll(
+                { assert workflow.success },
+                { assert tasks.any { it.startsWith('VCF_ANNOTATE_VEPYR:BCFTOOLS_NORM') } },
+                { assert records == expectedRecords },
+                { assert bodyMd5 == expectedMd5 }
+            )
+        }
+    }
+}

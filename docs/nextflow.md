@@ -82,7 +82,7 @@ profiles {
         docker.runOptions = '--platform=linux/arm64'
         process {
             withName: 'VEPYR_ANNOTATE' {
-                container = 'community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0'
+                container = 'community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b'
             }
         }
     }
@@ -105,6 +105,31 @@ Results land in `results/vepyr/HG002.vcf.gz` and `results/vepyr/HG002.vcf.gz.tbi
 This exact pipeline, run with `-profile arm64` on all 50,861 normalized HG002
 chr22 records against a release-116 `ensembl` cache, reproduces the record-body
 md5 of Ensembl VEP 116 `--everything` (see [Testing vs Ensembl VEP](testing-vep.md)).
+
+## Normalizing first
+
+vepyr annotates records as given. The parity inputs were normalized with
+`bcftools norm -m -both` (multiallelic records split, indels not left-aligned).
+To run that step in the same pipeline, use the `vcf_annotate_vepyr` subworkflow,
+which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes the
+same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
+normalize. Configure the normalization as validated:
+
+```groovy
+process {
+    withName: 'BCFTOOLS_NORM' {
+        ext.args   = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
+        ext.prefix = { "${meta.id}.norm" }
+    }
+}
+```
+
+Without `--do-not-normalize`, bcftools also left-aligns indels against the
+reference, and it fails when the FASTA and VCF name contigs differently. The
+index from `--write-index=tbi` lets vepyr use more than one pipeline; the
+distinct `ext.prefix` keeps the normalized file from colliding with vepyr's
+output name. On the raw HG002 chr22 benchmark records this subworkflow
+reproduces the Ensembl VEP 116 `--everything` record-body md5.
 
 ## Inputs
 
@@ -188,14 +213,13 @@ is the directory that *contains* `plugin/`. See [Plugins](plugins.md).
 
 | Engine | linux/amd64 | linux/arm64 |
 |---|---|---|
-| Docker | `community.wave.seqera.io/library/htslib_pip_python_vepyr:00a5ec7681bdfa20` | `community.wave.seqera.io/library/htslib_pip_python_vepyr:d7cf9a888587f5b0` |
-| Singularity / Apptainer | `oras://community.wave.seqera.io/library/htslib_pip_python_vepyr:acf4dcc00f540d69` | `oras://community.wave.seqera.io/library/htslib_pip_python_vepyr:15625539a599a8eb` |
+| Docker | `community.wave.seqera.io/library/htslib_vepyr:84d01ceaf76003ed` | `community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b` |
+| Singularity / Apptainer | `oras://community.wave.seqera.io/library/htslib_vepyr:5872e79a887b6765` | `oras://community.wave.seqera.io/library/htslib_vepyr:5282c570a1e32022` |
 
 They are [Seqera Wave](https://seqera.io/containers/) builds of the module's
-`environment.yml`: htslib (for `tabix`) and Python from conda, and vepyr from
-its PyPI wheel until bioconda ships the same version for linux-64 and
-linux-aarch64. The module's `meta.yml` lists them with conda lock files for both
-platforms, and `-profile conda` uses `environment.yml` directly.
+`environment.yml`: `bioconda::vepyr` and `bioconda::htslib` (for `tabix`). The
+module's `meta.yml` lists them with conda lock files for both platforms, and
+`-profile conda` uses `environment.yml` directly.
 
 !!! warning "Use the image for your host's architecture"
     `main.nf` names the `linux/amd64` images, which is what Nextflow runs unless
@@ -211,7 +235,7 @@ platforms, and `-profile conda` uses `environment.yml` directly.
     ```groovy
     process {
         withName: 'VEPYR_ANNOTATE' {
-            container = 'oras://community.wave.seqera.io/library/htslib_pip_python_vepyr:15625539a599a8eb'
+            container = 'oras://community.wave.seqera.io/library/htslib_vepyr:5282c570a1e32022'
         }
     }
     ```

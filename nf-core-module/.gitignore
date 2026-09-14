@@ -2,3 +2,4 @@
 .nf-test/
 .testdata/
 modules/nf-core/untar/
+modules/nf-core/bcftools/
