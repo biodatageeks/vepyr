@@ -175,6 +175,22 @@ the other entities untouched.
 
 ## Annotating variants
 
+### Normalize the input VCF first
+
+!!! warning "vepyr supports normalized VCFs only"
+    vepyr annotates records as given and does not split multiallelic sites
+    itself. Parity with Ensembl VEP is validated on inputs with one ALT allele
+    per record, so split multiallelic records before annotating:
+
+    ```bash
+    bcftools norm -m -both -Oz -o input.norm.vcf.gz input.vcf.gz
+    tabix -p vcf input.norm.vcf.gz
+    ```
+
+    The index lets you use `workers > 1`. Pass `input.norm.vcf.gz` as `vcf` in
+    the examples below. In Nextflow, the `vcf_annotate_vepyr` subworkflow runs
+    this step for you; see [Normalizing first](nextflow.md#normalizing-first).
+
 ### Writing annotated VCF output
 
 Write results directly to a VCF file with a `CSQ` INFO field:
