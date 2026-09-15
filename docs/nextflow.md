@@ -13,6 +13,16 @@ Silicon.
     pipeline as shown below; `nf-core modules install vepyr/annotate` will work
     once it is merged there.
 
+![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
+![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
+
+The diagram shows the `vcf_annotate_vepyr` subworkflow described in
+[Normalizing first](#normalizing-first); with `val_normalize` false, or when you
+call `VEPYR_ANNOTATE` directly, only the dashed path runs. Names starting with
+`ch_` are Nextflow channels, not chromosomes. Each VCF is one whole task per
+process, with no per-chromosome scatter; vepyr parallelizes inside its task, up
+to `cpus` pipelines.
+
 ## Adding the module to a pipeline
 
 Copy the module directory to the path nf-core tooling would install it at, so a
@@ -115,14 +125,6 @@ which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes th
 same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
 normalize. Normalizing needs the reference: `bcftools/norm` always reads the
 FASTA from channel 3, so pass one even when `ext.args` has no `--everything`.
-
-![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
-![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
-
-Names starting with `ch_` are Nextflow channels, not chromosomes. Each VCF is
-one `BCFTOOLS_NORM` task and one `VEPYR_ANNOTATE` task, whole, with no
-per-chromosome scatter; vepyr parallelizes inside its task, up to `cpus`
-pipelines.
 
 The subworkflow is staged in this repository next to the module, and it needs
 both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
