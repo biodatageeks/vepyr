@@ -116,6 +116,14 @@ same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
 normalize. Normalizing needs the reference: `bcftools/norm` always reads the
 FASTA from channel 3, so pass one even when `ext.args` has no `--everything`.
 
+![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
+![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
+
+Names starting with `ch_` are Nextflow channels, not chromosomes. Each VCF is
+one `BCFTOOLS_NORM` task and one `VEPYR_ANNOTATE` task, whole, with no
+per-chromosome scatter; vepyr parallelizes inside its task, up to `cpus`
+pipelines.
+
 The subworkflow is staged in this repository next to the module, and it needs
 both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
 paths nf-core tooling uses:

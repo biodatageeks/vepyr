@@ -1,0 +1,36 @@
+flowchart TB
+    subgraph take ["take (ch_ = channel)"]
+        vcf["ch_vcf<br/>[meta, vcf, tbi]"]
+        fasta["ch_fasta<br/>[meta3, fasta, fai]"]
+        cache["ch_cache<br/>[meta2, cache]"]
+        ver["val_cache_version<br/>116 or []"]
+        plug["ch_plugin_cache<br/>[meta4, root] or [[], []]"]
+    end
+
+    subgraph VCF_ANNOTATE_VEPYR
+        norm{"val_normalize"}
+        dropfai(("map"))
+        bcf(["BCFTOOLS_NORM<br/>bcftools norm --fasta-ref"])
+        join1(("join"))
+        index(("map"))
+        vepyr(["VEPYR_ANNOTATE<br/>vepyr annotate --fork cpus<br/>tabix"])
+        join2(("join"))
+    end
+
+    out["emit vcf_tbi<br/>[meta, vcf, tbi]"]
+
+    vcf --> norm
+    norm -- "true" --> bcf
+    norm -. "false: ch_vcf as given" .-> vepyr
+    fasta --> dropfai
+    dropfai -- "[meta3, fasta]" --> bcf
+    bcf -- "out.vcf" --> join1
+    bcf -- "out.index, optional" --> join1
+    join1 -- "remainder: true" --> index
+    index -- "[meta, vcf, index or []]" --> vepyr
+    fasta -- "[meta3, fasta, fai]" --> vepyr
+    cache --> vepyr
+    ver --> vepyr
+    plug --> vepyr
+    vepyr -- "out.vcf + out.tbi" --> join2
+    join2 --> out
