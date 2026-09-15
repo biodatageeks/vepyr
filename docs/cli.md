@@ -103,7 +103,8 @@ with its original `ALT` and no `CSQ` key. Only the first `ALT` is tested, so
 
 **Unknown flags are an error.** A VEP flag this interface does not implement — say
 `--pick` — fails the run rather than being ignored, so a stale command line can
-never silently produce differently-annotated output.
+never silently produce differently-annotated output. Flags are never
+abbreviated, so VEP's `--hgvs` is rejected rather than read as `--hgvsc`.
 
 **Output is always a named file.** There is no stdout streaming mode, so `-o -`
 is not accepted.

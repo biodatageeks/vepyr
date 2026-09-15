@@ -13,6 +13,16 @@ Silicon.
     pipeline as shown below; `nf-core modules install vepyr/annotate` will work
     once it is merged there.
 
+![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
+![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
+
+The diagram shows the `vcf_annotate_vepyr` subworkflow described in
+[Normalizing first](#normalizing-first); with `val_normalize` false, or when you
+call `VEPYR_ANNOTATE` directly, only the dashed path runs. Names starting with
+`ch_` are Nextflow channels, not chromosomes. Each VCF is one whole task per
+process, with no per-chromosome scatter; vepyr parallelizes inside its task, up
+to `cpus` pipelines.
+
 ## Adding the module to a pipeline
 
 Copy the module directory to the path nf-core tooling would install it at, so a
@@ -113,7 +123,8 @@ vepyr annotates records as given. The parity inputs were normalized with
 To run that step in the same pipeline, use the `vcf_annotate_vepyr` subworkflow,
 which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes the
 same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
-normalize.
+normalize. Normalizing needs the reference: `bcftools/norm` always reads the
+FASTA from channel 3, so pass one even when `ext.args` has no `--everything`.
 
 The subworkflow is staged in this repository next to the module, and it needs
 both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
@@ -146,7 +157,7 @@ include { VCF_ANNOTATE_VEPYR } from './subworkflows/nf-core/vcf_annotate_vepyr/m
     VCF_ANNOTATE_VEPYR.out.vcf_tbi.view { meta, annotated, tbi -> "${meta.id}: ${annotated}" }
 ```
 
-Configure the normalization as validated:
+Configure `BCFTOOLS_NORM` as validated. This is required, not optional:
 
 ```groovy
 process {
@@ -156,6 +167,11 @@ process {
     }
 }
 ```
+
+Without this block, `bcftools/norm` falls back to its default `ext.args` of
+`--output-type z`: it left-aligns indels against the reference, leaves
+multiallelic records unsplit and writes no index, so vepyr annotates the
+unsplit records on a single pipeline.
 
 Without `--do-not-normalize`, bcftools also left-aligns indels against the
 reference, and it fails when the FASTA and VCF name contigs differently. The
@@ -174,9 +190,9 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
 
 | Channel | Shape | Notes |
 |---|---|---|
-| 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). `tbi` is optional — pass `[]` — but without it the task runs a single pipeline. |
+| 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — but without it the task runs a single pipeline. |
 | 2 | `[ meta2, cache ]` | vepyr Parquet cache **directory**, e.g. `116_GRCh38_ensembl`. Not an Ensembl VEP cache. |
-| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required by `--everything`; pass `[ meta3, [], [] ]` otherwise. |
+| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [] ]` otherwise. |
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
@@ -210,8 +226,10 @@ The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,
 since more than one pipeline needs an indexed VCF.
 
 **Unknown flags fail the task.** `vepyr annotate` rejects any VEP flag it does not
-implement, so an `ext.args` copied from an `ensemblvep/vep` configuration fails
-rather than silently annotating differently.
+implement, including one that is a prefix of a vepyr flag: `--hgvs` is not read
+as `--hgvsc`, nor `--dir` as `--dir_cache`. An `ext.args` copied from an
+`ensemblvep/vep` configuration therefore fails rather than silently annotating
+differently.
 
 ## Caches
 
@@ -258,7 +276,10 @@ is the directory that *contains* `plugin/`. See [Plugins](plugins.md).
 They are [Seqera Wave](https://seqera.io/containers/) builds of the module's
 `environment.yml`: `bioconda::vepyr` and `bioconda::htslib` (for `tabix`). The
 module's `meta.yml` lists them with conda lock files for both platforms, and
-`-profile conda` uses `environment.yml` directly.
+`-profile conda` uses `environment.yml` directly. For Singularity and Apptainer,
+`main.nf` refers to the image by its https download URL, which `meta.yml` lists
+next to the `oras://` URI above; the two name the same build, and either works as
+a `container` override.
 
 !!! warning "Use the image for your host's architecture"
     `main.nf` names the `linux/amd64` images, which is what Nextflow runs unless
