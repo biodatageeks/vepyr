@@ -24,9 +24,12 @@ examples:
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level ``vepyr`` parser."""
+    # allow_abbrev=False here too: `vepyr --ver annotate ...` would otherwise
+    # expand to --version, print it and exit 0 without annotating.
     parser = argparse.ArgumentParser(
         prog="vepyr",
         description="Rust-powered Ensembl VEP variant annotation.",
+        allow_abbrev=False,
     )
     parser.add_argument(
         "--version",

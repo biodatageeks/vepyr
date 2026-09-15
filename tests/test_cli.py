@@ -145,6 +145,22 @@ def test_vep_flag_that_prefixes_a_vepyr_flag_exits_2(vep_flag):
     assert excinfo.value.code == 2
 
 
+def test_abbreviated_top_level_flag_exits_2(capsys):
+    # `vepyr --ver annotate ...` must not expand to --version, which would
+    # print the version and exit 0 without annotating anything.
+    with pytest.raises(SystemExit) as excinfo:
+        build_parser().parse_args(["--ver", "annotate", *MINIMAL])
+    assert excinfo.value.code == 2
+    assert "vepyr 0." not in capsys.readouterr().out
+
+
+def test_full_version_flag_still_works(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        build_parser().parse_args(["--version"])
+    assert excinfo.value.code == 0
+    assert capsys.readouterr().out.startswith("vepyr ")
+
+
 def test_main_forwards_positionals_and_kwargs(monkeypatch):
     import vepyr
 
