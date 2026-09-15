@@ -35,11 +35,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
+    # allow_abbrev=False: argparse would otherwise expand an unambiguous prefix,
+    # so an ensemblvep ext.args carrying --hgvs (HGVSc and HGVSp) would silently
+    # run as --hgvsc instead of failing like every other unimplemented flag.
     annotate = subcommands.add_parser(
         "annotate",
         help="Annotate a VCF against a vepyr Parquet cache.",
         epilog=_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        allow_abbrev=False,
     )
 
     required = annotate.add_argument_group("required arguments")

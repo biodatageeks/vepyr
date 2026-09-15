@@ -127,6 +127,24 @@ def test_unknown_flag_exits_2():
     assert excinfo.value.code == 2
 
 
+@pytest.mark.parametrize(
+    "vep_flag",
+    [
+        ("--hgvs",),
+        ("--dir", "/vep"),
+        ("--plugin_cache", "/plugins"),
+        ("--allow",),
+    ],
+)
+def test_vep_flag_that_prefixes_a_vepyr_flag_exits_2(vep_flag):
+    # argparse would otherwise expand an unambiguous prefix: VEP's --hgvs
+    # (HGVSc and HGVSp) would silently become --hgvsc, --dir would become
+    # --dir_cache.
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, *vep_flag)
+    assert excinfo.value.code == 2
+
+
 def test_main_forwards_positionals_and_kwargs(monkeypatch):
     import vepyr
 
