@@ -12,13 +12,19 @@ the three lookup steps in the main figure. This supersedes the layout in
   lists, preserved VCF INFO/FORMAT plus CSQ, and streaming/materialization
   semantics are integrated as short labels from the former D panel.
 - **A2 — Cache build.** The example shard is `chr22.parquet`, including the
-  plugin directory example, consistent with A3 and A4.
+  plugin directory example, consistent with A3 and A4. The expanded Parquet
+  output block shows four schematic pages and the two native Parquet page
+  indexes: ColumnIndex (position min–max per data page) and OffsetIndex
+  (row → page location). The inset is explicitly scoped to
+  variation/plugin lookup.
 - **A3 — Cache anatomy.** Keys, payload and page index sit above a monochrome
   comparison of position-sorted and frequency-grouped layouts. Warm/cold tiers,
   common/rare hits and the 920-to-220 position-page comparison are retained.
 - **A4 — Cache lookup.** A wider lower panel shows page candidates → locate
   file-row offsets → take projected payload columns, followed by allele
   matching in A1. Three small tables follow the same two probe positions.
+  Short labels link page candidates to page-index metadata and take to
+  OffsetIndex plus the selected rows.
 - **C — Performance.** The existing embedded vector chart and its pending-data
   placeholders are preserved. Its letter is retained for comparison with the
   preceding draft; final manuscript lettering can be assigned after layout
@@ -37,7 +43,11 @@ require handling the aligned annotation lists. Solid arrows indicate data
 flow and the dashed return arrow indicates query demand. **(A2) Cache build.**
 Ensembl cache conversion and declarative plugin ingestion produce separate
 chromosome-partitioned Parquet datasets and associated metadata; chromosome 22
-is used throughout the cache example. **(A3) Cache anatomy.** A variation shard
+is used throughout the cache example. Lookup shards use small data pages,
+with records sorted by position within each frequency tier. Native Parquet
+page indexes store position bounds (ColumnIndex) and page locations with
+first-row indices (OffsetIndex), enabling selective page reads.
+**(A3) Cache anatomy.** A variation shard
 contains lookup keys, annotation payload and page-index metadata. Records are
 grouped by frequency tier and sorted by position within each tier. Both warm
 and cold tiers remain queryable. Filled and open markers denote common and
@@ -49,7 +59,8 @@ counterfactual versus 220 for frequency grouping (76% fewer), yielding the same
 6,178 position matches. **(A4) Cache lookup.** Page position ranges identify
 candidate pages in both tier runs. Reading the position column within these
 pages locates exact matches and records their file-row offsets. A subsequent
-take retrieves required payload columns for these offsets. Retrieved records
+take uses the selected rows and OffsetIndex to retrieve required payload
+columns from the relevant pages. Retrieved records
 then undergo allele matching against the input variants in A1. Tables show
 illustrative excerpts; file-row offsets, page identifiers, record identifiers
 and allele frequencies in A4 are schematic. **(C) Performance.** The existing
@@ -88,6 +99,44 @@ random access to individual compressed values without reading their pages.
 The pipeline shown applies to variation/plugin lookup; transcript context
 retains the distinct scan/interval-tree path in A1.
 
+## Page-index implementation behind A2 / A4
+
+Checked against the branch's pinned bio-function-vep v0.20.1 commit
+`8b1abd09478b97aed6ce42d2a5b60912b315855b` and Parquet 58.0.0.
+
+- [`point_lookup_writer_properties`](https://github.com/biodatageeks/datafusion-bio-functions/blob/8b1abd09478b97aed6ce42d2a5b60912b315855b/datafusion/bio-function-vep/src/parquet_cache/write.rs#L46)
+  enables page statistics and small page targets (4 KiB / 512 rows), disables
+  dictionary encoding, and uses ZSTD level 3. It declares sort columns; the
+  build pipeline physically supplies records in the required order.
+- The [plugin writer](https://github.com/biodatageeks/datafusion-bio-functions/blob/8b1abd09478b97aed6ce42d2a5b60912b315855b/datafusion/bio-function-vep/src/plugin_cache/write.rs#L52)
+  reuses this profile with `(tier, start)`. The profile also serves
+  `translation_sift` with its own lookup key. Context entities use a separate
+  scan-oriented profile, so the inset does not describe every core shard.
+- [`PageDir::build`](https://github.com/biodatageeks/datafusion-bio-functions/blob/8b1abd09478b97aed6ce42d2a5b60912b315855b/datafusion/bio-function-vep/src/parquet_cache/page_dir.rs#L63)
+  combines key-column min/max from ColumnIndex with first-row indices from
+  OffsetIndex, deriving file-wide page row ranges. This directory is built
+  when the lookup opens the shard. `resolve_ranges` searches the sorted tier
+  runs, handles positions spanning pages and the tier seam, and merges adjacent
+  candidate ranges.
+- Here position min–max means the smallest and largest `start` value in one
+  data page of the `start` column, within a chromosome shard. It is not the
+  genomic interval of an individual variant. A probe inside the bounds makes
+  the page a candidate; the page need not contain that exact probe value.
+- The [variation reader](https://github.com/biodatageeks/datafusion-bio-functions/blob/8b1abd09478b97aed6ce42d2a5b60912b315855b/datafusion/bio-function-vep/src/parquet_cache/variation_lookup.rs#L121)
+  reads the candidate pages' `start` column to discover exact row offsets.
+  The payload pass supplies these offsets as a RowSelection and projects
+  required columns. The Parquet reader uses OffsetIndex page locations to
+  translate selected rows to page byte ranges; nearby reads may be coalesced.
+
+As specified by [Parquet Page Index](https://parquet.apache.org/docs/file-format/pageindex/),
+the indexes are per-column structures stored near the footer; column metadata
+holds their locations. They are neither separate index files nor a list of
+exact variant matches. A2's four page symbols are illustrative, and page
+boundaries may differ across columns. Exact matches remain the result of
+A4's middle step. Writer size limits are targets, not measured page sizes of
+the cache used for A3's comparison. The 76% reduction in A3 describes frequency
+grouping, not an isolated index-on versus index-off experiment.
+
 ## Details for Methods / supplementary material
 
 The main panel omits cursor bookkeeping, page coalescing, exact writer
@@ -120,6 +169,7 @@ or an appropriate any predicate); ontology expansion must be explicit.
 ## Deliverables and regeneration
 
 - `figure1-cache-workflow-proposal.{svg,png,drawio}` — current full proposal.
+- `a2-cache-build-proposal.{svg,png,drawio}` — standalone build and page indexes.
 - `a3-cache-anatomy-proposal.{svg,png,drawio}` — standalone anatomy.
 - `a4-cache-lookup-proposal.{svg,png,drawio}` — standalone lookup.
 - `build_cache_workflow_proposal.py` — generator; reuses drawing primitives

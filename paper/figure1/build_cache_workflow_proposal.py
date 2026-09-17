@@ -23,6 +23,61 @@ LOOKUP_WIDTH, LOOKUP_HEIGHT = 1450, 740
 INK, GREY, LIGHT = "#111111", "#555555", "#e6e6e6"
 
 
+def indexed_build_flow() -> fig.Scene:
+    """A2 builders and their output; the index inset is scoped to lookup."""
+    s = fig.Scene()
+    s._counter = 40000
+    raw = s.box(66, 832, 224, 74, "Ensembl VEP cache\nStorable / Sereal",
+                font_size=19)
+    build = s.box(316, 832, 246, 74, "build_cache()\nEnsembl conversion",
+                  font_size=19)
+    plugin_input = s.box(66, 968, 224, 98,
+                         "Plugin source files\nTSV / CSV / Parquet\nVCF / BED (4 columns)",
+                         font_size=17)
+    plugin_build = s.box(316, 940, 246, 126, "")
+    s.box(316, 940, 246, 34, "Plugin build · TOML", font_size=18,
+          fill=INK, font_color="white")
+    s.label(324, 982, 230, 32, "build_plugin_cache()", font_size=18,
+            weight=700, align="center")
+    s.label(324, 1020, 230, 34, "SQL + field mapping", font_size=18, align="center")
+
+    built = s.box(610, 818, 352, 278, "", stroke_width=2)
+    s.label(623, 825, 326, 31, "Parquet shards", font_size=23,
+            weight=700, align="center")
+    s.label(623, 862, 326, 28, "Per chromosome · separate schemas",
+            font_size=17, align="center", color=GREY)
+    s.edge(623, 899, 949, 899, arrow=False, color=LIGHT, width=1)
+    s.label(623, 905, 326, 29, "Lookup: variation / plugins",
+            font_size=19, weight=700, align="center")
+    # Four schematic data pages. The index rows summarize per-column metadata,
+    # not a separate sidecar or a shared physical page boundary across columns.
+    for i in range(4):
+        s.box(653 + i * 65, 937, 50, 30, f"P{i}", font_size=15,
+              fill="#f3f3f3", bold_first=False, stroke_width=1)
+    s.label(623, 967, 326, 28, "Small pages · sorted within tiers",
+            font_size=17, align="center", color=GREY)
+    s.label(623, 995, 127, 44, "ColumnIndex", font_size=18, weight=700)
+    s.label(751, 995, 198, 44, "position min–max\nper data page", font_size=18)
+    s.label(623, 1041, 127, 49, "OffsetIndex", font_size=18, weight=700)
+    s.label(751, 1041, 204, 49, "row → page location", font_size=18)
+    s.edge(290, 869, 316, 869, source=raw, target=build)
+    s.edge(290, 1017, 316, 1017, source=plugin_input, target=plugin_build)
+    s.edge(562, 869, 610, 869, source=build, target=built)
+    s.edge(562, 1017, 610, 1017, source=plugin_build, target=built)
+    return s
+
+
+def cache_build_panel(full: fig.Scene) -> fig.Scene:
+    """Export A2 with a small margin and without incoming zoom leaders."""
+    start = next(i for i, e in enumerate(full.elements) if e.id == "cache-zoom-frame")
+    end = next(i for i, e in enumerate(full.elements)
+               if isinstance(e, fig.Edge) and e.target is not None
+               and e.target.id == "shard-zoom-frame")
+    panel = fig.Scene()
+    panel.elements = full.elements[start:end]
+    return previous.translated(panel, -28, -738)
+
+
 def anatomy() -> fig.Scene:
     s = previous.panel()
     # Keep the layout comparison and measured chart; move retrieval to A4.
@@ -53,9 +108,9 @@ def lookup() -> fig.Scene:
             font_size=24)
     cols = (0, 500, 1000)
     for x, text in zip(cols, (
-        "1  Page candidates\nRead page metadata",
+        "1  Page candidates\nPage-index metadata",
         "2  Locate row offsets\nRead position column",
-        "3  Take\nRead selected payload columns",
+        "3  Take\nOffsetIndex + selected rows",
     )):
         s.box(x, 154, 425, 78, text, font_size=23, stroke_width=1.8)
     s.edge(431, 193, 489, 193)
@@ -110,6 +165,7 @@ def lookup() -> fig.Scene:
         s.box(1000, y, 425, 40, "", fill=LIGHT, stroke_width=0)
         for dx, w, text in zip((7, 108, 231, 320), (94, 111, 80, 99), values):
             s.label(1000 + dx, y + 3, w, 34, text, font_size=22)
+    s.label(1000, 428, 425, 28, "Selected payload columns", font_size=20, color=GREY)
     s.label(1000, 454, 425, 70,
             "One position can yield\nseveral cached alleles.", font_size=23, color=GREY)
     s.edge(1212, 535, 1212, 586)
@@ -126,6 +182,11 @@ def full_figure(performance_uri: str) -> fig.Scene:
     cut = next(i for i, e in enumerate(s.elements) if e.id == "shard-zoom-frame") + 1
     # Retain A1, A2 and the zoom frames; replace A3 and all lower panels.
     s.elements = s.elements[:cut]
+    build_start = next(i for i, e in enumerate(s.elements)
+                       if isinstance(e, fig.Box) and e.lines[0] == "Ensembl VEP cache")
+    build_end = next(i for i, e in enumerate(s.elements)
+                     if isinstance(e, fig.Label) and e.lines == ["cache_dir/  [release + source]"])
+    s.elements[build_start:build_end] = indexed_build_flow().elements
     replacements = {
         "Cache construction": "Cache build",
         "Input VCF\nBGZF + index": "Input VCF\nNormalized",
@@ -179,6 +240,7 @@ def save(s: fig.Scene, path: Path, width: int, height: int, title: str) -> None:
     ET.SubElement(root, ns + "title").text = title
     ET.SubElement(root, ns + "desc").text = (
         "Cache build, cache anatomy and cache lookup proposal, using chromosome 22. "
+        "Lookup shards include ColumnIndex value ranges and OffsetIndex page locations. "
         "Lookup example rows and payload values are illustrative. The anatomy chart "
         "reports 920 versus 220 position pages for one buffer from Marek's source. "
         "Warm and cold are on-disk frequency tiers. Performance data are unchanged."
@@ -227,10 +289,13 @@ def main() -> None:
     performance = original.find("{http://www.w3.org/2000/svg}image")
     if performance is None:
         raise ValueError("Missing original Performance SVG")
+    full = full_figure(performance.attrib["href"])
     exports = (
+        ("a2-cache-build-proposal", cache_build_panel(full), 974, 654,
+         "A2 — Cache build with Parquet page indexes"),
         ("a3-cache-anatomy-proposal", anatomy(), 1260, 630, "A3 — Cache anatomy"),
         ("a4-cache-lookup-proposal", lookup(), LOOKUP_WIDTH, LOOKUP_HEIGHT, "A4 — Cache lookup"),
-        ("figure1-cache-workflow-proposal", full_figure(performance.attrib["href"]),
+        ("figure1-cache-workflow-proposal", full,
          2400, 2200, "Figure 1 — Cache workflow proposal"),
     )
     for name, scene, width, height, title in exports:

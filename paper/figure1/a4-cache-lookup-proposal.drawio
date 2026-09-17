@@ -13,13 +13,13 @@
         <mxCell id="text-30002" value="Probe positions · chr22:16,050,075 and chr22:16,050,213" style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=24;fontStyle=0;fontColor=#111111;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
           <mxGeometry x="0" y="75" width="1440" height="44" as="geometry" />
         </mxCell>
-        <mxCell id="box-30003" value="&lt;b&gt;1  Page candidates&lt;/b&gt;&lt;br&gt;Read page metadata" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.8;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
+        <mxCell id="box-30003" value="&lt;b&gt;1  Page candidates&lt;/b&gt;&lt;br&gt;Page-index metadata" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.8;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
           <mxGeometry x="0" y="154" width="425" height="78" as="geometry" />
         </mxCell>
         <mxCell id="box-30004" value="&lt;b&gt;2  Locate row offsets&lt;/b&gt;&lt;br&gt;Read position column" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.8;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
           <mxGeometry x="500" y="154" width="425" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="box-30005" value="&lt;b&gt;3  Take&lt;/b&gt;&lt;br&gt;Read selected payload columns" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.8;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
+        <mxCell id="box-30005" value="&lt;b&gt;3  Take&lt;/b&gt;&lt;br&gt;OffsetIndex + selected rows" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.8;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
           <mxGeometry x="1000" y="154" width="425" height="78" as="geometry" />
         </mxCell>
         <mxCell id="edge-30006" style="edgeStyle=none;rounded=0;html=1;strokeColor=#111111;strokeWidth=2;endArrow=block;endFill=1;dashed=0;" edge="1" parent="1">
@@ -211,25 +211,28 @@
         <mxCell id="text-30063" value="0.004" style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=22;fontStyle=0;fontColor=#111111;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
           <mxGeometry x="1320" y="389" width="99" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="text-30064" value="One position can yield&lt;br&gt;several cached alleles." style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=23;fontStyle=0;fontColor=#555555;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
+        <mxCell id="text-30064" value="Selected payload columns" style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=20;fontStyle=0;fontColor=#555555;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="428" width="425" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="text-30065" value="One position can yield&lt;br&gt;several cached alleles." style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=23;fontStyle=0;fontColor=#555555;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
           <mxGeometry x="1000" y="454" width="425" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="edge-30065" style="edgeStyle=none;rounded=0;html=1;strokeColor=#111111;strokeWidth=2;endArrow=block;endFill=1;dashed=0;" edge="1" parent="1">
+        <mxCell id="edge-30066" style="edgeStyle=none;rounded=0;html=1;strokeColor=#111111;strokeWidth=2;endArrow=block;endFill=1;dashed=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="1212" y="535" as="sourcePoint" />
             <mxPoint x="1212" y="586" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="box-30066" value="&lt;b&gt;Allele matching in A1&lt;/b&gt;&lt;br&gt;Attach to input variants" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.5;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
+        <mxCell id="box-30067" value="&lt;b&gt;Allele matching in A1&lt;/b&gt;&lt;br&gt;Attach to input variants" style="rounded=0;arcSize=2;whiteSpace=wrap;html=1;fillColor=white;strokeColor=#111111;strokeWidth=1.5;fontFamily=Arial;fontSize=23;align=center;verticalAlign=middle;spacing=8;fontColor=#111111;dashed=0;dashPattern=8 6;" vertex="1" parent="1">
           <mxGeometry x="1000" y="597" width="425" height="66" as="geometry" />
         </mxCell>
-        <mxCell id="edge-30067" style="edgeStyle=none;rounded=0;html=1;strokeColor=#e6e6e6;strokeWidth=1;endArrow=none;endFill=1;dashed=0;" edge="1" parent="1">
+        <mxCell id="edge-30068" style="edgeStyle=none;rounded=0;html=1;strokeColor=#e6e6e6;strokeWidth=1;endArrow=none;endFill=1;dashed=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="0" y="691" as="sourcePoint" />
             <mxPoint x="1425" y="691" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="text-30068" value="Illustrative rows · page ranges → exact positions → allele matching" style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=22;fontStyle=0;fontColor=#555555;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
+        <mxCell id="text-30069" value="Illustrative rows · page ranges → exact positions → allele matching" style="text;html=1;strokeColor=none;fillColor=none;whiteSpace=wrap;fontFamily=Arial;fontSize=22;fontStyle=0;fontColor=#555555;align=left;verticalAlign=middle;spacing=0;" vertex="1" parent="1">
           <mxGeometry x="0" y="697" width="1440" height="34" as="geometry" />
         </mxCell>
       </root>
