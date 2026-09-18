@@ -16,6 +16,9 @@ Environment:
   VEP_IMAGE       Docker image. Default: ensemblorg/ensembl-vep:release_116.0
   OUT_DIR         Output directory. Default: DATA_VEPYR_DIR/output/RELEASE/<cache>_fork_scaling
   KEEP_VCFS       Keep VCF outputs after a run. Default: 1
+  INPUT_DIR       Directory with the normalized input and reference FASTA.
+                  Default: DATA_VEPYR_DIR/input
+  TIME_BIN        GNU time executable. Default: gtime on macOS, /usr/bin/time on Linux
 USAGE
 }
 
@@ -43,8 +46,25 @@ esac
 DATA_VEPYR_DIR=${DATA_VEPYR_DIR:-/home/tgambin/workspace/vep_data}
 RELEASE=${RELEASE:-116}
 VEP_IMAGE=${VEP_IMAGE:-ensemblorg/ensembl-vep:release_116.0}
+# VEP only finds a cache whose major version matches its own, so a mismatch
+# fails at startup with "No cache found" and a sub-second timing.
+if [[ "$VEP_IMAGE" =~ release_([0-9]+)\. ]] && [[ "${BASH_REMATCH[1]}" != "$RELEASE" ]]; then
+  printf 'VEP_IMAGE %s does not match RELEASE=%s\n' "$VEP_IMAGE" "$RELEASE" >&2
+  exit 2
+fi
 OUT_DIR=${OUT_DIR:-$DATA_VEPYR_DIR/output/$RELEASE/${CACHE_KIND}_fork_scaling}
 KEEP_VCFS=${KEEP_VCFS:-1}
+if [[ -z "${TIME_BIN:-}" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    TIME_BIN=gtime
+  else
+    TIME_BIN=/usr/bin/time
+  fi
+fi
+if ! command -v "$TIME_BIN" >/dev/null 2>&1; then
+  printf 'GNU time not found: %s. On macOS: brew install gnu-time\n' "$TIME_BIN" >&2
+  exit 2
+fi
 
 if [[ $# -gt 0 ]]; then
   forks=("$@")
@@ -52,7 +72,7 @@ else
   forks=(16 8 4 2 1 none)
 fi
 
-input_dir="$DATA_VEPYR_DIR/input"
+input_dir="${INPUT_DIR:-$DATA_VEPYR_DIR/input}"
 cache_dir="$DATA_VEPYR_DIR/homo_sapiens_${CACHE_KIND}/${RELEASE}_GRCh38"
 cache_mount="/opt/vep/.vep/homo_sapiens_${CACHE_KIND}/${RELEASE}_GRCh38"
 summary_file="$OUT_DIR/${CACHE_KIND}_fork_scaling_summary.tsv"
@@ -82,6 +102,8 @@ for fork in "${forks[@]}"; do
   stderr_file="$OUT_DIR/${CACHE_KIND}_fork${fork}.stderr.txt"
 
   fork_args=()
+  # macOS Bash 3.2 treats an empty array as unset under nounset. The guarded
+  # expansion below preserves zero arguments for the no-fork case.
   if [[ "$fork" != "none" ]]; then
     fork_args=(--fork "$fork")
   fi
@@ -89,7 +111,8 @@ for fork in "${forks[@]}"; do
   rm -f "$output_file" "$output_file"_warnings.txt "$time_file" "$stderr_file"
 
   status=0
-  /usr/bin/time -v -o "$time_file" \
+  printf 'Starting VEP cache=%s release=%s fork=%s\n' "$CACHE_KIND" "$RELEASE" "$fork"
+  "$TIME_BIN" -v -o "$time_file" \
   docker run --rm \
     --user "$docker_uid:$docker_gid" \
     --env HOME=/tmp \
@@ -110,7 +133,7 @@ for fork in "${forks[@]}"; do
     --no_stats \
     --everything --hgvs \
     --fasta /input/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
-    "${fork_args[@]}" \
+    ${fork_args[@]+"${fork_args[@]}"} \
     2> "$stderr_file" || status=$?
 
   elapsed_wall=$(awk -F': ' '/Elapsed \(wall clock\) time/ {print $2}' "$time_file" 2>/dev/null || true)
@@ -127,6 +150,7 @@ for fork in "${forks[@]}"; do
     "$time_file" \
     "$stderr_file" >> "$tmp"
   mv "$tmp" "$summary_file"
+  printf 'Finished fork=%s exit=%s elapsed=%s\n' "$fork" "$status" "$elapsed_wall"
 
   if [[ "$KEEP_VCFS" != "1" ]]; then
     rm -f "$output_file"

@@ -1,0 +1,5 @@
+ cd ~/research/git/vepyr && env INPUT_DIR=/Users/mwiewior/workspace/data_vepyr/input \
+    DATA_VEPYR_DIR=/Users/mwiewior/workspace/data_vepyr RELEASE=116 \
+    VEP_IMAGE=ensemblorg/ensembl-vep:release_116.0 TIME_BIN=/opt/homebrew/bin/gtime KEEP_VCFS=0 \
+    OUT_DIR=/Users/mwiewior/workspace/data_vepyr/output/116/vep_merged_wgs_macos_20260914/raw \
+    bash performance-tests/vep/scripts/run_vep_fork_scaling.sh merged 8 4 2 1 none
