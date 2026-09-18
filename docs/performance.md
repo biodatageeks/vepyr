@@ -72,6 +72,35 @@ elapsed = time.time() - start
 print(f"{df.height} variants in {elapsed:.1f}s")
 ```
 
+### Ensembl VEP vs vepyr on one machine
+
+Both tools annotated the same normalized HG002 GRCh38 input with the same
+release-116 merged cache, `--everything --hgvs` and a reference FASTA, writing
+plain VCF, on one MacBook Pro (Apple M3 Max, 16 cores, 64 GiB). VEP ran in
+its native arm64 Docker image (16 vCPU, 16.5 GiB VM); vepyr 0.7.0 ran on the
+host. Whole-process wall time, one run per setting. VEP `--fork N` runs N
+annotation children plus the parent, so the runs are paired by process count:
+VEP without `--fork` against vepyr's default `workers=1`, `--fork 1` against
+`workers=2`, and `--fork 8` (nine processes) against `workers=8`.
+
+![Ensembl VEP vs vepyr on an M3 Max](assets/vep_vs_vepyr_macos_116.png)
+
+| Input | Ensembl VEP 116.0 | vepyr 0.7.0 | Ratio |
+|---|---|---|---|
+| chr22, 50,861 variants | no fork, 7:54 | `workers=1`, 4.2 s | 112× |
+| | `--fork 1`, 4:09 | `workers=2`, 3.2 s | 78× |
+| | `--fork 8`, 1:13 | `workers=8`, 2.3 s | 32× |
+| whole genome, 4,096,123 variants | no fork, 8:45:41 | `workers=1`, 4:41 | 112× |
+| | `--fork 1`, 4:29:09 | `workers=2`, 2:40 | 101× |
+| | `--fork 8`, 1:23:15 | `workers=8`, 1:24 | 60× |
+
+On chr22 the vepyr `workers=8` output is CSQ-identical to VEP's serial run on
+all 50,861 records; against VEP `--fork 8` the only differences are 115
+records where VEP's forked run leaves `HGNC_ID` empty. The full sweeps
+(`--fork` / `workers` 1, 2, 4, 8), the logs, checksums and the exact commands
+are in
+[`performance-tests/README.md`](https://github.com/biodatageeks/vepyr/blob/master/performance-tests/README.md).
+
 ### Region filters
 
 A LazyFrame `filter()` on `chrom`, `start` or `end` is pushed into the engine
