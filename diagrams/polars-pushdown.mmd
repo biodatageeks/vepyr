@@ -1,0 +1,24 @@
+graph LR
+    Q["LazyFrame query<br/>.select() .filter() .head()<br/>&rarr; Polars optimizer"]
+
+    subgraph CB["vepyr io source callback"]
+        N["needed columns<br/>projection + filter roots<br/>+ plugin template inputs"]
+        F["Flag inference<br/>drop unselected groups<br/>enable groups a column needs"]
+        S["CSQ skip<br/>no CSQ / plugin column<br/>&rarr; no string, no lookup"]
+        G["Region pushdown<br/>chrom / start / end<br/>&rarr; regions"]
+        M["LIMIT<br/>in the DataFusion query"]
+        N --> F
+        N --> S
+    end
+
+    Q -->|with_columns| N
+    Q -->|predicate| N
+    Q -->|predicate| G
+    Q -->|n_rows| M
+
+    F --> E["engine opts JSON<br/>create_annotator()"]
+    S --> E
+    G --> E
+    M --> E
+    E --> B["Arrow RecordBatches<br/>Polars re-applies the full predicate"]
+    B --> D[DataFrame]
