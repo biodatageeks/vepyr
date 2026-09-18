@@ -1,0 +1,418 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1092" width="1000" height="1092" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#111111" role="img" aria-label="Four panels. A: one lookup slice of up to 5,000 position-ordered VCF records is reduced to a sorted unique set of probe positions. B: why the shard is clustered by tier. Two schematic strips of cells show the same probe set against two layouts: sorted by position alone the probed common variants are sprinkled through the file, while clustering tier 0 first packs them together. A measured block gives the real figures for one 5,000-record chromosome 22 buffer against this shard: 920 pages read and 928,028 rows decoded without tiering, against 220 pages and 207,732 rows with it, for the same 6,178 matches. A table lists how the shard is written and what each choice buys at lookup. C: two reads that differ in both axes, one column across many rows to locate the offsets, then many columns across few rows to take the payload. D: those rows are joined back to the buffer by allele matching, giving one output row per input record, with co-located variants collected separately for the transcript annotation stage.">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#333333"/></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0072B2"/></marker>
+    <marker id="arr-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#E69F00"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1000" height="1092" fill="#FFFFFF"/>
+  <text x="20" y="18" font-size="11" fill="#555555">Worked example throughout: <tspan font-weight="bold" fill="#111111">chromosome 22</tspan> of the GRCh38 merged cache for Ensembl VEP 116, probed with the HG002 benchmark VCF.</text>
+  <g transform="translate(0,26)">
+  <text x="20" y="34" font-size="13" font-weight="bold" fill="#111111">A</text>
+  <text x="36" y="34" font-size="12" font-weight="bold" fill="#111111">Input buffer</text>
+  <text x="20" y="50" fill="#555555">≤ 5,000 chr22 records, position-ordered</text>
+  <rect x="20" y="58" width="210" height="118" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="30" y="76" fill="#555555">position</text>
+  <text x="140" y="76" fill="#555555">ref &gt; alt</text>
+  <line x1="30" y1="82" x2="220" y2="82" stroke="#B0B0B0" stroke-width="1"/>
+  <text x="30" y="98" fill="#111111">16,050,075</text>
+  <text x="140" y="98" fill="#111111">A &gt; G</text>
+  <text x="30" y="114" fill="#111111">16,050,115</text>
+  <text x="140" y="114" fill="#111111">G &gt; A</text>
+  <text x="30" y="130" fill="#111111">16,050,213</text>
+  <text x="140" y="130" fill="#111111">C &gt; T</text>
+  <text x="30" y="146" fill="#111111">16,050,300</text>
+  <text x="140" y="146" fill="#111111">CT &gt; C</text>
+  <text x="30" y="166" fill="#111111">⋮</text>
+  <path d="M125 176 V200" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+  <text x="134" y="186" fill="#555555">one or more probe</text>
+  <text x="134" y="200" fill="#555555">positions per record</text>
+  <rect x="20" y="202" width="210" height="46" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <text x="30" y="221" font-weight="bold" fill="#111111">probe positions</text>
+  <text x="30" y="238">p<tspan font-size="8" baseline-shift="sub">1</tspan> &lt; p<tspan font-size="8" baseline-shift="sub">2</tspan> &lt; … &lt; p<tspan font-size="8" baseline-shift="sub">k</tspan>, unique</text>
+  <text x="270" y="34" font-size="13" font-weight="bold" fill="#111111">B</text>
+  <text x="286" y="34" font-size="12" font-weight="bold" fill="#111111">Why the shard is clustered by tier</text>
+  <text x="270" y="50" fill="#555555">the chr22 shard, one Parquet file: each cell below is one cached variant, each block of 12 cells one data page</text>
+  <text x="270" y="72" font-weight="bold" fill="#111111">sorted by position only</text>
+  <text x="410" y="72" fill="#555555">(counterfactual)</text>
+  <rect x="270.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="351.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="513.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="594.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="675.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="756.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="837.0" y="74" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="270.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="276.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="283.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="290.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="297.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="303.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="310.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="317.25" y="78" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="324.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="330.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="337.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="344.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="351.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="357.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="364.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="371.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="378.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="384.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="391.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="398.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="405.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="411.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="418.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="425.25" y="78" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="432.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="438.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="445.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="452.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="459.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="465.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="472.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="479.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="486.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="492.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="499.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="506.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="513.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="519.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="526.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="533.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="540.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="546.75" y="78" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="553.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="560.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="567.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="573.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="580.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="587.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="594.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="600.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="607.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="614.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="621.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="627.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="634.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="641.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="648.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="654.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="661.50" y="78" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="668.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="675.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="681.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="688.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="695.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="702.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="708.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="715.50" y="78" width="6.15" height="14" fill="#FFFFFF" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="722.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="729.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="735.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="742.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="749.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="756.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="762.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="769.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="776.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="783.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="789.75" y="78" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="796.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="803.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="810.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="816.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="823.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="830.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="837.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="843.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="850.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="857.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="864.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="870.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="877.50" y="78" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="884.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="891.00" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="897.75" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="904.50" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="911.25" y="78" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <line x1="351.0" y1="74" x2="351.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <line x1="432.0" y1="74" x2="432.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <line x1="513.0" y1="74" x2="513.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <line x1="594.0" y1="74" x2="594.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <line x1="675.0" y1="74" x2="675.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <line x1="756.0" y1="74" x2="756.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <line x1="837.0" y1="74" x2="837.0" y2="96" stroke="#111111" stroke-width="1"/>
+  <text x="918" y="72" text-anchor="end" fill="#555555">schematic</text>
+  <text x="270" y="118" font-weight="bold" fill="#111111">as shipped: tier 0 first, then position</text>
+  <rect x="270.0" y="120" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="675.0" y="120" width="81.0" height="22" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <rect x="270.00" y="124" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="276.75" y="124" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="283.50" y="124" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="290.25" y="124" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="297.00" y="124" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="303.75" y="124" width="6.15" height="14" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="310.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="317.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="324.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="330.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="337.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="344.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="351.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="357.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="364.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="371.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="378.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="384.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="391.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="398.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="405.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="411.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="418.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="425.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="432.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="438.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="445.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="452.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="459.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="465.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="472.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="479.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="486.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="492.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="499.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="506.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="513.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="519.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="526.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="533.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="540.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="546.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="553.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="560.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="567.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="573.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="580.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="587.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="594.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="600.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="607.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="614.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="621.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="627.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="634.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="641.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="648.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="654.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="661.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="668.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="675.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="681.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="688.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="695.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="702.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="708.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="715.50" y="124" width="6.15" height="14" fill="#FFFFFF" stroke="#D55E00" stroke-width="0.5"/>
+  <rect x="722.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="729.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="735.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="742.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="749.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="756.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="762.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="769.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="776.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="783.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="789.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="796.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="803.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="810.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="816.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="823.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="830.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="837.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="843.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="850.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="857.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="864.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="870.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="877.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="884.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="891.00" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="897.75" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="904.50" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <rect x="911.25" y="124" width="6.15" height="14" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <line x1="351.0" y1="120" x2="351.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="432.0" y1="120" x2="432.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="513.0" y1="120" x2="513.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="594.0" y1="120" x2="594.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="675.0" y1="120" x2="675.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="756.0" y1="120" x2="756.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="837.0" y1="120" x2="837.0" y2="142" stroke="#111111" stroke-width="1"/>
+  <line x1="310.5" y1="116" x2="310.5" y2="148" stroke="#111111" stroke-width="1.4" stroke-dasharray="3 3"/>
+  <text x="314.5" y="158" fill="#555555">tier seam: tier 0 is 5.4% of the rows, so it ends inside the first page</text>
+  <text x="918" y="118" text-anchor="end" fill="#555555">schematic</text>
+  <rect x="270" y="168" width="10" height="10" fill="#D55E00" stroke="#D55E00" stroke-width="0.5"/>
+  <text x="286" y="176" fill="#111111">probed, common (allele frequency ≥ 1%)</text>
+  <rect x="500" y="168" width="10" height="10" fill="#FFFFFF" stroke="#D55E00" stroke-width="1"/>
+  <text x="516" y="176" fill="#111111">probed, rare</text>
+  <rect x="590" y="168" width="10" height="10" fill="#BFBFBF" stroke="#BFBFBF" stroke-width="0.5"/>
+  <text x="606" y="176" fill="#111111">not probed</text>
+  <rect x="676" y="168" width="10" height="10" fill="#D6E6F5" stroke="#0072B2" stroke-width="1"/>
+  <text x="692" y="176" fill="#111111">page that must be read</text>
+  <rect x="270" y="182" width="648" height="76" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="280" y="199" font-weight="bold" fill="#111111">measured</text>
+  <text x="340" y="199" fill="#555555">one real 5,000-record chr22 buffer, 6,178 matches: the locate read of C, over the position column</text>
+  <text x="280" y="217" fill="#555555">row layout</text>
+  <text x="545" y="217" fill="#555555">pages read of 15,381</text>
+  <text x="690" y="217" fill="#555555">position rows scanned</text>
+  <text x="908" y="217" text-anchor="end" fill="#555555">matches per page</text>
+  <text x="280" y="233" fill="#111111">sorted by position only</text>
+  <text x="545" y="233" fill="#111111">920</text>
+  <text x="690" y="233" fill="#111111">928,028</text>
+  <text x="908" y="233" text-anchor="end" fill="#111111">6.7</text>
+  <text x="280" y="249" fill="#111111">as shipped, tier 0 first</text>
+  <text x="545" y="249" fill="#0072B2">220</text>
+  <text x="690" y="249" fill="#0072B2">207,732</text>
+  <text x="908" y="249" text-anchor="end" fill="#0072B2">28.1</text>
+  <rect x="270" y="262" width="648" height="44" fill="#F7D9C4" stroke="#D55E00" stroke-width="1.4"/>
+  <text x="280" y="280" font-weight="bold" fill="#111111">96% of the matches are common</text>
+  <text x="520" y="280" fill="#111111">83 tier-0 pages carry 5,946 of them, 71.6 rows per page</text>
+  <text x="280" y="296" fill="#111111">the rare 4% still scatter</text>
+  <text x="520" y="296" fill="#111111">137 tier-1 pages carry 232 rows, 1.7 rows per page</text>
+  <path d="M230 225 H250 V344 H268" stroke="#0072B2" stroke-width="1.4" fill="none" marker-end="url(#arr-b)"/>
+  <rect x="270" y="318" width="300" height="54" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="280" y="336" font-weight="bold" fill="#111111">page directory</text>
+  <text x="280" y="352" fill="#555555">from the file footer, built once per chromosome</text>
+  <text x="280" y="366" fill="#555555">and shared by every worker on that contig</text>
+  <path d="M570 345 H608" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+  <rect x="610" y="318" width="308" height="54" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <text x="620" y="336" font-weight="bold" fill="#111111">candidate pages</text>
+  <text x="620" y="352" fill="#555555">binary search per probe position within each tier run;</text>
+  <text x="620" y="366" fill="#555555">adjacent pages merge into row ranges (select / skip)</text>
+  <rect x="270" y="384" width="648" height="192" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="280" y="402" font-weight="bold" fill="#111111">how the shard is written</text>
+  <text x="520" y="402" fill="#555555">→ what it buys at lookup</text>
+  <line x1="280" y1="408" x2="908" y2="408" stroke="#B0B0B0" stroke-width="1"/>
+  <text x="280" y="426" fill="#111111">rows clustered by tier,</text>
+  <text x="280" y="440" fill="#111111">then sorted by position</text>
+  <text x="520" y="426" fill="#0072B2">page min / max ascend within a run, so a probe is found by</text>
+  <text x="520" y="440" fill="#0072B2">binary search; the directory keeps one run per tier</text>
+  <text x="280" y="462" fill="#111111">tier 0 = any position where</text>
+  <text x="280" y="476" fill="#111111">max(MAF, AF, gnomADg, gnomADe) ≥ 1%,</text>
+  <text x="520" y="462" fill="#0072B2">the measured block above: for the same probes, 4.2× fewer pages</text>
+  <text x="520" y="476" fill="#0072B2">and 4.5× fewer position rows decoded to locate the 6,178 matches</text>
+  <text x="280" y="498" fill="#111111">plus its ± 1 bp neighbours; 5.4% of rows</text>
+  <text x="520" y="498" fill="#0072B2">frequency is the only criterion, and it is decided per position:</text>
+  <text x="520" y="512" fill="#0072B2">every allele at a common position joins tier 0, however rare</text>
+  <text x="280" y="534" fill="#111111">pages of 1,024 rows (the default),</text>
+  <text x="280" y="548" fill="#111111">~2.4 KiB compressed; page statistics on</text>
+  <text x="520" y="534" fill="#0072B2">footer column + offset indexes give each page's position</text>
+  <text x="520" y="548" fill="#0072B2">range and first row, so skipping is decided from metadata</text>
+  <text x="280" y="570" fill="#111111">no dictionary encoding; zstd(3)</text>
+  <text x="520" y="570" fill="#0072B2">a selected page decodes alone; with a dictionary, reading one row</text>
+  <text x="520" y="584" fill="#0072B2">first decodes its column chunk's dictionary, built over 10⁶ rows</text>
+  <line x1="20" y1="598" x2="980" y2="598" stroke="#DDDDDD" stroke-width="1"/>
+  <text x="20" y="624" font-size="13" font-weight="bold" fill="#111111">C</text>
+  <text x="36" y="624" font-size="12" font-weight="bold" fill="#111111">Two reads of the shard: locate, then take</text>
+  <rect x="20" y="634" width="450" height="194" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.4"/>
+  <text x="30" y="653" font-weight="bold" fill="#111111">Locate · one column, many rows</text>
+  <text x="30" y="668" fill="#0072B2">this is the scan counted in panel B</text>
+  <text x="30" y="683" fill="#555555">the position column alone, every row in the candidate page ranges</text>
+  <text x="30" y="697" fill="#555555">nearby page byte ranges are coalesced into single reads</text>
+  <text x="30" y="715" fill="#555555">file row</text>
+  <text x="110" y="715" fill="#555555">position</text>
+  <line x1="30" y1="721" x2="250" y2="721" stroke="#B0B0B0" stroke-width="1"/>
+  <text x="30" y="735" fill="#111111">612 352</text>
+  <text x="110" y="735" fill="#111111">16,050,001</text>
+  <text x="30" y="749" fill="#111111">612 353</text>
+  <text x="110" y="749" fill="#111111">16,050,075</text>
+  <circle cx="200" cy="745" r="3.5" fill="#0072B2"/>
+  <text x="30" y="763" fill="#111111">612 354</text>
+  <text x="110" y="763" fill="#111111">16,050,075</text>
+  <circle cx="200" cy="759" r="3.5" fill="#0072B2"/>
+  <text x="30" y="777" fill="#111111">612 355</text>
+  <text x="110" y="777" fill="#111111">16,050,082</text>
+  <text x="30" y="791" fill="#111111">612 356</text>
+  <text x="110" y="791" fill="#111111">16,050,213</text>
+  <circle cx="200" cy="787" r="3.5" fill="#0072B2"/>
+  <text x="30" y="805" fill="#111111">612 357</text>
+  <text x="110" y="805" fill="#111111">16,050,213</text>
+  <circle cx="200" cy="801" r="3.5" fill="#0072B2"/>
+  <text x="30" y="818" fill="#111111">⋮</text>
+  <path d="M270 727 V812" stroke="#0072B2" stroke-width="1.6" fill="none" marker-end="url(#arr-b)"/>
+  <text x="282" y="743" font-weight="bold" fill="#0072B2">monotonic cursor</text>
+  <text x="282" y="759" fill="#111111">advances one file row per</text>
+  <text x="282" y="773" fill="#111111">streamed value, never backwards</text>
+  <text x="282" y="795" fill="#111111">● position is in the probe set</text>
+  <text x="282" y="809" fill="#111111">→ its file row is recorded</text>
+  <path d="M470 721 H508" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+  <rect x="510" y="684" width="90" height="112" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <text x="520" y="703" font-weight="bold" fill="#111111">row offsets</text>
+  <text x="520" y="724" fill="#111111">612 353</text>
+  <text x="520" y="739" fill="#111111">612 354</text>
+  <text x="520" y="754" fill="#111111">612 356</text>
+  <text x="520" y="769" fill="#111111">612 357</text>
+  <text x="520" y="787" fill="#555555">⋮ ascending</text>
+  <path d="M600 721 H638" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+  <rect x="640" y="634" width="310" height="194" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.4"/>
+  <text x="650" y="653" font-weight="bold" fill="#111111">Take · many columns, few rows</text>
+  <text x="650" y="668" fill="#555555">the subset of columns the run needs, only the matched rows</text>
+  <text x="650" y="692" fill="#555555">position</text>
+  <text x="740" y="692" fill="#555555">alleles</text>
+  <text x="800" y="692" fill="#555555">identifier</text>
+  <text x="890" y="692" fill="#555555">…</text>
+  <line x1="650" y1="698" x2="940" y2="698" stroke="#B0B0B0" stroke-width="1"/>
+  <text x="650" y="716" fill="#111111">16,050,075</text>
+  <text x="740" y="716" fill="#111111">A/G</text>
+  <text x="800" y="716" fill="#111111">rs587697622</text>
+  <text x="650" y="732" fill="#111111">16,050,075</text>
+  <text x="740" y="732" fill="#111111">A/T</text>
+  <text x="800" y="732" fill="#111111">rs…</text>
+  <text x="650" y="748" fill="#111111">16,050,213</text>
+  <text x="740" y="748" fill="#111111">C/A</text>
+  <text x="800" y="748" fill="#111111">rs…</text>
+  <text x="650" y="764" fill="#111111">16,050,213</text>
+  <text x="740" y="764" fill="#111111">C/T</text>
+  <text x="800" y="764" fill="#111111">rs…</text>
+  <text x="650" y="782" fill="#111111">⋮</text>
+  <text x="650" y="804" font-weight="bold" fill="#0072B2">the only rows that leave the shard</text>
+  <line x1="20" y1="848" x2="980" y2="848" stroke="#DDDDDD" stroke-width="1"/>
+  <text x="20" y="864" font-size="13" font-weight="bold" fill="#111111">D</text>
+  <text x="36" y="864" font-size="12" font-weight="bold" fill="#111111">Join back to the buffer</text>
+  <rect x="20" y="874" width="210" height="104" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="30" y="893" font-weight="bold" fill="#111111">input buffer</text>
+  <text x="30" y="913" fill="#111111">16,050,075</text>
+  <text x="140" y="913" fill="#111111">A &gt; G</text>
+  <text x="30" y="929" fill="#111111">16,050,115</text>
+  <text x="140" y="929" fill="#111111">G &gt; A</text>
+  <text x="30" y="945" fill="#111111">16,050,213</text>
+  <text x="140" y="945" fill="#111111">C &gt; T</text>
+  <text x="30" y="961" fill="#111111">16,050,300</text>
+  <text x="140" y="961" fill="#111111">CT &gt; C</text>
+  <path d="M230 926 H268" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+  <rect x="270" y="874" width="300" height="104" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+  <text x="280" y="893" font-weight="bold" fill="#111111">allele matching per record</text>
+  <text x="280" y="913" fill="#111111">rows at its probe positions are accepted when</text>
+  <text x="280" y="929" fill="#111111">• the record is not flagged as failed</text>
+  <text x="280" y="945" fill="#111111">• the record interval overlaps the variant</text>
+  <text x="280" y="961" fill="#111111">• the alleles match exactly (first match wins)</text>
+  <path d="M570 926 H608" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+  <rect x="610" y="874" width="340" height="104" fill="#D6E6F5" stroke="#0072B2" stroke-width="1.4"/>
+  <text x="620" y="893" font-weight="bold" fill="#111111">buffer + cache columns · one row in, one row out</text>
+  <text x="620" y="913" fill="#111111">A &gt; G</text>
+  <text x="700" y="913" fill="#111111">rs587697622 and its cache columns</text>
+  <text x="620" y="929" fill="#111111">G &gt; A</text>
+  <text x="700" y="929" fill="#111111">no record at this position → null</text>
+  <text x="620" y="945" fill="#111111">C &gt; T</text>
+  <text x="700" y="945" fill="#111111">C/A rejected, C/T matched</text>
+  <text x="620" y="961" fill="#111111">CT &gt; C</text>
+  <text x="700" y="961" fill="#111111">matched at its shifted probe position</text>
+  <path d="M420 978 V1000" stroke="#E69F00" stroke-width="1.6" fill="none" marker-end="url(#arr-o)"/>
+  <rect x="270" y="1002" width="680" height="44" fill="#FBEEDC" stroke="#E69F00" stroke-width="1.4"/>
+  <text x="280" y="1021"><tspan font-weight="bold">co-located variants</tspan> at the same positions are collected separately for the transcript annotation stage:</text>
+  <text x="280" y="1037" fill="#111111">existing identifiers, allele frequencies, clinical significance</text>
+  </g>
+</svg>
