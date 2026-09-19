@@ -119,7 +119,7 @@ serde_json = "1"
 # (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
 # v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
 # no release has been cut on top of the merge yet; move to that tag when one is.
-# bio-functions df49c4d: the HEAD of biodatageeks/datafusion-bio-functions#250,
+# bio-functions 407a327: the HEAD of biodatageeks/datafusion-bio-functions#250,
 # not yet merged -- re-pin to the MERGE commit once it is. (Performance only, no
 # behaviour change: after every variation lookup the engine rebuilds the 27
 # allele-frequency columns from the shard's 2-array encoding, and did it through
@@ -134,7 +134,9 @@ serde_json = "1"
 # `VEP_LOOKUP_PROFILE_DETAILED=1` now prints a `take offsets= payload=
 # af_rebuild= matched=` line, which is the only place this change is visible --
 # tools/vepyr-fix/compare_runs.py reads `[VEP_PIPELINE_TRACE]` and the lookup
-# carries no duration there.) bio-formats does not move.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "df49c4d562932e7862ae9b0fc521719f6c1d37cf", features = ["cache-builder"] }
+# carries no duration there. The same PR also moves the hot function-local maps
+# of the annotation stage off std's SipHash, which IS on the critical path and
+# does move wall.) bio-formats does not move.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "407a327b4fe86aa658abefa857f13537783b037d", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
