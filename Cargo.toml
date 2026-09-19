@@ -119,6 +119,21 @@ serde_json = "1"
 # (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
 # v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
 # no release has been cut on top of the merge yet; move to that tag when one is.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "96021f22938440579908e92b0141dbb771e8a3a5", features = ["cache-builder"] }
+# bio-functions d030b42: the HEAD of biodatageeks/datafusion-bio-functions#250,
+# not yet merged -- re-pin to the MERGE commit once it is. (Performance only, no
+# behaviour change: after every variation lookup the engine rebuilds the 27
+# allele-frequency columns from the shard's 2-array encoding, and did it through
+# three or four heap allocations per frequency plus a joined group string that
+# was split straight back apart. It now writes each population's column
+# directly and formats `%.4g` on the stack, memoised per call. Byte-identical by
+# construction -- `format_g4` stays the definition the cache builder validates
+# against -- and proven on this side by the strict md5 gate over all 22 contigs.
+# Two notes for this repo: the win is CPU, not latency, because at one worker
+# the lookup runs ahead of a slower downstream stage; and
+# `VEP_LOOKUP_PROFILE_DETAILED=1` now prints a `take offsets= payload=
+# af_rebuild=` line, which is the only place this change is visible --
+# tools/vepyr-fix/compare_runs.py reads `[VEP_PIPELINE_TRACE]` and the lookup
+# carries no duration there.) bio-formats does not move.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d030b4284817013240188de375a450601b611558", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
