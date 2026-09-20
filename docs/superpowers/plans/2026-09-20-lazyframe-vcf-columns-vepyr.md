@@ -38,6 +38,21 @@ pytest, optional `polars-bio`.
   (`tests/test_annotate.py:34`); wiring tests use the `fake_engine` pattern
   (`tests/test_region_pushdown.py:55`).
 
+## Deviations recorded during execution
+
+- **Column → VCF id mapping (Task 2).** The collision fix as built stamps every column
+  it renames with `bio.vep.source_field_name` (the input's name). `carried_columns()`
+  reads that key instead of guessing from an `INFO_` prefix as first written below, so a
+  field whose real id starts with `INFO_` needs no special case and a suffixed rename
+  (`INFO_AF_2`) maps correctly. The test schema sets the key on `INFO_AF`.
+- **CSQ layout with `fields=` (Task 5).** Plugin fields always follow the selected base
+  fields, so `_csq_field_names` returns `selected_fields + plugin_fields`, not
+  `selected_fields` alone.
+- **Writer work (other plan).** The `INFO_<id>` → `<id>` mapping and the FILTER/ALT lines
+  landed in polars-bio (biodatageeks/polars-bio#464), GT-first in formats
+  (biodatageeks/datafusion-bio-formats#254); the `polars-bio` extra's version floor is the
+  first release containing #464.
+
 ## File Structure
 
 | File | Responsibility |
