@@ -119,8 +119,9 @@ serde_json = "1"
 # (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
 # v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
 # no release has been cut on top of the merge yet; move to that tag when one is.
-# bio-functions d51fc79: the HEAD of biodatageeks/datafusion-bio-functions#250,
-# not yet merged -- re-pin to the MERGE commit once it is. (Performance only, no
+# bio-functions v0.22.0: the release cut on top of the merge commit 170c84c of
+# biodatageeks/datafusion-bio-functions#250. Its src tree is identical to the
+# PR head d51fc79 this was pinned to before the merge. (Performance only, no
 # behaviour change: after every variation lookup the engine rebuilds the 27
 # allele-frequency columns from the shard's 2-array encoding, and did it through
 # three or four heap allocations per frequency plus a joined group string that
@@ -138,6 +139,6 @@ serde_json = "1"
 # of the annotation stage off std's SipHash, and makes HGVS hydration use the
 # per-contig exon index instead of rebuilding one per window; both ARE on the
 # critical path and do move wall.) bio-formats does not move.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d51fc7908e57af2c04946444b06fc6e20c02fe21", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.22.0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
