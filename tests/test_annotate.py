@@ -2947,6 +2947,17 @@ chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:AF\t0/1:0.31
 """
 
 
+# A FORMAT field called CSQ meets the engine's own CSQ inside the VCF writer's
+# projection, where every other input name is free again.
+FORMAT_CSQ_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=CSQ,Number=1,Type=String,Description="A caller's per-sample label">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tTUMOR
+chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:CSQ\t0/1:mine
+"""
+
+
 class TestInputFieldNamedLikeAnAnnotationColumn:
     """An input may already use a name the engine adds to its output.
 
@@ -3012,11 +3023,27 @@ class TestInputFieldNamedLikeAnAnnotationColumn:
     def test_a_single_sample_format_field_is_kept_under_its_own_name(
         self, metadata_cache_dir, tmp_path
     ):
-        _, records = self._annotate(
+        header, records = self._annotate(
             metadata_cache_dir, tmp_path, COLLIDING_FORMAT_VCF, "format"
         )
 
         assert records[0][8:10] == ["GT:AF", "0/1:0.31"]
+        text = "\n".join(header + ["\t".join(record) for record in records])
+        assert "fmt_" not in text
+
+    def test_a_format_field_named_csq_survives_beside_the_new_info_csq(
+        self, metadata_cache_dir, tmp_path
+    ):
+        header, records = self._annotate(
+            metadata_cache_dir, tmp_path, FORMAT_CSQ_VCF, "format_csq"
+        )
+
+        assert records[0][8:10] == ["GT:CSQ", "0/1:mine"]
+        assert records[0][7].startswith("CSQ=C|")
+        assert sum(line.startswith("##FORMAT=<ID=CSQ,") for line in header) == 1
+        assert sum(line.startswith("##INFO=<ID=CSQ,") for line in header) == 1
+        text = "\n".join(header + ["\t".join(record) for record in records])
+        assert "fmt_" not in text
 
     def test_workers_write_the_same_records(self, metadata_cache_dir, tmp_path):
         import shutil
