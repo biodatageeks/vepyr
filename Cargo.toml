@@ -119,6 +119,26 @@ serde_json = "1"
 # (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
 # v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
 # no release has been cut on top of the merge yet; move to that tag when one is.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "96021f22938440579908e92b0141dbb771e8a3a5", features = ["cache-builder"] }
+# bio-functions v0.22.0: the release cut on top of the merge commit 170c84c of
+# biodatageeks/datafusion-bio-functions#250. Its src tree is identical to the
+# PR head d51fc79 this was pinned to before the merge. (Performance only, no
+# behaviour change: after every variation lookup the engine rebuilds the 27
+# allele-frequency columns from the shard's 2-array encoding, and did it through
+# three or four heap allocations per frequency plus a joined group string that
+# was split straight back apart. It now writes each population's column
+# directly and formats `%.4g` on the stack, memoised per call. `format_g4` stays
+# the definition the cache builder validates against, so the output is meant to
+# be byte-identical; on this side that is what the strict md5 gate over all 22
+# contigs checks, and its result for this pin is recorded in the PR that moved
+# it, not asserted here. Two notes for this repo: the win is CPU, not latency,
+# because at one worker the lookup runs ahead of a slower downstream stage; and
+# `VEP_LOOKUP_PROFILE_DETAILED=1` now prints a `take offsets= payload=
+# af_rebuild= matched=` line, which is the only place this change is visible --
+# tools/vepyr-fix/compare_runs.py reads `[VEP_PIPELINE_TRACE]` and the lookup
+# carries no duration there. The same PR also moves the hot function-local maps
+# of the annotation stage off std's SipHash, and makes HGVS hydration use the
+# per-contig exon index instead of rebuilding one per window; both ARE on the
+# critical path and do move wall.) bio-formats does not move.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.22.0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
