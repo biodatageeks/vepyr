@@ -88,3 +88,7 @@ class StreamingAnnotator:
 def vcf_contigs(vcf_path: str) -> list[str]:
     """Contig ids declared in the VCF header, in header order."""
     ...
+
+def vcf_fields(vcf_path: str) -> tuple[list[str], list[str]]:
+    """INFO and FORMAT ids declared in the VCF header, in header order."""
+    ...

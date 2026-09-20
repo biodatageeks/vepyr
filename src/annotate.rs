@@ -471,6 +471,57 @@ pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
     })
 }
 
+/// INFO and FORMAT ids declared in the VCF header, each in header order.
+///
+/// Read from the field metadata of a provider opened with every field, so a
+/// FORMAT id the reader renamed to avoid an INFO id (`fmt_DP`) is reported by
+/// its id, not its column name.
+pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)> {
+    use datafusion::arrow::datatypes::DataType;
+    use datafusion::datasource::TableProvider;
+
+    // The reader needs a Tokio reactor even to parse a header.
+    let rt = runtime_for_workers(1)?;
+    let _reactor = rt.enter();
+    let provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+        vcf_path.to_string(),
+        None,
+        None,
+        None,
+        false,
+    )
+    .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}")))?;
+
+    let mut info = Vec::new();
+    let mut format = Vec::new();
+    let schema = provider.schema();
+    for field in schema.fields() {
+        // Multi-sample inputs nest FORMAT fields under one `genotypes` struct.
+        if field.name() == "genotypes" {
+            if let DataType::Struct(children) = field.data_type() {
+                format.extend(children.iter().map(|child| child.name().clone()));
+            }
+            continue;
+        }
+        match field
+            .metadata()
+            .get("bio.vcf.field.field_type")
+            .map(String::as_str)
+        {
+            Some("INFO") => info.push(field.name().clone()),
+            Some("FORMAT") => format.push(
+                field
+                    .metadata()
+                    .get("bio.vcf.field.format_id")
+                    .cloned()
+                    .unwrap_or_else(|| field.name().clone()),
+            ),
+            _ => {}
+        }
+    }
+    Ok((info, format))
+}
+
 /// Create a streaming annotator that yields PyArrow RecordBatches.
 pub fn create_streaming_annotator(
     py: Python<'_>,
@@ -481,7 +532,25 @@ pub fn create_streaming_annotator(
     limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
     let (options_json, _cache_format) = normalize_options(options_json)?;
-    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+    let mut opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    // Which input INFO/FORMAT fields the frame carries. vepyr-only keys: the
+    // engine takes its input columns from the registered table, so they are
+    // removed before the JSON reaches it. Absent means every field.
+    let mut take_fields = |key: &str| -> PyResult<Option<Vec<String>>> {
+        match opts.as_object_mut().and_then(|object| object.remove(key)) {
+            None | Some(Value::Null) => Ok(None),
+            Some(value) => serde_json::from_value(value).map(Some).map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!(
+                    "{key} must be a list of strings: {e}"
+                ))
+            }),
+        }
+    };
+    let info_fields = take_fields("vcf_info_fields")?;
+    let format_fields = take_fields("vcf_format_fields")?;
+    let options_json = serde_json::to_string(&opts).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
     let workers = workers_from_options(&opts);
@@ -499,8 +568,8 @@ pub fn create_streaming_annotator(
 
         let vcf_provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
             vcf_path.to_string(),
-            Some(vec![]),
-            Some(vec![]),
+            info_fields,
+            format_fields,
             None,
             false,
         )

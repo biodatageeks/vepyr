@@ -734,6 +734,12 @@ fn vcf_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
     annotate::vcf_header_contigs(vcf_path)
 }
 
+/// INFO and FORMAT ids declared in the VCF header, in header order.
+#[pyfunction]
+fn vcf_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)> {
+    annotate::vcf_header_fields(vcf_path)
+}
+
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
 #[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None))]
@@ -756,6 +762,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(vcf_contigs, m)?)?;
+    m.add_function(wrap_pyfunction!(vcf_fields, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     m.add_function(wrap_pyfunction!(supported_vep_targets_json, m)?)?;
     m.add_function(wrap_pyfunction!(cache_contig_identity_json, m)?)?;
