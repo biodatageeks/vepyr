@@ -9,7 +9,7 @@ workflow VCF_ANNOTATE_VEPYR {
     take:
     ch_vcf            // channel: [ val(meta), path(vcf), path(tbi) ] (tbi optional, pass [])
     ch_cache          // channel: [ val(meta2), path(cache) ]
-    ch_fasta          // channel: [ val(meta3), path(fasta), path(fai) ] (bgzip FASTA: [ fai, gzi ] in the fai slot)
+    ch_fasta          // channel: [ val(meta3), path(fasta), path(fai), path(gzi) ] (gzi only for a bgzip FASTA, else [])
     val_cache_version // value:   integer, or [] to skip the cache version check
     ch_plugin_cache   // channel: [ val(meta4), path(plugin_cache) ] (optional, pass [ [], [] ])
     val_normalize     // value:   boolean, run BCFTOOLS_NORM before annotation (recommended: true)
@@ -23,7 +23,7 @@ workflow VCF_ANNOTATE_VEPYR {
         // split-only configuration that the vepyr parity tests are validated on.
         BCFTOOLS_NORM(
             ch_vcf,
-            ch_fasta.map { meta, fasta, _fai -> [meta, fasta] },
+            ch_fasta.map { meta, fasta, _fai, _gzi -> [meta, fasta] },
         )
 
         // Without --write-index bcftools/norm emits no index; vepyr then runs a

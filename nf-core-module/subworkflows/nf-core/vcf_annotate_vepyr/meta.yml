@@ -43,10 +43,10 @@ input:
         Structure: [ val(meta2), path(cache) ]
   - ch_fasta:
       description: |
-        Reference FASTA and its samtools faidx index. For a bgzip FASTA pass
-        [ fai, gzi ] in the index slot. Required when `val_normalize` is true
+        Reference FASTA, its samtools faidx index and, for a bgzip FASTA, its
+        .gzi index (pass [] for an uncompressed FASTA). Required when `val_normalize` is true
         (bcftools norm always reads the reference) and for vepyr's `--everything`.
-        Structure: [ val(meta3), path(fasta), path(fai) ]
+        Structure: [ val(meta3), path(fasta), path(fai), path(gzi) ]
   - val_cache_version:
       type: integer
       description: Ensembl cache version to assert against the cache metadata, or [] to skip the check

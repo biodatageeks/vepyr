@@ -31,14 +31,11 @@ nextflow_process {
                     [ id:'116_GRCh38_ensembl_chr22' ],
                     file(fixture + '/cache', checkIfExists: true)
                 ])
-                // A bgzf FASTA opens only with its .gzi, so it rides in the index slot.
                 input[2] = channel.value([
                     [ id:'GRCh38_chr22' ],
                     file(fixture + '/chr22.fa.gz', checkIfExists: true),
-                    [
-                        file(fixture + '/chr22.fa.gz.fai', checkIfExists: true),
-                        file(fixture + '/chr22.fa.gz.gzi', checkIfExists: true)
-                    ]
+                    file(fixture + '/chr22.fa.gz.fai', checkIfExists: true),
+                    file(fixture + '/chr22.fa.gz.gzi', checkIfExists: true)
                 ])
                 input[3] = 116
                 input[4] = [[], []]

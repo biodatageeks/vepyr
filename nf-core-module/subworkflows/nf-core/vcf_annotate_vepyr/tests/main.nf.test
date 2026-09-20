@@ -44,10 +44,8 @@ nextflow_workflow {
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
-                    [
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.fai', checkIfExists: true),
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.gzi', checkIfExists: true)
-                    ]
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.fai', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.gzi', checkIfExists: true)
                 ])
                 input[3] = 116
                 input[4] = [[], []]
@@ -81,10 +79,8 @@ nextflow_workflow {
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
-                    [
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.fai', checkIfExists: true),
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.gzi', checkIfExists: true)
-                    ]
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.fai', checkIfExists: true),
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz.gzi', checkIfExists: true)
                 ])
                 input[3] = 116
                 input[4] = [[], []]
@@ -120,6 +116,7 @@ nextflow_workflow {
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
+                    [],
                     []
                 ])
                 input[3] = []

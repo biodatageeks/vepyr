@@ -128,7 +128,7 @@ Overrides:
   the task work dir, the input, cache, FASTA and output paths, and the exact
   `vepyr annotate` command. It reads `tests/data/hg002_chr22/` (~30 MB, Parquet
   and FASTA in LFS): a cache trimmed to the rows that run reads, plus a bgzip
-  FASTA passed with `[ fai, gzi ]` in the index slot. Rebuild it from the
+  FASTA with its `.fai` and `.gzi`. Rebuild it from the
   repository root with `uv run python tests/data/hg002_chr22/prepare.py`.
 
 The golden snapshot (`main.nf.test.snap`) waits for the fixture on

@@ -51,12 +51,12 @@ workflow {
         [ id: file(params.cache).name ],
         file(params.cache, checkIfExists: true, type: 'dir')
     ])
-    // A bgzip FASTA needs its .gzi next to the .fai; a plain FASTA has only the .fai.
-    def fai = file("${params.fasta}.fai", checkIfExists: true)
+    // A bgzip FASTA needs its .gzi as well as the .fai; a plain FASTA passes [] for it.
     fasta = channel.value([
         [ id: 'GRCh38' ],
         file(params.fasta, checkIfExists: true),
-        params.fasta.endsWith('.gz') ? [ fai, file("${params.fasta}.gzi", checkIfExists: true) ] : fai
+        file("${params.fasta}.fai", checkIfExists: true),
+        params.fasta.endsWith('.gz') ? file("${params.fasta}.gzi", checkIfExists: true) : []
     ])
 
     VEPYR_ANNOTATE(vcf, cache, fasta, params.cache_version, [[], []])
@@ -192,7 +192,7 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
 |---|---|---|
 | 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — but without it the task runs a single pipeline. |
 | 2 | `[ meta2, cache ]` | vepyr Parquet cache **directory**, e.g. `116_GRCh38_ensembl`. Not an Ensembl VEP cache. |
-| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [] ]` otherwise. |
+| 3 | `[ meta3, fasta, fai, gzi ]` | Reference FASTA, its `.fai` and, for a bgzip FASTA, its `.gzi` — pass `[]` for `gzi` with a plain FASTA. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [], [] ]` otherwise. |
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
