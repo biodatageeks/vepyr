@@ -1273,7 +1273,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.20.0"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=298147b42f7347d362b8321f12901068b5fe1797#298147b42f7347d362b8321f12901068b5fe1797"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=8e348e301a6f719b3367166fe2644dc3b2aeb2f6#8e348e301a6f719b3367166fe2644dc3b2aeb2f6"
 dependencies = [
  "async-trait",
  "bytes",
