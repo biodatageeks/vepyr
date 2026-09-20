@@ -26,8 +26,8 @@ workflow VCF_ANNOTATE_VEPYR {
             ch_fasta.map { meta, fasta, _fai, _gzi -> [meta, fasta] },
         )
 
-        // Without --write-index bcftools/norm emits no index; vepyr then runs a
-        // single pipeline instead of failing.
+        // Without --write-index bcftools/norm emits no index; VEPYR_ANNOTATE then
+        // builds one.
         ch_annotate_input = BCFTOOLS_NORM.out.vcf
             .join(BCFTOOLS_NORM.out.index, failOnDuplicate: true, remainder: true)
             .map { meta, vcf, index -> [meta, vcf, index ?: []] }
