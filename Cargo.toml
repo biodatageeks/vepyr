@@ -155,6 +155,19 @@ serde_json = "1"
 # Arrow schema now carries the input's schema-level VCF metadata, which nothing
 # here reads yet.) bio-formats does not move. Its tree is identical to the
 # PR head f03fc86 this was pinned to in review.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "97b87a770b79b62fc549377323eeaf06bdccfd47", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
+# bio-functions d495be0: the MERGE commit of
+# biodatageeks/datafusion-bio-functions#253, which moves the engine's
+# bio-formats pins from the v1.12.1 tag to the master commit 42ae1cd for
+# biodatageeks/datafusion-bio-formats#254: the VCF serializer wrote FORMAT keys
+# in header order when the record layout is not carried, so an input declaring
+# DP before GT (GIAB HG002 does) came out as `DP:GT`; VCF 4.x requires GT first.
+# Only output written with preserve_record_layout=False changes. The default,
+# True, carries the source record's own key order and is reproduced as before.
+# bio-formats MOVES with it, to the same 42ae1cd: this crate names two formats
+# crates directly, and leaving them on the tag resolves a second copy of
+# datafusion-bio-format-vcf and -core, which does not compile (`expected
+# VcfCompressionType, found a different VcfCompressionType`). No formats tag
+# carries #254 yet; return all three pins to tags once one is cut.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d495be00c925ce1f6357ec6c2fb5a04cec046a21", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "42ae1cd26c8dbfc5667d9421f3bf89dec05302f8" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "42ae1cd26c8dbfc5667d9421f3bf89dec05302f8" }

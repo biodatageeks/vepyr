@@ -3081,3 +3081,56 @@ class TestInputFieldNamedLikeAnAnnotationColumn:
             )
         assert outputs[0] == outputs[1]
         assert outputs[0][0].split("\t")[7].startswith("DP=10;AF=0.25;SYMBOL=mine;CSQ=")
+
+
+# The header declares DP before GT, as GIAB HG002's does. The second record puts
+# GT last, which the specification forbids but files in the wild contain.
+DP_BEFORE_GT_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE
+chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:DP\t0/1:25
+chr1\t604360\t.\tA\tT\t50\tPASS\t.\tDP:GT\t30:1/1
+"""
+
+
+class TestFormatKeyOrderInTheOutputVcf:
+    """VCF 4.x: GT is the first FORMAT key whenever it is present.
+
+    Without the record layout the writer only has the header's FORMAT order to
+    go by, and wrote `DP:GT` for an input like the one above
+    (biodatageeks/datafusion-bio-formats#254).
+    """
+
+    @staticmethod
+    def _format_columns(cache_dir, tmp_path, **kwargs):
+        import vepyr
+
+        src = tmp_path / "dp_before_gt.vcf"
+        src.write_text(DP_BEFORE_GT_VCF)
+        out = tmp_path / "dp_before_gt.out.vcf"
+        vepyr.annotate(
+            str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
+        )
+        return [
+            line.split("\t")[8:10]
+            for line in Path(out).read_text().splitlines()
+            if line and line[0] != "#"
+        ]
+
+    def test_gt_leads_when_the_record_layout_is_not_carried(
+        self, metadata_cache_dir, tmp_path
+    ):
+        columns = self._format_columns(
+            metadata_cache_dir, tmp_path, preserve_record_layout=False
+        )
+        assert columns == [["GT:DP", "0/1:25"], ["GT:DP", "1/1:30"]]
+
+    def test_a_carried_layout_reproduces_the_source_order(
+        self, metadata_cache_dir, tmp_path
+    ):
+        # The default. The source's own key order wins, GT position included, so
+        # output that matched the input byte for byte before still does.
+        columns = self._format_columns(metadata_cache_dir, tmp_path)
+        assert columns == [["GT:DP", "0/1:25"], ["DP:GT", "30:1/1"]]
