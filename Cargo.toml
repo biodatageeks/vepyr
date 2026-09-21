@@ -139,8 +139,9 @@ serde_json = "1"
 # of the annotation stage off std's SipHash, and makes HGVS hydration use the
 # per-contig exon index instead of rebuilding one per window; both ARE on the
 # critical path and do move wall.) bio-formats does not move.
-# bio-functions f03fc86: the HEAD of biodatageeks/datafusion-bio-functions#252,
-# not yet merged (vepyr#121 -- an input whose INFO or single-sample FORMAT id is
+# bio-functions 97b87a7: the MERGE commit of
+# biodatageeks/datafusion-bio-functions#252 (vepyr#121 -- an input whose INFO
+# or single-sample FORMAT id is
 # also an engine output column failed with `Schema contains duplicate qualified
 # field name "annotate_vep()"."AF"`. INFO/AF is enough, so gnomAD, 1000 Genomes,
 # `bcftools +fill-tags` output and every VEP-annotated file (INFO/CSQ) could not
@@ -152,8 +153,8 @@ serde_json = "1"
 # and those still belong to VEP's columns; the LazyFrame path never hit this,
 # only because it opens the VCF with no INFO/FORMAT fields; and the annotator's
 # Arrow schema now carries the input's schema-level VCF metadata, which nothing
-# here reads yet.) bio-formats does not move. Pinned to the PR head while it is
-# in review; rewrite to the merge commit, or the tag cut on it, after the merge.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "f03fc8695afb36ebc0230ff3eb4c0050ed0e3038", features = ["cache-builder"] }
+# here reads yet.) bio-formats does not move. Its tree is identical to the
+# PR head f03fc86 this was pinned to in review.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "97b87a770b79b62fc549377323eeaf06bdccfd47", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
