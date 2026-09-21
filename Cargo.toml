@@ -139,6 +139,37 @@ serde_json = "1"
 # of the annotation stage off std's SipHash, and makes HGVS hydration use the
 # per-contig exon index instead of rebuilding one per window; both ARE on the
 # critical path and do move wall.) bio-formats does not move.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.22.0", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.12.1" }
+# bio-functions 97b87a7: the MERGE commit of
+# biodatageeks/datafusion-bio-functions#252 (vepyr#121 -- an input whose INFO
+# or single-sample FORMAT id is
+# also an engine output column failed with `Schema contains duplicate qualified
+# field name "annotate_vep()"."AF"`. INFO/AF is enough, so gnomAD, 1000 Genomes,
+# `bcftools +fill-tags` output and every VEP-annotated file (INFO/CSQ) could not
+# be annotated through output_vcf, the CLI or the nf-core module. The colliding
+# INPUT column now gives way -- INFO_<id>, or fmt_<id> for FORMAT -- and the VCF
+# sink writes it back under its own key; an existing CSQ is replaced and the new
+# one placed last, per OutputFactory/VCF.pm:328-349 and :221. Three notes for
+# this repo: no Python changes, because _flags_for_projection matches bare names
+# and those still belong to VEP's columns; the LazyFrame path never hit this,
+# only because it opens the VCF with no INFO/FORMAT fields; and the annotator's
+# Arrow schema now carries the input's schema-level VCF metadata, which nothing
+# here reads yet.) bio-formats does not move. Its tree is identical to the
+# PR head f03fc86 this was pinned to in review.
+# bio-functions v0.22.1: the first release with
+# biodatageeks/datafusion-bio-functions#252 (above), #253 and #254. The last two
+# move the engine's bio-formats pins from v1.12.1 to v1.13.0 for
+# biodatageeks/datafusion-bio-formats#254: the VCF serializer wrote FORMAT keys
+# in header order when the record layout is not carried, so an input declaring
+# DP before GT (GIAB HG002 does) came out as `DP:GT`; VCF 4.x requires GT first.
+# Only output written with preserve_record_layout=False changes. The default,
+# True, carries the source record's own key order and is reproduced as before.
+# bio-formats MOVES with it, v1.12.1 -> v1.13.0: this crate names two formats
+# crates directly, and a source that differs from the engine's resolves a second
+# copy of datafusion-bio-format-vcf and -core, which does not compile (`expected
+# VcfCompressionType, found a different VcfCompressionType`). Every engine bump
+# has to check the engine's formats pin for that reason. v0.22.1 is the #254
+# merge commit 3d70923 plus the release's version bumps; every src tree is
+# identical.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.22.1", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }

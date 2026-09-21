@@ -215,6 +215,12 @@ replacement wherever a VEP VCF is expected. Only the provenance header lines
 The e2e suite verifies this by hashing the record bodies of both files; see
 [Checking byte-level agreement](testing-vep.md#checking-byte-level-agreement).
 
+The input's own `INFO` keys and sample columns are written back unchanged, also
+when a key shares a name with a VEP field: an input `AF=` from gnomAD or
+`bcftools +fill-tags` stays as it was, and VEP's frequency is inside `CSQ`. An
+input that already carries `CSQ` has it replaced, as Ensembl VEP does: the old
+key and its header line are dropped and the new `CSQ` is appended last.
+
 ### Annotating to a Polars LazyFrame
 
 Omit `output_vcf` and `annotate()` returns a Polars LazyFrame instead:

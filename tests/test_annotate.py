@@ -2915,3 +2915,222 @@ class TestNonVariantRecords:
             f"at buffer_size={buffer_size}, a dropped non-variant record changed "
             "the annotation of the surrounding real variants"
         )
+
+
+COLLIDING_INFO_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Depth">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Cohort allele frequency">
+##INFO=<ID=SYMBOL,Number=1,Type=String,Description="A caller's own gene label">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t604358\t.\tG\tC\t50\tPASS\tDP=10;AF=0.25;SYMBOL=mine
+chr1\t611317\t.\tA\tG\t50\tPASS\tSYMBOL=other;AF=0.5
+"""
+
+# What Ensembl VEP leaves behind: a CSQ key, its declaration and its provenance.
+PREANNOTATED_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Depth">
+##VEP="v115" time="2025-01-01 00:00:00"
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: Allele|Consequence">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t604358\t.\tG\tC\t50\tPASS\tCSQ=C|stale_variant;DP=10
+chr1\t611317\t.\tA\tG\t50\tPASS\tDP=7;CSQ=G|stale_variant
+"""
+
+COLLIDING_FORMAT_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele fraction, as Mutect2 writes it">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tTUMOR
+chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:AF\t0/1:0.31
+"""
+
+
+# A FORMAT field called CSQ meets the engine's own CSQ inside the VCF writer's
+# projection, where every other input name is free again.
+FORMAT_CSQ_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=CSQ,Number=1,Type=String,Description="A caller's per-sample label">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tTUMOR
+chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:CSQ\t0/1:mine
+"""
+
+
+class TestInputFieldNamedLikeAnAnnotationColumn:
+    """An input may already use a name the engine adds to its output.
+
+    INFO/AF is declared by gnomAD, 1000 Genomes and any `bcftools +fill-tags`
+    output, INFO/CSQ by every VEP-annotated file. The engine appended its own
+    `AF`, `CSQ`, ... to the input's columns and DataFusion rejected the result:
+    `Schema contains duplicate qualified field name "annotate_vep()"."AF"` --
+    biodatageeks/vepyr#121. Ensembl VEP copies the input's INFO verbatim and
+    appends `CSQ` (`OutputFactory/VCF.pm:315-349`), replacing an existing one
+    (`:328-330`, header `:221`).
+
+    No fixture in the repo declares a colliding id -- every one is GIAB HG002 --
+    so each case brings its own input.
+    """
+
+    @staticmethod
+    def _annotate(cache_dir, tmp_path, source, name, **kwargs):
+        import vepyr
+
+        src = tmp_path / f"{name}.vcf"
+        src.write_text(source)
+        out = tmp_path / f"{name}.out.vcf"
+        vepyr.annotate(
+            str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
+        )
+        lines = Path(out).read_text().splitlines()
+        header = [line for line in lines if line.startswith("##")]
+        records = [line.split("\t") for line in lines if line and line[0] != "#"]
+        return header, records
+
+    def test_input_info_keys_are_kept_under_their_own_names(
+        self, metadata_cache_dir, tmp_path
+    ):
+        header, records = self._annotate(
+            metadata_cache_dir, tmp_path, COLLIDING_INFO_VCF, "colliding"
+        )
+
+        info = [record[7].split(";") for record in records]
+        # Verbatim and in the record's own order, then CSQ last.
+        assert info[0][:3] == ["DP=10", "AF=0.25", "SYMBOL=mine"]
+        assert info[1][:2] == ["SYMBOL=other", "AF=0.5"]
+        assert all(keys[-1].startswith("CSQ=") for keys in info)
+        assert sum(line.startswith("##INFO=<ID=AF,") for line in header) == 1
+        text = "\n".join(header + ["\t".join(record) for record in records])
+        assert "INFO_" not in text
+
+    def test_an_existing_csq_is_replaced_and_the_new_one_comes_last(
+        self, metadata_cache_dir, tmp_path
+    ):
+        header, records = self._annotate(
+            metadata_cache_dir, tmp_path, PREANNOTATED_VCF, "preannotated"
+        )
+
+        for record in records:
+            keys = record[7].split(";")
+            assert [key.split("=")[0] for key in keys] == ["DP", "CSQ"]
+            assert "stale_variant" not in record[7]
+        declarations = [line for line in header if line.startswith("##INFO=<ID=CSQ,")]
+        assert len(declarations) == 1
+        assert "Allele|Consequence|IMPACT" in declarations[0]
+        assert not any(line.startswith("##VEP=") for line in header)
+
+    def test_a_single_sample_format_field_is_kept_under_its_own_name(
+        self, metadata_cache_dir, tmp_path
+    ):
+        header, records = self._annotate(
+            metadata_cache_dir, tmp_path, COLLIDING_FORMAT_VCF, "format"
+        )
+
+        assert records[0][8:10] == ["GT:AF", "0/1:0.31"]
+        text = "\n".join(header + ["\t".join(record) for record in records])
+        assert "fmt_" not in text
+
+    def test_a_format_field_named_csq_survives_beside_the_new_info_csq(
+        self, metadata_cache_dir, tmp_path
+    ):
+        header, records = self._annotate(
+            metadata_cache_dir, tmp_path, FORMAT_CSQ_VCF, "format_csq"
+        )
+
+        assert records[0][8:10] == ["GT:CSQ", "0/1:mine"]
+        assert records[0][7].startswith("CSQ=C|")
+        assert sum(line.startswith("##FORMAT=<ID=CSQ,") for line in header) == 1
+        assert sum(line.startswith("##INFO=<ID=CSQ,") for line in header) == 1
+        text = "\n".join(header + ["\t".join(record) for record in records])
+        assert "fmt_" not in text
+
+    def test_workers_write_the_same_records(self, metadata_cache_dir, tmp_path):
+        import shutil
+        import subprocess
+
+        import vepyr
+
+        if not (shutil.which("bgzip") and shutil.which("tabix")):
+            pytest.skip("workers>1 needs an indexed input; bgzip/tabix not installed")
+
+        plain = tmp_path / "colliding.vcf"
+        plain.write_text(COLLIDING_INFO_VCF)
+        bgz = tmp_path / "colliding.vcf.gz"
+        with open(bgz, "wb") as handle:
+            subprocess.run(["bgzip", "-c", str(plain)], stdout=handle, check=True)
+        subprocess.run(["tabix", "-p", "vcf", str(bgz)], check=True)
+
+        outputs = []
+        for workers in (1, 2):
+            out = tmp_path / f"workers{workers}.vcf"
+            vepyr.annotate(
+                str(bgz),
+                metadata_cache_dir,
+                output_vcf=str(out),
+                show_progress=False,
+                workers=workers,
+                compression="plain",
+            )
+            outputs.append(
+                [
+                    line
+                    for line in out.read_text().splitlines()
+                    if not line.startswith("#")
+                ]
+            )
+        assert outputs[0] == outputs[1]
+        assert outputs[0][0].split("\t")[7].startswith("DP=10;AF=0.25;SYMBOL=mine;CSQ=")
+
+
+# The header declares DP before GT, as GIAB HG002's does. The second record puts
+# GT last, which the specification forbids but files in the wild contain.
+DP_BEFORE_GT_VCF = """##fileformat=VCFv4.2
+##contig=<ID=chr1>
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE
+chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:DP\t0/1:25
+chr1\t604360\t.\tA\tT\t50\tPASS\t.\tDP:GT\t30:1/1
+"""
+
+
+class TestFormatKeyOrderInTheOutputVcf:
+    """VCF 4.x: GT is the first FORMAT key whenever it is present.
+
+    Without the record layout the writer only has the header's FORMAT order to
+    go by, and wrote `DP:GT` for an input like the one above
+    (biodatageeks/datafusion-bio-formats#254).
+    """
+
+    @staticmethod
+    def _format_columns(cache_dir, tmp_path, **kwargs):
+        import vepyr
+
+        src = tmp_path / "dp_before_gt.vcf"
+        src.write_text(DP_BEFORE_GT_VCF)
+        out = tmp_path / "dp_before_gt.out.vcf"
+        vepyr.annotate(
+            str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
+        )
+        return [
+            line.split("\t")[8:10]
+            for line in Path(out).read_text().splitlines()
+            if line and line[0] != "#"
+        ]
+
+    def test_gt_leads_when_the_record_layout_is_not_carried(
+        self, metadata_cache_dir, tmp_path
+    ):
+        columns = self._format_columns(
+            metadata_cache_dir, tmp_path, preserve_record_layout=False
+        )
+        assert columns == [["GT:DP", "0/1:25"], ["GT:DP", "1/1:30"]]
+
+    def test_a_carried_layout_reproduces_the_source_order(
+        self, metadata_cache_dir, tmp_path
+    ):
+        # The default. The source's own key order wins, GT position included, so
+        # output that matched the input byte for byte before still does.
+        columns = self._format_columns(metadata_cache_dir, tmp_path)
+        assert columns == [["GT:DP", "0/1:25"], ["DP:GT", "30:1/1"]]
