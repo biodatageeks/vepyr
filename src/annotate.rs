@@ -596,11 +596,16 @@ pub fn create_streaming_annotator(
     let format_fields = take_fields("vcf_format_fields")?;
     // Carry each record's own INFO/FORMAT key layout on the frame, so that
     // polars-bio's sink_vcf can reproduce the source line. vepyr-only key.
-    let carry_record_layout = opts
+    // `true` is the caller asking for it, and fails when the input cannot carry
+    // it; "auto" is the default, which falls back to no carry instead.
+    let record_layout = opts
         .as_object_mut()
-        .and_then(|object| object.remove("vcf_record_layout"))
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false);
+        .and_then(|object| object.remove("vcf_record_layout"));
+    let (carry_record_layout, layout_required) = match record_layout {
+        Some(Value::Bool(true)) => (true, true),
+        Some(Value::String(mode)) if mode == "auto" => (true, false),
+        _ => (false, false),
+    };
     let options_json = serde_json::to_string(&opts).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
@@ -619,8 +624,8 @@ pub fn create_streaming_annotator(
 
         let vcf_provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
             vcf_path.to_string(),
-            info_fields,
-            format_fields,
+            info_fields.clone(),
+            format_fields.clone(),
             None,
             false,
         )
@@ -628,11 +633,31 @@ pub fn create_streaming_annotator(
             pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
         })?;
         let vcf_provider = if carry_record_layout {
-            vcf_provider.with_record_layout().map_err(|e| {
-                pyo3::exceptions::PyValueError::new_err(format!(
-                    "preserve_record_layout is not available for this input: {e}"
-                ))
-            })?
+            match vcf_provider.with_record_layout() {
+                Ok(provider) => provider,
+                Err(e) if layout_required => {
+                    return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                        "preserve_record_layout is not available for this input: {e}"
+                    )));
+                }
+                // BCF input, or a file declaring a field with a reserved name:
+                // the default quietly goes without the carry.
+                Err(e) => {
+                    log::debug!("record layout not carried for {vcf_path}: {e}");
+                    datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+                        vcf_path.to_string(),
+                        info_fields.clone(),
+                        format_fields.clone(),
+                        None,
+                        false,
+                    )
+                    .map_err(|e| {
+                        pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "Failed to open VCF: {e}"
+                        ))
+                    })?
+                }
+            }
         } else {
             vcf_provider
         };

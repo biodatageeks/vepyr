@@ -580,6 +580,38 @@ def test_sink_vcf_keeps_the_input_header_and_can_reproduce_record_lines(
         if key not in ("output", "compression")
     }
 
-    # Off by default: no plumbing columns in the caller's frame.
-    plain = vepyr.annotate(INPUT_VCF, cache_dir, skip_csq=False, **kwargs)
+    # On by default; False leaves the two columns out of the caller's frame.
+    default = vepyr.annotate(INPUT_VCF, cache_dir, skip_csq=False, **kwargs)
+    assert {"_vcf_info_keys", "_vcf_format_keys"} <= set(
+        default.collect_schema().names()
+    )
+    plain = vepyr.annotate(
+        INPUT_VCF, cache_dir, skip_csq=False, preserve_record_layout=False, **kwargs
+    )
     assert not [c for c in plain.collect_schema().names() if c.startswith("_vcf_")]
+
+
+def test_the_default_layout_carry_gives_way_to_an_input_that_cannot_have_it(
+    cache_dir, tmp_path
+):
+    """A file may declare a field named like a layout column. The default then
+    annotates without the carry; asking for it explicitly is an error."""
+    import vepyr
+
+    src = tmp_path / "reserved.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr1>\n"
+        '##INFO=<ID=_vcf_info_keys,Number=1,Type=String,Description="Real">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\t_vcf_info_keys=mine\n"
+    )
+    lf = vepyr.annotate(str(src), cache_dir, show_progress=False)
+    names = lf.collect_schema().names()
+    assert "_vcf_format_keys" not in names
+    assert names.count("_vcf_info_keys") == 1  # the file's own field, as data
+
+    with pytest.raises(ValueError, match="preserve_record_layout"):
+        vepyr.annotate(
+            str(src), cache_dir, preserve_record_layout=True, show_progress=False
+        ).collect()
