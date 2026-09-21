@@ -1145,7 +1145,7 @@ def annotate(
     format_fields: list[str] | None = None,
     # Output mode
     output_vcf: str | None = None,
-    preserve_record_layout: bool = True,
+    preserve_record_layout: bool | None = None,
     show_progress: bool = True,
     compression: str | None = None,
     on_batch_written: Callable[[int, int, int], None] | None = None,
@@ -1312,14 +1312,18 @@ def annotate(
         annotation -- no ``CSQ`` key on the VCF path, a null ``CSQ`` on the
         LazyFrame path. Note VEP tests only the *first* ALT, so ``ALT=.,C`` is
         non-variant while ``ALT=C,.`` is an ordinary record.
-    preserve_record_layout : bool
+    preserve_record_layout : bool, optional
         Write each record's INFO fields in the order the input wrote them, and
-        its own FORMAT keys (default: True). Both are per record and neither
+        its own FORMAT keys. The default depends on the output: on for
+        ``output_vcf``, off for the LazyFrame. On the LazyFrame it adds two
+        string columns, ``_vcf_info_keys`` and ``_vcf_format_keys``, which
+        ``polars_bio.sink_vcf`` uses to write each record exactly as
+        ``output_vcf`` would; they have to stay in the frame, and it needs text
+        VCF input and a polars-bio with the record layout carry. Both are per record and neither
         survives the typed columns, so turning this off reorders INFO to schema
         order and drops any FORMAT key whose value is missing in every sample.
         Ensembl VEP keeps both by copying the input line and only appending to
-        INFO, so byte agreement with it needs this on. Only used when
-        ``output_vcf`` is set.
+        INFO, so byte agreement with it needs this on.
     show_progress : bool
         Show a progress bar while annotating (default: True). On the VCF
         output path it is a determinate bar over the pre-counted input. On
@@ -1551,7 +1555,10 @@ def annotate(
         opts["plugin_cache_root"] = plugin_cache_root
     if allow_non_variant:
         opts["allow_non_variant"] = True
-    if not preserve_record_layout:
+    # None means each output path's own default: on for output_vcf, which has
+    # always reproduced the source line, and off for the LazyFrame, where it
+    # adds two columns to the caller's frame.
+    if preserve_record_layout is False:
         opts["preserve_record_layout"] = False
 
     options_json = json.dumps(opts)
@@ -1729,6 +1736,10 @@ def annotate(
         opts["vcf_info_fields"] = list(info_fields)
     if format_fields is not None:
         opts["vcf_format_fields"] = list(format_fields)
+    if preserve_record_layout is True:
+        # LazyFrame path only: carry `_vcf_info_keys` / `_vcf_format_keys` so that
+        # polars_bio.sink_vcf can write each record's keys in the source's order.
+        opts["vcf_record_layout"] = True
     options_json = json.dumps(opts)
 
     # Get schema from a probe annotator (doesn't consume data).

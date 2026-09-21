@@ -44,6 +44,14 @@ def build_header(
         "contigs": vcf.get("contigs"),
         "filters": vcf.get("filters"),
         "alt_definitions": vcf.get("alt_definitions"),
+        # The input's header as text: polars-bio writes it back line for line and
+        # re-declares only what changed (CSQ). Without it the header is rebuilt
+        # from the typed keys above, which cannot hold ##fileDate, tool
+        # provenance, the PASS filter or contig attributes beyond ID and length.
+        "raw_lines": vcf.get("raw_lines"),
+        # Whether `_vcf_info_keys` / `_vcf_format_keys` in this frame are the
+        # record layout. polars-bio goes by this, never by the column names.
+        "record_layout": bool(vcf.get("record_layout")),
     }
 
 

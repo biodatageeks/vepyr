@@ -516,3 +516,54 @@ def test_sink_vcf_matches_output_vcf_field_for_field(cache_dir, tmp_path, flags)
         line for line in sunk.read_text().splitlines() if not line.startswith("#")
     )
     assert first.split("\t")[8].startswith("GT")
+
+
+def test_sink_vcf_keeps_the_input_header_and_can_reproduce_record_lines(
+    cache_dir, tmp_path
+):
+    """Needs a polars-bio with raw-header passthrough and the record layout carry."""
+    import inspect
+
+    import vepyr
+
+    pb = pytest.importorskip("polars_bio")
+    if "preserve_record_layout" not in inspect.signature(pb.scan_vcf).parameters:
+        pytest.skip("polars-bio without the record layout carry")
+    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False, everything=True)
+
+    reference = tmp_path / "reference.vcf"
+    vepyr.annotate(
+        INPUT_VCF, cache_dir, output_vcf=str(reference), compression="plain", **kwargs
+    )
+    want = {
+        tuple(line.split("\t")[i] for i in (0, 1, 3, 4)): line
+        for line in reference.read_text().splitlines()
+        if not line.startswith("#")
+    }
+
+    sunk = tmp_path / "sunk.vcf"
+    lf = vepyr.annotate(
+        INPUT_VCF, cache_dir, skip_csq=False, preserve_record_layout=True, **kwargs
+    )
+    assert {"_vcf_info_keys", "_vcf_format_keys"} <= set(lf.collect_schema().names())
+    pb.sink_vcf(lf.filter(pl.col("IMPACT").list.contains("MODIFIER")), str(sunk))
+
+    lines = sunk.read_text().splitlines()
+    got = [line for line in lines if not line.startswith("#")]
+    assert got
+    # Byte for byte the lines output_vcf writes, which are Ensembl VEP's.
+    assert all(
+        line == want[tuple(line.split("\t")[i] for i in (0, 1, 3, 4))] for line in got
+    )
+    # The input's own header lines survive; only vepyr's provenance is absent
+    # on this path (biodatageeks/vepyr#125).
+    missing = [
+        h
+        for h in reference.read_text().splitlines()
+        if h.startswith("##") and h not in lines
+    ]
+    assert all("datafusion-bio-function-vep" in h for h in missing), missing
+
+    # Off by default: no plumbing columns in the caller's frame.
+    plain = vepyr.annotate(INPUT_VCF, cache_dir, skip_csq=False, **kwargs)
+    assert not [c for c in plain.collect_schema().names() if c.startswith("_vcf_")]

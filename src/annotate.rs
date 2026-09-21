@@ -550,6 +550,13 @@ pub fn create_streaming_annotator(
     };
     let info_fields = take_fields("vcf_info_fields")?;
     let format_fields = take_fields("vcf_format_fields")?;
+    // Carry each record's own INFO/FORMAT key layout on the frame, so that
+    // polars-bio's sink_vcf can reproduce the source line. vepyr-only key.
+    let carry_record_layout = opts
+        .as_object_mut()
+        .and_then(|object| object.remove("vcf_record_layout"))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
     let options_json = serde_json::to_string(&opts).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
@@ -576,6 +583,15 @@ pub fn create_streaming_annotator(
         .map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
         })?;
+        let vcf_provider = if carry_record_layout {
+            vcf_provider.with_record_layout().map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!(
+                    "preserve_record_layout is not available for this input: {e}"
+                ))
+            })?
+        } else {
+            vcf_provider
+        };
         ctx.register_table("vcf", Arc::new(vcf_provider))
             .map_err(|e| {
                 pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to register VCF: {e}"))
