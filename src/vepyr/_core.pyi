@@ -89,6 +89,12 @@ def vcf_contigs(vcf_path: str) -> list[str]:
     """Contig ids declared in the VCF header, in header order."""
     ...
 
+def annotation_header_lines(
+    vcf_path: str, cache_dir: str, options_json: str, raw_lines: list[str]
+) -> list[str]:
+    """The input's header lines with this run's provenance merged in."""
+    ...
+
 def vcf_fields(vcf_path: str) -> tuple[list[str], list[str]]:
     """INFO and FORMAT ids declared in the VCF header, in header order."""
     ...

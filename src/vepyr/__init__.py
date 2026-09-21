@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import polars as pl
 
+from vepyr._core import annotation_header_lines as _annotation_header_lines
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
 from vepyr._core import build_plugin_cache as _build_plugin_cache
@@ -2011,5 +2012,17 @@ def annotate(
         if "CSQ" in polars_schema
         else None
     )
-    _attach_vcf_metadata(lf, vcf, pa_schema, _carried, csq_fields)
+    _attach_vcf_metadata(
+        lf,
+        vcf,
+        pa_schema,
+        _carried,
+        csq_fields,
+        # The provenance lines output_vcf writes, built by the engine so the two
+        # output paths cannot disagree. They record the annotation; what the
+        # caller does to the frame afterwards is not vepyr's to know.
+        provenance=lambda raw_lines: _annotation_header_lines(
+            vcf, cache_dir, options_json, raw_lines
+        ),
+    )
     return lf

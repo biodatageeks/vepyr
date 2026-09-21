@@ -55,8 +55,15 @@ def build_header(
     }
 
 
-def attach(lf, vcf_path: str, schema: pa.Schema, carried, csq_fields) -> None:
-    """Set the metadata ``polars_bio.sink_vcf`` reads; a no-op without polars-bio."""
+def attach(
+    lf, vcf_path: str, schema: pa.Schema, carried, csq_fields, provenance=None
+) -> None:
+    """Set the metadata ``polars_bio.sink_vcf`` reads; a no-op without polars-bio.
+
+    ``provenance`` maps the input's raw header lines to the lines an annotated
+    VCF carries: the same lines with this run's provenance merged in, built by
+    the engine so they are exactly what ``output_vcf`` writes.
+    """
     try:
         import polars_bio as pb
         from polars_bio._metadata import set_coordinate_system
@@ -66,5 +73,7 @@ def attach(lf, vcf_path: str, schema: pa.Schema, carried, csq_fields) -> None:
     header = build_header(schema, carried, csq_fields, extract_all_schema_metadata)
     if header is None:
         return
+    if provenance is not None and header.get("raw_lines"):
+        header["raw_lines"] = provenance(header["raw_lines"])
     pb.set_source_metadata(lf, format="vcf", path=vcf_path, header=header)
     set_coordinate_system(lf, zero_based=False)

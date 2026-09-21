@@ -183,6 +183,41 @@ pub fn annotate_to_vcf_file(
         )
     });
 
+    let config = vcf_config_from_options(&opts, workers, vcf_compression, show_progress, callback)?;
+
+    // Release the GIL so the Python background thread (in __init__.py) can
+    // let Jupyter's main thread pump display updates for tqdm progress bars.
+    // The on_batch_written callback re-acquires the GIL via Python::with_gil().
+    py.detach(|| {
+        rt.block_on(async {
+            let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
+                .await
+                .map_err(|e| {
+                    pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
+                })?;
+            log::info!(
+                "annotate_to_vcf_file complete: output={}, rows={}",
+                output_path,
+                rows
+            );
+
+            Ok(rows)
+        })
+    })
+}
+
+/// The engine's VCF config for a set of vepyr options.
+///
+/// Shared by the VCF output path and by [`annotation_header_lines`], so the
+/// header the LazyFrame path hands to polars-bio describes the run exactly as
+/// `output_vcf` would.
+fn vcf_config_from_options(
+    opts: &Value,
+    workers: usize,
+    vcf_compression: datafusion_bio_format_vcf::VcfCompressionType,
+    show_progress: bool,
+    callback: Option<OnBatchWritten>,
+) -> PyResult<AnnotateVcfConfig> {
     // `AnnotateVcfConfig` is `#[non_exhaustive]`, so it is built by assignment
     // rather than a struct literal: a field the engine adds then defaults here
     // instead of failing this crate's build.
@@ -356,25 +391,34 @@ pub fn annotate_to_vcf_file(
         .get("allow_non_variant")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    Ok(config)
+}
 
-    // Release the GIL so the Python background thread (in __init__.py) can
-    // let Jupyter's main thread pump display updates for tqdm progress bars.
-    // The on_batch_written callback re-acquires the GIL via Python::with_gil().
-    py.detach(|| {
-        rt.block_on(async {
-            let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
-                .await
-                .map_err(|e| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
-                })?;
-            log::info!(
-                "annotate_to_vcf_file complete: output={}, rows={}",
-                output_path,
-                rows
-            );
-
-            Ok(rows)
-        })
+/// Header lines for a VCF written from the annotated LazyFrame: the input's own
+/// `##` lines with this run's provenance merged in, exactly as the engine's VCF
+/// sink builds them, but with no output file recorded.
+pub fn annotation_header_lines(
+    vcf_path: &str,
+    cache_dir: &str,
+    options_json: &str,
+    raw_lines: Vec<String>,
+) -> PyResult<Vec<String>> {
+    let (options_json, _cache_format) = normalize_options(options_json)?;
+    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    let config = vcf_config_from_options(
+        &opts,
+        1,
+        datafusion_bio_format_vcf::VcfCompressionType::Plain,
+        false,
+        None,
+    )?;
+    datafusion_bio_function_vep::vcf_sink::annotation_header_lines(
+        raw_lines, vcf_path, cache_dir, None, &config,
+    )
+    .map_err(|e| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to build VCF header: {e}"))
     })
 }
 

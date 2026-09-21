@@ -521,7 +521,8 @@ def test_sink_vcf_matches_output_vcf_field_for_field(cache_dir, tmp_path, flags)
 def test_sink_vcf_keeps_the_input_header_and_can_reproduce_record_lines(
     cache_dir, tmp_path
 ):
-    """Needs a polars-bio with raw-header passthrough and the record layout carry."""
+    """sink_vcf writes what output_vcf writes. Needs a polars-bio with raw-header
+    passthrough and the record layout carry (biodatageeks/polars-bio#469)."""
     import inspect
 
     import vepyr
@@ -555,14 +556,29 @@ def test_sink_vcf_keeps_the_input_header_and_can_reproduce_record_lines(
     assert all(
         line == want[tuple(line.split("\t")[i] for i in (0, 1, 3, 4))] for line in got
     )
-    # The input's own header lines survive; only vepyr's provenance is absent
-    # on this path (biodatageeks/vepyr#125).
-    missing = [
-        h
-        for h in reference.read_text().splitlines()
-        if h.startswith("##") and h not in lines
+    # The header is output_vcf's, line for line and in order: the input's own
+    # lines, then vepyr's provenance, then CSQ. One line may differ, and only by
+    # what this path does not have: an output file and its compression.
+    import json
+
+    got_header = [line for line in lines if line.startswith("#")]
+    want_header = [
+        line for line in reference.read_text().splitlines() if line.startswith("#")
     ]
-    assert all("datafusion-bio-function-vep" in h for h in missing), missing
+    assert len(got_header) == len(want_header)
+    differing = [(g, w) for g, w in zip(got_header, want_header) if g != w]
+    assert len(differing) == 1
+    sunk_line, reference_line = differing[0]
+    assert sunk_line.startswith("##datafusion-bio-function-vep-command-line='")
+    sunk_json, reference_json = (
+        json.loads(line.split("='", 1)[1][:-1]) for line in (sunk_line, reference_line)
+    )
+    assert "output" not in sunk_json and "compression" not in sunk_json
+    assert sunk_json == {
+        key: value
+        for key, value in reference_json.items()
+        if key not in ("output", "compression")
+    }
 
     # Off by default: no plumbing columns in the caller's frame.
     plain = vepyr.annotate(INPUT_VCF, cache_dir, skip_csq=False, **kwargs)
