@@ -155,9 +155,9 @@ serde_json = "1"
 # Arrow schema now carries the input's schema-level VCF metadata, which nothing
 # here reads yet.) bio-formats does not move. Its tree is identical to the
 # PR head f03fc86 this was pinned to in review.
-# bio-functions 348515f: the HEAD of biodatageeks/datafusion-bio-functions#254,
-# not yet merged, on top of #253 (d495be0). Together they move the engine's
-# bio-formats pins from v1.12.1 to v1.13.0 for
+# bio-functions 3d70923: the MERGE commit of
+# biodatageeks/datafusion-bio-functions#254, on top of #253 (d495be0). Together
+# they move the engine's bio-formats pins from v1.12.1 to v1.13.0 for
 # biodatageeks/datafusion-bio-formats#254: the VCF serializer wrote FORMAT keys
 # in header order when the record layout is not carried, so an input declaring
 # DP before GT (GIAB HG002 does) came out as `DP:GT`; VCF 4.x requires GT first.
@@ -167,8 +167,8 @@ serde_json = "1"
 # crates directly, and a source that differs from the engine's resolves a second
 # copy of datafusion-bio-format-vcf and -core, which does not compile (`expected
 # VcfCompressionType, found a different VcfCompressionType`). Every engine bump
-# has to check the engine's formats pin for that reason. Pinned to the PR head
-# while it is in review; rewrite to the merge commit after the merge.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "348515f86f58b4a7b06c408a6fdc1f5df14b8f0f", features = ["cache-builder"] }
+# has to check the engine's formats pin for that reason. Its tree is identical
+# to the PR head 348515f this was pinned to in review.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "3d709235a799051ab4ee5b962bc9fb82c44d078d", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
