@@ -157,7 +157,16 @@ def _rename_shadowed_input_columns(
                 f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
             )
         prefix = "INFO_" if carried[name][0] == "INFO" else "fmt_"
-        mapping[name] = prefix + name
+        renamed = prefix + name
+        # The renamed column must not land on a field the input already has
+        # under that name: two columns would share it and the batch rename fails.
+        if renamed in schema or renamed in mapping.values():
+            raise ValueError(
+                f"plugin CSQ field {name!r} shadows an input field of the same name, "
+                f"and {renamed!r} is taken by another input field; select one of "
+                "them away with info_fields/format_fields"
+            )
+        mapping[name] = renamed
     return {mapping.get(name, name): dtype for name, dtype in schema.items()}, mapping
 
 
@@ -1800,6 +1809,12 @@ def annotate(
         _carried = {
             _shadowed.get(name, name): value for name, value in _carried.items()
         }
+        # The fixed projection names input columns too; follow the rename, or
+        # the plugin column is selected twice and the input one not at all.
+        if selected_dataframe_columns is not None:
+            selected_dataframe_columns = [
+                _shadowed.get(name, name) for name in selected_dataframe_columns
+            ]
         for name, dtype, per_variant in plugin_column_specs:
             polars_schema[name] = dtype if per_variant else pl.List(dtype)
         if skip_csq:

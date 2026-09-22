@@ -615,3 +615,19 @@ def test_the_default_layout_carry_gives_way_to_an_input_that_cannot_have_it(
         vepyr.annotate(
             str(src), cache_dir, preserve_record_layout=True, show_progress=False
         ).collect()
+
+
+def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
+    from vepyr import _rename_shadowed_input_columns
+
+    schema = {
+        "chrom": pl.String,
+        "CADD_PHRED": pl.Float32,
+        "INFO_CADD_PHRED": pl.String,
+    }
+    carried = {
+        "CADD_PHRED": ("INFO", "CADD_PHRED"),
+        "INFO_CADD_PHRED": ("INFO", "INFO_CADD_PHRED"),
+    }
+    with pytest.raises(ValueError, match="INFO_CADD_PHRED"):
+        _rename_shadowed_input_columns(schema, carried, ["CADD_PHRED"])
