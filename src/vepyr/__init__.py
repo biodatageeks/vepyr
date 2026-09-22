@@ -2058,7 +2058,16 @@ def annotate(
         provenance=lambda raw_lines: _annotation_header_lines(
             vcf,
             cache_dir,
-            json.dumps(_flags_for_projection(_opts, None, set(polars_schema))),
+            json.dumps(
+                _flags_for_projection(
+                    _opts,
+                    None,
+                    set(polars_schema),
+                    # A sink writes every plugin column, so it is collected with
+                    # all of their required inputs enabled; record those too.
+                    set().union(*plugin_column_inputs.values()),
+                )
+            ),
             raw_lines,
         ),
     )
