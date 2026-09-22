@@ -631,3 +631,12 @@ def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     }
     with pytest.raises(ValueError, match="INFO_CADD_PHRED"):
         _rename_shadowed_input_columns(schema, carried, ["CADD_PHRED"])
+
+
+def test_a_plugin_named_like_an_already_renamed_input_column_is_an_error():
+    from vepyr import _rename_shadowed_input_columns
+
+    schema = {"chrom": pl.String, "INFO_AF": pl.Float32}
+    carried = {"INFO_AF": ("INFO", "AF")}
+    with pytest.raises(ValueError, match="INFO_AF"):
+        _rename_shadowed_input_columns(schema, carried, ["INFO_AF"])

@@ -156,7 +156,15 @@ def _rename_shadowed_input_columns(
             raise ValueError(
                 f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
             )
-        prefix = "INFO_" if carried[name][0] == "INFO" else "fmt_"
+        kind, vcf_id = carried[name]
+        # Already renamed by the engine (INFO/AF arrives as INFO_AF): prefixing
+        # again would detach the column from its VCF id on write.
+        if name != vcf_id:
+            raise ValueError(
+                f"plugin CSQ field {name!r} matches the renamed input field "
+                f"{vcf_id!r}; select it away with info_fields/format_fields"
+            )
+        prefix = "INFO_" if kind == "INFO" else "fmt_"
         renamed = prefix + name
         # The renamed column must not land on a field the input already has
         # under that name: two columns would share it and the batch rename fails.
@@ -2044,8 +2052,14 @@ def annotate(
         # The provenance lines output_vcf writes, built by the engine so the two
         # output paths cannot disagree. They record the annotation; what the
         # caller does to the frame afterwards is not vepyr's to know.
+        # A VCF sink reads CSQ, so it is collected with the flags a CSQ read
+        # gets (given, or inferred when none were); record those, not the raw
+        # options, or the command line misses an inferred `everything`.
         provenance=lambda raw_lines: _annotation_header_lines(
-            vcf, cache_dir, options_json, raw_lines
+            vcf,
+            cache_dir,
+            json.dumps(_flags_for_projection(_opts, None, set(polars_schema))),
+            raw_lines,
         ),
     )
     return lf
