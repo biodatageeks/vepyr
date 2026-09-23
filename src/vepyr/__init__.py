@@ -1764,32 +1764,33 @@ def annotate(
     # Input columns. The reader panics on an id the header does not declare, so
     # a selection is checked against the header first.
     header_info: list[str] | None = None
+    nests_genotypes = False
     if info_fields is not None or format_fields is not None:
-        header_info, header_format, _nests = _vcf_fields(vcf)
+        header_info, header_format, nests_genotypes = _vcf_fields(vcf)
         validate_selection("info_fields", info_fields, header_info)
         validate_selection("format_fields", format_fields, header_format)
-    # An INFO id that is also one of the reader's own column names (`id`,
-    # `filter`, ...) cannot be carried: it would arrive beside the column it is
-    # named for and the query fails on the duplicate. The default carry gives
-    # way for it, as it does for a record layout the input cannot have, so a
-    # file declaring one still annotates. Naming it explicitly is an error,
-    # because carrying it is the part that cannot be done.
+    elif info_fields is None:
+        try:
+            header_info, _, nests_genotypes = _vcf_fields(vcf)
+        except Exception:
+            # The header cannot be read. The annotator below raises the real
+            # error for that; a guard that cannot see the header does not get
+            # to raise a worse one first.
+            header_info = []
+    # An INFO id that is also one of the frame's own column names cannot be
+    # carried: it would arrive beside the column it is named for and the query
+    # fails on the duplicate. The default carry gives way for it, as it does
+    # for a record layout the input cannot have, so a file declaring one still
+    # annotates. Naming it explicitly is an error, because carrying it is the
+    # part that cannot be done.
+    reserved = set(CORE_COLUMNS)
+    # `genotypes` is one of those names only when the container is really
+    # there: the FORMAT fields of a multi-sample input nest under it, unless
+    # the caller asked for no FORMAT field at all.
+    if nests_genotypes and (format_fields is None or format_fields):
+        reserved.add("genotypes")
     if info_fields is None:
-        if header_info is None:
-            try:
-                header_info, _, nests_genotypes = _vcf_fields(vcf)
-            except Exception:
-                # The header cannot be read. The annotator below raises the real
-                # error for that; a guard that cannot see the header does not
-                # get to raise a worse one first.
-                header_info, nests_genotypes = [], False
-        reserved = set(CORE_COLUMNS)
-        # A multi-sample input's FORMAT fields arrive in one nested `genotypes`
-        # struct, so an INFO field of that name has nowhere to go. With one
-        # sample there is no struct and the field is carried as data.
-        if nests_genotypes:
-            reserved.add("genotypes")
-        uncarriable = [name for name in header_info if name in reserved]
+        uncarriable = [name for name in (header_info or []) if name in reserved]
         if uncarriable:
             warnings.warn(
                 f"{vcf!r} declares INFO fields named like the frame's own "
@@ -1800,7 +1801,7 @@ def annotate(
             )
             info_fields = [name for name in header_info if name not in reserved]
     elif info_fields:
-        uncarriable = [name for name in info_fields if name in CORE_COLUMNS]
+        uncarriable = [name for name in info_fields if name in reserved]
         if uncarriable:
             raise ValueError(
                 "info_fields names fields the frame cannot carry, because the "

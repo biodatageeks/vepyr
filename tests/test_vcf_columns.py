@@ -1054,6 +1054,54 @@ def test_a_multi_sample_input_reserves_genotypes_for_its_samples(cache_dir, tmp_
     assert frame["genotypes"].to_list() == ["abc"]  # the input's field, as data
 
 
+def test_a_format_selection_alone_still_knows_about_the_nesting(cache_dir, tmp_path):
+    """The nesting is read once, whichever selection asked for the header. A
+    FORMAT-only selection takes the other branch, and the reserved set has to
+    be decided there too."""
+    import vepyr
+
+    src = tmp_path / "two.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
+        '##INFO=<ID=genotypes,Number=1,Type=String,Description="x">\n'
+        '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="gt">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1\tS2\n"
+        "chr1\t604358\t.\tG\tC\t50\tPASS\tgenotypes=abc;DP=9\tGT\t0/1\t1/1\n"
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert (
+            vepyr.annotate(
+                str(src), cache_dir, format_fields=["GT"], show_progress=False
+            )
+            .collect()
+            .height
+            == 1
+        )
+        assert (
+            vepyr.annotate(str(src), cache_dir, format_fields=[], show_progress=False)
+            .collect()
+            .height
+            == 1
+        )
+
+    # Explicitly asking for the INFO field while the container is there is the
+    # error; with no FORMAT field selected there is no container and it is not.
+    with pytest.raises(ValueError, match="cannot carry"):
+        vepyr.annotate(
+            str(src), cache_dir, info_fields=["genotypes"], show_progress=False
+        )
+    frame = vepyr.annotate(
+        str(src),
+        cache_dir,
+        info_fields=["genotypes"],
+        format_fields=[],
+        show_progress=False,
+    ).collect()
+    assert frame["genotypes"].to_list() == ["abc"]
+
+
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     from vepyr import _rename_shadowed_input_columns
 
