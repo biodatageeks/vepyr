@@ -788,6 +788,10 @@ def test_this_runs_csq_replaces_the_inputs_own(cache_dir, tmp_path):
     got = _csq_of(sunk)
     assert got == _csq_of(reference)  # exactly what output_vcf writes
     assert all(value and not value.startswith("STALE") for value in got)
+    # One CSQ definition, this run's, and no leftover for the column that went:
+    # the stale field's id mapping has to survive for the header to exclude it.
+    assert len(_header_lines(sunk, "##INFO=<ID=CSQ,")) == 1
+    assert not _header_lines(sunk, "##INFO=<ID=INFO_CSQ")
 
 
 def test_without_a_csq_of_its_own_the_inputs_csq_is_written_back(cache_dir, tmp_path):
@@ -828,6 +832,59 @@ def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     }
     with pytest.raises(ValueError, match="INFO_CADD_PHRED"):
         _rename_shadowed_input_columns(schema, carried, ["CADD_PHRED"])
+
+
+def test_a_rename_target_that_is_another_plugins_field_is_an_error():
+    """The plugin columns are added after the shadow rename, so a plugin field
+    named like a rename target would overwrite the column the rename just made
+    and the input's values would go without a word."""
+    from vepyr import _rename_shadowed_input_columns
+
+    schema = {"chrom": pl.String, "X": pl.Float32}
+    carried = {"X": ("INFO", "X")}
+    with pytest.raises(ValueError, match="INFO_X"):
+        _rename_shadowed_input_columns(schema, carried, ["X", "INFO_X"])
+
+
+def test_building_the_frame_survives_flags_a_sink_could_not_get(cache_dir, tmp_path):
+    """polars-bio wants the header lines when the metadata is attached, so the
+    provenance is built while the frame is. Deriving the flags a sink would need
+    can raise -- a plugin match template needing a FASTA there is none of -- and
+    that must not decide whether annotate() succeeds: a caller who projects the
+    plugin columns away has a working query, and had one before polars-bio was
+    installed."""
+    import vepyr
+
+    pytest.importorskip("polars_bio")  # without it no provenance is built at all
+    from tests.test_build_plugin_cache import _init_full_repo
+
+    repo = _init_full_repo(tmp_path)
+    source = tmp_path / "demo.tsv"
+    source.write_text("1\t604358\tG\tC\t0.5\n")
+    plugin_root = tmp_path / "pc"
+    vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(source),
+        cache_dir=cache_dir,
+        plugin_cache_root=str(plugin_root),
+        plugins_repo=str(repo),
+        chroms=["1"],
+    )
+    # Keyed on HGVSc, which needs the reference_fasta this run does not pass.
+    manifest = plugin_root / "plugin" / "demo" / "manifest.json"
+    spec = json.loads(manifest.read_text())
+    spec["match_columns"] = [{"column": "hgvsc", "template": "{HGVSc}"}]
+    manifest.write_text(json.dumps(spec))
+
+    lf = vepyr.annotate(
+        INPUT_VCF,
+        cache_dir,
+        plugin_cache_root=str(plugin_root),
+        plugins=["demo"],
+        show_progress=False,
+    )
+    assert lf.select("chrom").collect().height > 0
 
 
 def test_a_plugin_named_like_an_already_renamed_input_column_is_an_error():

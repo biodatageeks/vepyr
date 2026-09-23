@@ -154,6 +154,7 @@ def _rename_shadowed_input_columns(
     still an error.
     """
     mapping: dict[str, str] = {}
+    plugin_names = set(plugin_fields)
     for name in plugin_fields:
         if name not in schema:
             continue
@@ -178,6 +179,15 @@ def _rename_shadowed_input_columns(
                 f"plugin CSQ field {name!r} shadows an input field of the same name, "
                 f"and {renamed!r} is taken by another input field; select one of "
                 "them away with info_fields/format_fields"
+            )
+        # Nor on a plugin's own field: the plugin columns are added after this
+        # rename, so one named like the target would overwrite the column the
+        # rename just created and the input's values would go without a word.
+        if renamed in plugin_names:
+            raise ValueError(
+                f"plugin CSQ field {name!r} shadows an input field of the same name, "
+                f"and {renamed!r} is itself a plugin CSQ field; select the input "
+                "field away with info_fields/format_fields"
             )
         mapping[name] = renamed
     return {mapping.get(name, name): dtype for name, dtype in schema.items()}, mapping
@@ -2056,6 +2066,11 @@ def annotate(
     # as Ensembl VEP and output_vcf do, so the stale column leaves the frame.
     # Without a CSQ of our own there is nothing to replace it with, and the
     # input's own is written back untouched (see build_header).
+    #
+    # `_carried` keeps the entry: it is how build_header maps the schema's
+    # `INFO_CSQ` key back to the VCF id CSQ, and so how it knows to leave that
+    # stale definition out of the header. Dropping the entry with the column
+    # would leave the definition looking like a field of its own.
     if csq_fields is not None:
         stale_csq = [
             name
@@ -2064,8 +2079,6 @@ def annotate(
         ]
         if stale_csq:
             lf = lf.drop(stale_csq)
-            for name in stale_csq:
-                del _carried[name]
     # `vcf_record_layout="auto"` is a request, not an outcome: it gives way for
     # an input that cannot carry the layout. The probe's schema is the record of
     # what happened, so the provenance describes the run rather than the ask.
@@ -2077,17 +2090,24 @@ def annotate(
     def _provenance_options() -> str:
         """The options the provenance describes.
 
-        Built on demand: deriving the flags can warn or raise for a frame
-        without a FASTA, and a frame nobody sinks must not pay that.
+        This runs while the frame is being built, so it must not decide whether
+        building it succeeds. Deriving the flags a sink would need can raise --
+        a plugin whose match template needs a FASTA there is none of -- and a
+        caller who never sinks, or who projects those columns away, has a
+        working query. Their header then records the options as given: a sink
+        of that frame raises on its own, from the collect that feeds it.
         """
-        options = _flags_for_projection(
-            _opts,
-            None,
-            set(polars_schema),
-            # A sink writes every plugin column, so it is collected with all of
-            # their required inputs enabled; record those too.
-            set().union(*plugin_column_inputs.values()),
-        )
+        try:
+            options = _flags_for_projection(
+                _opts,
+                None,
+                set(polars_schema),
+                # A sink writes every plugin column, so it is collected with all
+                # of their required inputs enabled; record those too.
+                set().union(*plugin_column_inputs.values()),
+            )
+        except ValueError:
+            options = dict(_opts)
         options["preserve_record_layout"] = _layout_carried
         return json.dumps(options)
 
