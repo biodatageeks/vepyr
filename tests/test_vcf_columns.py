@@ -418,6 +418,32 @@ def test_a_schema_the_extractor_does_not_recognise_gives_no_header():
     assert build_header(CARRIED_SCHEMA, {}, None, unrecognised) is None
 
 
+def test_the_provenance_records_the_worker_count_the_frame_is_collected_with(
+    cache_dir,
+):
+    """The header describes this run, and the frame is collected with the
+    caller's workers, so the provenance cannot build its config with a fixed
+    one."""
+    from vepyr._core import annotation_header_lines
+
+    def recorded(**opts):
+        lines = annotation_header_lines(
+            INPUT_VCF,
+            cache_dir,
+            json.dumps({"everything": True, **opts}),
+            ["##fileformat=VCFv4.2"],
+        )
+        line = next(
+            line
+            for line in lines
+            if line.startswith("##datafusion-bio-function-vep-command-line=")
+        )
+        return json.loads(line.split("='", 1)[1][:-1])["options"]["workers"]
+
+    assert recorded() == 1
+    assert recorded(workers=4) == 4
+
+
 def test_csq_field_names_skip_cache_only_columns_and_append_plugins():
     from vepyr import _csq_field_names
 
@@ -615,6 +641,35 @@ def test_the_default_layout_carry_gives_way_to_an_input_that_cannot_have_it(
         vepyr.annotate(
             str(src), cache_dir, preserve_record_layout=True, show_progress=False
         ).collect()
+
+
+def test_an_input_field_named_genotypes_is_carried_as_data(cache_dir, tmp_path):
+    """A multi-sample input nests its FORMAT fields under one `genotypes`
+    struct, but a file may also declare an INFO field with that name. The type
+    decides: by name alone the header listing skipped the field and the column
+    was classified as the FORMAT container, so a projection naming it dropped
+    it."""
+    from vepyr._core import vcf_fields
+
+    import vepyr
+
+    src = tmp_path / "genotypes.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr1>\n"
+        '##INFO=<ID=genotypes,Number=1,Type=String,Description="Not the container">\n'
+        '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\tgenotypes=mine;DP=7\n"
+    )
+    # Declared, so it can be named in info_fields and validated.
+    assert vcf_fields(str(src)) == (["genotypes", "DP"], [])
+
+    lf = vepyr.annotate(str(src), cache_dir, show_progress=False)
+    assert "genotypes" in lf.collect_schema().names()
+    # The projection is what regressed: read as FORMAT, the column never
+    # arrived.
+    assert lf.select("genotypes").collect()["genotypes"].to_list() == ["mine"]
 
 
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
