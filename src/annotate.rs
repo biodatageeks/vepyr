@@ -411,12 +411,17 @@ fn vcf_config_from_options(
 /// Header lines for a VCF written from the annotated LazyFrame: the input's own
 /// `##` lines with this run's provenance merged in, exactly as the engine's VCF
 /// sink builds them, but with no output file recorded.
+///
+/// The second value is the `CSQ` description the sink would write. Only the
+/// engine can build it -- the field list follows the flags, the cache source
+/// type, the pick options and the plugin manifests -- so the caller declares
+/// `CSQ` with this rather than deriving a list of its own.
 pub fn annotation_header_lines(
     vcf_path: &str,
     cache_dir: &str,
     options_json: &str,
     raw_lines: Vec<String>,
-) -> PyResult<Vec<String>> {
+) -> PyResult<(Vec<String>, String)> {
     let (options_json, _cache_format) = normalize_options(options_json)?;
     let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))

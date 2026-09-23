@@ -7,16 +7,20 @@ from __future__ import annotations
 
 import pyarrow as pa
 
-_CSQ_DESCRIPTION = "Consequence annotations from Ensembl VEP. Format: "
-
 
 def build_header(
     schema: pa.Schema,
     carried: dict[str, tuple[str, str]],
-    csq_fields: list[str] | None,
+    csq_description: str | None,
     extract,
 ) -> dict | None:
-    """VCF header metadata in polars-bio's shape, keyed by VCF id."""
+    """VCF header metadata in polars-bio's shape, keyed by VCF id.
+
+    ``csq_description`` is the engine's own ``CSQ`` description, or ``None``
+    when this run writes no CSQ. It is never built here: the field list follows
+    the flags, the cache source type, the pick options and the plugin
+    manifests, so only the engine can say what it is.
+    """
     vcf = extract(schema).get("format_specific", {}).get("vcf")
     if not vcf:
         return None
@@ -28,13 +32,13 @@ def build_header(
         # but only when this run has one. With `skip_csq=True` nothing replaces
         # it, so dropping the declaration here would write the input's CSQ
         # column under no definition at all, losing the annotation it came with.
-        if csq_fields is None or ids.get(name, name) != "CSQ"
+        if csq_description is None or ids.get(name, name) != "CSQ"
     }
-    if csq_fields is not None:
+    if csq_description is not None:
         info["CSQ"] = {
             "number": ".",
             "type": "String",
-            "description": _CSQ_DESCRIPTION + "|".join(csq_fields),
+            "description": csq_description,
         }
     return {
         "info_fields": info,
@@ -59,13 +63,16 @@ def build_header(
 
 
 def attach(
-    lf, vcf_path: str, schema: pa.Schema, carried, csq_fields, provenance=None
+    lf, vcf_path: str, schema: pa.Schema, carried, writes_csq: bool, provenance=None
 ) -> None:
     """Set the metadata ``polars_bio.sink_vcf`` reads; a no-op without polars-bio.
 
-    ``provenance`` maps the input's raw header lines to the lines an annotated
-    VCF carries: the same lines with this run's provenance merged in, built by
-    the engine so they are exactly what ``output_vcf`` writes.
+    ``provenance`` maps the input's raw header lines to what an annotated VCF
+    carries: those lines with this run's provenance merged in, and the ``CSQ``
+    description to declare beside them, both built by the engine so they are
+    exactly what ``output_vcf`` writes. ``writes_csq`` says whether this run
+    has a CSQ of its own to declare; the engine hands over a description
+    either way.
     """
     try:
         import polars_bio as pb
@@ -73,10 +80,24 @@ def attach(
         from polars_bio.metadata_extractors import extract_all_schema_metadata
     except ImportError:
         return
-    header = build_header(schema, carried, csq_fields, extract_all_schema_metadata)
+    # The lines and the description come from one engine call, and the header
+    # needs the description as it is built, so the call comes first.
+    lines = csq_description = None
+    if provenance is not None:
+        source = (
+            extract_all_schema_metadata(schema).get("format_specific", {}).get("vcf")
+        )
+        if source and source.get("raw_lines"):
+            lines, csq_description = provenance(source["raw_lines"])
+    header = build_header(
+        schema,
+        carried,
+        csq_description if writes_csq else None,
+        extract_all_schema_metadata,
+    )
     if header is None:
         return
-    if provenance is not None and header.get("raw_lines"):
-        header["raw_lines"] = provenance(header["raw_lines"])
+    if lines is not None:
+        header["raw_lines"] = lines
     pb.set_source_metadata(lf, format="vcf", path=vcf_path, header=header)
     set_coordinate_system(lf, zero_based=False)

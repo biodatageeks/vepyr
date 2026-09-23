@@ -741,14 +741,15 @@ fn vcf_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>, bool)> {
 }
 
 /// Header lines for a VCF written from the annotated LazyFrame: the input's
-/// `##` lines with this run's provenance merged in, as the VCF sink builds them.
+/// `##` lines with this run's provenance merged in, as the VCF sink builds
+/// them, and the `CSQ` description to declare beside them.
 #[pyfunction]
 fn annotation_header_lines(
     vcf_path: &str,
     cache_dir: &str,
     options_json: &str,
     raw_lines: Vec<String>,
-) -> PyResult<Vec<String>> {
+) -> PyResult<(Vec<String>, String)> {
     annotate::annotation_header_lines(vcf_path, cache_dir, options_json, raw_lines)
 }
 
