@@ -465,6 +465,35 @@ def test_the_provenance_records_the_worker_count_the_frame_is_collected_with(
     assert recorded(workers=4) == 4
 
 
+def test_the_provenance_records_the_colocated_switches(cache_dir):
+    """The LazyFrame passes `af` and friends to the engine on collect, so the
+    header has to say so. `everything` implies them and records itself, and a
+    run that sets none records what it always did."""
+    from vepyr._core import annotation_header_lines
+
+    def recorded(**opts):
+        lines = annotation_header_lines(
+            INPUT_VCF, cache_dir, json.dumps(opts), ["##fileformat=VCFv4.2"]
+        )
+        line = next(
+            line
+            for line in lines
+            if line.startswith("##datafusion-bio-function-vep-command-line=")
+        )
+        return json.loads(line.split("='", 1)[1][:-1])["options"]
+
+    asked = recorded(af=True, pubmed=True)
+    assert asked["af"] is True and asked["pubmed"] is True
+    assert "check_existing" not in asked  # only what was asked for
+    assert recorded(check_existing=True)["check_existing"] is True
+    # Unchanged for the two cases every existing header comes from.
+    assert recorded(everything=True) == {
+        **recorded(),
+        "everything": True,
+    }
+    assert not set(recorded()) & {"af", "pubmed", "check_existing", "max_af"}
+
+
 def test_csq_field_names_skip_cache_only_columns_and_append_plugins():
     from vepyr import _csq_field_names
 

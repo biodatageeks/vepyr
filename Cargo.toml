@@ -178,6 +178,6 @@ serde_json = "1"
 # order depends on. Same bio-formats tag as before, so bio-formats does not
 # move. v0.22.2 is the #256 merge commit b3673bf plus the release's version
 # bumps; every src tree is identical.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.22.2", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9d9b2ec", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }

@@ -391,6 +391,20 @@ fn vcf_config_from_options(
         .get("allow_non_variant")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+
+    // The co-located lookup. `everything` implies all of it, so these carry a
+    // run that asked for part of it on its own: the LazyFrame passes them to
+    // annotate_vep, and without them here the provenance could not say so.
+    let flag = |key: &str| opts.get(key).and_then(|v| v.as_bool()).unwrap_or(false);
+    config.colocated = datafusion_bio_function_vep::vcf_sink::ColocatedOptions {
+        check_existing: flag("check_existing"),
+        af: flag("af"),
+        af_1kg: flag("af_1kg"),
+        af_gnomade: flag("af_gnomade"),
+        af_gnomadg: flag("af_gnomadg"),
+        max_af: flag("max_af"),
+        pubmed: flag("pubmed"),
+    };
     Ok(config)
 }
 
