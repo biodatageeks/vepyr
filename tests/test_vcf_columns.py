@@ -847,6 +847,46 @@ def test_without_a_csq_of_its_own_the_inputs_csq_is_written_back(cache_dir, tmp_
     assert _header_lines(sunk, "##INFO=<ID=CSQ")  # still declared
 
 
+def test_an_excluded_input_field_does_not_lend_its_id_to_an_annotation_column(
+    cache_dir, tmp_path
+):
+    """An input may declare a field an annotation column is also named for, and
+    then not carry it. Its id must not become a writer target: the engine's own
+    `AF` would be written under a header line describing the input's cohort
+    frequency."""
+    import vepyr
+
+    pb = pytest.importorskip("polars_bio")
+    src = tmp_path / "hasaf.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr1>\n"
+        '##INFO=<ID=AF,Number=A,Type=Float,Description="Cohort frequency, this study">\n'
+        '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "chr1\t604358\t.\tG\tC\t50\tPASS\tAF=0.123;DP=9\n"
+    )
+    lf = vepyr.annotate(
+        str(src),
+        cache_dir,
+        skip_csq=False,
+        info_fields=[],
+        format_fields=[],
+        reference_fasta=REFERENCE_FASTA,
+        show_progress=False,
+        everything=True,
+    )
+    assert "AF" in lf.collect_schema().names()  # the engine's, not the input's
+    sunk = tmp_path / "sunk.vcf"
+    pb.sink_vcf(lf, str(sunk))
+
+    record = next(
+        line for line in sunk.read_text().splitlines() if not line.startswith("#")
+    )
+    keys = [field.split("=")[0] for field in record.split("\t")[7].split(";")]
+    assert keys == ["CSQ"]  # no AF carrying VEP's value under the input's id
+
+
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     from vepyr import _rename_shadowed_input_columns
 
