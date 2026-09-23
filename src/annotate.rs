@@ -536,7 +536,7 @@ pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
 /// Read from the field metadata of a provider opened with every field, so a
 /// FORMAT id the reader renamed to avoid an INFO id (`fmt_DP`) is reported by
 /// its id, not its column name.
-pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)> {
+pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>, bool)> {
     use datafusion::arrow::datatypes::DataType;
     use datafusion::datasource::TableProvider;
 
@@ -554,6 +554,10 @@ pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)>
 
     let mut info = Vec::new();
     let mut format = Vec::new();
+    // Whether the reader puts the FORMAT fields in one nested `genotypes`
+    // struct, which is how a multi-sample input arrives. The caller needs it
+    // because an INFO field of that name then has nowhere to go.
+    let mut nests_genotypes = false;
     let schema = provider.schema();
     for field in schema.fields() {
         // Multi-sample inputs nest FORMAT fields under one `genotypes` struct.
@@ -562,6 +566,7 @@ pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)>
         if field.name() == "genotypes" {
             if let DataType::Struct(children) = field.data_type() {
                 format.extend(children.iter().map(|child| child.name().clone()));
+                nests_genotypes = true;
                 continue;
             }
         }
@@ -581,7 +586,7 @@ pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)>
             _ => {}
         }
     }
-    Ok((info, format))
+    Ok((info, format, nests_genotypes))
 }
 
 /// Create a streaming annotator that yields PyArrow RecordBatches.

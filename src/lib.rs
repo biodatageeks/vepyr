@@ -736,7 +736,7 @@ fn vcf_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
 
 /// INFO and FORMAT ids declared in the VCF header, in header order.
 #[pyfunction]
-fn vcf_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)> {
+fn vcf_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>, bool)> {
     annotate::vcf_header_fields(vcf_path)
 }
 

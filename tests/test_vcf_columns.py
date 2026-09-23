@@ -12,6 +12,7 @@ import pyarrow as pa
 import pytest
 
 from tests.cache_metadata import copy_cache_with_source_metadata
+from vepyr._core import vcf_fields
 
 TESTS_DIR = Path(__file__).parent
 GOLDEN_DIR = TESTS_DIR / "data" / "golden"
@@ -55,9 +56,10 @@ def cache_dir(tmp_path_factory):
 def test_vcf_fields_lists_header_ids_in_header_order():
     from vepyr._core import vcf_fields
 
-    info, fmt = vcf_fields(INPUT_VCF)
+    info, fmt, nests = vcf_fields(INPUT_VCF)
     assert info == GIAB_INFO
     assert fmt == GIAB_FORMAT
+    assert nests is False  # the golden input has one sample
 
 
 def test_vcf_fields_missing_file_raises():
@@ -244,7 +246,9 @@ def fake_engine(monkeypatch):
         return _FakeAnnotator()
 
     monkeypatch.setattr(vepyr, "_create_annotator", fake_create)
-    monkeypatch.setattr(vepyr, "_vcf_fields", lambda path: (["DP", "AF"], ["GT", "DP"]))
+    monkeypatch.setattr(
+        vepyr, "_vcf_fields", lambda path: (["DP", "AF"], ["GT", "DP"], False)
+    )
     monkeypatch.setattr(vepyr, "_vcf_contigs", lambda path: ["chr1"])
     return seen
 
@@ -714,7 +718,7 @@ def test_an_input_field_named_genotypes_is_carried_as_data(cache_dir, tmp_path):
         "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\tgenotypes=mine;DP=7\n"
     )
     # Declared, so it can be named in info_fields and validated.
-    assert vcf_fields(str(src)) == (["genotypes", "DP"], [])
+    assert vcf_fields(str(src)) == (["genotypes", "DP"], [], False)
 
     lf = vepyr.annotate(str(src), cache_dir, show_progress=False)
     assert "genotypes" in lf.collect_schema().names()
@@ -1003,6 +1007,39 @@ def test_an_input_field_may_be_named_like_any_column_the_frame_has(
             everything=True,
         ).collect()
     assert frame.height == 1
+
+
+def test_a_multi_sample_input_reserves_genotypes_for_its_samples(cache_dir, tmp_path):
+    """With more than one sample the FORMAT fields arrive in one nested
+    `genotypes` struct, so an INFO field of that name has nowhere to go and is
+    not carried. With one sample there is no struct and it stays data -- the
+    two cases differ, which is why the name alone cannot decide."""
+    import vepyr
+
+    def vcf(path, samples):
+        columns = "\t".join(samples)
+        calls = "\t".join("0/1" for _ in samples)
+        path.write_text(
+            "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
+            '##INFO=<ID=genotypes,Number=1,Type=String,Description="x">\n'
+            '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+            '##FORMAT=<ID=GT,Number=1,Type=String,Description="gt">\n'
+            f"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{columns}\n"
+            f"chr1\t604358\t.\tG\tC\t50\tPASS\tgenotypes=abc;DP=9\tGT\t{calls}\n"
+        )
+        return str(path)
+
+    many = vcf(tmp_path / "two.vcf", ["S1", "S2"])
+    assert vcf_fields(many)[2] is True  # the reader nests them
+    with pytest.warns(UserWarning, match="genotypes"):
+        frame = vepyr.annotate(many, cache_dir, show_progress=False).collect()
+    assert frame["DP"].to_list() == [9]  # the rest of the header still carried
+    assert frame.schema["genotypes"] == pl.Struct({"GT": pl.List(pl.String)})
+
+    one = vcf(tmp_path / "one.vcf", ["S1"])
+    assert vcf_fields(one)[2] is False
+    frame = vepyr.annotate(one, cache_dir, show_progress=False).collect()
+    assert frame["genotypes"].to_list() == ["abc"]  # the input's field, as data
 
 
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():

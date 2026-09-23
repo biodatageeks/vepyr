@@ -1765,7 +1765,7 @@ def annotate(
     # a selection is checked against the header first.
     header_info: list[str] | None = None
     if info_fields is not None or format_fields is not None:
-        header_info, header_format = _vcf_fields(vcf)
+        header_info, header_format, _nests = _vcf_fields(vcf)
         validate_selection("info_fields", info_fields, header_info)
         validate_selection("format_fields", format_fields, header_format)
     # An INFO id that is also one of the reader's own column names (`id`,
@@ -1777,13 +1777,19 @@ def annotate(
     if info_fields is None:
         if header_info is None:
             try:
-                header_info, _ = _vcf_fields(vcf)
+                header_info, _, nests_genotypes = _vcf_fields(vcf)
             except Exception:
                 # The header cannot be read. The annotator below raises the real
                 # error for that; a guard that cannot see the header does not
                 # get to raise a worse one first.
-                header_info = []
-        uncarriable = [name for name in header_info if name in CORE_COLUMNS]
+                header_info, nests_genotypes = [], False
+        reserved = set(CORE_COLUMNS)
+        # A multi-sample input's FORMAT fields arrive in one nested `genotypes`
+        # struct, so an INFO field of that name has nowhere to go. With one
+        # sample there is no struct and the field is carried as data.
+        if nests_genotypes:
+            reserved.add("genotypes")
+        uncarriable = [name for name in header_info if name in reserved]
         if uncarriable:
             warnings.warn(
                 f"{vcf!r} declares INFO fields named like the frame's own "
@@ -1792,7 +1798,7 @@ def annotate(
                 UserWarning,
                 stacklevel=2,
             )
-            info_fields = [name for name in header_info if name not in CORE_COLUMNS]
+            info_fields = [name for name in header_info if name not in reserved]
     elif info_fields:
         uncarriable = [name for name in info_fields if name in CORE_COLUMNS]
         if uncarriable:

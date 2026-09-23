@@ -95,6 +95,10 @@ def annotation_header_lines(
     """The input's header lines with this run's provenance merged in."""
     ...
 
-def vcf_fields(vcf_path: str) -> tuple[list[str], list[str]]:
-    """INFO and FORMAT ids declared in the VCF header, in header order."""
+def vcf_fields(vcf_path: str) -> tuple[list[str], list[str], bool]:
+    """INFO and FORMAT ids declared in the VCF header, in header order.
+
+    The third value is whether the reader nests the FORMAT fields in one
+    `genotypes` struct, which is how a multi-sample input arrives.
+    """
     ...
