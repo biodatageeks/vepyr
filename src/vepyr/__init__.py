@@ -1880,12 +1880,29 @@ def annotate(
             stacklevel=2,
         )
 
+    # An already-annotated input's own CSQ column leaves the frame when this run
+    # has a CSQ of its own (below), so the caller's frame is the source's
+    # columns less that one. Projection pushdown compares against this rather
+    # than the source schema: otherwise vepyr's own drop reads as a user
+    # `select()`, and a plain collect() of a frame built with `fields=` is
+    # refused for a projection nobody made.
+    _stale_csq = (
+        [
+            name
+            for name, (kind, vcf_id) in _carried.items()
+            if kind == "INFO" and vcf_id == "CSQ"
+        ]
+        if "CSQ" in polars_schema
+        else []
+    )
+    _frame_columns = set(polars_schema) - set(_stale_csq)
+
     def _batch_source(with_columns, predicate, n_rows, batch_size):
         # Projection pushdown: the columns Polars asks for, plus the ones the
         # pushed-down filter reads, decide which annotation flags the engine
         # needs. n_rows becomes a LIMIT in the DataFusion query.
         needed = None
-        if with_columns is not None and set(with_columns) != set(polars_schema):
+        if with_columns is not None and set(with_columns) != _frame_columns:
             if "fields" in _opts:
                 raise ValueError(
                     "annotate(fields=...) already fixes the annotation layout; "
@@ -2071,14 +2088,8 @@ def annotate(
     # `INFO_CSQ` key back to the VCF id CSQ, and so how it knows to leave that
     # stale definition out of the header. Dropping the entry with the column
     # would leave the definition looking like a field of its own.
-    if csq_fields is not None:
-        stale_csq = [
-            name
-            for name, (kind, vcf_id) in _carried.items()
-            if kind == "INFO" and vcf_id == "CSQ"
-        ]
-        if stale_csq:
-            lf = lf.drop(stale_csq)
+    if _stale_csq:
+        lf = lf.drop(_stale_csq)
     # `vcf_record_layout="auto"` is a request, not an outcome: it gives way for
     # an input that cannot carry the layout. The probe's schema is the record of
     # what happened, so the provenance describes the run rather than the ask.

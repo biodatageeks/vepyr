@@ -823,6 +823,29 @@ def test_this_runs_csq_replaces_the_inputs_own(cache_dir, tmp_path):
     assert not _header_lines(sunk, "##INFO=<ID=INFO_CSQ")
 
 
+def test_dropping_the_stale_csq_does_not_read_as_a_user_projection(cache_dir, tmp_path):
+    """`fields=` fixes the layout, so projecting the frame on top of it is
+    refused. vepyr's own drop of the input's stale CSQ is not such a projection
+    and must not be counted as one: a plain collect() makes no selection."""
+    import vepyr
+
+    src = tmp_path / "annotated.vcf"
+    src.write_text(ANNOTATED_INPUT)
+    kwargs = dict(
+        reference_fasta=REFERENCE_FASTA,
+        show_progress=False,
+        everything=True,
+        skip_csq=False,
+        fields=["Consequence", "IMPACT"],
+    )
+
+    lf = vepyr.annotate(str(src), cache_dir, **kwargs)
+    assert lf.collect().height == 2
+    # A projection the caller really did make is still refused.
+    with pytest.raises(Exception, match="fields="):
+        vepyr.annotate(str(src), cache_dir, **kwargs).select("chrom").collect()
+
+
 def test_without_a_csq_of_its_own_the_inputs_csq_is_written_back(cache_dir, tmp_path):
     """`skip_csq=True` generates no CSQ, so there is nothing to replace the
     input's with. Dropping its declaration would write the column under no
