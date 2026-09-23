@@ -1102,6 +1102,37 @@ def test_a_format_selection_alone_still_knows_about_the_nesting(cache_dir, tmp_p
     assert frame["genotypes"].to_list() == ["abc"]
 
 
+@pytest.mark.parametrize(
+    "selection",
+    [
+        {},
+        {"info_fields": ["DPSum"]},
+        {"info_fields": []},
+        {"format_fields": ["GT"]},
+        {"format_fields": []},
+        {"info_fields": [], "format_fields": ["GT"]},
+        {"info_fields": ["DPSum"], "format_fields": []},
+        {"info_fields": [], "format_fields": []},
+        {"info_fields": ["DPSum"], "format_fields": ["GT"]},
+    ],
+    ids=lambda s: "_".join(f"{k}={v}" for k, v in sorted(s.items())) or "neither",
+)
+def test_every_shape_of_selection_reaches_a_frame(cache_dir, selection):
+    """Each of `info_fields` and `format_fields` is absent, empty or a list,
+    and every pairing has to annotate.
+
+    A selection naming only FORMAT fields took a branch nothing exercised
+    through `annotate()` -- the neighbouring tests drive `create_annotator`
+    directly -- and reached the carry guard with its state unset.
+    """
+    import vepyr
+
+    frame = vepyr.annotate(
+        INPUT_VCF, cache_dir, show_progress=False, **selection
+    ).collect()
+    assert frame.height == 100
+
+
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     from vepyr import _rename_shadowed_input_columns
 
