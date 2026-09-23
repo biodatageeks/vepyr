@@ -82,13 +82,21 @@ def attach(
         return
     # The lines and the description come from one engine call, and the header
     # needs the description as it is built, so the call comes first.
+    #
+    # The description does not depend on the input having raw header lines --
+    # it describes this run -- so an input whose metadata carries none still
+    # gets its CSQ declared. Only the lines are conditional: with nothing to
+    # merge into, build_header's own value stands.
     lines = csq_description = None
     if provenance is not None:
         source = (
             extract_all_schema_metadata(schema).get("format_specific", {}).get("vcf")
         )
-        if source and source.get("raw_lines"):
-            lines, csq_description = provenance(source["raw_lines"])
+        if source is not None:
+            existing = source.get("raw_lines") or []
+            merged, csq_description = provenance(existing)
+            if existing:
+                lines = merged
     header = build_header(
         schema,
         carried,

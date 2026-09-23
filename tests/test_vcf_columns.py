@@ -433,6 +433,45 @@ def test_header_is_keyed_by_vcf_id_and_csq_is_replaced():
     assert header["sample_names"] == ["S1"]
 
 
+def test_csq_is_declared_even_when_the_input_carried_no_raw_lines(monkeypatch):
+    """The description describes this run, not the input, so it must not
+    depend on the input having header lines to merge into: a frame with CSQ
+    values would otherwise be written under no CSQ definition."""
+    pytest.importorskip("polars_bio")
+    import polars_bio
+    import polars_bio.metadata_extractors as extractors
+
+    from vepyr._vcf_metadata import attach
+
+    # Structured VCF metadata, no `raw_lines` -- what `_fake_extract` returns.
+    monkeypatch.setattr(extractors, "extract_all_schema_metadata", _fake_extract)
+    captured = {}
+    monkeypatch.setattr(
+        polars_bio, "set_source_metadata", lambda lf, **kw: captured.update(kw)
+    )
+
+    called_with = []
+
+    def provenance(existing):
+        called_with.append(list(existing))
+        return list(
+            existing
+        ), "Consequence annotations from Ensembl VEP. Format: Allele"
+
+    attach(
+        pl.LazyFrame({"chrom": ["chr1"]}),
+        "in.vcf",
+        CARRIED_SCHEMA,
+        {"DP": ("INFO", "DP"), "INFO_CSQ": ("INFO", "CSQ")},
+        True,
+        provenance,
+    )
+    assert called_with == [[]]  # asked for the description with nothing to merge
+    assert captured["header"]["info_fields"]["CSQ"]["description"].endswith(
+        "Format: Allele"
+    )
+
+
 def test_without_a_csq_column_no_csq_is_declared():
     from vepyr._vcf_metadata import build_header
 
