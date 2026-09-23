@@ -15,6 +15,14 @@ _SOURCE_NAME = b"bio.vep.source_field_name"
 _RECORD_LAYOUT = b"bio.vcf.record_layout"
 
 
+# The reader's own columns. An INFO field declaring one of these ids arrives
+# beside the column it is named for, and the annotation query fails on the
+# duplicate name, so such a field cannot be carried at all.
+CORE_COLUMNS = frozenset(
+    {"chrom", "start", "end", "id", "ref", "alt", "qual", "filter"}
+)
+
+
 def validate_selection(
     kind: str, requested: list[str] | None, available: list[str]
 ) -> None:

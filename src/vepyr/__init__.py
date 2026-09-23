@@ -23,6 +23,7 @@ from vepyr._core import vcf_contigs as _vcf_contigs
 from vepyr._core import vcf_fields as _vcf_fields
 from vepyr._regions import GENOMIC_COLUMNS, extract_regions
 from vepyr._vcf_columns import (
+    CORE_COLUMNS,
     carried_columns,
     fields_for_query,
     record_layout_carried,
@@ -1762,10 +1763,44 @@ def annotate(
 
     # Input columns. The reader panics on an id the header does not declare, so
     # a selection is checked against the header first.
+    header_info: list[str] | None = None
     if info_fields is not None or format_fields is not None:
         header_info, header_format = _vcf_fields(vcf)
         validate_selection("info_fields", info_fields, header_info)
         validate_selection("format_fields", format_fields, header_format)
+    # An INFO id that is also one of the reader's own column names (`id`,
+    # `filter`, ...) cannot be carried: it would arrive beside the column it is
+    # named for and the query fails on the duplicate. The default carry gives
+    # way for it, as it does for a record layout the input cannot have, so a
+    # file declaring one still annotates. Naming it explicitly is an error,
+    # because carrying it is the part that cannot be done.
+    if info_fields is None:
+        if header_info is None:
+            try:
+                header_info, _ = _vcf_fields(vcf)
+            except Exception:
+                # The header cannot be read. The annotator below raises the real
+                # error for that; a guard that cannot see the header does not
+                # get to raise a worse one first.
+                header_info = []
+        uncarriable = [name for name in header_info if name in CORE_COLUMNS]
+        if uncarriable:
+            warnings.warn(
+                f"{vcf!r} declares INFO fields named like the frame's own "
+                f"columns ({', '.join(uncarriable)}); they are not carried. "
+                "Everything else in the header is.",
+                UserWarning,
+                stacklevel=2,
+            )
+            info_fields = [name for name in header_info if name not in CORE_COLUMNS]
+    elif info_fields:
+        uncarriable = [name for name in info_fields if name in CORE_COLUMNS]
+        if uncarriable:
+            raise ValueError(
+                "info_fields names fields the frame cannot carry, because the "
+                "frame has a column of that name already: "
+                + ", ".join(repr(name) for name in uncarriable)
+            )
     if info_fields is not None:
         opts["vcf_info_fields"] = list(info_fields)
     if format_fields is not None:

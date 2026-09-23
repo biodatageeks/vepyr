@@ -910,6 +910,32 @@ def test_an_excluded_input_field_does_not_lend_its_id_to_an_annotation_column(
     assert keys == ["CSQ"]  # no AF carrying VEP's value under the input's id
 
 
+def test_an_info_field_named_like_a_core_column_is_not_carried(cache_dir, tmp_path):
+    """A VCF may declare an INFO field called `id` or `filter`. Carrying it
+    would put it beside the reader's own column of that name and the query
+    fails on the duplicate, so the default carry gives way for it and the file
+    still annotates. Asking for it by name is an error."""
+    import vepyr
+
+    src = tmp_path / "coreid.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr1>\n"
+        '##INFO=<ID=id,Number=1,Type=String,Description="An INFO field named id">\n'
+        '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "chr1\t604358\t.\tG\tC\t50\tPASS\tid=abc;DP=9\n"
+    )
+    with pytest.warns(UserWarning, match="named like"):
+        frame = vepyr.annotate(str(src), cache_dir, show_progress=False).collect()
+    assert frame.height == 1
+    assert frame["DP"].to_list() == [9]  # everything else is still carried
+    assert frame["id"].to_list() == [""]  # the reader's column, not the field
+
+    with pytest.raises(ValueError, match="cannot carry"):
+        vepyr.annotate(str(src), cache_dir, info_fields=["id"], show_progress=False)
+
+
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     from vepyr import _rename_shadowed_input_columns
 
