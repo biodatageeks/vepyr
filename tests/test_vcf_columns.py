@@ -968,33 +968,45 @@ def test_an_info_field_named_like_a_core_column_is_not_carried(cache_dir, tmp_pa
         ("FORMAT", "start"),
     ],
 )
+@pytest.mark.parametrize("samples", [1, 2], ids=["one_sample", "two_samples"])
 def test_an_input_field_may_be_named_like_any_column_the_frame_has(
-    cache_dir, tmp_path, kind, ident
+    cache_dir, tmp_path, kind, ident, samples
 ):
     """Every way an input's own field id can collide with a frame column.
 
     Each has its own resolution -- rename, replace, give way -- and the point
     here is only that none of them stops the file being annotated. Built as a
     matrix because the individual cases arrived one review round at a time.
+
+    Crossed with the sample count because the frame's own columns depend on it:
+    more than one sample puts the FORMAT fields in a nested `genotypes` struct,
+    and a single-sample file has no such column. A one-sample-only matrix
+    passed `INFO/genotypes` for the wrong reason.
     """
     import vepyr
 
-    src = tmp_path / f"{kind}_{ident}.vcf"
+    names = [f"S{n + 1}" for n in range(samples)]
+    header = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
+    src = tmp_path / f"{kind}_{ident}_{samples}.vcf"
     if kind == "INFO":
+        columns = ("\tFORMAT\t" + "\t".join(names)) if names else ""
+        calls = ("\tGT\t" + "\t".join("0/1" for _ in names)) if names else ""
         src.write_text(
             "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
             f'##INFO=<ID={ident},Number=1,Type=String,Description="x">\n'
             '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
-            "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
-            f"chr1\t604358\t.\tG\tC\t50\tPASS\t{ident}=1;DP=9\n"
+            '##FORMAT=<ID=GT,Number=1,Type=String,Description="gt">\n'
+            f"{header}{columns}\n"
+            f"chr1\t604358\t.\tG\tC\t50\tPASS\t{ident}=1;DP=9{calls}\n"
         )
     else:
+        calls = "\t".join("0/1:1" for _ in names)
         src.write_text(
             "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
             f'##FORMAT=<ID={ident},Number=1,Type=String,Description="x">\n'
             '##FORMAT=<ID=GT,Number=1,Type=String,Description="gt">\n'
-            "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1\n"
-            f"chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:{ident}\t0/1:1\n"
+            f"{header}\tFORMAT\t" + "\t".join(names) + "\n"
+            f"chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:{ident}\t{calls}\n"
         )
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # a field that cannot be carried says so
