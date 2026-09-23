@@ -409,7 +409,9 @@ pub fn annotation_header_lines(
     })?;
     let config = vcf_config_from_options(
         &opts,
-        1,
+        // The provenance describes the run the caller asked for, and the frame
+        // is collected with this worker count.
+        workers_from_options(&opts),
         datafusion_bio_format_vcf::VcfCompressionType::Plain,
         false,
         None,
@@ -541,11 +543,13 @@ pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>)>
     let schema = provider.schema();
     for field in schema.fields() {
         // Multi-sample inputs nest FORMAT fields under one `genotypes` struct.
+        // The name alone does not make it that: a VCF may declare an INFO field
+        // called `genotypes`, and that one is an ordinary column.
         if field.name() == "genotypes" {
             if let DataType::Struct(children) = field.data_type() {
                 format.extend(children.iter().map(|child| child.name().clone()));
+                continue;
             }
-            continue;
         }
         match field
             .metadata()

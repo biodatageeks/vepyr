@@ -31,7 +31,10 @@ def carried_columns(schema: pa.Schema) -> dict[str, tuple[str, str]]:
     """Map each carried input column to its kind and VCF id."""
     carried: dict[str, tuple[str, str]] = {}
     for field in schema:
-        if field.name == "genotypes":
+        # The nested FORMAT container of a multi-sample input. A VCF may also
+        # declare an INFO field called `genotypes`; that one is an ordinary
+        # column, so the type decides, not the name.
+        if field.name == "genotypes" and pa.types.is_struct(field.type):
             carried[field.name] = ("FORMAT", "*")
             continue
         metadata = field.metadata or {}
