@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import warnings
 from pathlib import Path
 
 import polars as pl
@@ -934,6 +935,74 @@ def test_an_info_field_named_like_a_core_column_is_not_carried(cache_dir, tmp_pa
 
     with pytest.raises(ValueError, match="cannot carry"):
         vepyr.annotate(str(src), cache_dir, info_fields=["id"], show_progress=False)
+
+
+@pytest.mark.parametrize(
+    "kind,ident",
+    [
+        # An annotation column's name: the engine renames the input's field.
+        ("INFO", "Consequence"),
+        ("INFO", "AF"),
+        ("INFO", "most_severe_consequence"),
+        # Cache-only annotation columns, which have no CSQ sub-field.
+        ("INFO", "dbsnp_ids"),
+        ("INFO", "clin_sig_allele"),
+        # This run replaces the input's CSQ.
+        ("INFO", "CSQ"),
+        # The nested FORMAT container's name, and the record-layout columns.
+        ("INFO", "genotypes"),
+        ("INFO", "_vcf_info_keys"),
+        # The reader's own columns: not carried at all.
+        ("INFO", "start"),
+        ("INFO", "filter"),
+        ("INFO", "qual"),
+        # FORMAT ids collide against the same names.
+        ("FORMAT", "AF"),
+        ("FORMAT", "CSQ"),
+        ("FORMAT", "genotypes"),
+        ("FORMAT", "Consequence"),
+        ("FORMAT", "start"),
+    ],
+)
+def test_an_input_field_may_be_named_like_any_column_the_frame_has(
+    cache_dir, tmp_path, kind, ident
+):
+    """Every way an input's own field id can collide with a frame column.
+
+    Each has its own resolution -- rename, replace, give way -- and the point
+    here is only that none of them stops the file being annotated. Built as a
+    matrix because the individual cases arrived one review round at a time.
+    """
+    import vepyr
+
+    src = tmp_path / f"{kind}_{ident}.vcf"
+    if kind == "INFO":
+        src.write_text(
+            "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
+            f'##INFO=<ID={ident},Number=1,Type=String,Description="x">\n'
+            '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+            "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+            f"chr1\t604358\t.\tG\tC\t50\tPASS\t{ident}=1;DP=9\n"
+        )
+    else:
+        src.write_text(
+            "##fileformat=VCFv4.2\n##contig=<ID=chr1>\n"
+            f'##FORMAT=<ID={ident},Number=1,Type=String,Description="x">\n'
+            '##FORMAT=<ID=GT,Number=1,Type=String,Description="gt">\n'
+            "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1\n"
+            f"chr1\t604358\t.\tG\tC\t50\tPASS\t.\tGT:{ident}\t0/1:1\n"
+        )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # a field that cannot be carried says so
+        frame = vepyr.annotate(
+            str(src),
+            cache_dir,
+            skip_csq=False,
+            reference_fasta=REFERENCE_FASTA,
+            show_progress=False,
+            everything=True,
+        ).collect()
+    assert frame.height == 1
 
 
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
