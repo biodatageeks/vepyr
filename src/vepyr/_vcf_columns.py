@@ -9,6 +9,10 @@ _FORMAT_ID = b"bio.vcf.field.format_id"
 # Set by the engine on an input column it renamed because an annotation column
 # owns the name (INFO/AF arrives as INFO_AF).
 _SOURCE_NAME = b"bio.vep.source_field_name"
+# Set by the reader on the two record-layout columns it carries. The name
+# cannot stand in for it: a VCF may declare its own INFO field called
+# `_vcf_info_keys`, which arrives as an ordinary column.
+_RECORD_LAYOUT = b"bio.vcf.record_layout"
 
 
 def validate_selection(
@@ -48,6 +52,15 @@ def carried_columns(schema: pa.Schema) -> dict[str, tuple[str, str]]:
             source = metadata.get(_SOURCE_NAME, field.name.encode())
             carried[field.name] = (kind, source.decode())
     return carried
+
+
+def record_layout_carried(schema: pa.Schema) -> bool:
+    """Whether this schema holds the reader's record-layout columns.
+
+    `preserve_record_layout="auto"` is a request: it gives way for a BCF input
+    or a file declaring a field with either name. This is the outcome.
+    """
+    return any((field.metadata or {}).get(_RECORD_LAYOUT) for field in schema)
 
 
 def fields_for_query(

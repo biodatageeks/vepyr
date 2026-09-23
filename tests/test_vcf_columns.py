@@ -149,6 +149,27 @@ def test_a_field_really_named_with_the_prefix_keeps_its_id():
     assert carried_columns(schema) == {"INFO_X": ("INFO", "INFO_X")}
 
 
+def test_the_layout_columns_are_recognised_by_metadata_not_by_name():
+    """A VCF may declare its own INFO field named `_vcf_info_keys`; it arrives
+    as an ordinary column, so only the reader's metadata marks a real carry."""
+    from vepyr._vcf_columns import record_layout_carried
+
+    carried = pa.schema(
+        [
+            pa.field("chrom", pa.string()),
+            pa.field(
+                "_vcf_info_keys",
+                pa.string(),
+                metadata={"bio.vcf.record_layout": "info_keys"},
+            ),
+        ]
+    )
+    assert record_layout_carried(carried)
+    assert not record_layout_carried(pa.schema([pa.field("chrom", pa.string())]))
+    # Same name, but the file's own field.
+    assert not record_layout_carried(pa.schema([_field("_vcf_info_keys", "INFO")]))
+
+
 def test_a_query_reading_no_carried_column_reads_no_fields():
     from vepyr._vcf_columns import carried_columns, fields_for_query
 
@@ -670,6 +691,52 @@ def test_an_input_field_named_genotypes_is_carried_as_data(cache_dir, tmp_path):
     # The projection is what regressed: read as FORMAT, the column never
     # arrived.
     assert lf.select("genotypes").collect()["genotypes"].to_list() == ["mine"]
+
+
+def test_the_provenance_records_the_layout_that_was_carried_not_the_one_asked_for(
+    cache_dir, tmp_path, monkeypatch
+):
+    """`auto` gives way for an input that cannot carry the record layout. The
+    provenance has to describe the run, so it takes the outcome from the probe's
+    schema rather than leaving the engine's default to speak for it."""
+    import vepyr
+
+    pytest.importorskip("polars_bio")  # without it no provenance is built
+
+    seen = []
+    real = vepyr._annotation_header_lines
+
+    def capture(vcf, cache, options_json, raw_lines):
+        seen.append(json.loads(options_json))
+        return real(vcf, cache, options_json, raw_lines)
+
+    monkeypatch.setattr(vepyr, "_annotation_header_lines", capture)
+
+    vepyr.annotate(INPUT_VCF, cache_dir, show_progress=False)
+    assert seen[-1]["preserve_record_layout"] is True
+
+    # A file declaring a layout column: the carry gives way, and so must the
+    # recorded option.
+    src = tmp_path / "reserved.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "##contig=<ID=chr1>\n"
+        '##INFO=<ID=_vcf_info_keys,Number=1,Type=String,Description="Real">\n'
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\t_vcf_info_keys=mine\n"
+    )
+    vepyr.annotate(str(src), cache_dir, show_progress=False)
+    assert seen[-1]["preserve_record_layout"] is False
+
+    # Opting out entirely, and the empty selection that has no layout to keep.
+    vepyr.annotate(
+        INPUT_VCF, cache_dir, preserve_record_layout=False, show_progress=False
+    )
+    assert seen[-1]["preserve_record_layout"] is False
+    vepyr.annotate(
+        INPUT_VCF, cache_dir, info_fields=[], format_fields=[], show_progress=False
+    )
+    assert seen[-1]["preserve_record_layout"] is False
 
 
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():

@@ -22,7 +22,12 @@ from vepyr._core import supported_vep_targets_json as _supported_vep_targets_jso
 from vepyr._core import vcf_contigs as _vcf_contigs
 from vepyr._core import vcf_fields as _vcf_fields
 from vepyr._regions import GENOMIC_COLUMNS, extract_regions
-from vepyr._vcf_columns import carried_columns, fields_for_query, validate_selection
+from vepyr._vcf_columns import (
+    carried_columns,
+    fields_for_query,
+    record_layout_carried,
+    validate_selection,
+)
 from vepyr._vcf_metadata import attach as _attach_vcf_metadata
 
 __all__ = [
@@ -2043,6 +2048,31 @@ def annotate(
         if "CSQ" in polars_schema
         else None
     )
+    # `vcf_record_layout="auto"` is a request, not an outcome: it gives way for
+    # an input that cannot carry the layout. The probe's schema is the record of
+    # what happened, so the provenance describes the run rather than the ask.
+    # The engine does not put this in a header line today, which is why no test
+    # can read it back off a written VCF; it is set so the day it does, the line
+    # is already right.
+    _layout_carried = record_layout_carried(pa_schema)
+
+    def _provenance_options() -> str:
+        """The options the provenance describes.
+
+        Built on demand: deriving the flags can warn or raise for a frame
+        without a FASTA, and a frame nobody sinks must not pay that.
+        """
+        options = _flags_for_projection(
+            _opts,
+            None,
+            set(polars_schema),
+            # A sink writes every plugin column, so it is collected with all of
+            # their required inputs enabled; record those too.
+            set().union(*plugin_column_inputs.values()),
+        )
+        options["preserve_record_layout"] = _layout_carried
+        return json.dumps(options)
+
     _attach_vcf_metadata(
         lf,
         vcf,
@@ -2058,16 +2088,7 @@ def annotate(
         provenance=lambda raw_lines: _annotation_header_lines(
             vcf,
             cache_dir,
-            json.dumps(
-                _flags_for_projection(
-                    _opts,
-                    None,
-                    set(polars_schema),
-                    # A sink writes every plugin column, so it is collected with
-                    # all of their required inputs enabled; record those too.
-                    set().union(*plugin_column_inputs.values()),
-                )
-            ),
+            _provenance_options(),
             raw_lines,
         ),
     )
