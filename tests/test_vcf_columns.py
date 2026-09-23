@@ -739,6 +739,81 @@ def test_the_provenance_records_the_layout_that_was_carried_not_the_one_asked_fo
     assert seen[-1]["preserve_record_layout"] is False
 
 
+ANNOTATED_INPUT = (
+    "##fileformat=VCFv4.2\n"
+    "##contig=<ID=chr1>\n"
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from '
+    'Ensembl VEP. Format: Allele|Consequence">\n'
+    '##INFO=<ID=DP,Number=1,Type=Integer,Description="d">\n'
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\tCSQ=STALE|stale_consequence;DP=7\n"
+    "chr1\t604358\t.\tG\tC\t50\tPASS\tCSQ=STALE2|also_stale;DP=9\n"
+)
+
+
+def _csq_of(path):
+    """INFO/CSQ per data line, in file order."""
+    out = []
+    for line in Path(path).read_text().splitlines():
+        if line.startswith("#"):
+            continue
+        info = line.split("\t")[7]
+        out.append(next((f[4:] for f in info.split(";") if f.startswith("CSQ=")), None))
+    return out
+
+
+def test_this_runs_csq_replaces_the_inputs_own(cache_dir, tmp_path):
+    """Re-annotating an annotated VCF must write the new consequences. The
+    engine renames the input's CSQ to `INFO_CSQ`, and polars-bio maps a column
+    to a VCF id by that prefix, so a carried one is written as CSQ and shadows
+    the annotation. Dropping its header entry is not enough."""
+    import vepyr
+
+    pb = pytest.importorskip("polars_bio")
+    src = tmp_path / "annotated.vcf"
+    src.write_text(ANNOTATED_INPUT)
+    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False, everything=True)
+
+    reference = tmp_path / "reference.vcf"
+    vepyr.annotate(
+        str(src), cache_dir, output_vcf=str(reference), compression="plain", **kwargs
+    )
+
+    lf = vepyr.annotate(str(src), cache_dir, skip_csq=False, **kwargs)
+    # The stale column is gone from the frame, not merely from the header.
+    assert [n for n in lf.collect_schema().names() if "CSQ" in n.upper()] == ["CSQ"]
+    sunk = tmp_path / "sunk.vcf"
+    pb.sink_vcf(lf, str(sunk))
+
+    got = _csq_of(sunk)
+    assert got == _csq_of(reference)  # exactly what output_vcf writes
+    assert all(value and not value.startswith("STALE") for value in got)
+
+
+def test_without_a_csq_of_its_own_the_inputs_csq_is_written_back(cache_dir, tmp_path):
+    """`skip_csq=True` generates no CSQ, so there is nothing to replace the
+    input's with. Dropping its declaration would write the column under no
+    definition, losing the annotation the file came with."""
+    import vepyr
+
+    pb = pytest.importorskip("polars_bio")
+    src = tmp_path / "annotated.vcf"
+    src.write_text(ANNOTATED_INPUT)
+
+    lf = vepyr.annotate(
+        str(src),
+        cache_dir,
+        reference_fasta=REFERENCE_FASTA,
+        show_progress=False,
+        everything=True,
+    )
+    sunk = tmp_path / "passthrough.vcf"
+    pb.sink_vcf(lf, str(sunk))
+
+    assert _csq_of(sunk) == ["STALE|stale_consequence", "STALE2|also_stale"]
+    assert _header_lines(sunk, "##INFO=<ID=CSQ")  # still declared
+
+
 def test_a_shadow_rename_onto_a_taken_name_is_a_clear_error():
     from vepyr import _rename_shadowed_input_columns
 

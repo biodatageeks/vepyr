@@ -146,6 +146,13 @@ fields and its sample columns are carried too, named by their VCF ids; pass
 annotation column arrives as `INFO_<id>` (`fmt_<id>` for FORMAT): `AF` is
 always VEP's. Add `skip_csq=False` to get the raw `CSQ` string as a column.
 
+`CSQ` is the one carried field this run can replace. Annotating an input that
+already has `INFO/CSQ` with `skip_csq=False` drops the input's, as Ensembl VEP
+and `output_vcf` do, so the frame carries this run's consequences and no
+`INFO_CSQ`. Without a CSQ of its own (`skip_csq=True`, the default) there is
+nothing to replace it with, and the input's is carried and written back
+untouched.
+
 To narrow the frame, `select()` the columns you need, see
 [below](#what-is-pushed-into-the-engine); the engine then only computes what
 those columns require.

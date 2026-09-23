@@ -2048,6 +2048,24 @@ def annotate(
         if "CSQ" in polars_schema
         else None
     )
+    # An already-annotated input carries its own CSQ, which the engine renames
+    # out of the way of this run's (INFO/CSQ arrives as `INFO_CSQ`). Dropping
+    # its header entry is not enough: polars-bio maps a column to a VCF id by
+    # the `INFO_` prefix, so a carried `INFO_CSQ` is written as CSQ and shadows
+    # the annotation this run just produced. The run's CSQ replaces the input's,
+    # as Ensembl VEP and output_vcf do, so the stale column leaves the frame.
+    # Without a CSQ of our own there is nothing to replace it with, and the
+    # input's own is written back untouched (see build_header).
+    if csq_fields is not None:
+        stale_csq = [
+            name
+            for name, (kind, vcf_id) in _carried.items()
+            if kind == "INFO" and vcf_id == "CSQ"
+        ]
+        if stale_csq:
+            lf = lf.drop(stale_csq)
+            for name in stale_csq:
+                del _carried[name]
     # `vcf_record_layout="auto"` is a request, not an outcome: it gives way for
     # an input that cannot carry the layout. The probe's schema is the record of
     # what happened, so the provenance describes the run rather than the ask.

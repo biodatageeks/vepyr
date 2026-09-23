@@ -24,8 +24,11 @@ def build_header(
     info = {
         ids.get(name, name): definition
         for name, definition in (vcf.get("info_fields") or {}).items()
-        # The input's own CSQ is replaced by this run's, as Ensembl VEP does.
-        if ids.get(name, name) != "CSQ"
+        # The input's own CSQ is replaced by this run's, as Ensembl VEP does --
+        # but only when this run has one. With `skip_csq=True` nothing replaces
+        # it, so dropping the declaration here would write the input's CSQ
+        # column under no definition at all, losing the annotation it came with.
+        if csq_fields is None or ids.get(name, name) != "CSQ"
     }
     if csq_fields is not None:
         info["CSQ"] = {
