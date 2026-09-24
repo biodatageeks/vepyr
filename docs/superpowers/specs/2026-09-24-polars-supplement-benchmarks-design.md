@@ -86,10 +86,11 @@ not drift.
 - **Record-set parity**, per query and input: the Polars result's
   (CHROM, POS, REF, ALT) set equals `filter_vep`'s. Any mismatch fails that
   query, and its timings are not reported.
-- **Body parity (Experiment B only)**: vepyr's `pb.sink_vcf` output, after the
-  same query, must equal VEP + `filter_vep`'s output line for line on the
-  body, including CSQ. `filter_vep` runs **without** `--only_matched` so CSQ
-  stays whole on both sides.
+- **Body parity**: vepyr's `pb.sink_vcf` output, after the same query, must
+  equal VEP + `filter_vep`'s output line for line on the body, including CSQ.
+  `filter_vep` runs **without** `--only_matched` so CSQ stays whole on both
+  sides. This is a hard gate for Experiment B's VCF path; for Experiment A it
+  is reported, not gated.
 - An expected, explained difference is written into the supplement, never
   silently tolerated.
 
@@ -109,7 +110,7 @@ with plugins for P):
   is inside the timed region. Record-set parity is the hard gate here; body
   parity is reported.
 Single process on both sides. The results record wall time, peak RSS and
-output rows.
+output rows (the record count of each side's output VCF).
 
 **B. End to end, including polars-bio.**
 - VEP: `vep --fork N --everything [--plugin …]` then `filter_vep`, for N in
