@@ -71,3 +71,30 @@ def test_derive_gives_vepyr_shapes():
     assert r0["Existing_variation"] == ["rs1", "COSV2"]
     assert abs(r0["MAX_AF"] - 0.001) < 1e-9 and r0["CADD_PHRED"] == "25.1"
     assert r1["MAX_AF"] is None and r1["Existing_variation"] is None  # '-' -> null
+
+
+def test_derive_keeps_dash_as_deletion_allele():
+    fields = [
+        "Allele",
+        "Consequence",
+        "IMPACT",
+        "CANONICAL",
+        "MAX_AF",
+        "Existing_variation",
+        "CADD_PHRED",
+        "am_class",
+    ]
+    df = pl.DataFrame(
+        {
+            "CSQ": [
+                [
+                    "-|intergenic_variant|MODIFIER|||-||",
+                    "|intergenic_variant|MODIFIER|||-||",
+                ]
+            ]
+        }
+    )
+    exprs = derive(fields, ["Allele"])
+    out = df.select(**exprs)
+    (row,) = out.to_dicts()
+    assert row["Allele"] == ["-", None]  # '-' stays '-'; '' -> null

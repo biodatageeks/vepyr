@@ -2,9 +2,11 @@
 
 Only the fields a query reads are derived, and the parse is inside the timed
 region, since filter_vep parses CSQ too. Empty and '-' become null, as
-filter_vep's parse_line does. Variant-level fields are taken from the first
-entry that carries them (co-located and per-variant plugin values repeat on
-every entry).
+filter_vep's parse_line does, except for Allele: '-' there is a deletion
+allele, not a missing value (filter_vep's parse_line special-cases it with
+`$key ne 'Allele' && $data{$key} eq '-'`). Variant-level fields are taken
+from the first entry that carries them (co-located and per-variant plugin
+values repeat on every entry).
 """
 
 from __future__ import annotations
@@ -34,8 +36,9 @@ def csq_fields(vcf: Path) -> list[str]:
     raise ValueError(f"no CSQ Format in {vcf}")
 
 
-def _clean(x: pl.Expr) -> pl.Expr:
-    return pl.when(x.is_in(["", "-"])).then(None).otherwise(x)
+def _clean(x: pl.Expr, keep_dash: bool = False) -> pl.Expr:
+    empties = [""] if keep_dash else ["", "-"]
+    return pl.when(x.is_in(empties)).then(None).otherwise(x)
 
 
 def derive(fields: list[str], needed: Iterable[str]) -> dict[str, pl.Expr]:
@@ -45,7 +48,10 @@ def derive(fields: list[str], needed: Iterable[str]) -> dict[str, pl.Expr]:
         if name in ("chrom", "start", "ref", "alt"):
             continue
         per_entry = pl.col("CSQ").list.eval(
-            _clean(pl.element().str.split("|").list.get(idx[name], null_on_oob=True))
+            _clean(
+                pl.element().str.split("|").list.get(idx[name], null_on_oob=True),
+                keep_dash=(name == "Allele"),
+            )
         )
         first = per_entry.list.drop_nulls().list.first()
         if name in VARIANT_FLOAT:
