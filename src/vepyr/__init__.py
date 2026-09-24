@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import polars as pl
 
+from vepyr._core import annotation_header_lines as _annotation_header_lines
 from vepyr._core import annotate_vcf as _annotate_vcf
 from vepyr._core import build_cache as _build_cache
 from vepyr._core import build_plugin_cache as _build_plugin_cache
@@ -19,7 +20,16 @@ from vepyr._core import cache_contig_identity_json as _cache_contig_identity_jso
 from vepyr._core import create_annotator as _create_annotator
 from vepyr._core import supported_vep_targets_json as _supported_vep_targets_json
 from vepyr._core import vcf_contigs as _vcf_contigs
+from vepyr._core import vcf_fields as _vcf_fields
 from vepyr._regions import GENOMIC_COLUMNS, extract_regions
+from vepyr._vcf_columns import (
+    CORE_COLUMNS,
+    carried_columns,
+    fields_for_query,
+    record_layout_carried,
+    validate_selection,
+)
+from vepyr._vcf_metadata import attach as _attach_vcf_metadata
 
 __all__ = [
     "annotate",
@@ -133,6 +143,83 @@ def _plugin_value_dtype(type_name: str | None):
     import polars as pl
 
     return getattr(pl, _PLUGIN_VALUE_TYPES.get(type_name, "String"))
+
+
+def _rename_shadowed_input_columns(
+    schema: dict, carried: dict[str, tuple[str, str]], plugin_fields: list[str]
+) -> tuple[dict, dict[str, str]]:
+    """Give way to plugin columns the way the engine gives way to annotation columns.
+
+    A plugin column keeps its CSQ field name; a carried input column with the
+    same name becomes ``INFO_<id>`` / ``fmt_<id>``. A clash with anything else is
+    still an error.
+    """
+    mapping: dict[str, str] = {}
+    plugin_names = set(plugin_fields)
+    for name in plugin_fields:
+        if name not in schema:
+            continue
+        if name not in carried:
+            raise ValueError(
+                f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
+            )
+        kind, vcf_id = carried[name]
+        # Already renamed by the engine (INFO/AF arrives as INFO_AF): prefixing
+        # again would detach the column from its VCF id on write.
+        if name != vcf_id:
+            raise ValueError(
+                f"plugin CSQ field {name!r} matches the renamed input field "
+                f"{vcf_id!r}; select it away with info_fields/format_fields"
+            )
+        prefix = "INFO_" if kind == "INFO" else "fmt_"
+        renamed = prefix + name
+        # The renamed column must not land on a field the input already has
+        # under that name: two columns would share it and the batch rename fails.
+        if renamed in schema or renamed in mapping.values():
+            raise ValueError(
+                f"plugin CSQ field {name!r} shadows an input field of the same name, "
+                f"and {renamed!r} is taken by another input field; select one of "
+                "them away with info_fields/format_fields"
+            )
+        # Nor on a plugin's own field: the plugin columns are added after this
+        # rename, so one named like the target would overwrite the column the
+        # rename just created and the input's values would go without a word.
+        if renamed in plugin_names:
+            raise ValueError(
+                f"plugin CSQ field {name!r} shadows an input field of the same name, "
+                f"and {renamed!r} is itself a plugin CSQ field; select the input "
+                "field away with info_fields/format_fields"
+            )
+        mapping[name] = renamed
+    return {mapping.get(name, name): dtype for name, dtype in schema.items()}, mapping
+
+
+# Typed columns the engine emits that have no CSQ sub-field (docs/dataframes.md).
+_CACHE_ONLY_COLUMNS = frozenset(
+    {
+        "clin_sig_allele",
+        "clinical_impact",
+        "minor_allele",
+        "minor_allele_freq",
+        "clinvar_ids",
+        "cosmic_ids",
+        "dbsnp_ids",
+    }
+)
+
+
+def _csq_field_names(
+    schema_names: list[str],
+    selected_fields: list[str] | None,
+    plugin_fields: list[str],
+) -> list[str]:
+    """The ``Format:`` list of the CSQ string, in CSQ order."""
+    # annotate(fields=...) fixes the base layout; plugin fields always follow it.
+    if selected_fields is not None:
+        return list(selected_fields) + list(plugin_fields)
+    start = schema_names.index("most_severe_consequence") + 1
+    base = [name for name in schema_names[start:] if name not in _CACHE_ONLY_COLUMNS]
+    return base + list(plugin_fields)
 
 
 def _plugin_column(values, dtype, per_variant: bool):
@@ -1087,9 +1174,12 @@ def annotate(
     plugins: list[str] | tuple[str, ...] | None = None,
     # Input record handling
     allow_non_variant: bool = False,
+    # Input columns on the LazyFrame
+    info_fields: list[str] | None = None,
+    format_fields: list[str] | None = None,
     # Output mode
     output_vcf: str | None = None,
-    preserve_record_layout: bool = True,
+    preserve_record_layout: bool | None = None,
     show_progress: bool = True,
     compression: str | None = None,
     on_batch_written: Callable[[int, int, int], None] | None = None,
@@ -1230,6 +1320,16 @@ def annotate(
         plugin found there in alphabetical order. A supplied sequence is also
         the emitted CSQ block order; an empty sequence applies none. Requires
         ``plugin_cache_root``. Duplicate or unknown names are errors.
+    info_fields : list of str, optional
+        Input INFO fields the ``LazyFrame`` carries: ``None`` (default) for all,
+        a list to select, ``[]`` for none -- the meaning ``polars_bio.scan_vcf``
+        gives the same argument. A field whose id is also an annotation column
+        (``AF``) is carried as ``INFO_<id>``; the annotation column keeps the
+        bare name. A query only reads the fields it names. Ignored with
+        ``output_vcf``, which always keeps every field.
+    format_fields : list of str, optional
+        Input FORMAT fields, same convention. Single-sample inputs get one
+        column per field; multi-sample inputs a nested ``genotypes`` struct.
     output_vcf : str or None
         Path to write annotated VCF output. When set, annotation results are
         written directly to a VCF file and the output path is returned.
@@ -1246,14 +1346,19 @@ def annotate(
         annotation -- no ``CSQ`` key on the VCF path, a null ``CSQ`` on the
         LazyFrame path. Note VEP tests only the *first* ALT, so ``ALT=.,C`` is
         non-variant while ``ALT=C,.`` is an ordinary record.
-    preserve_record_layout : bool
+    preserve_record_layout : bool, optional
         Write each record's INFO fields in the order the input wrote them, and
-        its own FORMAT keys (default: True). Both are per record and neither
+        its own FORMAT keys (default: on). On the LazyFrame it adds two string
+        columns, ``_vcf_info_keys`` and ``_vcf_format_keys``, which
+        ``polars_bio.sink_vcf`` uses to write each record exactly as
+        ``output_vcf`` would; they have to stay in the frame for that. Pass
+        ``False`` to leave them out. The default is skipped for an input that
+        cannot carry the layout (BCF, or a file declaring a field with either
+        name); an explicit ``True`` raises for such an input. Both are per record and neither
         survives the typed columns, so turning this off reorders INFO to schema
         order and drops any FORMAT key whose value is missing in every sample.
         Ensembl VEP keeps both by copying the input line and only appending to
-        INFO, so byte agreement with it needs this on. Only used when
-        ``output_vcf`` is set.
+        INFO, so byte agreement with it needs this on.
     show_progress : bool
         Show a progress bar while annotating (default: True). On the VCF
         output path it is a determinate bar over the pre-counted input. On
@@ -1485,7 +1590,10 @@ def annotate(
         opts["plugin_cache_root"] = plugin_cache_root
     if allow_non_variant:
         opts["allow_non_variant"] = True
-    if not preserve_record_layout:
+    # None means each output path's own default: on for output_vcf, which has
+    # always reproduced the source line, and off for the LazyFrame, where it
+    # adds two columns to the caller's frame.
+    if preserve_record_layout is False:
         opts["preserve_record_layout"] = False
 
     options_json = json.dumps(opts)
@@ -1653,6 +1761,70 @@ def annotate(
                 "represented as distinct DataFrame columns"
             )
 
+    # Input columns. The reader panics on an id the header does not declare, so
+    # a selection is checked against the header first.
+    header_info: list[str] | None = None
+    nests_genotypes = False
+    if info_fields is not None or format_fields is not None:
+        header_info, header_format, nests_genotypes = _vcf_fields(vcf)
+        validate_selection("info_fields", info_fields, header_info)
+        validate_selection("format_fields", format_fields, header_format)
+    elif info_fields is None:
+        try:
+            header_info, _, nests_genotypes = _vcf_fields(vcf)
+        except Exception:
+            # The header cannot be read. The annotator below raises the real
+            # error for that; a guard that cannot see the header does not get
+            # to raise a worse one first.
+            header_info = []
+    # An INFO id that is also one of the frame's own column names cannot be
+    # carried: it would arrive beside the column it is named for and the query
+    # fails on the duplicate. The default carry gives way for it, as it does
+    # for a record layout the input cannot have, so a file declaring one still
+    # annotates. Naming it explicitly is an error, because carrying it is the
+    # part that cannot be done.
+    reserved = set(CORE_COLUMNS)
+    # `genotypes` is one of those names only when the container is really
+    # there: the FORMAT fields of a multi-sample input nest under it, unless
+    # the caller asked for no FORMAT field at all.
+    if nests_genotypes and (format_fields is None or format_fields):
+        reserved.add("genotypes")
+    if info_fields is None:
+        uncarriable = [name for name in (header_info or []) if name in reserved]
+        if uncarriable:
+            warnings.warn(
+                f"{vcf!r} declares INFO fields named like the frame's own "
+                f"columns ({', '.join(uncarriable)}); they are not carried. "
+                "Everything else in the header is.",
+                UserWarning,
+                stacklevel=2,
+            )
+            info_fields = [name for name in header_info if name not in reserved]
+    elif info_fields:
+        uncarriable = [name for name in info_fields if name in reserved]
+        if uncarriable:
+            raise ValueError(
+                "info_fields names fields the frame cannot carry, because the "
+                "frame has a column of that name already: "
+                + ", ".join(repr(name) for name in uncarriable)
+            )
+    if info_fields is not None:
+        opts["vcf_info_fields"] = list(info_fields)
+    if format_fields is not None:
+        opts["vcf_format_fields"] = list(format_fields)
+    # LazyFrame path: carry `_vcf_info_keys` / `_vcf_format_keys` so that
+    # polars_bio.sink_vcf writes each record exactly as output_vcf does. On by
+    # default; the default gives way for an input that cannot carry it (BCF, or a
+    # file declaring a field with either name), an explicit True raises. With no
+    # input INFO or FORMAT field selected there is no layout to keep, and that
+    # selection is the 0.7 frame exactly, so the default leaves it alone.
+    nothing_selected = info_fields == [] and format_fields == []
+    if preserve_record_layout is True:
+        opts["vcf_record_layout"] = True
+    elif preserve_record_layout is None and not nothing_selected:
+        opts["vcf_record_layout"] = "auto"
+    options_json = json.dumps(opts)
+
     # Get schema from a probe annotator (doesn't consume data).
     engine_skip_csq = skip_csq and not plugin_field_names
     probe = _create_annotator(
@@ -1663,6 +1835,8 @@ def annotate(
         None,
     )
     pa_schema = probe.schema
+    _carried = carried_columns(pa_schema)
+    _shadowed: dict[str, str] = {}
     empty = pa.table({field.name: pa.array([], type=field.type) for field in pa_schema})
     polars_schema = dict(pl.from_arrow(empty).schema)
     selected_dataframe_columns: list[str] | None = None
@@ -1693,11 +1867,20 @@ def annotate(
             name: polars_schema[name] for name in selected_dataframe_columns
         }
     if plugin_field_names:
+        # An input field named like a plugin column gives way to it.
+        polars_schema, _shadowed = _rename_shadowed_input_columns(
+            polars_schema, _carried, plugin_field_names
+        )
+        _carried = {
+            _shadowed.get(name, name): value for name, value in _carried.items()
+        }
+        # The fixed projection names input columns too; follow the rename, or
+        # the plugin column is selected twice and the input one not at all.
+        if selected_dataframe_columns is not None:
+            selected_dataframe_columns = [
+                _shadowed.get(name, name) for name in selected_dataframe_columns
+            ]
         for name, dtype, per_variant in plugin_column_specs:
-            if name in polars_schema:
-                raise ValueError(
-                    f"plugin CSQ field {name!r} conflicts with an existing DataFrame column"
-                )
             polars_schema[name] = dtype if per_variant else pl.List(dtype)
         if skip_csq:
             polars_schema.pop("CSQ", None)
@@ -1739,12 +1922,29 @@ def annotate(
             stacklevel=2,
         )
 
+    # An already-annotated input's own CSQ column leaves the frame when this run
+    # has a CSQ of its own (below), so the caller's frame is the source's
+    # columns less that one. Projection pushdown compares against this rather
+    # than the source schema: otherwise vepyr's own drop reads as a user
+    # `select()`, and a plain collect() of a frame built with `fields=` is
+    # refused for a projection nobody made.
+    _stale_csq = (
+        [
+            name
+            for name, (kind, vcf_id) in _carried.items()
+            if kind == "INFO" and vcf_id == "CSQ"
+        ]
+        if "CSQ" in polars_schema
+        else []
+    )
+    _frame_columns = set(polars_schema) - set(_stale_csq)
+
     def _batch_source(with_columns, predicate, n_rows, batch_size):
         # Projection pushdown: the columns Polars asks for, plus the ones the
         # pushed-down filter reads, decide which annotation flags the engine
         # needs. n_rows becomes a LIMIT in the DataFusion query.
         needed = None
-        if with_columns is not None and set(with_columns) != set(polars_schema):
+        if with_columns is not None and set(with_columns) != _frame_columns:
             if "fields" in _opts:
                 raise ValueError(
                     "annotate(fields=...) already fixes the annotation layout; "
@@ -1763,6 +1963,21 @@ def annotate(
             read_plugins = needed & plugin_columns
         required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
         engine_opts = _flags_for_projection(_opts, needed, set(polars_schema), required)
+        # Input columns the query does not read are not parsed at all.
+        read_info, read_format = fields_for_query(
+            _carried,
+            needed,
+            _opts.get("vcf_info_fields"),
+            _opts.get("vcf_format_fields"),
+        )
+        for key, value in (
+            ("vcf_info_fields", read_info),
+            ("vcf_format_fields", read_format),
+        ):
+            if value is None:
+                engine_opts.pop(key, None)
+            else:
+                engine_opts[key] = value
         # Predicate pushdown on genomic coordinates: chrom/start/end conjuncts
         # become engine `regions`, so unselected contigs are never prepared and
         # indexed inputs are read by seek. Polars still applies the full
@@ -1841,6 +2056,14 @@ def annotate(
         remaining = n_rows
         for py_batch in tracked(annotator):
             batch_df = pl.from_arrow(py_batch)
+            if _shadowed:
+                batch_df = batch_df.rename(
+                    {
+                        old: new
+                        for old, new in _shadowed.items()
+                        if old in batch_df.columns
+                    }
+                )
             if plugin_field_names and "CSQ" in batch_df.columns:
                 n_plugin = len(plugin_field_names)
                 batch_df = batch_df.with_columns(
@@ -1883,7 +2106,81 @@ def annotate(
 
     from polars.io.plugins import register_io_source
 
-    return register_io_source(
+    lf = register_io_source(
         io_source=_batch_source,
         schema=polars_schema,
     )
+    # What polars_bio.sink_vcf needs to write the frame back as a VCF. CSQ is
+    # only declared when the frame has the column to write.
+    csq_fields = (
+        _csq_field_names(pa_schema.names, selected_fields, plugin_field_names)
+        if "CSQ" in polars_schema
+        else None
+    )
+    # An already-annotated input carries its own CSQ, which the engine renames
+    # out of the way of this run's (INFO/CSQ arrives as `INFO_CSQ`). Dropping
+    # its header entry is not enough: polars-bio maps a column to a VCF id by
+    # the `INFO_` prefix, so a carried `INFO_CSQ` is written as CSQ and shadows
+    # the annotation this run just produced. The run's CSQ replaces the input's,
+    # as Ensembl VEP and output_vcf do, so the stale column leaves the frame.
+    # Without a CSQ of our own there is nothing to replace it with, and the
+    # input's own is written back untouched (see build_header).
+    #
+    # `_carried` keeps the entry: it is how build_header maps the schema's
+    # `INFO_CSQ` key back to the VCF id CSQ, and so how it knows to leave that
+    # stale definition out of the header. Dropping the entry with the column
+    # would leave the definition looking like a field of its own.
+    if _stale_csq:
+        lf = lf.drop(_stale_csq)
+    # `vcf_record_layout="auto"` is a request, not an outcome: it gives way for
+    # an input that cannot carry the layout. The probe's schema is the record of
+    # what happened, so the provenance describes the run rather than the ask.
+    # The engine does not put this in a header line today, which is why no test
+    # can read it back off a written VCF; it is set so the day it does, the line
+    # is already right.
+    _layout_carried = record_layout_carried(pa_schema)
+
+    def _provenance_options() -> str:
+        """The options the provenance describes.
+
+        This runs while the frame is being built, so it must not decide whether
+        building it succeeds. Deriving the flags a sink would need can raise --
+        a plugin whose match template needs a FASTA there is none of -- and a
+        caller who never sinks, or who projects those columns away, has a
+        working query. Their header then records the options as given: a sink
+        of that frame raises on its own, from the collect that feeds it.
+        """
+        try:
+            options = _flags_for_projection(
+                _opts,
+                None,
+                set(polars_schema),
+                # A sink writes every plugin column, so it is collected with all
+                # of their required inputs enabled; record those too.
+                set().union(*plugin_column_inputs.values()),
+            )
+        except ValueError:
+            options = dict(_opts)
+        options["preserve_record_layout"] = _layout_carried
+        return json.dumps(options)
+
+    _attach_vcf_metadata(
+        lf,
+        vcf,
+        pa_schema,
+        _carried,
+        csq_fields,
+        # The provenance lines output_vcf writes, built by the engine so the two
+        # output paths cannot disagree. They record the annotation; what the
+        # caller does to the frame afterwards is not vepyr's to know.
+        # A VCF sink reads CSQ, so it is collected with the flags a CSQ read
+        # gets (given, or inferred when none were); record those, not the raw
+        # options, or the command line misses an inferred `everything`.
+        provenance=lambda raw_lines: _annotation_header_lines(
+            vcf,
+            cache_dir,
+            _provenance_options(),
+            raw_lines,
+        ),
+    )
+    return lf

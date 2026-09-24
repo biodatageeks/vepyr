@@ -170,6 +170,14 @@ serde_json = "1"
 # has to check the engine's formats pin for that reason. v0.22.1 is the #254
 # merge commit 3d70923 plus the release's version bumps; every src tree is
 # identical.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.22.1", features = ["cache-builder"] }
+# bio-functions v0.22.2: the first release with
+# biodatageeks/datafusion-bio-functions#256, on top of v0.22.1. It makes the annotated-VCF header builder
+# public (`vcf_sink::annotation_header_lines`), so the LazyFrame path can hand
+# polars_bio.sink_vcf the same provenance lines output_vcf writes (vepyr#127).
+# It also declares serde_json's preserve_order, which the provenance line's key
+# order depends on. Same bio-formats tag as before, so bio-formats does not
+# move. v0.22.2 is the #256 merge commit b3673bf plus the release's version
+# bumps; every src tree is identical.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "0f1b681", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }

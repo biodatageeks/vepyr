@@ -42,6 +42,9 @@ Schema({
     'alt': String,
     'qual': Float64,
     'filter': String,
+    # the input's own INFO and FORMAT fields, named by their VCF ids
+    'DPSum': Int32, 'platforms': Int32, ..., 'GT': String, 'DP': Int32, ...,
+    '_vcf_info_keys': String, '_vcf_format_keys': String,   # record layout, see below
     'most_severe_consequence': String,
     'Allele': String,
     'Consequence': List(String),         # one element per CSQ entry, in CSQ order ...
@@ -137,9 +140,18 @@ The 80 columns from `Allele` to `TRANSCRIPTION_FACTORS` are the CSQ fields in
 VCF header order. A `List` column that is aligned with `Consequence` has one
 element per CSQ entry; `Existing_variation`, `CLIN_SIG` and `PUBMED` hold the
 distinct values for the variant instead. Values that VEP repeats on every
-entry, such as the frequencies, are stored once as scalars. The input's other
-`INFO` fields and its sample columns are not in the frame; use `output_vcf`
-for those. Add `skip_csq=False` to get the raw `CSQ` string as a column.
+entry, such as the frequencies, are stored once as scalars. The input's `INFO`
+fields and its sample columns are carried too, named by their VCF ids; pass
+`info_fields=[]` and `format_fields=[]` for the 0.7 frame. An id that is also an
+annotation column arrives as `INFO_<id>` (`fmt_<id>` for FORMAT): `AF` is
+always VEP's. Add `skip_csq=False` to get the raw `CSQ` string as a column.
+
+`CSQ` is the one carried field this run can replace. Annotating an input that
+already has `INFO/CSQ` with `skip_csq=False` drops the input's, as Ensembl VEP
+and `output_vcf` do, so the frame carries this run's consequences and no
+`INFO_CSQ`. Without a CSQ of its own (`skip_csq=True`, the default) there is
+nothing to replace it with, and the input's is carried and written back
+untouched.
 
 To narrow the frame, `select()` the columns you need, see
 [below](#what-is-pushed-into-the-engine); the engine then only computes what
@@ -569,6 +581,59 @@ def join_lists(df: pl.DataFrame) -> pl.DataFrame:
 join_lists(df).write_csv("annotated.tsv", separator="\t")
 join_lists(consequence_rows(df)).write_csv("annotated_long.tsv", separator="\t")
 ```
+
+## Writing a filtered VCF
+
+Filter the frame in Polars and write it back as VCF with
+[polars-bio](https://biodatageeks.org/polars-bio/)'s `sink_vcf`:
+
+```bash
+pip install "vepyr[polars-bio]"    # polars-bio >= 0.36.0, Python 3.11+
+```
+
+```python
+import polars as pl
+import polars_bio as pb
+import vepyr
+
+lf = vepyr.annotate(
+    "HG002.vcf.gz",
+    cache_dir,
+    everything=True,
+    reference_fasta="GRCh38.fa",
+    skip_csq=False,           # the CSQ column is what gets written
+)
+rare_damaging = lf.filter(
+    pl.col("IMPACT").list.contains("HIGH")
+    & (pl.col("MAX_AF").is_null() | (pl.col("MAX_AF") < 0.01))
+    & (pl.col("DP") >= 20)
+)
+pb.sink_vcf(rare_damaging, "rare_damaging.vcf")
+```
+
+The file is what `output_vcf` would have written, minus the rows you filtered
+out. On HG002 chr22 against the release-116 cache the unfiltered body has the
+same md5 as `output_vcf`'s, which passes the strict md5 gate against Ensembl
+VEP, and every line of a filtered file is byte-identical to its `output_vcf`
+line. The header is the input's own, line for line, followed by vepyr's
+provenance and the `CSQ` declaration; its command-line line records the
+annotation but has no `output` or `compression`, and it does not record what you
+did to the frame afterwards.
+
+That relies on three things:
+
+- **`skip_csq=False`.** Without the `CSQ` column there is nothing to write.
+- **The record layout.** `_vcf_info_keys` and `_vcf_format_keys` hold each
+  record's own INFO key order and FORMAT key list, which the typed columns
+  cannot: every record carries every declared key, and a `.` value parses to
+  the same null as an absent key. They are carried by default and have to stay
+  in the frame; a `select()` that drops them writes keys in header order and
+  leaves out a FORMAT key that is missing in every sample. Pass
+  `preserve_record_layout=False` to leave them out altogether. The default does
+  without them for BCF input and for a file that declares a field with either
+  name; asking for them with `True` raises there instead.
+- **Canonical values.** Values go through typed columns, so `QUAL` `50.0` is
+  written `50` and `AF=0.50` as `0.5` — as `output_vcf` does too.
 
 ## Agreement with the VCF output
 

@@ -1,0 +1,82 @@
+"""polars-bio frame metadata, so ``polars_bio.sink_vcf`` can write the frame.
+
+The only module that imports polars-bio. Without it the frame is returned as is.
+"""
+
+from __future__ import annotations
+
+import pyarrow as pa
+
+_CSQ_DESCRIPTION = "Consequence annotations from Ensembl VEP. Format: "
+
+
+def build_header(
+    schema: pa.Schema,
+    carried: dict[str, tuple[str, str]],
+    csq_fields: list[str] | None,
+    extract,
+) -> dict | None:
+    """VCF header metadata in polars-bio's shape, keyed by VCF id."""
+    vcf = extract(schema).get("format_specific", {}).get("vcf")
+    if not vcf:
+        return None
+    ids = {name: vcf_id for name, (_, vcf_id) in carried.items()}
+    info = {
+        ids.get(name, name): definition
+        for name, definition in (vcf.get("info_fields") or {}).items()
+        # The input's own CSQ is replaced by this run's, as Ensembl VEP does --
+        # but only when this run has one. With `skip_csq=True` nothing replaces
+        # it, so dropping the declaration here would write the input's CSQ
+        # column under no definition at all, losing the annotation it came with.
+        if csq_fields is None or ids.get(name, name) != "CSQ"
+    }
+    if csq_fields is not None:
+        info["CSQ"] = {
+            "number": ".",
+            "type": "String",
+            "description": _CSQ_DESCRIPTION + "|".join(csq_fields),
+        }
+    return {
+        "info_fields": info,
+        "format_fields": {
+            ids.get(name, name): definition
+            for name, definition in (vcf.get("format_fields") or {}).items()
+        },
+        "sample_names": vcf.get("sample_names"),
+        "version": vcf.get("version"),
+        "contigs": vcf.get("contigs"),
+        "filters": vcf.get("filters"),
+        "alt_definitions": vcf.get("alt_definitions"),
+        # The input's header as text: polars-bio writes it back line for line and
+        # re-declares only what changed (CSQ). Without it the header is rebuilt
+        # from the typed keys above, which cannot hold ##fileDate, tool
+        # provenance, the PASS filter or contig attributes beyond ID and length.
+        "raw_lines": vcf.get("raw_lines"),
+        # Whether `_vcf_info_keys` / `_vcf_format_keys` in this frame are the
+        # record layout. polars-bio goes by this, never by the column names.
+        "record_layout": bool(vcf.get("record_layout")),
+    }
+
+
+def attach(
+    lf, vcf_path: str, schema: pa.Schema, carried, csq_fields, provenance=None
+) -> None:
+    """Set the metadata ``polars_bio.sink_vcf`` reads; a no-op without polars-bio.
+
+    ``provenance`` maps the input's raw header lines to the lines an annotated
+    VCF carries: the same lines with this run's provenance merged in, built by
+    the engine so they are exactly what ``output_vcf`` writes.
+    """
+    try:
+        import polars_bio as pb
+        from polars_bio._metadata import set_coordinate_system
+        from polars_bio.metadata_extractors import extract_all_schema_metadata
+    except ImportError:
+        return
+    header = build_header(schema, carried, csq_fields, extract_all_schema_metadata)
+    if header is None:
+        return
+    if provenance is not None and header.get("raw_lines"):
+        header["raw_lines"] = provenance(header["raw_lines"])
+    pb.set_source_metadata(lf, format="vcf", path=vcf_path, header=header)
+    set_coordinate_system(lf, zero_based=False)

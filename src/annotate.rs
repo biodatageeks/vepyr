@@ -183,6 +183,41 @@ pub fn annotate_to_vcf_file(
         )
     });
 
+    let config = vcf_config_from_options(&opts, workers, vcf_compression, show_progress, callback)?;
+
+    // Release the GIL so the Python background thread (in __init__.py) can
+    // let Jupyter's main thread pump display updates for tqdm progress bars.
+    // The on_batch_written callback re-acquires the GIL via Python::with_gil().
+    py.detach(|| {
+        rt.block_on(async {
+            let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
+                .await
+                .map_err(|e| {
+                    pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
+                })?;
+            log::info!(
+                "annotate_to_vcf_file complete: output={}, rows={}",
+                output_path,
+                rows
+            );
+
+            Ok(rows)
+        })
+    })
+}
+
+/// The engine's VCF config for a set of vepyr options.
+///
+/// Shared by the VCF output path and by [`annotation_header_lines`], so the
+/// header the LazyFrame path hands to polars-bio describes the run exactly as
+/// `output_vcf` would.
+fn vcf_config_from_options(
+    opts: &Value,
+    workers: usize,
+    vcf_compression: datafusion_bio_format_vcf::VcfCompressionType,
+    show_progress: bool,
+    callback: Option<OnBatchWritten>,
+) -> PyResult<AnnotateVcfConfig> {
     // `AnnotateVcfConfig` is `#[non_exhaustive]`, so it is built by assignment
     // rather than a struct literal: a field the engine adds then defaults here
     // instead of failing this crate's build.
@@ -357,24 +392,49 @@ pub fn annotate_to_vcf_file(
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
 
-    // Release the GIL so the Python background thread (in __init__.py) can
-    // let Jupyter's main thread pump display updates for tqdm progress bars.
-    // The on_batch_written callback re-acquires the GIL via Python::with_gil().
-    py.detach(|| {
-        rt.block_on(async {
-            let rows = annotate_to_vcf(vcf_path, cache_dir, backend, output_path, &config)
-                .await
-                .map_err(|e| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!("VCF annotation failed: {e}"))
-                })?;
-            log::info!(
-                "annotate_to_vcf_file complete: output={}, rows={}",
-                output_path,
-                rows
-            );
+    // The co-located lookup. `everything` implies all of it, so these carry a
+    // run that asked for part of it on its own: the LazyFrame passes them to
+    // annotate_vep, and without them here the provenance could not say so.
+    let flag = |key: &str| opts.get(key).and_then(|v| v.as_bool()).unwrap_or(false);
+    config.colocated = datafusion_bio_function_vep::vcf_sink::ColocatedOptions {
+        check_existing: flag("check_existing"),
+        af: flag("af"),
+        af_1kg: flag("af_1kg"),
+        af_gnomade: flag("af_gnomade"),
+        af_gnomadg: flag("af_gnomadg"),
+        max_af: flag("max_af"),
+        pubmed: flag("pubmed"),
+    };
+    Ok(config)
+}
 
-            Ok(rows)
-        })
+/// Header lines for a VCF written from the annotated LazyFrame: the input's own
+/// `##` lines with this run's provenance merged in, exactly as the engine's VCF
+/// sink builds them, but with no output file recorded.
+pub fn annotation_header_lines(
+    vcf_path: &str,
+    cache_dir: &str,
+    options_json: &str,
+    raw_lines: Vec<String>,
+) -> PyResult<Vec<String>> {
+    let (options_json, _cache_format) = normalize_options(options_json)?;
+    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    let config = vcf_config_from_options(
+        &opts,
+        // The provenance describes the run the caller asked for, and the frame
+        // is collected with this worker count.
+        workers_from_options(&opts),
+        datafusion_bio_format_vcf::VcfCompressionType::Plain,
+        false,
+        None,
+    )?;
+    datafusion_bio_function_vep::vcf_sink::annotation_header_lines(
+        raw_lines, vcf_path, cache_dir, None, &config,
+    )
+    .map_err(|e| {
+        pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to build VCF header: {e}"))
     })
 }
 
@@ -471,6 +531,64 @@ pub fn vcf_header_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
     })
 }
 
+/// INFO and FORMAT ids declared in the VCF header, each in header order.
+///
+/// Read from the field metadata of a provider opened with every field, so a
+/// FORMAT id the reader renamed to avoid an INFO id (`fmt_DP`) is reported by
+/// its id, not its column name.
+pub fn vcf_header_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>, bool)> {
+    use datafusion::arrow::datatypes::DataType;
+    use datafusion::datasource::TableProvider;
+
+    // The reader needs a Tokio reactor even to parse a header.
+    let rt = runtime_for_workers(1)?;
+    let _reactor = rt.enter();
+    let provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+        vcf_path.to_string(),
+        None,
+        None,
+        None,
+        false,
+    )
+    .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}")))?;
+
+    let mut info = Vec::new();
+    let mut format = Vec::new();
+    // Whether the reader puts the FORMAT fields in one nested `genotypes`
+    // struct, which is how a multi-sample input arrives. The caller needs it
+    // because an INFO field of that name then has nowhere to go.
+    let mut nests_genotypes = false;
+    let schema = provider.schema();
+    for field in schema.fields() {
+        // Multi-sample inputs nest FORMAT fields under one `genotypes` struct.
+        // The name alone does not make it that: a VCF may declare an INFO field
+        // called `genotypes`, and that one is an ordinary column.
+        if field.name() == "genotypes" {
+            if let DataType::Struct(children) = field.data_type() {
+                format.extend(children.iter().map(|child| child.name().clone()));
+                nests_genotypes = true;
+                continue;
+            }
+        }
+        match field
+            .metadata()
+            .get("bio.vcf.field.field_type")
+            .map(String::as_str)
+        {
+            Some("INFO") => info.push(field.name().clone()),
+            Some("FORMAT") => format.push(
+                field
+                    .metadata()
+                    .get("bio.vcf.field.format_id")
+                    .cloned()
+                    .unwrap_or_else(|| field.name().clone()),
+            ),
+            _ => {}
+        }
+    }
+    Ok((info, format, nests_genotypes))
+}
+
 /// Create a streaming annotator that yields PyArrow RecordBatches.
 pub fn create_streaming_annotator(
     py: Python<'_>,
@@ -481,7 +599,37 @@ pub fn create_streaming_annotator(
     limit: Option<usize>,
 ) -> PyResult<StreamingAnnotator> {
     let (options_json, _cache_format) = normalize_options(options_json)?;
-    let opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+    let mut opts: Value = serde_json::from_str(&options_json).map_err(|e| {
+        pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
+    })?;
+    // Which input INFO/FORMAT fields the frame carries. vepyr-only keys: the
+    // engine takes its input columns from the registered table, so they are
+    // removed before the JSON reaches it. Absent means every field.
+    let mut take_fields = |key: &str| -> PyResult<Option<Vec<String>>> {
+        match opts.as_object_mut().and_then(|object| object.remove(key)) {
+            None | Some(Value::Null) => Ok(None),
+            Some(value) => serde_json::from_value(value).map(Some).map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!(
+                    "{key} must be a list of strings: {e}"
+                ))
+            }),
+        }
+    };
+    let info_fields = take_fields("vcf_info_fields")?;
+    let format_fields = take_fields("vcf_format_fields")?;
+    // Carry each record's own INFO/FORMAT key layout on the frame, so that
+    // polars-bio's sink_vcf can reproduce the source line. vepyr-only key.
+    // `true` is the caller asking for it, and fails when the input cannot carry
+    // it; "auto" is the default, which falls back to no carry instead.
+    let record_layout = opts
+        .as_object_mut()
+        .and_then(|object| object.remove("vcf_record_layout"));
+    let (carry_record_layout, layout_required) = match record_layout {
+        Some(Value::Bool(true)) => (true, true),
+        Some(Value::String(mode)) if mode == "auto" => (true, false),
+        _ => (false, false),
+    };
+    let options_json = serde_json::to_string(&opts).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("Invalid options JSON: {e}"))
     })?;
     let workers = workers_from_options(&opts);
@@ -499,14 +647,43 @@ pub fn create_streaming_annotator(
 
         let vcf_provider = datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
             vcf_path.to_string(),
-            Some(vec![]),
-            Some(vec![]),
+            info_fields.clone(),
+            format_fields.clone(),
             None,
             false,
         )
         .map_err(|e| {
             pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to open VCF: {e}"))
         })?;
+        let vcf_provider = if carry_record_layout {
+            match vcf_provider.with_record_layout() {
+                Ok(provider) => provider,
+                Err(e) if layout_required => {
+                    return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                        "preserve_record_layout is not available for this input: {e}"
+                    )));
+                }
+                // BCF input, or a file declaring a field with a reserved name:
+                // the default quietly goes without the carry.
+                Err(e) => {
+                    log::debug!("record layout not carried for {vcf_path}: {e}");
+                    datafusion_bio_format_vcf::table_provider::VcfTableProvider::new(
+                        vcf_path.to_string(),
+                        info_fields.clone(),
+                        format_fields.clone(),
+                        None,
+                        false,
+                    )
+                    .map_err(|e| {
+                        pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "Failed to open VCF: {e}"
+                        ))
+                    })?
+                }
+            }
+        } else {
+            vcf_provider
+        };
         ctx.register_table("vcf", Arc::new(vcf_provider))
             .map_err(|e| {
                 pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to register VCF: {e}"))

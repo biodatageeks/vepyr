@@ -734,6 +734,24 @@ fn vcf_contigs(vcf_path: &str) -> PyResult<Vec<String>> {
     annotate::vcf_header_contigs(vcf_path)
 }
 
+/// INFO and FORMAT ids declared in the VCF header, in header order.
+#[pyfunction]
+fn vcf_fields(vcf_path: &str) -> PyResult<(Vec<String>, Vec<String>, bool)> {
+    annotate::vcf_header_fields(vcf_path)
+}
+
+/// Header lines for a VCF written from the annotated LazyFrame: the input's
+/// `##` lines with this run's provenance merged in, as the VCF sink builds them.
+#[pyfunction]
+fn annotation_header_lines(
+    vcf_path: &str,
+    cache_dir: &str,
+    options_json: &str,
+    raw_lines: Vec<String>,
+) -> PyResult<Vec<String>> {
+    annotate::annotation_header_lines(vcf_path, cache_dir, options_json, raw_lines)
+}
+
 /// Create a streaming VEP annotator that yields PyArrow RecordBatches.
 #[pyfunction]
 #[pyo3(signature = (vcf_path, cache_dir, options_json, skip_csq=true, limit=None))]
@@ -755,7 +773,9 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
+    m.add_function(wrap_pyfunction!(annotation_header_lines, m)?)?;
     m.add_function(wrap_pyfunction!(vcf_contigs, m)?)?;
+    m.add_function(wrap_pyfunction!(vcf_fields, m)?)?;
     m.add_function(wrap_pyfunction!(annotate_vcf, m)?)?;
     m.add_function(wrap_pyfunction!(supported_vep_targets_json, m)?)?;
     m.add_function(wrap_pyfunction!(cache_contig_identity_json, m)?)?;

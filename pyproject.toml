@@ -18,6 +18,11 @@ dependencies = ["pyarrow>=18.0", "polars>=1.37.1", "tqdm>=4.60"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
+# Writing the annotated LazyFrame back as VCF with polars_bio.sink_vcf. 0.36.0 is
+# the first release that writes the input header back verbatim and honours the
+# record layout columns, which is what makes the body match output_vcf's. It
+# needs Python 3.11+, so on 3.10 the extra installs nothing and the sink tests skip.
+polars-bio = ["polars-bio>=0.36.0; python_version >= '3.11'"]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",
@@ -37,6 +42,8 @@ vepyr = "vepyr.cli:main"
 docs = ["vepyr[docs]"]
 dev = [
     "pytest>=8.0",
+    # The sink_vcf tests skip without it (tests/test_vcf_columns.py).
+    "vepyr[polars-bio]",
     "pre-commit>=4.5.1",
     # parquet-rs writer used by the golden-cache fixtures (tests/cache_metadata.py,
     # tests/data/golden/prepare.py) so shards keep an arrow-rs-readable page index.
