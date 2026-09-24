@@ -91,8 +91,13 @@ def vcf_contigs(vcf_path: str) -> list[str]:
 
 def annotation_header_lines(
     vcf_path: str, cache_dir: str, options_json: str, raw_lines: list[str]
-) -> list[str]:
-    """The input's header lines with this run's provenance merged in."""
+) -> tuple[list[str], str]:
+    """The input's header lines with this run's provenance merged in.
+
+    The second value is the `CSQ` description to declare beside them, built by
+    the engine: the field list follows the flags, the cache source type, the
+    pick options and the plugin manifests.
+    """
     ...
 
 def vcf_fields(vcf_path: str) -> tuple[list[str], list[str], bool]:

@@ -416,7 +416,10 @@ def test_header_is_keyed_by_vcf_id_and_csq_is_replaced():
         "GT": ("FORMAT", "GT"),
     }
     header = build_header(
-        CARRIED_SCHEMA, carried, ["Allele", "Consequence"], _fake_extract
+        CARRIED_SCHEMA,
+        carried,
+        "Consequence annotations from Ensembl VEP. Format: Allele|Consequence",
+        _fake_extract,
     )
     assert set(header["info_fields"]) == {"DP", "AF", "CSQ"}
     assert header["info_fields"]["AF"]["description"] == "cohort"
@@ -428,6 +431,45 @@ def test_header_is_keyed_by_vcf_id_and_csq_is_replaced():
         ),
     }
     assert header["sample_names"] == ["S1"]
+
+
+def test_csq_is_declared_even_when_the_input_carried_no_raw_lines(monkeypatch):
+    """The description describes this run, not the input, so it must not
+    depend on the input having header lines to merge into: a frame with CSQ
+    values would otherwise be written under no CSQ definition."""
+    pytest.importorskip("polars_bio")
+    import polars_bio
+    import polars_bio.metadata_extractors as extractors
+
+    from vepyr._vcf_metadata import attach
+
+    # Structured VCF metadata, no `raw_lines` -- what `_fake_extract` returns.
+    monkeypatch.setattr(extractors, "extract_all_schema_metadata", _fake_extract)
+    captured = {}
+    monkeypatch.setattr(
+        polars_bio, "set_source_metadata", lambda lf, **kw: captured.update(kw)
+    )
+
+    called_with = []
+
+    def provenance(existing):
+        called_with.append(list(existing))
+        return list(
+            existing
+        ), "Consequence annotations from Ensembl VEP. Format: Allele"
+
+    attach(
+        pl.LazyFrame({"chrom": ["chr1"]}),
+        "in.vcf",
+        CARRIED_SCHEMA,
+        {"DP": ("INFO", "DP"), "INFO_CSQ": ("INFO", "CSQ")},
+        True,
+        provenance,
+    )
+    assert called_with == [[]]  # asked for the description with nothing to merge
+    assert captured["header"]["info_fields"]["CSQ"]["description"].endswith(
+        "Format: Allele"
+    )
 
 
 def test_without_a_csq_column_no_csq_is_declared():
@@ -453,7 +495,7 @@ def test_the_provenance_records_the_worker_count_the_frame_is_collected_with(
     from vepyr._core import annotation_header_lines
 
     def recorded(**opts):
-        lines = annotation_header_lines(
+        lines, _csq = annotation_header_lines(
             INPUT_VCF,
             cache_dir,
             json.dumps({"everything": True, **opts}),
@@ -477,7 +519,7 @@ def test_the_provenance_records_the_colocated_switches(cache_dir):
     from vepyr._core import annotation_header_lines
 
     def recorded(**opts):
-        lines = annotation_header_lines(
+        lines, _csq = annotation_header_lines(
             INPUT_VCF, cache_dir, json.dumps(opts), ["##fileformat=VCFv4.2"]
         )
         line = next(
@@ -499,26 +541,25 @@ def test_the_provenance_records_the_colocated_switches(cache_dir):
     assert not set(recorded()) & {"af", "pubmed", "check_existing", "max_af"}
 
 
-def test_csq_field_names_skip_cache_only_columns_and_append_plugins():
-    from vepyr import _csq_field_names
+def test_the_engine_hands_over_the_csq_layout(cache_dir):
+    """The `Format:` list is the engine's, not a list derived here: it follows
+    the flags, the cache source type, the pick options and the plugin
+    manifests. vepyr used to approximate it from the frame's typed columns,
+    which was only right under `everything`."""
+    from vepyr._core import annotation_header_lines
 
-    names = [
-        "chrom",
-        "CSQ",
-        "most_severe_consequence",
-        "Allele",
-        "Consequence",
-        "dbsnp_ids",
-    ]
-    assert _csq_field_names(names, None, ["CADD_PHRED"]) == [
-        "Allele",
-        "Consequence",
-        "CADD_PHRED",
-    ]
-    assert _csq_field_names(names, ["Consequence"], ["CADD_PHRED"]) == [
-        "Consequence",
-        "CADD_PHRED",
-    ]
+    def description(**opts):
+        _lines, csq = annotation_header_lines(
+            INPUT_VCF, cache_dir, json.dumps(opts), ["##fileformat=VCFv4.2"]
+        )
+        return csq
+
+    full = description(everything=True)
+    partial = description(hgvs=True)
+    assert full.startswith("Consequence annotations from Ensembl VEP. Format: ")
+    # The two layouts differ, which is exactly what a caller cannot derive.
+    assert partial != full
+    assert partial.count("|") < full.count("|")
 
 
 # --- sink_vcf agrees with output_vcf ---------------------------------------------
@@ -552,25 +593,12 @@ def _header_lines(path, prefix):
 # path does not forward them to the engine, so the two paths differ there for a
 # reason that has nothing to do with sink_vcf.
 #
-# Without `everything` the engine's CSQ layout is shorter than the typed-column
-# list the header is derived from here, so the declared `Format:` is wrong. The
-# engine has to expose its own Format string on the CSQ field (plan, Task 5);
-# until it does that case is expected to fail, strictly, so it cannot be
-# forgotten once fixed. A flagless frame is not comparable at all: it runs
+# `hgvs` alone was a strict xfail while the `Format:` list was derived from the
+# frame's typed columns, which is only the engine's layout under `everything`.
+# The engine hands the description over now, so a partial flag set declares
+# exactly what it writes. A flagless frame is still not comparable: it runs
 # `everything` when it has a FASTA, and a flagless output_vcf does not.
-@pytest.mark.parametrize(
-    "flags",
-    [
-        {"everything": True},
-        pytest.param(
-            {"hgvs": True},
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="CSQ Format: is derived from typed columns; wrong without everything",
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("flags", [{"everything": True}, {"hgvs": True}])
 def test_sink_vcf_matches_output_vcf_field_for_field(cache_dir, tmp_path, flags):
     import vepyr
 

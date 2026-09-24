@@ -194,34 +194,6 @@ def _rename_shadowed_input_columns(
     return {mapping.get(name, name): dtype for name, dtype in schema.items()}, mapping
 
 
-# Typed columns the engine emits that have no CSQ sub-field (docs/dataframes.md).
-_CACHE_ONLY_COLUMNS = frozenset(
-    {
-        "clin_sig_allele",
-        "clinical_impact",
-        "minor_allele",
-        "minor_allele_freq",
-        "clinvar_ids",
-        "cosmic_ids",
-        "dbsnp_ids",
-    }
-)
-
-
-def _csq_field_names(
-    schema_names: list[str],
-    selected_fields: list[str] | None,
-    plugin_fields: list[str],
-) -> list[str]:
-    """The ``Format:`` list of the CSQ string, in CSQ order."""
-    # annotate(fields=...) fixes the base layout; plugin fields always follow it.
-    if selected_fields is not None:
-        return list(selected_fields) + list(plugin_fields)
-    start = schema_names.index("most_severe_consequence") + 1
-    base = [name for name in schema_names[start:] if name not in _CACHE_ONLY_COLUMNS]
-    return base + list(plugin_fields)
-
-
 def _plugin_column(values, dtype, per_variant: bool):
     """Shape one plugin field parsed out of CSQ: ``values`` is a list of one
     string per consequence entry. A per-variant plugin repeats the same value
@@ -1922,6 +1894,10 @@ def annotate(
             stacklevel=2,
         )
 
+    # Whether this run writes a CSQ of its own. Its `Format:` list comes from
+    # the engine, the only thing that knows it; here it only decides whether
+    # there is one at all.
+    writes_csq = "CSQ" in polars_schema
     # An already-annotated input's own CSQ column leaves the frame when this run
     # has a CSQ of its own (below), so the caller's frame is the source's
     # columns less that one. Projection pushdown compares against this rather
@@ -1934,7 +1910,7 @@ def annotate(
             for name, (kind, vcf_id) in _carried.items()
             if kind == "INFO" and vcf_id == "CSQ"
         ]
-        if "CSQ" in polars_schema
+        if writes_csq
         else []
     )
     _frame_columns = set(polars_schema) - set(_stale_csq)
@@ -2110,13 +2086,6 @@ def annotate(
         io_source=_batch_source,
         schema=polars_schema,
     )
-    # What polars_bio.sink_vcf needs to write the frame back as a VCF. CSQ is
-    # only declared when the frame has the column to write.
-    csq_fields = (
-        _csq_field_names(pa_schema.names, selected_fields, plugin_field_names)
-        if "CSQ" in polars_schema
-        else None
-    )
     # An already-annotated input carries its own CSQ, which the engine renames
     # out of the way of this run's (INFO/CSQ arrives as `INFO_CSQ`). Dropping
     # its header entry is not enough: polars-bio maps a column to a VCF id by
@@ -2169,7 +2138,7 @@ def annotate(
         vcf,
         pa_schema,
         _carried,
-        csq_fields,
+        writes_csq,
         # The provenance lines output_vcf writes, built by the engine so the two
         # output paths cannot disagree. They record the annotation; what the
         # caller does to the frame afterwards is not vepyr's to know.
