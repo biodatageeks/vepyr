@@ -20,8 +20,13 @@ def vcf_body(path: Path) -> list[str]:
 
 def vcf_keys(path: Path) -> list[tuple[str, int, str, str]]:
     out = []
-    for line in _lines(path):
-        c, p, _, r, a = line.split("\t", 5)[:5]
+    for lineno, line in enumerate(_lines(path), start=1):
+        fields = line.split("\t", 5)
+        if len(fields) < 5:
+            raise ValueError(
+                f"{path}:{lineno}: expected >= 5 tab-separated fields, got {len(fields)}: {line[:80]!r}"
+            )
+        c, p, _, r, a = fields[:5]
         out.append((c, int(p), r, a))
     return out
 

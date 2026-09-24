@@ -51,6 +51,13 @@ def test_vcf_keys_and_body(tmp_path):
     assert parity.vcf_body(p) == ["chr22\t10\t.\tA\tG\tq", "chr22\t12\t.\tC\tT\tq"]
 
 
+def test_vcf_keys_raises_on_a_short_body_line(tmp_path):
+    p = tmp_path / "short.vcf"
+    p.write_text("##x\n#CHROM\tPOS\tID\tREF\tALT\nchr22\t10\t.\n")
+    with pytest.raises(ValueError, match="expected >= 5"):
+        parity.vcf_keys(p)
+
+
 def test_compare_reports_the_first_difference():
     c = parity.compare([1, 2, 3], [1, 9, 3])
     assert not c["equal"] and c["first_diff"]["index"] == 1
