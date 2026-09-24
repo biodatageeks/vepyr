@@ -1,7 +1,6 @@
 import polars as pl
-import pytest
 
-from pibench.queries import BY_ID, PANEL_TXT, QUERIES, panel_genes
+from pibench.queries import BY_ID, QUERIES, panel_genes
 
 L = pl.List(pl.String)
 
@@ -220,10 +219,19 @@ def test_p5_cadd_is_variant_level_and_am_is_per_entry():
     assert kept("P5", df) == [1]
 
 
-@pytest.mark.skipif(not PANEL_TXT.exists(), reason="panel added in Task 5")
 def test_panel_has_78_symbols_and_includes_nf2():
     genes = panel_genes()
     assert len(genes) == 78 and "NF2" in genes
+
+
+def test_r3_is_the_nf2_locus():
+    from pibench.queries import filter_vep_expression, panel_regions
+
+    assert panel_regions() == [("chr22", 29_603_520, 29_698_598)]
+    assert (
+        filter_vep_expression(BY_ID["R3"])
+        == "(CHROM is chr22 and POS >= 29603520 and POS <= 29698598)"
+    )
 
 
 def test_expr_reads_exactly_its_declared_columns():
