@@ -31,7 +31,7 @@ whether to repeat everything on chr1. WGS is out of scope for this round.
 
 ## Query catalogue
 
-`performance-tests/polars/queries.py` holds one explicit record per query:
+`performance-tests/polars-integration/queries.py` holds one explicit record per query:
 `id`, `tier`, `filter_vep` expression, Polars expression (a function of the
 frame shape), `cache` (`ensembl` or `merged`), `plugins` (bool), `note`.
 The pairs are hand-written, with no `filter_vep`→Polars translator. The same
@@ -48,8 +48,8 @@ module generates the supplement's equivalence table.
 | Q4 | known | `CLIN_SIG match pathogenic` |
 | Q5 | consequence | `IMPACT is HIGH` |
 | Q6 | consequence | `IMPACT in HIGH,MODERATE` |
-| Q7 | consequence | `Consequence in stop_gained,frameshift_variant,splice_acceptor_variant,splice_donor_variant,start_lost,stop_lost and (CANONICAL is YES or MANE_SELECT)` |
-| Q8 | consequence | `Consequence is missense_variant and SIFT match deleterious and PolyPhen match damaging` |
+| Q7 | consequence | `(Consequence match stop_gained or Consequence match frameshift_variant or Consequence match splice_acceptor_variant or Consequence match splice_donor_variant or Consequence match start_lost or Consequence match stop_lost) and (CANONICAL is YES or MANE_SELECT)` |
+| Q8 | consequence | `Consequence match missense_variant and SIFT match deleterious and PolyPhen match damaging` |
 | Q9 | consequence | `SYMBOL in panels/acmg_sf.txt` |
 | Q10 | composite | `IMPACT in HIGH,MODERATE and (MAX_AF < 0.01 or not MAX_AF) and (CANONICAL is YES or MANE_SELECT)` |
 | P1 | plugin | `CADD_PHRED > 20` |
@@ -71,11 +71,13 @@ independently. Multi-field queries (Q7, Q8, Q10, P5) are where the two would
 differ. Before writing R1-R3, confirm the exact field names `filter_vep`
 gives the fixed columns (`CHROM` vs `#CHROM`).
 
-**Panel.** `panels/acmg_sf.txt` is the ACMG SF v3.2 gene symbol list, with
-its version recorded in the file header. R3's loci come from the 116 Ensembl
-transcript cache (gene start/end per symbol, chr22 only) through a small
-committed script. The resulting BED is committed so the region set does not
-drift.
+**Panel.** `panels/acmg_sf.txt` is the ACMG SF v3.2 gene symbol list as listed
+on the NCBI ClinVar page (78 symbols, fetched 2026-09-24), with its version
+recorded in the file header. Only NF2 lies on chr22, so Q9 and R3 are highly
+selective on chr22; the supplement says so. R3's loci come from the 116
+Ensembl transcript cache (gene start/end per symbol, chr22 only) through a
+small committed script. The resulting BED is committed so the region set does
+not drift.
 
 ## Correctness gate
 
@@ -103,7 +105,9 @@ with plugins for P):
 - `filter_vep -i annotated.vcf -filter "<expr>" -o out.vcf` in the release_116.0
   container.
 - Polars: `pb.scan_vcf(annotated.vcf)` → split CSQ into per-entry fields →
-  filter → count/sink. CSQ parsing is inside the timed region.
+  filter → write through `pb.sink_vcf`, like `filter_vep` does. CSQ parsing
+  is inside the timed region. Record-set parity is the hard gate here; body
+  parity is reported.
 Single process on both sides. The results record wall time, peak RSS and
 output rows.
 
@@ -128,7 +132,8 @@ output rows.
   the flags that run.
 - Every query runs on both sides at every process count, and on all three vepyr
   paths. Body parity (above) is checked for the VCF path at W=1 against N=0,
-  and at every W against the same-N VEP output.
+  and at every W against serial VEP (fork 0); VEP fork-N vs fork-0 drift is
+  reported separately.
 
 **C. Pushdown ablation (vepyr only, W=1 and W=8).**
 - Region: R1-R3 pushed down vs the same predicate applied after `collect()`,
@@ -144,7 +149,8 @@ output rows.
 
 - Each configuration runs in its own subprocess, and its peak RSS is attributed
   to that process only. Docker runs are timed from the host with
-  `/usr/bin/time`, as in PR #117. The Docker VM overhead is stated.
+  `/usr/bin/time`, as in PR #117. The Docker VM overhead is stated. VEP peak
+  RSS is not reported (only the Docker client is visible from the host).
 - Per configuration: one discarded warm-up run, then 3 timed repeats. The
   median is reported and the min/max kept in raw results.
 - The 1-minute load average is recorded before each run. A run is refused if
@@ -153,11 +159,11 @@ output rows.
   pin, polars + polars-bio versions, Docker image digest, cache paths, and
   the query id.
 - Raw results go to
-  `performance-tests/polars/outputs/116/macos_<host>_chr22_<date>/`.
+  `performance-tests/polars-integration/outputs/116/macos_<host>_chr22_<date>/`.
 
 ## Layout
 
-vepyr (`performance-tests/polars/`):
+vepyr (`performance-tests/polars-integration/`):
 ```
 README.md             reproduction block and result summary
 queries.py            the catalogue
