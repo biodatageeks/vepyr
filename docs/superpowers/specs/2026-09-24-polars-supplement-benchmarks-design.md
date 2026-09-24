@@ -110,19 +110,34 @@ output rows.
 **B. End to end, including polars-bio.**
 - VEP: `vep --fork N --everything [--plugin …]` then `filter_vep`, for N in
   {0,1,3,7}. Annotation and filter are timed separately and summed.
-- vepyr: `annotate(vcf, cache, everything=True, reference_fasta=…, skip_csq=False, workers=W)`
-  → Polars filter → `pb.sink_vcf`, for W in {1,2,4,8}. A region filter is
-  pushed down, and prioritisation filters run per batch.
-- Every query runs on both sides at every process count. Body parity (above)
-  is checked at W=1 against N=0, and at every W against the same-N VEP output.
+- vepyr: `annotate(vcf, cache, everything=True, reference_fasta=…, workers=W)`
+  → Polars filter → one of **three output paths**, for W in {1,2,4,8}.
+  A region filter is pushed down, and prioritisation filters run per batch.
+
+  | Path | Call | `skip_csq` | Parity check |
+  |---|---|---|---|
+  | DataFrame | `.collect()` | `True` (default) | record set vs `filter_vep` |
+  | VCF | `pb.sink_vcf(lf, out.vcf)` | `False` (CSQ is what gets written) | body line for line vs VEP + `filter_vep` |
+  | Parquet | `lf.sink_parquet(out.parquet, row_group_size=5000)` | `True` (default) | record set vs `filter_vep` |
+
+  `row_group_size=5000` matches the engine's batch size. Polars' default row
+  group buffers far more than a batch and inflates peak RSS (docs/dataframes.md,
+  "Writing results to disk": chr1 3.5 GB vs 6.0 GB). The DataFrame and Parquet
+  paths leave the CSQ string off, as the docs recommend. The VCF path needs it.
+  The supplement states this difference, because it changes both memory and
+  the flags that run.
+- Every query runs on both sides at every process count, and on all three vepyr
+  paths. Body parity (above) is checked for the VCF path at W=1 against N=0,
+  and at every W against the same-N VEP output.
 
 **C. Pushdown ablation (vepyr only, W=1 and W=8).**
 - Region: R1-R3 pushed down vs the same predicate applied after `collect()`,
-  which forces the full annotation.
+  which forces the full annotation. Measured on all three output paths.
 - Projection: Q1-Q10 and P1-P5 with a narrow `select()` of the columns the
   query reads, vs the full frame. This shows the annotation flags that get
-  switched off. The `sink_vcf` path needs CSQ, which re-enables every flag, so
-  this ablation uses `collect()` / `sink_parquet`, and the write-up states why.
+  switched off. Measured on the DataFrame and Parquet paths only: `sink_vcf`
+  needs CSQ, which re-enables every flag, so projection cannot save work
+  there. The write-up states why.
 - `head(n)` as a `LIMIT` for completeness: one row, cheap.
 
 ## Measurement
