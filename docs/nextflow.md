@@ -51,12 +51,12 @@ workflow {
         [ id: file(params.cache).name ],
         file(params.cache, checkIfExists: true, type: 'dir')
     ])
-    // A bgzip FASTA needs its .gzi next to the .fai; a plain FASTA has only the .fai.
-    def fai = file("${params.fasta}.fai", checkIfExists: true)
+    // A bgzip FASTA needs its .gzi as well as the .fai; a plain FASTA passes [] for it.
     fasta = channel.value([
         [ id: 'GRCh38' ],
         file(params.fasta, checkIfExists: true),
-        params.fasta.endsWith('.gz') ? [ fai, file("${params.fasta}.gzi", checkIfExists: true) ] : fai
+        file("${params.fasta}.fai", checkIfExists: true),
+        params.fasta.endsWith('.gz') ? file("${params.fasta}.gzi", checkIfExists: true) : []
     ])
 
     VEPYR_ANNOTATE(vcf, cache, fasta, params.cache_version, [[], []])
@@ -183,16 +183,17 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
     `bcftools/norm` writes `${meta.id}.vcf.gz`. If `meta.id` equals the input
     VCF's basename (`sample.vcf.gz` with `id: 'sample'`), it writes over its own
     staged input, which is a symlink to your file, and truncates the original.
-    The `.norm` prefix avoids that. `VEPYR_ANNOTATE` stages its input under
-    `input/`, so it needs no distinct prefix of its own.
+    The `.norm` prefix avoids that. `VEPYR_ANNOTATE` writes
+    `${meta.id}_vepyr.vcf.gz` by default, so it needs no distinct prefix of its
+    own; if you set one that equals the input's name, the task stops with an error.
 
 ## Inputs
 
 | Channel | Shape | Notes |
 |---|---|---|
-| 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — but without it the task runs a single pipeline. |
+| 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — and the task then builds one with `tabix`; an input that is not bgzip cannot be indexed and runs a single pipeline. |
 | 2 | `[ meta2, cache ]` | vepyr Parquet cache **directory**, e.g. `116_GRCh38_ensembl`. Not an Ensembl VEP cache. |
-| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [] ]` otherwise. |
+| 3 | `[ meta3, fasta, fai, gzi ]` | Reference FASTA, its `.fai` and, for a bgzip FASTA, its `.gzi` — pass `[]` for `gzi` with a plain FASTA. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [], [] ]` otherwise. |
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
@@ -214,7 +215,7 @@ task.
 |---|---|
 | `ext.args` | Extra `vepyr annotate` flags, e.g. `'--everything'` or `'--hgvsc'`. See [Command line](cli.md#options). |
 | `ext.args2` | Extra `tabix` flags for indexing the output. |
-| `ext.prefix` | Output file name stem. Default: `meta.id`. |
+| `ext.prefix` | Output file name stem. Default: `${meta.id}_vepyr`. It must differ from the input VCF's name. |
 | `cpus` | Annotation pipelines (`--fork`). |
 
 The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,

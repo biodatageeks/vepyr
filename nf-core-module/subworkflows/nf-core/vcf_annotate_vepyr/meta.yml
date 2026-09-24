@@ -20,8 +20,8 @@ description: |
   Keep the `BCFTOOLS_NORM` `ext.prefix` whenever `meta.id` can equal the input
   VCF's basename (`sample.vcf.gz` with `id: 'sample'`): bcftools/norm writes
   `${meta.id}.vcf.gz` over its own staged input, a symlink, which truncates the
-  original file. `VEPYR_ANNOTATE` stages its input under `input/` and needs no
-  distinct prefix.
+  original file. `VEPYR_ANNOTATE` writes `${meta.id}_vepyr.vcf.gz` by default
+  and needs no distinct prefix.
 keywords:
   - vcf
   - annotation
@@ -43,10 +43,10 @@ input:
         Structure: [ val(meta2), path(cache) ]
   - ch_fasta:
       description: |
-        Reference FASTA and its samtools faidx index. For a bgzip FASTA pass
-        [ fai, gzi ] in the index slot. Required when `val_normalize` is true
+        Reference FASTA, its samtools faidx index and, for a bgzip FASTA, its
+        .gzi index (pass [] for an uncompressed FASTA). Required when `val_normalize` is true
         (bcftools norm always reads the reference) and for vepyr's `--everything`.
-        Structure: [ val(meta3), path(fasta), path(fai) ]
+        Structure: [ val(meta3), path(fasta), path(fai), path(gzi) ]
   - val_cache_version:
       type: integer
       description: Ensembl cache version to assert against the cache metadata, or [] to skip the check

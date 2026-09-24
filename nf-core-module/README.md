@@ -28,9 +28,9 @@ were. It also fails outright when the FASTA and VCF name contigs differently
 (`22` vs `chr22`), a mismatch vepyr itself tolerates. Keep the `ext.prefix`
 whenever `meta.id` can equal the input VCF's basename: `bcftools/norm` writes
 `${meta.id}.vcf.gz` over its own staged input, a symlink, and so truncates the
-original file. `VEPYR_ANNOTATE` stages its input under `input/`, so the
-normalized file reaching it under its own output name is harmless; the
-subworkflow tests leave the prefix unset to cover exactly that.
+original file. `VEPYR_ANNOTATE` writes `${meta.id}_vepyr.vcf.gz` by default, so
+the normalized `${meta.id}.vcf.gz` reaching it never collides with its output;
+the subworkflow tests leave the prefix unset to cover exactly that.
 
 `.nf-core.yml` and `tests/config/nf-test.config` exist only so `nf-core modules
 lint` treats this directory as a modules repository. nf-core/modules has its own
@@ -128,7 +128,7 @@ Overrides:
   the task work dir, the input, cache, FASTA and output paths, and the exact
   `vepyr annotate` command. It reads `tests/data/hg002_chr22/` (~30 MB, Parquet
   and FASTA in LFS): a cache trimmed to the rows that run reads, plus a bgzip
-  FASTA passed with `[ fai, gzi ]` in the index slot. Rebuild it from the
+  FASTA with its `.fai` and `.gzi`. Rebuild it from the
   repository root with `uv run python tests/data/hg002_chr22/prepare.py`.
 
 The golden snapshot (`main.nf.test.snap`) waits for the fixture on
