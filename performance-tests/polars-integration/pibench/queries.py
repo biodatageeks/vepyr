@@ -62,8 +62,34 @@ def all_of(*flags: pl.Expr) -> pl.Expr:
     return reduce(mul, flags)
 
 
+def _zero_like(flag: pl.Expr) -> pl.Expr:
+    """A List(Int8) of zeros, one per entry of `flag`; null stays null (shape unknown)."""
+    return flag.list.eval(pl.lit(0, dtype=pl.Int8))
+
+
 def any_of(*flags: pl.Expr) -> pl.Expr:
-    return reduce(add, flags)
+    """Sum of List(Int8) flags, or-ing per entry without a null flag list vetoing the rest.
+
+    A flag list is null when its source column is null for the whole row (e.g. no
+    MANE_SELECT at all), not when individual entries are absent (`entry()` already
+    turns those into 0). Summing directly would let that null propagate through
+    `+` and null out every entry, hiding a true flag on another list. Instead,
+    each null flag is filled from another flag's shape, zeroed out, before summing
+    -- so a null flag contributes 0s, not null, unless every flag is null (then the
+    row-level "nothing to check" case correctly stays null; `any_entry` treats it
+    as False). The zero template is built with `list.eval` rather than `flag * 0`:
+    the latter silently upcasts a null List(Int8) to List(Int32) in Polars 1.39,
+    and adding mismatched-width list flags panics the engine.
+    """
+    zero_from_others = [
+        reduce(
+            lambda a, b: a.fill_null(b),
+            [_zero_like(other) for j, other in enumerate(flags) if j != i],
+        )
+        for i in range(len(flags))
+    ]
+    filled = [f.fill_null(z) for f, z in zip(flags, zero_from_others)]
+    return reduce(add, filled)
 
 
 def any_entry(flags: pl.Expr) -> pl.Expr:

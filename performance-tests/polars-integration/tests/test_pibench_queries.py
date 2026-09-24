@@ -64,10 +64,21 @@ def test_region_without_pushdown_keeps_the_same_rows():
     assert df.filter(q.expr_no_pushdown())["start"].to_list() == [20_000_000]
 
 
+def test_r2_100kb_window_bounds_are_inclusive():
+    df = frame(start=[29_999_999, 30_000_000, 30_100_000, 30_100_001], IMPACT=[[]] * 4)
+    assert kept("R2", df) == [30_000_000, 30_100_000]
+
+
 def test_rare_keeps_missing_and_is_strict_at_the_threshold():
     # 0.01 parsed to Float32 must not count as < 0.01 (filter_vep compares text as double).
     df = frame(start=[1, 2, 3], MAX_AF=[None, 0.01, 0.009])
     assert kept("Q1", df) == [1, 3]
+
+
+def test_gnomad_af_keeps_missing_and_is_strict_at_the_threshold():
+    # Same Float32-vs-text-double boundary as Q1, on gnomADg_AF at 0.001.
+    df = frame(start=[1, 2, 3], gnomADg_AF=[None, 0.001, 0.0009])
+    assert kept("Q2", df) == [1, 3]
 
 
 def test_novel_is_null_or_empty_existing_variation():
@@ -78,6 +89,31 @@ def test_novel_is_null_or_empty_existing_variation():
 def test_clin_sig_match_is_case_insensitive_substring():
     df = frame(start=[1, 2, 3], CLIN_SIG=[["likely_pathogenic"], ["benign"], None])
     assert kept("Q4", df) == [1]
+
+
+def test_impact_is_high_only():
+    df = frame(start=[1, 2, 3], IMPACT=[["HIGH"], ["MODERATE"], ["LOW"]])
+    assert kept("Q5", df) == [1]
+
+
+def test_impact_is_high_or_moderate():
+    df = frame(start=[1, 2, 3], IMPACT=[["HIGH"], ["MODERATE"], ["LOW"]])
+    assert kept("Q6", df) == [1, 2]
+
+
+def test_a_wholly_null_flag_list_does_not_veto_the_other_side_of_an_or():
+    # MANE_SELECT is absent for the whole row (not just this entry); CANONICAL
+    # alone must still carry Q7's and Q10's "canonical or MANE" leg.
+    df = frame(
+        start=[1],
+        IMPACT=[["HIGH"]],
+        Consequence=[["stop_gained"]],
+        CANONICAL=[["YES"]],
+        MANE_SELECT=None,
+        MAX_AF=[None],
+    )
+    assert kept("Q7", df) == [1]
+    assert kept("Q10", df) == [1]
 
 
 def test_lof_needs_both_conditions_on_the_same_entry():
@@ -137,6 +173,11 @@ def test_cadd_phred_is_numeric_on_a_string_column():
     assert kept("P1", df) == [1]
 
 
+def test_am_class_is_likely_pathogenic():
+    df = frame(start=[1, 2, 3], am_class=[["likely_pathogenic"], ["benign"], None])
+    assert kept("P2", df) == [1]
+
+
 def test_spliceai_any_of_four_scores():
     df = frame(
         start=[1, 2],
@@ -146,6 +187,21 @@ def test_spliceai_any_of_four_scores():
         SpliceAI_pred_DS_DL=[["0.50"], None],
     )
     assert kept("P3", df) == [1]
+
+
+def test_clinvar_clnsig_match_is_case_insensitive_substring():
+    # Same substring semantics as Q4/CLIN_SIG: "Conflicting_classifications_of_
+    # pathogenicity" contains "pathogenicity", which contains "pathogenic" as a
+    # substring, so filter_vep's `match` keeps it too.
+    df = frame(
+        start=[1, 2, 3],
+        ClinVar_CLNSIG=[
+            "Pathogenic",
+            "Benign",
+            "Conflicting_classifications_of_pathogenicity",
+        ],
+    )
+    assert kept("P4", df) == [1, 3]
 
 
 def test_p5_cadd_is_variant_level_and_am_is_per_entry():
@@ -168,3 +224,13 @@ def test_p5_cadd_is_variant_level_and_am_is_per_entry():
 def test_panel_has_78_symbols_and_includes_nf2():
     genes = panel_genes()
     assert len(genes) == 78 and "NF2" in genes
+
+
+def test_expr_reads_exactly_its_declared_columns():
+    # R3 and Q9 build their expr from the panel files, which do not exist yet
+    # (Task 5); every other query's expr must read exactly q.columns, no more
+    # and no less.
+    for q in QUERIES:
+        if q.id in ("R3", "Q9"):
+            continue
+        assert set(q.expr().meta.root_names()) == set(q.columns), q.id
