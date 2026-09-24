@@ -178,8 +178,8 @@ def _r(qid, regions, note):
         region_filter_vep(regions),
         ("chrom", "start"),
         lambda: region(regions),
-        lambda: region(regions, pushable=False),
-        note,
+        expr_no_pushdown=lambda: region(regions, pushable=False),
+        note=note,
     )
 
 
@@ -194,8 +194,8 @@ QUERIES: list[Query] = [
         "",
         ("chrom", "start"),
         lambda: region(panel_regions()),
-        lambda: region(panel_regions(), pushable=False),
-        "ACMG SF v3.2 gene loci on chr22 (NF2 only)",
+        expr_no_pushdown=lambda: region(panel_regions(), pushable=False),
+        note="ACMG SF v3.2 gene loci on chr22 (NF2 only)",
     ),
     Query(
         "Q1",
@@ -232,7 +232,7 @@ QUERIES: list[Query] = [
         "CLIN_SIG match pathogenic",
         ("CLIN_SIG",),
         lambda: variant_list_match("CLIN_SIG", "pathogenic"),
-        "case-insensitive substring: also matches likely_pathogenic and conflicting_*_pathogenicity",
+        note="case-insensitive substring: also matches likely_pathogenic and conflicting_*_pathogenicity",
     ),
     Query(
         "Q5",

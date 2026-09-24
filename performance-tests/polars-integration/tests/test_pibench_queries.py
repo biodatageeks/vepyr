@@ -52,6 +52,24 @@ def test_every_query_names_the_columns_it_reads():
         assert q.columns, q.id
 
 
+def test_query_note_and_expr_no_pushdown_are_well_typed():
+    # Regression for Q4 passing its note string as the 8th positional arg of
+    # Query(...), landing in the expr_no_pushdown slot instead of note.
+    for q in QUERIES:
+        assert q.expr_no_pushdown is None or callable(q.expr_no_pushdown), q.id
+        assert isinstance(q.note, str), q.id
+
+
+def test_no_pushdown_code_path_returns_an_expr():
+    # The code path vepyr_once.py's --no-pushdown flag takes: call
+    # expr_no_pushdown() when set, else fall back to expr(). Both must
+    # produce a pl.Expr -- not, e.g., a note string mistakenly stored where
+    # expr_no_pushdown belongs.
+    for q in QUERIES:
+        fn = q.expr_no_pushdown if q.expr_no_pushdown is not None else q.expr
+        assert isinstance(fn(), pl.Expr), q.id
+
+
 def test_region_bounds_are_inclusive():
     df = frame(start=[19_999_999, 20_000_000, 25_000_000, 25_000_001], IMPACT=[[]] * 4)
     assert kept("R1", df) == [20_000_000, 25_000_000]
