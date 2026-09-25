@@ -1,0 +1,73 @@
+{
+  "warmups": [
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/Q3.fv.vcf",
+        "not Existing_variation"
+      ],
+      "exit": 0,
+      "wall_s": 39.91354641597718,
+      "user_s": 0.016234,
+      "sys_s": 0.012062,
+      "max_rss_bytes": 28065792,
+      "load_1m_before": 3.0185546875
+    }
+  ],
+  "runs": [
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/Q3.fv.vcf",
+        "not Existing_variation"
+      ],
+      "exit": 0,
+      "wall_s": 40.16648441692814,
+      "user_s": 0.016281999999999998,
+      "sys_s": 0.013703,
+      "max_rss_bytes": 27688960,
+      "load_1m_before": 2.91943359375
+    },
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/Q3.fv.vcf",
+        "not Existing_variation"
+      ],
+      "exit": 0,
+      "wall_s": 40.40493983356282,
+      "user_s": 0.017598,
+      "sys_s": 0.014136,
+      "max_rss_bytes": 27901952,
+      "load_1m_before": 3.654296875
+    },
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/Q3.fv.vcf",
+        "not Existing_variation"
+      ],
+      "exit": 0,
+      "wall_s": 40.46170366695151,
+      "user_s": 0.018035,
+      "sys_s": 0.013888,
+      "max_rss_bytes": 27967488,
+      "load_1m_before": 3.99365234375
+    }
+  ],
+  "median_wall_s": 40.40493983356282,
+  "min_wall_s": 40.16648441692814,
+  "max_wall_s": 40.46170366695151,
+  "median_rss_bytes": 27901952,
+  "query": "Q3",
+  "tool": "filter_vep",
+  "rows": 430
+}
