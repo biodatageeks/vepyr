@@ -1,0 +1,2 @@
+fork	exit_status	elapsed_wall	max_rss_kb	output_file	time_file	stderr_file
+8	0	1:13.93	27600	/Users/mwiewior/research/git/vepyr/performance-tests/vep/outputs/116/macos_mwiewior_chr22_20260913/warmup/HG002_annotated_wgs_everything_hgvs_merged_fork8.vcf	/Users/mwiewior/research/git/vepyr/performance-tests/vep/outputs/116/macos_mwiewior_chr22_20260913/warmup/merged_fork8.time.txt	/Users/mwiewior/research/git/vepyr/performance-tests/vep/outputs/116/macos_mwiewior_chr22_20260913/warmup/merged_fork8.stderr.txt
