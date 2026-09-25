@@ -2076,15 +2076,19 @@ def annotate(
                 # and read every plugin column out of that one parse. Plugin
                 # values are the last fields of each entry.
                 n_plugin = len(csq_plugin_specs)
+                # A helper name no column or plugin field can already have.
+                helper = _PLUGIN_FIELDS
+                while helper in batch_df.columns or helper in plugin_columns:
+                    helper += "_"
                 batch_df = batch_df.with_columns(
                     pl.col("CSQ")
                     .str.split(",")
                     .list.eval(pl.element().str.split("|"))
-                    .alias(_PLUGIN_FIELDS)
+                    .alias(helper)
                 )
                 batch_df = batch_df.with_columns(
                     _plugin_column(
-                        pl.col(_PLUGIN_FIELDS).list.eval(
+                        pl.col(helper).list.eval(
                             pl.element()
                             .list.get(index - n_plugin, null_on_oob=True)
                             .replace("", None)
@@ -2094,7 +2098,7 @@ def annotate(
                     ).alias(name)
                     for index, (name, dtype, per_variant) in enumerate(csq_plugin_specs)
                     if name in parse_columns
-                ).drop(_PLUGIN_FIELDS)
+                ).drop(helper)
             if skip_csq and "CSQ" in batch_df.columns:
                 batch_df = batch_df.drop("CSQ")
             if selected_dataframe_columns is not None:

@@ -2313,6 +2313,18 @@ class TestPluginColumnCost:
         assert one[column].to_list() == full[column].to_list()
         assert one.schema[column] == full.schema[column]
 
+    def test_a_plugin_field_named_like_the_helper_survives(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, _ = self._fake(tmp_path, monkeypatch)
+        manifest = Path(root) / "plugin" / "cadd" / "manifest.json"
+        m = json.loads(manifest.read_text())
+        m["value_columns"][0]["csq_field"] = vepyr._PLUGIN_FIELDS
+        manifest.write_text(json.dumps(m))
+        df = self._annotate(root, ["cadd"]).collect()
+        assert df[vepyr._PLUGIN_FIELDS].to_list() == ["24.5"]
+        assert df["CADD_RAW"].to_list() == ["0.12"]
+
     def test_no_helper_column_leaks_into_the_frame(self, tmp_path, monkeypatch):
         root, _ = self._fake(tmp_path, monkeypatch)
         lf = self._annotate(root, ["cadd", "spliceai"])
