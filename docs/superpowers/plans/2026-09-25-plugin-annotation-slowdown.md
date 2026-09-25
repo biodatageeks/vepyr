@@ -1,6 +1,6 @@
 # Plugin annotation slowdown: vepyr CSQ re-parse + engine serial plugin takes
 
-Date: 2026-09-25. Status: plan awaiting go-ahead (vepyr-fix runbook, step 1d). Decisions so far: A1+A2 (yes), two vepyr PRs (yes), scope = A + B now, typed engine plugin columns as the next PR.
+Date: 2026-09-25. Status: plan awaiting go-ahead (vepyr-fix runbook, step 1d). Decisions so far: A1+A2 (yes), A3 plugin subset (yes), two vepyr PRs (yes), scope = A + B now, typed engine plugin columns as the next PR.
 Found while benchmarking the Polars supplement (`perf/polars-supplement`, Experiment C).
 
 ## The defect
@@ -70,9 +70,20 @@ ensembl-vep, and that is deliberate.
   - per-feature: a typed list;
   - `"" → null`;
   - `null_on_oob`.
-- A2: gate the parse on the plugin columns the query needs (`read_plugins`). If the
-  projection reads none, skip the parse entirely. `pb.sink_vcf` and `select()` without
-  plugin columns then pay nothing.
+- A2: parse only the plugin columns the query reads (`read_plugins`), not all 38.
+  Already true today, and kept: when a query reads neither `CSQ` nor any plugin column,
+  vepyr drops `plugin_cache_root`/`plugins` from the engine options and skips CSQ
+  (`__init__.py:1976-1983`). So a plain core-column `select()` pays nothing. A2 closes the
+  partial case, e.g. `select("CADD_PHRED")`, which today parses every plugin field.
+- A3 (user decision 2026-09-25): when the query does not read the raw `CSQ`, pass the
+  engine only the plugins that own a read plugin column, keeping their configured order.
+  The engine then skips the other plugins' lookups. CSQ positions shift with the subset:
+  the trailing plugin fields are those of the selected plugins only, so the field offsets
+  are computed from the subset specs. When `CSQ` is read, or with no projection (bare
+  `collect()`, `pb.sink_vcf`), every configured plugin is passed as today, so the CSQ string
+  and its declared layout do not change. Tests: `select` of one plugin column gives values
+  identical to the full run, for each of the 5 plugins and for two-plugin mixes,
+  per-variant and per-feature.
 - Blast radius, checked:
   - `_flags_for_projection` / `plugin_column_inputs` and the provenance header keep the
     same inputs;
