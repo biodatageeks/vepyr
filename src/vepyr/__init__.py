@@ -194,6 +194,11 @@ def _rename_shadowed_input_columns(
     return {mapping.get(name, name): dtype for name, dtype in schema.items()}, mapping
 
 
+# A per-batch helper column holding CSQ split into entries and fields; it is
+# dropped before the batch leaves the source.
+_PLUGIN_FIELDS = "__vepyr_csq_fields"
+
+
 def _plugin_column(values, dtype, per_variant: bool):
     """Shape one plugin field parsed out of CSQ: ``values`` is a list of one
     string per consequence entry. A per-variant plugin repeats the same value
@@ -1692,6 +1697,9 @@ def annotate(
     # Fields a plugin's match templates read (``{HGVSc}`` say), per plugin
     # column: reading the column needs those fields' flags too.
     plugin_column_inputs: dict[str, set[str]] = {}
+    # The plugin each column belongs to, so a query can hand the engine only the
+    # plugins whose columns it reads.
+    plugin_of_column: dict[str, str] = {}
     if plugin_cache_root is not None and plugins != []:
         plugin_root = os.path.join(plugin_cache_root, "plugin")
         if not os.path.isdir(plugin_root):
@@ -1729,6 +1737,7 @@ def annotate(
                 plugin_field_names.append(column["csq_field"])
                 plugin_column_specs.append((column["csq_field"], dtype, per_variant))
                 plugin_column_inputs[column["csq_field"]] = template_fields
+                plugin_of_column[column["csq_field"]] = plugin_name
         if len(set(plugin_field_names)) != len(plugin_field_names):
             raise ValueError(
                 "selected plugins expose duplicate CSQ field names, which cannot be "
@@ -1980,6 +1989,26 @@ def annotate(
                 # string, so a query reading neither skips the plugin lookup.
                 engine_opts.pop("plugin_cache_root", None)
                 engine_opts.pop("plugins", None)
+        # The plugins whose values the engine appends to CSQ, and which plugin
+        # columns are parsed back out of it. Reading the raw CSQ string (or not
+        # projecting at all) keeps every plugin, so the string and its declared
+        # layout are unchanged; otherwise the engine is handed only the plugins
+        # that own a column the query reads, in their configured order, and the
+        # trailing CSQ fields are those plugins' fields alone.
+        csq_plugin_specs = plugin_column_specs
+        parse_columns = read_plugins
+        if needed is not None and "CSQ" not in needed and read_plugins:
+            owners = {plugin_of_column[c] for c in read_plugins}
+            csq_plugin_specs = [
+                spec
+                for spec in plugin_column_specs
+                if plugin_of_column[spec[0]] in owners
+            ]
+            engine_opts["plugins"] = list(
+                dict.fromkeys(plugin_of_column[spec[0]] for spec in csq_plugin_specs)
+            )
+        elif needed is not None:
+            parse_columns = needed & plugin_columns
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
@@ -2042,25 +2071,30 @@ def annotate(
                         if old in batch_df.columns
                     }
                 )
-            if plugin_field_names and "CSQ" in batch_df.columns:
-                n_plugin = len(plugin_field_names)
+            if parse_columns and "CSQ" in batch_df.columns:
+                # Tokenise CSQ once per batch -- entries on ",", fields on "|" --
+                # and read every plugin column out of that one parse. Plugin
+                # values are the last fields of each entry.
+                n_plugin = len(csq_plugin_specs)
+                batch_df = batch_df.with_columns(
+                    pl.col("CSQ")
+                    .str.split(",")
+                    .list.eval(pl.element().str.split("|"))
+                    .alias(_PLUGIN_FIELDS)
+                )
                 batch_df = batch_df.with_columns(
                     _plugin_column(
-                        pl.col("CSQ")
-                        .str.split(",")
-                        .list.eval(
+                        pl.col(_PLUGIN_FIELDS).list.eval(
                             pl.element()
-                            .str.split("|")
                             .list.get(index - n_plugin, null_on_oob=True)
                             .replace("", None)
                         ),
                         dtype,
                         per_variant,
                     ).alias(name)
-                    for index, (name, dtype, per_variant) in enumerate(
-                        plugin_column_specs
-                    )
-                )
+                    for index, (name, dtype, per_variant) in enumerate(csq_plugin_specs)
+                    if name in parse_columns
+                ).drop(_PLUGIN_FIELDS)
             if skip_csq and "CSQ" in batch_df.columns:
                 batch_df = batch_df.drop("CSQ")
             if selected_dataframe_columns is not None:
