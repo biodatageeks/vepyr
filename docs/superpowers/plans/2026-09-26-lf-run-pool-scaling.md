@@ -787,10 +787,29 @@ Run the runbook's watch loop over `$PRS`. After any engine push, re-pin vepyr to
 Before starting, check that the vepyr pin resolves to the engine PR's current head, and stop if it does not:
 
 ```bash
+# Same engine code: identical bio-function-vep/src trees. Before the engine PR
+# merges the pin IS its head; after, it is a merge commit or release tag whose
+# SHA differs but whose source must not.
+ENGINE_REPO=~/research/git/datafusion-bio-functions
+same_engine_src() {
+  git -C "$ENGINE_REPO" fetch -q origin 2>/dev/null
+  git -C "$ENGINE_REPO" cat-file -e "$1^{commit}" && git -C "$ENGINE_REPO" cat-file -e "$2^{commit}" \
+    && git -C "$ENGINE_REPO" diff --quiet "$1" "$2" -- datafusion/bio-function-vep/src
+}
 PR_HEAD=$(gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json headRefOid --jq .headRefOid) || exit 1
+PR_MERGE=$(gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json mergeCommit --jq '.mergeCommit.oid // ""') || exit 1
 PIN_REV=$(sed -n '/name = "datafusion-bio-function-vep"/,/^source/s/.*#\([0-9a-f]\{40\}\)"$/\1/p' "$ROOT/Cargo.lock")
-[ -n "$PR_HEAD" ] && [ "$PR_HEAD" = "$PIN_REV" ] \
-  || { echo "stale pin: engine PR head $PR_HEAD, vepyr resolves ${PIN_REV:-nothing}; re-pin (Task 8 Step 1) first"; exit 1; }
+[ -n "$PR_HEAD" ] && [ -n "$PIN_REV" ] || { echo "cannot resolve the PR head or the pin"; exit 1; }
+if [ -z "$PR_MERGE" ]; then
+  # Not merged yet: the pin must be the PR head itself.
+  [ "$PIN_REV" = "$PR_HEAD" ] || { echo "stale pin: PR head $PR_HEAD, vepyr resolves $PIN_REV; re-pin (Task 8 Step 1) first"; exit 1; }
+else
+  # Merged: the pin (merge commit or a later release tag) must contain the merge,
+  # and the merge must carry exactly the reviewed source. Other changes merged
+  # since are covered by re-running parity on the pin (next check).
+  git -C "$ENGINE_REPO" merge-base --is-ancestor "$PR_MERGE" "$PIN_REV" && same_engine_src "$PR_HEAD" "$PR_MERGE" \
+    || { echo "pin $PIN_REV does not contain the reviewed change (merge $PR_MERGE, head $PR_HEAD)"; exit 1; }
+fi
 ```
 
 Then repeat Task 2 Steps 2–4 byte for byte with `RUN=$ROOT/e2e-testing/results/fix-lf-run-pool/final`: host check, slice deletion, WGS sweep, md5 strict, slice deletion, LF bench. Use the same `RUSTFLAGS` build.
@@ -800,8 +819,9 @@ Then compare the engine the parity reports were produced on with the final pin, 
 ```bash
 FINAL_REV=$(sed -n '/name = "datafusion-bio-function-vep"/,/^source/s/.*#\([0-9a-f]\{40\}\)"$/\1/p' "$ROOT/Cargo.lock")
 PARITY_REV=$(cat "$ROOT/e2e-testing/results/fix-lf-run-pool/final/parity_engine_rev.txt" 2>/dev/null)
-[ -n "$FINAL_REV" ] && [ "$FINAL_REV" = "$PARITY_REV" ] \
-  || { echo "parity is stale: ran on '${PARITY_REV:-none}', final pin is $FINAL_REV"; exit 1; }
+PARITY_REV=${PARITY_REV%%$'\n'*}   # first line; a note may follow
+[ -n "$FINAL_REV" ] && [ -n "$PARITY_REV" ] && same_engine_src "$PARITY_REV" "$FINAL_REV" \
+  || { echo "parity is stale: ran on '${PARITY_REV:-none}', final pin is $FINAL_REV, sources differ"; exit 1; }
 ```
 
 If it stops on stale parity, re-run Task 7 Step 4 on the final pin, then this check again, before any later gate, into the same `final/parity_*` and `final/regions` directories, which rewrites `parity_engine_rev.txt`. Parity evidence from an earlier engine revision does not cover the one being handed off.
