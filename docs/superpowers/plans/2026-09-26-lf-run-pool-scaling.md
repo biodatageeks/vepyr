@@ -782,6 +782,8 @@ grep -n 'datafusion-bio-function-vep' ~/research/git/_wt/vepyr-lf-run-pool/Cargo
 
 Then repeat Task 2 Steps 2–4 byte for byte with `RUN=$ROOT/e2e-testing/results/fix-lf-run-pool/final`: host check, slice deletion, WGS sweep, md5 strict, slice deletion, LF bench. Use the same `RUSTFLAGS` build.
 
+If that head is not the engine commit Task 7 Step 4's parity gate ran on (it records the pin in the ledger), re-run Task 7 Step 4 on the final pin first, into the same `final/parity_*` and `final/regions` directories. Parity evidence from an earlier engine revision does not cover the one being handed off.
+
 - [ ] **Step 3: Gates**
 
 ```bash
