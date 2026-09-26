@@ -797,6 +797,34 @@ PARITY_REV=$(cat "$ROOT/e2e-testing/results/fix-lf-run-pool/final/parity_engine_
 
 If it stops on stale parity, re-run Task 7 Step 4 on the final pin, then this check again, before any later gate, into the same `final/parity_*` and `final/regions` directories, which rewrites `parity_engine_rev.txt`. Parity evidence from an earlier engine revision does not cover the one being handed off.
 
+- [ ] **Step 2b: Supplementary plugin target on a build stacking #131**
+
+This branch lacks vepyr #131, so the `chr1 all` LF target is measured on a local stack: #131's head with its engine pin moved to this PR's engine head. It is never committed or pushed. Its artifact is `final/supp/lf/results.json` together with `final/supp_gate.txt`, both of which the hand-off cites.
+
+```bash
+ENGINE=$(git -C ~/research/git/_wt/functions-run-pool rev-parse --short=7 HEAD)
+git -C ~/research/git/vepyr fetch -q origin perf/plugin-csq-single-parse
+git -C ~/research/git/vepyr worktree add --detach ~/research/git/_wt/vepyr-lf-supp FETCH_HEAD
+cd ~/research/git/_wt/vepyr-lf-supp
+sed -i '' "s/rev = \"[0-9a-f]*\", features = \[\"cache-builder\"\] }/rev = \"$ENGINE\", features = [\"cache-builder\"] }/" Cargo.toml
+grep -n 'datafusion-bio-function-vep = ' Cargo.toml   # must show rev = "$ENGINE"
+env -u CONDA_PREFIX RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr || exit 1
+rm -rf target   # the extension is in src/vepyr; the target tree is ~1.6 GB of disk
+
+SUPP=$ROOT/e2e-testing/results/fix-lf-run-pool/final/supp
+.venv/bin/python $ROOT/performance-tests/vepyr/scripts/lf_run_pool_bench.py --out-dir $SUPP/lf \
+  --input chr22=$DATA_VEPYR_DIR/polars_integration/chr22/input/HG002_chr22.vcf.gz \
+  --input chr1=$DATA_VEPYR_DIR/polars_integration/lf_bench/chr1.vcf.gz \
+  --cache-dir $DATA_VEPYR_DIR/cache/116_GRCh38_merged \
+  --fasta $DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+  --plugin-cache-root $DATA_VEPYR_DIR/plugin_cache_116 \
+  --workers 4 8 --modes raw lf vcf --plugin-sets all --repeats 3 || exit 1
+$ROOT/.venv/bin/python $ROOT/performance-tests/vepyr/scripts/lf_run_pool_bench.py --gate $SUPP/lf/results.json \
+  --gate-plugins all --gate-expect chr22:all:raw,lf,vcf:4,8 --gate-expect chr1:all:raw,lf,vcf:4,8 \
+  | tee $ROOT/e2e-testing/results/fix-lf-run-pool/final/supp_gate.txt
+[ "${pipestatus[1]:-${PIPESTATUS[0]}}" -eq 0 ] || { echo "supplementary plugin gate FAILED"; exit 1; }
+```
+
 - [ ] **Step 3: Gates**
 
 ```bash
