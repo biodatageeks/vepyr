@@ -186,6 +186,11 @@ def wait_for_quiet(max_load: float, timeout_s: float = 600.0) -> float:
     The host is shared, and a timing taken under load has to be rerun, not
     recorded, so a timeout aborts the bench rather than measuring anyway.
     """
+    if not hasattr(os, "getloadavg"):
+        raise SystemExit(
+            "no load average on this platform (os.getloadavg is missing), so a "
+            "quiet host cannot be checked; run the bench on macOS or Linux"
+        )
     deadline = time.monotonic() + timeout_s
     while (load := os.getloadavg()[0]) > max_load:
         if time.monotonic() >= deadline:

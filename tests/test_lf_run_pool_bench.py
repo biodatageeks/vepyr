@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import gzip
 import importlib.util
+import os
 from pathlib import Path
 
 import pytest
@@ -61,12 +62,27 @@ def test_check_rows_rejects_an_empty_input(bench):
         bench.check_rows("chr1 raw w4", [{"rows": 0}], 0)
 
 
+needs_loadavg = pytest.mark.skipif(
+    not hasattr(os, "getloadavg"), reason="no load average on this platform (Windows)"
+)
+
+
+def test_wait_for_quiet_refuses_a_platform_without_a_load_average(bench, monkeypatch):
+    # Without a load average there is no way to tell a quiet host from a busy
+    # one, so the bench refuses to measure instead of crashing.
+    monkeypatch.delattr(bench.os, "getloadavg", raising=False)
+    with pytest.raises(SystemExit, match="load average"):
+        bench.wait_for_quiet(4.0)
+
+
+@needs_loadavg
 def test_wait_for_quiet_refuses_a_host_that_stays_busy(bench):
     # Any real load exceeds a negative threshold, so the host never goes quiet.
     with pytest.raises(SystemExit, match="load"):
         bench.wait_for_quiet(-1.0, timeout_s=0.0)
 
 
+@needs_loadavg
 def test_wait_for_quiet_returns_the_load_on_a_quiet_host(bench):
     assert bench.wait_for_quiet(1e9) >= 0.0
 
