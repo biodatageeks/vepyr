@@ -148,6 +148,19 @@ def check_rows(label: str, runs: list[dict], expected: int) -> None:
         raise SystemExit(f"{label}: runs produced {bad} rows, expected {expected}")
 
 
+def child_env(inherited: dict[str, str], overrides: list[str]) -> dict[str, str]:
+    """The environment every run gets: the caller's, less any inherited `VEP_*`
+    engine knob, plus the `--env` overrides.
+
+    A tuning or tracing variable exported in the calling shell would otherwise
+    reach every run without being recorded, so a baseline and a final could
+    measure different hidden settings instead of the defaults.
+    """
+    env = {k: v for k, v in inherited.items() if not k.startswith("VEP_")}
+    env.update(kv.split("=", 1) for kv in overrides)
+    return env
+
+
 def median_end_to_end(kept: list[dict]) -> float:
     """Median of each run's own setup + stream time.
 
@@ -224,7 +237,7 @@ def main() -> None:
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    env = {**os.environ, **dict(kv.split("=", 1) for kv in args.env)}
+    env = child_env(dict(os.environ), args.env)
     base = [
         sys.executable,
         os.path.abspath(__file__),

@@ -105,3 +105,21 @@ def test_end_to_end_median_pairs_setup_with_its_own_run(bench):
         {"setup_s": 0.5, "wall_s": 1.0},
     ]
     assert bench.median_end_to_end(runs[1:]) == 1.0
+
+
+def test_child_env_drops_inherited_engine_tuning(bench):
+    inherited = {
+        "PATH": "/bin",
+        "VEP_STREAM_BUFFER_MB": "256",
+        "VEP_PIPELINE_TRACE": "1",
+    }
+    env = bench.child_env(inherited, ["VEP_STREAM_RUN_BUFFERS=2"])
+    # Engine knobs reach a run only when the bench was told about them.
+    assert env == {"PATH": "/bin", "VEP_STREAM_RUN_BUFFERS": "2"}
+
+
+def test_child_env_keeps_an_explicit_override_of_an_inherited_knob(bench):
+    env = bench.child_env(
+        {"VEP_STREAM_BUFFER_MB": "256"}, ["VEP_STREAM_BUFFER_MB=4096"]
+    )
+    assert env == {"VEP_STREAM_BUFFER_MB": "4096"}
