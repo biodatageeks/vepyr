@@ -39,6 +39,11 @@ The analysis for step 1 was done by measurement during brainstorming, not by thr
 - **vepyr** carries the pin and gains a test and a benchmark script. `_batch_source` is not changed.
 - **datafusion-bio-formats** is untouched. The VCF reader is not on the path that moved.
 
+Read-only check, recorded 2026-09-26 during review on engine head 737c5cd and vepyr head ecb26e8, in answer to #134's review:
+- **functions (owner):** the diff is `annotate_provider.rs` only. `stream_buffer_mb` has one production call site, the `RunPoolState` budget at `:14104`. `stream_run_buffers` and `covered_buffers` each have one, the run planning at `:15275-15276`. All of them sit behind `stream_parallel = parallel && !has_shard_ctx` (`:14903`), so only the LazyFrame streaming path at workers>1 reaches them; the sharded VCF sink (`has_shard_ctx`) and workers=1 never do. The WGS output_vcf sweep and md5 strict (22/22) confirm the sink is unchanged.
+- **vepyr (carrier):** the pin and the `workers` docstring are the only library changes. `_batch_source` and the Python API are untouched.
+- **formats (untouched):** no source change, and vepyr's `datafusion-bio-format-*` pins stay at `v1.13.0`. The changed code runs after the VCF scan's grid count, on already-read batches.
+
 Runbook step 1a-bis (quote the Ensembl VEP rule) does not apply: no VEP behaviour is being ported, and the output is unchanged by construction. Spec approval plus plan approval stand in for the step 1d go-ahead; the executor starts at Task 1.
 
 ## File Structure

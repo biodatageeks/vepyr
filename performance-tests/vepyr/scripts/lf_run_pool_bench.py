@@ -426,13 +426,22 @@ def gate(
 REGRESSION_BAR = 1.10
 
 
+def _compared_time(row: dict) -> float:
+    """What a baseline comparison measures: for lf, the end-to-end time a user
+    sees (setup included); for raw and vcf, the median wall. Rows recorded
+    before setup was reported fall back to the wall."""
+    if row["mode"] == "lf":
+        return row.get("median_end_to_end_s", row["median_wall_s"])
+    return row["median_wall_s"]
+
+
 def baseline_regressions(
     base: list[dict],
     final: list[dict],
     expected: set[tuple[str, str, str, int]] | None = None,
 ) -> list[str]:
-    """Configurations whose final median wall is more than REGRESSION_BAR times
-    the baseline's. An empty baseline, or one missing any `expected`
+    """Configurations whose final time (`_compared_time`) is more than
+    REGRESSION_BAR times the baseline's. An empty baseline, or one missing any `expected`
     configuration, is itself a miss: a comparison that was never made must not
     read as a pass. Other configurations measured on one side only are skipped.
     """
@@ -448,7 +457,7 @@ def baseline_regressions(
         key = (r["input"], r["plugins"], r["mode"], r["workers"])
         if key not in before:
             continue
-        was, now = before[key]["median_wall_s"], r["median_wall_s"]
+        was, now = _compared_time(before[key]), _compared_time(r)
         if now > was * REGRESSION_BAR:
             found.append(
                 f"{key[0]} {key[1]} {key[2]} w{key[3]}: {now} s against {was} s at baseline"

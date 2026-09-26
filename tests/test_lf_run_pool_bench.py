@@ -276,3 +276,12 @@ def test_baseline_regressions_require_every_expected_configuration(bench):
     expected = bench.parse_expect(["chr22:none:raw:8", "chr1:all:lf:8"])
     found = bench.baseline_regressions(base, final, expected)
     assert len(found) == 1 and "chr1 all lf w8" in found[0] and "baseline" in found[0]
+
+
+def test_lf_baseline_comparison_counts_setup(bench):
+    # Same stream wall, but setup grew from 0.1 s to 0.5 s: the LazyFrame the
+    # user sees is 36% slower, so the lf row must be compared end to end.
+    base = [_gate_row("chr22", "none", "lf", 8, 1.0, 0.1)]
+    final = [_gate_row("chr22", "none", "lf", 8, 1.0, 0.5)]
+    found = bench.baseline_regressions(base, final)
+    assert len(found) == 1 and "chr22 none lf w8" in found[0]
