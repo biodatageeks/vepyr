@@ -22,6 +22,7 @@
 - Measured builds: `env -u CONDA_PREFIX RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr`, identical for baseline and final.
 - The temporary Cargo `[patch]` used for local iteration never reaches a commit.
 - Never stage `notebooks/*.ipynb` in the main checkout (the user's uncommitted edits).
+- A test or gate command whose output is piped for reading runs under `set -o pipefail` with `|| exit 1`, so a failure cannot hide behind `tail`. Commands in RED steps, which are expected to fail, are exempt.
 
 ## Review Focus
 
@@ -286,8 +287,8 @@ If `MIB` is already defined right above, keep the one definition. `grep -n "cons
 - [ ] **Step 4: Run it and see it pass, with the pool tests**
 
 ```bash
-cargo test -p datafusion-bio-function-vep --lib stream_buffer_mb 2>&1 | tail -3
-cargo test -p datafusion-bio-function-vep --lib output_budget 2>&1 | tail -3
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib stream_buffer_mb 2>&1 | tail -3 || exit 1
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib output_budget 2>&1 | tail -3 || exit 1
 ```
 
 Expected: `test result: ok` for both. Two `output_budget_*` tests pass, unchanged.
@@ -448,10 +449,10 @@ At the planning call site, cut by the covered count instead of `b`. `b` is still
 - [ ] **Step 4: Run them and see them pass, with the pool planning tests**
 
 ```bash
-cargo test -p datafusion-bio-function-vep --lib stream_run_buffers 2>&1 | tail -3
-cargo test -p datafusion-bio-function-vep --lib covered_buffers 2>&1 | tail -3
-cargo test -p datafusion-bio-function-vep --lib plan_stream_runs 2>&1 | tail -3
-cargo test -p datafusion-bio-function-vep --lib admission 2>&1 | tail -3
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib stream_run_buffers 2>&1 | tail -3 || exit 1
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib covered_buffers 2>&1 | tail -3 || exit 1
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib plan_stream_runs 2>&1 | tail -3 || exit 1
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib admission 2>&1 | tail -3 || exit 1
 ```
 
 Expected: every one reports `test result: ok`.
@@ -488,7 +489,7 @@ cd ~/research/git/_wt/functions-run-pool
 df -g ~ | tail -1   # a debug test tree is ~8 GB
 cargo fmt --check || exit 1
 cargo clippy --all-targets --all-features -- -D warnings || exit 1
-cargo test -p datafusion-bio-function-vep --lib 2>&1 | tail -3
+set -o pipefail; cargo test -p datafusion-bio-function-vep --lib 2>&1 | tail -3 || exit 1
 ```
 
 Expected: `test result: ok` with 0 failed. Record the passed count.
@@ -647,7 +648,7 @@ def test_merged_region_run_plan_fills_workers(merged_cache_dir, monkeypatch, cap
 
 ```bash
 cd ~/research/git/_wt/vepyr-lf-run-pool
-env -u CONDA_PREFIX .venv/bin/python -m pytest tests/test_lazyframe_workers.py -v 2>&1 | tail -15
+set -o pipefail; env -u CONDA_PREFIX .venv/bin/python -m pytest tests/test_lazyframe_workers.py -v 2>&1 | tail -15 || exit 1
 ```
 
 Expected: every test passes, including the two new ones. If the region test finds `covered` equal to `buffers`, the predicate did not reach the engine as a region; check the `regions` trace line before touching the assertion. Do not loosen either test.
@@ -665,7 +666,7 @@ Expected: FAIL on `plan["run_buffers"] == _floor(...)` (master cuts 4-buffer run
 - [ ] **Step 4: Full Python suite on the local engine**
 
 ```bash
-env -u CONDA_PREFIX .venv/bin/python -m pytest -q 2>&1 | tail -5
+set -o pipefail; env -u CONDA_PREFIX .venv/bin/python -m pytest -q 2>&1 | tail -5 || exit 1
 ```
 
 Expected: no failures. Record the passed count.
