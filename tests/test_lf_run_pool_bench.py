@@ -178,3 +178,23 @@ def test_gate_checks_the_plugin_ratio_only_when_asked(bench):
     # chr1 all lf/vcf is 2.7: ignored by default, a failure when requested.
     assert bench.gate(_passing_rows(), ratio_plugins={"none"}) == []
     assert len(bench.gate(_passing_rows(), ratio_plugins={"all"})) == 1
+
+
+def test_gate_fails_on_empty_results(bench):
+    assert bench.gate([], ratio_plugins={"none"}) != []
+
+
+def test_gate_fails_when_a_group_has_no_raw_scaling_pair(bench):
+    rows = [
+        r
+        for r in _passing_rows()
+        if not (r["input"] == "chr1" and r["mode"] == "raw" and r["workers"] == 4)
+    ]
+    failures = bench.gate(rows, ratio_plugins={"none"})
+    assert len(failures) == 1 and "chr1 all" in failures[0] and "raw" in failures[0]
+
+
+def test_gate_fails_when_a_gated_plugin_set_was_not_measured(bench):
+    rows = [r for r in _passing_rows() if r["plugins"] != "none"]
+    failures = bench.gate(rows, ratio_plugins={"none"})
+    assert any("none" in f and "not measured" in f for f in failures)

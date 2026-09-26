@@ -331,18 +331,29 @@ RATIO_BAR = 1.20
 def gate(rows: list[dict], ratio_plugins: set[str]) -> list[str]:
     """The misses against the scaling bars; empty when every bar holds.
 
-    - raw stream: for every input and plugin set measured at two or more worker
-      counts, the largest count must be faster than the next one down;
+    - completeness: results must be non-empty, every gated plugin set must be
+      present, and every input and plugin set needs raw at two worker counts;
+    - raw stream: the largest worker count must be faster than the next one down;
     - LazyFrame: for the plugin sets in `ratio_plugins`, `lf end-to-end/vcf` at
       the largest worker count must be at most RATIO_BAR.
     """
-    failures = []
+    if not rows:
+        return ["results are empty: nothing was measured"]
+    failures = [
+        f"plugin set {plugins} is gated but was not measured"
+        for plugins in sorted(ratio_plugins - {r["plugins"] for r in rows})
+    ]
     for name, plugins in sorted({(r["input"], r["plugins"]) for r in rows}):
         group = [r for r in rows if (r["input"], r["plugins"]) == (name, plugins)]
         raw = sorted(
             (r for r in group if r["mode"] == "raw"), key=lambda r: r["workers"]
         )
-        if len(raw) >= 2 and raw[-1]["median_wall_s"] >= raw[-2]["median_wall_s"]:
+        if len(raw) < 2:
+            failures.append(
+                f"{name} {plugins} raw: measured at {len(raw)} worker count(s), "
+                "two are needed to check scaling"
+            )
+        elif raw[-1]["median_wall_s"] >= raw[-2]["median_wall_s"]:
             failures.append(
                 f"{name} {plugins} raw: w{raw[-1]['workers']} {raw[-1]['median_wall_s']} s"
                 f" is not faster than w{raw[-2]['workers']} {raw[-2]['median_wall_s']} s"

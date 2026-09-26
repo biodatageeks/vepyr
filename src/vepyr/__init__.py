@@ -1262,9 +1262,11 @@ def annotate(
         ``.tbi`` or ``.csi``) input VCF. Results are identical to ``workers=1``
         row for row and in the same order. On the ``LazyFrame`` path the
         engine queues at most ``workers + lookahead`` runs of output ahead of
-        the consumer, capped at ``VEP_STREAM_BUFFER_MB`` (default 1024) of
-        Arrow data; ``VEP_STREAM_LOOKAHEAD_RUNS`` (default ``workers``) sets
-        the lookahead.
+        the consumer, capped at ``VEP_STREAM_BUFFER_MB`` MiB of Arrow data
+        (default ``max(1024, 512 * workers)``, so 4096 at 8 workers; a
+        positive value replaces the default). The cap is a ceiling, not an
+        allocation: the queue only fills while the first run in order lags.
+        ``VEP_STREAM_LOOKAHEAD_RUNS`` (default ``workers``) sets the lookahead.
     skip_csq : bool
         Exclude the raw CSQ column from the output (default: True).
         When True, only the parsed annotation columns are returned.
