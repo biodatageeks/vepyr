@@ -27,6 +27,7 @@ Example (chr22, merged, core and five plugins):
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import statistics
@@ -87,6 +88,10 @@ def child(
     try:
         if mode == "vcf":
             vepyr.annotate(src, args.cache_dir, output_vcf=out_vcf, **kw)
+            wall = time.perf_counter() - t0
+            # Counted after the clock stops: output_vcf returns the path, not
+            # a row count, and the rows are what prove the run did the work.
+            stats["rows"] = count_records(out_vcf)
         else:
             lf = vepyr.annotate(src, args.cache_dir, **kw)
             stats.update(wait=0.0, between=0.0, batches=0, rows=0)
@@ -94,12 +99,14 @@ def child(
             if mode == "raw":
                 for _ in Timed(create(*calls[0])):
                     pass
+                wall = time.perf_counter() - t0
             else:
-                lf.collect()
+                height = lf.collect().height
+                wall = time.perf_counter() - t0
+                stats["rows"] = height
     finally:
         if os.path.exists(out_vcf):
             os.remove(out_vcf)
-    wall = time.perf_counter() - t0
     print(
         json.dumps(
             {
@@ -111,6 +118,28 @@ def child(
             }
         )
     )
+
+
+def count_records(path: str) -> int:
+    """Data lines (non-header) of a plain or gzip/BGZF-compressed VCF."""
+    with open(path, "rb") as probe:
+        compressed = probe.read(2) == b"\x1f\x8b"
+    opener = gzip.open if compressed else open
+    with opener(path, "rt") as f:
+        return sum(1 for line in f if not line.startswith("#"))
+
+
+def check_rows(label: str, runs: list[dict], expected: int) -> None:
+    """Refuse a configuration whose runs did not all process every record.
+
+    A run that drops records finishes sooner, so an empty or truncated input,
+    or an engine regression that loses rows, would otherwise read as a speed-up.
+    """
+    if expected <= 0:
+        raise SystemExit(f"{label}: the input has no records to annotate")
+    bad = [r["rows"] for r in runs if r["rows"] != expected]
+    if bad:
+        raise SystemExit(f"{label}: runs produced {bad} rows, expected {expected}")
 
 
 def wait_for_quiet(max_load: float, timeout_s: float = 600.0) -> float:
@@ -188,6 +217,7 @@ def main() -> None:
     rows = []
     for spec in args.input:
         name, src = spec.split("=", 1)
+        expected = count_records(src)
         for plugins in args.plugin_sets:
             for mode in args.modes:
                 for w in args.workers:
@@ -199,6 +229,7 @@ def main() -> None:
                         )
                         r["load_before"] = round(load, 2)
                         runs.append(r)
+                    check_rows(f"{name} {plugins} {mode} w{w}", runs, expected)
                     kept = runs[1:]
                     row = {
                         "input": name,
