@@ -59,3 +59,13 @@ def test_check_rows_rejects_a_truncated_run(bench):
 def test_check_rows_rejects_an_empty_input(bench):
     with pytest.raises(SystemExit, match="no records"):
         bench.check_rows("chr1 raw w4", [{"rows": 0}], 0)
+
+
+def test_wait_for_quiet_refuses_a_host_that_stays_busy(bench):
+    # Any real load exceeds a negative threshold, so the host never goes quiet.
+    with pytest.raises(SystemExit, match="load"):
+        bench.wait_for_quiet(-1.0, timeout_s=0.0)
+
+
+def test_wait_for_quiet_returns_the_load_on_a_quiet_host(bench):
+    assert bench.wait_for_quiet(1e9) >= 0.0

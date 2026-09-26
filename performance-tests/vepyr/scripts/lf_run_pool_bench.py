@@ -143,10 +143,20 @@ def check_rows(label: str, runs: list[dict], expected: int) -> None:
 
 
 def wait_for_quiet(max_load: float, timeout_s: float = 600.0) -> float:
+    """Wait for the 1-minute load to drop to `max_load`; refuse to measure if it never does.
+
+    The host is shared, and a timing taken under load has to be rerun, not
+    recorded, so a timeout aborts the bench rather than measuring anyway.
+    """
     deadline = time.monotonic() + timeout_s
-    while os.getloadavg()[0] > max_load and time.monotonic() < deadline:
+    while (load := os.getloadavg()[0]) > max_load:
+        if time.monotonic() >= deadline:
+            raise SystemExit(
+                f"load {load:.2f} stayed above --max-load {max_load} for "
+                f"{timeout_s:.0f} s; not measuring on a busy host"
+            )
         time.sleep(10)
-    return os.getloadavg()[0]
+    return load
 
 
 def run_once(cmd: list[str], env: dict[str, str]) -> dict:
