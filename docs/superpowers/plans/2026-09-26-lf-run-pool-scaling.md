@@ -791,10 +791,11 @@ Then compare the engine the parity reports were produced on with the final pin, 
 ```bash
 FINAL_REV=$(sed -n '/name = "datafusion-bio-function-vep"/,/^source/s/.*#\([0-9a-f]\{40\}\)"$/\1/p' "$ROOT/Cargo.lock")
 PARITY_REV=$(cat "$ROOT/e2e-testing/results/fix-lf-run-pool/final/parity_engine_rev.txt" 2>/dev/null)
-[ -n "$FINAL_REV" ] && [ "$FINAL_REV" = "$PARITY_REV" ] || echo "parity is stale: ran on '${PARITY_REV:-none}', final pin is $FINAL_REV"
+[ -n "$FINAL_REV" ] && [ "$FINAL_REV" = "$PARITY_REV" ] \
+  || { echo "parity is stale: ran on '${PARITY_REV:-none}', final pin is $FINAL_REV"; exit 1; }
 ```
 
-If it reports stale parity, re-run Task 7 Step 4 on the final pin first, into the same `final/parity_*` and `final/regions` directories, which rewrites `parity_engine_rev.txt`. Parity evidence from an earlier engine revision does not cover the one being handed off.
+If it stops on stale parity, re-run Task 7 Step 4 on the final pin, then this check again, before any later gate, into the same `final/parity_*` and `final/regions` directories, which rewrites `parity_engine_rev.txt`. Parity evidence from an earlier engine revision does not cover the one being handed off.
 
 - [ ] **Step 3: Gates**
 
