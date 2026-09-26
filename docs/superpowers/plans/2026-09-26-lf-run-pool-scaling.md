@@ -783,11 +783,13 @@ Run the runbook's watch loop over `$PRS`. After any engine push, re-pin vepyr to
 
 - [ ] **Step 2: Re-run the runbook step 2 blocks into `final/` (runbook step 8)**
 
-Before starting, confirm the vepyr pin equals the engine PR's current head:
+Before starting, check that the vepyr pin resolves to the engine PR's current head, and stop if it does not:
 
 ```bash
-gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json headRefOid --jq .headRefOid
-grep -n 'datafusion-bio-function-vep' ~/research/git/_wt/vepyr-lf-run-pool/Cargo.toml
+PR_HEAD=$(gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json headRefOid --jq .headRefOid) || exit 1
+PIN_REV=$(sed -n '/name = "datafusion-bio-function-vep"/,/^source/s/.*#\([0-9a-f]\{40\}\)"$/\1/p' "$ROOT/Cargo.lock")
+[ -n "$PR_HEAD" ] && [ "$PR_HEAD" = "$PIN_REV" ] \
+  || { echo "stale pin: engine PR head $PR_HEAD, vepyr resolves ${PIN_REV:-nothing}; re-pin (Task 8 Step 1) first"; exit 1; }
 ```
 
 Then repeat Task 2 Steps 2–4 byte for byte with `RUN=$ROOT/e2e-testing/results/fix-lf-run-pool/final`: host check, slice deletion, WGS sweep, md5 strict, slice deletion, LF bench. Use the same `RUSTFLAGS` build.
