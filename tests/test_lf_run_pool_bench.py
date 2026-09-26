@@ -69,3 +69,26 @@ def test_wait_for_quiet_refuses_a_host_that_stays_busy(bench):
 
 def test_wait_for_quiet_returns_the_load_on_a_quiet_host(bench):
     assert bench.wait_for_quiet(1e9) >= 0.0
+
+
+def _row(mode, wall, setup):
+    return {
+        "input": "chr22",
+        "plugins": "none",
+        "mode": mode,
+        "workers": 8,
+        "median_wall_s": wall,
+        "min_wall_s": wall,
+        "max_wall_s": wall,
+        "median_setup_s": setup,
+        "median_rss_gib": 1.0,
+        "median_engine_wait_s": 0.0,
+        "median_consumer_s": 0.0,
+    }
+
+
+def test_lf_vcf_ratio_counts_lazyframe_setup(bench):
+    # output_vcf's wall starts at the annotate() call; the LazyFrame's stream
+    # wall starts after annotate() returns, so the gate ratio adds its setup.
+    summary = bench.render_summary([_row("lf", 1.0, 0.2), _row("vcf", 1.0, 0.0)])
+    assert "lf end-to-end/vcf = 1.20" in summary

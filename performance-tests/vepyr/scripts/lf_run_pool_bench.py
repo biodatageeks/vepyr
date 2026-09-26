@@ -85,6 +85,7 @@ def child(
     vepyr._create_annotator = wrapped
     out_vcf = os.path.join(args.out_dir, f"scratch_{os.getpid()}.vcf")
     t0 = time.perf_counter()
+    setup = 0.0
     try:
         if mode == "vcf":
             vepyr.annotate(src, args.cache_dir, output_vcf=out_vcf, **kw)
@@ -95,6 +96,10 @@ def child(
         else:
             lf = vepyr.annotate(src, args.cache_dir, **kw)
             stats.update(wait=0.0, between=0.0, batches=0, rows=0)
+            # The stream wall starts here; annotate()'s schema probe and
+            # setup are reported apart, so the wall stays comparable across
+            # runs while the lf/vcf gate can still add them back.
+            setup = time.perf_counter() - t0
             t0 = time.perf_counter()
             if mode == "raw":
                 for _ in Timed(create(*calls[0])):
@@ -111,6 +116,7 @@ def child(
         json.dumps(
             {
                 "wall_s": wall,
+                "setup_s": setup,
                 "engine_wait_s": stats["wait"],
                 "consumer_s": stats["between"],
                 "batches": stats["batches"],
@@ -252,6 +258,9 @@ def main() -> None:
                         ),
                         "min_wall_s": round(min(r["wall_s"] for r in kept), 3),
                         "max_wall_s": round(max(r["wall_s"] for r in kept), 3),
+                        "median_setup_s": round(
+                            statistics.median(r["setup_s"] for r in kept), 3
+                        ),
                         "median_rss_gib": round(
                             statistics.median(r["maxrss_gib"] for r in kept), 2
                         ),
@@ -275,15 +284,19 @@ def main() -> None:
 
 
 def render_summary(rows: list[dict]) -> str:
+    """The results table, then one lf/vcf ratio per input and plugin set at the
+    largest worker count. `median wall s` for raw and lf starts after
+    annotate() returns; `setup s` is that call, which output_vcf's wall already
+    includes, so the end-to-end ratio is the one to gate on."""
     lines = [
-        "| input | plugins | mode | workers | median wall s | min | max | peak RSS GiB | engine wait s | consumer s |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| input | plugins | mode | workers | median wall s | min | max | setup s | peak RSS GiB | engine wait s | consumer s |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         lines.append(
             f"| {r['input']} | {r['plugins']} | {r['mode']} | {r['workers']} | {r['median_wall_s']} | "
-            f"{r['min_wall_s']} | {r['max_wall_s']} | {r['median_rss_gib']} | "
-            f"{r['median_engine_wait_s']} | {r['median_consumer_s']} |"
+            f"{r['min_wall_s']} | {r['max_wall_s']} | {r.get('median_setup_s', 0.0)} | "
+            f"{r['median_rss_gib']} | {r['median_engine_wait_s']} | {r['median_consumer_s']} |"
         )
     lines.append("")
     for name, plugins in sorted({(r["input"], r["plugins"]) for r in rows}):
@@ -291,13 +304,17 @@ def render_summary(rows: list[dict]) -> str:
             r["workers"] for r in rows if (r["input"], r["plugins"]) == (name, plugins)
         )
         pick = {
-            r["mode"]: r["median_wall_s"]
+            r["mode"]: r
             for r in rows
             if (r["input"], r["plugins"], r["workers"]) == (name, plugins, top)
         }
         if "lf" in pick and "vcf" in pick:
+            lf, vcf = pick["lf"], pick["vcf"]["median_wall_s"]
+            stream = lf["median_wall_s"]
+            whole = stream + lf.get("median_setup_s", 0.0)
             lines.append(
-                f"- {name} plugins={plugins} w{top}: lf/vcf = {pick['lf'] / pick['vcf']:.2f}"
+                f"- {name} plugins={plugins} w{top}: lf end-to-end/vcf = {whole / vcf:.2f}"
+                f" (stream only {stream / vcf:.2f})"
             )
     return "\n".join(lines) + "\n"
 
