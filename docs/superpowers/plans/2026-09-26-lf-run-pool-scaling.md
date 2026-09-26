@@ -770,6 +770,21 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ---
 
+### Floor check result
+
+Measured 2026-09-26 12:20 (load 3.8), chr22 Merged, raw engine stream, local engine 737c5cd, median of 3. `VEP_STREAM_RUN_BUFFERS=1` resolves to the floor of 2 at w8 and 3 at w4, as designed.
+
+| | rb=4 (old floor) | rb=2 (new floor at w8) |
+|---|---|---|
+| core w8 | 1.627 s | 1.037 s (-36%) |
+| plugins w8 | 4.190 s | 2.353 s (-44%) |
+| core w4 | 1.558 s | 1.365 s (floor 3) |
+| plugins w4 | 4.142 s | 3.288 s (floor 3) |
+
+Decision: keep `min(4, ceil(buffers / workers))`. Floor 2 beats floor 4 by far more than the 5% bar on both sets.
+
+---
+
 ### Task 6: vepyr — run-plan tests on the merged golden
 
 **Files:**
