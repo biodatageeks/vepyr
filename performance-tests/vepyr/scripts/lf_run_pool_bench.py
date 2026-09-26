@@ -224,6 +224,13 @@ def main() -> None:
         default=["none"],
         help="plugin sets whose lf/vcf ratio is gated (default: none)",
     )
+    p.add_argument(
+        "--gate-expect",
+        action="append",
+        default=[],
+        metavar="INPUT:PLUGINS:MODES:WORKERS",
+        help="a configuration matrix the results must contain, e.g. chr1:none,all:raw,lf,vcf:4,8",
+    )
     gating = "--gate" in sys.argv
     p.add_argument("--out-dir", required=not gating)
     p.add_argument("--input", action="append", required=not gating, help="NAME=PATH")
@@ -244,7 +251,7 @@ def main() -> None:
     args = p.parse_args()
     if args.gate:
         rows = json.loads(Path(args.gate).read_text())
-        failures = gate(rows, set(args.gate_plugins))
+        failures = gate(rows, set(args.gate_plugins), parse_expect(args.gate_expect))
         for line in failures:
             print(f"GATE MISS: {line}")
         print("VERDICT: " + ("FAIL" if failures else "PASS"))
@@ -328,9 +335,28 @@ def main() -> None:
 RATIO_BAR = 1.20
 
 
-def gate(rows: list[dict], ratio_plugins: set[str]) -> list[str]:
+def parse_expect(specs: list[str]) -> set[tuple[str, str, str, int]]:
+    """`INPUT:PLUGINS:MODES:WORKERS` items, comma lists allowed in the last
+    three fields, as the set of (input, plugins, mode, workers) a run must hold."""
+    expected = set()
+    for spec in specs:
+        name, plugin_sets, modes, workers = spec.split(":")
+        for plugins in plugin_sets.split(","):
+            for mode in modes.split(","):
+                for w in workers.split(","):
+                    expected.add((name, plugins, mode, int(w)))
+    return expected
+
+
+def gate(
+    rows: list[dict],
+    ratio_plugins: set[str],
+    expected: set[tuple[str, str, str, int]] | None = None,
+) -> list[str]:
     """The misses against the scaling bars; empty when every bar holds.
 
+    - expected: every (input, plugins, mode, workers) in `expected` must be
+      present, so a run that left out an input or a plugin set cannot pass;
     - completeness: results must be non-empty, every gated plugin set must be
       present, and every input and plugin set needs raw at two worker counts;
     - raw stream: the largest worker count must be faster than the next one down;
@@ -339,6 +365,13 @@ def gate(rows: list[dict], ratio_plugins: set[str]) -> list[str]:
     """
     if not rows:
         return ["results are empty: nothing was measured"]
+    present = {(r["input"], r["plugins"], r["mode"], r["workers"]) for r in rows}
+    missing = sorted((expected or set()) - present)
+    if missing:
+        return [
+            f"{i} {p} {m} w{w}: expected configuration is missing"
+            for i, p, m, w in missing
+        ]
     failures = [
         f"plugin set {plugins} is gated but was not measured"
         for plugins in sorted(ratio_plugins - {r["plugins"] for r in rows})

@@ -198,3 +198,27 @@ def test_gate_fails_when_a_gated_plugin_set_was_not_measured(bench):
     rows = [r for r in _passing_rows() if r["plugins"] != "none"]
     failures = bench.gate(rows, ratio_plugins={"none"})
     assert any("none" in f and "not measured" in f for f in failures)
+
+
+def test_parse_expect_expands_the_matrix(bench):
+    assert bench.parse_expect(["chr22:none,all:raw,lf:4,8"]) == {
+        (inp, p, m, w)
+        for inp in ["chr22"]
+        for p in ["none", "all"]
+        for m in ["raw", "lf"]
+        for w in [4, 8]
+    }
+
+
+def test_gate_fails_when_an_expected_configuration_is_missing(bench):
+    # chr22-only rows cannot pass a gate that expects chr1 too.
+    rows = [r for r in _passing_rows() if r["input"] == "chr22"]
+    expected = bench.parse_expect(["chr1:all:raw:4,8"])
+    failures = bench.gate(rows, ratio_plugins={"none"}, expected=expected)
+    assert failures and all("chr1 all raw" in f and "missing" in f for f in failures)
+
+
+def test_gate_passes_when_every_expected_configuration_is_present(bench):
+    expected = bench.parse_expect(["chr22:none:raw,lf,vcf:8", "chr1:all:raw:4,8"])
+    expected.discard(("chr22", "none", "raw", 8))
+    assert bench.gate(_passing_rows(), ratio_plugins={"none"}, expected=expected) == []

@@ -791,6 +791,7 @@ BASE=$ROOT/e2e-testing/results/fix-lf-run-pool/baseline
 FINAL=$ROOT/e2e-testing/results/fix-lf-run-pool/final
 uv run python "$ROOT/tools/vepyr-fix/compare_runs.py" "$BASE/archive" "$FINAL/archive" || { echo "WGS perf gate FAILED"; exit 1; }
 .venv/bin/python performance-tests/vepyr/scripts/lf_run_pool_bench.py --gate "$FINAL/lf/results.json" \
+  --gate-expect chr22:none,all:raw,lf,vcf:1,4,8 --gate-expect chr1:none,all:raw,lf,vcf:1,4,8 \
   || { echo "LF gate FAILED"; exit 1; }
 grep -iE "mismatch|concord" "$FINAL/md5.out" | tail -5
 cat "$BASE/lf/summary.md" "$FINAL/lf/summary.md"
