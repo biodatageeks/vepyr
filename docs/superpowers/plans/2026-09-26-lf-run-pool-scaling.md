@@ -790,6 +790,8 @@ If that head is not the engine commit Task 7 Step 4's parity gate ran on (it rec
 BASE=$ROOT/e2e-testing/results/fix-lf-run-pool/baseline
 FINAL=$ROOT/e2e-testing/results/fix-lf-run-pool/final
 uv run python "$ROOT/tools/vepyr-fix/compare_runs.py" "$BASE/archive" "$FINAL/archive" || { echo "WGS perf gate FAILED"; exit 1; }
+.venv/bin/python performance-tests/vepyr/scripts/lf_run_pool_bench.py --gate "$FINAL/lf/results.json" \
+  || { echo "LF gate FAILED"; exit 1; }
 grep -iE "mismatch|concord" "$FINAL/md5.out" | tail -5
 cat "$BASE/lf/summary.md" "$FINAL/lf/summary.md"
 ```

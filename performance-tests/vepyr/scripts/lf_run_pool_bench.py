@@ -213,11 +213,23 @@ def main() -> None:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    p.add_argument("--out-dir", required=True)
-    p.add_argument("--input", action="append", required=True, help="NAME=PATH")
-    p.add_argument("--cache-dir", required=True)
-    p.add_argument("--fasta", required=True)
-    p.add_argument("--plugin-cache-root", required=True)
+    p.add_argument(
+        "--gate",
+        metavar="RESULTS_JSON",
+        help="check a finished run's results.json against the scaling bars and exit 1 on a miss",
+    )
+    p.add_argument(
+        "--gate-plugins",
+        nargs="+",
+        default=["none"],
+        help="plugin sets whose lf/vcf ratio is gated (default: none)",
+    )
+    gating = "--gate" in sys.argv
+    p.add_argument("--out-dir", required=not gating)
+    p.add_argument("--input", action="append", required=not gating, help="NAME=PATH")
+    p.add_argument("--cache-dir", required=not gating)
+    p.add_argument("--fasta", required=not gating)
+    p.add_argument("--plugin-cache-root", required=not gating)
     p.add_argument("--workers", nargs="+", type=int, default=[1, 4, 8])
     p.add_argument(
         "--modes", nargs="+", choices=["raw", "lf", "vcf"], default=["raw", "lf", "vcf"]
@@ -230,6 +242,13 @@ def main() -> None:
     p.add_argument("--env", action="append", default=[], help="KEY=VAL for every run")
     p.add_argument("--child", nargs=4, metavar=("MODE", "WORKERS", "SRC", "PLUGINS"))
     args = p.parse_args()
+    if args.gate:
+        rows = json.loads(Path(args.gate).read_text())
+        failures = gate(rows, set(args.gate_plugins))
+        for line in failures:
+            print(f"GATE MISS: {line}")
+        print("VERDICT: " + ("FAIL" if failures else "PASS"))
+        raise SystemExit(1 if failures else 0)
     if args.child:
         mode, w, src, plugins = args.child
         child(mode, int(w), src, plugins, args)
@@ -304,6 +323,48 @@ def main() -> None:
     (out_dir / "results.json").write_text(json.dumps(rows, indent=2))
     (out_dir / "summary.md").write_text(render_summary(rows))
     print(render_summary(rows))
+
+
+RATIO_BAR = 1.20
+
+
+def gate(rows: list[dict], ratio_plugins: set[str]) -> list[str]:
+    """The misses against the scaling bars; empty when every bar holds.
+
+    - raw stream: for every input and plugin set measured at two or more worker
+      counts, the largest count must be faster than the next one down;
+    - LazyFrame: for the plugin sets in `ratio_plugins`, `lf end-to-end/vcf` at
+      the largest worker count must be at most RATIO_BAR.
+    """
+    failures = []
+    for name, plugins in sorted({(r["input"], r["plugins"]) for r in rows}):
+        group = [r for r in rows if (r["input"], r["plugins"]) == (name, plugins)]
+        raw = sorted(
+            (r for r in group if r["mode"] == "raw"), key=lambda r: r["workers"]
+        )
+        if len(raw) >= 2 and raw[-1]["median_wall_s"] >= raw[-2]["median_wall_s"]:
+            failures.append(
+                f"{name} {plugins} raw: w{raw[-1]['workers']} {raw[-1]['median_wall_s']} s"
+                f" is not faster than w{raw[-2]['workers']} {raw[-2]['median_wall_s']} s"
+            )
+        if plugins not in ratio_plugins:
+            continue
+        top = max(r["workers"] for r in group)
+        pick = {r["mode"]: r for r in group if r["workers"] == top}
+        if "lf" not in pick or "vcf" not in pick:
+            failures.append(f"{name} {plugins}: no lf and vcf pair at w{top} to gate")
+            continue
+        lf = pick["lf"]
+        # Rows from before setup was reported carry only the stream wall.
+        ratio = (
+            lf.get("median_end_to_end_s", lf["median_wall_s"])
+            / pick["vcf"]["median_wall_s"]
+        )
+        if ratio > RATIO_BAR:
+            failures.append(
+                f"{name} {plugins} w{top}: lf end-to-end/vcf = {ratio:.2f} > {RATIO_BAR:.2f}"
+            )
+    return failures
 
 
 def render_summary(rows: list[dict]) -> str:

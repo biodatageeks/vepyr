@@ -123,3 +123,58 @@ def test_child_env_keeps_an_explicit_override_of_an_inherited_knob(bench):
         {"VEP_STREAM_BUFFER_MB": "256"}, ["VEP_STREAM_BUFFER_MB=4096"]
     )
     assert env == {"VEP_STREAM_BUFFER_MB": "4096"}
+
+
+def _gate_row(inp, plugins, mode, workers, wall, setup=0.0):
+    return {
+        "input": inp,
+        "plugins": plugins,
+        "mode": mode,
+        "workers": workers,
+        "median_wall_s": wall,
+        "median_end_to_end_s": wall + setup,
+    }
+
+
+def _passing_rows():
+    return [
+        _gate_row("chr22", "none", "raw", 4, 1.4),
+        _gate_row("chr22", "none", "raw", 8, 1.0),
+        _gate_row("chr22", "none", "lf", 8, 1.1, 0.03),
+        _gate_row("chr22", "none", "vcf", 8, 1.4),
+        _gate_row("chr1", "all", "raw", 4, 13.0),
+        _gate_row("chr1", "all", "raw", 8, 9.0),
+        _gate_row("chr1", "all", "lf", 8, 30.0),
+        _gate_row("chr1", "all", "vcf", 8, 11.0),
+    ]
+
+
+def test_gate_passes_when_raw_scales_and_core_lf_is_close_to_vcf(bench):
+    assert bench.gate(_passing_rows(), ratio_plugins={"none"}) == []
+
+
+def test_gate_fails_when_raw_does_not_improve_from_w4_to_w8(bench):
+    rows = [
+        r for r in _passing_rows() if not (r["input"] == "chr1" and r["mode"] == "raw")
+    ]
+    rows += [
+        _gate_row("chr1", "all", "raw", 4, 13.0),
+        _gate_row("chr1", "all", "raw", 8, 13.5),
+    ]
+    failures = bench.gate(rows, ratio_plugins={"none"})
+    assert len(failures) == 1 and "chr1 all raw" in failures[0]
+
+
+def test_gate_fails_when_core_lf_is_slower_than_the_ratio_bar(bench):
+    rows = [
+        r for r in _passing_rows() if not (r["input"] == "chr22" and r["mode"] == "lf")
+    ]
+    rows.append(_gate_row("chr22", "none", "lf", 8, 1.6, 0.1))
+    failures = bench.gate(rows, ratio_plugins={"none"})
+    assert len(failures) == 1 and "chr22 none" in failures[0] and "1.21" in failures[0]
+
+
+def test_gate_checks_the_plugin_ratio_only_when_asked(bench):
+    # chr1 all lf/vcf is 2.7: ignored by default, a failure when requested.
+    assert bench.gate(_passing_rows(), ratio_plugins={"none"}) == []
+    assert len(bench.gate(_passing_rows(), ratio_plugins={"all"})) == 1
