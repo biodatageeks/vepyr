@@ -2225,6 +2225,113 @@ class TestPluginColumns:
             vepyr.annotate("in.vcf", CACHE_DIR, fields="core").collect()
 
 
+class TestPluginColumnCost:
+    """Plugin columns cost only what the query reads: the engine is handed only
+    the plugins whose columns are read (unless the raw CSQ is), and only the
+    read plugin columns are parsed out of CSQ, each value unchanged."""
+
+    _fake = TestPluginColumns._fake_cadd
+
+    def _annotate(self, root, plugins, **kwargs):
+        import vepyr
+
+        return vepyr.annotate(
+            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=plugins, **kwargs
+        )
+
+    def test_reading_one_plugins_column_hands_the_engine_only_that_plugin(
+        self, tmp_path, monkeypatch
+    ):
+        root, calls = self._fake(tmp_path, monkeypatch)
+        df = (
+            self._annotate(root, ["cadd", "spliceai"])
+            .select("chrom", "SpliceAI_DS_AG")
+            .collect()
+        )
+        assert calls[-1][0]["plugins"] == ["spliceai"]
+        assert df["SpliceAI_DS_AG"].to_list() == [[pytest.approx(0.91), None]]
+
+    def test_a_plugin_subset_keeps_the_configured_order(self, tmp_path, monkeypatch):
+        root, calls = self._fake(tmp_path, monkeypatch)
+        df = (
+            self._annotate(root, ["spliceai", "cadd"])
+            .select("chrom", "CADD_RAW", "SpliceAI_DP_AG")
+            .collect()
+        )
+        assert calls[-1][0]["plugins"] == ["spliceai", "cadd"]
+        assert df["CADD_RAW"].to_list() == ["0.12"]
+        assert df["SpliceAI_DP_AG"].to_list() == [[8, None]]
+
+    def test_reading_the_csq_string_hands_the_engine_every_plugin(
+        self, tmp_path, monkeypatch
+    ):
+        root, calls = self._fake(tmp_path, monkeypatch)
+        self._annotate(root, ["cadd", "spliceai"], skip_csq=False).select(
+            "chrom", "CSQ", "CADD_PHRED"
+        ).collect()
+        assert calls[-1][0]["plugins"] == ["cadd", "spliceai"]
+
+    def test_a_query_without_a_projection_hands_the_engine_every_plugin(
+        self, tmp_path, monkeypatch
+    ):
+        root, calls = self._fake(tmp_path, monkeypatch)
+        self._annotate(root, ["cadd", "spliceai"]).collect()
+        assert calls[-1][0]["plugins"] == ["cadd", "spliceai"]
+
+    def test_only_the_plugin_columns_a_query_reads_are_parsed(
+        self, tmp_path, monkeypatch
+    ):
+        import vepyr
+
+        root, _ = self._fake(tmp_path, monkeypatch)
+        shaped = []
+        real = vepyr._plugin_column
+
+        def spy(values, dtype, per_variant):
+            shaped.append(dtype)
+            return real(values, dtype, per_variant)
+
+        monkeypatch.setattr(vepyr, "_plugin_column", spy)
+        # CSQ is read, so every plugin is looked up, but only CADD_PHRED is parsed.
+        df = (
+            self._annotate(root, ["cadd", "spliceai"], skip_csq=False)
+            .select("chrom", "CSQ", "CADD_PHRED")
+            .collect()
+        )
+        assert df["CADD_PHRED"].to_list() == ["24.5"]
+        assert len(shaped) == 1
+
+    @pytest.mark.parametrize(
+        "column", ["CADD_PHRED", "CADD_RAW", "SpliceAI_DS_AG", "SpliceAI_DP_AG"]
+    )
+    def test_a_selected_plugin_column_equals_the_full_frames(
+        self, tmp_path, monkeypatch, column
+    ):
+        root, _ = self._fake(tmp_path, monkeypatch)
+        full = self._annotate(root, ["cadd", "spliceai"]).collect()
+        one = self._annotate(root, ["cadd", "spliceai"]).select(column).collect()
+        assert one[column].to_list() == full[column].to_list()
+        assert one.schema[column] == full.schema[column]
+
+    def test_a_plugin_field_named_like_the_helper_survives(self, tmp_path, monkeypatch):
+        import vepyr
+
+        root, _ = self._fake(tmp_path, monkeypatch)
+        manifest = Path(root) / "plugin" / "cadd" / "manifest.json"
+        m = json.loads(manifest.read_text())
+        m["value_columns"][0]["csq_field"] = vepyr._PLUGIN_FIELDS
+        manifest.write_text(json.dumps(m))
+        df = self._annotate(root, ["cadd"]).collect()
+        assert df[vepyr._PLUGIN_FIELDS].to_list() == ["24.5"]
+        assert df["CADD_RAW"].to_list() == ["0.12"]
+
+    def test_no_helper_column_leaks_into_the_frame(self, tmp_path, monkeypatch):
+        root, _ = self._fake(tmp_path, monkeypatch)
+        lf = self._annotate(root, ["cadd", "spliceai"])
+        df = lf.collect()
+        assert set(df.columns) == set(lf.collect_schema())
+
+
 class TestPluginMatchTemplates:
     """A per-feature plugin's match template can reference a flag-dependent
     field (``{HGVSc}`` say); reading that plugin's column then needs the
