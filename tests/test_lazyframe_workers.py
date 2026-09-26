@@ -108,6 +108,8 @@ def test_merged_small_input_fills_workers(merged_cache_dir, monkeypatch, capfd):
     assert plan["buffers"] < 32, plan
     assert plan["run_buffers"] == _floor(plan["buffers"], 8), plan
     assert plan["run_buffers"] < 4, plan
+    # More than one run, or there is no seam for the equality below to test.
+    assert plan["runs"] >= 2, plan
     _assert_same(parallel, serial)
 
 
@@ -126,6 +128,8 @@ def test_merged_region_run_plan_fills_workers(merged_cache_dir, monkeypatch, cap
     # The cut is based on the region's buffers, not the contig's.
     assert plan["covered"] < plan["buffers"], plan
     assert plan["run_buffers"] == _floor(plan["covered"], 8), plan
+    # The region must still be cut, or no one-buffer seam is exercised.
+    assert plan["runs"] >= 2, plan
     _assert_same(pushed, serial.filter(predicate))
 
 
