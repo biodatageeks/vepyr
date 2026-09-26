@@ -829,10 +829,11 @@ $ROOT/.venv/bin/python $ROOT/performance-tests/vepyr/scripts/lf_run_pool_bench.p
 - [ ] **Step 3: Gates**
 
 ```bash
+cd "$ROOT" || exit 1   # Step 2b left the shell in the #131 worktree
 BASE=$ROOT/e2e-testing/results/fix-lf-run-pool/baseline
 FINAL=$ROOT/e2e-testing/results/fix-lf-run-pool/final
 uv run python "$ROOT/tools/vepyr-fix/compare_runs.py" "$BASE/archive" "$FINAL/archive" || { echo "WGS perf gate FAILED"; exit 1; }
-.venv/bin/python performance-tests/vepyr/scripts/lf_run_pool_bench.py --gate "$FINAL/lf/results.json" \
+"$ROOT/.venv/bin/python" "$ROOT/performance-tests/vepyr/scripts/lf_run_pool_bench.py" --gate "$FINAL/lf/results.json" \
   --gate-expect chr22:none,all:raw,lf,vcf:1,4,8 --gate-expect chr1:none,all:raw,lf,vcf:1,4,8 \
   --gate-baseline "$BASE/lf/results.json" \
   || { echo "LF gate FAILED"; exit 1; }
