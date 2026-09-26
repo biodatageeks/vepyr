@@ -25,6 +25,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", required=True, type=Path)
     ap.add_argument("--repeats", type=int, default=3)
+    ap.add_argument(
+        "--reuse-filter-vep",
+        type=Path,
+        metavar="OLD_RUN_DIR",
+        help="copy the VEP + filter_vep results from an earlier run dir instead of "
+        "re-timing filter_vep; only the vepyr side is measured. The VEP outputs, "
+        "filter_vep and the host must be the same for the comparison to hold.",
+    )
     a = ap.parse_args()
     run_dir = PKG_ROOT / a.run_dir
     verify = json.loads((run_dir / "verify.json").read_text())
@@ -37,7 +45,22 @@ def main() -> None:
         mode = "plugins" if q.plugins else "core"
         for fork, w in FORK_TO_WORKERS.items():
             annot_path = run_dir / "vep" / f"{mode}_fork{fork}.json"
-            if not annot_path.exists():
+            reused = (
+                PKG_ROOT / a.reuse_filter_vep / "B" / f"{q.id}_vep_fork{fork}.json"
+                if a.reuse_filter_vep
+                else None
+            )
+            if reused is not None:
+                if not reused.exists():
+                    raise SystemExit(f"--reuse-filter-vep: missing {reused}")
+                res = json.loads(reused.read_text())
+                res["reused_from"] = str(a.reuse_filter_vep)
+                write_json(run_dir / "B" / f"{q.id}_vep_fork{fork}.json", res)
+                print(
+                    f"{q.id} vep fork{fork}: {res['median_wall_s']:.2f}s (reused)",
+                    flush=True,
+                )
+            elif not annot_path.exists():
                 print(f"skipped: no VEP timing for {mode} fork{fork}")
             else:
                 vep = WORK / "vep" / mode / f"fork{fork}" / "rep0.vcf"

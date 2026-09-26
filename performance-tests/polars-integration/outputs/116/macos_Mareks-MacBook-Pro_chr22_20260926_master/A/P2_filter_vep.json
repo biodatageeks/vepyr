@@ -1,0 +1,73 @@
+{
+  "warmups": [
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P2.fv.vcf",
+        "am_class is likely_pathogenic"
+      ],
+      "exit": 0,
+      "wall_s": 74.75552966725081,
+      "user_s": 0.013696999999999999,
+      "sys_s": 0.011661,
+      "max_rss_bytes": 27787264,
+      "load_1m_before": 3.51318359375
+    }
+  ],
+  "runs": [
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P2.fv.vcf",
+        "am_class is likely_pathogenic"
+      ],
+      "exit": 0,
+      "wall_s": 75.59128916682675,
+      "user_s": 0.01411,
+      "sys_s": 0.01202,
+      "max_rss_bytes": 28180480,
+      "load_1m_before": 3.623046875
+    },
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P2.fv.vcf",
+        "am_class is likely_pathogenic"
+      ],
+      "exit": 0,
+      "wall_s": 76.60732050007209,
+      "user_s": 0.016396,
+      "sys_s": 0.012008999999999999,
+      "max_rss_bytes": 28131328,
+      "load_1m_before": 3.49658203125
+    },
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P2.fv.vcf",
+        "am_class is likely_pathogenic"
+      ],
+      "exit": 0,
+      "wall_s": 78.75457445904613,
+      "user_s": 0.015064,
+      "sys_s": 0.013718999999999999,
+      "max_rss_bytes": 27770880,
+      "load_1m_before": 3.93017578125
+    }
+  ],
+  "median_wall_s": 76.60732050007209,
+  "min_wall_s": 75.59128916682675,
+  "max_wall_s": 78.75457445904613,
+  "median_rss_bytes": 28131328,
+  "query": "P2",
+  "tool": "filter_vep",
+  "rows": 5
+}
