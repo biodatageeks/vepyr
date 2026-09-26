@@ -81,6 +81,7 @@ def _row(mode, wall, setup):
         "min_wall_s": wall,
         "max_wall_s": wall,
         "median_setup_s": setup,
+        "median_end_to_end_s": wall + setup,
         "median_rss_gib": 1.0,
         "median_engine_wait_s": 0.0,
         "median_consumer_s": 0.0,
@@ -92,3 +93,15 @@ def test_lf_vcf_ratio_counts_lazyframe_setup(bench):
     # wall starts after annotate() returns, so the gate ratio adds its setup.
     summary = bench.render_summary([_row("lf", 1.0, 0.2), _row("vcf", 1.0, 0.0)])
     assert "lf end-to-end/vcf = 1.20" in summary
+
+
+def test_end_to_end_median_pairs_setup_with_its_own_run(bench):
+    # Warm-up first, then three kept runs. Medians of the parts are 0.5 and
+    # 1.0 (sum 1.5); the runs themselves took 1.0, 1.0 and 1.5 end to end.
+    runs = [
+        {"setup_s": 9.0, "wall_s": 9.0},
+        {"setup_s": 0.0, "wall_s": 1.0},
+        {"setup_s": 0.5, "wall_s": 0.5},
+        {"setup_s": 0.5, "wall_s": 1.0},
+    ]
+    assert bench.median_end_to_end(runs[1:]) == 1.0

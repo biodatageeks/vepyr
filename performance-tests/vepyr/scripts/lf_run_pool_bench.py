@@ -148,6 +148,15 @@ def check_rows(label: str, runs: list[dict], expected: int) -> None:
         raise SystemExit(f"{label}: runs produced {bad} rows, expected {expected}")
 
 
+def median_end_to_end(kept: list[dict]) -> float:
+    """Median of each run's own setup + stream time.
+
+    Summing the two medians is not the median of the sums when they vary
+    across repeats, so the pairing is kept per run.
+    """
+    return statistics.median(r["setup_s"] + r["wall_s"] for r in kept)
+
+
 def wait_for_quiet(max_load: float, timeout_s: float = 600.0) -> float:
     """Wait for the 1-minute load to drop to `max_load`; refuse to measure if it never does.
 
@@ -261,6 +270,7 @@ def main() -> None:
                         "median_setup_s": round(
                             statistics.median(r["setup_s"] for r in kept), 3
                         ),
+                        "median_end_to_end_s": round(median_end_to_end(kept), 3),
                         "median_rss_gib": round(
                             statistics.median(r["maxrss_gib"] for r in kept), 2
                         ),
@@ -311,7 +321,7 @@ def render_summary(rows: list[dict]) -> str:
         if "lf" in pick and "vcf" in pick:
             lf, vcf = pick["lf"], pick["vcf"]["median_wall_s"]
             stream = lf["median_wall_s"]
-            whole = stream + lf.get("median_setup_s", 0.0)
+            whole = lf.get("median_end_to_end_s", stream)
             lines.append(
                 f"- {name} plugins={plugins} w{top}: lf end-to-end/vcf = {whole / vcf:.2f}"
                 f" (stream only {stream / vcf:.2f})"

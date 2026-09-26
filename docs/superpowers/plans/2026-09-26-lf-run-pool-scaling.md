@@ -1013,11 +1013,12 @@ cat "$BASE/lf/summary.md" "$FINAL/lf/summary.md"
 |---|---|
 | md5 strict, 22 autosomes | every body digest matches |
 | WGS output_vcf sweep (`compare_runs.py`) | its VERDICT passes (the sink path is untouched; this proves it) |
-| LF success | `lf/vcf` at w8 ≤ 1.20 for chr22 none, chr1 none, chr1 all |
-| LF scaling | chr22 merged raw at w8 faster than at w4; chr1 all raw at w8 faster than at w4 |
+| LF success (core) | `lf end-to-end/vcf` at w8 ≤ 1.20 for chr22 none and chr1 none, on this branch |
+| LF scaling | raw stream at w8 faster than at w4 for chr22 none, chr22 all, chr1 all, on this branch |
+| LF success (plugins, supplementary) | `lf end-to-end/vcf` at w8 ≤ 1.20 for chr1 all, on a local build stacking vepyr #131 on this engine (reported, not part of either PR) |
 | RSS | reported in absolute GiB, baseline against final, not gated |
 
-If any LF gate misses, report the numbers and stop. Do not tune the constants without the user: the spec fixes them.
+Ruling (user-approved during execution, 2026-09-26): vepyr master does not include #131, so on this branch the LF plugin consumer re-parses CSQ once per plugin field (14.6 s on chr22, 67 s on chr1 at baseline) and no engine change can bring `chr1 all` within 1.20. The plugin case is therefore gated on raw-stream scaling here, and its LF target is checked on a local build with #131 stacked. If any LF gate misses, report the numbers and stop. Do not tune the constants without the user: the spec fixes them.
 
 ---
 
