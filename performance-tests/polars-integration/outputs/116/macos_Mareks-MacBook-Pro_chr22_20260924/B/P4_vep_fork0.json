@@ -1,0 +1,78 @@
+{
+  "query": "P4",
+  "tool": "vep",
+  "fork": 0,
+  "processes": 1,
+  "annotate_median_wall_s": 1148.0785676660016,
+  "filter": {
+    "warmups": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/P4.fv.fork0.vcf",
+          "ClinVar_CLNSIG match Pathogenic"
+        ],
+        "exit": 0,
+        "wall_s": 71.995196624659,
+        "user_s": 0.017336999999999998,
+        "sys_s": 0.015848,
+        "max_rss_bytes": 27557888,
+        "load_1m_before": 3.61474609375
+      }
+    ],
+    "runs": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/P4.fv.fork0.vcf",
+          "ClinVar_CLNSIG match Pathogenic"
+        ],
+        "exit": 0,
+        "wall_s": 71.68568408302963,
+        "user_s": 0.016611,
+        "sys_s": 0.013738,
+        "max_rss_bytes": 28033024,
+        "load_1m_before": 3.1787109375
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/P4.fv.fork0.vcf",
+          "ClinVar_CLNSIG match Pathogenic"
+        ],
+        "exit": 0,
+        "wall_s": 71.51136254193261,
+        "user_s": 0.01576,
+        "sys_s": 0.014593,
+        "max_rss_bytes": 27852800,
+        "load_1m_before": 3.81298828125
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/P4.fv.fork0.vcf",
+          "ClinVar_CLNSIG match Pathogenic"
+        ],
+        "exit": 0,
+        "wall_s": 70.64285754179582,
+        "user_s": 0.017515,
+        "sys_s": 0.018468,
+        "max_rss_bytes": 27983872,
+        "load_1m_before": 3.84765625
+      }
+    ],
+    "median_wall_s": 71.51136254193261,
+    "min_wall_s": 70.64285754179582,
+    "max_wall_s": 71.68568408302963,
+    "median_rss_bytes": 27983872
+  },
+  "median_wall_s": 1219.5899302079342
+}
