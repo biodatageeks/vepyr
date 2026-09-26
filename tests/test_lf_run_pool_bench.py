@@ -260,3 +260,19 @@ def test_baseline_regressions_allow_noise_within_the_bar(bench):
     base = [_gate_row("chr22", "none", "raw", 8, 1.0)]
     final = [_gate_row("chr22", "none", "raw", 8, 1.09)]
     assert bench.baseline_regressions(base, final) == []
+
+
+def test_baseline_regressions_refuse_an_empty_baseline(bench):
+    final = [_gate_row("chr22", "none", "raw", 8, 1.0)]
+    assert bench.baseline_regressions([], final) != []
+
+
+def test_baseline_regressions_require_every_expected_configuration(bench):
+    base = [_gate_row("chr22", "none", "raw", 8, 1.0)]
+    final = [
+        _gate_row("chr22", "none", "raw", 8, 1.0),
+        _gate_row("chr1", "all", "lf", 8, 9.0),
+    ]
+    expected = bench.parse_expect(["chr22:none:raw:8", "chr1:all:lf:8"])
+    found = bench.baseline_regressions(base, final, expected)
+    assert len(found) == 1 and "chr1 all lf w8" in found[0] and "baseline" in found[0]

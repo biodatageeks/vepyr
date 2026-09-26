@@ -259,7 +259,7 @@ def main() -> None:
         failures = gate(rows, set(args.gate_plugins), parse_expect(args.gate_expect))
         if args.gate_baseline:
             base = json.loads(Path(args.gate_baseline).read_text())
-            failures += baseline_regressions(base, rows)
+            failures += baseline_regressions(base, rows, parse_expect(args.gate_expect))
         for line in failures:
             print(f"GATE MISS: {line}")
         print("VERDICT: " + ("FAIL" if failures else "PASS"))
@@ -426,11 +426,24 @@ def gate(
 REGRESSION_BAR = 1.10
 
 
-def baseline_regressions(base: list[dict], final: list[dict]) -> list[str]:
+def baseline_regressions(
+    base: list[dict],
+    final: list[dict],
+    expected: set[tuple[str, str, str, int]] | None = None,
+) -> list[str]:
     """Configurations whose final median wall is more than REGRESSION_BAR times
-    the baseline's; configurations measured on only one side are not compared."""
+    the baseline's. An empty baseline, or one missing any `expected`
+    configuration, is itself a miss: a comparison that was never made must not
+    read as a pass. Other configurations measured on one side only are skipped.
+    """
+    if not base:
+        return ["baseline results are empty: nothing to compare against"]
+    have = {(r["input"], r["plugins"], r["mode"], r["workers"]) for r in base}
+    found = [
+        f"{i} {p} {m} w{w}: missing from the baseline, so not compared"
+        for i, p, m, w in sorted((expected or set()) - have)
+    ]
     before = {(r["input"], r["plugins"], r["mode"], r["workers"]): r for r in base}
-    found = []
     for r in final:
         key = (r["input"], r["plugins"], r["mode"], r["workers"])
         if key not in before:
