@@ -285,3 +285,17 @@ def test_lf_baseline_comparison_counts_setup(bench):
     final = [_gate_row("chr22", "none", "lf", 8, 1.0, 0.5)]
     found = bench.baseline_regressions(base, final)
     assert len(found) == 1 and "chr22 none lf w8" in found[0]
+
+
+def test_count_records_leaves_out_what_annotate_drops(bench, tmp_path):
+    # annotate() drops a record whose first ALT is `.` (allow_non_variant=False),
+    # so the expected row count must too; `C,.` is an ordinary record.
+    path = tmp_path / "nv.vcf"
+    path.write_text(
+        "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\n"
+        "chr1\t100\t.\tA\tC\n"
+        "chr1\t101\t.\tA\t.\n"
+        "chr1\t102\t.\tA\t.,C\n"
+        "chr1\t103\t.\tA\tC,.\n"
+    )
+    assert bench.count_records(str(path)) == 2

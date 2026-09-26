@@ -528,6 +528,7 @@ The new floor lets `VEP_STREAM_RUN_BUFFERS` reach 1 and 2 on chr22 at w8, so one
 
 ```bash
 RUN=$PWD/e2e-testing/results/fix-lf-run-pool/spike
+mkdir -p "$RUN" || exit 1   # the log redirection below opens files in it before the bench runs
 for rb in 1 2 4; do
   .venv/bin/python performance-tests/vepyr/scripts/lf_run_pool_bench.py \
     --out-dir $RUN/rb$rb --env VEP_STREAM_RUN_BUFFERS=$rb \

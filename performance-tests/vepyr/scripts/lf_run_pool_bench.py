@@ -126,13 +126,23 @@ def child(
     )
 
 
+def _annotated(line: str) -> bool:
+    """Whether annotate() keeps this data line at its default
+    allow_non_variant=False: a record whose first ALT is `.` (or empty) is
+    dropped, as Ensembl VEP drops it; `C,.` is an ordinary record."""
+    fields = line.rstrip("\n").split("\t")
+    first_alt = fields[4].split(",")[0].strip() if len(fields) > 4 else ""
+    return first_alt not in ("", ".")
+
+
 def count_records(path: str) -> int:
-    """Data lines (non-header) of a plain or gzip/BGZF-compressed VCF."""
+    """Records annotate() yields from a plain or gzip/BGZF-compressed VCF:
+    data lines less the non-variant ones it drops by default."""
     with open(path, "rb") as probe:
         compressed = probe.read(2) == b"\x1f\x8b"
     opener = gzip.open if compressed else open
     with opener(path, "rt") as f:
-        return sum(1 for line in f if not line.startswith("#"))
+        return sum(1 for line in f if not line.startswith("#") and _annotated(line))
 
 
 def check_rows(label: str, runs: list[dict], expected: int) -> None:
