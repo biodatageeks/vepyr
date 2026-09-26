@@ -810,7 +810,8 @@ If it stops on stale parity, re-run Task 7 Step 4 on the final pin, then this ch
 This branch lacks vepyr #131, so the `chr1 all` LF target is measured on a local stack: #131's head with its engine pin moved to this PR's engine head. It is never committed or pushed. Its artifact is `final/supp/lf/results.json` together with `final/supp_gate.txt`, both of which the hand-off cites.
 
 ```bash
-ENGINE=$(git -C ~/research/git/_wt/functions-run-pool rev-parse --short=7 HEAD)
+ENGINE=$PIN_REV   # the full SHA Step 2 just verified against the engine PR head
+[ -n "$ENGINE" ] || { echo "run Step 2's pin check first"; exit 1; }
 git -C ~/research/git/vepyr fetch -q origin perf/plugin-csq-single-parse
 git -C ~/research/git/vepyr worktree add --detach ~/research/git/_wt/vepyr-lf-supp FETCH_HEAD
 cd ~/research/git/_wt/vepyr-lf-supp
