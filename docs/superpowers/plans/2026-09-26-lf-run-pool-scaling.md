@@ -753,6 +753,10 @@ for c in 22 1; do
 done
 env -u CONDA_PREFIX ../../.venv/bin/python region_pushdown_parity.py --release 116 --chrom 22 \
   --profiles ensembl merged refseq --out-dir $ROOT/e2e-testing/results/fix-lf-run-pool/final/regions || exit 1
+# The engine these reports were produced on, as Cargo resolved it, next to them.
+engine_rev() { sed -n '/name = "datafusion-bio-function-vep"/,/^source/s/.*#\([0-9a-f]\{40\}\)"$/\1/p' "$ROOT/Cargo.lock"; }
+engine_rev > $ROOT/e2e-testing/results/fix-lf-run-pool/final/parity_engine_rev.txt
+[ -s $ROOT/e2e-testing/results/fix-lf-run-pool/final/parity_engine_rev.txt ] || { echo "could not resolve the engine revision"; exit 1; }
 ```
 
 **Gate:** every `equal` column is `True` (frames against workers=1, and CSQ against output_vcf at w8). Any `False` is a correctness bug. Stop, triage it, and do not go on to review.
@@ -782,7 +786,15 @@ grep -n 'datafusion-bio-function-vep' ~/research/git/_wt/vepyr-lf-run-pool/Cargo
 
 Then repeat Task 2 Steps 2–4 byte for byte with `RUN=$ROOT/e2e-testing/results/fix-lf-run-pool/final`: host check, slice deletion, WGS sweep, md5 strict, slice deletion, LF bench. Use the same `RUSTFLAGS` build.
 
-If that head is not the engine commit Task 7 Step 4's parity gate ran on (it records the pin in the ledger), re-run Task 7 Step 4 on the final pin first, into the same `final/parity_*` and `final/regions` directories. Parity evidence from an earlier engine revision does not cover the one being handed off.
+Then compare the engine the parity reports were produced on with the final pin, mechanically:
+
+```bash
+FINAL_REV=$(sed -n '/name = "datafusion-bio-function-vep"/,/^source/s/.*#\([0-9a-f]\{40\}\)"$/\1/p' "$ROOT/Cargo.lock")
+PARITY_REV=$(cat "$ROOT/e2e-testing/results/fix-lf-run-pool/final/parity_engine_rev.txt" 2>/dev/null)
+[ -n "$FINAL_REV" ] && [ "$FINAL_REV" = "$PARITY_REV" ] || echo "parity is stale: ran on '${PARITY_REV:-none}', final pin is $FINAL_REV"
+```
+
+If it reports stale parity, re-run Task 7 Step 4 on the final pin first, into the same `final/parity_*` and `final/regions` directories, which rewrites `parity_engine_rev.txt`. Parity evidence from an earlier engine revision does not cover the one being handed off.
 
 - [ ] **Step 3: Gates**
 
