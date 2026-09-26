@@ -2,9 +2,10 @@
 
 ``buffer_size=7`` turns the 100-variant fixture into ~15 input buffers and
 ``VEP_STREAM_RUN_BUFFERS=1`` makes every buffer its own run on the Ensembl
-cache, so the ordered release crosses a seam at every buffer. The merged cache
-keeps its four-buffer floor (stateful warm-up), so it is also run with the
-default run length.
+cache, so the ordered release crosses a seam at every buffer. On the merged
+cache the four-buffer floor (stateful warm-up) gives way when the input is too
+small to give every worker a run, so at 8 workers it is cut into two-buffer
+runs; the run-plan tests assert that cut from the pipeline trace.
 """
 
 from __future__ import annotations
@@ -79,6 +80,54 @@ def test_collect_equals_serial_with_default_run_length(merged_cache_dir, monkeyp
     monkeypatch.delenv("VEP_STREAM_RUN_BUFFERS", raising=False)
     serial = _lazy(merged_cache_dir, 1).collect()
     _assert_same(_lazy(merged_cache_dir, 4).collect(), serial)
+
+
+def _run_plan(stderr: str) -> dict[str, int]:
+    """Integer fields of the pool's `run_pool event=plan` trace line."""
+    import re
+
+    line = next(
+        (ln for ln in stderr.splitlines() if "stage=run_pool event=plan" in ln), None
+    )
+    assert line, "no run_pool plan line; is VEP_PIPELINE_TRACE honoured?"
+    return {k: int(v) for k, v in re.findall(r"(\w+)=(\d+)\b", line) if k != "t_ms"}
+
+
+def _floor(buffers: int, workers: int) -> int:
+    """The stateful floor the engine applies: min(4, ceil(buffers / workers)), at least 1."""
+    return max(1, min(4, -(-buffers // workers)))
+
+
+def test_merged_small_input_fills_workers(merged_cache_dir, monkeypatch, capfd):
+    monkeypatch.delenv("VEP_STREAM_RUN_BUFFERS", raising=False)
+    serial = _lazy(merged_cache_dir, 1).collect()
+    capfd.readouterr()
+    monkeypatch.setenv("VEP_PIPELINE_TRACE", "1")
+    parallel = _lazy(merged_cache_dir, 8).collect()
+    plan = _run_plan(capfd.readouterr().err)
+    # Fewer than 4 x 8 buffers: the floor is ceil(buffers / 8), not 4.
+    assert plan["buffers"] < 32, plan
+    assert plan["run_buffers"] == _floor(plan["buffers"], 8), plan
+    assert plan["run_buffers"] < 4, plan
+    _assert_same(parallel, serial)
+
+
+def test_merged_region_run_plan_fills_workers(merged_cache_dir, monkeypatch, capfd):
+    monkeypatch.delenv("VEP_STREAM_RUN_BUFFERS", raising=False)
+    serial = _lazy(merged_cache_dir, 1).collect()
+    starts = serial["start"].to_list()
+    # About two of the fixture's ~15 seven-row buffers.
+    predicate = (pl.col("chrom") == "chr1") & pl.col("start").is_between(
+        starts[21], starts[33]
+    )
+    capfd.readouterr()
+    monkeypatch.setenv("VEP_PIPELINE_TRACE", "1")
+    pushed = _lazy(merged_cache_dir, 8).filter(predicate).collect()
+    plan = _run_plan(capfd.readouterr().err)
+    # The cut is based on the region's buffers, not the contig's.
+    assert plan["covered"] < plan["buffers"], plan
+    assert plan["run_buffers"] == _floor(plan["covered"], 8), plan
+    _assert_same(pushed, serial.filter(predicate))
 
 
 def test_csq_column_equals_serial(cache_dir, monkeypatch):
