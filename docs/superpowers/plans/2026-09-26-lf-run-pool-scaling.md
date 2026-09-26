@@ -820,7 +820,7 @@ SUPP=$ROOT/e2e-testing/results/fix-lf-run-pool/final/supp
   --plugin-cache-root $DATA_VEPYR_DIR/plugin_cache_116 \
   --workers 4 8 --modes raw lf vcf --plugin-sets all --repeats 3 || exit 1
 $ROOT/.venv/bin/python $ROOT/performance-tests/vepyr/scripts/lf_run_pool_bench.py --gate $SUPP/lf/results.json \
-  --gate-plugins all --gate-expect chr22:all:raw,lf,vcf:4,8 --gate-expect chr1:all:raw,lf,vcf:4,8 \
+  --gate-plugins chr1:all --gate-expect chr22:all:raw,lf,vcf:4,8 --gate-expect chr1:all:raw,lf,vcf:4,8 \
   | tee $ROOT/e2e-testing/results/fix-lf-run-pool/final/supp_gate.txt
 [ "${pipestatus[1]:-${PIPESTATUS[0]}}" -eq 0 ] || { echo "supplementary plugin gate FAILED"; exit 1; }
 ```
@@ -833,6 +833,7 @@ FINAL=$ROOT/e2e-testing/results/fix-lf-run-pool/final
 uv run python "$ROOT/tools/vepyr-fix/compare_runs.py" "$BASE/archive" "$FINAL/archive" || { echo "WGS perf gate FAILED"; exit 1; }
 .venv/bin/python performance-tests/vepyr/scripts/lf_run_pool_bench.py --gate "$FINAL/lf/results.json" \
   --gate-expect chr22:none,all:raw,lf,vcf:1,4,8 --gate-expect chr1:none,all:raw,lf,vcf:1,4,8 \
+  --gate-baseline "$BASE/lf/results.json" \
   || { echo "LF gate FAILED"; exit 1; }
 grep -iE "mismatch|concord" "$FINAL/md5.out" | tail -5
 cat "$BASE/lf/summary.md" "$FINAL/lf/summary.md"
@@ -845,6 +846,7 @@ cat "$BASE/lf/summary.md" "$FINAL/lf/summary.md"
 | LF success (core) | `lf end-to-end/vcf` at w8 ≤ 1.20 for chr22 none and chr1 none, on this branch |
 | LF scaling | raw stream at w8 faster than at w4 for chr22 none, chr22 all, chr1 all, on this branch |
 | LF success (plugins, supplementary) | `lf end-to-end/vcf` at w8 ≤ 1.20 for chr1 all, on a local build stacking vepyr #131 on this engine (reported, not part of either PR) |
+| LF against baseline | no configuration's median wall more than 10% slower than at baseline (`--gate-baseline`) |
 | RSS | reported in absolute GiB, baseline against final, not gated |
 
 Ruling (user-approved during execution, 2026-09-26): vepyr master does not include #131, so on this branch the LF plugin consumer re-parses CSQ once per plugin field (14.6 s on chr22, 67 s on chr1 at baseline) and no engine change can bring `chr1 all` within 1.20. The plugin case is therefore gated on raw-stream scaling here, and its LF target is checked on a local build with #131 stacked. If any LF gate misses, report the numbers and stop. Do not tune the constants without the user: the spec fixes them.

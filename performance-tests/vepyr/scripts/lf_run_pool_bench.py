@@ -222,7 +222,7 @@ def main() -> None:
         "--gate-plugins",
         nargs="+",
         default=["none"],
-        help="plugin sets whose lf/vcf ratio is gated (default: none)",
+        help="plugin sets (every input) or INPUT:PLUGINS pairs whose lf/vcf ratio is gated (default: none)",
     )
     p.add_argument(
         "--gate-expect",
@@ -230,6 +230,11 @@ def main() -> None:
         default=[],
         metavar="INPUT:PLUGINS:MODES:WORKERS",
         help="a configuration matrix the results must contain, e.g. chr1:none,all:raw,lf,vcf:4,8",
+    )
+    p.add_argument(
+        "--gate-baseline",
+        metavar="BASELINE_JSON",
+        help="baseline results.json; a configuration more than 10%% slower than it is a miss",
     )
     gating = "--gate" in sys.argv
     p.add_argument("--out-dir", required=not gating)
@@ -252,6 +257,9 @@ def main() -> None:
     if args.gate:
         rows = json.loads(Path(args.gate).read_text())
         failures = gate(rows, set(args.gate_plugins), parse_expect(args.gate_expect))
+        if args.gate_baseline:
+            base = json.loads(Path(args.gate_baseline).read_text())
+            failures += baseline_regressions(base, rows)
         for line in failures:
             print(f"GATE MISS: {line}")
         print("VERDICT: " + ("FAIL" if failures else "PASS"))
@@ -360,7 +368,8 @@ def gate(
     - completeness: results must be non-empty, every gated plugin set must be
       present, and every input and plugin set needs raw at two worker counts;
     - raw stream: the largest worker count must be faster than the next one down;
-    - LazyFrame: for the plugin sets in `ratio_plugins`, `lf end-to-end/vcf` at
+    - LazyFrame: for each `ratio_plugins` entry, a plugin set (every input) or
+      an `INPUT:PLUGINS` pair (that input only), `lf end-to-end/vcf` at
       the largest worker count must be at most RATIO_BAR.
     """
     if not rows:
@@ -373,8 +382,11 @@ def gate(
             for i, p, m, w in missing
         ]
     failures = [
-        f"plugin set {plugins} is gated but was not measured"
-        for plugins in sorted(ratio_plugins - {r["plugins"] for r in rows})
+        f"ratio scope {scope} is gated but was not measured"
+        for scope in sorted(ratio_plugins)
+        if scope
+        not in {r["plugins"] for r in rows}
+        | {f"{r['input']}:{r['plugins']}" for r in rows}
     ]
     for name, plugins in sorted({(r["input"], r["plugins"]) for r in rows}):
         group = [r for r in rows if (r["input"], r["plugins"]) == (name, plugins)]
@@ -391,7 +403,7 @@ def gate(
                 f"{name} {plugins} raw: w{raw[-1]['workers']} {raw[-1]['median_wall_s']} s"
                 f" is not faster than w{raw[-2]['workers']} {raw[-2]['median_wall_s']} s"
             )
-        if plugins not in ratio_plugins:
+        if plugins not in ratio_plugins and f"{name}:{plugins}" not in ratio_plugins:
             continue
         top = max(r["workers"] for r in group)
         pick = {r["mode"]: r for r in group if r["workers"] == top}
@@ -409,6 +421,27 @@ def gate(
                 f"{name} {plugins} w{top}: lf end-to-end/vcf = {ratio:.2f} > {RATIO_BAR:.2f}"
             )
     return failures
+
+
+REGRESSION_BAR = 1.10
+
+
+def baseline_regressions(base: list[dict], final: list[dict]) -> list[str]:
+    """Configurations whose final median wall is more than REGRESSION_BAR times
+    the baseline's; configurations measured on only one side are not compared."""
+    before = {(r["input"], r["plugins"], r["mode"], r["workers"]): r for r in base}
+    found = []
+    for r in final:
+        key = (r["input"], r["plugins"], r["mode"], r["workers"])
+        if key not in before:
+            continue
+        was, now = before[key]["median_wall_s"], r["median_wall_s"]
+        if now > was * REGRESSION_BAR:
+            found.append(
+                f"{key[0]} {key[1]} {key[2]} w{key[3]}: {now} s against {was} s at baseline"
+                f" (+{(now / was - 1) * 100:.0f}% > {(REGRESSION_BAR - 1) * 100:.0f}%)"
+            )
+    return found
 
 
 def render_summary(rows: list[dict]) -> str:

@@ -222,3 +222,41 @@ def test_gate_passes_when_every_expected_configuration_is_present(bench):
     expected = bench.parse_expect(["chr22:none:raw,lf,vcf:8", "chr1:all:raw:4,8"])
     expected.discard(("chr22", "none", "raw", 8))
     assert bench.gate(_passing_rows(), ratio_plugins={"none"}, expected=expected) == []
+
+
+def _with_chr22_plugins():
+    return _passing_rows() + [
+        _gate_row("chr22", "all", "raw", 4, 4.0),
+        _gate_row("chr22", "all", "raw", 8, 2.4),
+        _gate_row("chr22", "all", "lf", 8, 20.0),
+        _gate_row("chr22", "all", "vcf", 8, 2.6),
+    ]
+
+
+def test_ratio_gate_can_be_scoped_to_one_input(bench):
+    # chr1 all (2.7) and chr22 all (7.7) both miss the bar; scoping to chr1
+    # reports only chr1, while raw scaling is still checked everywhere.
+    scoped = bench.gate(_with_chr22_plugins(), ratio_plugins={"chr1:all"})
+    assert len(scoped) == 1 and scoped[0].startswith("chr1 all w8")
+    assert len(bench.gate(_with_chr22_plugins(), ratio_plugins={"all"})) == 2
+
+
+def test_baseline_regressions_flag_a_slower_final(bench):
+    base = [
+        _gate_row("chr22", "none", "raw", 8, 1.0),
+        _gate_row("chr1", "none", "raw", 8, 4.0),
+    ]
+    final = [
+        _gate_row("chr22", "none", "raw", 8, 1.2),
+        _gate_row("chr1", "none", "raw", 8, 3.0),
+        _gate_row("chr1", "all", "raw", 8, 9.0),
+    ]
+    found = bench.baseline_regressions(base, final)
+    # 1.2 s against 1.0 s is 20% slower; chr1 got faster; chr1 all has no baseline.
+    assert len(found) == 1 and "chr22 none raw w8" in found[0]
+
+
+def test_baseline_regressions_allow_noise_within_the_bar(bench):
+    base = [_gate_row("chr22", "none", "raw", 8, 1.0)]
+    final = [_gate_row("chr22", "none", "raw", 8, 1.09)]
+    assert bench.baseline_regressions(base, final) == []
