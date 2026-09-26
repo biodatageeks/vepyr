@@ -185,6 +185,12 @@ serde_json = "1"
 # instead of deriving one from its typed columns. Its src tree is identical to
 # the PR head 304d148 this was pinned to in review. Pinned by rev because no
 # release has been cut on top of the merge yet; move to that tag when one is.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "0cefc99", features = ["cache-builder"] }
+# bio-functions 737c5cd: head of biodatageeks/datafusion-bio-functions#262
+# (perf/lf-run-pool-scaling) on top of 0cefc99, the MERGE commit of #260. The
+# streaming run pool's output budget scales with workers and the stateful run
+# floor gives way on small contigs and regions, so the LazyFrame path scales
+# like output_vcf. Scheduling only; output unchanged. Pinned to the PR head for
+# review; re-pin to the merge commit once it merges.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "737c5cd", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
