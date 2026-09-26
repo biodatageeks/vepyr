@@ -896,12 +896,21 @@ Ruling (user-approved during execution, 2026-09-26): vepyr master does not inclu
 - the floor check result;
 - the vepyr pin SHA;
 - every bot finding and how it was answered;
-- the post-merge actions: merge functions, then re-pin vepyr to the merge commit (then to a release tag once one is cut), then merge vepyr; after release, re-run Figure 1's LF curve and write its caption.
+- the post-merge actions, which depend on what has already merged. Before the engine PR merges: merge functions, re-pin vepyr to the merge commit or a release tag, then merge vepyr. After it has merged and vepyr is pinned to a release containing it (checked by Task 8 Step 2's pin check), only merging vepyr is left. In both cases, once released, re-run Figure 1's LF curve and write its caption.
 
 - [ ] **Step 2: Run the hand-off script**
 
+Hand off only the PRs that are still open. Once the engine PR has merged and vepyr is re-pinned, `$PRS` still names it, and `gh pr ready` fails on a merged PR, which aborts the whole hand-off:
+
 ```bash
-bash "$ROOT/tools/vepyr-fix/handoff.sh" "$PRS" /tmp/handoff.md
+OPEN_PRS=""
+for e in $PRS; do
+  repo=${e%%:*}; n=${e##*:}
+  state=$(gh pr view "$n" --repo "$repo" --json state --jq .state) || exit 1
+  [ "$state" = OPEN ] && OPEN_PRS="$OPEN_PRS $e"
+done
+[ -n "$OPEN_PRS" ] || { echo "no open PR left to hand off"; exit 1; }
+bash "$ROOT/tools/vepyr-fix/handoff.sh" "$OPEN_PRS" /tmp/handoff.md
 ```
 
 - [ ] **Step 3: Update memory**
