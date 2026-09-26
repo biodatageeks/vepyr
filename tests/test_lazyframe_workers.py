@@ -11,6 +11,7 @@ runs; the run-plan tests assert that cut from the pipeline trace.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import polars as pl
@@ -84,8 +85,6 @@ def test_collect_equals_serial_with_default_run_length(merged_cache_dir, monkeyp
 
 def _run_plan(stderr: str) -> dict[str, int]:
     """Integer fields of the pool's `run_pool event=plan` trace line."""
-    import re
-
     line = next(
         (ln for ln in stderr.splitlines() if "stage=run_pool event=plan" in ln), None
     )
