@@ -7,6 +7,9 @@ import pytest
 
 import vepyr
 
+# annotate() always needs one; these tests fake the engine, so it is never read.
+REFERENCE_FASTA = str(Path(__file__).parent / "data" / "golden" / "reference.fa")
+
 # A complete manifest the Rust builder can actually load (the resolution-only
 # test above uses a stub `plugin_name = "demo"` line that won't deserialize).
 _FULL_MANIFEST = """\
@@ -304,6 +307,7 @@ def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
     vepyr.annotate(
         "in.vcf",
         "cache",
+        reference_fasta=REFERENCE_FASTA,
         output_vcf=str(tmp_path / "out.vcf"),
         plugin_cache_root="/tmp/pc",
         show_progress=False,
@@ -320,7 +324,11 @@ def test_no_plugin_cache_root_omits_key(monkeypatch, tmp_path):
 
     monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
     vepyr.annotate(
-        "in.vcf", "cache", output_vcf=str(tmp_path / "out.vcf"), show_progress=False
+        "in.vcf",
+        "cache",
+        reference_fasta=REFERENCE_FASTA,
+        output_vcf=str(tmp_path / "out.vcf"),
+        show_progress=False,
     )
     assert "plugin_cache_root" not in captured["options_json"]
 
@@ -376,7 +384,11 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
 
     monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
     lf = vepyr.annotate(
-        "in.vcf", "cache", plugin_cache_root=str(root), show_progress=False
+        "in.vcf",
+        "cache",
+        reference_fasta=REFERENCE_FASTA,
+        plugin_cache_root=str(root),
+        show_progress=False,
     )
     assert lf is not None  # a LazyFrame, not a written path
     # compare the parsed value: on Windows the path's backslashes are

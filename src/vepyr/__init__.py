@@ -45,8 +45,8 @@ log = logging.getLogger(__name__)
 
 # Projection pushdown: which annotation flags each DataFrame column depends on.
 # Every other column has the same value whatever flags are set, so a
-# ``select()`` decides which groups the engine runs: unused groups are dropped
-# and, when no flag was given, needed groups are switched on. Verified column by column on HG002 chr22 against the
+# ``select()`` decides which groups of ``everything`` the engine runs: unused
+# groups are dropped. Verified column by column on HG002 chr22 against the
 # release-116 Ensembl cache; ``tests/test_annotate.py::TestProjectionPruning``
 # guards the value identity on the fixture cache.
 _HGVS_COLUMNS = frozenset({"HGVSc", "HGVSp"})
@@ -95,7 +95,7 @@ _COLOCATED_OPTIONS = (
     "max_af",
     "pubmed",
 )
-# Columns only ``everything`` fills; selecting one keeps the flag as is. The
+# Columns only ``everything`` fills; selecting one keeps it whole. The
 # motif columns are among them because the five motif fields exist only in
 # the ``everything`` CSQ layout (the engine leaves them null otherwise).
 _EVERYTHING_ONLY_COLUMNS = frozenset(
@@ -214,130 +214,38 @@ def _plugin_column(values, dtype, per_variant: bool):
 def _flags_for_projection(
     opts: dict,
     needed: set[str] | None,
-    available: set[str] | None = None,
     required: frozenset[str] | set[str] = frozenset(),
 ) -> dict:
-    """Derive the annotation flags a query needs from the columns it reads.
+    """Narrow ``everything`` to the flag groups a query's columns read.
 
-    ``needed`` is the query's projection plus any filter columns. With no
-    projection (``None``), or when the raw ``CSQ`` string is read, the flags
-    stay as given, or, when none were given, ``everything`` is used with a
-    FASTA and the co-located lookup without one. Otherwise only three column
-    groups depend on flags at all (see the constants above):
+    ``opts`` always carries ``everything``. ``needed`` is the query's
+    projection plus any filter columns. With no projection (``None``), when
+    the raw ``CSQ`` string is read, or when a column only ``everything``
+    fills is read, ``everything`` stays. Otherwise it is expanded into the
+    two groups that change column values (see the constants above), and a
+    group no column reads is left out so the engine skips it. Each group alone
+    yields the same values as ``everything`` does.
 
-    - a group nobody selected has its flags removed, so the engine skips it;
-    - a group the user enabled explicitly is kept exactly as configured;
-    - a group the user did not mention is enabled when a column needs it.
-      HGVS and the ``everything`` extras need ``reference_fasta``; asking for
-      them without one is an error rather than a column of nulls.
-
-    ``available`` is the frame's column set; it limits the no-FASTA warning
-    to columns the frame has. ``required`` names fields that must be computed
-    whatever the projection, the fields a plugin's match templates read: their
-    groups are switched on even when other flags were given explicitly.
-    Returns a new dict.
+    ``required`` names fields that must be computed whatever the projection,
+    the fields a plugin's match templates read. Returns a new dict.
     """
     out = dict(opts)
-    user_hgvs = any(opts.get(key) for key in ("hgvs", "hgvsc", "hgvsp"))
-    user_colocated = any(opts.get(key) for key in _COLOCATED_OPTIONS)
-    user_any_flag = bool(opts.get("everything")) or user_hgvs or user_colocated
-
-    def _require_fasta(group: frozenset, flag: str, fields: set[str]) -> None:
-        if not out.get("reference_fasta_path"):
-            columns = ", ".join(sorted(fields & group))
-            raise ValueError(
-                f"selecting {columns} needs {flag}, which requires reference_fasta="
-            )
-
-    def _ensure(fields: set[str]) -> None:
-        """Switch on the groups ``fields`` need, whatever the user set."""
-        if fields & _EVERYTHING_ONLY_COLUMNS and not out.get("everything"):
-            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything", fields)
-            out["everything"] = True
-        if out.get("everything"):
-            return
-        # hgvs computes both HGVS fields; hgvsc and hgvsp one each, so the
-        # check is per field: hgvsp=True alone leaves HGVSc empty. With no
-        # HGVS flag at all, hgvs is switched on like the projection does.
-        if fields & _HGVS_COLUMNS and not any(
-            out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")
-        ):
-            _require_fasta(_HGVS_COLUMNS, "hgvs", fields)
-            out["hgvs"] = True
-        for field, flag in (("HGVSc", "hgvsc"), ("HGVSp", "hgvsp")):
-            if field in fields and not (out.get("hgvs") or out.get(flag)):
-                _require_fasta(_HGVS_COLUMNS, flag, {field})
-                out[flag] = True
-        if fields & _COLOCATED_COLUMNS and not any(
-            out.get(key) for key in _COLOCATED_OPTIONS
-        ):
-            for key in _COLOCATED_OPTIONS:
-                out[key] = True
-
     if needed is None or "CSQ" in needed:
-        # No projection, or the raw CSQ string (which needs every flag): flags
-        # as given, or, when none were given, everything the inputs allow.
-        # HGVS and the everything extras need a FASTA, so without one only
-        # the co-located lookup can be switched on. Plugin requirements come
-        # first so a missing FASTA raises before anything is warned about.
-        _ensure(set(required))
-        if not user_any_flag:
-            if out.get("reference_fasta_path"):
-                out["everything"] = True
-            else:
-                for key in _COLOCATED_OPTIONS:
-                    out[key] = True
-                unavailable = _HGVS_COLUMNS | _EVERYTHING_ONLY_COLUMNS
-                if available is not None:
-                    unavailable = unavailable & available
-                if unavailable:
-                    warnings.warn(
-                        "no reference_fasta given, so these columns will be null: "
-                        f"{', '.join(sorted(unavailable))}. Pass reference_fasta= "
-                        "for the full result",
-                        stacklevel=2,
-                    )
+        return out
+    needed = needed | set(required)
+    if needed & _EVERYTHING_ONLY_COLUMNS:
         return out
 
-    needed = needed | set(required)
-
-    def _needs(group: frozenset) -> bool:
-        return bool(needed & group)
-
-    if _needs(_EVERYTHING_ONLY_COLUMNS):
-        if not opts.get("everything"):
-            _require_fasta(_EVERYTHING_ONLY_COLUMNS, "everything", needed)
-            out["everything"] = True
-        return out  # everything covers every group; sub-options stay as given
-
-    keep_hgvs = _needs(_HGVS_COLUMNS)
-    keep_colocated = _needs(_COLOCATED_COLUMNS)
-    if out.pop("everything", False):
-        # Expand into the groups still needed; each alone yields the same
-        # column values as ``everything`` does.
-        if keep_hgvs:
-            out["hgvs"] = True
-        if keep_colocated:
-            for key in _COLOCATED_OPTIONS:
-                out[key] = True
+    out.pop("everything", None)
+    if needed & _HGVS_COLUMNS:
+        out["hgvs"] = True
     else:
-        if keep_hgvs and not user_hgvs:
-            _require_fasta(_HGVS_COLUMNS, "hgvs", needed)
-            out["hgvs"] = True
-        if keep_colocated and not user_colocated:
-            for key in _COLOCATED_OPTIONS:
-                out[key] = True
-    if not keep_hgvs:
         for key in _HGVS_OPTIONS:
             out.pop(key, None)
-    if not keep_colocated:
-        for key in _COLOCATED_OPTIONS:
-            out.pop(key, None)
-    # Plugin template fields are checked per field: hgvsp=True alone does not
-    # compute the HGVSc a template may read.
-    _ensure(set(required))
-    if not any(out.get(key) for key in ("hgvs", "hgvsc", "hgvsp")):
         out.pop("reference_fasta_path", None)
+    if needed & _COLOCATED_COLUMNS:
+        for key in _COLOCATED_OPTIONS:
+            out[key] = True
     return out
 
 
@@ -1104,24 +1012,13 @@ def annotate(
     vcf: str,
     cache_dir: str,
     *,
-    # Annotation feature flags
-    everything: bool = False,
-    hgvs: bool = False,
-    hgvsc: bool = False,
-    hgvsp: bool = False,
+    # Annotation always runs Ensembl VEP --everything, which needs the FASTA
+    reference_fasta: str,
+    # HGVS formatting
     shift_hgvs: bool | None = None,
     no_escape: bool = False,
     remove_hgvsp_version: bool = False,
     hgvsp_use_prediction: bool = False,
-    reference_fasta: str | None = None,
-    # Co-located variant flags
-    check_existing: bool = False,
-    af: bool = False,
-    af_1kg: bool = False,
-    af_gnomade: bool = False,
-    af_gnomadg: bool = False,
-    max_af: bool = False,
-    pubmed: bool = False,
     # Lookup tuning
     cache_format: str = "parquet",
     expected_cache_version: str | None = None,
@@ -1176,41 +1073,22 @@ def annotate(
     cache_dir : str
         Path to the parquet cache directory produced by :func:`build_cache`,
         e.g. ``"/data/vep/wgs/parquet/115_GRCh38_ensembl"``.
-    everything : bool
-        Enable all annotation features (80-field CSQ). Implies ``hgvs``,
-        ``af``, ``check_existing``, ``pubmed``, etc. Requires
-        ``reference_fasta``.
-    hgvs : bool
-        Add HGVS notation. Implies ``hgvsc``, ``hgvsp``, ``shift_hgvs``.
-        Requires ``reference_fasta``.
-    hgvsc : bool
-        Enable HGVSc notation (implied by ``hgvs``/``everything``).
-    hgvsp : bool
-        Enable HGVSp notation (implied by ``hgvs``/``everything``).
+    reference_fasta : str
+        Path to the reference FASTA. Required: annotation always runs
+        Ensembl VEP ``--everything``, and HGVS needs it. ``--everything``
+        implies ``--sift b --polyphen b --ccds --hgvs --symbol --numbers
+        --domains --regulatory --canonical --protein --biotype --af --af_1kg
+        --af_gnomade --af_gnomadg --max_af --pubmed --uniprot --mane --tsl
+        --appris --variant_class --gene_phenotype --mirna``, and through
+        those ``--hgvsc``, ``--hgvsp`` and ``--check_existing``.
     shift_hgvs : bool or None
-        3' shift HGVS notation. ``None`` = auto (True when hgvs enabled).
+        3' shift HGVS notation. ``None`` = VEP's default (on).
     no_escape : bool
         Don't URI-escape HGVS strings.
     remove_hgvsp_version : bool
         Remove version from HGVSp transcript ID.
     hgvsp_use_prediction : bool
         Use predicted rather than observed protein sequence.
-    reference_fasta : str or None
-        Path to reference FASTA (required for HGVS/everything).
-    check_existing : bool
-        Check for co-located known variants (implied by AF flags).
-    af : bool
-        Include allele frequencies.
-    af_1kg : bool
-        Include 1000 Genomes allele frequencies.
-    af_gnomade : bool
-        Include gnomAD exome allele frequencies.
-    af_gnomadg : bool
-        Include gnomAD genome allele frequencies.
-    max_af : bool
-        Include maximum AF across populations.
-    pubmed : bool
-        Include PubMed IDs for co-located variants.
     extended_probes : bool
         Use interval-overlap fallback for shifted indels (default: True).
     distance : int or tuple[int, int] or None
@@ -1371,45 +1249,28 @@ def annotate(
     polars.LazyFrame or str
         When ``output_vcf`` is ``None``: annotated variants as a polars
         ``LazyFrame`` with typed annotation columns plus original VCF fields.
-        A ``select()`` on it decides which annotation flags the engine runs:
-        the groups no selected column needs are switched off, and, when no
-        flag was given, the groups a column needs are switched on (HGVS and
-        the ``everything`` extras require ``reference_fasta``). Collected
-        without a ``select()`` and without flags, the frame is the
-        ``everything`` result when ``reference_fasta`` is given and the
-        co-located lookup result otherwise. ``fields`` cannot be combined
-        with a narrowing ``select()``.
+        Every column holds its ``--everything`` value. A ``select()`` only
+        decides how much work that takes: the engine skips the HGVS lookup,
+        the co-located lookup and the ``everything``-only extras (SIFT,
+        PolyPhen, motifs, ...) when no selected column needs them, which
+        leaves the selected values unchanged. ``fields`` cannot be combined with a
+        narrowing ``select()``.
         When ``output_vcf`` is set: the output VCF file path.
 
     Examples
     --------
     >>> import vepyr
-    >>> lf = vepyr.annotate("input.vcf", "/data/vep/parquet/115_GRCh38_ensembl")
+    >>> lf = vepyr.annotate(
+    ...     "input.vcf",
+    ...     "/data/vep/parquet/115_GRCh38_ensembl",
+    ...     reference_fasta="/ref/GRCh38.fa",
+    ... )
     >>> lf.collect()
-
-    >>> # Full annotation with all features
-    >>> lf = vepyr.annotate(
-    ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_ensembl",
-    ...     everything=True,
-    ...     reference_fasta="/ref/GRCh38.fa",
-    ... )
-
-    >>> # Selective: HGVS + allele frequencies
-    >>> lf = vepyr.annotate(
-    ...     "input.vcf",
-    ...     "/data/vep/parquet/115_GRCh38_ensembl",
-    ...     hgvs=True,
-    ...     af=True,
-    ...     af_gnomadg=True,
-    ...     reference_fasta="/ref/GRCh38.fa",
-    ... )
 
     >>> # Write annotated VCF directly
     >>> path = vepyr.annotate(
     ...     "input.vcf",
     ...     "/data/vep/parquet/115_GRCh38_ensembl",
-    ...     everything=True,
     ...     reference_fasta="/ref/GRCh38.fa",
     ...     output_vcf="annotated.vcf",
     ... )
@@ -1436,10 +1297,9 @@ def annotate(
             raise ValueError("fields must not contain duplicate names")
         selected_fields = list(fields)
 
-    # Validate reference_fasta requirement
-    if (everything or hgvs or hgvsc or hgvsp) and not reference_fasta:
+    if not reference_fasta:
         raise ValueError(
-            "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
+            "reference_fasta is required: annotation always runs --everything"
         )
 
     if gencode_basic and gencode_primary:
@@ -1466,14 +1326,9 @@ def annotate(
     if expected_cache_version is not None:
         opts["expected_cache_version"] = expected_cache_version
 
-    if everything:
-        opts["everything"] = True
-    if hgvs:
-        opts["hgvs"] = True
-    if hgvsc:
-        opts["hgvsc"] = True
-    if hgvsp:
-        opts["hgvsp"] = True
+    # --everything is not optional: it implies the HGVS, co-located, AF and
+    # PubMed flags. A LazyFrame query narrows it to what its columns read.
+    opts["everything"] = True
     if shift_hgvs is not None:
         opts["shift_hgvs"] = shift_hgvs
     if no_escape:
@@ -1482,22 +1337,7 @@ def annotate(
         opts["remove_hgvsp_version"] = True
     if hgvsp_use_prediction:
         opts["hgvsp_use_prediction"] = True
-    if reference_fasta:
-        opts["reference_fasta_path"] = reference_fasta
-    if check_existing:
-        opts["check_existing"] = True
-    if af:
-        opts["af"] = True
-    if af_1kg:
-        opts["af_1kg"] = True
-    if af_gnomade:
-        opts["af_gnomade"] = True
-    if af_gnomadg:
-        opts["af_gnomadg"] = True
-    if max_af:
-        opts["max_af"] = True
-    if pubmed:
-        opts["pubmed"] = True
+    opts["reference_fasta_path"] = reference_fasta
     if gencode_basic:
         opts["gencode_basic"] = True
     if gencode_primary:
@@ -1949,7 +1789,7 @@ def annotate(
         else:
             read_plugins = needed & plugin_columns
         required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
-        engine_opts = _flags_for_projection(_opts, needed, set(polars_schema), required)
+        engine_opts = _flags_for_projection(_opts, needed, required)
         # Input columns the query does not read are not parsed at all.
         read_info, read_format = fields_for_query(
             _carried,
@@ -2150,26 +1990,9 @@ def annotate(
     _layout_carried = record_layout_carried(pa_schema)
 
     def _provenance_options() -> str:
-        """The options the provenance describes.
-
-        This runs while the frame is being built, so it must not decide whether
-        building it succeeds. Deriving the flags a sink would need can raise --
-        a plugin whose match template needs a FASTA there is none of -- and a
-        caller who never sinks, or who projects those columns away, has a
-        working query. Their header then records the options as given: a sink
-        of that frame raises on its own, from the collect that feeds it.
-        """
-        try:
-            options = _flags_for_projection(
-                _opts,
-                None,
-                set(polars_schema),
-                # A sink writes every plugin column, so it is collected with all
-                # of their required inputs enabled; record those too.
-                set().union(*plugin_column_inputs.values()),
-            )
-        except ValueError:
-            options = dict(_opts)
+        """The options the provenance describes: a sink writes every column,
+        so it runs the whole of ``everything``, which is what ``_opts`` holds."""
+        options = dict(_opts)
         options["preserve_record_layout"] = _layout_carried
         return json.dumps(options)
 

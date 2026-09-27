@@ -4,9 +4,10 @@ A thin VCF-in / VCF-out shell over :func:`vepyr.annotate`. Flag names follow
 Ensembl VEP's own spelling so that ``ext.args`` strings written for the
 ``ensemblvep/vep`` nf-core module carry over unchanged.
 
-The flag set is deliberately small: it covers the configuration the golden
-parity suite actually validates (``--everything`` with ``--fasta``) plus the
-options an nf-core module needs. Everything else stays on the Python API.
+The flag set is deliberately small: annotation always runs ``--everything``,
+the configuration the golden parity suite validates, so ``--fasta`` is
+required and ``--everything`` / ``--hgvsc`` are accepted only so existing
+argument strings keep working. Everything else stays on the Python API.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from importlib.metadata import version as _package_version
 _EPILOG = """\
 examples:
   vepyr annotate -i in.vcf.gz -o out.vcf.gz --dir_cache CACHE \\
-      --fasta GRCh38.fa --everything --fork 8
+      --fasta GRCh38.fa --fork 8
 """
 
 
@@ -70,22 +71,25 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="Parquet cache directory, e.g. .../116_GRCh38_ensembl.",
     )
+    required.add_argument(
+        "--fasta",
+        required=True,
+        metavar="FILE",
+        help="Reference FASTA. Annotation always runs --everything, which needs it.",
+    )
 
     vep = annotate.add_argument_group("Ensembl VEP options")
-    vep.add_argument(
-        "--fasta",
-        metavar="FILE",
-        help="Reference FASTA. Required by --everything.",
-    )
+    # Accepted and ignored: --everything is always on, and it implies --hgvsc.
+    # Kept so ensemblvep-style ext.args strings still parse.
     vep.add_argument(
         "--everything",
         action="store_true",
-        help="Enable all annotation features (80-field CSQ).",
+        help="Always on; accepted for Ensembl VEP compatibility.",
     )
     vep.add_argument(
         "--hgvsc",
         action="store_true",
-        help="Add HGVS coding-sequence notation. Requires --fasta.",
+        help="Implied by --everything; accepted for Ensembl VEP compatibility.",
     )
     vep.add_argument(
         "--fork",
@@ -139,13 +143,8 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
         "output_vcf": args.output_file,
         "show_progress": not args.no_progress,
         "workers": args.fork,
+        "reference_fasta": args.fasta,
     }
-    if args.fasta is not None:
-        kwargs["reference_fasta"] = args.fasta
-    if args.everything:
-        kwargs["everything"] = True
-    if args.hgvsc:
-        kwargs["hgvsc"] = True
     if args.allow_non_variant:
         kwargs["allow_non_variant"] = True
     if args.cache_version is not None:

@@ -256,6 +256,7 @@ def fake_engine(monkeypatch):
 def _annotate(**kwargs):
     import vepyr
 
+    kwargs.setdefault("reference_fasta", REFERENCE_FASTA)
     return vepyr.annotate(INPUT_VCF, CACHE_DIR, show_progress=False, **kwargs)
 
 
@@ -303,6 +304,7 @@ def test_output_vcf_ignores_the_selection(monkeypatch, tmp_path):
     vepyr.annotate(
         INPUT_VCF,
         CACHE_DIR,
+        reference_fasta=REFERENCE_FASTA,
         output_vcf=str(tmp_path / "o.vcf"),
         info_fields=["DP"],
         show_progress=False,
@@ -588,22 +590,11 @@ def _header_lines(path, prefix):
     ]
 
 
-# Flag sets both output paths honour. The co-located flags (check_existing, af*,
-# max_af, pubmed) are left out on purpose: without `everything` the VCF output
-# path does not forward them to the engine, so the two paths differ there for a
-# reason that has nothing to do with sink_vcf.
-#
-# `hgvs` alone was a strict xfail while the `Format:` list was derived from the
-# frame's typed columns, which is only the engine's layout under `everything`.
-# The engine hands the description over now, so a partial flag set declares
-# exactly what it writes. A flagless frame is still not comparable: it runs
-# `everything` when it has a FASTA, and a flagless output_vcf does not.
-@pytest.mark.parametrize("flags", [{"everything": True}, {"hgvs": True}])
-def test_sink_vcf_matches_output_vcf_field_for_field(cache_dir, tmp_path, flags):
+def test_sink_vcf_matches_output_vcf_field_for_field(cache_dir, tmp_path):
     import vepyr
 
     pb = pytest.importorskip("polars_bio")
-    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False, **flags)
+    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False)
 
     reference = tmp_path / "reference.vcf"
     vepyr.annotate(
@@ -639,7 +630,7 @@ def test_sink_vcf_keeps_the_input_header_and_can_reproduce_record_lines(
     pb = pytest.importorskip("polars_bio")
     if "preserve_record_layout" not in inspect.signature(pb.scan_vcf).parameters:
         pytest.skip("polars-bio without the record layout carry")
-    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False, everything=True)
+    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False)
 
     reference = tmp_path / "reference.vcf"
     vepyr.annotate(
@@ -715,14 +706,20 @@ def test_the_default_layout_carry_gives_way_to_an_input_that_cannot_have_it(
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
         "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\t_vcf_info_keys=mine\n"
     )
-    lf = vepyr.annotate(str(src), cache_dir, show_progress=False)
+    lf = vepyr.annotate(
+        str(src), cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+    )
     names = lf.collect_schema().names()
     assert "_vcf_format_keys" not in names
     assert names.count("_vcf_info_keys") == 1  # the file's own field, as data
 
     with pytest.raises(ValueError, match="preserve_record_layout"):
         vepyr.annotate(
-            str(src), cache_dir, preserve_record_layout=True, show_progress=False
+            str(src),
+            cache_dir,
+            reference_fasta=REFERENCE_FASTA,
+            preserve_record_layout=True,
+            show_progress=False,
         ).collect()
 
 
@@ -748,7 +745,9 @@ def test_an_input_field_named_genotypes_is_carried_as_data(cache_dir, tmp_path):
     # Declared, so it can be named in info_fields and validated.
     assert vcf_fields(str(src)) == (["genotypes", "DP"], [], False)
 
-    lf = vepyr.annotate(str(src), cache_dir, show_progress=False)
+    lf = vepyr.annotate(
+        str(src), cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+    )
     assert "genotypes" in lf.collect_schema().names()
     # The projection is what regressed: read as FORMAT, the column never
     # arrived.
@@ -774,7 +773,9 @@ def test_the_provenance_records_the_layout_that_was_carried_not_the_one_asked_fo
 
     monkeypatch.setattr(vepyr, "_annotation_header_lines", capture)
 
-    vepyr.annotate(INPUT_VCF, cache_dir, show_progress=False)
+    vepyr.annotate(
+        INPUT_VCF, cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+    )
     assert seen[-1]["preserve_record_layout"] is True
 
     # A file declaring a layout column: the carry gives way, and so must the
@@ -787,16 +788,27 @@ def test_the_provenance_records_the_layout_that_was_carried_not_the_one_asked_fo
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
         "chr1\t602113\t.\tT\tTGCCCA\t50\tPASS\t_vcf_info_keys=mine\n"
     )
-    vepyr.annotate(str(src), cache_dir, show_progress=False)
+    vepyr.annotate(
+        str(src), cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+    )
     assert seen[-1]["preserve_record_layout"] is False
 
     # Opting out entirely, and the empty selection that has no layout to keep.
     vepyr.annotate(
-        INPUT_VCF, cache_dir, preserve_record_layout=False, show_progress=False
+        INPUT_VCF,
+        cache_dir,
+        reference_fasta=REFERENCE_FASTA,
+        preserve_record_layout=False,
+        show_progress=False,
     )
     assert seen[-1]["preserve_record_layout"] is False
     vepyr.annotate(
-        INPUT_VCF, cache_dir, info_fields=[], format_fields=[], show_progress=False
+        INPUT_VCF,
+        cache_dir,
+        reference_fasta=REFERENCE_FASTA,
+        info_fields=[],
+        format_fields=[],
+        show_progress=False,
     )
     assert seen[-1]["preserve_record_layout"] is False
 
@@ -834,7 +846,7 @@ def test_this_runs_csq_replaces_the_inputs_own(cache_dir, tmp_path):
     pb = pytest.importorskip("polars_bio")
     src = tmp_path / "annotated.vcf"
     src.write_text(ANNOTATED_INPUT)
-    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False, everything=True)
+    kwargs = dict(reference_fasta=REFERENCE_FASTA, show_progress=False)
 
     reference = tmp_path / "reference.vcf"
     vepyr.annotate(
@@ -867,7 +879,6 @@ def test_dropping_the_stale_csq_does_not_read_as_a_user_projection(cache_dir, tm
     kwargs = dict(
         reference_fasta=REFERENCE_FASTA,
         show_progress=False,
-        everything=True,
         skip_csq=False,
         fields=["Consequence", "IMPACT"],
     )
@@ -894,7 +905,6 @@ def test_without_a_csq_of_its_own_the_inputs_csq_is_written_back(cache_dir, tmp_
         cache_dir,
         reference_fasta=REFERENCE_FASTA,
         show_progress=False,
-        everything=True,
     )
     sunk = tmp_path / "passthrough.vcf"
     pb.sink_vcf(lf, str(sunk))
@@ -930,7 +940,6 @@ def test_an_excluded_input_field_does_not_lend_its_id_to_an_annotation_column(
         format_fields=[],
         reference_fasta=REFERENCE_FASTA,
         show_progress=False,
-        everything=True,
     )
     assert "AF" in lf.collect_schema().names()  # the engine's, not the input's
     sunk = tmp_path / "sunk.vcf"
@@ -960,13 +969,21 @@ def test_an_info_field_named_like_a_core_column_is_not_carried(cache_dir, tmp_pa
         "chr1\t604358\t.\tG\tC\t50\tPASS\tid=abc;DP=9\n"
     )
     with pytest.warns(UserWarning, match="named like"):
-        frame = vepyr.annotate(str(src), cache_dir, show_progress=False).collect()
+        frame = vepyr.annotate(
+            str(src), cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+        ).collect()
     assert frame.height == 1
     assert frame["DP"].to_list() == [9]  # everything else is still carried
     assert frame["id"].to_list() == [""]  # the reader's column, not the field
 
     with pytest.raises(ValueError, match="cannot carry"):
-        vepyr.annotate(str(src), cache_dir, info_fields=["id"], show_progress=False)
+        vepyr.annotate(
+            str(src),
+            cache_dir,
+            reference_fasta=REFERENCE_FASTA,
+            info_fields=["id"],
+            show_progress=False,
+        )
 
 
 @pytest.mark.parametrize(
@@ -1044,7 +1061,6 @@ def test_an_input_field_may_be_named_like_any_column_the_frame_has(
             skip_csq=False,
             reference_fasta=REFERENCE_FASTA,
             show_progress=False,
-            everything=True,
         ).collect()
     assert frame.height == 1
 
@@ -1072,13 +1088,17 @@ def test_a_multi_sample_input_reserves_genotypes_for_its_samples(cache_dir, tmp_
     many = vcf(tmp_path / "two.vcf", ["S1", "S2"])
     assert vcf_fields(many)[2] is True  # the reader nests them
     with pytest.warns(UserWarning, match="genotypes"):
-        frame = vepyr.annotate(many, cache_dir, show_progress=False).collect()
+        frame = vepyr.annotate(
+            many, cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+        ).collect()
     assert frame["DP"].to_list() == [9]  # the rest of the header still carried
     assert frame.schema["genotypes"] == pl.Struct({"GT": pl.List(pl.String)})
 
     one = vcf(tmp_path / "one.vcf", ["S1"])
     assert vcf_fields(one)[2] is False
-    frame = vepyr.annotate(one, cache_dir, show_progress=False).collect()
+    frame = vepyr.annotate(
+        one, cache_dir, reference_fasta=REFERENCE_FASTA, show_progress=False
+    ).collect()
     assert frame["genotypes"].to_list() == ["abc"]  # the input's field, as data
 
 
@@ -1101,14 +1121,24 @@ def test_a_format_selection_alone_still_knows_about_the_nesting(cache_dir, tmp_p
         warnings.simplefilter("ignore")
         assert (
             vepyr.annotate(
-                str(src), cache_dir, format_fields=["GT"], show_progress=False
+                str(src),
+                cache_dir,
+                reference_fasta=REFERENCE_FASTA,
+                format_fields=["GT"],
+                show_progress=False,
             )
             .collect()
             .height
             == 1
         )
         assert (
-            vepyr.annotate(str(src), cache_dir, format_fields=[], show_progress=False)
+            vepyr.annotate(
+                str(src),
+                cache_dir,
+                reference_fasta=REFERENCE_FASTA,
+                format_fields=[],
+                show_progress=False,
+            )
             .collect()
             .height
             == 1
@@ -1118,11 +1148,16 @@ def test_a_format_selection_alone_still_knows_about_the_nesting(cache_dir, tmp_p
     # error; with no FORMAT field selected there is no container and it is not.
     with pytest.raises(ValueError, match="cannot carry"):
         vepyr.annotate(
-            str(src), cache_dir, info_fields=["genotypes"], show_progress=False
+            str(src),
+            cache_dir,
+            reference_fasta=REFERENCE_FASTA,
+            info_fields=["genotypes"],
+            show_progress=False,
         )
     frame = vepyr.annotate(
         str(src),
         cache_dir,
+        reference_fasta=REFERENCE_FASTA,
         info_fields=["genotypes"],
         format_fields=[],
         show_progress=False,
@@ -1156,7 +1191,11 @@ def test_every_shape_of_selection_reaches_a_frame(cache_dir, selection):
     import vepyr
 
     frame = vepyr.annotate(
-        INPUT_VCF, cache_dir, show_progress=False, **selection
+        INPUT_VCF,
+        cache_dir,
+        reference_fasta=REFERENCE_FASTA,
+        show_progress=False,
+        **selection,
     ).collect()
     assert frame.height == 100
 
@@ -1187,47 +1226,6 @@ def test_a_rename_target_that_is_another_plugins_field_is_an_error():
     carried = {"X": ("INFO", "X")}
     with pytest.raises(ValueError, match="INFO_X"):
         _rename_shadowed_input_columns(schema, carried, ["X", "INFO_X"])
-
-
-def test_building_the_frame_survives_flags_a_sink_could_not_get(cache_dir, tmp_path):
-    """polars-bio wants the header lines when the metadata is attached, so the
-    provenance is built while the frame is. Deriving the flags a sink would need
-    can raise -- a plugin match template needing a FASTA there is none of -- and
-    that must not decide whether annotate() succeeds: a caller who projects the
-    plugin columns away has a working query, and had one before polars-bio was
-    installed."""
-    import vepyr
-
-    pytest.importorskip("polars_bio")  # without it no provenance is built at all
-    from tests.test_build_plugin_cache import _init_full_repo
-
-    repo = _init_full_repo(tmp_path)
-    source = tmp_path / "demo.tsv"
-    source.write_text("1\t604358\tG\tC\t0.5\n")
-    plugin_root = tmp_path / "pc"
-    vepyr.build_plugin_cache(
-        "demo",
-        "v0.1.0",
-        source_path=str(source),
-        cache_dir=cache_dir,
-        plugin_cache_root=str(plugin_root),
-        plugins_repo=str(repo),
-        chroms=["1"],
-    )
-    # Keyed on HGVSc, which needs the reference_fasta this run does not pass.
-    manifest = plugin_root / "plugin" / "demo" / "manifest.json"
-    spec = json.loads(manifest.read_text())
-    spec["match_columns"] = [{"column": "hgvsc", "template": "{HGVSc}"}]
-    manifest.write_text(json.dumps(spec))
-
-    lf = vepyr.annotate(
-        INPUT_VCF,
-        cache_dir,
-        plugin_cache_root=str(plugin_root),
-        plugins=["demo"],
-        show_progress=False,
-    )
-    assert lf.select("chrom").collect().height > 0
 
 
 def test_a_plugin_named_like_an_already_renamed_input_column_is_an_error():

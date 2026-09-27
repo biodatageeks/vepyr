@@ -88,7 +88,6 @@ class TestPartialCache:
             return vepyr.annotate(
                 INPUT_VCF,
                 cache_dir,
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
             ).collect()
 
@@ -120,7 +119,6 @@ class TestPartialCache:
             vepyr.annotate(
                 INPUT_VCF,
                 str(cache),
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
             ).collect()
 
@@ -259,6 +257,7 @@ class TestIntervalPlugin:
         vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
             fields="core",
             plugin_cache_root=interval_plugin_cache,
             plugins=["demo"],
@@ -299,6 +298,7 @@ class TestIntervalPlugin:
         lf = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
             plugin_cache_root=interval_plugin_cache,
             plugins=["demo"],
             show_progress=False,
@@ -332,6 +332,7 @@ class TestCsqValueEscaping:
         vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
             fields="core",
             plugin_cache_root=text_plugin_cache,
             plugins=["demo"],
@@ -371,6 +372,7 @@ class TestCsqValueEscaping:
         frame = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
             fields="core",
             plugin_cache_root=text_plugin_cache,
             plugins=["demo"],
@@ -434,6 +436,7 @@ class TestPartialPluginCache:
         vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
             fields="core",
             plugin_cache_root=demo_plugin_cache,
             plugins=["demo"],
@@ -454,6 +457,7 @@ class TestPartialPluginCache:
         frame = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
             fields="core",
             plugin_cache_root=demo_plugin_cache,
             plugins=["demo"],
@@ -543,7 +547,6 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
         assert isinstance(lf, pl.LazyFrame)
@@ -575,6 +578,7 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
             workers=4,
         )
 
@@ -609,7 +613,12 @@ class TestAnnotate:
             return FakeAnnotator()
 
         monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, expected_cache_version="116")
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            expected_cache_version="116",
+        )
         assert seen[0]["expected_cache_version"] == "116"
 
     def test_workers_one_omits_workers_key(self, monkeypatch):
@@ -636,7 +645,9 @@ class TestAnnotate:
 
         monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
 
-        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR, workers=1)
+        lf = vepyr.annotate(
+            INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA, workers=1
+        )
 
         assert isinstance(lf, pl.LazyFrame)
         assert "workers" not in seen[0]
@@ -648,7 +659,6 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
         df = lf.collect()
@@ -662,7 +672,6 @@ class TestAnnotate:
         df = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
         ).collect()
         assert "most_severe_consequence" in df.columns
@@ -679,7 +688,6 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
             )
             .select(["chrom", "start", "ref", "alt", "most_severe_consequence"])
@@ -696,7 +704,6 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
             )
             .filter(pl.col("most_severe_consequence") == "missense_variant")
@@ -716,7 +723,6 @@ class TestAnnotate:
         lf = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
 
@@ -733,27 +739,47 @@ class TestAnnotate:
         finally:
             os.unlink(out_path)
 
-    def test_validates_reference_fasta(self):
-        """everything=True without reference_fasta should raise."""
+    def test_reference_fasta_is_required(self):
+        """Annotation always runs --everything, which needs the FASTA."""
         import vepyr
 
-        with pytest.raises(ValueError, match="reference_fasta"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, everything=True)
+        param = inspect.signature(vepyr.annotate).parameters["reference_fasta"]
+        assert param.default is inspect.Parameter.empty
+        with pytest.raises(TypeError, match="reference_fasta"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR)
 
-    def test_validates_hgvs_reference_fasta(self):
-        """hgvs=True without reference_fasta should raise."""
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_empty_reference_fasta_is_rejected(self, value):
         import vepyr
 
-        with pytest.raises(ValueError, match="reference_fasta"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, hgvs=True)
+        with pytest.raises(ValueError, match="reference_fasta is required"):
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=value)
 
-    @pytest.mark.parametrize("kwargs", [{"hgvsc": True}, {"hgvsp": True}])
-    def test_validates_hgvs_subfield_reference_fasta(self, kwargs):
-        """hgvsc/hgvsp without reference_fasta should raise."""
+    @pytest.mark.parametrize(
+        "flag",
+        [
+            "everything",
+            "hgvs",
+            "hgvsc",
+            "hgvsp",
+            "check_existing",
+            "af",
+            "af_1kg",
+            "af_gnomade",
+            "af_gnomadg",
+            "max_af",
+            "pubmed",
+        ],
+    )
+    def test_everything_sub_flags_are_not_parameters(self, flag):
+        """--everything cannot be disabled, so none of its parts is a knob."""
         import vepyr
 
-        with pytest.raises(ValueError, match="reference_fasta"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, **kwargs)
+        assert flag not in inspect.signature(vepyr.annotate).parameters
+        with pytest.raises(TypeError, match=flag):
+            vepyr.annotate(
+                INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA, **{flag: True}
+            )
 
     def test_annotate_to_vcf_output(self, metadata_cache_dir):
         """Writing to VCF via output_vcf should produce a non-empty file."""
@@ -766,7 +792,6 @@ class TestAnnotate:
             result = vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
             )
@@ -786,7 +811,6 @@ class TestAnnotate:
             result = vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
             )
@@ -806,7 +830,6 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
-                everything=True,
                 reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
             )
@@ -843,6 +866,7 @@ class TestAnnotate:
             result = vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
                 show_progress=False,
                 pick=True,
@@ -895,12 +919,14 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=default_out,
                 show_progress=False,
             )
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=override_out,
                 show_progress=False,
                 buffer_size=1234,
@@ -938,6 +964,7 @@ class TestAnnotate:
             result = vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
                 show_progress=False,
                 workers=4,
@@ -970,6 +997,7 @@ class TestAnnotate:
         vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
             output_vcf="unused.vcf",
             show_progress=False,
             expected_cache_version="115",
@@ -981,14 +1009,24 @@ class TestAnnotate:
         import vepyr
 
         with pytest.raises(TypeError, match="expected_cache_version"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, expected_cache_version=value)
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                expected_cache_version=value,
+            )
 
     @pytest.mark.parametrize("value", ["115.2", "117", "v116", ""])
     def test_expected_cache_version_rejects_unsupported_strings(self, value):
         import vepyr
 
         with pytest.raises(ValueError, match="Unsupported expected_cache_version"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, expected_cache_version=value)
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                expected_cache_version=value,
+            )
 
     @pytest.mark.parametrize("source_flag", ["merged", "refseq"])
     def test_source_mode_flags_rejected(self, source_flag):
@@ -996,7 +1034,12 @@ class TestAnnotate:
         import vepyr
 
         with pytest.raises(TypeError, match=f"{source_flag}"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, **{source_flag: True})
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                **{source_flag: True},
+            )
 
     def test_buffer_size_rejects_non_positive_values(self):
         """buffer_size mirrors VEP's positive integer buffer-size contract."""
@@ -1009,6 +1052,7 @@ class TestAnnotate:
                 vepyr.annotate(
                     INPUT_VCF,
                     CACHE_DIR,
+                    reference_fasta=REFERENCE_FASTA,
                     output_vcf="unused.vcf",
                     show_progress=False,
                     buffer_size=value,
@@ -1022,6 +1066,7 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf="unused.vcf",
                 show_progress=False,
                 **{removed: 2},
@@ -1034,6 +1079,7 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf="unused.vcf",
                 show_progress=False,
                 cache_format="fjall",
@@ -1047,6 +1093,7 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf="unused.vcf",
                 show_progress=False,
                 workers=value,
@@ -1064,7 +1111,12 @@ class TestAnnotate:
         with pytest.raises(
             ValueError, match=r"workers>1 requires a tabix-indexed input"
         ):
-            vepyr.annotate(self.UNINDEXED_VCF, CACHE_DIR, workers=2)
+            vepyr.annotate(
+                self.UNINDEXED_VCF,
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                workers=2,
+            )
         assert calls == [], "the engine must not be called"
 
     def test_workers_above_one_requires_index_on_vcf_path(self, monkeypatch, tmp_path):
@@ -1078,6 +1130,7 @@ class TestAnnotate:
             vepyr.annotate(
                 self.UNINDEXED_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=str(tmp_path / "out.vcf"),
                 show_progress=False,
                 workers=2,
@@ -1095,7 +1148,9 @@ class TestAnnotate:
                 return iter(())
 
         monkeypatch.setattr(vepyr, "_create_annotator", lambda *a, **k: FakeAnnotator())
-        lf = vepyr.annotate(self.UNINDEXED_VCF, CACHE_DIR, workers=1)
+        lf = vepyr.annotate(
+            self.UNINDEXED_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA, workers=1
+        )
         assert isinstance(lf, pl.LazyFrame)
 
     def test_workers_above_one_accepts_csi_index(self, monkeypatch, tmp_path):
@@ -1113,7 +1168,9 @@ class TestAnnotate:
                 return iter(())
 
         monkeypatch.setattr(vepyr, "_create_annotator", lambda *a, **k: FakeAnnotator())
-        lf = vepyr.annotate(str(vcf), CACHE_DIR, workers=2)
+        lf = vepyr.annotate(
+            str(vcf), CACHE_DIR, reference_fasta=REFERENCE_FASTA, workers=2
+        )
         assert isinstance(lf, pl.LazyFrame)
 
     def test_chrom_parallelism_removed_from_public_api(self):
@@ -1123,6 +1180,7 @@ class TestAnnotate:
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf="unused.vcf",
                 show_progress=False,
                 chrom_parallelism=2,
@@ -1179,6 +1237,7 @@ class TestAnnotate:
             result = vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
                 show_progress=True,
             )
@@ -1225,6 +1284,7 @@ def test_annotate_passes_plugins_to_engine_in_caller_order(tmp_path, monkeypatch
         vepyr.annotate(
             "in.vcf",
             CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
             plugin_cache_root=root,
             plugins=("clinvar", "cadd"),
             skip_csq=False,
@@ -1240,7 +1300,13 @@ def test_annotate_plugins_rejects_unordered_or_scalar_collections(tmp_path, plug
 
     root = _fake_plugin_root(tmp_path, ["cadd"])
     with pytest.raises(TypeError, match="list or tuple"):
-        vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=plugins)
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=plugins,
+        )
 
 
 def test_annotate_plugins_rejects_non_string_elements(tmp_path):
@@ -1248,7 +1314,13 @@ def test_annotate_plugins_rejects_non_string_elements(tmp_path):
 
     root = _fake_plugin_root(tmp_path, ["cadd"])
     with pytest.raises(TypeError, match="must be strings"):
-        vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=[1])
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=[1],
+        )
 
 
 def test_annotate_plugins_rejects_duplicates(tmp_path):
@@ -1257,7 +1329,11 @@ def test_annotate_plugins_rejects_duplicates(tmp_path):
     root = _fake_plugin_root(tmp_path, ["cadd"])
     with pytest.raises(ValueError, match="duplicate"):
         vepyr.annotate(
-            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd", "cadd"]
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["cadd", "cadd"],
         )
 
 
@@ -1266,7 +1342,13 @@ def test_annotate_plugins_rejects_unknown_name_with_available_plugins(tmp_path):
 
     root = _fake_plugin_root(tmp_path, ["cadd", "clinvar"])
     with pytest.raises(ValueError, match="Unknown plugin 'nope'") as exc:
-        vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["nope"])
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["nope"],
+        )
     assert "Available: cadd, clinvar" in str(exc.value)
 
 
@@ -1274,7 +1356,9 @@ def test_annotate_plugins_requires_plugin_cache_root():
     import vepyr
 
     with pytest.raises(ValueError, match="plugins requires plugin_cache_root"):
-        vepyr.annotate("input.vcf", CACHE_DIR, plugins=["cadd"])
+        vepyr.annotate(
+            "input.vcf", CACHE_DIR, reference_fasta=REFERENCE_FASTA, plugins=["cadd"]
+        )
 
 
 def test_annotate_plugins_is_accepted_in_signature():
@@ -1296,7 +1380,9 @@ def test_annotate_core_fields_expand_in_vep_order(monkeypatch):
 
     monkeypatch.setattr(vepyr, "_create_annotator", fake)
     with pytest.raises(_Stop):
-        vepyr.annotate("in.vcf", CACHE_DIR, fields="core")
+        vepyr.annotate(
+            "in.vcf", CACHE_DIR, reference_fasta=REFERENCE_FASTA, fields="core"
+        )
 
     assert seen["opts"]["fields"] == [
         "Allele",
@@ -1327,7 +1413,9 @@ def test_annotate_rejects_invalid_field_selections(fields, error, message):
     import vepyr
 
     with pytest.raises(error, match=message):
-        vepyr.annotate("in.vcf", CACHE_DIR, fields=fields)
+        vepyr.annotate(
+            "in.vcf", CACHE_DIR, reference_fasta=REFERENCE_FASTA, fields=fields
+        )
 
 
 def test_selected_fields_must_be_annotation_columns(monkeypatch):
@@ -1345,7 +1433,12 @@ def test_selected_fields_must_be_annotation_columns(monkeypatch):
 
     monkeypatch.setattr(vepyr, "_create_annotator", lambda *args: FakeAnnotator())
     with pytest.raises(ValueError, match="no named DataFrame column"):
-        vepyr.annotate("in.vcf", CACHE_DIR, fields=["most_severe_consequence"])
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            fields=["most_severe_consequence"],
+        )
 
 
 def test_selected_fields_with_plugin_root_require_plugin_directory(tmp_path):
@@ -1355,6 +1448,7 @@ def test_selected_fields_with_plugin_root_require_plugin_directory(tmp_path):
         vepyr.annotate(
             "in.vcf",
             CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
             fields="core",
             plugin_cache_root=str(tmp_path / "not-built-yet"),
         )
@@ -1426,6 +1520,7 @@ def test_selected_plugin_fields_are_named_dataframe_columns(tmp_path, monkeypatc
     result = vepyr.annotate(
         "in.vcf",
         CACHE_DIR,
+        reference_fasta=REFERENCE_FASTA,
         fields="core",
         plugin_cache_root=str(root),
         plugins=["cadd"],
@@ -1463,7 +1558,13 @@ def test_annotate_empty_plugins_is_plugin_free_without_cache_validation(
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         with pytest.raises(_Stop):
-            vepyr.annotate("in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=[])
+            vepyr.annotate(
+                "in.vcf",
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                plugin_cache_root=root,
+                plugins=[],
+            )
 
     assert "plugin_cache_root" not in seen["opts"]
     assert "plugins" not in seen["opts"]
@@ -1488,6 +1589,7 @@ def test_annotate_nonempty_plugins_never_warn_about_csq(tmp_path, monkeypatch):
                 vepyr.annotate(
                     "in.vcf",
                     CACHE_DIR,
+                    reference_fasta=REFERENCE_FASTA,
                     plugin_cache_root=root,
                     plugins=["cadd"],
                     skip_csq=skip_csq,
@@ -1496,9 +1598,9 @@ def test_annotate_nonempty_plugins_never_warn_about_csq(tmp_path, monkeypatch):
 
 
 class TestProjectionPruning:
-    """A ``select()`` on the LazyFrame is translated into the smallest flag set
-    that still yields the selected columns, so the engine skips HGVS, the
-    co-located lookup and the ``everything`` extras when nothing asks for them."""
+    """Annotation always runs ``everything``; a ``select()`` on the LazyFrame
+    narrows it to the smallest flag set that still yields the selected columns,
+    so the engine skips HGVS and the co-located lookup when nothing reads them."""
 
     BASE = ("chrom", "start", "ref", "alt", "SYMBOL", "Consequence", "IMPACT")
 
@@ -1520,6 +1622,8 @@ class TestProjectionPruning:
             "HGVSc",
             "AF",
             "MANE",
+            "SIFT",
+            "MOTIF_NAME",
             "dbsnp_ids",
         ]
 
@@ -1543,15 +1647,15 @@ class TestProjectionPruning:
         assert len(seen) == 2
         return seen[1]
 
-    def test_everything_is_dropped_when_only_base_columns_are_selected(
+    def test_everything_is_narrowed_when_only_base_columns_are_selected(
         self, monkeypatch
     ):
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
-        ).select(list(self.BASE)).collect()
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            list(self.BASE)
+        ).collect()
         opts = self._engine_opts(seen)
         for key in (
             "everything",
@@ -1568,9 +1672,9 @@ class TestProjectionPruning:
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
-        ).select(["chrom", "HGVSc"]).collect()
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            ["chrom", "HGVSc"]
+        ).collect()
         opts = self._engine_opts(seen)
         assert opts["hgvs"] is True
         assert opts["reference_fasta_path"] == REFERENCE_FASTA
@@ -1581,9 +1685,9 @@ class TestProjectionPruning:
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
-        ).select(["chrom", "AF"]).collect()
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            ["chrom", "AF"]
+        ).collect()
         opts = self._engine_opts(seen)
         for key in (
             "check_existing",
@@ -1599,64 +1703,58 @@ class TestProjectionPruning:
         assert "hgvs" not in opts
         assert "reference_fasta_path" not in opts
 
-    def test_everything_only_column_keeps_everything(self, monkeypatch):
+    @pytest.mark.parametrize("column", ["MANE", "SIFT", "MOTIF_NAME"])
+    def test_everything_only_column_keeps_everything(self, monkeypatch, column):
+        # the motif fields exist only in the everything CSQ layout
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
-        ).select(["chrom", "MANE"]).collect()
-        assert self._engine_opts(seen)["everything"] is True
+        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
+            ["chrom", column]
+        ).collect()
+        opts = self._engine_opts(seen)
+        assert opts["everything"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
 
     def test_csq_column_disables_pruning(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF,
-            CACHE_DIR,
-            everything=True,
-            reference_fasta=REFERENCE_FASTA,
-            skip_csq=False,
-        ).select(["chrom", "CSQ"]).collect()
-        assert self._engine_opts(seen)["everything"] is True
-
-    def test_csq_column_on_a_flagless_frame_gets_the_flagless_default(
-        self, monkeypatch
-    ):
         # select("CSQ") and collect().select("CSQ") must carry the same string
         import vepyr
 
         seen = self._capture(monkeypatch)
         vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA, skip_csq=False
+            INPUT_VCF,
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            skip_csq=False,
         ).select(["chrom", "CSQ"]).collect()
         assert self._engine_opts(seen)["everything"] is True
 
-    def test_individual_flags_are_pruned_too(self, monkeypatch):
+    def test_hgvs_formatting_options_follow_the_hgvs_group(self, monkeypatch):
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
+        lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            hgvs=True,
             reference_fasta=REFERENCE_FASTA,
-            af=True,
-            pubmed=True,
-        ).select(["chrom", "Consequence"]).collect()
-        opts = self._engine_opts(seen)
-        for key in ("hgvs", "af", "pubmed", "reference_fasta_path"):
-            assert key not in opts, key
+            shift_hgvs=False,
+            no_escape=True,
+        )
+        lf.select(["chrom", "HGVSc"]).collect()
+        lf.select(["chrom", "Consequence"]).collect()
+        kept, pruned = seen[1], seen[2]
+        assert kept["hgvs"] is True
+        assert kept["shift_hgvs"] is False
+        assert kept["no_escape"] is True
+        for key in ("hgvs", "shift_hgvs", "no_escape", "reference_fasta_path"):
+            assert key not in pruned, key
 
     def test_filter_column_counts_as_needed(self, monkeypatch):
         import vepyr
 
         seen = self._capture(monkeypatch)
         (
-            vepyr.annotate(
-                INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
-            )
+            vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA)
             .filter(pl.col("AF") > 0.5)
             .select(["chrom"])
             .collect()
@@ -1667,10 +1765,14 @@ class TestProjectionPruning:
         import vepyr
 
         seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF, CACHE_DIR, everything=True, reference_fasta=REFERENCE_FASTA
-        ).collect()
-        assert self._engine_opts(seen)["everything"] is True
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            vepyr.annotate(
+                INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA
+            ).collect()
+        opts = self._engine_opts(seen)
+        assert opts["everything"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
 
     def test_fields_and_select_together_is_an_error(self, monkeypatch):
         import vepyr
@@ -1679,7 +1781,6 @@ class TestProjectionPruning:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
             fields=["Consequence", "IMPACT"],
         )
@@ -1694,7 +1795,6 @@ class TestProjectionPruning:
         lf = vepyr.annotate(
             INPUT_VCF,
             CACHE_DIR,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
             fields=["Consequence", "IMPACT"],
         )
@@ -1722,6 +1822,7 @@ class TestProjectionPruning:
             ["chrom", "start", "HGVSc", "HGVSp"],
             ["chrom", "start", "Existing_variation", "AF", "MAX_AF", "CLIN_SIG"],
             ["chrom", "start", "Consequence", "dbsnp_ids"],
+            ["chrom", "start", "SIFT", "PolyPhen", "MANE", "HGVS_OFFSET"],
         ],
     )
     def test_pruned_values_equal_the_full_run(self, metadata_cache_dir, columns):
@@ -1730,244 +1831,11 @@ class TestProjectionPruning:
         lf = vepyr.annotate(
             INPUT_VCF,
             metadata_cache_dir,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
         )
         full = lf.collect().select(columns)
         pruned = lf.select(columns).collect()
         assert pruned.equals(full)
-
-
-class TestFlagInference:
-    """With no annotation flags given, a narrowing ``select()`` turns on the flag
-    groups its columns need. Explicit flags are kept as given (and pruned when
-    unused) rather than widened."""
-
-    def _capture(self, monkeypatch):
-        import pyarrow as pa
-        import vepyr
-
-        seen = []
-        names = [
-            "chrom",
-            "start",
-            "ref",
-            "alt",
-            "CSQ",
-            "most_severe_consequence",
-            "SYMBOL",
-            "Consequence",
-            "IMPACT",
-            "HGVSc",
-            "AF",
-            "AFR_AF",
-            "MANE",
-            "SIFT",
-            "MOTIF_NAME",
-            "dbsnp_ids",
-        ]
-
-        class FakeAnnotator:
-            schema = pa.schema([pa.field(n, pa.string()) for n in names])
-
-            def __iter__(self):
-                return iter(())
-
-        def fake_create_annotator(
-            vcf_path, cache_dir, options_json, skip_csq=True, limit=None
-        ):
-            seen.append(json.loads(options_json))
-            return FakeAnnotator()
-
-        monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
-        return seen
-
-    def test_hgvs_is_inferred_from_hgvs_columns(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
-            ["chrom", "HGVSc"]
-        ).collect()
-        opts = seen[-1]
-        assert opts["hgvs"] is True
-        assert opts["reference_fasta_path"] == REFERENCE_FASTA
-        assert "check_existing" not in opts and "everything" not in opts
-
-    def test_hgvs_column_without_fasta_is_an_error(self, monkeypatch):
-        import vepyr
-
-        self._capture(monkeypatch)
-        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
-        with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
-            lf.select(["chrom", "HGVSc"]).collect()
-
-    def test_colocated_flags_are_inferred_from_frequency_columns(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR).select(["chrom", "AF"]).collect()
-        opts = seen[-1]
-        for key in (
-            "check_existing",
-            "af",
-            "af_1kg",
-            "af_gnomade",
-            "af_gnomadg",
-            "max_af",
-            "pubmed",
-        ):
-            assert opts[key] is True, key
-        assert "hgvs" not in opts and "reference_fasta_path" not in opts
-
-    def test_everything_is_inferred_from_everything_only_columns(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
-            ["chrom", "SIFT"]
-        ).collect()
-        assert seen[-1]["everything"] is True
-        assert seen[-1]["reference_fasta_path"] == REFERENCE_FASTA
-
-    def test_motif_columns_infer_everything(self, monkeypatch):
-        # the motif fields exist only in the everything CSQ layout
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
-            ["chrom", "MOTIF_NAME"]
-        ).collect()
-        assert seen[-1]["everything"] is True
-
-    def test_everything_only_column_without_fasta_is_an_error(self, monkeypatch):
-        import vepyr
-
-        self._capture(monkeypatch)
-        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
-        with pytest.raises(Exception, match="SIFT.*reference_fasta"):
-            lf.select(["chrom", "SIFT"]).collect()
-
-    def test_explicit_partial_flags_are_not_widened(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, af=True).select(
-            ["chrom", "AFR_AF"]
-        ).collect()
-        opts = seen[-1]
-        assert opts["af"] is True
-        assert "af_1kg" not in opts
-        assert "check_existing" not in opts
-
-    def test_explicit_hgvs_sub_options_are_kept(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(
-            INPUT_VCF,
-            CACHE_DIR,
-            hgvs=True,
-            shift_hgvs=False,
-            reference_fasta=REFERENCE_FASTA,
-        ).select(["chrom", "HGVSc"]).collect()
-        assert seen[-1]["hgvs"] is True
-        assert seen[-1]["shift_hgvs"] is False
-
-    def test_plain_collect_without_flags_infers_everything_with_a_fasta(
-        self, monkeypatch
-    ):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).collect()
-        opts = seen[-1]
-        assert opts["everything"] is True
-        assert opts["reference_fasta_path"] == REFERENCE_FASTA
-
-    def test_plain_collect_without_flags_or_fasta_infers_the_colocated_lookup(
-        self, monkeypatch
-    ):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        with pytest.warns(UserWarning, match=r"no reference_fasta.*HGVSc.*SIFT"):
-            vepyr.annotate(INPUT_VCF, CACHE_DIR).collect()
-        opts = seen[-1]
-        for key in (
-            "check_existing",
-            "af",
-            "af_1kg",
-            "af_gnomade",
-            "af_gnomadg",
-            "max_af",
-            "pubmed",
-        ):
-            assert opts[key] is True, key
-        assert "everything" not in opts and "hgvs" not in opts
-
-    def test_plain_collect_with_explicit_flags_keeps_them(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")  # explicit flags or a select() never warn
-            vepyr.annotate(
-                INPUT_VCF, CACHE_DIR, af=True, reference_fasta=REFERENCE_FASTA
-            ).collect()
-            opts = seen[-1]
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, af=True).collect()
-            vepyr.annotate(INPUT_VCF, CACHE_DIR).select(["chrom", "AF"]).collect()
-        assert opts["af"] is True
-        assert (
-            "everything" not in opts
-            and "hgvs" not in opts
-            and "check_existing" not in opts
-        )
-
-    def test_flagless_collect_equals_an_everything_run(self, metadata_cache_dir):
-        import vepyr
-
-        everything = vepyr.annotate(
-            INPUT_VCF,
-            metadata_cache_dir,
-            everything=True,
-            reference_fasta=REFERENCE_FASTA,
-        ).collect()
-        inferred = vepyr.annotate(
-            INPUT_VCF, metadata_cache_dir, reference_fasta=REFERENCE_FASTA
-        ).collect()
-        assert inferred.equals(everything)
-
-    @pytest.mark.parametrize(
-        "columns",
-        [
-            ["chrom", "start", "HGVSc", "HGVSp"],
-            ["chrom", "start", "Existing_variation", "AF", "MAX_AF", "CLIN_SIG"],
-            ["chrom", "start", "SIFT", "PolyPhen", "MANE", "HGVS_OFFSET"],
-        ],
-    )
-    def test_inferred_values_equal_an_everything_run(self, metadata_cache_dir, columns):
-        import vepyr
-
-        everything = (
-            vepyr.annotate(
-                INPUT_VCF,
-                metadata_cache_dir,
-                everything=True,
-                reference_fasta=REFERENCE_FASTA,
-            )
-            .collect()
-            .select(columns)
-        )
-        inferred = (
-            vepyr.annotate(
-                INPUT_VCF, metadata_cache_dir, reference_fasta=REFERENCE_FASTA
-            )
-            .select(columns)
-            .collect()
-        )
-        assert inferred.equals(everything)
 
 
 class TestPluginColumns:
@@ -2066,7 +1934,11 @@ class TestPluginColumns:
                 "error"
             )  # the old "emitted inside CSQ" warning is gone
             lf = vepyr.annotate(
-                "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
+                "in.vcf",
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                plugin_cache_root=root,
+                plugins=["cadd"],
             )
         schema = lf.collect_schema()
         # per-variant plugin: one scalar per row, typed as the manifest says
@@ -2087,7 +1959,11 @@ class TestPluginColumns:
         root, calls = self._fake_cadd(tmp_path, monkeypatch)
         df = (
             vepyr.annotate(
-                "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
+                "in.vcf",
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                plugin_cache_root=root,
+                plugins=["cadd"],
             )
             .select("chrom", "CADD_PHRED")
             .collect()
@@ -2103,7 +1979,11 @@ class TestPluginColumns:
 
         root, _ = self._fake_cadd(tmp_path, monkeypatch)
         lf = vepyr.annotate(
-            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd", "spliceai"]
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=root,
+            plugins=["cadd", "spliceai"],
         )
         schema = lf.collect_schema()
         assert schema["SpliceAI_DS_AG"] == pl.List(pl.Float32)
@@ -2127,7 +2007,11 @@ class TestPluginColumns:
         root, calls = self._fake_cadd(tmp_path, monkeypatch)
         df = (
             vepyr.annotate(
-                "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["cadd"]
+                "in.vcf",
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                plugin_cache_root=root,
+                plugins=["cadd"],
             )
             .select("chrom", "SYMBOL")
             .collect()
@@ -2144,6 +2028,7 @@ class TestPluginColumns:
         df = vepyr.annotate(
             "in.vcf",
             CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
             plugin_cache_root=root,
             plugins=["cadd"],
             skip_csq=False,
@@ -2159,7 +2044,6 @@ class TestPluginColumns:
             CACHE_DIR,
             plugin_cache_root=root,
             plugins=["cadd"],
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
         ).select("chrom", "CADD_PHRED").collect()
         assert "everything" not in calls[-1][0]
@@ -2170,7 +2054,9 @@ class TestPluginColumns:
     ):
         import vepyr
 
-        lf = vepyr.annotate(INPUT_VCF, metadata_cache_dir)
+        lf = vepyr.annotate(
+            INPUT_VCF, metadata_cache_dir, reference_fasta=REFERENCE_FASTA
+        )
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="CADD_PHRED"):
             lf.select("chrom", "CADD_PHRED").collect_schema()
 
@@ -2183,6 +2069,7 @@ class TestPluginColumns:
             vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
+                reference_fasta=REFERENCE_FASTA,
                 plugin_cache_root=demo_plugin_cache,
                 plugins=["demo"],
             )
@@ -2193,6 +2080,7 @@ class TestPluginColumns:
             vepyr.annotate(
                 INPUT_VCF,
                 metadata_cache_dir,
+                reference_fasta=REFERENCE_FASTA,
                 fields="core",
                 plugin_cache_root=demo_plugin_cache,
                 plugins=["demo"],
@@ -2222,7 +2110,9 @@ class TestPluginColumns:
         monkeypatch.setattr(vepyr, "_create_annotator", lambda *a, **k: FakeAnnotator())
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            vepyr.annotate("in.vcf", CACHE_DIR, fields="core").collect()
+            vepyr.annotate(
+                "in.vcf", CACHE_DIR, reference_fasta=REFERENCE_FASTA, fields="core"
+            ).collect()
 
 
 class TestPluginColumnCost:
@@ -2235,6 +2125,7 @@ class TestPluginColumnCost:
     def _annotate(self, root, plugins, **kwargs):
         import vepyr
 
+        kwargs.setdefault("reference_fasta", REFERENCE_FASTA)
         return vepyr.annotate(
             "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=plugins, **kwargs
         )
@@ -2334,8 +2225,8 @@ class TestPluginColumnCost:
 
 class TestPluginMatchTemplates:
     """A per-feature plugin's match template can reference a flag-dependent
-    field (``{HGVSc}`` say); reading that plugin's column then needs the
-    field's flags even though the field itself is not selected."""
+    field (``{HGVSc}`` say); a ``select()`` reading that plugin's column then
+    keeps the field's flag group even though the field itself is not selected."""
 
     def _hgvs_plugin(self, tmp_path, monkeypatch):
         import pyarrow as pa
@@ -2358,7 +2249,14 @@ class TestPluginMatchTemplates:
                 }
             )
         )
-        names = ["chrom", "CSQ", "most_severe_consequence", "Consequence", "HGVSc"]
+        names = [
+            "chrom",
+            "CSQ",
+            "most_severe_consequence",
+            "Consequence",
+            "HGVSc",
+            "AF",
+        ]
         calls = []
 
         class FakeAnnotator:
@@ -2374,152 +2272,47 @@ class TestPluginMatchTemplates:
         monkeypatch.setattr(vepyr, "_create_annotator", fake)
         return str(root), calls
 
-    def test_template_fields_keep_their_flags(self, tmp_path, monkeypatch):
+    def _annotate(self, root, **kwargs):
         import vepyr
 
-        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
-        vepyr.annotate(
+        return vepyr.annotate(
             "in.vcf",
             CACHE_DIR,
-            everything=True,
             reference_fasta=REFERENCE_FASTA,
             plugin_cache_root=root,
             plugins=["byhgvs"],
-        ).select("chrom", "BYHGVS_score").collect()
+            **kwargs,
+        )
+
+    def test_template_fields_keep_their_flags(self, tmp_path, monkeypatch):
+        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
+        self._annotate(root).select("chrom", "BYHGVS_score").collect()
         opts = calls[-1]
         assert opts["hgvs"] is True and opts["reference_fasta_path"] == REFERENCE_FASTA
+        assert "everything" not in opts
         assert "check_existing" not in opts
 
-    def test_template_fields_are_inferred_on_a_flagless_frame(
+    def test_template_fields_join_the_groups_a_select_reads(
         self, tmp_path, monkeypatch
     ):
-        import vepyr
-
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
-        vepyr.annotate(
-            "in.vcf",
-            CACHE_DIR,
-            reference_fasta=REFERENCE_FASTA,
-            plugin_cache_root=root,
-            plugins=["byhgvs"],
-        ).select("chrom", "BYHGVS_score").collect()
-        assert calls[-1]["hgvs"] is True
-
-    def test_template_fields_are_honoured_on_a_plain_collect(
-        self, tmp_path, monkeypatch
-    ):
-        # explicit unrelated flag + full collect: the plugin still needs hgvs
-        import vepyr
-
-        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
-        vepyr.annotate(
-            "in.vcf",
-            CACHE_DIR,
-            af=True,
-            reference_fasta=REFERENCE_FASTA,
-            plugin_cache_root=root,
-            plugins=["byhgvs"],
-        ).collect()
+        self._annotate(root).select("chrom", "AF", "BYHGVS_score").collect()
         opts = calls[-1]
         assert opts["hgvs"] is True and opts["af"] is True
         assert "everything" not in opts
 
-    def test_template_fields_with_explicit_other_flags_and_a_select(
-        self, tmp_path, monkeypatch
-    ):
-        import vepyr
-
+    def test_plain_collect_keeps_everything(self, tmp_path, monkeypatch):
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
-        vepyr.annotate(
-            "in.vcf",
-            CACHE_DIR,
-            af=True,
-            reference_fasta=REFERENCE_FASTA,
-            plugin_cache_root=root,
-            plugins=["byhgvs"],
-        ).select("chrom", "BYHGVS_score").collect()
-        opts = calls[-1]
-        assert opts["hgvs"] is True
-        assert "af" not in opts, "af is pruned: nothing selected needs it"
-
-    def test_template_fields_on_a_plain_collect_without_fasta_raise(
-        self, tmp_path, monkeypatch
-    ):
-        import vepyr
-
-        root, _ = self._hgvs_plugin(tmp_path, monkeypatch)
-        lf = vepyr.annotate(
-            "in.vcf", CACHE_DIR, af=True, plugin_cache_root=root, plugins=["byhgvs"]
-        )
-        with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
-            lf.collect()
-
-    def test_flagless_plain_collect_without_fasta_raises_before_warning(
-        self, tmp_path, monkeypatch
-    ):
-        # no flags, no FASTA, full collect: the plugin needs HGVSc, so this
-        # raises, and it must not first warn that HGVSc "will be null"
-        import vepyr
-
-        root, _ = self._hgvs_plugin(tmp_path, monkeypatch)
-        lf = vepyr.annotate(
-            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["byhgvs"]
-        )
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
-                lf.collect()
+        self._annotate(root).collect()
+        assert calls[-1]["everything"] is True
 
     def test_template_fields_are_honoured_when_csq_is_selected(
         self, tmp_path, monkeypatch
     ):
         # the raw CSQ string carries every plugin's values
-        import vepyr
-
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
-        vepyr.annotate(
-            "in.vcf",
-            CACHE_DIR,
-            af=True,
-            reference_fasta=REFERENCE_FASTA,
-            skip_csq=False,
-            plugin_cache_root=root,
-            plugins=["byhgvs"],
-        ).select("chrom", "CSQ").collect()
-        opts = calls[-1]
-        assert opts["hgvs"] is True and opts["af"] is True
-
-    @pytest.mark.parametrize("query", ["collect", "select"])
-    def test_template_fields_are_checked_per_hgvs_field(
-        self, tmp_path, monkeypatch, query
-    ):
-        # hgvsp=True alone does not compute HGVSc, which the template needs
-        import vepyr
-
-        root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
-        lf = vepyr.annotate(
-            "in.vcf",
-            CACHE_DIR,
-            hgvsp=True,
-            reference_fasta=REFERENCE_FASTA,
-            plugin_cache_root=root,
-            plugins=["byhgvs"],
-        )
-        (lf.select("chrom", "BYHGVS_score") if query == "select" else lf).collect()
-        opts = calls[-1]
-        assert opts["hgvsc"] is True, "the field the template reads is switched on"
-        assert opts["hgvsp"] is True, "the explicit flag is kept"
-        assert "hgvs" not in opts
-
-    def test_template_fields_without_fasta_raise(self, tmp_path, monkeypatch):
-        import vepyr
-
-        root, _ = self._hgvs_plugin(tmp_path, monkeypatch)
-        lf = vepyr.annotate(
-            "in.vcf", CACHE_DIR, plugin_cache_root=root, plugins=["byhgvs"]
-        )
-        with pytest.raises(Exception, match="HGVSc.*reference_fasta"):
-            lf.select("chrom", "BYHGVS_score").collect()
+        self._annotate(root, skip_csq=False).select("chrom", "CSQ").collect()
+        assert calls[-1]["everything"] is True
 
 
 class TestLazyFrameProgress:
@@ -2623,6 +2416,7 @@ class TestLazyFrameProgress:
         bar_cls, bars = self._recording_tqdm()
         monkeypatch.setattr("tqdm.auto.tqdm", bar_cls)
         monkeypatch.setattr(vepyr, "_create_annotator", self._fake_annotator(batches))
+        kwargs.setdefault("reference_fasta", REFERENCE_FASTA)
         return vepyr.annotate(INPUT_VCF, CACHE_DIR, **kwargs), bars
 
     def test_bar_counts_variants_the_engine_yields(self, monkeypatch):
@@ -2718,7 +2512,7 @@ class TestLazyFrameProgress:
                 [(["1", "1"], [1, 2])], RuntimeError("Annotation stream error")
             ),
         )
-        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR)
+        lf = vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA)
 
         with pytest.raises(Exception, match="Annotation stream error"):
             lf.head(1000).collect()
@@ -2772,6 +2566,7 @@ class TestNonVariantRecords:
         src = tmp_path / f"{name}.vcf"
         src.write_text(source)
         out = tmp_path / f"{name}.out.vcf"
+        kwargs.setdefault("reference_fasta", REFERENCE_FASTA)
         vepyr.annotate(
             str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
         )
@@ -2870,7 +2665,11 @@ class TestNonVariantRecords:
             out_path = f.name
         try:
             vepyr.annotate(
-                INPUT_VCF, CACHE_DIR, output_vcf=out_path, show_progress=False
+                INPUT_VCF,
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                output_vcf=out_path,
+                show_progress=False,
             )
             assert "allow_non_variant" not in seen["options"], (
                 "the key must be absent when the flag is off, as VEP's default is"
@@ -2879,6 +2678,7 @@ class TestNonVariantRecords:
             vepyr.annotate(
                 INPUT_VCF,
                 CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=out_path,
                 show_progress=False,
                 allow_non_variant=True,
@@ -2919,7 +2719,12 @@ class TestNonVariantRecords:
         with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
             out_path = f.name
         try:
-            vepyr.annotate(INPUT_VCF, CACHE_DIR, output_vcf=out_path)
+            vepyr.annotate(
+                INPUT_VCF,
+                CACHE_DIR,
+                reference_fasta=REFERENCE_FASTA,
+                output_vcf=out_path,
+            )
         finally:
             os.unlink(out_path)
 
@@ -2953,7 +2758,12 @@ class TestNonVariantRecords:
             out_path = f.name
         try:
             with pytest.raises(RuntimeError, match="boom"):
-                vepyr.annotate(INPUT_VCF, CACHE_DIR, output_vcf=out_path)
+                vepyr.annotate(
+                    INPUT_VCF,
+                    CACHE_DIR,
+                    reference_fasta=REFERENCE_FASTA,
+                    output_vcf=out_path,
+                )
         finally:
             os.unlink(out_path)
 
@@ -3012,6 +2822,7 @@ class TestNonVariantRecords:
             vepyr.annotate(
                 str(src),
                 metadata_cache_dir,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=str(out),
                 show_progress=False,
                 buffer_size=buffer_size,
@@ -3087,6 +2898,7 @@ class TestInputFieldNamedLikeAnAnnotationColumn:
         src = tmp_path / f"{name}.vcf"
         src.write_text(source)
         out = tmp_path / f"{name}.out.vcf"
+        kwargs.setdefault("reference_fasta", REFERENCE_FASTA)
         vepyr.annotate(
             str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
         )
@@ -3174,6 +2986,7 @@ class TestInputFieldNamedLikeAnAnnotationColumn:
             vepyr.annotate(
                 str(bgz),
                 metadata_cache_dir,
+                reference_fasta=REFERENCE_FASTA,
                 output_vcf=str(out),
                 show_progress=False,
                 workers=workers,
@@ -3217,6 +3030,7 @@ class TestFormatKeyOrderInTheOutputVcf:
         src = tmp_path / "dp_before_gt.vcf"
         src.write_text(DP_BEFORE_GT_VCF)
         out = tmp_path / "dp_before_gt.out.vcf"
+        kwargs.setdefault("reference_fasta", REFERENCE_FASTA)
         vepyr.annotate(
             str(src), cache_dir, output_vcf=str(out), show_progress=False, **kwargs
         )

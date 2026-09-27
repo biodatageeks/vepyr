@@ -1,8 +1,8 @@
 # Command line
 
 `vepyr annotate` is a VCF-in / VCF-out shell over [`annotate()`](api.md). It
-covers the configuration validated against Ensembl VEP — `--everything` with a
-reference FASTA — plus the options a workflow engine needs. Everything else,
+always runs the configuration validated against Ensembl VEP — `--everything`,
+which needs a reference FASTA — plus the options a workflow engine needs. Everything else,
 including the Polars `LazyFrame` path, stays on the [Python API](api.md). For
 Nextflow, the [`vepyr/annotate` module](nextflow.md) wraps this command.
 
@@ -24,7 +24,6 @@ vepyr annotate \
     -o annotated.vcf.gz \
     --dir_cache ~/vepyr_cache/116_GRCh38_ensembl \
     --fasta GRCh38.fa \
-    --everything \
     --fork 8
 ```
 
@@ -40,9 +39,9 @@ directory.
 | `-i`, `--input_file FILE` | Input VCF (plain, gzip or bgzip). Required. |
 | `-o`, `--output_file FILE` | Output VCF. A `.gz`/`.bgz` suffix selects bgzf. Required. |
 | `--dir_cache DIR` | Parquet cache directory. Required. |
-| `--fasta FILE` | Reference FASTA. Required by `--everything`. |
-| `--everything` | Enable all annotation features (80-field CSQ). |
-| `--hgvsc` | Add HGVS coding-sequence notation. Requires `--fasta`. |
+| `--fasta FILE` | Reference FASTA. Required: annotation always runs `--everything`. |
+| `--everything` | Always on; accepted and ignored for Ensembl VEP compatibility. |
+| `--hgvsc` | Implied by `--everything`; accepted and ignored for Ensembl VEP compatibility. |
 | `--fork N`, `--workers N` | Annotation pipelines to run. Default 1. |
 | `--allow_non_variant` | Keep `ALT=.` records instead of dropping them, as VEP does. |
 | `--cache_version N` | Assert the cache version in the Parquet metadata. |
@@ -54,9 +53,10 @@ directory.
 Flag names follow Ensembl VEP's own spelling, so `ext.args` strings written for
 `vep` carry over as the flag set grows.
 
-VEP's `--hgvs` and `--hgvsp` are not implemented yet. `--hgvsc` gives the coding
-notation on its own, without the cost of the full `--everything` layout; for the
-protein notation, use `--everything`.
+Annotation always runs Ensembl VEP `--everything`, HGVS included, and cannot be
+turned off; [Annotation mode](quickstart.md#annotation-mode-ensembl-vep-everything)
+lists the flags it implies. `--everything` and `--hgvsc` are accepted only so VEP-style argument
+strings keep parsing; they change nothing.
 
 ## Plugins
 
@@ -69,7 +69,6 @@ vepyr annotate \
     -o annotated.vcf.gz \
     --dir_cache ~/vepyr_cache/116_GRCh38_merged \
     --fasta GRCh38.fa \
-    --everything \
     --plugin_cache_root ~/vepyr_plugin_cache \
     --plugin clinvar \
     --plugin cadd

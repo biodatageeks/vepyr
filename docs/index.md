@@ -14,7 +14,7 @@ vepyr is a Python library backed by a native Rust engine that provides:
 
 - **Cache conversion** — download and convert Ensembl VEP offline caches to an optimized partitioned Parquet cache
 - **Variant annotation** — annotate VCF files with transcript consequences, HGVS notation, allele frequencies, and more
-- **Full `--everything` parity** — aims for zero mismatches against Ensembl VEP for the supported scope
+- **Full `--everything` parity** — every annotation runs Ensembl VEP `--everything` (a reference FASTA is required; see [what it enables](quickstart.md#annotation-mode-ensembl-vep-everything)) and aims for zero mismatches against Ensembl VEP for the supported scope
 - **30x+ speedup** — dramatically faster than the reference Perl implementation
 
 ## Key features
@@ -60,7 +60,6 @@ vepyr is a Python library backed by a native Rust engine that provides:
     lf = vepyr.annotate(
         vcf="input.vcf.gz",
         cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-        everything=True,
         reference_fasta="GRCh38.fa",
     )
 
@@ -76,7 +75,6 @@ vepyr is a Python library backed by a native Rust engine that provides:
         -o annotated.vcf.gz \
         --dir_cache /data/vepyr_cache/parquet/115_GRCh38_ensembl \
         --fasta GRCh38.fa \
-        --everything \
         --fork 8
     ```
 

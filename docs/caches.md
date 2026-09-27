@@ -322,17 +322,18 @@ cache, leaving 19.
 ## CSQ output fields
 
 `annotate(output_vcf=…)` writes a `CSQ` INFO field whose `Format:` header lists
-the per-transcript fields in output order. **Which fields appear, and in which
-order, depends on the cache type and on `everything=`** — vepyr reproduces
-Ensembl VEP's own flag-expansion order rather than a fixed list.
+the per-transcript fields in output order. Annotation always runs
+`--everything`, so **which fields appear, and in which order, depends on the
+cache type** — vepyr reproduces Ensembl VEP's own flag-expansion order rather
+than a fixed list.
 
 Measured against the release-116 GRCh38 caches:
 
-| Cache type | `everything=True` | `everything=False` |
-|---|--:|--:|
-| `ensembl` | 80 | 74 |
-| `refseq` | 85 | 78 |
-| `merged` | 86 | 79 |
+| Cache type | Fields |
+|---|--:|
+| `ensembl` | 80 |
+| `refseq` | 85 |
+| `merged` | 86 |
 
 ### The transcript-source block
 
@@ -345,28 +346,17 @@ the fate of `SOURCE`:
 | `refseq` | `REFSEQ_MATCH`, `REFSEQ_OFFSET`, `GIVEN_REF`, `USED_REF`, `BAM_EDIT` |
 | `merged` | `REFSEQ_MATCH`, **`SOURCE`**, `REFSEQ_OFFSET`, `GIVEN_REF`, `USED_REF`, `BAM_EDIT` |
 
-Where the block lands differs by mode:
+The block is inserted after `UNIPROT_ISOFORM`, before `GENE_PHENO`.
 
-- **`everything=True`** — inserted after `UNIPROT_ISOFORM`, before `GENE_PHENO`.
-- **`everything=False`** — it *replaces* the `SOURCE` slot, which sits after
-  `TRANSCRIPTION_FACTORS` and before `VARIANT_CLASS`.
-
-!!! warning "`SOURCE` is not present in every combination"
+!!! warning "`SOURCE` is only present for a merged cache"
     `SOURCE` names which transcript set a consequence came from, so it is only
-    meaningful for a merged cache. Its presence is not uniform:
-
-    | | `ensembl` | `refseq` | `merged` |
-    |---|---|---|---|
-    | `everything=True` | ✗ | ✗ | ✓ |
-    | `everything=False` | ✓ | ✗ | ✓ |
-
-    A `refseq` cache never emits `SOURCE`; an `ensembl` cache emits it only
-    outside `--everything`. Do not write downstream code that assumes a fixed
-    column index — parse the `Format:` header.
+    meaningful for a merged cache; `ensembl` and `refseq` caches do not emit
+    it. Do not write downstream code that assumes a fixed column index — parse
+    the `Format:` header.
 
 ### Where the fields come from
 
-For a merged cache with `everything=True` and `flag_pick_allele_gene`, the
+For a merged cache with `flag_pick_allele_gene`, the
 87 fields break down as:
 
 | Source | Added fields | Count |
@@ -384,7 +374,7 @@ token inside `FLAGS`.
 
 ### Field order
 
-??? note "`ensembl` — `everything=True` (80 fields)"
+??? note "`ensembl` (80 fields)"
 
     | # | Field |
     |---:|---|
@@ -469,86 +459,7 @@ token inside `FLAGS`.
     | 79 | `MOTIF_SCORE_CHANGE` |
     | 80 | `TRANSCRIPTION_FACTORS` |
 
-??? note "`ensembl` — `everything=False` (74 fields)"
-
-    | # | Field |
-    |---:|---|
-    | 1 | `Allele` |
-    | 2 | `Consequence` |
-    | 3 | `IMPACT` |
-    | 4 | `SYMBOL` |
-    | 5 | `Gene` |
-    | 6 | `Feature_type` |
-    | 7 | `Feature` |
-    | 8 | `BIOTYPE` |
-    | 9 | `EXON` |
-    | 10 | `INTRON` |
-    | 11 | `HGVSc` |
-    | 12 | `HGVSp` |
-    | 13 | `cDNA_position` |
-    | 14 | `CDS_position` |
-    | 15 | `Protein_position` |
-    | 16 | `Amino_acids` |
-    | 17 | `Codons` |
-    | 18 | `Existing_variation` |
-    | 19 | `DISTANCE` |
-    | 20 | `STRAND` |
-    | 21 | `FLAGS` |
-    | 22 | `SYMBOL_SOURCE` |
-    | 23 | `HGNC_ID` |
-    | 24 | `MOTIF_NAME` |
-    | 25 | `MOTIF_POS` |
-    | 26 | `HIGH_INF_POS` |
-    | 27 | `MOTIF_SCORE_CHANGE` |
-    | 28 | `TRANSCRIPTION_FACTORS` |
-    | 29 | `SOURCE` |
-    | 30 | `VARIANT_CLASS` |
-    | 31 | `CANONICAL` |
-    | 32 | `TSL` |
-    | 33 | `MANE_SELECT` |
-    | 34 | `MANE_PLUS_CLINICAL` |
-    | 35 | `ENSP` |
-    | 36 | `GENE_PHENO` |
-    | 37 | `CCDS` |
-    | 38 | `SWISSPROT` |
-    | 39 | `TREMBL` |
-    | 40 | `UNIPARC` |
-    | 41 | `UNIPROT_ISOFORM` |
-    | 42 | `AF` |
-    | 43 | `AFR_AF` |
-    | 44 | `AMR_AF` |
-    | 45 | `EAS_AF` |
-    | 46 | `EUR_AF` |
-    | 47 | `SAS_AF` |
-    | 48 | `gnomADe_AF` |
-    | 49 | `gnomADe_AFR` |
-    | 50 | `gnomADe_AMR` |
-    | 51 | `gnomADe_ASJ` |
-    | 52 | `gnomADe_EAS` |
-    | 53 | `gnomADe_FIN` |
-    | 54 | `gnomADe_MID` |
-    | 55 | `gnomADe_NFE` |
-    | 56 | `gnomADe_REMAINING` |
-    | 57 | `gnomADe_SAS` |
-    | 58 | `gnomADg_AF` |
-    | 59 | `gnomADg_AFR` |
-    | 60 | `gnomADg_AMI` |
-    | 61 | `gnomADg_AMR` |
-    | 62 | `gnomADg_ASJ` |
-    | 63 | `gnomADg_EAS` |
-    | 64 | `gnomADg_FIN` |
-    | 65 | `gnomADg_MID` |
-    | 66 | `gnomADg_NFE` |
-    | 67 | `gnomADg_REMAINING` |
-    | 68 | `gnomADg_SAS` |
-    | 69 | `MAX_AF` |
-    | 70 | `MAX_AF_POPS` |
-    | 71 | `CLIN_SIG` |
-    | 72 | `SOMATIC` |
-    | 73 | `PHENO` |
-    | 74 | `PUBMED` |
-
-??? note "`refseq` — `everything=True` (85 fields)"
+??? note "`refseq` (85 fields)"
 
     | # | Field |
     |---:|---|
@@ -638,90 +549,7 @@ token inside `FLAGS`.
     | 84 | `MOTIF_SCORE_CHANGE` |
     | 85 | `TRANSCRIPTION_FACTORS` |
 
-??? note "`refseq` — `everything=False` (78 fields)"
-
-    | # | Field |
-    |---:|---|
-    | 1 | `Allele` |
-    | 2 | `Consequence` |
-    | 3 | `IMPACT` |
-    | 4 | `SYMBOL` |
-    | 5 | `Gene` |
-    | 6 | `Feature_type` |
-    | 7 | `Feature` |
-    | 8 | `BIOTYPE` |
-    | 9 | `EXON` |
-    | 10 | `INTRON` |
-    | 11 | `HGVSc` |
-    | 12 | `HGVSp` |
-    | 13 | `cDNA_position` |
-    | 14 | `CDS_position` |
-    | 15 | `Protein_position` |
-    | 16 | `Amino_acids` |
-    | 17 | `Codons` |
-    | 18 | `Existing_variation` |
-    | 19 | `DISTANCE` |
-    | 20 | `STRAND` |
-    | 21 | `FLAGS` |
-    | 22 | `SYMBOL_SOURCE` |
-    | 23 | `HGNC_ID` |
-    | 24 | `MOTIF_NAME` |
-    | 25 | `MOTIF_POS` |
-    | 26 | `HIGH_INF_POS` |
-    | 27 | `MOTIF_SCORE_CHANGE` |
-    | 28 | `TRANSCRIPTION_FACTORS` |
-    | 29 | `REFSEQ_MATCH` |
-    | 30 | `REFSEQ_OFFSET` |
-    | 31 | `GIVEN_REF` |
-    | 32 | `USED_REF` |
-    | 33 | `BAM_EDIT` |
-    | 34 | `VARIANT_CLASS` |
-    | 35 | `CANONICAL` |
-    | 36 | `TSL` |
-    | 37 | `MANE_SELECT` |
-    | 38 | `MANE_PLUS_CLINICAL` |
-    | 39 | `ENSP` |
-    | 40 | `GENE_PHENO` |
-    | 41 | `CCDS` |
-    | 42 | `SWISSPROT` |
-    | 43 | `TREMBL` |
-    | 44 | `UNIPARC` |
-    | 45 | `UNIPROT_ISOFORM` |
-    | 46 | `AF` |
-    | 47 | `AFR_AF` |
-    | 48 | `AMR_AF` |
-    | 49 | `EAS_AF` |
-    | 50 | `EUR_AF` |
-    | 51 | `SAS_AF` |
-    | 52 | `gnomADe_AF` |
-    | 53 | `gnomADe_AFR` |
-    | 54 | `gnomADe_AMR` |
-    | 55 | `gnomADe_ASJ` |
-    | 56 | `gnomADe_EAS` |
-    | 57 | `gnomADe_FIN` |
-    | 58 | `gnomADe_MID` |
-    | 59 | `gnomADe_NFE` |
-    | 60 | `gnomADe_REMAINING` |
-    | 61 | `gnomADe_SAS` |
-    | 62 | `gnomADg_AF` |
-    | 63 | `gnomADg_AFR` |
-    | 64 | `gnomADg_AMI` |
-    | 65 | `gnomADg_AMR` |
-    | 66 | `gnomADg_ASJ` |
-    | 67 | `gnomADg_EAS` |
-    | 68 | `gnomADg_FIN` |
-    | 69 | `gnomADg_MID` |
-    | 70 | `gnomADg_NFE` |
-    | 71 | `gnomADg_REMAINING` |
-    | 72 | `gnomADg_SAS` |
-    | 73 | `MAX_AF` |
-    | 74 | `MAX_AF_POPS` |
-    | 75 | `CLIN_SIG` |
-    | 76 | `SOMATIC` |
-    | 77 | `PHENO` |
-    | 78 | `PUBMED` |
-
-??? note "`merged` — `everything=True` (86 fields)"
+??? note "`merged` (86 fields)"
 
     | # | Field |
     |---:|---|
@@ -811,90 +639,6 @@ token inside `FLAGS`.
     | 84 | `HIGH_INF_POS` |
     | 85 | `MOTIF_SCORE_CHANGE` |
     | 86 | `TRANSCRIPTION_FACTORS` |
-
-??? note "`merged` — `everything=False` (79 fields)"
-
-    | # | Field |
-    |---:|---|
-    | 1 | `Allele` |
-    | 2 | `Consequence` |
-    | 3 | `IMPACT` |
-    | 4 | `SYMBOL` |
-    | 5 | `Gene` |
-    | 6 | `Feature_type` |
-    | 7 | `Feature` |
-    | 8 | `BIOTYPE` |
-    | 9 | `EXON` |
-    | 10 | `INTRON` |
-    | 11 | `HGVSc` |
-    | 12 | `HGVSp` |
-    | 13 | `cDNA_position` |
-    | 14 | `CDS_position` |
-    | 15 | `Protein_position` |
-    | 16 | `Amino_acids` |
-    | 17 | `Codons` |
-    | 18 | `Existing_variation` |
-    | 19 | `DISTANCE` |
-    | 20 | `STRAND` |
-    | 21 | `FLAGS` |
-    | 22 | `SYMBOL_SOURCE` |
-    | 23 | `HGNC_ID` |
-    | 24 | `MOTIF_NAME` |
-    | 25 | `MOTIF_POS` |
-    | 26 | `HIGH_INF_POS` |
-    | 27 | `MOTIF_SCORE_CHANGE` |
-    | 28 | `TRANSCRIPTION_FACTORS` |
-    | 29 | `REFSEQ_MATCH` |
-    | 30 | `SOURCE` |
-    | 31 | `REFSEQ_OFFSET` |
-    | 32 | `GIVEN_REF` |
-    | 33 | `USED_REF` |
-    | 34 | `BAM_EDIT` |
-    | 35 | `VARIANT_CLASS` |
-    | 36 | `CANONICAL` |
-    | 37 | `TSL` |
-    | 38 | `MANE_SELECT` |
-    | 39 | `MANE_PLUS_CLINICAL` |
-    | 40 | `ENSP` |
-    | 41 | `GENE_PHENO` |
-    | 42 | `CCDS` |
-    | 43 | `SWISSPROT` |
-    | 44 | `TREMBL` |
-    | 45 | `UNIPARC` |
-    | 46 | `UNIPROT_ISOFORM` |
-    | 47 | `AF` |
-    | 48 | `AFR_AF` |
-    | 49 | `AMR_AF` |
-    | 50 | `EAS_AF` |
-    | 51 | `EUR_AF` |
-    | 52 | `SAS_AF` |
-    | 53 | `gnomADe_AF` |
-    | 54 | `gnomADe_AFR` |
-    | 55 | `gnomADe_AMR` |
-    | 56 | `gnomADe_ASJ` |
-    | 57 | `gnomADe_EAS` |
-    | 58 | `gnomADe_FIN` |
-    | 59 | `gnomADe_MID` |
-    | 60 | `gnomADe_NFE` |
-    | 61 | `gnomADe_REMAINING` |
-    | 62 | `gnomADe_SAS` |
-    | 63 | `gnomADg_AF` |
-    | 64 | `gnomADg_AFR` |
-    | 65 | `gnomADg_AMI` |
-    | 66 | `gnomADg_AMR` |
-    | 67 | `gnomADg_ASJ` |
-    | 68 | `gnomADg_EAS` |
-    | 69 | `gnomADg_FIN` |
-    | 70 | `gnomADg_MID` |
-    | 71 | `gnomADg_NFE` |
-    | 72 | `gnomADg_REMAINING` |
-    | 73 | `gnomADg_SAS` |
-    | 74 | `MAX_AF` |
-    | 75 | `MAX_AF_POPS` |
-    | 76 | `CLIN_SIG` |
-    | 77 | `SOMATIC` |
-    | 78 | `PHENO` |
-    | 79 | `PUBMED` |
 
 ## Cache format & lookup internals
 

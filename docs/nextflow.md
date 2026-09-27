@@ -123,8 +123,7 @@ vepyr annotates records as given. The parity inputs were normalized with
 To run that step in the same pipeline, use the `vcf_annotate_vepyr` subworkflow,
 which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes the
 same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
-normalize. Normalizing needs the reference: `bcftools/norm` always reads the
-FASTA from channel 3, so pass one even when `ext.args` has no `--everything`.
+normalize. Both steps read the reference FASTA from channel 3.
 
 The subworkflow is staged in this repository next to the module, and it needs
 both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
@@ -192,7 +191,7 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
 |---|---|---|
 | 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — but without it the task runs a single pipeline. |
 | 2 | `[ meta2, cache ]` | vepyr Parquet cache **directory**, e.g. `116_GRCh38_ensembl`. Not an Ensembl VEP cache. |
-| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [] ]` otherwise. |
+| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required: vepyr always runs `--everything`, which needs it, and `bcftools/norm` reads it when `val_normalize` is `true`. |
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
@@ -212,13 +211,22 @@ task.
 
 | Setting | Effect |
 |---|---|
-| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--everything'` or `'--hgvsc'`. See [Command line](cli.md#options). |
+| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--everything'` or `'--plugin clinvar'`. See [Command line](cli.md#options) and the note on `--everything` below. |
 | `ext.args2` | Extra `tabix` flags for indexing the output. |
 | `ext.prefix` | Output file name stem. Default: `meta.id`. |
 | `cpus` | Annotation pipelines (`--fork`). |
 
 The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,
 `--plugin_cache_root`, `--fork` and `--no_progress` itself.
+
+!!! note "Keep `--everything` in `ext.args` for now"
+    vepyr releases after 0.8.0 always annotate with `--everything` and accept
+    the flag only as a no-op. The module still pins `bioconda::vepyr=0.7.0`,
+    where `--everything` is opt-in and leaving it out gives a smaller `CSQ`
+    layout. Keep `ext.args = '--everything'` until the module pins a release
+    that includes the change; it is harmless afterwards. A reference FASTA is
+    required either way: the module stops before starting the task when
+    channel 3 carries none.
 
 **`--fork` comes from `cpus`, not `ext.args`.** The module appends
 `--fork ${task.cpus}` after `ext.args`, so a `--fork` or `--workers` in

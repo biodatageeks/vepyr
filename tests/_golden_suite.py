@@ -271,7 +271,6 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
         return vepyr.annotate(
             str(config.input_vcf),
             str(metadata_cache_dir),
-            everything=True,
             reference_fasta=str(config.reference_fasta),
             **config.annotate_kwargs,
         ).collect()
@@ -285,7 +284,6 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
         vepyr.annotate(
             str(config.input_vcf),
             str(metadata_cache_dir),
-            everything=True,
             reference_fasta=str(config.reference_fasta),
             output_vcf=vcf_path,
             show_progress=False,
@@ -439,7 +437,7 @@ def install_golden_suite(namespace: dict[str, Any], config: GoldenConfig) -> Non
 
         def test_hgvs_annotations_present(self, vepyr_df):
             hgvsc_count = vepyr_df["HGVSc"].drop_nulls().len()
-            assert hgvsc_count > 0, "No HGVSc annotations with everything=True"
+            assert hgvsc_count > 0, "No HGVSc annotations"
 
         def test_has_all_csq_columns(self, vepyr_df):
             missing = [

@@ -55,7 +55,6 @@ def _lazy(cache_dir, workers, **kwargs):
     return vepyr.annotate(
         INPUT_VCF,
         cache_dir,
-        everything=True,
         reference_fasta=REFERENCE_FASTA,
         buffer_size=7,
         workers=workers,

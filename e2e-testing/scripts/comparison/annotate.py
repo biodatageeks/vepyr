@@ -60,7 +60,6 @@ def annotate_contig(
     vepyr.annotate(
         chrom_vcf_gz,
         cache_dir,
-        everything=True,
         reference_fasta=fasta,
         cache_format=BACKEND,
         output_vcf=output_vcf,

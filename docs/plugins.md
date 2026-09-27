@@ -84,7 +84,6 @@ is byte-identical to a plugin-free run.
 vepyr.annotate(
     "sample.vcf",
     "/data/115_GRCh38_merged",
-    everything=True,
     reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
     plugin_cache_root="/data/plugin_cache",
     output_vcf="sample.annotated.vcf",
@@ -99,7 +98,6 @@ vepyr annotate \
     -o sample.annotated.vcf \
     --dir_cache /data/115_GRCh38_merged \
     --fasta Homo_sapiens.GRCh38.dna.primary_assembly.fa \
-    --everything \
     --plugin_cache_root /data/plugin_cache
 ```
 
@@ -112,6 +110,7 @@ the selected plugin blocks:
 result = vepyr.annotate(
     "sample.vcf",
     "/data/116_GRCh38_merged",
+    reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
     fields="core",
     plugin_cache_root="/data/plugin_cache",
     plugins=["cadd"],
@@ -147,6 +146,7 @@ is no per-call version argument — a plugin's version is fixed when
 vepyr.annotate(
     "sample.vcf",
     "/data/116_GRCh38_merged",
+    reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
     plugin_cache_root="/data/plugin_cache",
     plugins=["clinvar", "cadd"],   # only these two
     output_vcf="sample.annotated.vcf",

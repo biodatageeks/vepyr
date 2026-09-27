@@ -23,17 +23,15 @@ Run the full worker sequence, in descending order:
 performance-tests/vepyr/scripts/run_vepyr_merged_worker_scaling.sh
 ```
 
-The benchmark is pinned to `vepyr==0.3.0` and aborts if another version is
-imported. The measured call is equivalent to:
+The benchmark aborts unless the imported vepyr matches the version this
+checkout declares (override with `VEPYR_EXPECTED_VERSION`). The measured call is equivalent to:
 
 ```python
 lf = vepyr.annotate(
     vcf=input_vcf,
     cache_dir=cache_dir,
-    everything=True,
     reference_fasta=reference_fasta,
     workers=workers,
-    hgvs=True,
     output_vcf=output_vcf,
 )
 ```

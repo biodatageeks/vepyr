@@ -22,7 +22,16 @@ def _parse(*argv: str):
     return build_parser().parse_args(["annotate", *argv])
 
 
-MINIMAL = ("-i", "in.vcf", "-o", "out.vcf.gz", "--dir_cache", "/cache")
+MINIMAL = (
+    "-i",
+    "in.vcf",
+    "-o",
+    "out.vcf.gz",
+    "--dir_cache",
+    "/cache",
+    "--fasta",
+    "ref.fa",
+)
 
 
 def test_required_flags_populate_the_namespace():
@@ -31,6 +40,7 @@ def test_required_flags_populate_the_namespace():
     assert args.input_file == "in.vcf"
     assert args.output_file == "out.vcf.gz"
     assert args.dir_cache == "/cache"
+    assert args.fasta == "ref.fa"
 
 
 def test_minimal_invocation_maps_to_kwargs():
@@ -39,13 +49,15 @@ def test_minimal_invocation_maps_to_kwargs():
         "output_vcf": "out.vcf.gz",
         "show_progress": True,
         "workers": 1,
+        "reference_fasta": "ref.fa",
     }
 
 
-def test_everything_and_fasta_are_forwarded():
-    kwargs = annotate_kwargs(_parse(*MINIMAL, "--everything", "--fasta", "ref.fa"))
-    assert kwargs["everything"] is True
-    assert kwargs["reference_fasta"] == "ref.fa"
+def test_missing_fasta_exits_2():
+    # annotation always runs --everything, which needs the FASTA
+    with pytest.raises(SystemExit) as excinfo:
+        _parse("-i", "in.vcf", "-o", "out.vcf.gz", "--dir_cache", "/cache")
+    assert excinfo.value.code == 2
 
 
 @pytest.mark.parametrize("flag", ["--fork", "--workers"])
@@ -54,29 +66,13 @@ def test_fork_and_workers_are_the_same_knob(flag):
     assert kwargs["workers"] == 8
 
 
-def test_hgvsc_is_forwarded():
-    kwargs = annotate_kwargs(_parse(*MINIMAL, "--hgvsc", "--fasta", "ref.fa"))
-    assert kwargs["hgvsc"] is True
-
-
-def test_hgvsc_without_fasta_is_rejected_by_the_api(monkeypatch, capsys):
-    # The CLI does not pre-validate this; annotate() raises and main() turns it
-    # into exit 2. Guards the pairing rather than duplicating the check.
-    import vepyr
-
-    from vepyr.cli import main
-
-    def boom(vcf, cache_dir, **kwargs):
-        raise ValueError(
-            "reference_fasta is required when everything/hgvs/hgvsc/hgvsp=True"
-        )
-
-    monkeypatch.setattr(vepyr, "annotate", boom)
-    code = main(
-        ["annotate", "-i", "in.vcf", "-o", "o.vcf", "--dir_cache", "/c", "--hgvsc"]
+@pytest.mark.parametrize("flags", [("--everything",), ("--hgvsc",)])
+def test_everything_flags_are_accepted_and_ignored(flags):
+    # --everything is always on, so ensemblvep-style ext.args carrying it (or
+    # --hgvsc, which it implies) still parse, and change nothing.
+    assert annotate_kwargs(_parse(*MINIMAL, *flags)) == annotate_kwargs(
+        _parse(*MINIMAL)
     )
-    assert code == 2
-    assert "reference_fasta is required" in capsys.readouterr().err
 
 
 def test_cache_version_is_passed_as_a_string():
@@ -195,7 +191,7 @@ def test_main_forwards_positionals_and_kwargs(monkeypatch):
     vcf, cache_dir, kwargs = calls[0]
     assert vcf == "in.vcf"
     assert cache_dir == "/cache"
-    assert kwargs["everything"] is True
+    assert "everything" not in kwargs
     assert kwargs["reference_fasta"] == "ref.fa"
     assert kwargs["output_vcf"] == "out.vcf.gz"
     assert kwargs["show_progress"] is False
@@ -212,7 +208,7 @@ def test_api_errors_become_exit_2_without_a_traceback(monkeypatch, capsys, error
 
     from vepyr.cli import main
 
-    code = main(["annotate", "-i", "in.vcf", "-o", "o.vcf", "--dir_cache", "/c"])
+    code = main(["annotate", *MINIMAL])
 
     assert code == 2
     captured = capsys.readouterr()
@@ -246,7 +242,6 @@ def test_cli_annotates_the_golden_fixture(tmp_path, golden_cache):
             golden_cache,
             "--fasta",
             str(GOLDEN_FASTA),
-            "--everything",
             "--cache_version",
             "115",
             "--no_progress",
@@ -285,6 +280,8 @@ def test_cli_reports_a_bad_cache_version_and_exits_2(tmp_path, golden_cache):
             str(output),
             "--dir_cache",
             golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
             "--cache_version",
             "116",
             "--no_progress",

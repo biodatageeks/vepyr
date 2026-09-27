@@ -81,7 +81,6 @@ def run_profile(vepyr, profile, release, slice_gz, fasta, sweep, out_dir):
         return vepyr.annotate(
             slice_gz,
             cache_dir,
-            everything=True,
             reference_fasta=fasta,
             workers=workers,
             **kwargs,
@@ -122,7 +121,6 @@ def run_profile(vepyr, profile, release, slice_gz, fasta, sweep, out_dir):
     vepyr.annotate(
         slice_gz,
         cache_dir,
-        everything=True,
         reference_fasta=fasta,
         workers=workers,
         output_vcf=vcf_out,

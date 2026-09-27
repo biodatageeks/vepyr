@@ -92,9 +92,7 @@ def profile_annotate_kwargs(profile, release):
 def run_profile(vepyr, profile, release, slice_gz, plain_vcf, fasta, region_texts):
     cache_dir = profiles.cache_dir_for(profile, release)
     kwargs = profile_annotate_kwargs(profile, release)
-    lf = vepyr.annotate(
-        slice_gz, cache_dir, everything=True, reference_fasta=fasta, **kwargs
-    )
+    lf = vepyr.annotate(slice_gz, cache_dir, reference_fasta=fasta, **kwargs)
     full, full_s = timed(lf.collect)
     rows = []
     ok = True
@@ -119,9 +117,7 @@ def run_profile(vepyr, profile, release, slice_gz, plain_vcf, fasta, region_text
     # Unindexed leg: same result, plus the warning.
     predicate = parse_region_list(region_texts[0])
     reference = full.filter(predicate)
-    lf_plain = vepyr.annotate(
-        plain_vcf, cache_dir, everything=True, reference_fasta=fasta, **kwargs
-    )
+    lf_plain = vepyr.annotate(plain_vcf, cache_dir, reference_fasta=fasta, **kwargs)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         pushed, pushed_s = timed(lambda: lf_plain.filter(predicate).collect())

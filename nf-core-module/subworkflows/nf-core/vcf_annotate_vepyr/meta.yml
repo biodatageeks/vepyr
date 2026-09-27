@@ -44,8 +44,9 @@ input:
   - ch_fasta:
       description: |
         Reference FASTA and its samtools faidx index. For a bgzip FASTA pass
-        [ fai, gzi ] in the index slot. Required when `val_normalize` is true
-        (bcftools norm always reads the reference) and for vepyr's `--everything`.
+        [ fai, gzi ] in the index slot. Required: vepyr always annotates with
+        `--everything`, which needs it, and bcftools norm reads it when
+        `val_normalize` is true.
         Structure: [ val(meta3), path(fasta), path(fai) ]
   - val_cache_version:
       type: integer
