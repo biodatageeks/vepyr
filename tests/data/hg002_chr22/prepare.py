@@ -101,7 +101,6 @@ def annotate(vcf: Path, cache: Path, fasta: Path, out: Path) -> None:
     vepyr.annotate(
         str(vcf),
         str(cache),
-        everything=True,
         reference_fasta=str(fasta),
         cache_format="parquet",
         output_vcf=str(out),

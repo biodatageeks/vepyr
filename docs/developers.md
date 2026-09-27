@@ -80,13 +80,14 @@ with tempfile.TemporaryDirectory() as d:
     cache = os.path.join(d, '115_GRCh38_ensembl')
     print(f'build_cache : {len(r)} parquet files, {sum(n for _,n in r):,} rows')
     vcf = 'tests/data/ensembl_cache/sample.vcf'
-    df1 = vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True).collect()
+    fa = 'tests/data/hg002_chr22/chr22.fa.gz'
+    df1 = vepyr.annotate(vcf, cache, reference_fasta=fa).collect()
     print(f'indexed     : {df1.height} variants × {df1.width} columns')
     out = os.path.join(d, 'annotated.vcf')
-    vepyr.annotate(vcf, cache, check_existing=True, af=True, max_af=True, output_vcf=out, show_progress=False)
+    vepyr.annotate(vcf, cache, reference_fasta=fa, output_vcf=out, show_progress=False)
     print(f'vcf output  : {os.path.getsize(out):,} bytes')
     assert os.path.getsize(out) > 0, 'empty VCF'
-lf = vepyr.annotate('tests/data/golden/input.vcf.gz', 'tests/data/golden/cache', everything=True, reference_fasta='tests/data/golden/reference.fa')
+lf = vepyr.annotate('tests/data/golden/input.vcf.gz', 'tests/data/golden/cache', reference_fasta='tests/data/golden/reference.fa')
 df = lf.collect()
 print(f'everything  : {df.height} variants × {df.width} columns')
 assert df.height > 0 and df.width > 80, 'smoke test failed'

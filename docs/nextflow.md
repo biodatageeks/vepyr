@@ -36,7 +36,7 @@ cp -R vepyr/nf-core-module/modules/nf-core/vepyr/annotate my-pipeline/modules/nf
 
 ## Example
 
-A minimal pipeline that annotates one VCF with `--everything`:
+A minimal pipeline that annotates one VCF (vepyr always runs `--everything`):
 
 ```groovy title="main.nf"
 include { VEPYR_ANNOTATE } from './modules/nf-core/vepyr/annotate/main'
@@ -79,7 +79,6 @@ docker.enabled = true
 
 process {
     withName: 'VEPYR_ANNOTATE' {
-        ext.args   = '--everything'
         cpus       = 4
         publishDir = [ path: { "${params.outdir}/vepyr" }, mode: 'copy' ]
     }
@@ -123,8 +122,7 @@ vepyr annotates records as given. The parity inputs were normalized with
 To run that step in the same pipeline, use the `vcf_annotate_vepyr` subworkflow,
 which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes the
 same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
-normalize. Normalizing needs the reference: `bcftools/norm` always reads the
-FASTA from channel 3, so pass one even when `ext.args` has no `--everything`.
+normalize. Both steps read the reference FASTA from channel 3.
 
 The subworkflow is staged in this repository next to the module, and it needs
 both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
@@ -192,7 +190,7 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
 |---|---|---|
 | 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — but without it the task runs a single pipeline. |
 | 2 | `[ meta2, cache ]` | vepyr Parquet cache **directory**, e.g. `116_GRCh38_ensembl`. Not an Ensembl VEP cache. |
-| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required by `--everything`, and by the subworkflow when `val_normalize` is `true`; pass `[ meta3, [], [] ]` otherwise. |
+| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required: vepyr always runs `--everything`, which needs it, and `bcftools/norm` reads it when `val_normalize` is `true`. |
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
@@ -212,7 +210,7 @@ task.
 
 | Setting | Effect |
 |---|---|
-| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--everything'` or `'--hgvsc'`. See [Command line](cli.md#options). |
+| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--plugin clinvar'`. `--everything` and `--hgvsc` are accepted but not needed: annotation always runs `--everything`. See [Command line](cli.md#options). |
 | `ext.args2` | Extra `tabix` flags for indexing the output. |
 | `ext.prefix` | Output file name stem. Default: `meta.id`. |
 | `cpus` | Annotation pipelines (`--fork`). |
@@ -257,7 +255,7 @@ VEPYR_ANNOTATE(vcf, cache, fasta, 116, [ [ id: 'plugins' ], file(params.plugin_c
 ```groovy
 process {
     withName: 'VEPYR_ANNOTATE' {
-        ext.args = '--everything --plugin clinvar --plugin cadd'
+        ext.args = '--plugin clinvar --plugin cadd'
     }
 }
 ```

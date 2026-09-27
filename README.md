@@ -62,7 +62,6 @@ vepyr annotate \
     -o annotated.vcf.gz \
     --dir_cache ~/vepyr_cache/116_GRCh38_ensembl \
     --fasta GRCh38.fa \
-    --everything \
     --fork 8
 ```
 

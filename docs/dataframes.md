@@ -16,14 +16,11 @@ lf = vepyr.annotate(
 df = lf.collect()
 ```
 
-!!! tip "No columns selected means `everything`"
-    A frame created without annotation flags and collected without a
-    `select()` is the full VEP `--everything` result, provided a
-    `reference_fasta` is given. Without a FASTA the engine cannot compute
-    the HGVS and `everything`-only columns: they stay null and a warning
-    names them. Add a `select()` and only the flags its columns need are run, see
-    [below](#what-is-pushed-into-the-engine). Flags you pass explicitly are
-    honoured as given.
+!!! tip "Every column is the `--everything` value"
+    Annotation always runs Ensembl VEP `--everything`, so `reference_fasta`
+    is required and every column holds its `--everything` value. A
+    `select()` only decides how much work that takes, see
+    [below](#what-is-pushed-into-the-engine).
 
 ## Schema
 
@@ -121,7 +118,7 @@ Schema({
     'SOMATIC': String,
     'PHENO': String,
     'PUBMED': List(String),              # distinct values per variant
-    'MOTIF_NAME': List(String),          # per entry, MotifFeature entries only; everything only
+    'MOTIF_NAME': List(String),          # per entry, MotifFeature entries only
     'MOTIF_POS': List(Int64),
     'HIGH_INF_POS': List(String),
     'MOTIF_SCORE_CHANGE': List(Float32),
@@ -207,18 +204,14 @@ travel from the query to the annotator:
 - **A `filter()` on `chrom`, `start` or `end`** restricts the input before
   annotation; see [Region filters](#region-filters) below.
 - **A narrowing `select()`**, together with the columns a pushed-down
-  `filter()` reads, decides the annotation flags. Only three groups of columns
-  depend on flags at all: `HGVSc` and `HGVSp` on `hgvs`; the co-located
-  columns (`Existing_variation`, `CLIN_SIG`, `SOMATIC`, `PHENO`, `PUBMED`, the
-  `AF` family and the cache-only columns) on `check_existing` and the `af`
-  flags; and the `everything`-only extras (`MANE`, `APPRIS`, `SIFT`,
-  `PolyPhen`, `DOMAINS`, `miRNA`, `HGVS_OFFSET`, the five motif columns and
-  the gnomAD sub-populations) on `everything`. A group nobody selected is switched off
-  for the run. A group a column needs is switched on when you gave no flags;
-  flags you did set are kept exactly as configured. HGVS and the `everything`
-  extras need `reference_fasta`, and selecting them without one raises rather
-  than returning nulls. The selected columns are value-identical to a run
-  with the flags spelled out.
+  `filter()` reads, decides how much of the work runs. The engine skips the
+  HGVS lookup when neither `HGVSc` nor `HGVSp` is needed, and the co-located
+  lookup when none of its columns (`Existing_variation`, `CLIN_SIG`,
+  `SOMATIC`, `PHENO`, `PUBMED`, the `AF` family and the cache-only columns)
+  is needed. Everything else `--everything` adds (`SIFT`, `PolyPhen`, `MANE`,
+  `DOMAINS`, the motif columns, the per-population gnomAD columns, …) runs
+  only when one of those columns is needed. The selected columns are
+  value-identical to a plain `collect()`.
 - **The input columns a query names** are the only ones parsed:
   `select("chrom", "SYMBOL")` reads no `INFO` and no samples.
 - **The plugin columns a query names** decide which plugins run. Only the
@@ -229,9 +222,8 @@ travel from the query to the annotator:
 Every other `filter()` is applied to each batch after annotation. It bounds
 memory, because a batch is dropped as soon as it has been reduced, but it does
 not reduce the engine's work. The raw `CSQ` string (`skip_csq=False`) needs every
-flag and every configured plugin, so a query that reads it runs like a plain
-`collect()`: with the flags you gave, or the flagless default, and all the
-plugins. A query that reads neither `CSQ` nor a plugin column runs no plugin
+lookup and every configured plugin, so a query that reads it runs like a plain
+`collect()`. A query that reads neither `CSQ` nor a plugin column runs no plugin
 lookup at all.
 
 ```python
@@ -243,16 +235,12 @@ high = (
       .collect()
 )                                            # runs without HGVS or the co-located lookup
 
-lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # no flags at all
-lf.select("chrom", "start", "HGVSc").collect()                    # hgvs only
-lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # the co-located lookup only
-lf.select("chrom", "start", "SIFT").collect()                     # everything
-lf.collect()                                                      # no projection: everything
+lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # neither HGVS nor co-located
+lf.select("chrom", "start", "HGVSc").collect()                    # HGVS, no co-located lookup
+lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # co-located lookup, no HGVS
+lf.select("chrom", "start", "SIFT").collect()                     # neither HGVS nor co-located
+lf.collect()                                                      # no projection: all of --everything
 ```
-
-Without a projection there is nothing to infer from, so the flags you passed
-are what runs, and a frame created without flags runs `everything` when it
-has a FASTA and the co-located lookup when it does not.
 
 On the release-116 Ensembl cache with a FASTA and `workers=1`, measured on an
 Apple Silicon M3 Max (16 cores, 64 GiB):
@@ -302,7 +290,7 @@ to filter it before annotation, and only the selected rows are annotated. On Mer
 extra positional pass over each selected contig, which keeps the result
 byte-identical to a whole-file run.
 
-On the release-116 caches with a FASTA, `everything=True` and `workers=1`
+On the release-116 caches with a FASTA and `workers=1`
 (HG002 slices, indexed input), measured on an Apple Silicon M3 Max (16 cores, 64 GiB):
 
 | Input | Query | Ensembl | Merged | RefSeq |
@@ -543,7 +531,7 @@ across worker counts and cache profiles.
 ## Writing results to disk
 
 `collect()` holds the whole result in memory. On chromosome 1 of a
-whole-genome sample (323,430 variants, `everything=True`) the collected frame
+whole-genome sample (323,430 variants) the collected frame
 is about 1.2 GB, but the process peaks at 8.4 GB because Polars buffers the
 Arrow batches on top of the frame. Two things bring that down.
 
@@ -610,7 +598,6 @@ import vepyr
 lf = vepyr.annotate(
     "HG002.vcf.gz",
     cache_dir,
-    everything=True,
     reference_fasta="GRCh38.fa",
     skip_csq=False,           # the CSQ column is what gets written
 )
@@ -649,7 +636,7 @@ That relies on three things:
 ## Agreement with the VCF output
 
 The DataFrame and VCF paths run the same engine. On chr22 and chr1 of HG002
-against the release-116 Ensembl cache with `everything=True`, the `CSQ`
+against the release-116 Ensembl cache, the `CSQ`
 column (`skip_csq=False`) matched the VCF's `INFO/CSQ` byte for byte on every
 record, the variant columns matched `CHROM`, `POS`, `ID`, `REF`, `ALT`, `QUAL`
 and `FILTER`, and every typed column matched its CSQ field element for element,

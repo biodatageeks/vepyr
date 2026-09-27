@@ -64,7 +64,6 @@ start = time.time()
 lf = vepyr.annotate(
     vcf="input.vcf",
     cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    everything=True,
     reference_fasta="GRCh38.fa",
 )
 df = lf.collect()
@@ -77,7 +76,7 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 A LazyFrame `filter()` on `chrom`, `start` or `end` is pushed into the engine
 before annotation (see [Polars DataFrames](dataframes.md#region-filters)).
 Measured with `e2e-testing/scripts/region_pushdown_parity.py --release 116` on
-HG002 contig slices, `everything=True`, a FASTA, `workers=1`, on an Apple Silicon M3 Max (16 cores, 64 GiB). Every
+HG002 contig slices, a FASTA, `workers=1`, on an Apple Silicon M3 Max (16 cores, 64 GiB). Every
 pushed-down frame was identical to the whole-slice frame filtered in Polars.
 
 | Input | Query | Rows | Ensembl | Merged | RefSeq |
@@ -103,7 +102,7 @@ and filtered before annotation, so small ranges gain less.
 ### Workers on the LazyFrame path
 
 Measured with `e2e-testing/scripts/lazyframe_workers_parity.py --release 116 --sweep 1 2 4 8`
-on HG002 contig slices, `everything=True`, a FASTA, on an Apple Silicon M3 Max
+on HG002 contig slices, a FASTA, on an Apple Silicon M3 Max
 (16 cores, 64 GiB). Every frame equalled the `workers=1` frame row for row, and
 the LazyFrame CSQ column equalled the `output_vcf` INFO/CSQ at `workers=8`.
 

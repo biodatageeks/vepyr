@@ -170,8 +170,8 @@ benchmark, and mismatch examples per field.
 A Nextflow pipeline that annotates the normalized HG002 VCF with the
 [`vepyr/annotate` nf-core module](../nf-core-module/) instead of the Python API,
 reading the same workspace as `run_comparison.py`. Per contig it slices the
-normalized input (as `vcfio.slice_contig` does), runs `VEPYR_ANNOTATE` with
-`--everything` in the module's own container, and compares the record-body md5
+normalized input (as `vcfio.slice_contig` does), runs `VEPYR_ANNOTATE` (which
+always annotates with `--everything`) in the module's own container, and compares the record-body md5
 against the same contig of the Ensembl VEP reference -- the strict digest
 `md5_concordance.py` computes. It fails if any contig differs.
 

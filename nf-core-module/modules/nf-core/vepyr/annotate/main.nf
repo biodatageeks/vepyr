@@ -29,9 +29,10 @@ process VEPYR_ANNOTATE {
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
-    // vepyr opens the reference through its .fai and does not build one, so the
-    // index must be staged alongside the FASTA or --everything/--hgvsc fail. A
-    // bgzip FASTA also needs its .gzi: pass [ fai, gzi ] in the fai slot.
+    // vepyr always runs --everything, so the FASTA is required. It opens the
+    // reference through its .fai and does not build one, so the index must be
+    // staged alongside the FASTA or annotation fails. A bgzip FASTA also needs
+    // its .gzi: pass [ fai, gzi ] in the fai slot.
     def reference = fasta ? "--fasta ${fasta}" : ''
     def version_arg = cache_version ? "--cache_version ${cache_version}" : ''
     def plugin_arg = plugin_cache ? "--plugin_cache_root ${plugin_cache}" : ''

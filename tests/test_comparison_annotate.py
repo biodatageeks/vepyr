@@ -69,7 +69,7 @@ def test_annotate_contig_forwards_profile_kwargs(fake_vepyr, tmp_path):
     assert call["workers"] == 4
     assert call["per_gene"] is True
     assert call["pick_order"] == "rank"
-    assert call["everything"] is True
+    assert call["reference_fasta"] == "/ref.fa"
     assert call["cache_format"] == "parquet"
 
 
