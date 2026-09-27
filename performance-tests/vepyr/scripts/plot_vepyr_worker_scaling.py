@@ -125,10 +125,8 @@ def command_text(
             lf = vepyr.annotate(
                 vcf="{data_dir}/input/HG002_normalized.vcf.gz",
                 cache_dir="{data_dir}/cache/{release}_GRCh38_{cache_type}",
-                everything=True,
                 reference_fasta="{data_dir}/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
                 workers=workers,
-                hgvs=True,
                 output_vcf=f"HG002_annotated_vepyr_{cache_type}_workers{{workers}}.{extension}",
             )"""
     )

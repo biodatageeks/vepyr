@@ -46,7 +46,6 @@ def child(
 
     names = PLUGINS if plugins == "all" else []
     kw = dict(
-        everything=True,
         reference_fasta=args.fasta,
         workers=workers,
         show_progress=False,

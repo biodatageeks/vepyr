@@ -68,9 +68,10 @@ input:
     - fai:
         type: file
         description: |
-          samtools/faidx index of the reference FASTA. Required: vepyr opens the reference through its index and
-          does not build one. For a bgzip-compressed FASTA pass both indexes
-          as a list, `[ fai, gzi ]`; vepyr cannot open it without the `.gzi`.
+          samtools/faidx index of the reference FASTA. Required: vepyr opens
+          the reference through its index and does not build one. For a
+          bgzip-compressed FASTA pass both indexes as a list, `[ fai, gzi ]`;
+          vepyr cannot open it without the `.gzi`.
         pattern: "*.{fai,gzi}"
         ontologies: []
   - cache_version:
