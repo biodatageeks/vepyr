@@ -106,7 +106,12 @@ starts. Each one narrows the work the engine is asked to do:
   it with a `select()` raises rather than letting one silently win.
 - **The CSQ string is built on demand.** A query that reads neither `CSQ` nor a
   plugin column gets neither the string nor the plugin lookup, since plugin
-  values only ever reach the frame through it.
+  values only ever reach the frame through it. A query that reads plugin
+  columns but not `CSQ` hands the engine only the plugins that own them, in
+  their configured order; `CSQ` is split once per batch and only the columns
+  the query reads are parsed out of it.
+- **Input columns are parsed on demand.** The input's `INFO` fields and sample
+  columns are read only when the query names them.
 - **Genomic coordinates become regions.** `chrom`, `start` and `end` conjuncts
   are extracted into engine `regions`, so unselected contigs are never prepared
   and an indexed input is read by seek; a predicate that selects nothing skips

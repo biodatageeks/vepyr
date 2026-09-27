@@ -199,7 +199,7 @@ frame has.
 ## What is pushed into the engine
 
 The frame is backed by a Polars IO plugin that pulls Arrow batches from the
-native annotator. Three things reach the engine — the
+native annotator. Five things reach the engine — the
 [Polars pushdown diagram](architecture.md#polars-pushdown) shows how they
 travel from the query to the annotator:
 
@@ -219,13 +219,20 @@ travel from the query to the annotator:
   extras need `reference_fasta`, and selecting them without one raises rather
   than returning nulls. The selected columns are value-identical to a run
   with the flags spelled out.
+- **The input columns a query names** are the only ones parsed:
+  `select("chrom", "SYMBOL")` reads no `INFO` and no samples.
+- **The plugin columns a query names** decide which plugins run. Only the
+  plugins that own a column the query reads are looked up, and only their
+  columns are parsed out of `CSQ`: `select("chrom", "start", "CADD_PHRED")`
+  runs the CADD lookup and no other.
 
 Every other `filter()` is applied to each batch after annotation. It bounds
 memory, because a batch is dropped as soon as it has been reduced, but it does
 not reduce the engine's work. The raw `CSQ` string (`skip_csq=False`) needs every
-flag, so a query that reads it runs like a plain `collect()`: with the flags
-you gave, or the flagless default. Plugin lookups run only when the query
-reads a plugin column or `CSQ`.
+flag and every configured plugin, so a query that reads it runs like a plain
+`collect()`: with the flags you gave, or the flagless default, and all the
+plugins. A query that reads neither `CSQ` nor a plugin column runs no plugin
+lookup at all.
 
 ```python
 preview = lf.head(20).collect()              # LIMIT 20 in the engine
@@ -253,13 +260,13 @@ Apple Silicon M3 Max (16 cores, 64 GiB):
 | Input | Query | Wall time |
 |---|---|---|
 | chr22, 50,861 variants | `collect()` | 2.3 s |
-| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 1.2 s |
+| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 1.3 s |
 | | `select(chrom, start, HGVSc, HGVSp)` | 1.4 s |
-| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 1.9 s |
-| chr1, 323,430 variants | `collect()` | 15.2 s |
-| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 5.8 s |
-| | `select(chrom, start, HGVSc, HGVSp)` | 9.0 s |
-| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 14.2 s |
+| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 1.7 s |
+| chr1, 323,430 variants | `collect()` | 13.5 s |
+| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 6.1 s |
+| | `select(chrom, start, HGVSc, HGVSp)` | 6.7 s |
+| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 11.0 s |
 
 ### Region filters
 
@@ -300,12 +307,12 @@ On the release-116 caches with a FASTA, `everything=True` and `workers=1`
 
 | Input | Query | Ensembl | Merged | RefSeq |
 |---|---|---|---|---|
-| chr22, 50,861 variants | `collect()` | 2.6 s | 3.2 s | 2.0 s |
-| | `filter(chr22:20,000,000-25,000,000)`, 5,406 rows | 0.6 s | 1.3 s | 0.8 s |
-| | `filter(chr22:30,000,000-30,100,000)`, 59 rows | 0.1 s | 0.7 s | 0.5 s |
-| chr1, 323,430 variants | `collect()` | 17.0 s | 22.5 s | 14.9 s |
-| | `filter(chr1:20,000,000-25,000,000)`, 7,871 rows | 1.2 s | 2.9 s | 1.7 s |
-| | `filter(chr1:30,000,000-30,100,000)`, 275 rows | 0.6 s | 1.8 s | 1.1 s |
+| chr22, 50,861 variants | `collect()` | 2.3 s | 3.1 s | 1.7 s |
+| | `filter(chr22:20,000,000-25,000,000)`, 5,457 rows | 0.6 s | 1.2 s | 0.7 s |
+| | `filter(chr22:30,000,000-30,100,000)`, 60 rows | 0.2 s | 0.6 s | 0.4 s |
+| chr1, 323,430 variants | `collect()` | 12.8 s | 17.7 s | 11.8 s |
+| | `filter(chr1:20,000,000-25,000,000)`, 7,994 rows | 1.1 s | 2.3 s | 1.4 s |
+| | `filter(chr1:30,000,000-30,100,000)`, 278 rows | 0.7 s | 1.4 s | 0.9 s |
 
 ## One row per consequence
 
@@ -504,10 +511,11 @@ a frame with plugins: per-feature plugin lists explode alongside the
 transcript columns, per-variant scalars such as `CADD_PHRED` repeat on each
 row, like the frequencies do.
 
-A query that reads no plugin column skips the plugin lookup entirely. On
-chr22 with the four caches, `select(chrom, start, SYMBOL)` takes 1.2 s and
-`select(chrom, start, CADD_PHRED)` 8.4 s, so keep plugin columns out of
-queries that do not need them.
+A query that reads no plugin column skips the plugin lookup entirely, and one
+that reads plugin columns runs only the plugins that own them. On chr22 with
+the four caches, `select(chrom, start, SYMBOL)` takes 1.3 s and
+`select(chrom, start, CADD_PHRED)`, which runs the CADD lookup alone, 4.2 s,
+so keep plugin columns out of queries that do not need them.
 
 ## Workers
 
@@ -536,11 +544,12 @@ across worker counts and cache profiles.
 
 `collect()` holds the whole result in memory. On chromosome 1 of a
 whole-genome sample (323,430 variants, `everything=True`) the collected frame
-is about 2.3 GB, but the process peaks at 12.6 GB because Polars buffers the
+is about 1.2 GB, but the process peaks at 8.4 GB because Polars buffers the
 Arrow batches on top of the frame. Two things bring that down.
 
-**Leave the `CSQ` string off.** It is off by default (`skip_csq=True`) and
-roughly halves peak memory. Turn it on only when you need the exact VEP string.
+**Leave the `CSQ` string off.** It is off by default (`skip_csq=True`); with it
+on, the chr1 frame more than doubles to 2.7 GB and `collect()` peaks about 2 GB
+higher. Turn it on only when you need the exact VEP string.
 
 **Stream with `sink_parquet` and a small row group.** Polars holds one row
 group in memory before writing it, and its default group is far larger than an
@@ -551,23 +560,25 @@ stream flat:
 lf.sink_parquet("annotated.parquet", row_group_size=5000)
 ```
 
-Measured on the release-116 Ensembl cache with `workers=1`:
+Measured on the release-116 Ensembl cache with `workers=1` (median of three
+runs after a warm-up, one process per run):
 
 | Input | Path | Wall time | Peak RSS |
 |---|---|---|---|
-| chr22, 50,861 variants | `output_vcf` (bgzf) | 3.9 s | 1.0 GB |
-| | `collect()` | 2.4 s | 1.6 GB |
-| | `sink_parquet()` default | 2.7 s | 2.1 GB |
-| | `sink_parquet(row_group_size=5000)` | 2.5 s | 1.3 GB |
-| chr1, 323,430 variants | `output_vcf` (bgzf) | 21.6 s | 2.9 GB |
-| | `collect()` | 15.3 s | 6.9 GB |
-| | `sink_parquet()` default | 15.8 s | 6.0 GB |
-| | `sink_parquet(row_group_size=5000)` | 16.5 s | 3.5 GB |
+| chr22, 50,861 variants | `output_vcf` (bgzf) | 3.5 s | 1.1 GB |
+| | `collect()` | 2.4 s | 1.9 GB |
+| | `sink_parquet()` default | 2.4 s | 2.5 GB |
+| | `sink_parquet(row_group_size=5000)` | 2.3 s | 1.5 GB |
+| chr1, 323,430 variants | `output_vcf` (bgzf) | 17.9 s | 3.3 GB |
+| | `collect()` | 12.6 s | 8.4 GB |
+| | `sink_parquet()` default | 12.6 s | 6.6 GB |
+| | `sink_parquet(row_group_size=5000)` | 12.4 s | 3.8 GB |
 
 With `skip_csq=False` add roughly 1 GB on chr1 for the small-row-group sink and
-5 GB for `collect()`. The engine itself needs about 3 GB on chr1 whichever
-output you choose, so the small-row-group sink is within half a gigabyte of the
-VCF writer. Wall time is unaffected and the Parquet file grows by about 6 %.
+2 GB for `collect()`, and about 1.5 s of wall time to either. The engine itself
+needs about 3 GB on chr1 whichever output you choose, so the small-row-group
+sink is within half a gigabyte of the VCF writer. The small row group costs no
+wall time; the Parquet file grows by about 7 %.
 
 List columns cannot be written to CSV directly. Join them with `&` first, on
 the wide frame or on the long frame, where the per-variant value sets are the
