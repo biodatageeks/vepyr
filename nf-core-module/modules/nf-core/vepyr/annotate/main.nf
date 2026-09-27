@@ -29,11 +29,14 @@ process VEPYR_ANNOTATE {
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
     prefix = task.ext.prefix ?: "${meta.id}"
-    // vepyr always runs --everything, so the FASTA is required. It opens the
+    // vepyr always runs --everything, so the FASTA is required: fail here, with
+    // the reason, rather than start a task that vepyr rejects. It opens the
     // reference through its .fai and does not build one, so the index must be
     // staged alongside the FASTA or annotation fails. A bgzip FASTA also needs
     // its .gzi: pass [ fai, gzi ] in the fai slot.
-    def reference = fasta ? "--fasta ${fasta}" : ''
+    if (!fasta) {
+        error("VEPYR_ANNOTATE requires a reference FASTA: vepyr always annotates with --everything, which needs it. Pass [ meta3, fasta, fai ] as the third input.")
+    }
     def version_arg = cache_version ? "--cache_version ${cache_version}" : ''
     def plugin_arg = plugin_cache ? "--plugin_cache_root ${plugin_cache}" : ''
     // --fork above 1 requires a tabix/CSI index on the input; vepyr raises
@@ -51,7 +54,7 @@ process VEPYR_ANNOTATE {
         -i ${vcf} \\
         -o ${prefix}.vcf.gz \\
         --dir_cache ${cache} \\
-        ${reference} \\
+        --fasta ${fasta} \\
         ${version_arg} \\
         ${plugin_arg} \\
         ${args} \\

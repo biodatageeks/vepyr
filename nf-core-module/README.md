@@ -235,9 +235,11 @@ Treat any *second* failure as a genuine regression.
 ## Scope
 
 Twelve flags, covering the configuration validated against Ensembl VEP plus what
-a workflow engine needs. Annotation always runs `--everything`, so `--fasta` is
-required; `--everything` and `--hgvsc` are accepted and ignored so VEP-style
-`ext.args` keep parsing. The pick family and `--fields` are additive later and
+a workflow engine needs. After vepyr 0.8.0, annotation always runs
+`--everything`, so `--fasta` is required and `--everything`/`--hgvsc` are
+accepted and ignored. The module still pins 0.7.0, where `--everything` is
+opt-in, so the test configs keep `ext.args = '--everything'`; the module
+requires a FASTA either way. The pick family and `--fields` are additive later and
 need no engine work — see `docs/superpowers/specs/2026-09-07-nf-core-vepyr-module-design.md`.
 
 Note that unknown flags are a hard error, so an `ext.args` string copied from an

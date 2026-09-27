@@ -36,7 +36,7 @@ cp -R vepyr/nf-core-module/modules/nf-core/vepyr/annotate my-pipeline/modules/nf
 
 ## Example
 
-A minimal pipeline that annotates one VCF (vepyr always runs `--everything`):
+A minimal pipeline that annotates one VCF with `--everything`:
 
 ```groovy title="main.nf"
 include { VEPYR_ANNOTATE } from './modules/nf-core/vepyr/annotate/main'
@@ -79,6 +79,7 @@ docker.enabled = true
 
 process {
     withName: 'VEPYR_ANNOTATE' {
+        ext.args   = '--everything'
         cpus       = 4
         publishDir = [ path: { "${params.outdir}/vepyr" }, mode: 'copy' ]
     }
@@ -210,13 +211,22 @@ task.
 
 | Setting | Effect |
 |---|---|
-| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--plugin clinvar'`. `--everything` and `--hgvsc` are accepted but not needed: annotation always runs `--everything`. See [Command line](cli.md#options). |
+| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--everything'` or `'--plugin clinvar'`. See [Command line](cli.md#options) and the note on `--everything` below. |
 | `ext.args2` | Extra `tabix` flags for indexing the output. |
 | `ext.prefix` | Output file name stem. Default: `meta.id`. |
 | `cpus` | Annotation pipelines (`--fork`). |
 
 The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,
 `--plugin_cache_root`, `--fork` and `--no_progress` itself.
+
+!!! note "Keep `--everything` in `ext.args` for now"
+    vepyr releases after 0.8.0 always annotate with `--everything` and accept
+    the flag only as a no-op. The module still pins `bioconda::vepyr=0.7.0`,
+    where `--everything` is opt-in and leaving it out gives a smaller `CSQ`
+    layout. Keep `ext.args = '--everything'` until the module pins a release
+    that includes the change; it is harmless afterwards. A reference FASTA is
+    required either way: the module stops before starting the task when
+    channel 3 carries none.
 
 **`--fork` comes from `cpus`, not `ext.args`.** The module appends
 `--fork ${task.cpus}` after `ext.args`, so a `--fork` or `--workers` in
@@ -255,7 +265,7 @@ VEPYR_ANNOTATE(vcf, cache, fasta, 116, [ [ id: 'plugins' ], file(params.plugin_c
 ```groovy
 process {
     withName: 'VEPYR_ANNOTATE' {
-        ext.args = '--plugin clinvar --plugin cadd'
+        ext.args = '--everything --plugin clinvar --plugin cadd'
     }
 }
 ```
