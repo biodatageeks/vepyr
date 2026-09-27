@@ -149,6 +149,52 @@ PROFILES = {
         vep_per_contig=_PLUGIN_PER_CONTIG,
         vep_subdir="plugins",
     ),
+    # Single-plugin isolation profiles. Each reuses the same five-plugin VEP
+    # reference as merged_plugins: compare_vcfs() restricts comparison to
+    # shared_fields (the CSQ fields vepyr's own header actually declares), so
+    # annotating with only one plugin active automatically limits the
+    # comparison to that plugin's fields without needing a separate
+    # single-plugin VEP reference.
+    "merged_clinvar": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_clinvar",
+        plugins=("ClinVar",),
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
+    ),
+    "merged_spliceai": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_spliceai",
+        plugins=("SpliceAI",),
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
+    ),
+    "merged_cadd": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_cadd",
+        plugins=("CADD",),
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
+    ),
+    "merged_alphamissense": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_alphamissense",
+        plugins=("AlphaMissense",),
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
+    ),
+    "merged_dbnsfp": Profile(
+        flavour="merged",
+        vep_basename=_PLUGIN_REFERENCE,
+        suffix="merged_dbnsfp",
+        plugins=("dbNSFP",),
+        vep_per_contig=_PLUGIN_PER_CONTIG,
+        vep_subdir="plugins",
+    ),
     "merged_pick_allele_gene": Profile(
         flavour="merged",
         vep_basename="HG002_annotated_wgs_everything_hgvs_merged_pick_allele_gene",

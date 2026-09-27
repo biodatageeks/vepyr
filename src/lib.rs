@@ -117,7 +117,7 @@ fn cache_contig_identity_json(
 ///
 /// Returns a list of `(entity, [(parquet_path, rows)], Option<(variants, positions, bytes, secs)>)`.
 #[pyfunction]
-#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false, expected_cache_version=None))]
+#[pyo3(signature = (cache_root, output_dir, partitions=8, cache_format="parquet", on_progress=None, cache_source_type="ensembl", overwrite=false, expected_cache_version=None, build_concurrency=0, chroms=None))]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn build_cache(
     py: Python<'_>,
@@ -129,6 +129,8 @@ fn build_cache(
     cache_source_type: &str,
     overwrite: bool,
     expected_cache_version: Option<String>,
+    build_concurrency: usize,
+    chroms: Option<Vec<String>>,
 ) -> PyResult<Vec<(String, Vec<(String, usize)>, Option<(u64, u64, u64, f64)>)>> {
     let cache_source_type = parse_cache_source_type(cache_source_type)?;
     let cache_format = CacheFormat::parse(cache_format).map_err(|err| {
@@ -139,17 +141,38 @@ fn build_cache(
     // is retained only for backward-compatible Python API.
     let _ = on_progress;
 
+    // build_concurrency = max (entity, chromosome) build units running at
+    // once (LPT-ordered, weighted-semaphore-bounded). 0 = auto:
+    // min(available_parallelism, 6) (six entities is the coarsest useful cap).
+    let resolved_concurrency = if build_concurrency == 0 {
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
+            .min(6)
+    } else {
+        build_concurrency
+    }
+    .max(1);
+    // The runtime needs enough worker threads to actually run the concurrent
+    // build units (each may also drive its own intra-query partitions), so
+    // decouple it from `partitions`.
+    let worker_threads = partitions.max(resolved_concurrency).max(1);
+
     let mut builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
         .with_cache_format(cache_format)
         .with_cache_source_type(cache_source_type)
-        .with_overwrite(overwrite);
+        .with_overwrite(overwrite)
+        .with_build_concurrency(resolved_concurrency);
     if let Some(expected_cache_version) = expected_cache_version {
         builder = builder.with_expected_cache_version(expected_cache_version);
     }
+    if let Some(chroms) = chroms {
+        builder = builder.with_chrom_filter(chroms);
+    }
 
     let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(partitions)
+        .worker_threads(worker_threads)
         .enable_all()
         .build()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;

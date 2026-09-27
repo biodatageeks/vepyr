@@ -58,3 +58,9 @@ serde_json = "1"
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "3a3fca3f423c3290dea80b2ee20fbebc7a5f3fe0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "80f3a6c043899f8ded44eaab204b42735f805272" }
+
+# LOCAL DEV ONLY — cache-build-lpt-v2 branch work-in-progress. Points at the
+# sibling checkout's own cache-build-lpt-v2 branch instead of the pinned rev
+# above, so `with_build_concurrency` exists to call. Revert before release.
+[patch."https://github.com/biodatageeks/datafusion-bio-functions.git"]
+datafusion-bio-function-vep = { path = "../datafusion-bio-functions/datafusion/bio-function-vep" }

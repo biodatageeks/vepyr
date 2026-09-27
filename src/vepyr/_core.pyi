@@ -23,6 +23,7 @@ def build_cache(
     cache_source_type: str = "ensembl",
     overwrite: bool = False,
     expected_cache_version: str | None = None,
+    build_concurrency: int = 0,
 ) -> list[tuple[str, list[tuple[str, int]], tuple[int, int, int, float] | None]]:
     """Build all cache entities from an Ensembl VEP cache."""
     ...

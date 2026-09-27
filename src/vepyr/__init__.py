@@ -392,6 +392,7 @@ def build_cache(
     show_progress: bool = True,
     on_progress: "Callable[[str, str, int, int, int], None] | None" = None,
     overwrite: bool = False,
+    build_concurrency: int = 0,
 ) -> list[tuple[str, int]]:
     """Download an Ensembl VEP cache and convert it to an optimized cache.
 
@@ -433,6 +434,15 @@ def build_cache(
         ``show_progress`` — the Parquet build path does not invoke it.
     overwrite : bool
         Rebuild existing cache outputs instead of skipping them.
+    build_concurrency : int
+        Maximum number of (entity, chromosome) build units running at once,
+        LPT-ordered (longest first) and weighted-semaphore-bounded (the
+        `variation` entity, the dominant memory consumer, can be given extra
+        weight via the `VEPYR_VAR_WEIGHT` environment variable to bound peak
+        RSS on memory-constrained hosts). ``0`` (default) auto-selects
+        ``min(cpu_count, 6)``. ``1`` reproduces the original serial build.
+        Units write to disjoint output files, so this only changes
+        scheduling, never output content.
 
     Returns
     -------
@@ -440,6 +450,9 @@ def build_cache(
         List of ``(parquet_file_path, row_count)`` for each written file.
     """
     import os
+
+    if isinstance(build_concurrency, bool) or not isinstance(build_concurrency, int) or build_concurrency < 0:
+        raise ValueError("build_concurrency must be a non-negative integer (0 = auto)")
 
     _validate_cache_type(cache_type)
     expected_cache_version = _cache_version_for_release(release)
@@ -510,6 +523,7 @@ def build_cache(
             cache_type,
             overwrite,
             expected_cache_version,
+            build_concurrency,
         )
     finally:
         if _bars is not None:
