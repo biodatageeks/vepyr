@@ -386,3 +386,45 @@ def test_main_passes_no_contig_when_several_are_requested(monkeypatch):
     cli.main(["--release", "116", "--profile", "merged_plugins", "--chroms", "1", "22"])
 
     assert seen["chrom"] is None
+
+
+def _vcf(path, csq):
+    path.write_text(
+        "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        f"chr1\t10\t.\tA\tT\t.\tPASS\tCSQ={csq}\n"
+    )
+    return str(path)
+
+
+def test_md5_for_contig_ignores_csq_order_only_when_the_profile_says_so(tmp_path):
+    """per_gene / pick_allele_gene: VEP's CSQ entry order changes between two
+    VEP runs on the same input (vepyr#138), so those profiles hash it
+    order-insensitively; every other profile stays byte-exact."""
+    vep = _vcf(tmp_path / "vep.vcf", "T|a|G1,T|b|G2")
+    vepyr = _vcf(tmp_path / "vepyr.vcf", "T|b|G2,T|a|G1")
+
+    exact = cli.md5_for_contig("chr1", vep, vepyr, "both")
+    assert not exact["strict"]["body_match"]
+    assert not exact["canonical"]["body_match"]
+    assert exact["strict"]["csq_order_ignored"] is False
+
+    relaxed = cli.md5_for_contig("chr1", vep, vepyr, "both", ignore_csq_order=True)
+    assert relaxed["strict"]["body_match"]
+    assert relaxed["canonical"]["body_match"]
+    assert relaxed["strict"]["csq_order_ignored"] is True
+
+
+def test_md5_summary_says_when_csq_order_was_ignored(tmp_path, capsys):
+    from comparison import report
+
+    entry = {"body_match": True, "vep_records": 1, "csq_order_ignored": True}
+    path = report.report_json_path(str(tmp_path), "chr1", "merged_per_gene", "116")
+    with open(path, "w") as f:
+        json.dump({"md5": {"strict": entry}}, f)
+
+    failed = cli.md5_summary(
+        str(tmp_path), ["chr1"], "merged_per_gene", "116", "strict"
+    )
+
+    assert failed == []
+    assert "CSQ entry order ignored" in capsys.readouterr().out
