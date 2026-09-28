@@ -137,6 +137,15 @@ side by side. Hashing twice is cheap and the pair is diagnostic: a strict
 failure with a canonical pass isolates serialization drift from a change in
 annotation content, which either digest alone leaves ambiguous.
 
+For `merged_per_gene` and `merged_pick_allele_gene` (the profiles marked
+`ignore_csq_order`), both digests sort each record's CSQ entries before
+hashing, and the output says `CSQ order ignored`. Ensembl VEP emits the
+selected entries of `--per_gene` and `--pick_allele_gene` by iterating Perl
+hashes, so two VEP runs on the same input disagree on the order of about half
+the records ([#138](https://github.com/biodatageeks/vepyr/issues/138)).
+Entries are sorted, not deduplicated, so a missing, extra or changed entry
+still fails. Every other profile keeps the exact byte comparison.
+
 **Defaults:** `--profile merged`, always regenerate annotation output, reuse
 only source-identified normalized/input/reference slices (`--force` to recreate
 slices), plain output (`--bgzf` for block-gzipped), `--workers 1`,
@@ -242,6 +251,11 @@ uv run python md5_concordance.py \
 
 # Every per-contig pair under a results directory
 uv run python md5_concordance.py --results-dir results/116 --mode strict
+
+# per_gene / pick_allele_gene outputs: compare CSQ entries order-insensitively
+uv run python md5_concordance.py --results-dir results/116 \
+    --vepyr-glob 'vepyr_parquet_*_merged_per_gene.vcf' \
+    --vep-glob 'vep_*_merged_per_gene.vcf' --ignore-csq-order
 
 # Narrow the pairing when a directory holds more than one output per side
 uv run python md5_concordance.py --results-dir results/116 \
