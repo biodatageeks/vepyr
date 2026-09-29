@@ -227,10 +227,9 @@ fn vcf_config_from_options(
         .get("everything")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    config.extended_probes = opts
-        .get("extended_probes")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+    // The shifted-indel overlap fallback is part of matching VEP's co-located
+    // variants; turning it off can only lose matches, so it is not an option.
+    config.extended_probes = true;
     config.expected_cache_version = opts
         .get("expected_cache_version")
         .and_then(|v| v.as_str())

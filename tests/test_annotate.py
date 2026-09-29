@@ -1058,7 +1058,10 @@ class TestAnnotate:
                     buffer_size=value,
                 )
 
-    @pytest.mark.parametrize("removed", ["forks", "threads"])
+    @pytest.mark.parametrize(
+        "removed",
+        ["forks", "threads", "cache_size_mb", "cache_format", "extended_probes"],
+    )
     def test_removed_knobs_rejected(self, removed):
         import vepyr
 
@@ -1070,19 +1073,6 @@ class TestAnnotate:
                 output_vcf="unused.vcf",
                 show_progress=False,
                 **{removed: 2},
-            )
-
-    def test_invalid_cache_format_rejected(self):
-        import vepyr
-
-        with pytest.raises(ValueError, match="cache_format"):
-            vepyr.annotate(
-                INPUT_VCF,
-                CACHE_DIR,
-                reference_fasta=REFERENCE_FASTA,
-                output_vcf="unused.vcf",
-                show_progress=False,
-                cache_format="fjall",
             )
 
     @pytest.mark.parametrize("value", [0, -1, True])
