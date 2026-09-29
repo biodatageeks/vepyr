@@ -70,7 +70,6 @@ def test_annotate_contig_forwards_profile_kwargs(fake_vepyr, tmp_path):
     assert call["per_gene"] is True
     assert call["pick_order"] == "rank"
     assert call["reference_fasta"] == "/ref.fa"
-    assert call["cache_format"] == "parquet"
 
 
 def test_annotate_contig_never_relabels_an_unverified_existing_output(

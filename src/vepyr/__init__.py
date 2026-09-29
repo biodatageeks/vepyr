@@ -1020,9 +1020,7 @@ def annotate(
     remove_hgvsp_version: bool = False,
     hgvsp_use_prediction: bool = False,
     # Lookup tuning
-    cache_format: str = "parquet",
     expected_cache_version: str | None = None,
-    extended_probes: bool = True,
     distance: int | tuple[int, int] | None = None,
     gencode_basic: bool = False,
     gencode_primary: bool = False,
@@ -1039,7 +1037,6 @@ def annotate(
     buffer_size: int = 5000,
     failed: int = 0,
     # Engine tuning
-    cache_size_mb: int = 1024,
     workers: int = 1,
     skip_csq: bool = True,
     fields: str | list[str] | tuple[str, ...] | None = None,
@@ -1089,8 +1086,6 @@ def annotate(
         Remove version from HGVSp transcript ID.
     hgvsp_use_prediction : bool
         Use predicted rather than observed protein sequence.
-    extended_probes : bool
-        Use interval-overlap fallback for shifted indels (default: True).
     distance : int or tuple[int, int] or None
         Upstream/downstream distance for transcript overlap. Single int =
         both directions; tuple = (upstream, downstream).
@@ -1132,13 +1127,9 @@ def annotate(
         Ensembl VEP's ``--buffer_size`` default of ``5000``.
     failed : int
         Maximum allowed ``failed`` flag value from cache (default: 0).
-    cache_format : str
-        Cache format to use. Only ``"parquet"`` is supported (default).
     expected_cache_version : str or None
         Optional assertion against the cache version embedded in each requested
         chromosome's Parquet metadata. It cannot supply missing cache identity.
-    cache_size_mb : int
-        Annotation cache size in MB (default: 1024).
     workers : int
         Number of within-contig annotation pipelines (default: 1) on both
         output paths. Values greater than 1 require a tabix-indexed (bgzip +
@@ -1313,14 +1304,13 @@ def annotate(
     if isinstance(workers, bool) or not isinstance(workers, int) or workers <= 0:
         raise ValueError("workers must be a positive integer")
     _require_index_for_workers(vcf, workers)
-    if cache_format != "parquet":
-        raise ValueError("cache_format must be 'parquet'")
     _validate_expected_cache_version(expected_cache_version)
 
     # Build options JSON — all flags pass through to the engine.
+    # The partitioned Parquet cache is the only format; the engine still reads
+    # the key, so it is always sent.
     opts: dict = {
-        "extended_probes": extended_probes,
-        "cache_format": cache_format,
+        "cache_format": "parquet",
         "buffer_size": buffer_size,
     }
     if expected_cache_version is not None:
@@ -1366,8 +1356,6 @@ def annotate(
             opts["distance"] = f"{distance[0]},{distance[1]}"
         else:
             opts["distance"] = distance
-    if cache_size_mb != 1024:
-        opts["cache_size_mb"] = cache_size_mb
     if workers > 1:
         # Single annotation-concurrency knob: N within-contig fused pipelines.
         # Requires a tabix-indexed (bgzip+.tbi) input VCF.

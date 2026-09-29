@@ -124,7 +124,6 @@ only narrow what the engine reads — never change the result.
 ### Memory model
 
 - **Streaming**: annotation results are streamed as Arrow `RecordBatch`es — full datasets are never materialized in memory
-- **Cache**: the annotation engine maintains an LRU cache (`cache_size_mb`, default 1 GB) for transcript/variation data
 - **Zero-copy**: Python receives PyArrow batches via zero-copy transfer from Rust
 
 ## Technology stack

@@ -10,8 +10,6 @@ import time
 
 from . import vcfio
 
-BACKEND = "parquet"
-
 
 def supported_vep_targets():
     """Return the native compatibility matrix without importing at module load."""
@@ -61,7 +59,6 @@ def annotate_contig(
         chrom_vcf_gz,
         cache_dir,
         reference_fasta=fasta,
-        cache_format=BACKEND,
         output_vcf=output_vcf,
         workers=workers,
         **annotate_kwargs,

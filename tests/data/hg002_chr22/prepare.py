@@ -102,7 +102,6 @@ def annotate(vcf: Path, cache: Path, fasta: Path, out: Path) -> None:
         str(vcf),
         str(cache),
         reference_fasta=str(fasta),
-        cache_format="parquet",
         output_vcf=str(out),
         workers=4,
     )
