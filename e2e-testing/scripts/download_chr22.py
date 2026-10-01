@@ -14,6 +14,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 
 from comparison.profiles import PROFILES
 
@@ -89,25 +90,64 @@ def prepare_fixtures(manifest, names, offline):
         reference = manifest["profiles"][name]
         files[reference["path"]] = reference
     missing = [path for path, meta in files.items() if not verified(ROOT / path, meta)]
-    if missing and not offline:
-        # Only these LFS objects, never the fitted test caches or other releases.
+    if not missing:
+        return
+    if offline:
+        raise RuntimeError(
+            "--offline: missing or changed fixtures: " + ", ".join(missing)
+        )
+
+    git = ["git", "-c", f"safe.directory={ROOT}"]
+    attributes = run(
+        [*git, "check-attr", "-z", "filter", "--", *missing],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    ).stdout.split("\0")
+    lfs_paths = {
+        path
+        for path, value in zip(attributes[0::3], attributes[2::3])
+        if value == "lfs"
+    }
+    regular = [path for path in missing if path not in lfs_paths]
+    if regular:
+        raise RuntimeError(
+            "Missing or changed regular Git fixture(s): "
+            + ", ".join(regular)
+            + ". Restore these from Git; Git LFS cannot repair them."
+        )
+
+    # LFS checkout never overwrites modified materialized files. Preserve only
+    # the failed LFS paths outside the tracked fixture tree before pulling.
+    backup_dir = None
+    for path in missing:
+        source = ROOT / path
+        if source.exists() or source.is_symlink():
+            if backup_dir is None:
+                backup_root = ROOT / "e2e-testing/results/lfs-recovery"
+                backup_root.mkdir(parents=True, exist_ok=True)
+                backup_dir = Path(tempfile.mkdtemp(prefix="backup-", dir=backup_root))
+                print(f"Preserving invalid LFS fixtures in {backup_dir}", flush=True)
+            backup = backup_dir / path
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            source.rename(backup)
+
+    try:
+        # Fetch only the failed fixtures, never unrelated LFS objects.
         run(
-            [
-                "git",
-                "-c",
-                f"safe.directory={ROOT}",
-                "lfs",
-                "pull",
-                "--include=" + ",".join(files),
-                "--exclude=",
-            ],
+            [*git, "lfs", "pull", "--include=" + ",".join(missing), "--exclude="],
             cwd=ROOT,
         )
-    for path, meta in files.items():
-        if not verified(ROOT / path, meta):
+    except (OSError, subprocess.CalledProcessError) as exc:
+        preserved = (
+            f" Original files are preserved in {backup_dir}." if backup_dir else ""
+        )
+        raise RuntimeError(f"Git LFS pull failed: {exc}.{preserved}") from exc
+    for path in missing:
+        if not verified(ROOT / path, files[path]):
             raise RuntimeError(
-                f"Missing or changed fixture: {path}. Restore it from this checkout's "
-                "Git/LFS data; --offline requires the LFS objects to be present."
+                f"Fixture still missing or changed after Git LFS pull: {path}. "
+                "Check that the checkout and its manifest refer to the same data."
             )
 
 

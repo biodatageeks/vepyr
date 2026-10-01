@@ -1,10 +1,114 @@
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
 
 import pytest
 
 import download_chr22 as download
+
+
+@pytest.fixture
+def lfs_fixture_repo(tmp_path, monkeypatch):
+    if shutil.which("git-lfs") is None:
+        pytest.skip("Git LFS is required for the recovery integration test")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    repo = tmp_path / "repo"
+    remote = tmp_path / "remote.git"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.run(
+            ["git", *map(str, args)], cwd=repo, check=True, capture_output=True
+        )
+
+    git("init", "--bare", remote)
+    git("init", "-b", "main")
+    git("config", "user.email", "test@example.invalid")
+    git("config", "user.name", "Fixture test")
+    git("lfs", "install", "--local")
+    (repo / ".gitattributes").write_text("*.gz filter=lfs diff=lfs merge=lfs -text\n")
+    content = b"original fixture bytes\n"
+    metadata = {"size": len(content), "sha256": hashlib.sha256(content).hexdigest()}
+    for name in ("input.vcf", "chr22.fa.gz", "merged.vcf.gz"):
+        (repo / name).write_bytes(content)
+    git("add", ".")
+    git("commit", "--no-gpg-sign", "-m", "test fixtures")
+    git("remote", "add", "origin", remote)
+    git("push", "-u", "origin", "main")
+    # Require an actual transfer from the local remote, not just a cache hit.
+    shutil.rmtree(repo / ".git/lfs/objects")
+    manifest = {
+        "inputs": {"input.vcf": metadata, "chr22.fa.gz": metadata},
+        "profiles": {"merged": {"path": "merged.vcf.gz", **metadata}},
+    }
+    monkeypatch.setattr(download, "ROOT", repo)
+    return repo, remote, manifest, content
+
+
+@pytest.mark.parametrize("state", ["corrupt", "pointer", "missing"])
+def test_lfs_files_are_recovered_and_originals_preserved(lfs_fixture_repo, state):
+    repo, _, manifest, content = lfs_fixture_repo
+    originals = {}
+    for name in ("chr22.fa.gz", "merged.vcf.gz"):
+        if state == "missing":
+            (repo / name).unlink()
+        else:
+            original = (
+                b"x" * len(content)
+                if state == "corrupt"
+                else subprocess.check_output(["git", "show", f"HEAD:{name}"], cwd=repo)
+            )
+            (repo / name).write_bytes(original)
+            originals[name] = original
+
+    download.prepare_fixtures(manifest, ["merged"], False)
+
+    for name in ("chr22.fa.gz", "merged.vcf.gz"):
+        assert (repo / name).read_bytes() == content
+        backups = list((repo / "e2e-testing/results/lfs-recovery").glob(f"*/{name}"))
+        assert len(backups) == (0 if state == "missing" else 1)
+        if backups:
+            assert backups[0].read_bytes() == originals[name]
+    assert (repo / "input.vcf").read_bytes() == content
+
+
+def test_offline_fixture_failure_does_not_modify_files(lfs_fixture_repo, monkeypatch):
+    repo, _, manifest, _ = lfs_fixture_repo
+    corrupt = b"changed fixture"
+    (repo / "chr22.fa.gz").write_bytes(corrupt)
+
+    def no_commands(*args, **kwargs):
+        pytest.fail("Offline fixture verification must not invoke Git")
+
+    monkeypatch.setattr(download, "run", no_commands)
+    with pytest.raises(RuntimeError, match="--offline"):
+        download.prepare_fixtures(manifest, ["merged"], True)
+    assert (repo / "chr22.fa.gz").read_bytes() == corrupt
+    assert not (repo / "e2e-testing/results/lfs-recovery").exists()
+
+
+def test_regular_git_fixture_is_not_moved_or_overwritten(lfs_fixture_repo):
+    repo, _, manifest, _ = lfs_fixture_repo
+    (repo / "input.vcf").write_bytes(b"user edit")
+    with pytest.raises(RuntimeError, match="regular Git fixture"):
+        download.prepare_fixtures(manifest, ["merged"], False)
+    assert (repo / "input.vcf").read_bytes() == b"user edit"
+    assert not (repo / "e2e-testing/results/lfs-recovery").exists()
+
+
+def test_failed_lfs_pull_preserves_corrupt_original(lfs_fixture_repo):
+    repo, remote, manifest, _ = lfs_fixture_repo
+    (repo / "merged.vcf.gz").write_bytes(b"corrupt")
+    remote.rename(remote.with_name("unavailable.git"))
+    with pytest.raises(RuntimeError, match="Git LFS pull failed"):
+        download.prepare_fixtures(manifest, ["merged"], False)
+    backups = list((repo / "e2e-testing/results/lfs-recovery").glob("*/merged.vcf.gz"))
+    assert len(backups) == 1
+    assert backups[0].read_bytes() == b"corrupt"
 
 
 def test_cache_download_is_pinned_and_recovers_corrupt_files(tmp_path, monkeypatch):
@@ -65,6 +169,11 @@ def test_lfs_fetch_is_limited_to_selected_fixtures(tmp_path, monkeypatch):
 
     def fetch(command, **kwargs):
         calls.append(command)
+        if "check-attr" in command:
+            paths = command[command.index("--") + 1 :]
+            return subprocess.CompletedProcess(
+                command, 0, stdout="".join(f"{path}\0filter\0lfs\0" for path in paths)
+            )
         for name in ("input.vcf.gz", "golden/merged.vcf.gz"):
             path = tmp_path / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +181,7 @@ def test_lfs_fetch_is_limited_to_selected_fixtures(tmp_path, monkeypatch):
 
     monkeypatch.setattr(download, "run", fetch)
     download.prepare_fixtures(manifest, ["merged"], False)
-    assert calls[0][-2:] == [
+    assert calls[-1][-2:] == [
         "--include=input.vcf.gz,golden/merged.vcf.gz",
         "--exclude=",
     ]

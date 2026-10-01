@@ -79,6 +79,11 @@ filenames and original VEP identity headers. The input VCF and BGZF FASTA reuse
 `bcftools norm -m -both` applied; its checksum is verified before the runner
 uses `--no-normalize`.
 
+Online preparation moves invalid LFS fixtures into a unique backup directory
+under `e2e-testing/results/lfs-recovery/` before fetching replacements. Backups
+remain available even if the download fails. Modified ordinary Git fixtures
+are reported for manual restoration; `--offline` leaves every fixture unchanged.
+
 Add `--offline` to the **download** command to require verified local files;
 add `--workers 4` to the **comparison** command for four annotation workers.
 Run only the download command to prepare data without annotation. To use a
