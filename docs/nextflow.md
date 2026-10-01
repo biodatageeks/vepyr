@@ -1,17 +1,11 @@
 # Nextflow
 
-`vepyr/annotate` is an [nf-core](https://nf-co.re/)-style Nextflow module around
+`vepyr/annotate` is an
+[nf-core Nextflow module](https://github.com/nf-core/modules/tree/master/modules/nf-core/vepyr/annotate) around
 [`vepyr annotate`](cli.md): one VCF in, one bgzip VCF with `CSQ` plus its tabix
 index out. It ships Docker and Singularity containers for `linux/amd64` and
 `linux/arm64`, so it runs natively on x86_64 servers, ARM servers and Apple
 Silicon.
-
-!!! info "Not in nf-core/modules yet"
-    The module is staged in this repository under
-    [`nf-core-module/modules/nf-core/vepyr/annotate`](https://github.com/biodatageeks/vepyr/tree/master/nf-core-module/modules/nf-core/vepyr/annotate)
-    until it is submitted to nf-core/modules. Until then, copy it into your
-    pipeline as shown below; `nf-core modules install vepyr/annotate` will work
-    once it is merged there.
 
 ![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
 ![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
@@ -25,14 +19,16 @@ to `cpus` pipelines.
 
 ## Adding the module to a pipeline
 
-Copy the module directory to the path nf-core tooling would install it at, so a
-later `nf-core modules install` replaces it in place:
+Install the module from nf-core/modules with [nf-core tools](https://nf-co.re/tools),
+running the command from your pipeline directory:
 
 ```bash
-git clone --depth 1 https://github.com/biodatageeks/vepyr.git
-mkdir -p my-pipeline/modules/nf-core/vepyr
-cp -R vepyr/nf-core-module/modules/nf-core/vepyr/annotate my-pipeline/modules/nf-core/vepyr/
+cd my-pipeline
+nf-core modules install vepyr/annotate
 ```
+
+This installs the module under `modules/nf-core/vepyr/annotate/` and records its
+revision in `modules.json`.
 
 ## Example
 
@@ -124,11 +120,13 @@ which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes th
 same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
 normalize. Both steps read the reference FASTA from channel 3.
 
-The subworkflow is staged in this repository next to the module, and it needs
-both `vepyr/annotate` (installed as above) and nf-core's `bcftools/norm` at the
-paths nf-core tooling uses:
+The subworkflow is still staged in this repository and is not yet available in
+nf-core/modules. It needs both `vepyr/annotate` (installed as above) and nf-core's
+`bcftools/norm` at the paths nf-core tooling uses. From the parent directory of
+`my-pipeline`, clone this repository and copy the subworkflow:
 
 ```bash
+git clone --depth 1 https://github.com/biodatageeks/vepyr.git
 mkdir -p my-pipeline/subworkflows/nf-core
 cp -R vepyr/nf-core-module/subworkflows/nf-core/vcf_annotate_vepyr my-pipeline/subworkflows/nf-core/
 

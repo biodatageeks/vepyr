@@ -9,6 +9,7 @@
 [![Bioconda](https://img.shields.io/conda/vn/bioconda/vepyr?label=bioconda)](https://anaconda.org/bioconda/vepyr)
 [![Bioconda - Downloads](https://img.shields.io/conda/dn/bioconda/vepyr?label=bioconda%20downloads)](https://anaconda.org/bioconda/vepyr)
 [![Bioconda - Platforms](https://img.shields.io/conda/pn/bioconda/vepyr?label=bioconda%20platforms)](https://anaconda.org/bioconda/vepyr)
+[![nf-core module](https://img.shields.io/badge/nf--core-module-24B064?logo=nfcore&logoColor=white)](https://github.com/nf-core/modules/tree/master/modules/nf-core/vepyr/annotate)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/biodatageeks/vepyr)
 
 ![CI](https://github.com/biodatageeks/vepyr/actions/workflows/ci.yml/badge.svg?branch=master)
