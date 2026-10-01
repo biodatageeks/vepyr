@@ -13,4 +13,4 @@ ENV PYTHONUNBUFFERED=1 \
     HF_HUB_DISABLE_IMPLICIT_TOKEN=1 \
     HF_HOME=/work/huggingface
 WORKDIR /repo
-ENTRYPOINT ["python", "/repo/e2e-testing/scripts/reviewer_chr22.py", "--work-dir", "/work"]
+CMD ["bash"]

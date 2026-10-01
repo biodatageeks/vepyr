@@ -70,41 +70,39 @@ vepyr annotate \
 See [Developers](https://biodatageeks.org/vepyr/developers/) for building from
 source and running the test suite.
 
-## Reproduce the chr22 comparison
+## Quick sanity check with chr22
 
-Paper reviewers can check **all 10 core comparison profiles** against Ensembl
-VEP **116.0** on the 50,861 normalized HG002 GRCh38 chr22 records with Docker.
-The image includes vepyr 0.9.0, the Hugging Face client, Git LFS and the VCF tools;
-Ensembl VEP does not need to be installed.
+Check Ensembl VEP **116.0** parity on the 50,861 normalized HG002 GRCh38 chr22
+records using the existing `run_comparison.py` CLI. Docker provides vepyr 0.9.0,
+the Hugging Face client, Git LFS and the VCF tools.
 
-From the repository root:
+From the repository root, download the merged chr22 cache and run its md5 check:
 
 ```bash
-docker build -t vepyr-chr22-reviewer e2e-testing/reviewer
-mkdir -p e2e-testing/results/reviewer-chr22
+docker build -t vepyr-e2e e2e-testing/docker
+mkdir -p e2e-testing/results/sanity-chr22
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$PWD:/repo" \
-  -v "$PWD/e2e-testing/results/reviewer-chr22:/work" \
-  vepyr-chr22-reviewer
+  -v "$PWD/e2e-testing/results/sanity-chr22:/work" \
+  vepyr-e2e bash -ec '
+    python e2e-testing/scripts/download_chr22.py --work-dir /work --profiles merged
+    DATA_VEPYR_DIR=/work python e2e-testing/scripts/run_comparison.py \
+      --release 116 --profile merged --chroms 22 \
+      --vcf /work/input/input_chr22.vcf.gz --fasta /work/input/chr22.fa.gz \
+      --output-dir /work --comparison-mode md5 --md5-mode both --bgzf --no-normalize
+  '
 ```
 
-The script downloads only chr22 shards and manifests for the Ensembl, merged
-and RefSeq caches from **Hugging Face**, at pinned revisions (~1.5 GB total).
-The ten BGZF golden VCFs are stored in Git LFS (~178 MB); the script fetches
-missing LFS objects automatically. Downloads and results persist between runs.
-Allow about 5 GB of free disk space, including the Docker image.
+The download helper fetches only chr22 shards and manifests from **Hugging Face**
+at pinned revisions, plus the BGZF golden VCF and FASTA through **Git LFS**.
+The comparison CLI prints the strict and canonical record-body md5 verdicts and
+exits nonzero on a mismatch. Downloads and results persist in the mounted folder.
+The input is already normalized with `bcftools norm -m -both`.
 
-A successful run prints **`10/10 profiles passed`** and exits zero. Both strict
-and canonical record-body md5 digests appear in
-`e2e-testing/results/reviewer-chr22/summary.tsv`; any failure gives a nonzero exit.
-The two gene-selection profiles sort CSQ entries before hashing to account for
-VEP's variable entry order.
-
-For a shorter sanity check, append **`--profiles merged`** to the Docker run
-command; this downloads only the merged cache and runs one profile. Append
-`--offline` to reuse verified downloads without network access. See the
-[reviewer workflow](e2e-testing/README.md#reviewer-chr22-sanity-check) for profile
-names, output files, native execution and golden-data provenance.
+See [Quick sanity check with chr22](e2e-testing/README.md#quick-sanity-check-with-chr22)
+for the command that runs **all 10 profiles**, offline reuse and golden-data
+provenance. The three caches total ~1.5 GB and the ten BGZF goldens total ~178 MB;
+allow about 6 GB of disk space for the complete run and Docker image.
 
 ## License
 
