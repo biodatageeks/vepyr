@@ -195,9 +195,9 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
-The module never builds indexes: vepyr opens the reference through its `.fai`
-(and a bgzip reference through its `.gzi` as well), so a missing index fails the
-task.
+The module never builds the reference indexes: vepyr opens the reference through
+its `.fai` (and a bgzip reference through its `.gzi` as well), so a missing
+FASTA index fails the task. Only the input VCF's index is built when absent.
 
 ## Outputs
 
