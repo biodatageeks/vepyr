@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Maintainer-only: package existing Ensembl VEP 116 outputs for the reviewer.
+"""Maintainer-only: package existing Ensembl VEP 116 outputs for the chr22 sanity check.
 
 This does not generate truth with vepyr. Supply the original VEP WGS baselines
 and the seven per-contig pick references from release 116. See e2e-testing/README.md.
@@ -14,7 +14,7 @@ import urllib.request
 from comparison import vcfio
 from comparison.profiles import PROFILES
 from md5_concordance import digest_vcf
-from reviewer_chr22 import CORE_PROFILES, GOLDEN, MANIFEST, ROOT, checksum
+from download_chr22 import CORE_PROFILES, GOLDEN, MANIFEST, ROOT, checksum
 
 
 def file_metadata(path):
