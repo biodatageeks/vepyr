@@ -161,11 +161,10 @@ workflow {
     def inputTbi = existing("${vcfPath}.tbi", 'Input VCF index')
     def fasta = existing(fastaPath, 'Reference FASTA')
     def fai = existing("${fastaPath}.fai", 'Reference FASTA index')
-    // A bgzip FASTA opens only with its .gzi, so it rides in the index slot with
-    // the .fai; Nextflow stages only declared paths into the task directory.
-    def fastaIndex = fastaPath.toString().endsWith('.gz')
-        ? [ fai, existing("${fastaPath}.gzi", 'Reference FASTA bgzip index') ]
-        : fai
+    // A bgzip FASTA opens only with its .gzi; a plain one passes [] for it.
+    def gzi = fastaPath.toString().endsWith('.gz')
+        ? existing("${fastaPath}.gzi", 'Reference FASTA bgzip index')
+        : []
     def cacheDir = existing(cachePath, 'Parquet cache')
 
     // Resolved to the real directory: the workspace's plugin_cache_<release> is
@@ -197,7 +196,7 @@ workflow {
         // meta.plugins becomes --plugin flags in nextflow.config's ext.args.
         SLICE_CONTIG.out.map { chrom, vcf, tbi -> tuple([ id: chrom, plugins: spec.plugins ], vcf, tbi) },
         channel.value(tuple([ id: cacheDir.name ], cacheDir)),
-        channel.value(tuple([ id: 'GRCh38' ], fasta, fastaIndex)),
+        channel.value(tuple([ id: 'GRCh38' ], fasta, fai, gzi)),
         release.toInteger(),
         pluginCache ? tuple([ id: pluginCache.name ], pluginCache) : [[], []]
     )

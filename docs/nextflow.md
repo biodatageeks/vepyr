@@ -36,7 +36,7 @@ cp -R vepyr/nf-core-module/modules/nf-core/vepyr/annotate my-pipeline/modules/nf
 
 ## Example
 
-A minimal pipeline that annotates one VCF with `--everything`:
+A minimal pipeline that annotates one VCF (vepyr always runs `--everything`):
 
 ```groovy title="main.nf"
 include { VEPYR_ANNOTATE } from './modules/nf-core/vepyr/annotate/main'
@@ -51,12 +51,12 @@ workflow {
         [ id: file(params.cache).name ],
         file(params.cache, checkIfExists: true, type: 'dir')
     ])
-    // A bgzip FASTA needs its .gzi next to the .fai; a plain FASTA has only the .fai.
-    def fai = file("${params.fasta}.fai", checkIfExists: true)
+    // A bgzip FASTA needs its .gzi as well as the .fai; a plain FASTA passes [] for it.
     fasta = channel.value([
         [ id: 'GRCh38' ],
         file(params.fasta, checkIfExists: true),
-        params.fasta.endsWith('.gz') ? [ fai, file("${params.fasta}.gzi", checkIfExists: true) ] : fai
+        file("${params.fasta}.fai", checkIfExists: true),
+        params.fasta.endsWith('.gz') ? file("${params.fasta}.gzi", checkIfExists: true) : []
     ])
 
     VEPYR_ANNOTATE(vcf, cache, fasta, params.cache_version, [[], []])
@@ -79,7 +79,6 @@ docker.enabled = true
 
 process {
     withName: 'VEPYR_ANNOTATE' {
-        ext.args   = '--everything'
         cpus       = 4
         publishDir = [ path: { "${params.outdir}/vepyr" }, mode: 'copy' ]
     }
@@ -92,7 +91,7 @@ profiles {
         docker.runOptions = '--platform=linux/arm64'
         process {
             withName: 'VEPYR_ANNOTATE' {
-                container = 'community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b'
+                container = 'community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9'
             }
         }
     }
@@ -110,7 +109,7 @@ nextflow run main.nf \
 # Apple Silicon or another arm64 host: add -profile arm64
 ```
 
-Results land in `results/vepyr/HG002.vcf.gz` and `results/vepyr/HG002.vcf.gz.tbi`.
+Results land in `results/vepyr/HG002_vepyr.vcf.gz` and `results/vepyr/HG002_vepyr.vcf.gz.tbi`.
 
 This exact pipeline, run with `-profile arm64` on all 50,861 normalized HG002
 chr22 records against a release-116 `ensembl` cache, reproduces the record-body
@@ -182,22 +181,23 @@ raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
     `bcftools/norm` writes `${meta.id}.vcf.gz`. If `meta.id` equals the input
     VCF's basename (`sample.vcf.gz` with `id: 'sample'`), it writes over its own
     staged input, which is a symlink to your file, and truncates the original.
-    The `.norm` prefix avoids that. `VEPYR_ANNOTATE` stages its input under
-    `input/`, so it needs no distinct prefix of its own.
+    The `.norm` prefix avoids that. `VEPYR_ANNOTATE` writes
+    `${meta.id}_vepyr.vcf.gz` by default, so it needs no distinct prefix of its
+    own; if you set one that equals the input's name, the task stops with an error.
 
 ## Inputs
 
 | Channel | Shape | Notes |
 |---|---|---|
-| 1 | `[ meta, vcf, tbi ]` | Input VCF (plain, gzip or bgzip). The index, `.tbi` or `.csi`, is optional — pass `[]` — but without it the task runs a single pipeline. |
+| 1 | `[ meta, vcf, tbi ]` | Input VCF, plain or bgzip. The index, `.tbi` or `.csi`, is optional — pass `[]` — and the task then builds one with `tabix` for a `.gz` input, which must be bgzip; a plain `.vcf` runs a single pipeline. |
 | 2 | `[ meta2, cache ]` | vepyr Parquet cache **directory**, e.g. `116_GRCh38_ensembl`. Not an Ensembl VEP cache. |
-| 3 | `[ meta3, fasta, fai ]` | Reference FASTA and its `.fai`. For a bgzip FASTA pass `[ fai, gzi ]` as the third element. Required: vepyr always runs `--everything`, which needs it, and `bcftools/norm` reads it when `val_normalize` is `true`. |
+| 3 | `[ meta3, fasta, fai, gzi ]` | Reference FASTA, its `.fai` and, for a bgzip FASTA, its `.gzi` — pass `[]` for `gzi` with a plain FASTA. Required: vepyr always runs `--everything`, which needs it, and `bcftools/norm` reads it when `val_normalize` is `true`. |
 | 4 | `cache_version` | Release the cache must carry in its metadata, e.g. `116`. Pass `[]` to skip the check. |
 | 5 | `[ meta4, plugin_cache ]` | Root of a [plugin cache](plugins.md) tree, or `[ [], [] ]` for none. |
 
-The module never builds indexes: vepyr opens the reference through its `.fai`
-(and a bgzip reference through its `.gzi` as well), so a missing index fails the
-task.
+The module never builds the reference indexes: vepyr opens the reference through
+its `.fai` (and a bgzip reference through its `.gzi` as well), so a missing
+FASTA index fails the task. Only the input VCF's index is built when absent.
 
 ## Outputs
 
@@ -211,27 +211,24 @@ task.
 
 | Setting | Effect |
 |---|---|
-| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--everything'` or `'--plugin clinvar'`. See [Command line](cli.md#options) and the note on `--everything` below. |
+| `ext.args` | Extra `vepyr annotate` flags, e.g. `'--plugin clinvar'`. See [Command line](cli.md#options). |
 | `ext.args2` | Extra `tabix` flags for indexing the output. |
-| `ext.prefix` | Output file name stem. Default: `meta.id`. |
+| `ext.prefix` | Output file name stem. Default: `${meta.id}_vepyr`. It must differ from the input VCF's name. |
 | `cpus` | Annotation pipelines (`--fork`). |
 
 The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,
 `--plugin_cache_root`, `--fork` and `--no_progress` itself.
 
-!!! note "Keep `--everything` in `ext.args` for now"
-    vepyr releases after 0.8.0 always annotate with `--everything` and accept
-    the flag only as a no-op. The module still pins `bioconda::vepyr=0.7.0`,
-    where `--everything` is opt-in and leaving it out gives a smaller `CSQ`
-    layout. Keep `ext.args = '--everything'` until the module pins a release
-    that includes the change; it is harmless afterwards. A reference FASTA is
-    required either way: the module stops before starting the task when
-    channel 3 carries none.
+**Annotation always runs `--everything`.** The module pins
+`bioconda::vepyr=0.9.0`, which always annotates as Ensembl VEP `--everything`
+and accepts `--everything` and `--hgvsc` only as no-ops, so `ext.args` need not
+carry them. The reference FASTA is therefore required: the module stops before
+starting the task when channel 3 carries none.
 
 **`--fork` comes from `cpus`, not `ext.args`.** The module appends
 `--fork ${task.cpus}` after `ext.args`, so a `--fork` or `--workers` in
-`ext.args` is overridden. When the input has no index it passes `--fork 1`,
-since more than one pipeline needs an indexed VCF.
+`ext.args` is overridden. More than one pipeline needs an indexed VCF, so a
+plain `.vcf` input runs with `--fork 1`.
 
 **Unknown flags fail the task.** `vepyr annotate` rejects any VEP flag it does not
 implement, including one that is a prefix of a vepyr flag: `--hgvs` is not read
@@ -265,7 +262,7 @@ VEPYR_ANNOTATE(vcf, cache, fasta, 116, [ [ id: 'plugins' ], file(params.plugin_c
 ```groovy
 process {
     withName: 'VEPYR_ANNOTATE' {
-        ext.args = '--everything --plugin clinvar --plugin cadd'
+        ext.args = '--plugin clinvar --plugin cadd'
     }
 }
 ```
@@ -278,8 +275,8 @@ is the directory that *contains* `plugin/`. See [Plugins](plugins.md).
 
 | Engine | linux/amd64 | linux/arm64 |
 |---|---|---|
-| Docker | `community.wave.seqera.io/library/htslib_vepyr:84d01ceaf76003ed` | `community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b` |
-| Singularity / Apptainer | `oras://community.wave.seqera.io/library/htslib_vepyr:5872e79a887b6765` | `oras://community.wave.seqera.io/library/htslib_vepyr:5282c570a1e32022` |
+| Docker | `community.wave.seqera.io/library/htslib_vepyr:408f2021357958aa` | `community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9` |
+| Singularity / Apptainer | `oras://community.wave.seqera.io/library/htslib_vepyr:5f4d3201731219a4` | `oras://community.wave.seqera.io/library/htslib_vepyr:76a3378692bb013e` |
 
 They are [Seqera Wave](https://seqera.io/containers/) builds of the module's
 `environment.yml`: `bioconda::vepyr` and `bioconda::htslib` (for `tabix`). The
@@ -303,7 +300,7 @@ a `container` override.
     ```groovy
     process {
         withName: 'VEPYR_ANNOTATE' {
-            container = 'oras://community.wave.seqera.io/library/htslib_vepyr:5282c570a1e32022'
+            container = 'oras://community.wave.seqera.io/library/htslib_vepyr:76a3378692bb013e'
         }
     }
     ```

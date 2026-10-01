@@ -4,15 +4,13 @@ process VEPYR_ANNOTATE {
 
     conda "${moduleDir}/environment.yml"
     container "${workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/da/dae579b8f2a3713d997875e16195f386b0fced234c8c9338549d16ed06eb9d83/data'
-        : 'community.wave.seqera.io/library/htslib_vepyr:84d01ceaf76003ed'}"
+        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/bb/bbf0f7f5a0c6b6586735b7636b219e3b788b9c9c1a86994b776556c63892fb4b/data'
+        : 'community.wave.seqera.io/library/htslib_vepyr:408f2021357958aa'}"
 
     input:
-    // Staged under input/ so an input named ${prefix}.vcf.gz (e.g. the output of
-    // an upstream module using the same meta.id) never collides with -o.
-    tuple val(meta), path(vcf, stageAs: 'input/*'), path(tbi, stageAs: 'input/*')
+    tuple val(meta), path(vcf), path(tbi)
     tuple val(meta2), path(cache)
-    tuple val(meta3), path(fasta), path(fai)
+    tuple val(meta3), path(fasta), path(fai), path(gzi)
     val cache_version
     tuple val(meta4), path(plugin_cache)
 
@@ -28,28 +26,21 @@ process VEPYR_ANNOTATE {
     script:
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
-    prefix = task.ext.prefix ?: "${meta.id}"
-    // vepyr always runs --everything, so the FASTA is required: fail here, with
-    // the reason, rather than start a task that vepyr rejects. It opens the
-    // reference through its .fai and does not build one, so the index must be
-    // staged alongside the FASTA or annotation fails. A bgzip FASTA also needs
-    // its .gzi: pass [ fai, gzi ] in the fai slot.
+    prefix = task.ext.prefix ?: "${meta.id}_vepyr"
+    if ("${vcf}" == "${prefix}.vcf.gz") {
+        error("Input and output names are the same, set prefix in module configuration to disambiguate!")
+    }
     if (!fasta) {
-        error("VEPYR_ANNOTATE requires a reference FASTA: vepyr always annotates with --everything, which needs it. Pass [ meta3, fasta, fai ] as the third input.")
+        error("VEPYR_ANNOTATE requires a reference FASTA: vepyr always annotates with --everything, which needs it.")
     }
     def version_arg = cache_version ? "--cache_version ${cache_version}" : ''
     def plugin_arg = plugin_cache ? "--plugin_cache_root ${plugin_cache}" : ''
-    // --fork above 1 requires a tabix/CSI index on the input; vepyr raises
-    // without one. Fall back to a single pipeline so a missing index costs
-    // throughput rather than failing the task.
-    //
-    // The flag is emitted *after* ${args} rather than before it, the one place
-    // this module overrides the user: --fork and --workers are a single
-    // argparse option, so the last occurrence wins, and an ext.args carrying
-    // either spelling would silently defeat the fallback and fail the task.
-    // Parallelism belongs to the cpus directive here.
-    def fork = tbi ? task.cpus : 1
+    // --fork above 1 needs a tabix/CSI index, so a plain .vcf runs one pipeline
+    def fork = tbi || "${vcf}".endsWith('.gz') ? task.cpus : 1
+    def index_command = !tbi && "${vcf}".endsWith('.gz') ? "tabix -p vcf ${vcf}" : ''
     """
+    ${index_command}
+
     vepyr annotate \\
         -i ${vcf} \\
         -o ${prefix}.vcf.gz \\
@@ -65,7 +56,10 @@ process VEPYR_ANNOTATE {
     """
 
     stub:
-    prefix = task.ext.prefix ?: "${meta.id}"
+    prefix = task.ext.prefix ?: "${meta.id}_vepyr"
+    if ("${vcf}" == "${prefix}.vcf.gz") {
+        error("Input and output names are the same, set prefix in module configuration to disambiguate!")
+    }
     """
     echo "" | gzip > ${prefix}.vcf.gz
     touch ${prefix}.vcf.gz.tbi

@@ -28,9 +28,9 @@ were. It also fails outright when the FASTA and VCF name contigs differently
 (`22` vs `chr22`), a mismatch vepyr itself tolerates. Keep the `ext.prefix`
 whenever `meta.id` can equal the input VCF's basename: `bcftools/norm` writes
 `${meta.id}.vcf.gz` over its own staged input, a symlink, and so truncates the
-original file. `VEPYR_ANNOTATE` stages its input under `input/`, so the
-normalized file reaching it under its own output name is harmless; the
-subworkflow tests leave the prefix unset to cover exactly that.
+original file. `VEPYR_ANNOTATE` writes `${meta.id}_vepyr.vcf.gz` by default, so
+the normalized `${meta.id}.vcf.gz` reaching it never collides with its output;
+the subworkflow tests leave the prefix unset to cover exactly that.
 
 `.nf-core.yml` and `tests/config/nf-test.config` exist only so `nf-core modules
 lint` treats this directory as a modules repository. nf-core/modules has its own
@@ -128,7 +128,7 @@ Overrides:
   the task work dir, the input, cache, FASTA and output paths, and the exact
   `vepyr annotate` command. It reads `tests/data/hg002_chr22/` (~30 MB, Parquet
   and FASTA in LFS): a cache trimmed to the rows that run reads, plus a bgzip
-  FASTA passed with `[ fai, gzi ]` in the index slot. Rebuild it from the
+  FASTA with its `.fai` and `.gzi`. Rebuild it from the
   repository root with `uv run python tests/data/hg002_chr22/prepare.py`.
 
 The golden snapshot (`main.nf.test.snap`) waits for the fixture on
@@ -144,15 +144,14 @@ against published test data instead of `.testdata/` — set the variables
 ```bash
 cd nf-core-module
 
-# Module tests, test data from the nf-core/test-datasets#2270 branch (Apple Silicon)
+# Module tests, test data from nf-core/test-datasets (Apple Silicon)
 VEPYR_DOCKER_PLATFORM=linux/arm64 \
-VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b \
-VEPYR_NF_TESTDATA=https://raw.githubusercontent.com/mwiewior/test-datasets/vepyr-annotate/data/ \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9 \
 nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --config dev/nf-test.config
 
 # Offline VEP parity test
 VEPYR_DOCKER_PLATFORM=linux/arm64 \
-VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:806fe605983a885b \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9 \
 VEPYR_HG002_CHR22="$PWD/../tests/data/hg002_chr22" \
 nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 ```
@@ -160,8 +159,8 @@ nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 | Variable | Read by | Value |
 |---|---|---|
 | `VEPYR_DOCKER_PLATFORM` | `dev/local.config` | `linux/arm64` (Apple Silicon, Linux aarch64) or `linux/amd64` (Linux x86_64) |
-| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:806fe605983a885b` (arm64) or `…:84d01ceaf76003ed` (amd64) |
-| `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above at the #2270 branch. |
+| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:ebb29e9a21ff05c9` (arm64) or `…:408f2021357958aa` (amd64) |
+| `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above leaves it unset. |
 | `VEPYR_HG002_CHR22` | `dev/local.config` | absolute path to `tests/data/hg002_chr22`; the parity test only |
 
 The test appends file paths to `VEPYR_NF_TESTDATA`, so the base URL itself is
@@ -197,12 +196,12 @@ Treat any *second* failure as a genuine regression.
 
 ## Remaining work, in order
 
-1. **~~Get vepyr onto bioconda.~~** Done: 0.7.0 merged in
+1. **~~Get vepyr onto bioconda.~~** Done: first merged (0.7.0) in
    [bioconda-recipes#69191](https://github.com/bioconda/bioconda-recipes/pull/69191)
    for linux-64, linux-aarch64, osx-64 and osx-arm64, as a single abi3 build
    (`python >=3.10`).
 2. **~~Resolve the container URIs.~~** Done: `nf-core modules containers create
-   vepyr/annotate` built Docker and Singularity images of `bioconda::vepyr=0.7.0`
+   vepyr/annotate` built Docker and Singularity images of `bioconda::vepyr` (now 0.9.0)
    for linux/amd64 and linux/arm64, wrote them and the conda lock files into
    `meta.yml`, and set the amd64 URIs in `main.nf`. Rerun it whenever
    `environment.yml` changes.
@@ -235,11 +234,9 @@ Treat any *second* failure as a genuine regression.
 ## Scope
 
 Twelve flags, covering the configuration validated against Ensembl VEP plus what
-a workflow engine needs. After vepyr 0.8.0, annotation always runs
-`--everything`, so `--fasta` is required and `--everything`/`--hgvsc` are
-accepted and ignored. The module still pins 0.7.0, where `--everything` is
-opt-in, so the test configs keep `ext.args = '--everything'`; the module
-requires a FASTA either way. The pick family and `--fields` are additive later and
+a workflow engine needs. From vepyr 0.9.0, which the module pins, annotation
+always runs `--everything`, so `--fasta` is required and `--everything`/`--hgvsc`
+are accepted and ignored; the module stops before the task when no FASTA is given. The pick family and `--fields` are additive later and
 need no engine work — see `docs/superpowers/specs/2026-09-07-nf-core-vepyr-module-design.md`.
 
 Note that unknown flags are a hard error, so an `ext.args` string copied from an
@@ -247,6 +244,6 @@ Note that unknown flags are a hard error, so an `ext.args` string copied from an
 
 `--fork` is the one flag `ext.args` cannot set. The module emits it after `${args}`
 so its computed value always wins: `--fork`/`--workers` are a single argparse
-option, the last occurrence wins, and a user-supplied one would otherwise defeat
-the unindexed-input fallback in `main.nf` and fail the task. Use the `cpus`
+option, the last occurrence wins, and a user-supplied one would otherwise ask for
+more than one pipeline on a plain `.vcf`, which vepyr rejects without an index. Use the `cpus`
 directive to control parallelism.
