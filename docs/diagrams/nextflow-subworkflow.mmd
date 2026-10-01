@@ -1,7 +1,7 @@
 flowchart TB
     subgraph take ["take (ch_ = channel)"]
         vcf["ch_vcf<br/>[meta, vcf, tbi]"]
-        fasta["ch_fasta<br/>[meta3, fasta, fai]"]
+        fasta["ch_fasta<br/>[meta3, fasta, fai, gzi]"]
         cache["ch_cache<br/>[meta2, cache]"]
         ver["val_cache_version<br/>116 or []"]
         plug["ch_plugin_cache<br/>[meta4, root] or [[], []]"]
@@ -28,7 +28,7 @@ flowchart TB
     bcf -- "out.index, optional" --> join1
     join1 -- "remainder: true" --> index
     index -- "[meta, vcf, index or []]" --> vepyr
-    fasta -- "[meta3, fasta, fai]" --> vepyr
+    fasta -- "[meta3, fasta, fai, gzi]" --> vepyr
     cache --> vepyr
     ver --> vepyr
     plug --> vepyr
