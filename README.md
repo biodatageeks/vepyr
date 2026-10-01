@@ -70,6 +70,42 @@ vepyr annotate \
 See [Developers](https://biodatageeks.org/vepyr/developers/) for building from
 source and running the test suite.
 
+## Reproduce the chr22 comparison
+
+Paper reviewers can check **all 10 core comparison profiles** against Ensembl
+VEP **116.0** on the 50,861 normalized HG002 GRCh38 chr22 records with Docker.
+The image includes vepyr 0.9.0, the Hugging Face client, Git LFS and the VCF tools;
+Ensembl VEP does not need to be installed.
+
+From the repository root:
+
+```bash
+docker build -t vepyr-chr22-reviewer e2e-testing/reviewer
+mkdir -p e2e-testing/results/reviewer-chr22
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD:/repo" \
+  -v "$PWD/e2e-testing/results/reviewer-chr22:/work" \
+  vepyr-chr22-reviewer
+```
+
+The script downloads only chr22 shards and manifests for the Ensembl, merged
+and RefSeq caches from **Hugging Face**, at pinned revisions (~1.5 GB total).
+The ten BGZF golden VCFs are stored in Git LFS (~178 MB); the script fetches
+missing LFS objects automatically. Downloads and results persist between runs.
+Allow about 5 GB of free disk space, including the Docker image.
+
+A successful run prints **`10/10 profiles passed`** and exits zero. Both strict
+and canonical record-body md5 digests appear in
+`e2e-testing/results/reviewer-chr22/summary.tsv`; any failure gives a nonzero exit.
+The two gene-selection profiles sort CSQ entries before hashing to account for
+VEP's variable entry order.
+
+For a shorter sanity check, append **`--profiles merged`** to the Docker run
+command; this downloads only the merged cache and runs one profile. Append
+`--offline` to reuse verified downloads without network access. See the
+[reviewer workflow](e2e-testing/README.md#reviewer-chr22-sanity-check) for profile
+names, output files, native execution and golden-data provenance.
+
 ## License
 
 [Apache-2.0](LICENSE)
