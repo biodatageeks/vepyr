@@ -1,0 +1,2215 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://biodatageeks.org/vepyr/runbooks/applying-a-vepyr-fix/">
+      
+      
+        <link rel="prev" href="../../developers/">
+      
+      
+        <link rel="next" href="../../contact/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Applying a fix (runbook) - vepyr</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-X2YYYSXDCD"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-X2YYYSXDCD",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-X2YYYSXDCD",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#applying-a-vepyr-fix" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="vepyr" class="md-header__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            vepyr
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Applying a fix (runbook)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="vepyr" class="md-nav__button md-logo" aria-label="vepyr" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    vepyr
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biodatageeks/vepyr" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    biodatageeks/vepyr
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../caches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dataframes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars DataFrames
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nextflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nextflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-vep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing vs Ensembl VEP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Download Ensembl VEP and plugin caches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applying a fix (runbook)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applying a fix (runbook)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-analyse-all-three-repos-plan-the-fix-and-get-the-plan-confirmed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Analyse all three repos, plan the fix, and get the plan confirmed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Analyse all three repos, plan the fix, and get the plan confirmed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1a-dispatch-one-analysis-agent-per-repo-in-a-single-message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1a. Dispatch one analysis agent per repo, in a single message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1a-bis-confirm-the-shape-of-the-fix-in-the-ensembl-vep-116-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1a-bis. Confirm the shape of the fix in the Ensembl VEP 116 source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1b-write-the-plan-to-a-dated-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1b. Write the plan to a dated artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1c-ask-the-questions-the-analysis-raised" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1c. Ask the questions the analysis raised
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1d-stop-and-get-the-go-ahead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1d. Stop, and get the go-ahead
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#red-flags-stop-and-return-to-1a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red flags — stop and return to 1a
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-capture-the-baseline-both-halves-before-any-edit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Capture the baseline — both halves, before any edit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-reproduce-the-defect-with-a-test-that-fails-now" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Reproduce the defect with a test that fails now
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-implement-in-dependency-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Implement in dependency order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-open-one-pr-per-repo-with-the-pin-cascade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Open one PR per repo, with the pin cascade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-ask-both-reviewers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Ask both reviewers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-iterate-to-green-watching-for-three-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Iterate to green, watching for three signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-re-verify-against-the-baseline-on-the-stacked-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Re-verify against the baseline, on the stacked branches
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-hand-off-for-human-review-do-not-merge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Hand off for human review — do not merge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurement-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurement traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-analyse-all-three-repos-plan-the-fix-and-get-the-plan-confirmed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Analyse all three repos, plan the fix, and get the plan confirmed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Analyse all three repos, plan the fix, and get the plan confirmed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1a-dispatch-one-analysis-agent-per-repo-in-a-single-message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1a. Dispatch one analysis agent per repo, in a single message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1a-bis-confirm-the-shape-of-the-fix-in-the-ensembl-vep-116-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1a-bis. Confirm the shape of the fix in the Ensembl VEP 116 source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1b-write-the-plan-to-a-dated-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1b. Write the plan to a dated artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1c-ask-the-questions-the-analysis-raised" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1c. Ask the questions the analysis raised
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1d-stop-and-get-the-go-ahead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1d. Stop, and get the go-ahead
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#red-flags-stop-and-return-to-1a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red flags — stop and return to 1a
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-capture-the-baseline-both-halves-before-any-edit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Capture the baseline — both halves, before any edit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-reproduce-the-defect-with-a-test-that-fails-now" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Reproduce the defect with a test that fails now
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-implement-in-dependency-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Implement in dependency order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-open-one-pr-per-repo-with-the-pin-cascade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Open one PR per repo, with the pin cascade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-ask-both-reviewers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Ask both reviewers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-iterate-to-green-watching-for-three-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Iterate to green, watching for three signals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-re-verify-against-the-baseline-on-the-stacked-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Re-verify against the baseline, on the stacked branches
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-hand-off-for-human-review-do-not-merge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Hand off for human review — do not merge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurement-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measurement traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="applying-a-vepyr-fix">Applying a vepyr fix<a class="headerlink" href="#applying-a-vepyr-fix" title="Permanent link">¶</a></h1>
+<p>A vepyr fix usually spans three repos, and the two things that decide whether it
+landed well are measured on this machine rather than argued about: byte-level
+md5 parity against Ensembl VEP, and wall/phase timings compared to the same
+host's own earlier numbers. Capture both <strong>before</strong> touching code, so the
+end-state comparison means something. A baseline taken after the change is not
+a baseline.</p>
+<p>Which of the three repos the fix belongs in is settled the same way — by
+reading all three before proposing anything, and by having a human confirm the
+plan that comes out of it. Step 1 is that gate, and nothing else starts until
+it clears.</p>
+<p>Harnesses this skill drives, all already in the repo:
+<code>performance-tests/vepyr/scripts/</code> (worker scaling) and
+<code>e2e-testing/scripts/</code> (md5 concordance; the field-mode parity gate is triage only).</p>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">¶</a></h2>
+<p><strong>In scope:</strong> one fix, or a small coherent group of fixes, that changes
+annotation behaviour or the VCF reader — the shape of the issues filed as
+<code>biodatageeks/vepyr#92</code>–<code>#99</code>.</p>
+<p><strong>Out of scope:</strong> merging. This skill takes the work to the point where a human
+can review and merge it, and stops there — see step 9. Also out of scope:
+adding a plugin (use the <code>vep-add-plugin</code> skill), rebuilding or republishing
+caches, and cutting a release. Those have their own gates and their own
+runbooks.</p>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">¶</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DATA_VEPYR_DIR</span><span class="o">=</span>~/workspace/data_vepyr<span class="w">   </span><span class="c1"># required, no default; every path below hangs off it</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uptime<span class="w">                                          </span><span class="c1"># this host is SHARED — see Measurement traps</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>df<span class="w"> </span>-g<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">"</span><span class="w">                         </span><span class="c1"># plain output above 1 worker wants ~65 GiB free</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">RUSTFLAGS</span><span class="o">=</span><span class="s2">"-C target-cpu=native"</span><span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--reinstall-package<span class="w"> </span>vepyr
+</span></code></pre></div>
+<p>None of that edits code, so it may run before step 1's confirmation. Nothing
+after it may.</p>
+<p>That last line is the build every measured run uses (<code>docs/performance.md</code>,
+<code>docs/developers.md</code>). It is a release build with native CPU instructions, so a
+benchmark taken against a <code>maturin develop</code> tree is measuring a different
+binary and is not comparable with anything. Use the same command, with the same
+<code>RUSTFLAGS</code>, for the baseline in step 2 and the re-verification in step 8 — a
+flag that differs between the bookends silently turns a codegen difference into
+an apparent regression or win.</p>
+<h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">¶</a></h2>
+<h3 id="1-analyse-all-three-repos-plan-the-fix-and-get-the-plan-confirmed">1. Analyse all three repos, plan the fix, and get the plan confirmed<a class="headerlink" href="#1-analyse-all-three-repos-plan-the-fix-and-get-the-plan-confirmed" title="Permanent link">¶</a></h3>
+<p>A fix belongs in the repo that owns the behaviour, and that is rarely the repo
+the issue was filed in. Deciding ownership from the vepyr side alone is how a
+defect gets patched one layer above where it lives, which passes the golden gate
+and leaves the bug in place for every other caller.</p>
+<p><strong>This is a hard gate.</strong> No edit to any file in any of the three checkouts —
+not the fix, not the failing test, not a Cargo pin, not a scratch <code>[patch]</code> —
+until a human has read the plan and said to proceed. The read-only preparation
+in <em>Before you start</em> is the only thing that may precede it.</p>
+<h4 id="1a-dispatch-one-analysis-agent-per-repo-in-a-single-message">1a. Dispatch one analysis agent per repo, in a single message<a class="headerlink" href="#1a-dispatch-one-analysis-agent-per-repo-in-a-single-message" title="Permanent link">¶</a></h4>
+<p>Check the checkouts first. They are ordinary working trees left on whatever
+branch was last used, while <code>Cargo.toml</code> pins specific tags or revs, so an
+analysis of a drifted tree describes code vepyr does not use:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s1">'datafusion-bio.*(tag|rev) *='</span><span class="w"> </span>Cargo.toml
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">for</span><span class="w"> </span>r<span class="w"> </span><span class="k">in</span><span class="w"> </span>datafusion-bio-formats<span class="w"> </span>datafusion-bio-functions<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"== </span><span class="nv">$r</span><span class="s2">"</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>git<span class="w"> </span>-C<span class="w"> </span>~/research/git/<span class="nv">$r</span><span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span>-1
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>git<span class="w"> </span>-C<span class="w"> </span>~/research/git/<span class="nv">$r</span><span class="w"> </span>status<span class="w"> </span>--porcelain<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">   </span><span class="c1"># uncommitted state distorts every finding</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">done</span>
+</span></code></pre></div>
+<p>Then three read-only agents, all three calls in <strong>one</strong> message — dispatched one
+per turn they serialise, and the analysis costs three times the wall clock for
+the same answer:</p>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Checkout</th>
+<th>Owns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>formats</td>
+<td><code>~/research/git/datafusion-bio-formats</code></td>
+<td>the VCF reader, the Ensembl cache table providers, Arrow schemas</td>
+</tr>
+<tr>
+<td>functions</td>
+<td><code>~/research/git/datafusion-bio-functions</code></td>
+<td>the annotation engine, consequence and HGVS, CSQ assembly, plugin lookup</td>
+</tr>
+<tr>
+<td>vepyr</td>
+<td>this repo</td>
+<td>the Python API, LazyFrame and VCF output, the pins, the e2e and perf harnesses</td>
+</tr>
+</tbody>
+</table>
+<p>Give each one the issue text or the user's description <strong>verbatim</strong>. An agent
+handed a paraphrase answers about the paraphrase, and the paraphrase is where
+the assumption you are trying to test already lives.</p>
+<p><strong>Tell each agent, in the prompt, that it must not mutate the checkout</strong> — no
+<code>git checkout</code>, <code>switch</code>, <code>restore</code>, <code>pull</code>, <code>fetch</code>, <code>stash</code>, or commit. These
+are the human's working trees, and an agent that "helpfully" moves one onto the
+pinned rev destroys the very drift it was sent to report, then reports the tree
+was already correct. Saying "read-only" is not enough; name the commands.
+This has actually happened: an analysis agent checked out <code>master</code> and pulled,
+then reported HEAD already equalled the pin.</p>
+<p>Point them instead at a source that cannot be mutated:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># The exact pinned rev, immutable, already on disk from the last cargo build:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ls<span class="w"> </span>~/.cargo/git/checkouts/datafusion-bio-functions-*/&lt;short-rev&gt;/
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Or read any path at any rev without touching the worktree:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>git<span class="w"> </span>-C<span class="w"> </span>~/research/git/&lt;repo&gt;<span class="w"> </span>show<span class="w"> </span>&lt;rev&gt;:&lt;path&gt;
+</span></code></pre></div>
+<p>Have them state, in their report, which source they read and whether the line
+numbers they quote also hold on the drifted branch — the two often differ, and a
+<code>file:line</code> that is only true on a branch nobody builds is worse than no anchor.</p>
+<p>Each answers the same five questions, quoting <code>file:line</code> rather than
+summarising:</p>
+<ol>
+<li>Where does the behaviour actually live — the code path the report describes,
+   and the entry point that reaches it?</li>
+<li>Is this repo the <strong>owner</strong> of the defect, a <strong>carrier</strong> of it, or untouched?
+   Name the evidence for the verdict.</li>
+<li>What here already covers it — tests, fixtures, golden data — and what does
+   that coverage <em>not</em> reach?</li>
+<li>Blast radius: what else reads the code that would change, and which callers
+   would see a behaviour difference?</li>
+<li>If the fix lands upstream of this repo, what has to move here — a pin bump
+   only, or a signature or behaviour change too?</li>
+</ol>
+<p>Question 3 is the one that repays being explicit. The chr1 golden holds 91 SNVs
+and 9 indels with no MNV, no multi-allelic site and no <code>ALT=.</code> record, and the
+VCF reader has four separate record loops of which the indexed one — the path
+tabix input takes — is invisible to a grep for <code>read_record</code>. "Covered" and
+"reached by the fixtures we run" are different claims.</p>
+<h4 id="1a-bis-confirm-the-shape-of-the-fix-in-the-ensembl-vep-116-source">1a-bis. Confirm the shape of the fix in the Ensembl VEP 116 source<a class="headerlink" href="#1a-bis-confirm-the-shape-of-the-fix-in-the-ensembl-vep-116-source" title="Permanent link">¶</a></h4>
+<p><strong>Mandatory, and it is not satisfied by reading the issue or by comparing
+outputs.</strong> Before the plan is written, the rule being ported must be quoted from
+the Ensembl source at the pinned release, with <code>file:line</code>. Both repos, because
+the logic is split across them:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># VEP itself -- the parser, the output factory, the flag handling</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>-C<span class="w"> </span>~/research/git/ensembl-vep<span class="w"> </span>show<span class="w"> </span>release/116.0:modules/Bio/EnsEMBL/VEP/&lt;file&gt;
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># ensembl-variation -- allele trimming, HGVS notation, consequence calling</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>git<span class="w"> </span>-C<span class="w"> </span>~/research/git/ensembl-variation<span class="w"> </span>show<span class="w"> </span>origin/release/116:modules/Bio/EnsEMBL/Variation/&lt;file&gt;
+</span></code></pre></div>
+<p>Check the release actually matters before trusting a line number from elsewhere:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>-C<span class="w"> </span>~/research/git/ensembl-vep<span class="w"> </span>diff<span class="w"> </span>--stat<span class="w"> </span>release/115.2<span class="w"> </span>release/116.0<span class="w"> </span>--<span class="w"> </span>&lt;path&gt;
+</span></code></pre></div>
+<p><code>ensembl-variation</code> has no <code>release/115.2</code> or <code>release/116.0</code> <strong>tags</strong> — only
+<code>origin/release/115</code> and <code>origin/release/116</code> branches. A <code>git diff</code> between two
+revs that do not exist silently compares nothing and exits 0, which reads
+exactly like "the file is identical". Verify the revs resolve before believing
+an empty diff.</p>
+<p>Two failures this gate exists to prevent, both of which have happened:</p>
+<ul>
+<li><strong>Reading half the rule.</strong> <code>vepyr#95</code> derived VEP's allele trimming from
+  <code>Parser/VCF.pm</code> alone and concluded "one leading base, indels only, never a
+  suffix". The other half is <code>Parser.pm:881</code>, an ungated <code>minimise_alleles()</code>
+  that fires whenever the original REF/ALT differ in length. Implementing the
+  issue as written would have regressed every shared-suffix indel.</li>
+<li><strong>Inferring a rule from a handful of records.</strong> During the same fix, HGVS
+  minimisation was made conditional on "has a real CDS coordinate", inferred
+  from four regressing records that all happened to be intronic. The actual rule
+  is in <code>TranscriptVariationAllele.pm:1510-1514</code>: Ensembl clips the alleles and
+  then <em>restores the untrimmed ones</em> for transcripts carrying <code>_rna_edit</code>
+  attributes. The inferred rule and the real one agree on the sample and
+  disagree in general.</li>
+</ul>
+<p>So: <strong>a rule that matches the observed records is a hypothesis, not the rule.</strong>
+State it in the plan as a quotation from the source, and say which records
+confirm it. If the source cannot be found, say so in the plan rather than
+inferring — an inferred rule is a defect with a passing test.</p>
+<h4 id="1b-write-the-plan-to-a-dated-artifact">1b. Write the plan to a dated artifact<a class="headerlink" href="#1b-write-the-plan-to-a-dated-artifact" title="Permanent link">¶</a></h4>
+<p><code>docs/superpowers/plans/YYYY-MM-DD-&lt;slug&gt;.md</code>, in the shape of the files already
+there. It states:</p>
+<ul>
+<li>the defect in one paragraph, and the record shape that triggers it;</li>
+<li>which repo owns the fix, and why each of the other two does or does not change;</li>
+<li>the failing test that will prove it and the repo it goes in, naming the
+  fixture — and saying outright if no existing fixture can see the defect;</li>
+<li>the change itself, per repo, in dependency order;</li>
+<li>what the pin cascade will look like;</li>
+<li>which gate is expected to move — parity, performance, both, neither — and by
+  how much.</li>
+</ul>
+<p>A file rather than a conversation, because the analysis has to outlive the
+context that produced it: steps 8 and 9 re-read this to check the fix did what
+it said it would, and a fix whose expected gate movement was never written down
+cannot be held to it afterwards.</p>
+<h4 id="1c-ask-the-questions-the-analysis-raised">1c. Ask the questions the analysis raised<a class="headerlink" href="#1c-ask-the-questions-the-analysis-raised" title="Permanent link">¶</a></h4>
+<p>One batched round, and only questions whose answers change the work: which repo
+to fix in when ownership is genuinely ambiguous, whether an observed difference
+is a bug or an intended divergence from Ensembl VEP, which of several
+VEP-compatible spellings of an output is the correct one, whether the scope
+covers a related record shape the agents turned up.</p>
+<p>Do not ask what the three agents were dispatched to answer. A question about
+whether some function exists, asked after sending an agent to read it, costs a
+round trip and reads as not having done the analysis.</p>
+<h4 id="1d-stop-and-get-the-go-ahead">1d. Stop, and get the go-ahead<a class="headerlink" href="#1d-stop-and-get-the-go-ahead" title="Permanent link">¶</a></h4>
+<p>Post the artifact path, the ownership decision, the failing test you intend to
+write, the open questions, and the expected gate movement. Then wait.</p>
+<p><strong>Gate:</strong> an explicit human go-ahead. "Proceed", "looks good", "yes" all count.
+Silence, a reply about something else, and your own judgement that the plan is
+obviously right do not.</p>
+<h4 id="red-flags-stop-and-return-to-1a">Red flags — stop and return to 1a<a class="headerlink" href="#red-flags-stop-and-return-to-1a" title="Permanent link">¶</a></h4>
+<ul>
+<li><em>"The issue already says exactly what to do."</em> Issues name symptoms. The
+  analysis names the owner. <code>#92</code>–<code>#99</code> were filed from a test run, not from
+  reading the engine.</li>
+<li><em>"I'll write the failing test while I wait."</em> A test is an edit, and it
+  encodes the ownership decision that has not been confirmed yet.</li>
+<li><em>"Only vepyr changes, so a three-repo analysis is overkill."</em> That is the
+  analysis's conclusion, not its precondition.</li>
+<li><em>"The baseline takes 15 minutes — start it and analyse meanwhile."</em> No. A plan
+  that reroutes the fix to a different layer can change which harness the
+  baseline should run at all, and a discarded sweep costs 15 minutes and ~29 GB
+  of I/O. Sequential.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Excuse</th>
+<th>Reality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"It's a one-line fix"</td>
+<td>The line is not the work. A one-line engine change still needs a pin cascade through two repos and both gates re-run.</td>
+</tr>
+<tr>
+<td>"The user already told me the fix"</td>
+<td>Then the analysis is quick and the confirmation is one message. Neither is the part worth skipping.</td>
+</tr>
+<tr>
+<td>"I read vepyr and it is clearly there"</td>
+<td>A single-repo read is exactly how the wrong layer gets patched — see the four record loops above.</td>
+</tr>
+<tr>
+<td>"I'll confirm the plan once I have working code"</td>
+<td>Working code is a sunk cost that biases the confirmation toward accepting it. Confirm the plan while it is still cheap to change.</td>
+</tr>
+<tr>
+<td>"Three agents for a small fix is wasteful"</td>
+<td>They run in parallel and only read. The expensive cycle is the one where the fix lands in the wrong repo and the whole PR stack is rewritten.</td>
+</tr>
+<tr>
+<td>"Nobody is answering right now"</td>
+<td>Then the work waits. This gate has no timeout.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-capture-the-baseline-both-halves-before-any-edit">2. Capture the baseline — both halves, before any edit<a class="headerlink" href="#2-capture-the-baseline-both-halves-before-any-edit" title="Permanent link">¶</a></h3>
+<p>Put everything in one run directory so the final comparison is a diff, not a
+memory exercise:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">ROOT</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--show-toplevel<span class="k">)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">RUN</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/e2e-testing/results/fix-</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d-%H%M<span class="k">)</span><span class="s2">/baseline"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$RUN</span><span class="s2">"</span>
+</span></code></pre></div>
+<p>Resolve <code>RUN</code> to an absolute path. The steps below change directory, and a
+relative run directory would put the redirections somewhere under the script
+directory that was never created.</p>
+<p><strong>Performance.</strong> The trace is the signal that matters; wall clock and memory are
+coarser alarms. Export the tracing variables, because the runner does not set
+them, then drive the Python runner directly — the shell wrappers cannot express
+the separate archive directories and the record floor this needs:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">VEP_PIPELINE_TRACE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">VEP_ENGINE_PROFILE</span><span class="o">=</span><span class="m">1</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/performance-tests/vepyr/scripts"</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>sweep<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w">  </span><span class="c1"># $1 = archive dir, rest = worker counts — one invocation each</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nb">local</span><span class="w"> </span><span class="nv">archive</span><span class="o">=</span><span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span><span class="nb">shift</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nb">local</span><span class="w"> </span><span class="nv">status</span><span class="o">=</span><span class="m">0</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="k">for</span><span class="w"> </span>w<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">"</span><span class="nv">$@</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_vepyr_worker_scaling.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">      </span>--input-vcf<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input/HG002_normalized.vcf.gz"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">      </span>--cache-dir<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/cache/116_GRCh38_merged"</span><span class="w"> </span>--cache-type<span class="w"> </span>merged<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">      </span>--reference-fasta<span class="w"> </span><span class="s2">"</span><span class="nv">$DATA_VEPYR_DIR</span><span class="s2">/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">      </span>--ssd-output-dir<span class="w"> </span>/tmp/vepyr-perf<span class="w"> </span>--archive-dir<span class="w"> </span><span class="s2">"</span><span class="nv">$archive</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">      </span>--expected-records<span class="w"> </span><span class="m">4096123</span><span class="w"> </span>--minimum-free-gib<span class="w"> </span><span class="m">65</span><span class="w"> </span>--force<span class="w"> </span>--workers<span class="w"> </span><span class="s2">"</span><span class="nv">$w</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">      </span><span class="o">||</span><span class="w"> </span><span class="nv">status</span><span class="o">=</span><span class="nv">$?</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">    </span><span class="c1"># Each WGS output is ~29 GB (`output_bytes: 29418788410` in the checked-in</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">    </span><span class="c1"># performance-tests metrics) and the gate never reads it — only `summary.tsv`</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">    </span><span class="c1"># and the per-worker traces. This has to happen BETWEEN workers: the runner</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">    </span><span class="c1"># re-checks free space before each one (`run_vepyr_worker_scaling.py:266-272`),</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">    </span><span class="c1"># so a single `--workers 8 1` call would archive 29 GB and then fail worker 1</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">    </span><span class="c1"># on the space check it just invalidated.</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="w">    </span>rm<span class="w"> </span>-f<span class="w"> </span><span class="s2">"</span><span class="nv">$archive</span><span class="s2">"</span>/*.vcf<span class="w"> </span><span class="s2">"</span><span class="nv">$archive</span><span class="s2">"</span>/*.vcf.gz
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="w">    </span><span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$status</span><span class="s2">"</span><span class="w"> </span>-eq<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">break</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="w">  </span><span class="k">done</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="s2">"</span><span class="nv">$status</span><span class="s2">"</span><span class="w">   </span><span class="c1"># the rm must not become the function's exit status</span>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="o">}</span>
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>sweep<span class="w"> </span><span class="s2">"</span><span class="nv">$RUN</span><span class="s2">/warmup"</span><span class="w"> </span><span class="m">8</span><span class="w">    </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="w">   </span><span class="c1"># DISCARD: first run of a session reads ~35% slow at 8 workers</span>
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>sweep<span class="w"> </span><span class="s2">"</span><span class="nv">$RUN</span><span class="s2">/archive"</span><span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="w">   </span><span class="c1"># measured</span>
+</span></code></pre></div>
+<p>One worker per invocation is what makes the cleanup effective, and saving the
+runner's status is what stops a failed sweep from looking successful — <code>rm</code>
+would otherwise be the last command and supply the function's exit code.</p>
+<p>If you have a second volume, put the archive on it and add
+<code>--require-separate-filesystems</code>. The runner checks free space per worker
+against the SSD directory, so archiving onto the same filesystem it is
+measuring recovers nothing between workers — it prints a note saying so
+(<code>run_vepyr_worker_scaling.py:242-244</code>). The <code>rm</code> above is what makes a
+single-volume machine viable.</p>
+<p><code>--force</code> on the measured sweep is load-bearing. The runner refuses to start
+when any SSD or archive artifact for that worker count already exists
+(<code>run_vepyr_worker_scaling.py:289-293</code>), so after a warm-up at 8 workers the
+measured sweep would die before annotating anything. The separate archive
+directory keeps the discarded warm-up out of the measured summary.</p>
+<p>The whole sweep is about 15 minutes, so none of this is a costly ceremony.</p>
+<p>Everything the gate reads lands under <code>$RUN/archive</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Evidence</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wall and peak RSS per worker count</td>
+<td><code>summary.tsv</code>, columns <code>annotation_seconds</code> and <code>max_rss_kb</code></td>
+</tr>
+<tr>
+<td><code>[VEP_PIPELINE_TRACE]</code> phase lines</td>
+<td><code>merged_workers&lt;N&gt;.stderr.txt</code></td>
+</tr>
+</tbody>
+</table>
+<p>The trace is <strong>not</strong> on the runner's own stderr. Each annotation child's stderr
+goes to its own artifact, which is then archived
+(<code>run_vepyr_worker_scaling.py:330-333</code>, <code>:346</code>), so redirecting the runner's
+stderr captures only its progress chatter. Confirm the traces are really there
+before trusting any later comparison, because an empty trace file silently
+compares equal to another empty one and reads as "no regression":</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RUN</span><span class="s2">"</span>/archive/merged_workers*.stderr.txt<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nv">n</span><span class="o">=</span><span class="k">$(</span>grep<span class="w"> </span>-c<span class="w"> </span>VEP_PIPELINE_TRACE<span class="w"> </span><span class="s2">"</span><span class="nv">$f</span><span class="s2">"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="k">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$f</span><span class="s2">: </span><span class="nv">$n</span><span class="s2"> trace lines"</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"no trace lines in </span><span class="nv">$f</span><span class="s2"> — VEP_PIPELINE_TRACE was not set"</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">done</span>
+</span></code></pre></div>
+<p><code>4096123</code> is the record count of the normalized HG002 input, which is the
+<code>bcftools norm -m -both</code> output of the GIAB benchmark (<code>docs/testing-vep.md</code>).
+Annotating raw multi-allelic input is a different measurement and a different
+correctness question, so keep to the normalized file.</p>
+<p><strong>Quality. Run the md5 comparator only.</strong> Strict-mode body digests are the whole
+quality gate for a fix — do not run field mode, and do not run
+<code>verify_parity_gate.py</code>, as part of the routine loop. Field mode is a triage
+tool, reached for only when a digest actually moves (see below).</p>
+<p>Why md5 alone. A strict body digest is a record-for-record, byte-level claim
+over every contig; field mode is a per-field <em>subset</em> comparison, which is
+weaker as an assertion and roughly four times slower — about 85 minutes against
+about 20 for the same 22 autosomes, and the quality half runs twice, once here
+and once at step 8. Paying ~3 hours for the weaker evidence is the wrong trade.</p>
+<p><code>canonical</code> is the default md5 mode and it rewrites QUAL and sorts INFO keys
+before hashing, which is useful for triage and wrong for a parity claim. Always
+pass <code>--md5-mode strict</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">set</span><span class="w"> </span>-o<span class="w"> </span>pipefail
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/e2e-testing/scripts"</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--chroms<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>--comparison-mode<span class="w"> </span>md5<span class="w"> </span>--md5-mode<span class="w"> </span>strict<span class="w"> </span>--bgzf<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$RUN</span><span class="s2">/md5.out"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/e2e-testing/reports"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RUN</span><span class="s2">/reports"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span></code></pre></div>
+<p>Redirect rather than <code>tee</code>. <code>run_comparison.py</code> returns 1 when any contig
+mismatches (<code>comparison/cli.py:695</code>), but a plain <code>cmd | tee f</code> reports tee's
+status, so a piped recipe sails past exactly the failure that should stop it and
+declares a red baseline green. <code>set -o pipefail</code> makes such a failure visible in
+a pipeline's status but does not stop the block, so keep the explicit <code>|| exit 1</code>
+and run this as a script, not by pasting it into a shell you care about. The
+run also emits a tqdm progress bar per contig, which floods a captured log —
+another reason to send it to a file rather than through the conversation.</p>
+<p><strong>Do not add <code>verify_parity_gate.py</code> to this block.</strong> It cannot run on md5-mode
+reports and will fail in a way that looks like a parity failure but is not.
+Both modes write the same per-contig report path (<code>comparison/cli.py:466</code>) and
+the report is rewritten wholesale on each run (<code>:438-457</code>), so an md5 pass
+leaves <code>comparison</code> null; <code>verify_parity_gate.py:398-400</code> then raises
+"comparison is missing or null" even when parity is perfect. The gate requires a
+field-mode run to have populated that field first. <code>cli.py:705-730</code> prints a
+targeted error saying exactly this, so if you see it, this is why.</p>
+<p><strong>When a digest does move</strong>, then and only then reach for the slower evidence,
+scoped to the offending contig rather than the whole corpus:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>md5_concordance.py<span class="w"> </span>--pair<span class="w"> </span>VEP_VCF<span class="w"> </span>VEPYR_VCF<span class="w"> </span>--explain<span class="w">   </span><span class="c1"># the records</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>run_comparison.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--chroms<span class="w"> </span>chr7<span class="w"> </span>--bgzf<span class="w">    </span><span class="c1"># field detail</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>verify_parity_gate.py<span class="w"> </span>--release<span class="w"> </span><span class="m">116</span><span class="w"> </span>--profile<span class="w"> </span>merged<span class="w"> </span>--chroms<span class="w"> </span><span class="m">7</span>
+</span></code></pre></div>
+<p><code>md5_concordance.py</code> hashes header and body separately and excludes the <code>##VEP=</code>
+and <code>##datafusion-bio-function-vep=</code> provenance lines, so a body match is a real
+record-for-record match and a header mismatch alone is usually just provenance.</p>
+<p>The two scripts take contigs differently: <code>run_comparison.py</code> wants names or
+<code>all</code>, while <code>verify_parity_gate.py</code> also expands numeric ranges like <code>1-22</code>.
+Passing <code>1-22</code> to the former treats it as one contig name and compares nothing,
+and exits clean while doing so.</p>
+<p><strong>Gate:</strong> the baseline body digests must already match, on every contig. If they
+do not, stop and say so — you cannot attribute a later mismatch to your fix when
+the starting point was already red.</p>
+<h3 id="3-reproduce-the-defect-with-a-test-that-fails-now">3. Reproduce the defect with a test that fails now<a class="headerlink" href="#3-reproduce-the-defect-with-a-test-that-fails-now" title="Permanent link">¶</a></h3>
+<p>Before writing it, re-read the rule you quoted in step 1a-bis. The test encodes
+the rule, so a test built from observed behaviour rather than from the source
+locks in whatever the engine happens to do.</p>
+<p>Write the failing test before the fix, in the repo step 1 identified as the
+owner of the behaviour. The
+issues filed for this project already carry proposed tests with positive
+controls; reuse them rather than inventing new ones. A fix whose test never
+failed proves nothing about the fix.</p>
+<p>Note which harness can even see the defect. The chr1 golden fixture holds 91
+SNVs and 9 indels with no MNV, no multi-allelic site and no <code>ALT=.</code> record, so a
+green golden gate is not evidence for those paths — add a fixture that contains
+the shape you are fixing.</p>
+<h3 id="4-implement-in-dependency-order">4. Implement in dependency order<a class="headerlink" href="#4-implement-in-dependency-order" title="Permanent link">¶</a></h3>
+<p><code>datafusion-bio-formats</code> → <code>datafusion-bio-functions</code> → <code>vepyr</code>. While
+iterating, point the downstream repos at your local checkouts with a temporary
+Cargo <code>[patch]</code> rather than pushing to get a rev, and remember that the patch is
+scratch state that must not reach a PR.</p>
+<p>While iterating locally, <code>env -u CONDA_PREFIX uv run maturin develop</code> is the
+faster rebuild. Both <code>VIRTUAL_ENV</code> and <code>CONDA_PREFIX</code> are set on this machine
+and maturin refuses that combination, and the refusal is quiet: the previously
+built extension in <code>.venv</code> keeps serving, so you test old code believing it is
+new. Rebuild with the native release command before any timing.</p>
+<p>Lint through pre-commit, never directly — <code>uv run ruff</code> finds nothing in
+<code>.venv</code> and falls through to pyenv:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cargo<span class="w"> </span>fmt<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>cargo<span class="w"> </span>clippy<span class="w"> </span>--all-targets<span class="w"> </span>--<span class="w"> </span>-D<span class="w"> </span>warnings<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>--all-files<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="w">   </span><span class="c1"># the hook passes --fix and rewrites code</span>
+</span></code></pre></div>
+<p>Guard each one. Chained with <code>&amp;&amp;</code> and followed by the lint, a clippy failure
+would be overwritten by the lint's clean exit and the block would report
+success with the Rust side still red.</p>
+<h3 id="5-open-one-pr-per-repo-with-the-pin-cascade">5. Open one PR per repo, with the pin cascade<a class="headerlink" href="#5-open-one-pr-per-repo-with-the-pin-cascade" title="Permanent link">¶</a></h3>
+<p>Open upstream first and pin each downstream PR to the <strong>head commit</strong> of the PR
+below it, so reviewers see a tree that builds:</p>
+<table>
+<thead>
+<tr>
+<th>PR</th>
+<th>pins</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>formats</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td>functions</td>
+<td>formats PR head</td>
+</tr>
+<tr>
+<td>vepyr</td>
+<td>functions PR head</td>
+</tr>
+</tbody>
+</table>
+<p>Write the body from a file. <code>gh pr edit</code> reports success and changes nothing, so
+edit through the API and read the body back to confirm:</p>
+<p>Open them as drafts. The gates in step 8 have not run yet, so a PR that looks
+ready before it is verified invites a review of unproven work — and <code>gh pr
+ready</code> in step 9 is then the honest signal that it has been. Draft PRs still
+fire <code>claude-code-review.yml</code>, which has no draft guard, so the review loop is
+not delayed by this.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">set</span><span class="w"> </span>-o<span class="w"> </span>pipefail
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># Record the number each repo's PR got. They differ, and reusing one number</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># across the three comments on unrelated PRs — or silently acts on the wrong one.</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">BRANCH</span><span class="o">=</span><span class="s2">"fix/your-slug"</span><span class="w">   </span><span class="c1"># the same branch name in all three repos, already pushed in each</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nv">PRS</span><span class="o">=</span><span class="s2">""</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="k">for</span><span class="w"> </span>r<span class="w"> </span><span class="k">in</span><span class="w"> </span>datafusion-bio-formats<span class="w"> </span>datafusion-bio-functions<span class="w"> </span>vepyr<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="c1"># --head is required here. --repo picks the target repository, but --head still</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">  </span><span class="c1"># defaults to the CURRENT branch, so a loop running in one working tree would</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">  </span><span class="c1"># propose this checkout's branch to the other two repos — failing, or worse,</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">  </span><span class="c1"># opening a PR for the wrong branch.</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span><span class="nv">url</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>pr<span class="w"> </span>create<span class="w"> </span>--draft<span class="w"> </span>--repo<span class="w"> </span><span class="s2">"biodatageeks/</span><span class="nv">$r</span><span class="s2">"</span><span class="w"> </span>--head<span class="w"> </span><span class="s2">"</span><span class="nv">$BRANCH</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">          </span>--title<span class="w"> </span><span class="s2">"..."</span><span class="w"> </span>--body-file<span class="w"> </span><span class="s2">"/tmp/pr-</span><span class="nv">$r</span><span class="s2">.md"</span><span class="k">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">  </span><span class="nv">PRS</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PRS</span><span class="s2"> biodatageeks/</span><span class="nv">$r</span><span class="s2">:</span><span class="si">${</span><span class="nv">url</span><span class="p">##*/</span><span class="si">}</span><span class="s2">"</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="k">done</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Owner-qualified on purpose: `gh --repo` requires OWNER/REPO and rejects a bare</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="c1"># name, and every consumer below — including tools/vepyr-fix/handoff.sh — takes</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="c1"># the repository straight out of this list rather than rebuilding it.</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"PRS=</span><span class="nv">$PRS</span><span class="s2">"</span><span class="w">   </span><span class="c1"># e.g. " biodatageeks/datafusion-bio-formats:41 biodatageeks/vepyr:100"</span>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="c1"># gh pr edit reports success and changes nothing, so patch through the API and</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="c1"># read the body back. `| head` would otherwise mask a failed fetch with its own</span>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="c1"># clean exit, which is why pipefail is set above.</span>
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="k">for</span><span class="w"> </span>e<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$PRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">  </span><span class="nv">repo</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">%%:*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="nv">n</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">##*:</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="nv">r</span><span class="o">=</span><span class="si">${</span><span class="nv">repo</span><span class="p">##*/</span><span class="si">}</span>
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">  </span>gh<span class="w"> </span>api<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="s2">"repos/</span><span class="nv">$repo</span><span class="s2">/pulls/</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">body</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s2">"/tmp/pr-</span><span class="nv">$r</span><span class="s2">.md"</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">  </span>gh<span class="w"> </span>api<span class="w"> </span><span class="s2">"repos/</span><span class="nv">$repo</span><span class="s2">/pulls/</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>--jq<span class="w"> </span>.body<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"/tmp/readback-</span><span class="nv">$r</span><span class="s2">.md"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="w">  </span>diff<span class="w"> </span>-q<span class="w"> </span><span class="s2">"/tmp/pr-</span><span class="nv">$r</span><span class="s2">.md"</span><span class="w"> </span><span class="s2">"/tmp/readback-</span><span class="nv">$r</span><span class="s2">.md"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="w">    </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$r</span><span class="s2">: PR body does not match what was sent"</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="k">done</span>
+</span></code></pre></div>
+<p>Compare the whole body, not a prefix. The point of the read-back is to catch a
+PATCH that silently kept the old text, and printing the first few lines proves
+only that the fetch worked — a body that lost everything below the prefix would
+still look right.</p>
+<h3 id="6-ask-both-reviewers">6. Ask both reviewers<a class="headerlink" href="#6-ask-both-reviewers" title="Permanent link">¶</a></h3>
+<p>Each repo runs <code>claude-code-review.yml</code> automatically when a PR opens or gets
+new commits. The two on-demand reviewers answer comments:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">for</span><span class="w"> </span>e<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$PRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nv">repo</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">%%:*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="nv">n</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">##*:</span><span class="si">}</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">"@codex review"</span><span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">"@claude review"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">done</span>
+</span></code></pre></div>
+<p>Guard both. If the codex request fails and the claude one succeeds, an unguarded
+loop still returns zero and the workflow walks into its "both reviewers" gate
+with only one of them having looked.</p>
+<p><code>@codex review</code> draws a reply from <code>chatgpt-codex-connector[bot]</code> and <code>@claude
+review</code> from <code>claude[bot]</code>. Codex has no committed workflow in any of the three
+repos — it is a GitHub App on the repo — so if no reply arrives, check the app
+rather than hunting for a broken workflow file.</p>
+<h3 id="7-iterate-to-green-watching-for-three-signals">7. Iterate to green, watching for three signals<a class="headerlink" href="#7-iterate-to-green-watching-for-three-signals" title="Permanent link">¶</a></h3>
+<p>Three things are worth waking for, and nothing else: a check that did not
+pass, new review activity, and the run reaching fully concluded. If your harness
+can watch a command in the background and notify you per line, use it. If it
+cannot, run this loop in a second terminal, or poll it by hand on the same
+interval — the requirement is the signals, not the mechanism:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nv">prev</span><span class="o">=</span><span class="s2">""</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">while</span><span class="w"> </span>true<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nv">cur</span><span class="o">=</span><span class="s2">""</span><span class="p">;</span><span class="w"> </span><span class="nv">failed</span><span class="o">=</span><span class="s2">""</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="k">for</span><span class="w"> </span>e<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$PRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nv">repo</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">%%:*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="nv">n</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">##*:</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="nv">r</span><span class="o">=</span><span class="si">${</span><span class="nv">repo</span><span class="p">##*/</span><span class="si">}</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="c1"># statusCheckRollup, NOT `gh pr checks`: that command exits 8 while any check</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="c1"># is pending and nonzero when one fails, so its exit status reports the checks</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="c1"># rather than the query, and treating it as a query failure would print an</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="c1"># error through the whole normal review lifecycle.</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">    </span><span class="nv">checks</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="w"> </span>--json<span class="w"> </span>statusCheckRollup<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">      </span>--jq<span class="w"> </span><span class="s1">'.statusCheckRollup[] | "'</span><span class="s2">"</span><span class="nv">$r</span><span class="s2">"</span><span class="s1">' \(.name): \(if (.conclusion // "") == "" then (.status // .state // "UNKNOWN") else .conclusion end)"'</span><span class="k">)</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">      </span><span class="o">||</span><span class="w"> </span><span class="nv">failed</span><span class="o">=</span><span class="s2">"</span><span class="nv">$failed</span><span class="s2"> checks:</span><span class="nv">$r</span><span class="s2">"</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="w">    </span><span class="c1"># Two endpoints, because they hold different things: a bot's inline findings</span>
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="w">    </span><span class="c1"># are PULL REQUEST REVIEW comments, while `gh pr view --json comments` returns</span>
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="w">    </span><span class="c1"># only the issue-comment thread. Polling just the latter yields a green</span>
+</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="w">    </span><span class="c1"># snapshot with every finding invisible.</span>
+</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="w">    </span><span class="nv">findings</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>api<span class="w"> </span>--paginate<span class="w"> </span><span class="s2">"repos/</span><span class="nv">$repo</span><span class="s2">/pulls/</span><span class="nv">$n</span><span class="s2">/comments"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="w">      </span>--jq<span class="w"> </span><span class="s1">'.[] | select(.user.login|test("\\[bot\\]")) | "'</span><span class="s2">"</span><span class="nv">$r</span><span class="s2">"</span><span class="s1">' finding \(.id)"'</span><span class="k">)</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="w">      </span><span class="o">||</span><span class="w"> </span><span class="nv">failed</span><span class="o">=</span><span class="s2">"</span><span class="nv">$failed</span><span class="s2"> findings:</span><span class="nv">$r</span><span class="s2">"</span>
+</span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="w">    </span><span class="nv">remarks</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>api<span class="w"> </span>--paginate<span class="w"> </span><span class="s2">"repos/</span><span class="nv">$repo</span><span class="s2">/issues/</span><span class="nv">$n</span><span class="s2">/comments"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="w">      </span>--jq<span class="w"> </span><span class="s1">'.[] | select(.user.login|test("\\[bot\\]")) | "'</span><span class="s2">"</span><span class="nv">$r</span><span class="s2">"</span><span class="s1">' comment \(.id)"'</span><span class="k">)</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-24"><a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="w">      </span><span class="o">||</span><span class="w"> </span><span class="nv">failed</span><span class="o">=</span><span class="s2">"</span><span class="nv">$failed</span><span class="s2"> comments:</span><span class="nv">$r</span><span class="s2">"</span>
+</span><span id="__span-13-25"><a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>
+</span><span id="__span-13-26"><a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a><span class="w">    </span><span class="c1"># Third endpoint, and the only one that can show a CLEAN pass. A reviewer</span>
+</span><span id="__span-13-27"><a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="w">    </span><span class="c1"># with nothing to say submits a review carrying no inline comment, so it</span>
+</span><span id="__span-13-28"><a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a><span class="w">    </span><span class="c1"># appears in neither list above. Keyed by commit, so "codex has looked at</span>
+</span><span id="__span-13-29"><a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a><span class="w">    </span><span class="c1"># the current head" becomes an observable event rather than an assumption.</span>
+</span><span id="__span-13-30"><a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a><span class="w">    </span><span class="nv">reviews</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>api<span class="w"> </span>--paginate<span class="w"> </span><span class="s2">"repos/</span><span class="nv">$repo</span><span class="s2">/pulls/</span><span class="nv">$n</span><span class="s2">/reviews"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-31"><a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a><span class="w">      </span>--jq<span class="w"> </span><span class="s1">'.[] | select(.user.login|test("\\[bot\\]")) | "'</span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="s1">'#'</span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="s1">' review \(.user.login) \(.commit_id[0:7]) \(.state) id=\(.id) body_chars=\((.body//"")|length)"'</span><span class="k">)</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-32"><a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a><span class="w">      </span><span class="o">||</span><span class="w"> </span><span class="nv">failed</span><span class="o">=</span><span class="s2">"</span><span class="nv">$failed</span><span class="s2"> reviews:</span><span class="nv">$r</span><span class="s2">"</span>
+</span><span id="__span-13-33"><a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>
+</span><span id="__span-13-34"><a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a><span class="w">    </span><span class="nv">cur</span><span class="o">=</span><span class="s2">"</span><span class="nv">$cur$checks</span>
+</span><span id="__span-13-35"><a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a><span class="nv">$findings</span>
+</span><span id="__span-13-36"><a id="__codelineno-13-36" name="__codelineno-13-36" href="#__codelineno-13-36"></a><span class="nv">$remarks</span>
+</span><span id="__span-13-37"><a id="__codelineno-13-37" name="__codelineno-13-37" href="#__codelineno-13-37"></a><span class="nv">$reviews</span>
+</span><span id="__span-13-38"><a id="__codelineno-13-38" name="__codelineno-13-38" href="#__codelineno-13-38"></a><span class="s2">"</span>
+</span><span id="__span-13-39"><a id="__codelineno-13-39" name="__codelineno-13-39" href="#__codelineno-13-39"></a><span class="w">  </span><span class="k">done</span>
+</span><span id="__span-13-40"><a id="__codelineno-13-40" name="__codelineno-13-40" href="#__codelineno-13-40"></a>
+</span><span id="__span-13-41"><a id="__codelineno-13-41" name="__codelineno-13-41" href="#__codelineno-13-41"></a><span class="w">  </span><span class="c1"># A watcher that has lost authentication must not look like a quiet green stack.</span>
+</span><span id="__span-13-42"><a id="__codelineno-13-42" name="__codelineno-13-42" href="#__codelineno-13-42"></a><span class="w">  </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$failed</span><span class="s2">"</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"QUERY FAILED:</span><span class="nv">$failed</span><span class="s2">"</span>
+</span><span id="__span-13-43"><a id="__codelineno-13-43" name="__codelineno-13-43" href="#__codelineno-13-43"></a><span class="w">  </span><span class="nv">cur</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$cur</span><span class="s2">"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u<span class="k">)</span>
+</span><span id="__span-13-44"><a id="__codelineno-13-44" name="__codelineno-13-44" href="#__codelineno-13-44"></a><span class="w">  </span>comm<span class="w"> </span>-13<span class="w"> </span>&lt;<span class="o">(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$prev</span><span class="s2">"</span><span class="o">)</span><span class="w"> </span>&lt;<span class="o">(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$cur</span><span class="s2">"</span><span class="o">)</span>
+</span><span id="__span-13-45"><a id="__codelineno-13-45" name="__codelineno-13-45" href="#__codelineno-13-45"></a><span class="w">  </span><span class="nv">prev</span><span class="o">=</span><span class="nv">$cur</span>
+</span><span id="__span-13-46"><a id="__codelineno-13-46" name="__codelineno-13-46" href="#__codelineno-13-46"></a><span class="w">  </span>sleep<span class="w"> </span><span class="m">120</span>
+</span><span id="__span-13-47"><a id="__codelineno-13-47" name="__codelineno-13-47" href="#__codelineno-13-47"></a><span class="k">done</span>
+</span></code></pre></div>
+<p><code>--paginate</code> on both comment queries, not decoration: the API returns 30 items
+per page and a PR under active review passes that quickly, after which the
+newest findings are the ones that fall off. A loop that silently reads only the
+first page reports green while the findings it has not fetched go unaddressed. The per-item <code>--jq</code> filters concatenate cleanly across pages; a
+filter like <code>length</code> would not, because it emits one value per page.</p>
+<p>Emit pending checks as well as concluded ones. Dropping them makes a check that
+is still running — or wedged — indistinguishable from one that does not exist,
+and the hand-off in step 9 would then see nothing wrong. Note the fallback has
+to test for an empty string explicitly: a pending <code>CheckRun</code> carries
+<code>conclusion: ""</code> and <code>status: "IN_PROGRESS"</code>, and <code>//</code> falls back only on <code>null</code>
+or <code>false</code>, so <code>.conclusion // .status</code> yields the empty string and silently
+loses the state.</p>
+<p>Carry the review id and its body length, not just the state. A reviewer can put
+a finding in the review body itself, and <code>COMMENTED</code> with feedback then looks
+identical to <code>COMMENTED</code> with nothing to say — the loop would report that the bot
+reviewed the head while the finding stayed invisible. The length says
+whether there is anything to read and the id says where to read it:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Each review line carries its own repo#number, so this needs nothing from the</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="c1"># watch loop's shell — which matters, because that loop is occupying one.</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>gh<span class="w"> </span>api<span class="w"> </span><span class="s2">"repos/&lt;owner/repo&gt;/pulls/&lt;number&gt;/reviews/&lt;id&gt;"</span><span class="w"> </span>--jq<span class="w"> </span>.body
+</span></code></pre></div>
+<p>Address the review directly by id rather than listing and filtering: a single
+object needs no <code>--paginate</code>, so a review past the first page cannot go missing
+from the lookup the way it could from a list.</p>
+<p>Step 7's gate asks whether both reviewers have examined the current head, and
+only the reviews endpoint can answer that: a reviewer with no findings leaves a
+review and no comments at all, so a comments-only loop sees silence and
+cannot tell a clean pass from a reviewer that never ran. Including the commit in
+that line is what makes "looked at <em>this</em> head" checkable, rather than "looked
+at some head once".</p>
+<p>Five traps here, each of which makes the watch lie in a different way. A
+literal <code>&lt;n&gt;</code> is not a placeholder to the shell but input redirection from a file
+called <code>n</code>, so the query fails and a trailing <code>sort</code> reports success. <code>gh pr
+checks</code> exits 8 whenever a check is pending and nonzero when one fails, so its
+status describes the checks and not the query — guard on it and the watch
+cries failure through the entire normal lifecycle. And review findings are not
+issue comments: on a PR of this kind the two endpoints differ by a wide margin,
+so polling only <code>gh pr view --json comments</code> reaches a green snapshot with every
+finding unseen.</p>
+<p><strong>Re-pin downstream after every upstream push.</strong> This is the step that is easy
+to skip and expensive to miss. A review fix landing on the formats branch moves
+its head, but the functions PR still pins the commit from step 5, and vepyr
+still pins the old functions head. All three PRs then go green independently
+while the tree a reviewer reads — and the tree step 8 measures — silently
+excludes the fixes you just made. So after any upstream push, walk the cascade
+in dependency order before re-requesting review or running a gate:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># PRS entries are owner-qualified, so match on the repository name after the</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="c1"># last slash — passing a bare name must still resolve, or the head lookups</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># below silently get an empty selector and gh falls back to the current branch.</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>num<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="k">for</span><span class="w"> </span>e<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$PRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">    </span><span class="nv">repo</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">%%:*</span><span class="si">}</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">    </span><span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">repo</span><span class="p">##*/</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">continue</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">e</span><span class="p">##*:</span><span class="si">}</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span><span class="k">return</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">  </span><span class="k">done</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"no PR recorded for </span><span class="nv">$1</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="o">}</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="nv">formats</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>num<span class="w"> </span>datafusion-bio-formats<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">  </span>--repo<span class="w"> </span>biodatageeks/datafusion-bio-formats<span class="w"> </span>--json<span class="w"> </span>headRefOid<span class="w"> </span>--jq<span class="w"> </span>.headRefOid<span class="k">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="c1"># bump the formats rev in datafusion-bio-functions, cargo check, commit, push</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="nv">functions</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>num<span class="w"> </span>datafusion-bio-functions<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="w">  </span>--repo<span class="w"> </span>biodatageeks/datafusion-bio-functions<span class="w"> </span>--json<span class="w"> </span>headRefOid<span class="w"> </span>--jq<span class="w"> </span>.headRefOid<span class="k">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="c1"># bump the functions rev in vepyr, rebuild, commit, push</span>
+</span></code></pre></div>
+<p>Confirm each pin resolves to the commit you meant before moving on, because a
+pin that silently kept its old value is indistinguishable from a green run.</p>
+<p>Only once the whole cascade is pushed, re-request both reviewers. Neither
+re-runs itself on a push, and codex has no synchronize-triggered workflow at
+all, so without a fresh <code>@codex review</code> it never sees the commits you are
+proposing — and asking before the pin commits exist means it reviews a head you
+are about to replace:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">for</span><span class="w"> </span>e<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$PRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nv">repo</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">%%:*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="nv">n</span><span class="o">=</span><span class="si">${</span><span class="nv">e</span><span class="p">##*:</span><span class="si">}</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">"@codex review"</span><span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="s2">"</span><span class="nv">$n</span><span class="s2">"</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">"</span><span class="nv">$repo</span><span class="s2">"</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">"@claude review"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">done</span>
+</span></code></pre></div>
+<p><strong>Gate:</strong> green means, simultaneously across all three PRs, that every check has
+concluded green and no bot finding is left unanswered. One repo going green
+while another has an open finding is not green.</p>
+<h3 id="8-re-verify-against-the-baseline-on-the-stacked-branches">8. Re-verify against the baseline, on the stacked branches<a class="headerlink" href="#8-re-verify-against-the-baseline-on-the-stacked-branches" title="Permanent link">¶</a></h3>
+<p>Run step 2 again, byte for byte the same commands and the same <code>RUSTFLAGS</code>, into
+a <code>final/</code> directory beside <code>baseline/</code>, then set <code>BASE</code> and <code>FINAL</code> to the two
+absolute run directories for the comparisons below. Same host, same session shape, warm-up
+discarded again. Nothing is merged at this point, so measure the vepyr PR branch
+with its pin still on the functions PR head — that stack is exactly what a
+reviewer will read. Check first that every pin points at its upstream PR's
+current head, per step 7: measuring a stale cascade produces numbers for code
+nobody is going to merge.</p>
+<p><strong>Quality gate:</strong> every body digest matches in strict mode, on every contig —
+the same md5-only command as step 2, and no field-mode or <code>verify_parity_gate.py</code>
+run unless a digest moved and you are triaging it.</p>
+<p><strong>Performance gate</strong>, three metrics, each at both 1 and 8 workers:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Source</th>
+<th>Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>phase durations</td>
+<td><code>[VEP_PIPELINE_TRACE]</code> in <code>archive/merged_workers&lt;N&gt;.stderr.txt</code></td>
+<td>no phase regresses &gt;5%</td>
+</tr>
+<tr>
+<td>total wall</td>
+<td><code>annotation_seconds</code> in <code>summary.tsv</code></td>
+<td>within 10%</td>
+</tr>
+<tr>
+<td>peak RSS</td>
+<td><code>max_rss_kb</code> in <code>summary.tsv</code></td>
+<td>within 10%</td>
+</tr>
+</tbody>
+</table>
+<p>One command checks all three and returns a verdict:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/tools/vepyr-fix/compare_runs.py"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span><span class="s2">"</span><span class="nv">$BASE</span><span class="s2">/archive"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$FINAL</span><span class="s2">/archive"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+</span></code></pre></div>
+<p>Absolute path on purpose: step 2 leaves the shell in <code>$ROOT/e2e-testing/scripts</code>,
+and a relative path would resolve under that directory and fail before comparing
+anything. Guarding the sweeps the same way matters for the same reason — a
+<code>sweep</code> that propagates its status is no use if the caller discards it, which
+would let a failed warm-up be followed by a measured run that returns 0 for the
+whole block.</p>
+<p>Its exit status is the gate: 0 when every bar holds, 1 when any is exceeded, and
+nonzero rather than a pass when there is nothing to compare. It ends on a
+<code>VERDICT:</code> line, so the result is one thing to read rather than three tables to
+weigh up.</p>
+<p>All three metrics live in one command deliberately. Three separate tables and a
+human deciding is how a regression gets waved through, and every gate in this
+skill has to be able to fail on its own. The script sums each
+<code>(worker, stage, event, metric)</code> duration from the per-worker traces, ignores
+phases under 50 ms where relative swings are meaningless, and reads
+<code>annotation_seconds</code> and <code>max_rss_kb</code> per worker from <code>summary.tsv</code>. Two
+deliberate refusals: a phase present on only one side fails, because that is a
+shape change in the pipeline rather than noise; and an empty
+<code>annotation_seconds</code> is an error rather than a zero, because it means the run
+did not report, not that it was instant.</p>
+<p>A byte diff could not do this. Every <code>*_ms</code> value moves slightly between real
+runs, so exact equality rejects changes far below the 5% allowance, and the
+traces are per worker, so concatenating them would let a regression at 8 workers
+cancel against a speed-up at 1.</p>
+<p>Read RSS with the floor in mind. A large fixed allocation dominates the peak, so
+a change that adds real memory to the variable part can still come in under a
+percentage bar on the total. If RSS moved at all, say by how much in absolute
+terms rather than only as a ratio, and check whether it moved at one worker
+count and not the other — that asymmetry usually points at per-worker buffers
+rather than at a shared structure.</p>
+<p>Report the outcome as a table of baseline against final for both worker counts,
+and state plainly which gate passed and which did not. If wall time moved but no
+phase did, suspect the host rather than the change, and say that instead of
+claiming a win.</p>
+<h3 id="9-hand-off-for-human-review-do-not-merge">9. Hand off for human review — do not merge<a class="headerlink" href="#9-hand-off-for-human-review-do-not-merge" title="Permanent link">¶</a></h3>
+<p>Merging is the human's call, always, even when all three PRs are green and both
+gates passed. Green means the work is ready to be judged, not that it is
+approved. So take each PR out of draft, post the evidence, and stop:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>bash<span class="w"> </span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/tools/vepyr-fix/handoff.sh"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$PRS</span><span class="s2">"</span><span class="w"> </span>/tmp/handoff.md
+</span></code></pre></div>
+<p>This is a script rather than a block of shell in a document because the ordering
+is the whole point and it took three review rounds to get right. It runs five
+phases and exits nonzero at the first that fails:</p>
+<ol>
+<li><strong>Refuse while anything is red or running.</strong> Nothing leaves draft otherwise.</li>
+<li><strong>Snapshot, then mark ready.</strong> The current check-run set and the current bot
+   feedback are both recorded first.</li>
+<li><strong>Wait for the run that marking ready started.</strong> <code>ready_for_review</code> is one of
+   <code>claude-code-review.yml</code>'s trigger events, so a gate that runs before this
+   says nothing about the check it causes — and GitHub takes a moment to
+   register the new run, so a poll that accepts the first green rollup it sees
+   is reading the <em>previous</em> result. It waits for the check-run set to change
+   before accepting any green. A query failure aborts rather than retrying,
+   because half an hour of silent polling is what a broken credential looks like
+   otherwise.</li>
+<li><strong>Refuse if that run produced new feedback.</strong> A review can conclude green
+   while carrying a finding, so the check status cannot answer step 7's
+   requirement that nothing is left unanswered. The bot comment and review ids
+   are compared against the snapshot.</li>
+<li><strong>Only then post the hand-off comment.</strong></li>
+</ol>
+<p>Change it under test. <code>tools/vepyr-fix/tests/test_handoff.sh</code> drives all five
+phases against a stubbed <code>gh</code>, so the mutating ones can be exercised without
+touching a real pull request — which is why they were wrong for three rounds
+running. Run it after any edit:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>tools/vepyr-fix/tests/test_handoff.sh
+</span></code></pre></div>
+<p>The hand-off comment carries what a reviewer needs and cannot easily rederive:
+the baseline-against-final table for both worker counts, which gates passed,
+the md5 mode used, the commit each pin points at, and every bot finding with
+how it was addressed. Then say in the conversation that the PRs are ready and
+name what is left for a person to do:</p>
+<ul>
+<li>merge in dependency order, formats then functions then vepyr;</li>
+<li>after each merge, rewrite the downstream pin from the PR head to the <strong>merge
+  commit</strong>, so no merged tree points at a commit that only ever existed on a
+  branch.</li>
+</ul>
+<p>Leave both to them. Do not merge, do not enable auto-merge, and do not push the
+post-merge re-pin ahead of the merge it depends on. If the reviewer asks you to
+merge, that is a fresh instruction for that specific merge and does not
+generalise to the rest of the stack.</p>
+<h2 id="measurement-traps">Measurement traps<a class="headerlink" href="#measurement-traps" title="Permanent link">¶</a></h2>
+<p>Each of these has cost a full cycle before now.</p>
+<ul>
+<li><strong>The host is shared.</strong> A concurrent build elsewhere on the machine doubled
+  wall time and inflated CPU-seconds. Check <code>uptime</code> before trusting any
+  timing, and re-run rather than reasoning about a number taken under load.</li>
+<li><strong>Discard the first run.</strong> About 35% slow at 8 workers, every session.</li>
+<li><strong>Attribute by ablation, not by phase boundary.</strong> Deriving cause from RSS
+  deltas at phase boundaries produced four wrong attributions in one session.
+  Flip the flag and re-measure instead.</li>
+<li><strong>Peak RSS needs a subprocess per configuration.</strong> An in-process sweep reports
+  a cumulative high-water mark, not the cost of each configuration.
+  <code>run_vepyr_worker_scaling.py</code> already gets this right — it reads one child's
+  usage through <code>os.wait4</code> rather than <code>RUSAGE_CHILDREN</code>, which would carry every
+  earlier worker count's peak into the later ones, and it normalises the macOS
+  bytes against Linux kilobytes difference. So read <code>max_rss_kb</code> from its
+  <code>summary.tsv</code> instead of measuring memory yourself.</li>
+<li><strong>Prefer the trace to the wall.</strong> Phase durations settled in two runs what 24
+  whole-genome wall-clock runs could not.</li>
+<li><strong>Build the bookends identically.</strong> Same command, same <code>RUSTFLAGS</code>. A native
+  release build against a dev build is not a regression, it is a different
+  binary.</li>
+<li><strong>Numbers compare only within one host.</strong> The perf README documents server
+  paths under another user's home; those numbers are not comparable with this
+  Mac's.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer">
+        
+          
+          <a href="../../developers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Developers">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Developers
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../contact/" class="md-footer__link md-footer__link--next" aria-label="Next: Contact">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Contact
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.select", "content.code.annotate", "content.tabs.link", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.instant", "navigation.instant.progress"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>
