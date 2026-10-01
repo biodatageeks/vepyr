@@ -16,14 +16,11 @@ lf = vepyr.annotate(
 df = lf.collect()
 ```
 
-!!! tip "No columns selected means `everything`"
-    A frame created without annotation flags and collected without a
-    `select()` is the full VEP `--everything` result, provided a
-    `reference_fasta` is given. Without a FASTA the engine cannot compute
-    the HGVS and `everything`-only columns: they stay null and a warning
-    names them. Add a `select()` and only the flags its columns need are run, see
-    [below](#what-is-pushed-into-the-engine). Flags you pass explicitly are
-    honoured as given.
+!!! tip "Every column is the `--everything` value"
+    Annotation always runs Ensembl VEP `--everything`, so `reference_fasta`
+    is required and every column holds its `--everything` value. A
+    `select()` only decides how much work that takes, see
+    [below](#what-is-pushed-into-the-engine).
 
 ## Schema
 
@@ -42,6 +39,9 @@ Schema({
     'alt': String,
     'qual': Float64,
     'filter': String,
+    # the input's own INFO and FORMAT fields, named by their VCF ids
+    'DPSum': Int32, 'platforms': Int32, ..., 'GT': String, 'DP': Int32, ...,
+    '_vcf_info_keys': String, '_vcf_format_keys': String,   # record layout, see below
     'most_severe_consequence': String,
     'Allele': String,
     'Consequence': List(String),         # one element per CSQ entry, in CSQ order ...
@@ -118,7 +118,7 @@ Schema({
     'SOMATIC': String,
     'PHENO': String,
     'PUBMED': List(String),              # distinct values per variant
-    'MOTIF_NAME': List(String),          # per entry, MotifFeature entries only; everything only
+    'MOTIF_NAME': List(String),          # per entry, MotifFeature entries only
     'MOTIF_POS': List(Int64),
     'HIGH_INF_POS': List(String),
     'MOTIF_SCORE_CHANGE': List(Float32),
@@ -137,9 +137,18 @@ The 80 columns from `Allele` to `TRANSCRIPTION_FACTORS` are the CSQ fields in
 VCF header order. A `List` column that is aligned with `Consequence` has one
 element per CSQ entry; `Existing_variation`, `CLIN_SIG` and `PUBMED` hold the
 distinct values for the variant instead. Values that VEP repeats on every
-entry, such as the frequencies, are stored once as scalars. The input's other
-`INFO` fields and its sample columns are not in the frame; use `output_vcf`
-for those. Add `skip_csq=False` to get the raw `CSQ` string as a column.
+entry, such as the frequencies, are stored once as scalars. The input's `INFO`
+fields and its sample columns are carried too, named by their VCF ids; pass
+`info_fields=[]` and `format_fields=[]` for the 0.7 frame. An id that is also an
+annotation column arrives as `INFO_<id>` (`fmt_<id>` for FORMAT): `AF` is
+always VEP's. Add `skip_csq=False` to get the raw `CSQ` string as a column.
+
+`CSQ` is the one carried field this run can replace. Annotating an input that
+already has `INFO/CSQ` with `skip_csq=False` drops the input's, as Ensembl VEP
+and `output_vcf` do, so the frame carries this run's consequences and no
+`INFO_CSQ`. Without a CSQ of its own (`skip_csq=True`, the default) there is
+nothing to replace it with, and the input's is carried and written back
+untouched.
 
 To narrow the frame, `select()` the columns you need, see
 [below](#what-is-pushed-into-the-engine); the engine then only computes what
@@ -187,7 +196,7 @@ frame has.
 ## What is pushed into the engine
 
 The frame is backed by a Polars IO plugin that pulls Arrow batches from the
-native annotator. Three things reach the engine — the
+native annotator. Five things reach the engine — the
 [Polars pushdown diagram](architecture.md#polars-pushdown) shows how they
 travel from the query to the annotator:
 
@@ -195,25 +204,27 @@ travel from the query to the annotator:
 - **A `filter()` on `chrom`, `start` or `end`** restricts the input before
   annotation; see [Region filters](#region-filters) below.
 - **A narrowing `select()`**, together with the columns a pushed-down
-  `filter()` reads, decides the annotation flags. Only three groups of columns
-  depend on flags at all: `HGVSc` and `HGVSp` on `hgvs`; the co-located
-  columns (`Existing_variation`, `CLIN_SIG`, `SOMATIC`, `PHENO`, `PUBMED`, the
-  `AF` family and the cache-only columns) on `check_existing` and the `af`
-  flags; and the `everything`-only extras (`MANE`, `APPRIS`, `SIFT`,
-  `PolyPhen`, `DOMAINS`, `miRNA`, `HGVS_OFFSET`, the five motif columns and
-  the gnomAD sub-populations) on `everything`. A group nobody selected is switched off
-  for the run. A group a column needs is switched on when you gave no flags;
-  flags you did set are kept exactly as configured. HGVS and the `everything`
-  extras need `reference_fasta`, and selecting them without one raises rather
-  than returning nulls. The selected columns are value-identical to a run
-  with the flags spelled out.
+  `filter()` reads, decides how much of the work runs. The engine skips the
+  HGVS lookup when neither `HGVSc` nor `HGVSp` is needed, and the co-located
+  lookup when none of its columns (`Existing_variation`, `CLIN_SIG`,
+  `SOMATIC`, `PHENO`, `PUBMED`, the `AF` family and the cache-only columns)
+  is needed. Everything else `--everything` adds (`SIFT`, `PolyPhen`, `MANE`,
+  `DOMAINS`, the motif columns, the per-population gnomAD columns, …) runs
+  only when one of those columns is needed. The selected columns are
+  value-identical to a plain `collect()`.
+- **The input columns a query names** are the only ones parsed:
+  `select("chrom", "SYMBOL")` reads no `INFO` and no samples.
+- **The plugin columns a query names** decide which plugins run. Only the
+  plugins that own a column the query reads are looked up, and only their
+  columns are parsed out of `CSQ`: `select("chrom", "start", "CADD_PHRED")`
+  runs the CADD lookup and no other.
 
 Every other `filter()` is applied to each batch after annotation. It bounds
 memory, because a batch is dropped as soon as it has been reduced, but it does
 not reduce the engine's work. The raw `CSQ` string (`skip_csq=False`) needs every
-flag, so a query that reads it runs like a plain `collect()`: with the flags
-you gave, or the flagless default. Plugin lookups run only when the query
-reads a plugin column or `CSQ`.
+lookup and every configured plugin, so a query that reads it runs like a plain
+`collect()`. A query that reads neither `CSQ` nor a plugin column runs no plugin
+lookup at all.
 
 ```python
 preview = lf.head(20).collect()              # LIMIT 20 in the engine
@@ -224,16 +235,12 @@ high = (
       .collect()
 )                                            # runs without HGVS or the co-located lookup
 
-lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # no flags at all
-lf.select("chrom", "start", "HGVSc").collect()                    # hgvs only
-lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # the co-located lookup only
-lf.select("chrom", "start", "SIFT").collect()                     # everything
-lf.collect()                                                      # no projection: everything
+lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # neither HGVS nor co-located
+lf.select("chrom", "start", "HGVSc").collect()                    # HGVS, no co-located lookup
+lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # co-located lookup, no HGVS
+lf.select("chrom", "start", "SIFT").collect()                     # neither HGVS nor co-located
+lf.collect()                                                      # no projection: all of --everything
 ```
-
-Without a projection there is nothing to infer from, so the flags you passed
-are what runs, and a frame created without flags runs `everything` when it
-has a FASTA and the co-located lookup when it does not.
 
 On the release-116 Ensembl cache with a FASTA and `workers=1`, measured on an
 Apple Silicon M3 Max (16 cores, 64 GiB):
@@ -241,13 +248,13 @@ Apple Silicon M3 Max (16 cores, 64 GiB):
 | Input | Query | Wall time |
 |---|---|---|
 | chr22, 50,861 variants | `collect()` | 2.3 s |
-| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 1.2 s |
+| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 1.3 s |
 | | `select(chrom, start, HGVSc, HGVSp)` | 1.4 s |
-| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 1.9 s |
-| chr1, 323,430 variants | `collect()` | 15.2 s |
-| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 5.8 s |
-| | `select(chrom, start, HGVSc, HGVSp)` | 9.0 s |
-| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 14.2 s |
+| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 1.7 s |
+| chr1, 323,430 variants | `collect()` | 13.5 s |
+| | `select(chrom, start, ref, alt, SYMBOL, Consequence, IMPACT)` | 6.1 s |
+| | `select(chrom, start, HGVSc, HGVSp)` | 6.7 s |
+| | `select(chrom, start, Existing_variation, AF, MAX_AF, CLIN_SIG, PUBMED)` | 11.0 s |
 
 ### Region filters
 
@@ -283,17 +290,17 @@ to filter it before annotation, and only the selected rows are annotated. On Mer
 extra positional pass over each selected contig, which keeps the result
 byte-identical to a whole-file run.
 
-On the release-116 caches with a FASTA, `everything=True` and `workers=1`
+On the release-116 caches with a FASTA and `workers=1`
 (HG002 slices, indexed input), measured on an Apple Silicon M3 Max (16 cores, 64 GiB):
 
 | Input | Query | Ensembl | Merged | RefSeq |
 |---|---|---|---|---|
-| chr22, 50,861 variants | `collect()` | 2.6 s | 3.2 s | 2.0 s |
-| | `filter(chr22:20,000,000-25,000,000)`, 5,406 rows | 0.6 s | 1.3 s | 0.8 s |
-| | `filter(chr22:30,000,000-30,100,000)`, 59 rows | 0.1 s | 0.7 s | 0.5 s |
-| chr1, 323,430 variants | `collect()` | 17.0 s | 22.5 s | 14.9 s |
-| | `filter(chr1:20,000,000-25,000,000)`, 7,871 rows | 1.2 s | 2.9 s | 1.7 s |
-| | `filter(chr1:30,000,000-30,100,000)`, 275 rows | 0.6 s | 1.8 s | 1.1 s |
+| chr22, 50,861 variants | `collect()` | 2.3 s | 3.1 s | 1.7 s |
+| | `filter(chr22:20,000,000-25,000,000)`, 5,457 rows | 0.6 s | 1.2 s | 0.7 s |
+| | `filter(chr22:30,000,000-30,100,000)`, 60 rows | 0.2 s | 0.6 s | 0.4 s |
+| chr1, 323,430 variants | `collect()` | 12.8 s | 17.7 s | 11.8 s |
+| | `filter(chr1:20,000,000-25,000,000)`, 7,994 rows | 1.1 s | 2.3 s | 1.4 s |
+| | `filter(chr1:30,000,000-30,100,000)`, 278 rows | 0.7 s | 1.4 s | 0.9 s |
 
 ## One row per consequence
 
@@ -492,10 +499,11 @@ a frame with plugins: per-feature plugin lists explode alongside the
 transcript columns, per-variant scalars such as `CADD_PHRED` repeat on each
 row, like the frequencies do.
 
-A query that reads no plugin column skips the plugin lookup entirely. On
-chr22 with the four caches, `select(chrom, start, SYMBOL)` takes 1.2 s and
-`select(chrom, start, CADD_PHRED)` 8.4 s, so keep plugin columns out of
-queries that do not need them.
+A query that reads no plugin column skips the plugin lookup entirely, and one
+that reads plugin columns runs only the plugins that own them. On chr22 with
+the four caches, `select(chrom, start, SYMBOL)` takes 1.3 s and
+`select(chrom, start, CADD_PHRED)`, which runs the CADD lookup alone, 4.2 s,
+so keep plugin columns out of queries that do not need them.
 
 ## Workers
 
@@ -523,12 +531,13 @@ across worker counts and cache profiles.
 ## Writing results to disk
 
 `collect()` holds the whole result in memory. On chromosome 1 of a
-whole-genome sample (323,430 variants, `everything=True`) the collected frame
-is about 2.3 GB, but the process peaks at 12.6 GB because Polars buffers the
+whole-genome sample (323,430 variants) the collected frame
+is about 1.2 GB, but the process peaks at 8.4 GB because Polars buffers the
 Arrow batches on top of the frame. Two things bring that down.
 
-**Leave the `CSQ` string off.** It is off by default (`skip_csq=True`) and
-roughly halves peak memory. Turn it on only when you need the exact VEP string.
+**Leave the `CSQ` string off.** It is off by default (`skip_csq=True`); with it
+on, the chr1 frame more than doubles to 2.7 GB and `collect()` peaks about 2 GB
+higher. Turn it on only when you need the exact VEP string.
 
 **Stream with `sink_parquet` and a small row group.** Polars holds one row
 group in memory before writing it, and its default group is far larger than an
@@ -539,23 +548,25 @@ stream flat:
 lf.sink_parquet("annotated.parquet", row_group_size=5000)
 ```
 
-Measured on the release-116 Ensembl cache with `workers=1`:
+Measured on the release-116 Ensembl cache with `workers=1` (median of three
+runs after a warm-up, one process per run):
 
 | Input | Path | Wall time | Peak RSS |
 |---|---|---|---|
-| chr22, 50,861 variants | `output_vcf` (bgzf) | 3.9 s | 1.0 GB |
-| | `collect()` | 2.4 s | 1.6 GB |
-| | `sink_parquet()` default | 2.7 s | 2.1 GB |
-| | `sink_parquet(row_group_size=5000)` | 2.5 s | 1.3 GB |
-| chr1, 323,430 variants | `output_vcf` (bgzf) | 21.6 s | 2.9 GB |
-| | `collect()` | 15.3 s | 6.9 GB |
-| | `sink_parquet()` default | 15.8 s | 6.0 GB |
-| | `sink_parquet(row_group_size=5000)` | 16.5 s | 3.5 GB |
+| chr22, 50,861 variants | `output_vcf` (bgzf) | 3.5 s | 1.1 GB |
+| | `collect()` | 2.4 s | 1.9 GB |
+| | `sink_parquet()` default | 2.4 s | 2.5 GB |
+| | `sink_parquet(row_group_size=5000)` | 2.3 s | 1.5 GB |
+| chr1, 323,430 variants | `output_vcf` (bgzf) | 17.9 s | 3.3 GB |
+| | `collect()` | 12.6 s | 8.4 GB |
+| | `sink_parquet()` default | 12.6 s | 6.6 GB |
+| | `sink_parquet(row_group_size=5000)` | 12.4 s | 3.8 GB |
 
 With `skip_csq=False` add roughly 1 GB on chr1 for the small-row-group sink and
-5 GB for `collect()`. The engine itself needs about 3 GB on chr1 whichever
-output you choose, so the small-row-group sink is within half a gigabyte of the
-VCF writer. Wall time is unaffected and the Parquet file grows by about 6 %.
+2 GB for `collect()`, and about 1.5 s of wall time to either. The engine itself
+needs about 3 GB on chr1 whichever output you choose, so the small-row-group
+sink is within half a gigabyte of the VCF writer. The small row group costs no
+wall time; the Parquet file grows by about 7 %.
 
 List columns cannot be written to CSV directly. Join them with `&` first, on
 the wide frame or on the long frame, where the per-variant value sets are the
@@ -570,10 +581,62 @@ join_lists(df).write_csv("annotated.tsv", separator="\t")
 join_lists(consequence_rows(df)).write_csv("annotated_long.tsv", separator="\t")
 ```
 
+## Writing a filtered VCF
+
+Filter the frame in Polars and write it back as VCF with
+[polars-bio](https://biodatageeks.org/polars-bio/)'s `sink_vcf`:
+
+```bash
+pip install "vepyr[polars-bio]"    # polars-bio >= 0.36.0, Python 3.11+
+```
+
+```python
+import polars as pl
+import polars_bio as pb
+import vepyr
+
+lf = vepyr.annotate(
+    "HG002.vcf.gz",
+    cache_dir,
+    reference_fasta="GRCh38.fa",
+    skip_csq=False,           # the CSQ column is what gets written
+)
+rare_damaging = lf.filter(
+    pl.col("IMPACT").list.contains("HIGH")
+    & (pl.col("MAX_AF").is_null() | (pl.col("MAX_AF") < 0.01))
+    & (pl.col("DP") >= 20)
+)
+pb.sink_vcf(rare_damaging, "rare_damaging.vcf")
+```
+
+The file is what `output_vcf` would have written, minus the rows you filtered
+out. On HG002 chr22 against the release-116 cache the unfiltered body has the
+same md5 as `output_vcf`'s, which passes the strict md5 gate against Ensembl
+VEP, and every line of a filtered file is byte-identical to its `output_vcf`
+line. The header is the input's own, line for line, followed by vepyr's
+provenance and the `CSQ` declaration; its command-line line records the
+annotation but has no `output` or `compression`, and it does not record what you
+did to the frame afterwards.
+
+That relies on three things:
+
+- **`skip_csq=False`.** Without the `CSQ` column there is nothing to write.
+- **The record layout.** `_vcf_info_keys` and `_vcf_format_keys` hold each
+  record's own INFO key order and FORMAT key list, which the typed columns
+  cannot: every record carries every declared key, and a `.` value parses to
+  the same null as an absent key. They are carried by default and have to stay
+  in the frame; a `select()` that drops them writes keys in header order and
+  leaves out a FORMAT key that is missing in every sample. Pass
+  `preserve_record_layout=False` to leave them out altogether. The default does
+  without them for BCF input and for a file that declares a field with either
+  name; asking for them with `True` raises there instead.
+- **Canonical values.** Values go through typed columns, so `QUAL` `50.0` is
+  written `50` and `AF=0.50` as `0.5` — as `output_vcf` does too.
+
 ## Agreement with the VCF output
 
 The DataFrame and VCF paths run the same engine. On chr22 and chr1 of HG002
-against the release-116 Ensembl cache with `everything=True`, the `CSQ`
+against the release-116 Ensembl cache, the `CSQ`
 column (`skip_csq=False`) matched the VCF's `INFO/CSQ` byte for byte on every
 record, the variant columns matched `CHROM`, `POS`, `ID`, `REF`, `ALT`, `QUAL`
 and `FILTER`, and every typed column matched its CSQ field element for element,

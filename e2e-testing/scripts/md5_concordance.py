@@ -14,6 +14,12 @@ Two modes, same digest pipeline:
       Hashes the record bytes as-is. This is the eventual parity target: it
       passes only once vepyr reproduces VEP's serialization exactly.
 
+Either mode can additionally ignore the order of CSQ entries within a record
+(``--ignore-csq-order``). This is for --per_gene and --pick_allele_gene, where
+Ensembl VEP emits the selected entries by iterating Perl hashes, so their order
+changes between two VEP runs on the same input (vepyr#138). Entries are sorted,
+not deduplicated, so a missing or extra entry still differs.
+
 Headers are hashed separately from the body in both modes, because VEP appends
 run-specific provenance (``##VEP=`` carries a timestamp) that never matches and
 is not meant to.
@@ -92,6 +98,30 @@ def normalize_qual(value: str) -> str:
     return str(int(q)) if q == int(q) else repr(q)
 
 
+def sort_csq_entries(line: str) -> str:
+    """Sort the comma-separated CSQ entries of one VCF data line.
+
+    Only the order of entries changes; each entry's bytes, and everything
+    outside the CSQ value, are left exactly as they were. The line ending is
+    set aside first: in a sites-only VCF, INFO is the last column and would
+    otherwise carry the newline into its final CSQ entry.
+    """
+    body = line.rstrip("\n")
+    ending = line[len(body) :]
+    cols = body.split("\t")
+    if len(cols) < 8:
+        return line
+    info = cols[7].split(";")
+    for i, kv in enumerate(info):
+        if kv.startswith("CSQ="):
+            info[i] = "CSQ=" + ",".join(sorted(kv[4:].split(",")))
+            break
+    else:
+        return line
+    cols[7] = ";".join(info)
+    return "\t".join(cols) + ending
+
+
 def canonical_record(line: str) -> str:
     """Canonicalize one VCF data line.
 
@@ -137,8 +167,12 @@ class Digest:
     header_lines: int
 
 
-def digest_vcf(path: str, mode: str) -> Digest:
-    """Hash a VCF's header and body separately under `mode`."""
+def digest_vcf(path: str, mode: str, ignore_csq_order: bool = False) -> Digest:
+    """Hash a VCF's header and body separately under `mode`.
+
+    With `ignore_csq_order`, CSQ entries are sorted within each record before
+    hashing, in either mode.
+    """
     header = hashlib.md5()
     body = hashlib.md5()
     records = 0
@@ -153,6 +187,8 @@ def digest_vcf(path: str, mode: str) -> Digest:
                 header.update(line.encode())
                 continue
             records += 1
+            if ignore_csq_order:
+                line = sort_csq_entries(line)
             if mode == "strict":
                 body.update(line.encode())
             else:
@@ -189,6 +225,10 @@ def classify_difference(vep_line: str, vepyr_line: str) -> list[str]:
                 out.append(
                     f"INFO KEYS (-{sorted(set(ax) - set(by))} +{sorted(set(by) - set(ax))})"
                 )
+            elif [k for k in ax if ax[k] != by[k]] == ["CSQ"] and sorted(
+                ax["CSQ"][4:].split(",")
+            ) == sorted(by["CSQ"][4:].split(",")):
+                out.append("CSQ order")
             elif any(ax[k] != by[k] for k in ax):
                 out.append("INFO VALUES")
             else:
@@ -329,9 +369,13 @@ def discover_pairs(results_dir: Path, vep_glob: str, vepyr_glob: str) -> list[Pa
 # --------------------------------------------------------------------------
 
 
-def compare(pair: Pair, mode: str) -> Result:
+def compare(pair: Pair, mode: str, ignore_csq_order: bool = False) -> Result:
     """Digest both sides of `pair` and note any structural mismatch."""
-    result = Result(pair, digest_vcf(pair.vep, mode), digest_vcf(pair.vepyr, mode))
+    result = Result(
+        pair,
+        digest_vcf(pair.vep, mode, ignore_csq_order),
+        digest_vcf(pair.vepyr, mode, ignore_csq_order),
+    )
     if not result.count_match:
         result.notes.append(
             f"record count {result.vep.records} vs {result.vepyr.records}"
@@ -382,6 +426,13 @@ def main(argv: list[str] | None = None) -> int:
         help="canonical normalizes cosmetic serialization first (default); "
         "strict hashes record bytes as-is.",
     )
+    parser.add_argument(
+        "--ignore-csq-order",
+        action="store_true",
+        help="Sort CSQ entries within each record before hashing. For "
+        "--per_gene / --pick_allele_gene, whose VEP entry order is not "
+        "reproducible between runs.",
+    )
     parser.add_argument("--vep-glob", default=DEFAULT_VEP_GLOB)
     parser.add_argument("--vepyr-glob", default=DEFAULT_VEPYR_GLOB)
     parser.add_argument(
@@ -413,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"{args.vep_glob!r} and {args.vepyr_glob!r}"
                 )
 
-        results = [compare(pair, args.mode) for pair in pairs]
+        results = [compare(pair, args.mode, args.ignore_csq_order) for pair in pairs]
     except ConcordanceError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -422,6 +473,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print_table(results, args.mode)
+    if args.ignore_csq_order:
+        print("  CSQ entry order ignored (--ignore-csq-order)")
 
     mismatched = [r for r in results if not r.body_match]
 

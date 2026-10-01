@@ -133,7 +133,8 @@ the uncompressed copy:
 
 ### 4. Reference FASTA
 
-Needed by both tools for HGVS notation (`--hgvs` / `reference_fasta=`):
+Needed by both tools for HGVS notation (`--hgvs` / `reference_fasta=`, which
+vepyr always requires):
 
 ```bash
 cd "$DATA_VEPYR_DIR/input"

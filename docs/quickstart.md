@@ -175,6 +175,77 @@ the other entities untouched.
 
 ## Annotating variants
 
+### Annotation mode: Ensembl VEP `--everything`
+
+vepyr always annotates the way Ensembl VEP does with `--everything`. It cannot
+be turned off, and there are no per-feature flags such as `hgvs=`, `af=` or
+`check_existing=`: every run produces the full `--everything` result. HGVS
+notation needs the reference sequence, so `reference_fasta=` (`--fasta` on the
+command line) is required.
+
+In Ensembl VEP, `--everything` is a shortcut: it switches on a fixed set of
+other flags (`@OPTION_SETS` in
+[`Config.pm`](https://github.com/Ensembl/ensembl-vep/blob/release/116/modules/Bio/EnsEMBL/VEP/Config.pm);
+the set is identical in releases 115 and 116). These are the flags it enables,
+with the `CSQ` fields each one adds:
+
+| Ensembl VEP flag | `CSQ` fields |
+|---|---|
+| `--sift b` | `SIFT` (prediction and score) |
+| `--polyphen b` | `PolyPhen` (prediction and score) |
+| `--hgvs` | `HGVSc`, `HGVSp`, `HGVS_OFFSET` |
+| `--symbol` | `SYMBOL`, `SYMBOL_SOURCE`, `HGNC_ID` |
+| `--numbers` | `EXON`, `INTRON` |
+| `--biotype` | `BIOTYPE` |
+| `--canonical` | `CANONICAL` |
+| `--mane` | `MANE`, `MANE_SELECT`, `MANE_PLUS_CLINICAL` |
+| `--tsl` | `TSL` |
+| `--appris` | `APPRIS` |
+| `--ccds` | `CCDS` |
+| `--protein` | `ENSP` |
+| `--uniprot` | `SWISSPROT`, `TREMBL`, `UNIPARC`, `UNIPROT_ISOFORM` |
+| `--domains` | `DOMAINS` |
+| `--mirna` | `miRNA` |
+| `--variant_class` | `VARIANT_CLASS` |
+| `--gene_phenotype` | `GENE_PHENO` |
+| `--regulatory` | regulatory and motif consequences; `MOTIF_NAME`, `MOTIF_POS`, `HIGH_INF_POS`, `MOTIF_SCORE_CHANGE`, `TRANSCRIPTION_FACTORS` |
+| `--af` | `AF` |
+| `--af_1kg` | `AF`, `AFR_AF`, `AMR_AF`, `EAS_AF`, `EUR_AF`, `SAS_AF` |
+| `--af_gnomade` | `gnomADe_AF` and the per-population `gnomADe_*_AF` |
+| `--af_gnomadg` | `gnomADg_AF` and the per-population `gnomADg_*_AF` |
+| `--max_af` | `MAX_AF`, `MAX_AF_POPS` |
+| `--pubmed` | `PUBMED` |
+
+Some of those flags imply others in turn, through the same option sets:
+
+- `--hgvs` implies `--hgvsc` and `--hgvsp`. Adding `--hgvs` to an
+  `--everything` command line, as the Ensembl VEP reference runs in
+  [Testing vs Ensembl VEP](testing-vep.md) do, changes nothing.
+- `--af`, `--af_1kg`, `--af_gnomade`, `--af_gnomadg`, `--max_af` and `--pubmed`
+  each imply `--check_existing`. It fills the base `Existing_variation` field
+  and adds `CLIN_SIG`, `SOMATIC` and `PHENO`.
+
+A field that two flags list (`AF`, or `BIOTYPE`, which `--regulatory` also
+lists) appears once. The field lists follow Ensembl VEP's `FLAG_FIELDS` in
+[`Constants.pm`](https://github.com/Ensembl/ensembl-vep/blob/release/116/modules/Bio/EnsEMBL/VEP/Constants.pm).
+
+`--everything` does not set the HGVS formatting options. 3' shifting of HGVS
+indels is on by default in Ensembl VEP as well, and `--shift_hgvs 0`,
+`--no_escape`, `--remove_hgvsp_version` and `--hgvsp_use_prediction` change the
+notation. vepyr keeps these four as `annotate()` parameters (`shift_hgvs=False`,
+`no_escape=`, `remove_hgvsp_version=`, `hgvsp_use_prediction=`).
+
+`--everything` also leaves some things out. Transcript selection (`--pick` and
+its variants, `--gencode_basic`, `--exclude_predicted`, …), frequency filtering
+(`--check_frequency`, `--filter_common`), `--custom` annotations and plugins
+are separate options, both in Ensembl VEP and in vepyr. Ensembl VEP also drops
+the frequency and PubMed flags when `--everything` is combined with
+`--database`; vepyr always reads a local cache, so that never applies.
+
+The resulting `CSQ` layout has 80 fields for an `ensembl` cache, and more for
+`refseq` and `merged` caches, which add a transcript-source block. See
+[CSQ output fields](caches.md#csq-output-fields) for the exact order.
+
 ### Normalize the input VCF first
 
 !!! warning "vepyr supports normalized VCFs only"
@@ -201,7 +272,6 @@ import vepyr
 out_path = vepyr.annotate(
     vcf="input.vcf.gz",
     cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    everything=True,
     reference_fasta="GRCh38.fa",
     output_vcf="annotated.vcf.gz",  # .vcf.gz for bgzf, .vcf for plain
 )
@@ -215,6 +285,12 @@ replacement wherever a VEP VCF is expected. Only the provenance header lines
 The e2e suite verifies this by hashing the record bodies of both files; see
 [Checking byte-level agreement](testing-vep.md#checking-byte-level-agreement).
 
+The input's own `INFO` keys and sample columns are written back unchanged, also
+when a key shares a name with a VEP field: an input `AF=` from gnomAD or
+`bcftools +fill-tags` stays as it was, and VEP's frequency is inside `CSQ`. An
+input that already carries `CSQ` has it replaced, as Ensembl VEP does: the old
+key and its header line are dropped and the new `CSQ` is appended last.
+
 ### Annotating to a Polars LazyFrame
 
 Omit `output_vcf` and `annotate()` returns a Polars LazyFrame instead:
@@ -225,30 +301,16 @@ import vepyr
 lf = vepyr.annotate(
     vcf="input.vcf.gz",
     cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    check_existing=True,
-    af=True,
-    max_af=True,
+    reference_fasta="GRCh38.fa",
 )
 
 df = lf.collect()
 print(df.select("chrom", "start", "ref", "alt", "most_severe_consequence").head())
 ```
 
-### Full `--everything` mode
-
-Enable all annotation features (80-field CSQ). Requires a reference FASTA:
-
-```python
-lf = vepyr.annotate(
-    vcf="input.vcf.gz",
-    cache_dir="/data/vepyr_cache/parquet/115_GRCh38_ensembl",
-    everything=True,
-    reference_fasta="GRCh38.fa",
-)
-
-df = lf.collect()
-print(f"{df.height} variants x {df.width} columns")
-```
+Annotation always runs Ensembl VEP `--everything`, so `reference_fasta` is
+required on both paths and there are no per-feature flags to switch on; see
+[Annotation mode](#annotation-mode-ensembl-vep-everything) for what it enables.
 
 `workers` controls how many within-contig annotation pipelines run
 concurrently, on both the LazyFrame and the `output_vcf` path. It requires a
@@ -259,6 +321,7 @@ tabix-indexed (bgzip + `.tbi` or `.csi`) input VCF. Output is identical to
 df = vepyr.annotate(
     "input.vcf.gz",
     "/data/vepyr_cache/parquet/115_GRCh38_ensembl",
+    reference_fasta="GRCh38.fa",
     workers=4,
 ).collect()
 ```
@@ -276,7 +339,6 @@ vepyr annotate \
     -o annotated.vcf.gz \
     --dir_cache ~/vepyr_cache/116_GRCh38_merged \
     --fasta GRCh38.fa \
-    --everything \
     --fork 8
 ```
 

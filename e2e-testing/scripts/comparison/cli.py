@@ -305,6 +305,16 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
     total = sum(
         payload.get(modes[0], {}).get("vep_records") or 0 for _, payload in rows
     )
+    if any(
+        entry.get("csq_order_ignored")
+        for _, payload in rows
+        for entry in payload.values()
+        if isinstance(entry, dict)
+    ):
+        print(
+            "  CSQ entry order ignored: VEP's order for this profile is not "
+            "reproducible between runs (vepyr#138)"
+        )
     if missing:
         print(f"  no md5 evidence for: {', '.join(missing)}")
     if incomplete:
@@ -322,12 +332,16 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
     return differing + missing + incomplete
 
 
-def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested):
+def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested, ignore_csq_order=False):
     """Hash one contig's vepyr output against its VEP reference slice.
 
     Delegates to `md5_concordance` rather than re-implementing the digest, so
     the verdict here and the verdict from `md5_concordance.py --results-dir`
     cannot drift. Returns `{mode: {...}}`, printing one line per mode.
+
+    `ignore_csq_order` is the profile's flag: VEP's CSQ entry order for
+    per_gene / pick_allele_gene is not reproducible between VEP runs
+    (vepyr#138), so those profiles hash CSQ entries order-insensitively.
     """
     import md5_concordance
 
@@ -335,7 +349,7 @@ def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested):
     pair = md5_concordance.Pair(label=chrom, vep=vep_slice, vepyr=vepyr_vcf)
     out = {}
     for mode in modes:
-        outcome = md5_concordance.compare(pair, mode)
+        outcome = md5_concordance.compare(pair, mode, ignore_csq_order)
         out[mode] = {
             "body_match": outcome.body_match,
             "header_match": outcome.header_match,
@@ -345,6 +359,7 @@ def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested):
             "vep_records": outcome.vep.records,
             "vepyr_records": outcome.vepyr.records,
             "notes": list(outcome.notes),
+            "csq_order_ignored": ignore_csq_order,
         }
         verdict = "MATCH" if outcome.body_match else "DIFFER"
         counts = (
@@ -352,7 +367,8 @@ def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested):
             if outcome.count_match
             else f"{outcome.vep.records:,} vs {outcome.vepyr.records:,}"
         )
-        print(f"  md5 {mode}: body {verdict} ({counts} records)")
+        label = f"{mode}, CSQ order ignored" if ignore_csq_order else mode
+        print(f"  md5 {label}: body {verdict} ({counts} records)")
         if not outcome.body_match:
             for note in outcome.notes:
                 print(f"    - {note}")
@@ -436,7 +452,13 @@ def run_contig(
 
     md5_result = None
     if not args.skip_compare and args.comparison_mode == "md5":
-        md5_result = md5_for_contig(chrom, vep_slice, output_vcf, args.md5_mode)
+        md5_result = md5_for_contig(
+            chrom,
+            vep_slice,
+            output_vcf,
+            args.md5_mode,
+            ignore_csq_order=resolved.ignore_csq_order,
+        )
 
     result = {
         "chrom": chrom,

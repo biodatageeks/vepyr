@@ -65,3 +65,146 @@ def test_provenance_lines_never_reach_the_body_digest(tmp_path):
 
     assert vep.body == vepyr.body
     assert vep.records == vepyr.records == 1
+
+
+# Ensembl VEP emits the selected CSQ entries of --per_gene and --pick_allele_gene
+# by iterating Perl hashes, so their order changes from one VEP run to the next
+# (vepyr#138). Profiles marked ignore_csq_order hash them order-insensitively.
+TWO_GENE_CSQ = "T|missense|GENE_A,T|intron|GENE_B"
+SWAPPED_CSQ = "T|intron|GENE_B,T|missense|GENE_A"
+
+
+def record_with_csq(csq: str, info_prefix: str = "DP=1;") -> str:
+    return f"chr21\t100\t.\tA\tT\t50\tPASS\t{info_prefix}CSQ={csq}\tGT\t0/1\n"
+
+
+def test_csq_entry_order_differs_by_default(tmp_path):
+    for mode in ("strict", "canonical"):
+        vep = mc.digest_vcf(
+            write(tmp_path, "vep.vcf", VEP_HEADER, record_with_csq(TWO_GENE_CSQ)),
+            mode,
+        )
+        vepyr = mc.digest_vcf(
+            write(tmp_path, "vepyr.vcf", VEPYR_HEADER, record_with_csq(SWAPPED_CSQ)),
+            mode,
+        )
+        assert vep.body != vepyr.body, mode
+
+
+def test_ignore_csq_order_matches_reordered_entries(tmp_path):
+    for mode in ("strict", "canonical"):
+        vep = mc.digest_vcf(
+            write(tmp_path, "vep.vcf", VEP_HEADER, record_with_csq(TWO_GENE_CSQ)),
+            mode,
+            ignore_csq_order=True,
+        )
+        vepyr = mc.digest_vcf(
+            write(tmp_path, "vepyr.vcf", VEPYR_HEADER, record_with_csq(SWAPPED_CSQ)),
+            mode,
+            ignore_csq_order=True,
+        )
+        assert vep.body == vepyr.body, mode
+
+
+def test_ignore_csq_order_still_catches_a_content_difference(tmp_path):
+    changed = "T|intron|GENE_B,T|synonymous|GENE_A"
+    for mode in ("strict", "canonical"):
+        vep = mc.digest_vcf(
+            write(tmp_path, "vep.vcf", VEP_HEADER, record_with_csq(TWO_GENE_CSQ)),
+            mode,
+            ignore_csq_order=True,
+        )
+        vepyr = mc.digest_vcf(
+            write(tmp_path, "vepyr.vcf", VEPYR_HEADER, record_with_csq(changed)),
+            mode,
+            ignore_csq_order=True,
+        )
+        assert vep.body != vepyr.body, mode
+
+
+def test_ignore_csq_order_keeps_a_missing_or_duplicated_entry_visible(tmp_path):
+    """Sorting must not collapse duplicates: an extra copy of an entry is a
+    content difference, not an order difference."""
+    duplicated = "T|missense|GENE_A,T|intron|GENE_B,T|intron|GENE_B"
+    vep = mc.digest_vcf(
+        write(tmp_path, "vep.vcf", VEP_HEADER, record_with_csq(TWO_GENE_CSQ)),
+        "strict",
+        ignore_csq_order=True,
+    )
+    vepyr = mc.digest_vcf(
+        write(tmp_path, "vepyr.vcf", VEPYR_HEADER, record_with_csq(duplicated)),
+        "strict",
+        ignore_csq_order=True,
+    )
+    assert vep.body != vepyr.body
+
+
+def test_ignore_csq_order_leaves_everything_but_csq_byte_exact_in_strict(tmp_path):
+    """Only the CSQ entry order is relaxed; strict must still see other INFO
+    key order, which canonical mode normalises separately."""
+    vep = mc.digest_vcf(
+        write(
+            tmp_path,
+            "vep.vcf",
+            VEP_HEADER,
+            record_with_csq(TWO_GENE_CSQ, "DP=1;AF=0.5;"),
+        ),
+        "strict",
+        ignore_csq_order=True,
+    )
+    vepyr = mc.digest_vcf(
+        write(
+            tmp_path,
+            "vepyr.vcf",
+            VEPYR_HEADER,
+            record_with_csq(SWAPPED_CSQ, "AF=0.5;DP=1;"),
+        ),
+        "strict",
+        ignore_csq_order=True,
+    )
+    assert vep.body != vepyr.body
+
+
+def test_sort_csq_entries_handles_csq_as_the_only_or_middle_key():
+    assert mc.sort_csq_entries(record_with_csq(TWO_GENE_CSQ, "")) == record_with_csq(
+        SWAPPED_CSQ, ""
+    )
+    middle = "chr21\t100\t.\tA\tT\t50\tPASS\tDP=1;CSQ=b,a;AF=1\tGT\t0/1\n"
+    assert mc.sort_csq_entries(middle) == (
+        "chr21\t100\t.\tA\tT\t50\tPASS\tDP=1;CSQ=a,b;AF=1\tGT\t0/1\n"
+    )
+    no_csq = "chr21\t100\t.\tA\tT\t50\tPASS\tDP=1\tGT\t0/1\n"
+    assert mc.sort_csq_entries(no_csq) == no_csq
+
+
+def test_explain_names_a_csq_order_difference():
+    vep = record_with_csq(TWO_GENE_CSQ).rstrip("\n")
+    vepyr = record_with_csq(SWAPPED_CSQ).rstrip("\n")
+    assert mc.classify_difference(vep, vepyr) == ["CSQ order"]
+
+
+def test_compare_passes_ignore_csq_order_through(tmp_path):
+    pair = mc.Pair(
+        "chr21",
+        write(tmp_path, "vep.vcf", VEP_HEADER, record_with_csq(TWO_GENE_CSQ)),
+        write(tmp_path, "vepyr.vcf", VEPYR_HEADER, record_with_csq(SWAPPED_CSQ)),
+    )
+    assert not mc.compare(pair, "strict").body_match
+    assert mc.compare(pair, "strict", ignore_csq_order=True).body_match
+
+
+def test_ignore_csq_order_in_a_sites_only_vcf(tmp_path):
+    """No FORMAT/sample columns: INFO is last and ends with the newline."""
+    sites = "chr21\t100\t.\tA\tT\t50\tPASS\tCSQ={}\n"
+    for mode in ("strict", "canonical"):
+        vep = mc.digest_vcf(
+            write(tmp_path, "vep.vcf", VEP_HEADER, sites.format(TWO_GENE_CSQ)),
+            mode,
+            ignore_csq_order=True,
+        )
+        vepyr = mc.digest_vcf(
+            write(tmp_path, "vepyr.vcf", VEPYR_HEADER, sites.format(SWAPPED_CSQ)),
+            mode,
+            ignore_csq_order=True,
+        )
+        assert vep.body == vepyr.body, mode

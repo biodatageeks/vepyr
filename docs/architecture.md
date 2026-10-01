@@ -95,18 +95,23 @@ The LazyFrame is backed by a Polars io source, so the optimizer hands vepyr the
 query's projection, its pushable predicate, and any row limit before annotation
 starts. Each one narrows the work the engine is asked to do:
 
-- **Column pruning drives the flags.** The projection, the columns the predicate
-  reads, and the fields a selected plugin's match templates need form one set of
-  needed columns. Only three flag groups depend on it — HGVS, co-located
-  variants, and the `everything` extras: a group nobody selected has its flags
-  removed so the engine skips it, and a group the caller did not mention is
-  switched on when a column needs it. HGVS and the `everything` extras require
-  `reference_fasta`, so asking for them without one raises rather than yielding
-  a column of nulls. Passing `fields=` already fixes the layout, so combining
+- **Column pruning decides the work, not the values.** Annotation always runs
+  `--everything`, and every column holds its `--everything` value. The
+  projection, the columns the predicate reads, and the fields a selected
+  plugin's match templates need form one set of needed columns; when none of
+  them needs HGVS or the co-located lookup (`Existing_variation`, frequencies,
+  `PUBMED`, …), or any column only `--everything` fills (`SIFT`, `MANE`,
+  motifs, …), the engine skips that work, leaving the selected values
+  unchanged. Passing `fields=` already fixes the layout, so combining
   it with a `select()` raises rather than letting one silently win.
 - **The CSQ string is built on demand.** A query that reads neither `CSQ` nor a
   plugin column gets neither the string nor the plugin lookup, since plugin
-  values only ever reach the frame through it.
+  values only ever reach the frame through it. A query that reads plugin
+  columns but not `CSQ` hands the engine only the plugins that own them, in
+  their configured order; `CSQ` is split once per batch and only the columns
+  the query reads are parsed out of it.
+- **Input columns are parsed on demand.** The input's `INFO` fields and sample
+  columns are read only when the query names them.
 - **Genomic coordinates become regions.** `chrom`, `start` and `end` conjuncts
   are extracted into engine `regions`, so unselected contigs are never prepared
   and an indexed input is read by seek; a predicate that selects nothing skips
@@ -119,7 +124,6 @@ only narrow what the engine reads — never change the result.
 ### Memory model
 
 - **Streaming**: annotation results are streamed as Arrow `RecordBatch`es — full datasets are never materialized in memory
-- **Cache**: the annotation engine maintains an LRU cache (`cache_size_mb`, default 1 GB) for transcript/variation data
 - **Zero-copy**: Python receives PyArrow batches via zero-copy transfer from Rust
 
 ## Technology stack

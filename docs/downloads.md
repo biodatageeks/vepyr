@@ -174,7 +174,6 @@ Then annotate as usual, pointing `cache_dir` at the cache directory itself:
 lf = vepyr.annotate(
     vcf="sample.vcf.gz",
     cache_dir=cache,
-    everything=True,
     reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
 )
 print(lf.head().collect())
@@ -312,7 +311,6 @@ import vepyr
 lf = vepyr.annotate(
     vcf="sample.vcf.gz",
     cache_dir=os.path.expanduser("~/vepyr_cache/116_GRCh38_merged"),
-    everything=True,
     reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
     plugin_cache_root=os.path.expanduser("~/vepyr_plugin_cache"),
 )

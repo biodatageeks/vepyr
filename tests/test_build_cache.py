@@ -15,6 +15,8 @@ from vepyr._core import build_cache as _build_cache
 
 TESTS_DIR = Path(__file__).parent
 ENSEMBL_CACHE_DIR = TESTS_DIR / "data" / "ensembl_cache"
+# sample.vcf is chr22; annotation always runs --everything, which needs a FASTA.
+CHR22_FASTA = str(TESTS_DIR / "data" / "hg002_chr22" / "chr22.fa.gz")
 
 
 def read_vcf_data_lines(path: Path) -> list[str]:
@@ -978,7 +980,7 @@ class TestBuildCacheIntegration:
         vepyr.annotate(
             str(input_vcf),
             out,
-            check_existing=True,
+            reference_fasta=CHR22_FASTA,
             output_vcf=str(serial_vcf),
             show_progress=False,
             workers=1,
@@ -997,7 +999,7 @@ class TestBuildCacheIntegration:
         vepyr.annotate(
             str(indexed_vcf),
             out,
-            check_existing=True,
+            reference_fasta=CHR22_FASTA,
             output_vcf=str(parallel_vcf),
             show_progress=False,
             workers=2,

@@ -16,8 +16,6 @@ nextflow_process {
     tag "vep_parity"
 
     test("homo_sapiens - hg002 chr22 - everything - matches Ensembl VEP 116") {
-        config "../../modules/nf-core/vepyr/annotate/tests/nextflow.config"
-
         when {
             process {
                 """

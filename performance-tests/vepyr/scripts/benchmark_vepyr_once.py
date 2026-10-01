@@ -167,11 +167,9 @@ def main() -> int:
         lf = vepyr.annotate(
             vcf=str(args.input_vcf),
             cache_dir=str(args.cache_dir),
-            everything=True,
             reference_fasta=str(args.reference_fasta),
             compression=args.compression,
             workers=args.workers,
-            hgvs=True,
             output_vcf=str(args.output_vcf),
             preserve_record_layout=args.preserve_record_layout == "on",
         )

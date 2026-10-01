@@ -30,7 +30,7 @@ nextflow_workflow {
         }
     }
 
-    test("homo_sapiens - vcf - normalize - everything") {
+    test("homo_sapiens - vcf - normalize") {
 
         when {
             workflow {
@@ -65,7 +65,7 @@ nextflow_workflow {
         }
     }
 
-    test("homo_sapiens - vcf - no normalize - everything") {
+    test("homo_sapiens - vcf - no normalize") {
 
         when {
             workflow {
