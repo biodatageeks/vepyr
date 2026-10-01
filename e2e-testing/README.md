@@ -4,6 +4,106 @@ Release-qualified end-to-end annotation benchmarks comparing vepyr with the
 exact Ensembl VEP 115.2 and 116.0 codebases on the full HG002 GRCh38 WGS
 dataset (4,096,123 variants across chr1–22).
 
+## Reviewer chr22 sanity check
+
+[`scripts/reviewer_chr22.py`](scripts/reviewer_chr22.py) is the self-contained
+release-116 check for paper reviewers. Follow the [Docker commands in the main
+README](../README.md#reproduce-the-chr22-comparison). Docker runs the published
+**vepyr 0.9.0** wheel for the host architecture (Linux amd64 or arm64), not a
+local source build. The image also contains `hf`, Git LFS, `bcftools`, `bgzip`
+and `tabix`. Only Git and Docker are needed on the host.
+
+For a fresh checkout, avoid downloading unrelated LFS test caches:
+
+```bash
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/biodatageeks/vepyr.git
+cd vepyr
+```
+
+Use an HTTPS clone so the container can retrieve public LFS objects without
+host SSH credentials. Keep the repository mount writable for that initial
+fetch. The script copies input files into the work directory before indexing
+them, leaving the checked-in fixtures unchanged.
+
+The default run checks these ten profiles, in separate processes:
+
+```text
+ensembl                         merged
+refseq                          merged_flag_pick
+merged_flag_pick_allele          merged_flag_pick_allele_gene
+merged_pick_filter              merged_pick_allele
+merged_per_gene                 merged_pick_allele_gene
+```
+
+Each profile annotates **all 50,861 normalized chr22 records**, writes BGZF,
+and runs the existing comparison runner with `--comparison-mode md5
+--md5-mode both`. Strict and canonical **body** digests must both match, with
+the expected nonzero record count. Header differences are reported separately;
+run provenance is tool-specific. `merged_per_gene` and
+`merged_pick_allele_gene` sort each record's CSQ entries before both hashes,
+as in the full comparison runner. The other eight profiles preserve exact CSQ
+order. Plugin profiles are outside this ten-profile check.
+
+The committed [manifest](golden/116/chr22/manifest.json) pins each HF repository
+revision and every downloaded shard/manifest checksum. Only chr22 Parquet files
+and their seven entity manifests are downloaded, including `variation`. All
+local data is verified before reuse; corrupt files are fetched again. The
+manifest also records the golden VCF SHA-256 checksums, expected body md5s,
+record counts, source filenames and original VEP identity headers. The input
+VCF and BGZF FASTA reuse [`tests/data/hg002_chr22`](../tests/data/hg002_chr22/).
+That input already has `bcftools norm -m -both` applied; its checksum is checked
+before the runner uses `--no-normalize`.
+
+Options appended to the Docker run command:
+
+| Option | Effect |
+|---|---|
+| `--profiles merged` | One-profile sanity check; fetches only the merged cache |
+| `--workers 4` | Four annotation workers per profile; default is one |
+| `--prepare-only` | Fetch and verify data without annotation |
+| `--offline` | Require verified local files and make no downloads |
+
+Outputs live in the mounted work directory (`e2e-testing/results/reviewer-chr22`
+in the documented command): `summary.tsv`, `logs/<profile>.log`,
+`reports/fast_chr22_<profile>_116_report.json`, and
+`results/116/fast_chr22/vepyr_parquet_chr22_<profile>.vcf.gz`. Failures do not
+prevent subsequent profiles from running; any failed or missing comparison
+makes the overall command fail. Previous reports cannot supply a passing result
+for a failed new run. Downloads are excluded from Git.
+
+Native execution is also available with Python 3.10+, vepyr, `hf`, Git LFS and
+the VCF tools installed:
+
+```bash
+python e2e-testing/scripts/reviewer_chr22.py --workers 1
+```
+
+To test a source checkout, build it using the instructions below and run the
+script with that environment's Python. The Docker image's vepyr version can be
+changed with `docker build --build-arg VEPYR_VERSION=<version> ...`.
+
+### Golden-data maintenance
+
+Only the **116/chr22** golden VCFs are stored here, as BGZF files covered by
+Git LFS in `.gitattributes`. The three baseline references are chr22 slices of
+the original VEP 116.0 WGS outputs; the seven pick references come from the
+VEP 116.0 chr22 runs. Their original `##VEP` and `##VEP-command-line` headers
+remain in the files. These are VEP outputs, never regenerated with vepyr.
+
+[`prepare_reviewer_chr22.py`](scripts/prepare_reviewer_chr22.py) packages those
+existing VEP references and records the current HF revisions. It refuses to
+overwrite an existing manifest. To intentionally regenerate the fixture, first
+move the previous `golden/116/chr22` directory aside, then run:
+
+```bash
+python e2e-testing/scripts/prepare_reviewer_chr22.py \
+  --vep-dir "$DATA_VEPYR_DIR/output/116" \
+  --pick-dir "$DATA_VEPYR_DIR/output/116/pick"
+```
+
+Review the new manifest and rerun all ten comparisons before committing the
+BGZF files through Git LFS. No full-genome or release-115 references are needed.
+
 ## Prerequisites
 
 ### 1. Build vepyr
