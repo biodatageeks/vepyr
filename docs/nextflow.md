@@ -109,7 +109,7 @@ nextflow run main.nf \
 # Apple Silicon or another arm64 host: add -profile arm64
 ```
 
-Results land in `results/vepyr/HG002.vcf.gz` and `results/vepyr/HG002.vcf.gz.tbi`.
+Results land in `results/vepyr/HG002_vepyr.vcf.gz` and `results/vepyr/HG002_vepyr.vcf.gz.tbi`.
 
 This exact pipeline, run with `-profile arm64` on all 50,861 normalized HG002
 chr22 records against a release-116 `ensembl` cache, reproduces the record-body
