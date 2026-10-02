@@ -15,8 +15,6 @@ import pyarrow.parquet as pq
 
 
 HERE = Path(__file__).resolve().parent
-DATA = Path(os.environ["DATA_VEPYR_DIR"])
-SOURCE = DATA / "cache/116_GRCh38_ensembl"
 OPTIONS = (
     "('compression' 'zstd(3)', 'dictionary_enabled' 'false', "
     "'statistics_enabled' 'page', 'data_pagesize_limit' '4096', "
@@ -25,9 +23,16 @@ OPTIONS = (
 
 
 def main():
+    data_dir = os.environ.get("DATA_VEPYR_DIR")
+    if not data_dir:
+        raise SystemExit(
+            "Set DATA_VEPYR_DIR to the full release-116 cache/FASTA directory"
+        )
+    data = Path(data_dir)
+    source = data / "cache/116_GRCh38_ensembl"
     ctx = SessionContext()
     transcript = pq.read_table(
-        SOURCE / "transcript/chr21.parquet",
+        source / "transcript/chr21.parquet",
         filters=[("start", "<=", 25592761), ("end", ">=", 25582759)],
     )
     assert transcript.num_rows == 34
@@ -35,11 +40,11 @@ def main():
     tables = {"transcript": transcript}
     for entity in ("exon", "translation_core"):
         tables[entity] = pq.read_table(
-            SOURCE / entity / "chr21.parquet",
+            source / entity / "chr21.parquet",
             filters=[("transcript_id", "in", ids)],
         )
     tables["variation"] = pq.read_table(
-        SOURCE / "variation/chr21.parquet",
+        source / "variation/chr21.parquet",
         filters=[("start", ">=", 25582759), ("start", "<=", 25592761)],
     ).sort_by([("tier", "ascending"), ("start", "ascending")])
     uid_filters = [
@@ -47,11 +52,11 @@ def main():
         for uid in transcript["transcript_uid"].to_pylist()
     ]
     tables["translation_sift"] = pq.read_table(
-        SOURCE / "translation_sift/chr21.parquet", filters=uid_filters
+        source / "translation_sift/chr21.parquet", filters=uid_filters
     ).sort_by("key")
     for entity in ("regulatory", "motif"):
         tables[entity] = pq.read_table(
-            SOURCE / entity / "chr21.parquet",
+            source / entity / "chr21.parquet",
             filters=[("start", "<=", 25587761), ("end", ">=", 25587759)],
         )
         assert tables[entity].num_rows == 0
@@ -92,7 +97,7 @@ def main():
         print(entity, table.num_rows, path.stat().st_size, flush=True)
 
     start, end, length = 25567000, 25613000, 46709983
-    fasta = DATA / "input/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+    fasta = data / "input/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
     region = subprocess.check_output(
         ["samtools", "faidx", str(fasta), f"21:{start}-{end}"], text=True
     )
@@ -101,17 +106,16 @@ def main():
     sequence = "N" * (start - 1) + sequence + "N" * (length - end)
     compressed = HERE / "reference.fa.gz"
     with compressed.open("wb") as output:
-        process = subprocess.Popen(
-            ["bgzip", "-c"], stdin=subprocess.PIPE, stdout=output
-        )
-        process.communicate(
-            (
+        subprocess.run(
+            ["bgzip", "-c"],
+            stdout=output,
+            check=True,
+            input=(
                 ">21\n"
                 + "\n".join(sequence[i : i + 60] for i in range(0, len(sequence), 60))
                 + "\n"
-            ).encode()
+            ).encode(),
         )
-        assert process.returncode == 0
     subprocess.run(["samtools", "faidx", str(compressed)], check=True)
     for name in ("input", "control"):
         with (HERE / f"{name}.vcf.gz").open("wb") as output:

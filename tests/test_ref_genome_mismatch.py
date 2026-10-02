@@ -34,14 +34,18 @@ def body(path):
     )
 
 
-def expected_rows(name):
-    path = FIXTURE / ("golden.vcf" if name == "input" else "control.golden.vcf")
+def csq_fields(path):
     header = next(
         line
         for line in path.read_text().splitlines()
         if line.startswith("##INFO=<ID=CSQ,")
     )
-    fields = re.search(r"Format: ([^\"]+)", header).group(1).split("|")
+    return re.search(r"Format: ([^\"]+)", header).group(1).split("|")
+
+
+def expected_rows(name):
+    path = FIXTURE / ("golden.vcf" if name == "input" else "control.golden.vcf")
+    fields = csq_fields(path)
     rows = []
     for line in body(path).decode().splitlines():
         columns = line.split("\t")
@@ -69,6 +73,8 @@ def test_ref_genome_mismatch_vcf_matches_docker(tmp_path, name, workers, indexed
         show_progress=False,
     )
     expected = FIXTURE / ("golden.vcf" if name == "input" else "control.golden.vcf")
+    # Dates and command metadata differ; the CSQ schema and record bytes must not.
+    assert csq_fields(output) == csq_fields(expected)
     assert body(output) == body(expected)
 
 
@@ -127,4 +133,5 @@ def test_ref_genome_mismatch_cli_matches_docker(tmp_path):
         text=True,
     )
     assert result.returncode == 0, result.stderr
+    assert csq_fields(output) == csq_fields(FIXTURE / "golden.vcf")
     assert body(output) == body(FIXTURE / "golden.vcf")
