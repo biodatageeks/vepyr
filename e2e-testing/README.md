@@ -4,6 +4,117 @@ Release-qualified end-to-end annotation benchmarks comparing vepyr with the
 exact Ensembl VEP 115.2 and 116.0 codebases on the full HG002 GRCh38 WGS
 dataset (4,096,123 variants across chr1–22).
 
+## Quick sanity check with chr22
+
+Use the existing [`run_comparison.py`](scripts/run_comparison.py) CLI to check
+release-116 chr22 parity. The [main README](../README.md#quick-sanity-check-with-chr22)
+shows a short merged-profile check. The image in [`docker/`](docker/) provides
+**vepyr 0.9.0**, `hf`, Git LFS, `bcftools`, `bgzip` and `tabix` on Linux amd64 or
+arm64. It has no script entrypoint: pass the command to `docker run` explicitly.
+Only Git and Docker are needed on the host.
+
+For a fresh checkout, avoid downloading unrelated LFS test caches:
+
+```bash
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/biodatageeks/vepyr.git
+cd vepyr
+```
+
+Use an HTTPS clone so the container can retrieve public LFS objects without
+host SSH credentials. Keep the repository mount writable for that initial
+fetch. [`download_chr22.py`](scripts/download_chr22.py) downloads and verifies
+the selected caches and fixtures, then copies the inputs and indexed golden
+VCFs into the existing runner's `input/`, `cache/` and `output/116/` layout.
+Annotation, md5 comparison, reports and exit status come from `run_comparison.py`.
+
+### Run all ten profiles
+
+From the repository root:
+
+```bash
+docker build -t vepyr-e2e e2e-testing/docker
+mkdir -p e2e-testing/results/sanity-chr22
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD:/repo" \
+  -v "$PWD/e2e-testing/results/sanity-chr22:/work" \
+  vepyr-e2e bash -ec '
+    python e2e-testing/scripts/download_chr22.py --work-dir /work
+    export DATA_VEPYR_DIR=/work
+    failed=0
+    for profile in ensembl merged refseq \
+      merged_flag_pick merged_flag_pick_allele merged_flag_pick_allele_gene \
+      merged_pick_filter merged_pick_allele merged_per_gene merged_pick_allele_gene; do
+      python e2e-testing/scripts/run_comparison.py \
+        --release 116 --profile "$profile" --chroms 22 \
+        --vcf /work/input/input_chr22.vcf.gz --fasta /work/input/chr22.fa.gz \
+        --output-dir /work --comparison-mode md5 --md5-mode both --bgzf --no-normalize \
+        || failed=1
+    done
+    exit "$failed"
+  '
+```
+
+The loop runs all ten profiles and returns nonzero if any comparison fails.
+Each profile annotates **all 50,861 normalized chr22 records**, writes BGZF,
+and prints strict and canonical **body** md5 verdicts. Header differences are
+reported separately; run provenance is tool-specific. `merged_per_gene` and
+`merged_pick_allele_gene` sort each record's CSQ entries before both hashes,
+as in the full comparison runner. The other eight profiles preserve exact CSQ
+order. Plugin profiles are outside this ten-profile check.
+
+Per-profile evidence is in
+`e2e-testing/results/sanity-chr22/reports/fast_chr22_<profile>_116_report.json`;
+annotated VCFs and intermediate reference slices are in
+`e2e-testing/results/sanity-chr22/results/116/fast_chr22/`.
+The existing runner regenerates annotations and quarantines previous evidence
+before each comparison. Downloads and generated results are excluded from Git.
+
+The [manifest](golden/116/chr22/manifest.json) pins each HF repository revision
+and every downloaded shard/manifest checksum. Only chr22 Parquet files and
+seven entity manifests are downloaded per cache, including `variation`.
+Local data is verified before reuse; corrupt files are fetched again. It also
+records golden VCF SHA-256 checksums, expected body md5s, record counts, source
+filenames and original VEP identity headers. The input VCF and BGZF FASTA reuse
+[`tests/data/hg002_chr22`](../tests/data/hg002_chr22/). The input already has
+`bcftools norm -m -both` applied; its checksum is verified before the runner
+uses `--no-normalize`.
+
+Online preparation moves invalid LFS fixtures into a unique backup directory
+under `e2e-testing/results/lfs-recovery/` before fetching replacements. Backups
+remain available even if the download fails. Modified ordinary Git fixtures
+are reported for manual restoration; `--offline` leaves every fixture unchanged.
+
+Add `--offline` to the **download** command to require verified local files;
+add `--workers 4` to the **comparison** command for four annotation workers.
+Run only the download command to prepare data without annotation. To use a
+native installation, run the same Python commands with vepyr, `hf`, Git LFS
+and the VCF tools installed, setting `DATA_VEPYR_DIR` and the input/output paths
+to your work directory. To test a source checkout, build it as described below
+and use that environment's Python. The Docker image uses the published wheel;
+its version is selectable with `--build-arg VEPYR_VERSION=<version>`.
+
+### Golden-data maintenance
+
+Only the **116/chr22** golden VCFs are stored here, as BGZF files covered by
+Git LFS in `.gitattributes`. The three baseline references are chr22 slices of
+the original VEP 116.0 WGS outputs; the seven pick references come from the
+VEP 116.0 chr22 runs. Their original `##VEP` and `##VEP-command-line` headers
+remain in the files. These are VEP outputs, never regenerated with vepyr.
+
+[`prepare_chr22_golden.py`](scripts/prepare_chr22_golden.py) packages those
+existing VEP references and records the current HF revisions. It refuses to
+overwrite an existing manifest. To intentionally regenerate the fixture, first
+move the previous `golden/116/chr22` directory aside, then run:
+
+```bash
+python e2e-testing/scripts/prepare_chr22_golden.py \
+  --vep-dir "$DATA_VEPYR_DIR/output/116" \
+  --pick-dir "$DATA_VEPYR_DIR/output/116/pick"
+```
+
+Review the new manifest and rerun all ten comparisons before committing the
+BGZF files through Git LFS. No full-genome or release-115 references are needed.
+
 ## Prerequisites
 
 ### 1. Build vepyr

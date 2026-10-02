@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 
 import pytest
 from comparison import cli, profiles
@@ -428,3 +429,16 @@ def test_md5_summary_says_when_csq_order_was_ignored(tmp_path, capsys):
 
     assert failed == []
     assert "CSQ entry order ignored" in capsys.readouterr().out
+
+
+def test_isolated_comparison_forwards_output_dir(monkeypatch, tmp_path):
+    args = cli.parse_args(["--release", "116", "--output-dir", str(tmp_path)])
+    args.comparison_mode = "md5"
+    seen = []
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+    )
+    assert cli._run_contig_isolated("chr22", args)
+    assert seen[0][seen[0].index("--output-dir") + 1] == str(tmp_path)
