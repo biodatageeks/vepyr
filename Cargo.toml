@@ -193,6 +193,10 @@ serde_json = "1"
 # dedicated pool). v0.23.0 adds only version bumps to ab84639, and #262 was
 # gated at its PR head 737c5cd, whose src tree is identical to 93a0925. Same
 # bio-formats tag as before, v1.13.0.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.23.0", features = ["cache-builder"] }
+# REF==ALT: preserve the record without consequences, matching VEP 116.
+# The engine guards both provider cache hits and direct Rust evaluation.
+# formats remains v1.13.0; only the functions engine owns this behavior.
+# Pin the master merge commit of biodatageeks/datafusion-bio-functions#263.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "547dfda844e15be615b3ee94a911f05320452041", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
