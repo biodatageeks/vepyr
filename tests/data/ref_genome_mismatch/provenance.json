@@ -1,0 +1,36 @@
+{
+  "ensembl-vep/modules/Bio/EnsEMBL/VEP/Parser.pm": {
+    "rev": "57ea5c52340acc1f156267f810ad162e26597082",
+    "sha256": "67da534caa71976d7152c135124e631338a4dfd7111d49f25a979f5818ebf5a2"
+  },
+  "ensembl-vep/modules/Bio/EnsEMBL/VEP/Parser/VCF.pm": {
+    "rev": "57ea5c52340acc1f156267f810ad162e26597082",
+    "sha256": "b80cd16203133b757d63406e488f3ef7adfc453340822f50128cb7a68222048a"
+  },
+  "ensembl-vep/modules/Bio/EnsEMBL/VEP/Config.pm": {
+    "rev": "57ea5c52340acc1f156267f810ad162e26597082",
+    "sha256": "7997b638fc94b43bc3815976a36dc1a6f878e6db34e755664a7338db81f78c43"
+  },
+  "ensembl-variation/modules/Bio/EnsEMBL/Variation/TranscriptVariationAllele.pm": {
+    "rev": "2fb834b987ede3824e200197a838ce11e91aeb4b",
+    "sha256": "f053bcae16eceda1e070e192e9bd11cdc3f6f6a4a095cae36fa9fd08be4c674d"
+  },
+  "docker_image": "ensemblorg/ensembl-vep@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11",
+  "issue": "https://github.com/biodatageeks/vepyr-porting-tests/issues/221",
+  "body_md5": {
+    "vep.vcf": "1b018db69651fc500c0ec1aca821dcd8",
+    "vep.genref.vcf": "05e04c0828106661b3a0b725c2512c72"
+  },
+  "fixture_source": "https://github.com/biodatageeks/vepyr-porting-tests/tree/c7d6c76ba10c6d94171743907c268e93bb7d4250/tests/data/svtype_svlen_info_ignored",
+  "reference": {
+    "assembly": "GRCh38",
+    "chromosome": "21",
+    "length": 46709983,
+    "retained_region": [
+      25567000,
+      25613000
+    ],
+    "outside_region": "N padding preserves original coordinates"
+  },
+  "vep_command": "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file INPUT --output_file OUTPUT --force_overwrite --no_stats"
+}

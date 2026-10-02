@@ -1,0 +1,10 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21,length=46709983>
+##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25587759	test	TA	T	.	.	SVTYPE=DEL
+21	25587759	test	T	TC	.	.	SVLEN=1
+21	25587759	plain	TA	T	.	.	.
+21	25587759	plain	T	TC	.	.	.
