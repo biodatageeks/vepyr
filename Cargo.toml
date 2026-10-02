@@ -196,6 +196,7 @@ serde_json = "1"
 # REF==ALT: preserve the record without consequences, matching VEP 116.
 # The engine guards both provider cache hits and direct Rust evaluation.
 # formats remains v1.13.0; only the functions engine owns this behavior.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "901e3034c4a98b7cd0a0f42e6b679578065ae47f", features = ["cache-builder"] }
+# Pin the master merge commit of biodatageeks/datafusion-bio-functions#263.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "547dfda844e15be615b3ee94a911f05320452041", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
