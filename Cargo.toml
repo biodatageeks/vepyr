@@ -200,7 +200,8 @@ serde_json = "1"
 # Pin the master merge commit of biodatageeks/datafusion-bio-functions#264.
 # formats stays at v1.13.0.
 # vepyr#147: uppercase annotation alleles after raw parser trimming.
+# Pin the master merge commit of biodatageeks/datafusion-bio-functions#265.
 # REF/ALT source columns and the formats v1.13.0 pin stay unchanged.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "db0b27af1b143c5258b10ad5a037085343129567", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "34369217daf373eb5b2d41605ba6cfaa3656494f", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
