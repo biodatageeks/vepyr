@@ -201,6 +201,6 @@ serde_json = "1"
 # formats stays at v1.13.0.
 # vepyr#149: replay shifted insertion HGVSp mapper windows and allele rotation.
 # Engine PR267 includes the merged lowercase-allele and contig-synonym fixes.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "ec9ef927c18f162ef726dfba6e2a556c0d407907", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "55f92666a26bb0abc7820b57abcbab9a89cfb328", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }

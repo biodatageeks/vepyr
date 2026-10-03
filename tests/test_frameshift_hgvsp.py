@@ -92,6 +92,11 @@ def test_shifted_insertion_lazyframe(include_csq):
     assert (row["ref"], row["alt"]) == ("A", "ATAAA")
     assert row["Feature"].count(FEATURE) == 1
     index = row["Feature"].index(FEATURE)
+    for field in EXPECTED:
+        assert isinstance(row[field], list), f"{field} must contain per-feature values"
+        assert len(row[field]) == len(row["Feature"]), (
+            f"{field} must align with Feature"
+        )
     assert {field: str(row[field][index]) for field in EXPECTED} == EXPECTED
     if include_csq:
         assert EXPECTED["HGVSp"] in row["CSQ"]

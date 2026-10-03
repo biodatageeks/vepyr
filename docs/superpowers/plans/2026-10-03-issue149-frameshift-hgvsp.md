@@ -138,7 +138,7 @@ The corrected real-shift RefSeq regression retains its original expected HGVS.
 
 ## Candidate checkpoint
 
-Engine PR267 pins `ec9ef927c18f162ef726dfba6e2a556c0d407907` and keeps
+Engine PR267 pins `55f92666a26bb0abc7820b57abcbab9a89cfb328` and keeps
 formats v1.13.0. All1,181 engine unit tests pass (3ignored), full pre-commit
 and workspace Clippy pass, and20 focused Python tests pass. The complete189-case
 replay improves180PASS/9FAIL to182PASS/7FAIL/0ERROR, with exactly the two original
@@ -146,3 +146,8 @@ replay improves180PASS/9FAIL to182PASS/7FAIL/0ERROR, with exactly the two origin
 `46364ad56f27f3b15bb0a484c3e0f63e`; the additional edited RefSeq control also
 matches its entire body (`f75a66fdc644abcf4ccb4130c96baf18`). The final pinned
 native performance/WGS gates and both external review loops remain pending.
+
+Review follow-up: preserve legacy split mapper + RNA-edit flag state when the
+parsed edit list is absent; restrict direct equality to actual edited gaps;
+cover edit encounter order and zero-length windows on both strands. The
+Python projection test now checks per-feature list alignment explicitly.
