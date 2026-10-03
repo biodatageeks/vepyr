@@ -151,3 +151,21 @@ Review follow-up: preserve legacy split mapper + RNA-edit flag state when the
 parsed edit list is absent; restrict direct equality to actual edited gaps;
 cover edit encounter order and zero-length windows on both strands. The
 Python projection test now checks per-feature list alignment explicitly.
+
+## Whole-genome regression follow-up
+
+The first final gate passed performance at both worker counts but found one HGVSp
+mismatch among 4,096,123 records: chr4:3074876 CCAGCAG>CCAGCAGCAGCAGCAGCAGCAG
+on NM_002111.8. Fresh VEP 116.2 reproduced the baseline
+`NP_002102.4:p.Pro39delinsGlnGlnGlnGln` (witness body MD5
+`74f5aee99cbaa040595edb3c2e2cac95`).
+
+VEP Parser::post_process_vfs minimizes unequal-length alleles before constructing
+TVAs, even without --minimal. Runtime instrumentation confirmed an effective
+insertion at 3074883..3074882 with 15 inserted bases and a genomic shift of 53.
+Replay must pair these minimized coordinates and alleles. Applying the shift to
+the earlier parser span started six bases too early. The portable engine test now
+asserts the shift, mapped CDS 111..116, peptide window 37..39, QQP/QQQQQQ, and
+unchanged expected HGVSp; it replaces a developer-only test using absent local
+sequence dumps. Repeat the fresh witnesses, campaign, native performance and
+strict whole-genome gates on the updated pin before hand-off.
