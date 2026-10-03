@@ -102,10 +102,10 @@ The plan above was written before implementation, in the original workspace.
 This tracked copy makes it available to reviewers of the isolated feature branch.
 
 - Owner: [datafusion-bio-functions PR266](https://github.com/biodatageeks/datafusion-bio-functions/pull/266),
-  current head `7bcec01d81c224be888f9a852f7936affde7ff93`.
+  pre-merge verified head `7bcec01d81c224be888f9a852f7936affde7ff93`.
 - Carrier: [vepyr PR158](https://github.com/biodatageeks/vepyr/pull/158),
-  pinning that exact engine head; formats remains v1.13.0.
-- The initial regressions failed before implementation. The current pin passes
+  previously pinned that engine head; formats remains v1.13.0.
+- The initial regressions failed before implementation. That pre-merge pin passed
   1,177 upstream Rust tests (3 ignored), 20 synonym integration/conversion tests,
   and 5 previous lowercase-allele regressions. An earlier broader Python run
   passed 633 tests (2 skipped).
@@ -129,3 +129,18 @@ This tracked copy makes it available to reviewers of the isolated feature branch
 
 Merge order is engine first, then a human-authorized re-pin to the engine merge
 commit, then vepyr. Neither merge nor auto-merge is performed by this workflow.
+
+## Post-merge pin checkpoint
+
+Engine PR266 merged as `789aa6f481a9681893dc41e8bd637ac8155bfaa8`. The authorized
+re-pin updates the Cargo manifest and lockfile to that merge commit. Its complete
+Git tree is identical to the measured pre-merge head above
+(`8617ad4ff1816e861f79cca18c68745f2c025a87`). Native rebuild and ported-test
+recheck evidence is recorded separately under
+`e2e-testing/results/fix-issue148-20261003/merged-engine-repin/`.
+
+The merged pin passes the native build, clippy and 25 targeted Python tests.
+Both original ported cases pass against fresh Docker VEP 116.2 outputs, with
+body MD5 `edb68e24656fe9d502a797e109473115`; the insertion and canonical
+controls also match. The full 189-case replay remains 180 PASS / 9 FAIL / 0 ERROR,
+with no status or body-digest changes from the verified pre-merge pin.

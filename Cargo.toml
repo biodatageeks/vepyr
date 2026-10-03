@@ -203,6 +203,7 @@ serde_json = "1"
 # Included since the master merge commit of biodatageeks/datafusion-bio-functions#265.
 # REF/ALT source columns and the formats v1.13.0 pin stay unchanged.
 # vepyr#148: preserve native chromosome synonyms and resolve accession inputs.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7bcec01d81c224be888f9a852f7936affde7ff93", features = ["cache-builder"] }
+# Pin the master merge commit of biodatageeks/datafusion-bio-functions#266.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "789aa6f481a9681893dc41e8bd637ac8155bfaa8", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.13.0" }
