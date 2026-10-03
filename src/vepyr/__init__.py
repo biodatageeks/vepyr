@@ -242,7 +242,8 @@ def _flags_for_projection(
     else:
         for key in _HGVS_OPTIONS:
             out.pop(key, None)
-        out.pop("reference_fasta_path", None)
+        if "USED_REF" not in needed:
+            out.pop("reference_fasta_path", None)
     if needed & _COLOCATED_COLUMNS:
         for key in _COLOCATED_OPTIONS:
             out[key] = True
