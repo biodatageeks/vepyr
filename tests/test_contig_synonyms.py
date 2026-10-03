@@ -161,6 +161,70 @@ def test_cache_identity_accepts_synonym(cache_dir):
     assert identity["contig"] == ACCESSION
 
 
+@pytest.mark.parametrize("metadata", [None, f"1 {ACCESSION}\n"])
+def test_unresolved_accession_reports_no_cache_contig(tmp_path, metadata):
+    cache = tmp_path / "cache"
+    copy_cache_with_source_metadata(GOLDEN / "cache", cache, "ensembl", "115")
+    if metadata is not None:
+        (cache / "chr_synonyms.txt").write_text(metadata)
+    accession = ACCESSION if metadata is None else "NC_999999.1"
+    source = write_input(tmp_path / "input.vcf", [accession])
+    with pytest.raises(RuntimeError, match="none of the VCF"):
+        vepyr.annotate(
+            str(source),
+            str(cache),
+            reference_fasta=str(GOLDEN / "reference.fa"),
+            output_vcf=str(tmp_path / "output.vcf"),
+            show_progress=False,
+        )
+
+
+@pytest.mark.parametrize("entrypoint", ["identity", "annotation"])
+def test_invalid_synonym_metadata_reports_source_path(tmp_path, entrypoint):
+    cache = tmp_path / "cache"
+    copy_cache_with_source_metadata(GOLDEN / "cache", cache, "ensembl", "115")
+    metadata = cache / "chr_synonyms.txt"
+    metadata.write_bytes(b"1 \xff\n")
+    with pytest.raises(RuntimeError, match="failed to read chromosome synonyms") as exc:
+        if entrypoint == "identity":
+            vepyr.cache_contig_identity(str(cache), "chr1")
+        else:
+            source = write_input(tmp_path / "input.vcf", ["chr1"])
+            vepyr.annotate(
+                str(source),
+                str(cache),
+                reference_fasta=str(GOLDEN / "reference.fa"),
+                output_vcf=str(tmp_path / "output.vcf"),
+                show_progress=False,
+            )
+    assert str(metadata) in str(exc.value)
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_cache_conversion_removes_obsolete_synonyms(tmp_path, overwrite):
+    native = tmp_path / "native"
+    shutil.copytree(Path(__file__).parent / "data" / "ensembl_cache", native)
+    cache_root = tmp_path / "converted"
+    output = cache_root / "115_GRCh38_ensembl"
+    metadata = native / "chr_synonyms.txt"
+    metadata.write_text("22 NC_000022.11\n")
+    kwargs = dict(
+        release=115,
+        cache_dir=str(cache_root),
+        cache_type="ensembl",
+        entity="variation",
+        local_cache=str(native),
+        partitions=1,
+        show_progress=False,
+    )
+    vepyr.build_cache(**kwargs)
+    assert (output / "chr_synonyms.txt").exists()
+    metadata.unlink()
+    vepyr.build_cache(**kwargs, overwrite=overwrite)
+    assert not (output / "chr_synonyms.txt").exists()
+    assert list(output.rglob("*.parquet"))
+
+
 @pytest.mark.parametrize("existing", [False, True])
 def test_cache_conversion_preserves_synonyms_without_rebuilding(tmp_path, existing):
     native = tmp_path / "native"

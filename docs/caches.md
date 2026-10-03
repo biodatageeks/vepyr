@@ -86,10 +86,17 @@ Chromosome synonyms such as `NC_000021.9` are resolved from the native cache's
 resolved cache chromosome internally and retains the original `CHROM` in VCF
 output and LazyFrames. Caches without this file continue to accept ordinary
 bare/`chr` chromosome names, but cannot resolve assembly-specific accessions.
+An input containing only unresolved contigs fails with a `none of the VCF`
+contigs available error. In mixed input, unresolved contigs follow the existing
+unsupported-contig behavior and are skipped. An unreadable or invalid UTF-8
+synonym file raises an error naming that file.
 
 To add the synonym metadata to an existing converted cache, resume conversion
 from the matching native cache. Metadata is refreshed even when the entity's
-Parquet shards are already complete; keep `overwrite=False` to retain them:
+Parquet shards are already complete; keep `overwrite=False` to retain them.
+One entity run is sufficient: the synonym file is shared at the cache root.
+If the native cache has no synonym file, conversion removes any previous copy
+from the converted cache so obsolete mappings cannot survive.
 
 ```python
 import vepyr
