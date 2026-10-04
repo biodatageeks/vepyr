@@ -1,0 +1,17 @@
+cd /Users/mwiewior/research/git/vepyr
+D=/Users/mwiewior/workspace/data_vepyr
+R=$D/archive/116/vepyr_merged_wgs_macos_20260914
+mkdir -p $D/archive/116 $D/output/116
+run() {
+  VEPYR_EXPECTED_VERSION=0.7.0 .venv/bin/python3 -P performance-tests/vepyr/scripts/run_vepyr_worker_scaling.py \
+    --input-vcf $D/input/HG002_normalized.vcf.gz \
+    --cache-dir $D/cache/116_GRCh38_merged \
+    --cache-type merged \
+    --reference-fasta $D/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+    --ssd-output-dir $D/output/116/vepyr_merged_wgs_run \
+    --expected-records 4096123 \
+    --compression plain \
+    "$@"
+}
+run --archive-dir $R-warmup --workers 8 && rm -f $R-warmup/*.vcf
+for w in 8 4 2 1; do run --archive-dir $R --workers $w || break; rm -f $R/*_workers$w.vcf; done
