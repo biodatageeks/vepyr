@@ -135,6 +135,7 @@ def test_known_false_policy_matches_native_metadata_control(tmp_path, workers, i
     shutil.copytree(FIXTURE / "cache", cache)
     policy_path = cache / "reference_policy.json"
     policy = json.loads(policy_path.read_text())
+    assert policy["bam_edited"] is True
     policy["bam_edited"] = False
     policy_path.write_text(json.dumps(policy))
     output = tmp_path / "known-false.vcf"

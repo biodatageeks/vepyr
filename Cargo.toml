@@ -48,6 +48,7 @@ serde_json = "1"
 # (tier, start, allele_string, match cols) instead of every column, which is what let the
 # full-source SpliceAI chr1/chr2 shards build at the default 8 GiB pool (bio-functions#235).
 #
+# Historical dependency selections (the current pins are below this history):
 # bio-functions dba94e3: regions option for annotate_vep (biodatageeks/datafusion-bio-functions#239, merge commit)
 # bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
 # and bio-functions 6476619 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
@@ -193,16 +194,10 @@ serde_json = "1"
 # dedicated pool). v0.23.0 adds only version bumps to ab84639, and #262 was
 # gated at its PR head 737c5cd, whose src tree is identical to 93a0925. Same
 # bio-formats tag as before, v1.13.0.
-# REF==ALT: preserve the record without consequences, matching VEP 116.
-# The engine guards both provider cache hits and direct Rust evaluation.
-# formats remains v1.13.0; only the functions engine owns this behavior.
-# REF/CDS mismatch: replay VEP's ordinary CDS and RNA-edit reference rules.
-# Pin the master merge commit of biodatageeks/datafusion-bio-functions#264.
-# formats stays at v1.13.0.
-# vepyr#147: uppercase annotation alleles after raw parser trimming.
-# REF/ALT source columns and the formats v1.13.0 pin stay unchanged.
-# vepyr#150: carry native cache reference policy and select genomic HGVSc independently.
-# Pin functions#268 and formats#259 heads together; both use the same formats revision.
+# Current review pins for vepyr#150: native cache reference policy and independent
+# genomic HGVSc. The earlier REF==ALT, REF/CDS and lowercase-allele fixes are retained.
+# functions#268 and formats#259 use the same exact formats revision.
+# Re-pin to upstream merge commits after the human merges those PRs.
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b617fb5c69c4801ff2d20e472605f02bc2124a7d", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e3f4f55e228d153b1ac757fe271f4539651eeac5" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e3f4f55e228d153b1ac757fe271f4539651eeac5" }
