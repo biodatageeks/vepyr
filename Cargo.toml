@@ -198,6 +198,6 @@ serde_json = "1"
 # genomic HGVSc. The earlier REF==ALT, REF/CDS and lowercase-allele fixes are retained.
 # functions#268 and formats#259 use the same exact formats revision.
 # Re-pin to upstream merge commits after the human merges those PRs.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "57be394c1497cb11e6636aaf9ba550b2399467b9", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b1992db8d11b0ac870049a7ce404ba31cd70ec11", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e3f4f55e228d153b1ac757fe271f4539651eeac5" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e3f4f55e228d153b1ac757fe271f4539651eeac5" }
