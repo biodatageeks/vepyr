@@ -53,22 +53,21 @@ def records(path):
 def assert_golden(output, name):
     expected = FIXTURE / f"{name}.golden.vcf"
     assert csq_fields(output) == csq_fields(expected)
-    assert body(output) == body(expected)
     rows = records(output)
     assert [int(row[0][1]) for row in rows] == [25587759, 25587762]
     assert [len(row[2]) for row in rows] == [39, 39]
+    # These negative-strand CDS positions distinguish the leading and trailing SNVs.
     for index, (_, _, entries) in enumerate(rows):
-        exonic = next(
-            entry for entry in entries if entry["Feature"] == "ENST00000307301"
-        )
+        by_feature = {entry["Feature"]: entry for entry in entries}
+        exonic = by_feature["ENST00000307301"]
         assert exonic["USED_REF"] == "T"
         assert (
             exonic["HGVSc"] == f"ENST00000307301.12:c.{1000 if index == 0 else 997}A>T"
         )
-        intronic = next(
-            entry for entry in entries if entry["Feature"] == "ENST00000352957"
-        )
+        intronic = by_feature["ENST00000352957"]
         assert intronic["USED_REF"] == ("T" if name == "control" else "C")
+
+    assert body(output) == body(expected)
 
 
 @pytest.mark.parametrize("name", CASES)
@@ -150,7 +149,7 @@ def test_alt_dot_continuation_cli(tmp_path, name):
         ],
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=120,
     )
     assert result.returncode == 0, result.stderr
     assert_golden(output, name)

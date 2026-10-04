@@ -2,7 +2,8 @@
 
 Run with the repository Python environment and DATA_VEPYR_DIR pointing at the
 full local caches. The checked-in VCF oracles come from the pinned Docker image
-recorded in provenance.json, not from vepyr.
+recorded in provenance.json, not from vepyr. Requires datafusion and pyarrow
+Python packages and samtools, bgzip and tabix on PATH.
 """
 
 import json
@@ -100,6 +101,7 @@ def main():
     bam = ""
     for line in native_info.read_bytes().decode().split("\n"):
         fields = line.split("\t")
+        # VEP keeps the last declaration, except the literal skip marker "-".
         if fields[0] == "bam":
             value = fields[1] if len(fields) > 1 else ""
             if value != "-":
