@@ -15,6 +15,9 @@ import pyarrow.parquet as pq
 
 
 HERE = Path(__file__).resolve().parent
+LOCUS = 25573985
+WINDOW_START, WINDOW_END = LOCUS - 5000, LOCUS + 5000
+FASTA_START, FASTA_END, CHROMOSOME_LENGTH = 25567000, 25613000, 46709983
 OPTIONS = (
     "('compression' 'zstd(3)', 'dictionary_enabled' 'false', "
     "'statistics_enabled' 'page', 'data_pagesize_limit' '4096', "
@@ -33,7 +36,7 @@ def main():
     ctx = SessionContext()
     transcript = pq.read_table(
         source / "transcript/chr21.parquet",
-        filters=[("start", "<=", 25578985), ("end", ">=", 25568985)],
+        filters=[("start", "<=", WINDOW_END), ("end", ">=", WINDOW_START)],
     )
     ids = transcript["stable_id"].to_pylist()
     tables = {"transcript": transcript}
@@ -44,7 +47,7 @@ def main():
         )
     tables["variation"] = pq.read_table(
         source / "variation/chr21.parquet",
-        filters=[("start", ">=", 25568985), ("start", "<=", 25578985)],
+        filters=[("start", ">=", WINDOW_START), ("start", "<=", WINDOW_END)],
     ).sort_by([("tier", "ascending"), ("start", "ascending")])
     uid_filters = [
         [("key", ">=", uid << 32), ("key", "<", (uid + 1) << 32)]
@@ -56,7 +59,7 @@ def main():
     for entity in ("regulatory", "motif"):
         tables[entity] = pq.read_table(
             source / entity / "chr21.parquet",
-            filters=[("start", "<=", 25573985), ("end", ">=", 25573985)],
+            filters=[("start", "<=", LOCUS), ("end", ">=", LOCUS)],
         )
     assert set(tables["exon"]["transcript_id"].to_pylist()) <= set(ids)
 
@@ -114,7 +117,7 @@ def main():
         + "\n"
     )
 
-    start, end, length = 25567000, 25613000, 46709983
+    start, end, length = FASTA_START, FASTA_END, CHROMOSOME_LENGTH
     fasta = data / "input/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
     region = subprocess.check_output(
         ["samtools", "faidx", str(fasta), f"21:{start}-{end}"], text=True

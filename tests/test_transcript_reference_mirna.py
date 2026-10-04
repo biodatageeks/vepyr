@@ -1,7 +1,9 @@
 """Original miRNA REF mismatch and independent VEP 116.2 reference choices."""
 
 from pathlib import Path
+import json
 import re
+import shutil
 import subprocess
 import sys
 
@@ -30,8 +32,7 @@ def csq_fields(path):
     return re.search(r"Format: ([^\"]+)", header).group(1).split("|")
 
 
-def expected_groups():
-    path = FIXTURE / "golden.vcf"
+def expected_groups(path):
     csq = body(path).decode().strip().split("\t")[7].split("CSQ=", 1)[1]
     return [
         dict(zip(csq_fields(path), group.split("|"), strict=True))
@@ -62,15 +63,18 @@ def test_mirna_reference_vcf_matches_vep1162(tmp_path, name, workers, indexed):
     "columns",
     [
         ["HGVSc"],
+        ["GIVEN_REF"],
         ["USED_REF"],
         ["GIVEN_REF", "USED_REF", "HGVSc"],
         ["CSQ", "GIVEN_REF", "USED_REF", "HGVSc"],
     ],
 )
-def test_mirna_reference_lazy_projections(columns):
+@pytest.mark.parametrize("name", ["input", "control"])
+def test_mirna_reference_lazy_projections(columns, name):
+    expected = FIXTURE / ("golden.vcf" if name == "input" else "control.golden.vcf")
     result = (
         vepyr.annotate(
-            str(FIXTURE / "input.vcf"),
+            str(FIXTURE / f"{name}.vcf"),
             str(FIXTURE / "cache"),
             reference_fasta=str(FIXTURE / "reference.fa.gz"),
             expected_cache_version="116",
@@ -83,18 +87,15 @@ def test_mirna_reference_lazy_projections(columns):
     )
     assert len(result) == 1
     row = result[0]
-    assert (row["ref"], row["alt"]) == ("C", "T")
-    groups = expected_groups()
+    assert (row["ref"], row["alt"]) == ("C" if name == "input" else "A", "T")
+    groups = expected_groups(expected)
     assert row["Feature"] == [group["Feature"] for group in groups]
     for field in set(columns) - {"CSQ"}:
         assert [value or "" for value in row[field]] == [
             group[field] for group in groups
         ]
     if "CSQ" in columns:
-        assert (
-            row["CSQ"]
-            == body(FIXTURE / "golden.vcf").decode().strip().split("CSQ=", 1)[1]
-        )
+        assert row["CSQ"] == body(expected).decode().strip().split("CSQ=", 1)[1]
 
 
 def test_mirna_reference_cli_matches_vep1162(tmp_path):
@@ -120,7 +121,37 @@ def test_mirna_reference_cli_matches_vep1162(tmp_path):
         ],
         capture_output=True,
         text=True,
+        timeout=60,
     )
     assert result.returncode == 0, result.stderr
     assert csq_fields(output) == csq_fields(FIXTURE / "golden.vcf")
     assert body(output) == body(FIXTURE / "golden.vcf")
+
+
+@pytest.mark.parametrize("workers,indexed", [(1, False), (1, True), (2, True)])
+def test_known_false_policy_matches_native_metadata_control(tmp_path, workers, indexed):
+    """Counterfactual metadata control, not a relabelled biological cache."""
+    cache = tmp_path / "cache"
+    shutil.copytree(FIXTURE / "cache", cache)
+    policy_path = cache / "reference_policy.json"
+    policy = json.loads(policy_path.read_text())
+    policy["bam_edited"] = False
+    policy_path.write_text(json.dumps(policy))
+    output = tmp_path / "known-false.vcf"
+    vepyr.annotate(
+        str(FIXTURE / ("input.vcf.gz" if indexed else "input.vcf")),
+        str(cache),
+        reference_fasta=str(FIXTURE / "reference.fa.gz"),
+        expected_cache_version="116",
+        output_vcf=str(output),
+        workers=workers,
+        show_progress=False,
+    )
+    expected = FIXTURE / "known-false.golden.vcf"
+    assert csq_fields(output) == csq_fields(expected)
+    assert not {"GIVEN_REF", "USED_REF", "BAM_EDIT"} & set(csq_fields(output))
+    assert body(output) == body(expected)
+    edited = next(
+        row for row in expected_groups(expected) if row["Feature"] == "NR_001458.3"
+    )
+    assert edited["HGVSc"] == "NR_001458.3:n.291C>T"

@@ -224,7 +224,8 @@ def _flags_for_projection(
     fills is read, ``everything`` stays. Otherwise it is expanded into the
     two groups that change column values (see the constants above), and a
     group no column reads is left out so the engine skips it. Each group alone
-    yields the same values as ``everything`` does.
+    yields the same values as ``everything`` does. ``USED_REF`` retains the
+    FASTA path independently of the HGVS group.
 
     ``required`` names fields that must be computed whatever the projection,
     the fields a plugin's match templates read. Returns a new dict.
