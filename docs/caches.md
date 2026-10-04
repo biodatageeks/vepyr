@@ -96,8 +96,8 @@ Three rules cover every difference:
   `variation`, `translation_core` and `translation_sift` are byte-identical in
   layout across all three types.
 - **Release matters once.** The 116 `variation` schema has one column the 115
-  schema does not: `clin_sig_ref_allele` (`string`). 115 `variation` has 24
-  columns, 116 has 25.
+  schema does not: `clin_sig_ref_allele` (`string`). 115 `variation` has 25
+  columns, 116 has 26.
 - **`motif` is 116-only.** In the 115 caches the `motif` directory holds only
   `chrom_manifest.json` — there are no shards, and therefore no 115 motif
   schema.
@@ -106,7 +106,7 @@ Column counts (merged cache, release 116):
 
 | Entity | Columns | of which provenance | Cross-type delta |
 |---|--:|--:|---|
-| `variation` | 25 | 0 | — |
+| `variation` | 26 | 0 | — |
 | `transcript` | 77 | 20 | `source_refseq` |
 | `exon` | 33 | 20 | `source_refseq` |
 | `translation_core` | 10 | 0 | — |
@@ -137,9 +137,11 @@ cache, leaving 19.
 
 ### Per-entity columns
 
-??? note "`variation` — 25 columns"
+??? note "`variation` — 26 columns"
 
     The co-located known-variant table: identifiers, clinical significance, and the allele-frequency arrays. `tier` is the warm/cold flag that plugin caches inherit.
+
+    The current builder preserves native `strand`. Missing, null and zero mean forward (+1); -1 marks a reverse-strand record. Older converted shards without this optional column remain readable as forward. Reconvert the native cache to recover negative strands discarded by an older builder; they cannot be reconstructed from a missing column.
 
     | Column | Type |
     |---|---|
@@ -147,6 +149,7 @@ cache, leaving 19.
     | `start` | `uint32` |
     | `end` | `uint32` |
     | `allele_string` | `string` |
+    | `strand` | `int8` (nullable) |
     | `failed` | `bool` |
     | `variation_name` | `string` |
     | `clin_sig` | `string` |

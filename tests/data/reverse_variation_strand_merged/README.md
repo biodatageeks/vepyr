@@ -40,3 +40,12 @@ The compressed FASTA retains real sequence at 993966–1016540, original chr1
 coordinates and N padding elsewhere. The generator also reruns all six Docker VEP oracles and records fresh commands,
 exit status and body MD5s. It writes the provenance receipt only after every
 oracle succeeds; it never reuses old oracle metadata for changed native data.
+
+CI uses the padded fixture FASTA. Qualification also runs all six cases manually
+against the full GRCh38 FASTA and records the results outside the committed fixture.
+If regeneration fails, treat the directory as incomplete and rerun the complete
+generator successfully before committing its inputs, goldens and provenance.
+
+A separate Python regression constructs an UNKNOWN physical cache row to preserve
+existing coordinate-only annotations for raw joined ALTs. This compatibility test
+does not claim full VEP parity for unsplit multi-allelic annotation.
