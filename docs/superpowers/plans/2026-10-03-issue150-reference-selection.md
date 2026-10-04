@@ -108,3 +108,17 @@ An instrumented indexed-reader test verifies the seek reduction, exact sequence,
 window boundaries, contig changes/ends, long-variant bypass and reader errors.
 The unchanged input/oracles, full campaign and all native gates must be rerun
 on this candidate before hand-off; no failed threshold is waived.
+
+The bounded-reader attempt also failed performance (four phase bars), while
+all 22 strict body digests passed. This remains a failed attempt, not evidence
+of a performance improvement. A diagnostic rebuild of untouched master/pins
+will check host drift without replacing the original pre-edit baseline.
+
+Further review found that conversion could overwrite a conflicting root policy
+or skip shard validation when the root matched. Conversion now rejects a
+conflicting root without modifying files and checks existing shards on every
+resume. Regression tests cover both BAM directions, source/version conflicts
+and byte preservation. Projection-aware genomic reads now require an emitted
+HGVSc or USED_REF consumer. A real indexed-reader test uses a missing contig to
+prove that consequence-only and unrelated-field projections skip the query,
+while reference-consuming projections still query and report the error.
