@@ -74,3 +74,30 @@ multiple CLIN_SIG terms in actual VEP output have nondeterministic hash order.
 This keeps each VCF body directly reproducible without canonicalization. The
 three variant-shape oracles plus three clinical oracles all fail on the untouched
 baseline. The engine change is functions#269, initially 1616bd88.
+
+## Measured performance follow-up
+
+The first fb2b2e2/6f3f189 sweep passed strict body MD5 for all 22 autosomes
+and 4,096,123 records, but failed writer1 at +5.4% against the 5% phase limit.
+An unchanged confirmation passed writer1 at +4.5% but failed context8 at +7.5%.
+Both runs passed wall/RSS limits; neither is reported as a full performance pass.
+
+An ablation on that same native binary, using the existing VEP_CTX_PARALLEL=1
+path with discarded warmup8, reduced context8 from 3716.8 ms to 2911.4 ms
+(baseline 3456.2 ms). Wall was 73.0 s versus the 74.4 s baseline, and all five
+eight-worker phase limits passed. This is a diagnostic, not a full gate.
+
+Apply the same bounded context default already reviewed in functions#268:
+more than one annotation worker enables four independent scans and four owned
+blocking parses; one worker remains serial. Explicit environment overrides keep
+their previous semantics. No new shared mutation or output ordering is introduced,
+and only one next-contig prefetch is in flight. This is a small shared performance
+change; it does not import the #150 reference-selection algorithm or cache policy.
+
+Extend the per-ALT regression with first-only, two-match and no-match cases for
+both primary lookup and co-located keys. Rebuild the exact PR pin natively and
+repeat focused tests, all six full-reference VCF bodies, the complete workers1/8
+performance gate without overrides, and strict22 quality. Keep both earlier
+failed sweeps and the immutable original baseline. Re-request both reviewers.
+
+The final context-loading engine revision is `95da034392bc1d4d1d7caf1732901d902ef19a7f`.
