@@ -122,3 +122,22 @@ and byte preservation. Projection-aware genomic reads now require an emitted
 HGVSc or USED_REF consumer. A real indexed-reader test uses a missing contig to
 prove that consequence-only and unrelated-field projections skip the query,
 while reference-consuming projections still query and report the error.
+
+## Measured context-loading adjustment
+
+The final serial-context candidate passed all 22 strict WGS body digests and
+187/189 ports (the two failures require unmerged #149), but failed the immutable
+performance gate at eight workers: context 4080.4 ms versus 3456.2 ms (+18.1%),
+prefetch 16482.6 versus 15432.9 ms (+6.8%). All one-worker phases, both wall times
+and peak RSS passed. An untouched-baseline confirmation also exceeded some
+phase bars; that evidence neither replaces the original baseline nor waives it.
+
+An isolated diagnostic using the existing VEP_CTX_PARALLEL=1 path reduced context
+to 3223.0 ms (-6.7% versus baseline), with prefetch 16202.3 ms (+5.0%) and wall
+80.05 s (+7.6%). This is diagnostic evidence, not a final two-worker-count gate.
+Enable that existing bounded four-entity scan/parse path by default only when
+annotation_workers > 1, retaining serial default at one worker and the existing
+explicit environment override. There are no new shared mutable data structures
+or annotation ordering changes. All engine tests, focused fixtures, native
+workers1/8 measurements and strict22 parity must be repeated on the actual
+production default before claiming this addresses the regression.
