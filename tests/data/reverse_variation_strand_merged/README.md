@@ -37,5 +37,6 @@ To regenerate the native slice and inputs, run `prepare.py` with
 bcftools (`BCFTOOLS` may select its path), samtools, bgzip and tabix.
 `slice_native.pl` preserves the selected biological objects using Storable.
 The compressed FASTA retains real sequence at 993966–1016540, original chr1
-coordinates and N padding elsewhere. The generator does not overwrite goldens;
-repeat the Docker commands in `provenance.json` to regenerate those.
+coordinates and N padding elsewhere. The generator also reruns all six Docker VEP oracles and records fresh commands,
+exit status and body MD5s. It writes the provenance receipt only after every
+oracle succeeds; it never reuses old oracle metadata for changed native data.

@@ -210,6 +210,60 @@ def main():
         )
         + "\n"
     )
+    # Regeneration includes the actual oracle runs, so it cannot erase their
+    # command/exit/digest metadata or retain receipts for changed native data.
+    for name, input_receipt in inputs.items():
+        oracle = [
+            "docker",
+            "run",
+            "--rm",
+            "--user",
+            f"{os.getuid()}:{os.getgid()}",
+            "-v",
+            f"{HERE}:/fixture",
+            "-v",
+            f"{data / 'input'}:/reference:ro",
+            "-w",
+            "/fixture",
+            IMAGE,
+            "vep",
+            "--offline",
+            "--cache",
+            "--dir_cache",
+            "/fixture/native",
+            "--species",
+            "homo_sapiens",
+            "--cache_version",
+            "116",
+            "--assembly",
+            "GRCh38",
+            "--merged",
+            "--everything",
+            "--vcf",
+            "--fasta",
+            "/reference/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+            "--input_file",
+            f"{name}.vcf",
+            "--output_file",
+            f"{name}.golden.vcf",
+            "--force_overwrite",
+            "--no_stats",
+        ]
+        subprocess.run(oracle, cwd=HERE, check=True)
+        body = b"".join(
+            line
+            for line in (HERE / f"{name}.golden.vcf")
+            .read_bytes()
+            .splitlines(keepends=True)
+            if not line.startswith(b"#")
+        )
+        assert (
+            hashlib.sha256((HERE / f"{name}.vcf").read_bytes()).hexdigest()
+            == input_receipt["input_sha256"]
+        )
+        input_receipt.update(
+            vep_argv=oracle, vep_exit=0, expected_body_md5=hashlib.md5(body).hexdigest()
+        )
     receipt = dict(
         synthetic=True,
         limitation="Capability proof only; neither blocked natural-cache port is qualified by these injected rows.",
