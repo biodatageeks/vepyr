@@ -10,27 +10,30 @@ cp -R subworkflows/nf-core/vcf_annotate_vepyr /path/to/modules-fork/subworkflows
 ```
 
 The subworkflow runs nf-core's existing `bcftools/norm` module before
-`VEPYR_ANNOTATE` when `val_normalize` is true (pipelines should default it to
-true), so a raw VCF goes through end to end. The module itself stays a single
-tool. `BCFTOOLS_NORM` is configured through its `ext.args`; the configuration
+`VEPYR_ANNOTATE` when `val_normalize` is true, so a raw VCF goes through end to
+end. With `val_hf_repo` set it first downloads the cache from a Hugging Face
+dataset with `huggingface/download`, once for all samples; `ch_cache` and
+`val_hf_repo` are mutually exclusive. The module itself stays a single tool.
+`BCFTOOLS_NORM` is configured through its `ext.args`; the configuration
 validated against Ensembl VEP splits multiallelic records without left-aligning:
 
 ```groovy
 withName: 'BCFTOOLS_NORM' {
-    ext.args   = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
-    ext.prefix = { "${meta.id}.norm" }
+    ext.args = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
 }
 ```
 
 `--do-not-normalize` matters: `bcftools/norm` always passes `--fasta-ref`, and
 without the flag bcftools also left-aligns indels, which the parity inputs never
 were. It also fails outright when the FASTA and VCF name contigs differently
-(`22` vs `chr22`), a mismatch vepyr itself tolerates. Keep the `ext.prefix`
-whenever `meta.id` can equal the input VCF's basename: `bcftools/norm` writes
-`${meta.id}.vcf.gz` over its own staged input, a symlink, and so truncates the
-original file. `VEPYR_ANNOTATE` writes `${meta.id}_vepyr.vcf.gz` by default, so
-the normalized `${meta.id}.vcf.gz` reaching it never collides with its output;
-the subworkflow tests leave the prefix unset to cover exactly that.
+(`22` vs `chr22`), a mismatch vepyr itself tolerates. No `ext.prefix` is needed:
+`bcftools/norm` (since nf-core/modules#13076) and `VEPYR_ANNOTATE` default to
+`${meta.id}_norm` and `${meta.id}_vepyr` and stop if a prefix would overwrite
+their staged input.
+
+This directory mirrors the subworkflow in review as
+[nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070); keep the
+two in sync by hand.
 
 `.nf-core.yml` and `tests/config/nf-test.config` exist only so `nf-core modules
 lint` treats this directory as a modules repository. nf-core/modules has its own
@@ -82,11 +85,14 @@ cd nf-core-module
 ```
 
 The runner picks the host's platform, reads that platform's Docker image from
-`meta.yml`, fetches the pinned upstream UNTAR and `bcftools/norm` modules the
-tests need, stages the test data into `.testdata/` with `stage-testdata.sh`, and
-runs all four test files with `dev/nf-test.config`. `bcftools/norm`'s image is
-linux/amd64 only; `dev/local.config` runs it under emulation, which works
-because bcftools, unlike vepyr, needs no AVX.
+`meta.yml`, fetches the pinned upstream UNTAR, `bcftools/norm` and
+`huggingface/download` modules the tests need, stages the test data into
+`.testdata/` with `stage-testdata.sh`, and runs all four test files with
+`dev/nf-test.config`. The `bcftools/norm` and `huggingface/download` images are
+linux/amd64 only; `dev/local.config` runs them under emulation, which works
+because bcftools and the `hf` CLI, unlike vepyr, need no AVX. The Hugging Face
+subworkflow test downloads chr22 of the published 116 cache, so it needs network
+access.
 Extra arguments go to `nf-test`.
 
 | Host | Platform picked | Image (from `meta.yml`) |
@@ -113,9 +119,11 @@ Overrides:
   1,000 HG002 chr22 records against a release-116 cache with `--everything`,
   and a stub.
 - `subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test` — the subworkflow
-  submission tests on the same data: with normalization, without it, and a stub.
-  The published input has no multiallelic records, so both annotated outputs are
-  identical; these tests prove the wiring, the parity test below the effect.
+  submission tests. Normalization runs on `input_multiallelic.vcf.gz`, the same
+  window before splitting (986 records, 14 multiallelic): the output must have
+  1,000 biallelic records and the same annotation as `input.vcf.gz` without
+  normalization. Also: the Hugging Face cache shared by two samples, failures
+  for both or neither of `ch_cache` and `val_hf_repo`, and stubs.
 - `dev/tests/hg002_chr22_normalize.nf.test` — end-to-end parity through the
   subworkflow: the raw HG002 chr22 benchmark records (`raw_chr22.vcf.gz`, 50,284
   records, 577 multiallelic, chr22 of the v4.2.1 benchmark VCF, unmodified) go
@@ -185,7 +193,7 @@ uvx --from nf-core nf-core subworkflows lint vcf_annotate_vepyr
 ```
 
 Requires `nextflow` on `PATH`. Current results: module **74 passed, 0 warnings,
-1 failed**; subworkflow **20 passed, 0 warnings, 1 failed**. Both failures are the
+1 failed**; subworkflow **22 passed, 0 warnings, 1 failed**. Both failures are the
 same upstream blocker rather than a defect, and clear once the steps below are
 done:
 
@@ -205,7 +213,9 @@ Treat any *second* failure as a genuine regression.
    for linux/amd64 and linux/arm64, wrote them and the conda lock files into
    `meta.yml`, and set the amd64 URIs in `main.nf`. Rerun it whenever
    `environment.yml` changes.
-3. **PR the test data** ([nf-core/test-datasets#2270](https://github.com/nf-core/test-datasets/pull/2270)).
+3. **~~PR the test data~~** ([nf-core/test-datasets#2270](https://github.com/nf-core/test-datasets/pull/2270), merged).
+   The subworkflow's `input_multiallelic.vcf.gz` follows in
+   [nf-core/test-datasets#2298](https://github.com/nf-core/test-datasets/pull/2298).
    `./stage-testdata.sh <dir>` builds it from the offline chr22 fixture in
    `tests/data/hg002_chr22` and verifies it against Ensembl VEP 116: 1,000
    normalized HG002 chr22 records from chr22:20572272-21735973 (chosen for
@@ -223,13 +233,14 @@ Treat any *second* failure as a genuine regression.
    they read from `s3://annotation-cache/`, where Nextflow can list.) The nf-test
    extracts it in a `setup` block with the `UNTAR` module, the same pattern
    `kraken2/kraken2` uses for its database.
-4. **Generate the snapshots.** With 2 and 3 done, against nf-core's published
+4. **~~Generate the snapshots.~~** Done in the nf-core/modules PRs. With 2 and 3 done, against nf-core's published
    URLs (`VEPYR_NF_TESTDATA` unset):
    `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test --update-snapshot`
-5. **Open the nf-core/modules PR for the module** (`vepyr/annotate`).
-6. **Open a second PR for the subworkflow** (`vcf_annotate_vepyr`) once the module
-   is merged: nf-core reviews subworkflows separately, and the subworkflow's
-   `components` must already exist upstream (`bcftools/norm` does).
+5. **~~Open the nf-core/modules PR for the module~~** (`vepyr/annotate`): merged as
+   [nf-core/modules#13001](https://github.com/nf-core/modules/pull/13001).
+6. **Open a second PR for the subworkflow** (`vcf_annotate_vepyr`): in review as
+   [nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070). Its
+   normalization tests pass in CI once #2298 is merged.
 
 ## Scope
 

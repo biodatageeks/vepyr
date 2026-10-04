@@ -8,6 +8,10 @@ Writes <output-dir>/data/genomics/homo_sapiens/vepyr/:
   chr22:20572272-21735973. Of the windows ending before 25 Mb, this one carries
   the most coding annotation (missense, HGVSp, SIFT/PolyPhen) plus motif and
   regulatory hits; the first 1,000 records are pericentromeric and have none.
+- input_multiallelic.vcf.gz (+ .tbi): the same window of the raw benchmark
+  records before normalization, 986 records, 14 of them multiallelic; splitting
+  them with `bcftools norm -m -both` gives input.vcf.gz. It tests the
+  vcf_annotate_vepyr subworkflow's normalization step.
 - reference.fa.gz (+ .fai, .gzi): GRCh38 22:1-<last record + 10 kb>, bgzip
 - cache.tar.gz: an Ensembl release-116 `ensembl` Parquet cache trimmed to the
   rows those records read, as one top-level `cache/` directory (UNTAR strips it)
@@ -25,6 +29,7 @@ tabix on PATH.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import shutil
 import subprocess
@@ -38,6 +43,10 @@ FIXTURE = REPO / "tests" / "data" / "hg002_chr22"
 SKIP = 7150  # records before the window, in fixture (coordinate) order
 RECORDS = 1000
 FASTA_BUFFER = 10_000
+
+# md5 of input_multiallelic.vcf.gz as published in nf-core/test-datasets#2298.
+EXPECTED_MULTIALLELIC_MD5 = "0c4abe7ad8ed83d148f5d1238bad7d50"
+MULTIALLELIC_RECORDS = 986
 
 # Strict body md5 of these records in Ensembl VEP 116 --everything output
 # (output/116/HG002_annotated_wgs_everything_hgvs_vep.vcf.gz, chr22:20572272-21735973).
@@ -59,10 +68,10 @@ def run(cmd, **kwargs):
     return subprocess.run(cmd, check=True, **kwargs)
 
 
-def subset_input(dst: Path) -> int:
-    """Header plus RECORDS records after SKIP; returns the last record's position."""
+def subset_input(dst: Path) -> tuple[int, int]:
+    """Header plus RECORDS records after SKIP; returns the first and last positions."""
     plain = dst.with_suffix("")
-    last_pos = 0
+    first_pos = last_pos = 0
     seen = 0
     kept = 0
     with (
@@ -84,13 +93,41 @@ def subset_input(dst: Path) -> int:
                 break
             out.write(line)
             last_pos = int(line.split("\t", 2)[1])
+            first_pos = first_pos or last_pos
             kept += 1
         proc.stdout.close()
     if kept != RECORDS:
         raise SystemExit(f"fixture has only {kept} records")
     run(["bgzip", "-f", str(plain)])
     run(["tabix", "-f", "-p", "vcf", str(dst)])
-    return last_pos
+    return first_pos, last_pos
+
+
+def subset_multiallelic(dst: Path, first_pos: int, last_pos: int) -> None:
+    """The input window of the raw records, before normalization, bgzip + tbi."""
+    region = run(
+        [
+            "tabix",
+            "-h",
+            str(FIXTURE / "raw_chr22.vcf.gz"),
+            f"chr22:{first_pos}-{last_pos}",
+        ],
+        capture_output=True,
+        text=True,
+    ).stdout
+    # Drop the bcftools command lines, which carry local paths.
+    lines = [
+        line for line in region.splitlines(True) if not line.startswith("##bcftools_")
+    ]
+    records = sum(not line.startswith("#") for line in lines)
+    with open(dst, "wb") as out:
+        run(["bgzip", "-c", "-l", "9"], input="".join(lines).encode(), stdout=out)
+    digest = hashlib.md5(dst.read_bytes()).hexdigest()
+    if (digest, records) != (EXPECTED_MULTIALLELIC_MD5, MULTIALLELIC_RECORDS):
+        raise SystemExit(
+            f"multiallelic input differs from the published one: {digest}, {records} records"
+        )
+    run(["tabix", "-f", "-p", "vcf", str(dst)])
 
 
 def subset_fasta(dst: Path, end: int) -> None:
@@ -116,7 +153,9 @@ def main() -> None:
         input_vcf = tmp / "input.vcf.gz"
         fasta = tmp / "reference.fa.gz"
 
-        last_pos = subset_input(input_vcf)
+        first_pos, last_pos = subset_input(input_vcf)
+        multiallelic_vcf = tmp / "input_multiallelic.vcf.gz"
+        subset_multiallelic(multiallelic_vcf, first_pos, last_pos)
         end = last_pos + FASTA_BUFFER
         subset_fasta(fasta, end)
         print(f"input: {RECORDS} records, chr22 up to {last_pos}; FASTA 22:1-{end}")
@@ -148,6 +187,8 @@ def main() -> None:
         for f in (
             input_vcf,
             Path(f"{input_vcf}.tbi"),
+            multiallelic_vcf,
+            Path(f"{multiallelic_vcf}.tbi"),
             fasta,
             Path(f"{fasta}.fai"),
             Path(f"{fasta}.gzi"),

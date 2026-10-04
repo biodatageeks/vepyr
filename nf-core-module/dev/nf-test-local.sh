@@ -8,7 +8,8 @@
 # picks the one matching the host from meta.yml, so an arm64 host never runs the
 # amd64 image under emulation (it dies with SIGILL: the emulated guest has no AVX).
 # It also
-#   1. fetches the UNTAR module the golden test's setup block needs (pinned),
+#   1. fetches the upstream modules the tests need (pinned): UNTAR for the
+#      test setup blocks, BCFTOOLS_NORM and HUGGINGFACE_DOWNLOAD for the subworkflow,
 #   2. stages the golden fixture, since it is not on nf-core/test-datasets yet,
 #   3. runs both test files with dev/nf-test.config.
 #
@@ -63,8 +64,8 @@ echo "platform ${VEPYR_DOCKER_PLATFORM}, container ${VEPYR_CONTAINER}"
 
 module_files=(main.nf meta.yml environment.yml)
 # fetch_module <component> <nf-core/modules commit>: vendor an upstream module
-# the tests need (UNTAR for the module test setup, BCFTOOLS_NORM for the
-# subworkflow). Fetch into a temporary directory and move it into place only
+# the tests need (UNTAR for the test setup blocks, BCFTOOLS_NORM and
+# HUGGINGFACE_DOWNLOAD for the subworkflow). Fetch into a temporary directory and move it into place only
 # when every file arrived: an interrupted curl can leave a partial file behind,
 # and a module directory missing a file would otherwise be reused on every run.
 fetch_module() {
@@ -95,7 +96,8 @@ fetch_module() {
     trap - EXIT
 }
 fetch_module untar 6d46786420b4d7bc88eba026eb389c0c5535d120
-fetch_module bcftools/norm 56155f73713bc32c5343b59f05d968794c1b596d
+fetch_module bcftools/norm 45778ac3f84844e33a7afd9282a3a26409c277b2
+fetch_module huggingface/download 45778ac3f84844e33a7afd9282a3a26409c277b2
 
 testdata="${module_root}/.testdata"
 # Restage whenever anything the staged data is built from changes: the staging
@@ -111,6 +113,7 @@ stage_inputs=(
     stage_testdata.py
     "${fixture}/prepare.py"
     "${fixture}"/input_chr22.vcf.gz*
+    "${fixture}"/raw_chr22.vcf.gz*
     "${fixture}"/chr22.fa.gz*
     "${fixture}"/cache/*/*
 )
