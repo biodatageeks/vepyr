@@ -247,3 +247,49 @@ def test_legacy_physical_shard_without_strand_retains_forward_matching(
         "rs9000000003&rs9000000004&rs9000000005&rs9000000006"
     ]
     assert rows[0]["AF"] is None
+
+
+@pytest.mark.parametrize("alt", ["T", "T,A"])
+def test_joined_alt_keeps_coordinate_only_colocated_annotations(
+    converted_cache, tmp_path, alt
+):
+    """Keep the raw-row compatibility path; VEP parity inputs stay normalized."""
+    cache = tmp_path / "unknown-cache"
+    shutil.copytree(converted_cache, cache)
+    path = cache / "variation/chr1.parquet"
+    table = pq.read_table(path)
+    table = table.filter(
+        pa.array([name == "rs9000000001" for name in table["dbsnp_ids"].to_pylist()])
+    )
+    assert table.num_rows == 1
+    field = table.schema.field("allele_string")
+    table = table.set_column(
+        table.schema.get_field_index("allele_string"),
+        field,
+        pa.array(["UNKNOWN"], type=field.type),
+    )
+    pq.write_table(table, path, write_page_index=True)
+    # UNKNOWN follows VEP's coordinate-only rule; no matched allele or AF exists.
+    lines = (FIXTURE / "snv.vcf").read_text().splitlines()
+    columns = lines[-1].split("\t")
+    columns[4] = alt
+    lines[-1] = "\t".join(columns)
+    input_vcf = tmp_path / "input.vcf"
+    input_vcf.write_text("\n".join(lines) + "\n")
+    rows = (
+        vepyr.annotate(
+            str(input_vcf),
+            str(cache),
+            reference_fasta=str(FIXTURE / "reference.fa.gz"),
+            expected_cache_version="116",
+            workers=1,
+            skip_csq=True,
+            show_progress=False,
+        )
+        .select(["Existing_variation", "AF"])
+        .collect()
+        .to_dicts()
+    )
+    assert len(rows) == 1
+    assert rows[0]["Existing_variation"] == ["rs9000000001"]
+    assert rows[0]["AF"] is None

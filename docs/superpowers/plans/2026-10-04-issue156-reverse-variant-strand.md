@@ -101,3 +101,26 @@ performance gate without overrides, and strict22 quality. Keep both earlier
 failed sweeps and the immutable original baseline. Re-request both reviewers.
 
 The final context-loading engine revision is `95da034392bc1d4d1d7caf1732901d902ef19a7f`.
+
+## Joined-row compatibility and serial sink follow-up
+
+Review traced the per-ALT sink keys into an annotation consumer which still
+retains raw reader-joined ALTs. The engine already documents unsplit multiallelic
+annotation as unsupported (allele.rs, alt_kind); normalized VCF remains required
+for full VEP parity. However, coordinate-only UNKNOWN cache entries previously
+used a joined key, so dropping it is a real backward-compatibility regression.
+Retain that legacy whole-row preparation alongside the per-ALT preparations.
+A public Python annotation test with a physical UNKNOWN row passes for a single
+ALT and fails for an unsplit T,A row before the fix; both must pass after it.
+This is compatibility coverage, not a new raw-multiallelic VEP parity claim.
+
+The 95da034/25c4597 sweep confirms context8 improves by13.3%, but writer1 fails
+at +10.5%. All other phase and wall/RSS limits pass. The superseded strict22 run
+was interrupted before rebuilding; no partial quality result is called a pass.
+The functions serial sink still dispatches every record through the unchanged
+formats v1.13.0 writer's 8KiB buffer, whereas its multi-worker sink already
+assembles and writes a whole ordered batch. Reuse that existing chunk helper in
+the serial sink. Keep chunk assembly inside the measured write phase, preserve
+record order/newlines/counts/error propagation, and measure the extra per-batch
+byte buffer with peak RSS. The six full VCF fixtures and strict22 exercise both
+plain and BGZF output. No formats API or source change is needed.
