@@ -91,3 +91,20 @@ Expected: original port full body FAIL→PASS; control remains PASS; full-genome
 strict MD5 stays PASS. No performance improvement is claimed. Both worker counts
 must pass the runbook phase/wall/RSS gate. Baseline source remains untouched
 until both native measurement and strict-MD5 baselines finish.
+
+## Review and performance follow-up
+
+Known BAM policy also controls BAM_EDIT, as required by VEP Constants.pm:100.
+A Docker control removes only native BAM metadata and verifies the complete
+VCF, including RNA-edited NR_001458.3:n.291C>T. Disabled policy must reach the
+HGVS fallback so it cannot independently re-read edited transcript sequence.
+
+Two initial native performance attempts missed the context-loading phase at
+eight workers (5.7% and 7.0%); the first also missed writer1 by 6.5%. Both attempts
+are retained. The first strict 22-autosome run passed; the second quality run
+was stopped after its performance failure before changing the installed binary.
+A bounded 64 KiB per-batch FASTA window now reuses nearby genomic reference reads.
+An instrumented indexed-reader test verifies the seek reduction, exact sequence,
+window boundaries, contig changes/ends, long-variant bypass and reader errors.
+The unchanged input/oracles, full campaign and all native gates must be rerun
+on this candidate before hand-off; no failed threshold is waived.
