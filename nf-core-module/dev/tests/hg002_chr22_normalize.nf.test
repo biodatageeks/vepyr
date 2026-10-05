@@ -40,6 +40,7 @@ nextflow_workflow {
                 input[3] = 116
                 input[4] = [[], []]
                 input[5] = true
+                input[6] = ''
                 """
             }
         }

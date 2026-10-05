@@ -3,3 +3,4 @@
 .testdata/
 modules/nf-core/untar/
 modules/nf-core/bcftools/
+modules/nf-core/huggingface/

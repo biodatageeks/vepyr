@@ -5,10 +5,13 @@ flowchart TB
         cache["ch_cache<br/>[meta2, cache]"]
         ver["val_cache_version<br/>116 or []"]
         plug["ch_plugin_cache<br/>[meta4, root] or [[], []]"]
+        hf["val_hf_repo<br/>HF dataset ID or empty"]
     end
 
     subgraph VCF_ANNOTATE_VEPYR
         norm{"val_normalize"}
+        hfsel{"val_hf_repo"}
+        hfdl(["HUGGINGFACE_DOWNLOAD<br/>hf download datasets/…"])
         dropfai(("map"))
         bcf(["BCFTOOLS_NORM<br/>bcftools norm --fasta-ref"])
         join1(("join"))
@@ -29,7 +32,11 @@ flowchart TB
     join1 -- "remainder: true" --> index
     index -- "[meta, vcf, index or []]" --> vepyr
     fasta -- "[meta3, fasta, fai, gzi]" --> vepyr
-    cache --> vepyr
+    hf --> hfsel
+    cache --> hfsel
+    hfsel -- "set: ch_cache must be [[], []]" --> hfdl
+    hfdl -- "out.output, shared by all samples" --> vepyr
+    hfsel -. "unset: ch_cache" .-> vepyr
     ver --> vepyr
     plug --> vepyr
     vepyr -- "out.vcf + out.tbi" --> join2

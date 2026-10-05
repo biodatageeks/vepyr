@@ -10,8 +10,9 @@ Silicon.
 ![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
 ![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
 
-The diagram shows the `vcf_annotate_vepyr` subworkflow described in
-[Normalizing first](#normalizing-first); with `val_normalize` false, or when you
+The diagram shows the
+[`vcf_annotate_vepyr` subworkflow](https://github.com/nf-core/modules/tree/master/subworkflows/nf-core/vcf_annotate_vepyr),
+also on nf-core/modules and described in [Normalizing first](#normalizing-first); with `val_normalize` false, or when you
 call `VEPYR_ANNOTATE` directly, only the dashed path runs. Names starting with
 `ch_` are Nextflow channels, not chromosomes. Each VCF is one whole task per
 process, with no per-chromosome scatter; vepyr parallelizes inside its task, up
@@ -117,71 +118,88 @@ vepyr annotates records as given. The parity inputs were normalized with
 `bcftools norm -m -both` (multiallelic records split, indels not left-aligned).
 To run that step in the same pipeline, use the `vcf_annotate_vepyr` subworkflow,
 which runs nf-core's `bcftools/norm` module before `VEPYR_ANNOTATE`. It takes the
-same inputs as the module plus a boolean, `val_normalize`; set it to `true` to
-normalize. Both steps read the reference FASTA from channel 3.
+module's inputs plus two values: `val_normalize`, set to `true` to normalize, and
+`val_hf_repo`, which can download the cache from Hugging Face instead of reading
+it from channel 2 (see [Cache from Hugging Face](#cache-from-hugging-face)). Both
+steps read the reference FASTA from channel 3.
 
-The subworkflow is still staged in this repository and is not yet available in
-nf-core/modules. It needs both `vepyr/annotate` (installed as above) and nf-core's
-`bcftools/norm` at the paths nf-core tooling uses. From the parent directory of
-`my-pipeline`, clone this repository and copy the subworkflow:
+Install it from nf-core/modules the same way as the module. nf-core tools also
+installs the modules it calls: `vepyr/annotate`, `bcftools/norm` and
+`huggingface/download`.
 
 ```bash
-git clone --depth 1 https://github.com/biodatageeks/vepyr.git
-mkdir -p my-pipeline/subworkflows/nf-core
-cp -R vepyr/nf-core-module/subworkflows/nf-core/vcf_annotate_vepyr my-pipeline/subworkflows/nf-core/
-
-# bcftools/norm: in an nf-core pipeline, `nf-core modules install bcftools/norm`.
-# Otherwise copy it at the commit the subworkflow is tested against:
-ref=56155f73713bc32c5343b59f05d968794c1b596d
-mkdir -p my-pipeline/modules/nf-core/bcftools/norm
-for f in main.nf meta.yml environment.yml; do
-    curl -fsSL -o my-pipeline/modules/nf-core/bcftools/norm/$f \
-        https://raw.githubusercontent.com/nf-core/modules/$ref/modules/nf-core/bcftools/norm/$f
-done
+cd my-pipeline
+nf-core subworkflows install vcf_annotate_vepyr
 ```
 
+This installs the subworkflow under `subworkflows/nf-core/vcf_annotate_vepyr/`
+and records it and its modules in `modules.json`.
+
 In the example above, include the subworkflow instead of the module and call it
-with the same channels plus `true`:
+with the same channels plus `true` and `''` (no Hugging Face download):
 
 ```groovy title="main.nf"
 include { VCF_ANNOTATE_VEPYR } from './subworkflows/nf-core/vcf_annotate_vepyr/main'
 
 // ... vcf, cache and fasta channels as in the example above ...
 
-    VCF_ANNOTATE_VEPYR(vcf, cache, fasta, params.cache_version, [[], []], true)
+    VCF_ANNOTATE_VEPYR(vcf, cache, fasta, params.cache_version, [[], []], true, '')
 
     VCF_ANNOTATE_VEPYR.out.vcf_tbi.view { meta, annotated, tbi -> "${meta.id}: ${annotated}" }
 ```
+
+`cache` and `fasta` must be value channels (`channel.value(...)` or
+`.collect()`), as in the example: with a queue channel only the first sample is
+annotated.
 
 Configure `BCFTOOLS_NORM` as validated. This is required, not optional:
 
 ```groovy
 process {
     withName: 'BCFTOOLS_NORM' {
-        ext.args   = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
-        ext.prefix = { "${meta.id}.norm" }
+        ext.args = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
     }
 }
 ```
 
 Without this block, `bcftools/norm` falls back to its default `ext.args` of
-`--output-type z`: it left-aligns indels against the reference, leaves
-multiallelic records unsplit and writes no index, so vepyr annotates the
-unsplit records on a single pipeline.
+`--output-type z`: it left-aligns indels against the reference and leaves
+multiallelic records unsplit.
 
 Without `--do-not-normalize`, bcftools also left-aligns indels against the
-reference, and it fails when the FASTA and VCF name contigs differently. The
-index from `--write-index=tbi` lets vepyr use more than one pipeline. On the
-raw HG002 chr22 benchmark records this subworkflow reproduces the Ensembl VEP
-116 `--everything` record-body md5.
+reference, and it fails when the FASTA and VCF name contigs differently. Keep
+the output bgzip VCF (`--output-type z`): `VEPYR_ANNOTATE` runs a single
+pipeline for BCF and plain VCF. `--write-index=tbi` is optional; without it,
+`VEPYR_ANNOTATE` builds the index itself. On the raw HG002 chr22 benchmark
+records this subworkflow reproduces the Ensembl VEP 116 `--everything`
+record-body md5.
 
-!!! warning "Keep the `ext.prefix` when sample ids match file names"
-    `bcftools/norm` writes `${meta.id}.vcf.gz`. If `meta.id` equals the input
-    VCF's basename (`sample.vcf.gz` with `id: 'sample'`), it writes over its own
-    staged input, which is a symlink to your file, and truncates the original.
-    The `.norm` prefix avoids that. `VEPYR_ANNOTATE` writes
-    `${meta.id}_vepyr.vcf.gz` by default, so it needs no distinct prefix of its
-    own; if you set one that equals the input's name, the task stops with an error.
+No `ext.prefix` is needed. `bcftools/norm` writes `${meta.id}_norm.vcf.gz` and
+`VEPYR_ANNOTATE` writes `${meta.id}_vepyr.vcf.gz`, and both stop with an error
+if a prefix you set would overwrite their staged input.
+
+### Cache from Hugging Face
+
+Instead of a local cache, pass `[[], []]` as channel 2 and a [prebuilt vepyr cache](quickstart.md#option-a-download-a-prebuilt-cache-recommended)
+from Hugging Face as `val_hf_repo`. `HUGGINGFACE_DOWNLOAD` downloads
+it once and every sample shares it. Setting both a cache and `val_hf_repo`, or
+neither, is an error.
+
+```groovy title="main.nf"
+    VCF_ANNOTATE_VEPYR(vcf, [[], []], fasta, 116, [[], []], true, 'biodatageeks/vepyr_116_GRCh38_ensembl')
+```
+
+To pin the cache to a commit, or download only the contigs your VCFs carry, set
+`HUGGINGFACE_DOWNLOAD`'s `ext.args`. A partial download must include every
+entity's `chrom_manifest.json` and every contig present in the VCF:
+
+```groovy
+process {
+    withName: 'HUGGINGFACE_DOWNLOAD' {
+        ext.args = "--revision <commit> --include '*/chr22.parquet' --include '*/chrom_manifest.json'"
+    }
+}
+```
 
 ## Inputs
 
