@@ -1,8 +1,12 @@
 # nf-core module `vepyr/annotate` and subworkflow `vcf_annotate_vepyr`
 
-Staging area for the nf-core/modules submission. `modules/nf-core/vepyr/annotate/`
-and `subworkflows/nf-core/vcf_annotate_vepyr/` mirror the upstream paths, so they
-copy verbatim into a nf-core/modules fork:
+Development mirror of the nf-core/modules components, both now merged upstream
+([module](https://github.com/nf-core/modules/tree/master/modules/nf-core/vepyr/annotate),
+[subworkflow](https://github.com/nf-core/modules/tree/master/subworkflows/nf-core/vcf_annotate_vepyr)).
+Pipelines should install them with nf-core tools (see `docs/nextflow.md`).
+`modules/nf-core/vepyr/annotate/` and `subworkflows/nf-core/vcf_annotate_vepyr/`
+mirror the upstream paths, so changes made and tested here copy verbatim into
+a nf-core/modules fork:
 
 ```bash
 cp -R modules/nf-core/vepyr /path/to/modules-fork/modules/nf-core/
@@ -31,7 +35,7 @@ were. It also fails outright when the FASTA and VCF name contigs differently
 `${meta.id}_norm` and `${meta.id}_vepyr` and stop if a prefix would overwrite
 their staged input.
 
-This directory mirrors the subworkflow in review as
+This directory mirrors the subworkflow merged in
 [nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070); keep the
 two in sync by hand.
 
@@ -236,7 +240,7 @@ Treat any *second* failure as a genuine regression.
    `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test --update-snapshot`
 5. **~~Open the nf-core/modules PR for the module~~** (`vepyr/annotate`): merged as
    [nf-core/modules#13001](https://github.com/nf-core/modules/pull/13001).
-6. **Open a second PR for the subworkflow** (`vcf_annotate_vepyr`): in review as
+6. **~~Open a second PR for the subworkflow~~** (`vcf_annotate_vepyr`): merged as
    [nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070).
 
 ## Scope

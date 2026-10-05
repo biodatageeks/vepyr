@@ -10,8 +10,9 @@ Silicon.
 ![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-light.svg#only-light)
 ![vcf_annotate_vepyr subworkflow](diagrams/nextflow-subworkflow-dark.svg#only-dark)
 
-The diagram shows the `vcf_annotate_vepyr` subworkflow described in
-[Normalizing first](#normalizing-first); with `val_normalize` false, or when you
+The diagram shows the
+[`vcf_annotate_vepyr` subworkflow](https://github.com/nf-core/modules/tree/master/subworkflows/nf-core/vcf_annotate_vepyr),
+also on nf-core/modules and described in [Normalizing first](#normalizing-first); with `val_normalize` false, or when you
 call `VEPYR_ANNOTATE` directly, only the dashed path runs. Names starting with
 `ch_` are Nextflow channels, not chromosomes. Each VCF is one whole task per
 process, with no per-chromosome scatter; vepyr parallelizes inside its task, up
@@ -122,29 +123,17 @@ module's inputs plus two values: `val_normalize`, set to `true` to normalize, an
 it from channel 2 (see [Cache from Hugging Face](#cache-from-hugging-face)). Both
 steps read the reference FASTA from channel 3.
 
-The subworkflow is in review as
-[nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070) and is
-not yet available from nf-core/modules. Next to `vepyr/annotate` (installed as
-above), it needs nf-core's `bcftools/norm` and `huggingface/download` at the
-paths nf-core tooling uses; both are included even when unused. From the parent
-directory of `my-pipeline`, clone this repository and copy the subworkflow:
+Install it from nf-core/modules the same way as the module. nf-core tools also
+installs the modules it calls: `vepyr/annotate`, `bcftools/norm` and
+`huggingface/download`.
 
 ```bash
-git clone --depth 1 https://github.com/biodatageeks/vepyr.git
-mkdir -p my-pipeline/subworkflows/nf-core
-cp -R vepyr/nf-core-module/subworkflows/nf-core/vcf_annotate_vepyr my-pipeline/subworkflows/nf-core/
-
-# In an nf-core pipeline: nf-core modules install bcftools/norm huggingface/download
-# Otherwise copy them at the commit the subworkflow is tested against:
-ref=45778ac3f84844e33a7afd9282a3a26409c277b2
-for module in bcftools/norm huggingface/download; do
-    mkdir -p my-pipeline/modules/nf-core/$module
-    for f in main.nf meta.yml environment.yml; do
-        curl -fsSL -o my-pipeline/modules/nf-core/$module/$f \
-            https://raw.githubusercontent.com/nf-core/modules/$ref/modules/nf-core/$module/$f
-    done
-done
+cd my-pipeline
+nf-core subworkflows install vcf_annotate_vepyr
 ```
+
+This installs the subworkflow under `subworkflows/nf-core/vcf_annotate_vepyr/`
+and records it and its modules in `modules.json`.
 
 In the example above, include the subworkflow instead of the module and call it
 with the same channels plus `true` and `''` (no Hugging Face download):
