@@ -1,0 +1,9 @@
+graph LR
+    A["vepyr-plugins repo<br/>&lt;plugin&gt;.source.toml @ tag"] --> B[git worktree<br/>at resolved SHA]
+    S[Source file<br/>tsv / vcf / bed / parquet] --> V[md5 + index<br/>verification]
+    B --> I["Ingest view<br/>(manifest ingest_sql)"]
+    V --> I
+    I --> N[Normalized view<br/>canonical_contig<br/>+ coordinate shift]
+    N --> T[Tier join]
+    C[Variation cache shard<br/>chrom, start, allele_string] --> T
+    T --> O["plugin/&lt;name&gt;/chr*.parquet<br/>+ manifest.json"]
