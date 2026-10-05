@@ -119,10 +119,10 @@ Overrides:
   1,000 HG002 chr22 records against a release-116 cache with `--everything`,
   and a stub.
 - `subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test` — the subworkflow
-  submission tests. Normalization runs on `input_multiallelic.vcf.gz`, the same
-  window before splitting (986 records, 14 multiallelic): the output must have
-  1,000 biallelic records and the same annotation as `input.vcf.gz` without
-  normalization. Also: the Hugging Face cache shared by two samples, failures
+  submission tests. Normalization runs on `input.vcf.gz` joined back into 986
+  records, 14 of them multiallelic, by `bcftools norm --multiallelics +both` in
+  `setup`: the output must have 1,000 biallelic records and the same annotation
+  as `input.vcf.gz` without normalization. Also: the Hugging Face cache shared by two samples, failures
   for both or neither of `ch_cache` and `val_hf_repo`, and stubs.
 - `dev/tests/hg002_chr22_normalize.nf.test` — end-to-end parity through the
   subworkflow: the raw HG002 chr22 benchmark records (`raw_chr22.vcf.gz`, 50,284
@@ -214,8 +214,6 @@ Treat any *second* failure as a genuine regression.
    `meta.yml`, and set the amd64 URIs in `main.nf`. Rerun it whenever
    `environment.yml` changes.
 3. **~~PR the test data~~** ([nf-core/test-datasets#2270](https://github.com/nf-core/test-datasets/pull/2270), merged).
-   The subworkflow's `input_multiallelic.vcf.gz` follows in
-   [nf-core/test-datasets#2298](https://github.com/nf-core/test-datasets/pull/2298).
    `./stage-testdata.sh <dir>` builds it from the offline chr22 fixture in
    `tests/data/hg002_chr22` and verifies it against Ensembl VEP 116: 1,000
    normalized HG002 chr22 records from chr22:20572272-21735973 (chosen for
@@ -239,8 +237,7 @@ Treat any *second* failure as a genuine regression.
 5. **~~Open the nf-core/modules PR for the module~~** (`vepyr/annotate`): merged as
    [nf-core/modules#13001](https://github.com/nf-core/modules/pull/13001).
 6. **Open a second PR for the subworkflow** (`vcf_annotate_vepyr`): in review as
-   [nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070). Its
-   normalization tests pass in CI once #2298 is merged.
+   [nf-core/modules#13070](https://github.com/nf-core/modules/pull/13070).
 
 ## Scope
 

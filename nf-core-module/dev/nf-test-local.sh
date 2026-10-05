@@ -113,7 +113,6 @@ stage_inputs=(
     stage_testdata.py
     "${fixture}/prepare.py"
     "${fixture}"/input_chr22.vcf.gz*
-    "${fixture}"/raw_chr22.vcf.gz*
     "${fixture}"/chr22.fa.gz*
     "${fixture}"/cache/*/*
 )
