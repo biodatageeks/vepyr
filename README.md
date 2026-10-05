@@ -10,6 +10,7 @@
 [![Bioconda - Downloads](https://img.shields.io/conda/dn/bioconda/vepyr?label=bioconda%20downloads)](https://anaconda.org/bioconda/vepyr)
 [![Bioconda - Platforms](https://img.shields.io/conda/pn/bioconda/vepyr?label=bioconda%20platforms)](https://anaconda.org/bioconda/vepyr)
 [![nf-core module](https://img.shields.io/badge/nf--core-module-24B064?logo=nfcore&logoColor=white)](https://github.com/nf-core/modules/tree/master/modules/nf-core/vepyr/annotate)
+[![nf-core subworkflow](https://img.shields.io/badge/nf--core-subworkflow-24B064?logo=nfcore&logoColor=white)](https://github.com/nf-core/modules/tree/master/subworkflows/nf-core/vcf_annotate_vepyr)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/biodatageeks/vepyr)
 
 ![CI](https://github.com/biodatageeks/vepyr/actions/workflows/ci.yml/badge.svg?branch=master)
@@ -35,7 +36,7 @@ results as a `polars.LazyFrame` or a VCF with `CSQ` in the `INFO` column.
 | [Quick start](https://biodatageeks.org/vepyr/quickstart/) | Install, get a cache, annotate |
 | [Polars DataFrames](https://biodatageeks.org/vepyr/dataframes/) | Schema, region filters, `filter_vep` in Polars |
 | [Command line](https://biodatageeks.org/vepyr/cli/) | `vepyr annotate`, VCF in, VCF out |
-| [Nextflow](https://biodatageeks.org/vepyr/nextflow/) | The `vepyr/annotate` module, amd64 and arm64 containers |
+| [Nextflow](https://biodatageeks.org/vepyr/nextflow/) | The `vepyr/annotate` module, amd64 and arm64 containers, and the `vcf_annotate_vepyr` subworkflow (normalize, optional Hugging Face cache, annotate) |
 | [Download Ensembl VEP and plugin caches](https://biodatageeks.org/vepyr/downloads/) | Prebuilt release-116 caches |
 | [Caches](https://biodatageeks.org/vepyr/caches/) | Cache types, entity schemas, CSQ output fields |
 | [Plugins](https://biodatageeks.org/vepyr/plugins/) | CADD, SpliceAI, AlphaMissense, ClinVar, dbNSFP, PhenotypeOrthologous |
