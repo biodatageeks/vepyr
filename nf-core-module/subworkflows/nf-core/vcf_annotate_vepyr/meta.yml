@@ -1,52 +1,66 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/subworkflows/yaml-schema.json
 name: "vcf_annotate_vepyr"
 description: |
-  Optionally normalize a VCF with bcftools norm, then annotate it with Ensembl VEP
-  consequences using vepyr and return the bgzip VCF with its tabix index.
+  Optionally download a vepyr cache from Hugging Face and normalise a VCF with
+  bcftools norm, then annotate it with Ensembl VEP consequences using vepyr and
+  return the bgzip VCF with its tabix index.
 
-  Normalization is controlled by `val_normalize`; pipelines should default it to
-  true. What bcftools norm does comes from `BCFTOOLS_NORM`'s `ext.args`. The
-  configuration vepyr's Ensembl VEP parity tests are validated on splits
-  multiallelic records without left-aligning indels, and writes the index vepyr
-  needs to run more than one annotation pipeline:
+  Give the cache either as `ch_cache` or as a Hugging Face dataset in
+  `val_hf_repo`, such as `biodatageeks/vepyr_116_GRCh38_ensembl`; setting both,
+  or neither, is an error. The repository is downloaded once and shared across
+  all samples. To pin the cache or download only some contigs, add `--revision`
+  and `--include` to `HUGGINGFACE_DOWNLOAD`'s `ext.args`. A partial download
+  must include every entity's manifest and all contigs present in the VCF:
 
   ```
-  withName: 'BCFTOOLS_NORM' {
-      ext.args   = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
-      ext.prefix = { "${meta.id}.norm" }
+  withName: 'HUGGINGFACE_DOWNLOAD' {
+      ext.args = "--revision <commit> --include '*/chr22.parquet' --include '*/chrom_manifest.json'"
   }
   ```
 
-  Keep the `BCFTOOLS_NORM` `ext.prefix` whenever `meta.id` can equal the input
-  VCF's basename (`sample.vcf.gz` with `id: 'sample'`): bcftools/norm writes
-  `${meta.id}.vcf.gz` over its own staged input, a symlink, which truncates the
-  original file. `VEPYR_ANNOTATE` writes `${meta.id}_vepyr.vcf.gz` by default
-  and needs no distinct prefix.
+  What bcftools norm does comes from `BCFTOOLS_NORM`'s `ext.args`. Keep its
+  output bgzip VCF (`--output-type z`): `VEPYR_ANNOTATE` runs a single pipeline
+  for BCF (`-Ob`, `-Ou`) and plain VCF (`-Ov`). vepyr's Ensembl VEP parity tests
+  use this configuration, which splits multiallelic records without
+  left-aligning indels. `--write-index=tbi` is optional and saves the tabix step
+  in `VEPYR_ANNOTATE`:
+
+  ```
+  withName: 'BCFTOOLS_NORM' {
+      ext.args = '--multiallelics -both --do-not-normalize --output-type z --write-index=tbi'
+  }
+  ```
 keywords:
   - vcf
   - annotation
-  - normalization
+  - normalisation
   - vep
   - vepyr
   - bcftools
+  - huggingface
 components:
   - bcftools/norm
+  - huggingface/download
   - vepyr/annotate
 input:
   - ch_vcf:
       description: |
-        VCF to normalize and annotate, with its optional tabix/CSI index (pass [] for none)
+        VCF to normalise and annotate, with its optional tabix/CSI index (pass [] for none)
         Structure: [ val(meta), path(vcf), path(tbi) ]
   - ch_cache:
       description: |
-        vepyr Parquet cache directory produced by vepyr's cache build
+        vepyr Parquet cache directory produced by vepyr's cache build. Must be
+        a value channel (e.g. `channel.value(...)` or `.collect()`): a queue
+        channel annotates only the first sample. Pass [[], []] when
+        val_hf_repo is set.
         Structure: [ val(meta2), path(cache) ]
   - ch_fasta:
       description: |
         Reference FASTA, its samtools faidx index and, for a bgzip FASTA, its
         .gzi index (pass [] for an uncompressed FASTA). Required: vepyr always
         annotates with `--everything`, which needs it, and bcftools norm reads
-        it when `val_normalize` is true.
+        it when `val_normalize` is true. Must be a value channel: a queue
+        channel annotates only the first sample.
         Structure: [ val(meta3), path(fasta), path(fai), path(gzi) ]
   - val_cache_version:
       type: integer
@@ -58,6 +72,13 @@ input:
   - val_normalize:
       type: boolean
       description: Run BCFTOOLS_NORM before annotation. Pipelines should default this to true.
+  - val_hf_repo:
+      type: string
+      description: |
+        Hugging Face dataset holding the vepyr Parquet cache, e.g.
+        `biodatageeks/vepyr_116_GRCh38_ensembl` (a `datasets/` prefix is
+        optional). Downloaded once and shared across samples. Pass '' or [] to
+        use ch_cache instead.
 output:
   - vcf_tbi:
       description: |
