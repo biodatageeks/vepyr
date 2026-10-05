@@ -60,6 +60,7 @@ into a directory of per-chromosome Parquet shards:
 
 ```
 <cache_dir>/<release>_<assembly>_<type>/
+  chr_synonyms.txt                       (when supplied by the native cache)
   variation/chr1.parquet … chrY.parquet   (+ non-standard contigs)
   transcript/chr1.parquet …
   exon/…  translation_core/…  translation_sift/…  regulatory/…  motif/…
@@ -79,6 +80,36 @@ The entities and what they feed in the CSQ output:
 
 (The Ensembl `translation` entity is split into two Parquet entities on
 conversion: `translation_core` and `translation_sift`.)
+
+Chromosome synonyms such as `NC_000021.9` are resolved from the native cache's
+`chr_synonyms.txt`, which conversion preserves unchanged. Annotation uses the
+resolved cache chromosome internally and retains the original `CHROM` in VCF
+output and LazyFrames. Caches without this file continue to accept ordinary
+bare/`chr` chromosome names, but cannot resolve assembly-specific accessions.
+An input containing only unresolved contigs fails with a `none of the VCF`
+contigs available error. In mixed input, unresolved contigs follow the existing
+unsupported-contig behavior and are skipped. An unreadable or invalid UTF-8
+synonym file raises an error naming that file.
+
+To add the synonym metadata to an existing converted cache, resume conversion
+from the matching native cache. Metadata is refreshed even when the entity's
+Parquet shards are already complete; keep `overwrite=False` to retain them.
+One entity run is sufficient: the synonym file is shared at the cache root.
+If the native cache has no synonym file, conversion removes any previous copy
+from the converted cache so obsolete mappings cannot survive.
+
+```python
+import vepyr
+
+vepyr.build_cache(
+    release=116,
+    cache_dir="/data/cache",  # contains 116_GRCh38_merged/
+    cache_type="merged",
+    entity="variation",
+    local_cache="/data/raw/homo_sapiens_merged/116_GRCh38",
+    overwrite=False,
+)
+```
 
 ## Entity schemas
 
