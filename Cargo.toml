@@ -208,7 +208,7 @@ serde_json = "1"
 # Current review pins for vepyr#150: native cache reference policy and independent
 # genomic HGVSc. The earlier REF==ALT, REF/CDS and lowercase-allele fixes are retained.
 # functions#268 and vepyr pin the released formats v1.14.0 (contains formats#259).
-# Re-pin to upstream merge commits after the human merges those PRs.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d0eef7f9148421a083be41f0166407cac6242179", features = ["cache-builder"] }
+# Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.23.1", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
