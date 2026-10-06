@@ -559,6 +559,8 @@ class TestBuildCacheIntegration:
             "end",
             "allele_string",
             "failed",
+            # functions#269: converted caches keep the known-variant strand.
+            "strand",
             "somatic",
             "clin_sig",
             "dbsnp_ids",
