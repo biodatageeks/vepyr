@@ -206,8 +206,7 @@ serde_json = "1"
 # Pin the master merge commit of biodatageeks/datafusion-bio-functions#266.
 # vepyr#156: preserve cached strand and normalize each ALT in known-variant lookup.
 # Review pin for functions#269, including bounded multi-worker context loading.
-# Re-pin after the human upstream merge; formats is the released v1.14.0
-# (formats#259), matching functions#269.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "01d4fa6b83ffbce649aa38fb3f7ad4bbd9a33d8c", features = ["cache-builder"] }
+# Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.23.1", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
