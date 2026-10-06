@@ -537,7 +537,7 @@ class TestBuildCacheIntegration:
         _, flat_result, _, _ = built_cache
         assert sum(r for _, r in flat_result) == 4445
 
-    # ── Variation (763 rows, 24 cols) ───────────────────────────────
+    # ── Variation (763 rows, 25 cols) ───────────────────────────────
 
     def test_variation_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -545,7 +545,7 @@ class TestBuildCacheIntegration:
 
     def test_variation_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["variation"].num_columns == 24
+        assert tables["variation"].num_columns == 25
 
     def test_variation_required_columns(self, built_cache):
         _, _, _, tables = built_cache
