@@ -202,7 +202,7 @@ serde_json = "1"
 # formats stays at v1.13.0.
 # vepyr#147: uppercase annotation alleles after raw parser trimming.
 # Included since the master merge commit of biodatageeks/datafusion-bio-functions#265.
-# REF/ALT source columns and the formats v1.13.0 pin stay unchanged.
+# REF/ALT source columns stay unchanged.
 # vepyr#148: preserve native chromosome synonyms and resolve accession inputs.
 # Pin the master merge commit of biodatageeks/datafusion-bio-functions#266.
 # Current review pins for vepyr#150: native cache reference policy and independent
@@ -211,6 +211,8 @@ serde_json = "1"
 # vepyr#149: replay shifted insertion HGVSp mapper windows and allele rotation.
 # Engine PR267 includes the merged lowercase-allele and contig-synonym fixes.
 # formats moves to the released v1.14.0 (formats#259), matching functions#267.
+# vepyr#156: preserve cached strand and normalize each ALT in known-variant lookup.
+# functions#269 also bounds multi-worker context loading.
 # Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.23.1", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
