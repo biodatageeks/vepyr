@@ -78,13 +78,17 @@ separate checksum step.
 
 For testing you can fetch a single chromosome instead of the whole 31–36 G
 cache. Every entity directory carries a `chrom_manifest.json` that the engine
-requires, so it has to be included alongside the shards:
+requires, so it has to be included alongside the shards, together with the two
+root sidecars: `reference_policy.json` (vepyr refuses merged and RefSeq caches
+without it) and `chr_synonyms.txt` (contig-name aliases):
 
 ```bash
 hf download biodatageeks/vepyr_116_GRCh38_merged \
   --repo-type dataset \
   --include '*/chr22.parquet' \
   --include '*/chrom_manifest.json' \
+  --include 'reference_policy.json' \
+  --include 'chr_synonyms.txt' \
   --local-dir ~/vepyr_cache/116_GRCh38_merged_chr22
 ```
 
