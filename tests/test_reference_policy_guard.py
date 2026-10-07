@@ -64,3 +64,14 @@ def test_unreadable_unrelated_shard_does_not_block(tmp_path):
     )
     with pytest.raises(ValueError, match="reference_policy.json"):
         _require_reference_policy(merged)
+
+
+def test_mixed_directory_with_a_merged_shard_behind_ensembl_is_rejected(tmp_path):
+    # A readable Ensembl chr1 sorted first must not hide a versioned merged chr22.
+    root = _cache(tmp_path, "merged", policy=False)
+    ens = _cache(tmp_path / "e", "ensembl", policy=False)
+    import shutil
+
+    shutil.copy(f"{ens}/variation/chr22.parquet", f"{root}/variation/chr1.parquet")
+    with pytest.raises(ValueError, match="reference_policy.json"):
+        _require_reference_policy(root)
