@@ -224,7 +224,8 @@ def _flags_for_projection(
     fills is read, ``everything`` stays. Otherwise it is expanded into the
     two groups that change column values (see the constants above), and a
     group no column reads is left out so the engine skips it. Each group alone
-    yields the same values as ``everything`` does.
+    yields the same values as ``everything`` does. ``USED_REF`` retains the
+    FASTA path independently of the HGVS group.
 
     ``required`` names fields that must be computed whatever the projection,
     the fields a plugin's match templates read. Returns a new dict.
@@ -242,7 +243,8 @@ def _flags_for_projection(
     else:
         for key in _HGVS_OPTIONS:
             out.pop(key, None)
-        out.pop("reference_fasta_path", None)
+        if "USED_REF" not in needed:
+            out.pop("reference_fasta_path", None)
     if needed & _COLOCATED_COLUMNS:
         for key in _COLOCATED_OPTIONS:
             out[key] = True
@@ -347,6 +349,48 @@ def _cache_version_for_release(release: int) -> str:
     cache_version = str(release)
     _validate_expected_cache_version(cache_version)
     return cache_version
+
+
+def _require_reference_policy(cache_dir: str) -> None:
+    """Refuse merged/RefSeq caches converted before the reference policy existed.
+
+    Without ``reference_policy.json`` the engine cannot tell whether the native
+    cache used BAM-edited transcripts, so ``USED_REF`` and RNA-edited HGVSc
+    would silently diverge from Ensembl VEP at edited loci. Ensembl caches are
+    never BAM-edited and need no policy.
+    """
+    if os.path.exists(os.path.join(cache_dir, "reference_policy.json")):
+        return
+    variation = os.path.join(cache_dir, "variation")
+    # listdir, not glob: a cache path may legitimately contain [ ] or *.
+    shards = sorted(
+        os.path.join(variation, name)
+        for name in (os.listdir(variation) if os.path.isdir(variation) else [])
+        if name.endswith(".parquet")
+    )
+    if not shards:
+        return  # not a converted Parquet cache; the engine reports that itself
+    import pyarrow.parquet as pq
+
+    # Check every readable shard: a mixed or partly upgraded directory may hold a
+    # merged/RefSeq shard behind an Ensembl one, and the engine only validates
+    # the contigs a run touches. Unreadable shards are skipped. Footers only.
+    for shard in shards:
+        try:
+            metadata = pq.read_schema(shard).metadata or {}
+        except Exception:  # noqa: BLE001 - unreadable footer: leave to the engine
+            continue
+        source = metadata.get(b"bio.vep.cache_source_type", b"").decode()
+        # Every cache vepyr has converted or published since cache identity was
+        # added carries bio.vep.cache_version; only pre-identity fixtures lack it.
+        if source in ("merged", "refseq") and b"bio.vep.cache_version" in metadata:
+            raise ValueError(
+                f"Cache '{cache_dir}' is a {source} cache without reference_policy.json: "
+                "it was converted by a vepyr older than engine v0.23.1, so its BAM-edited "
+                "transcript policy is unknown and annotation would differ from Ensembl VEP "
+                "at BAM-edited loci. Rebuild it with vepyr.build_cache(..., overwrite=True), "
+                "or download the v0.23.1 revision of the prebuilt cache."
+            )
 
 
 def _validate_cache_type(cache_type: str) -> None:
@@ -1405,6 +1449,7 @@ def annotate(
 
     options_json = json.dumps(opts)
 
+    _require_reference_policy(cache_dir)
     log.info("Running annotation on %s with cache %s", vcf, cache_dir)
 
     # VCF output path: write directly and return the path.
