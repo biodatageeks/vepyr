@@ -48,6 +48,7 @@ serde_json = "1"
 # (tier, start, allele_string, match cols) instead of every column, which is what let the
 # full-source SpliceAI chr1/chr2 shards build at the default 8 GiB pool (bio-functions#235).
 #
+# Historical dependency selections (the current pins are below this history):
 # bio-functions dba94e3: regions option for annotate_vep (biodatageeks/datafusion-bio-functions#239, merge commit)
 # bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
 # and bio-functions 6476619 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
@@ -204,6 +205,12 @@ serde_json = "1"
 # REF/ALT source columns stay unchanged.
 # vepyr#148: preserve native chromosome synonyms and resolve accession inputs.
 # Pin the master merge commit of biodatageeks/datafusion-bio-functions#266.
+# Current review pins for vepyr#150: native cache reference policy and independent
+# genomic HGVSc. The earlier REF==ALT, REF/CDS and lowercase-allele fixes are retained.
+# functions#268 and vepyr pin the released formats v1.14.0 (contains formats#259).
+# vepyr#149: replay shifted insertion HGVSp mapper windows and allele rotation.
+# Engine PR267 includes the merged lowercase-allele and contig-synonym fixes.
+# formats moves to the released v1.14.0 (formats#259), matching functions#267.
 # vepyr#156: preserve cached strand and normalize each ALT in known-variant lookup.
 # functions#269 also bounds multi-worker context loading.
 # Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
