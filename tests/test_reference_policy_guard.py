@@ -51,3 +51,16 @@ def test_cache_path_with_glob_metacharacters_is_still_checked(tmp_path):
         _require_reference_policy(
             _cache(tmp_path / "cache[v1]", "merged", policy=False)
         )
+
+
+def test_unreadable_unrelated_shard_does_not_block(tmp_path):
+    # A damaged shard sorted first must not stop the check or the run.
+    root = _cache(tmp_path, "ensembl", policy=False)
+    (tmp_path / "ensembl" / "variation" / "chr1.parquet").write_bytes(b"not parquet")
+    _require_reference_policy(root)
+    merged = _cache(tmp_path / "m", "merged", policy=False)
+    (tmp_path / "m" / "merged" / "variation" / "chr1.parquet").write_bytes(
+        b"not parquet"
+    )
+    with pytest.raises(ValueError, match="reference_policy.json"):
+        _require_reference_policy(merged)
