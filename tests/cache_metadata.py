@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from datafusion import SessionContext
 
 CACHE_SOURCE_METADATA_KEY = b"bio.vep.cache_source_type"
 CACHE_VERSION_METADATA_KEY = b"bio.vep.cache_version"
+CACHE_BAM_EDITED_METADATA_KEY = b"bio.vep.cache_bam_edited"
 VALID_CACHE_SOURCE_TYPES = {"ensembl", "merged", "refseq"}
 
 
@@ -34,6 +36,9 @@ def copy_cache_with_source_metadata(
             f"Invalid cache_source_type '{cache_source_type}'. Must be one of: {allowed}."
         )
 
+    # The native merged/RefSeq caches these fixtures come from are BAM-edited;
+    # a real conversion records that, and vepyr refuses such caches without it.
+    bam_edited = "true" if cache_source_type in ("merged", "refseq") else "false"
     source = Path(source_dir)
     target = Path(target_dir)
     if target.exists():
@@ -54,6 +59,7 @@ def copy_cache_with_source_metadata(
             metadata = dict(table.schema.metadata or {})
             metadata[CACHE_SOURCE_METADATA_KEY] = cache_source_type.encode("ascii")
             metadata[CACHE_VERSION_METADATA_KEY] = cache_version.encode("ascii")
+            metadata[CACHE_BAM_EDITED_METADATA_KEY] = bam_edited.encode("ascii")
             table = table.replace_schema_metadata(metadata)
             if table.num_rows == 0:
                 # Empty shard: no point-lookup pages, and DataFusion's writer
@@ -73,4 +79,16 @@ def copy_cache_with_source_metadata(
         else:
             shutil.copy2(path, destination)
 
+    (target / "reference_policy.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "cache_source_type": cache_source_type,
+                "cache_version": cache_version,
+                "bam_edited": bam_edited == "true",
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     return target
