@@ -1,0 +1,155 @@
+"""Two distinct ported ALT-dot continuation cases and their VEP 116.2 control."""
+
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+import pytest
+
+import vepyr
+
+
+FIXTURE = Path(__file__).parent / "data" / "alt_dot_reference_merged"
+CASES = [
+    pytest.param("trailing", id="DT-1d6dc19f25-trailing-snv"),
+    pytest.param("leading", id="DT-ce2724f603-leading-snv"),
+    pytest.param("control", id="reference-consistent-control"),
+]
+
+
+def body(path):
+    return b"".join(
+        line
+        for line in path.read_bytes().splitlines(keepends=True)
+        if not line.startswith(b"#")
+    )
+
+
+def csq_fields(path):
+    header = next(
+        line
+        for line in path.read_text().splitlines()
+        if line.startswith("##INFO=<ID=CSQ,")
+    )
+    return re.search(r"Format: ([^\"]+)", header).group(1).split("|")
+
+
+def records(path):
+    fields = csq_fields(path)
+    result = []
+    for line in body(path).decode().splitlines():
+        columns = line.split("\t")
+        csq = next(
+            value[4:] for value in columns[7].split(";") if value.startswith("CSQ=")
+        )
+        entries = [
+            dict(zip(fields, entry.split("|"), strict=True)) for entry in csq.split(",")
+        ]
+        result.append((columns, csq, entries))
+    return result
+
+
+def assert_golden(output, name):
+    expected = FIXTURE / f"{name}.golden.vcf"
+    assert csq_fields(output) == csq_fields(expected)
+    rows = records(output)
+    assert [int(row[0][1]) for row in rows] == [25587759, 25587762]
+    assert [len(row[2]) for row in rows] == [39, 39]
+    # These negative-strand CDS positions distinguish the leading and trailing SNVs.
+    for index, (_, _, entries) in enumerate(rows):
+        by_feature = {entry["Feature"]: entry for entry in entries}
+        exonic = by_feature["ENST00000307301"]
+        assert exonic["USED_REF"] == "T"
+        assert (
+            exonic["HGVSc"] == f"ENST00000307301.12:c.{1000 if index == 0 else 997}A>T"
+        )
+        intronic = by_feature["ENST00000352957"]
+        assert intronic["USED_REF"] == ("T" if name == "control" else "C")
+
+    assert body(output) == body(expected)
+
+
+@pytest.mark.parametrize("name", CASES)
+@pytest.mark.parametrize("workers,indexed", [(1, False), (1, True), (2, True)])
+def test_alt_dot_continuation_vcf(tmp_path, name, workers, indexed):
+    output = tmp_path / "output.vcf"
+    vepyr.annotate(
+        str(FIXTURE / f"{name}.vcf{'.gz' if indexed else ''}"),
+        str(FIXTURE / "cache"),
+        reference_fasta=str(FIXTURE / "reference.fa.gz"),
+        expected_cache_version="116",
+        output_vcf=str(output),
+        workers=workers,
+        show_progress=False,
+    )
+    assert_golden(output, name)
+
+
+@pytest.mark.parametrize("name", CASES)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["HGVSc"],
+        ["GIVEN_REF"],
+        ["USED_REF"],
+        ["GIVEN_REF", "USED_REF", "HGVSc"],
+        ["CSQ", "GIVEN_REF", "USED_REF", "HGVSc"],
+    ],
+)
+def test_alt_dot_continuation_lazy_projections(name, columns):
+    result = (
+        vepyr.annotate(
+            str(FIXTURE / f"{name}.vcf"),
+            str(FIXTURE / "cache"),
+            reference_fasta=str(FIXTURE / "reference.fa.gz"),
+            expected_cache_version="116",
+            skip_csq="CSQ" not in columns,
+            show_progress=False,
+        )
+        .select(["ref", "alt", "Feature", *columns])
+        .collect()
+        .to_dicts()
+    )
+    assert len(result) == 2
+    for row, (vcf, csq, entries) in zip(
+        result, records(FIXTURE / f"{name}.golden.vcf"), strict=True
+    ):
+        assert (row["ref"], row["alt"]) == (vcf[3], vcf[4])
+        assert row["Feature"] == [entry["Feature"] for entry in entries]
+        for field in set(columns) - {"CSQ"}:
+            assert [value or "" for value in row[field]] == [
+                entry[field] for entry in entries
+            ]
+        if "CSQ" in columns:
+            assert row["CSQ"] == csq
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_alt_dot_continuation_cli(tmp_path, name):
+    output = tmp_path / "cli.vcf"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "--input_file",
+            str(FIXTURE / f"{name}.vcf"),
+            "--output_file",
+            str(output),
+            "--dir_cache",
+            str(FIXTURE / "cache"),
+            "--fasta",
+            str(FIXTURE / "reference.fa.gz"),
+            "--cache_version",
+            "116",
+            "--everything",
+            "--no_progress",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    assert_golden(output, name)
