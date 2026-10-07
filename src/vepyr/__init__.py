@@ -370,28 +370,25 @@ def _require_reference_policy(cache_dir: str) -> None:
         return  # not a converted Parquet cache; the engine reports that itself
     import pyarrow.parquet as pq
 
-    # Use the first readable shard: an unrelated damaged contig must not block
-    # a run that never touches it; the engine validates the contigs it uses.
-    metadata = None
+    # Check every readable shard: a mixed or partly upgraded directory may hold a
+    # merged/RefSeq shard behind an Ensembl one, and the engine only validates
+    # the contigs a run touches. Unreadable shards are skipped. Footers only.
     for shard in shards:
         try:
             metadata = pq.read_schema(shard).metadata or {}
-            break
-        except Exception:  # noqa: BLE001 - any unreadable footer: try the next
+        except Exception:  # noqa: BLE001 - unreadable footer: leave to the engine
             continue
-    if metadata is None:
-        return
-    source = metadata.get(b"bio.vep.cache_source_type", b"").decode()
-    # Every cache vepyr has converted or published since cache identity was
-    # added carries bio.vep.cache_version; only pre-identity fixtures lack it.
-    if source in ("merged", "refseq") and b"bio.vep.cache_version" in metadata:
-        raise ValueError(
-            f"Cache '{cache_dir}' is a {source} cache without reference_policy.json: "
-            "it was converted by a vepyr older than engine v0.23.1, so its BAM-edited "
-            "transcript policy is unknown and annotation would differ from Ensembl VEP "
-            "at BAM-edited loci. Rebuild it with vepyr.build_cache(..., overwrite=True), "
-            "or download the v0.23.1 revision of the prebuilt cache."
-        )
+        source = metadata.get(b"bio.vep.cache_source_type", b"").decode()
+        # Every cache vepyr has converted or published since cache identity was
+        # added carries bio.vep.cache_version; only pre-identity fixtures lack it.
+        if source in ("merged", "refseq") and b"bio.vep.cache_version" in metadata:
+            raise ValueError(
+                f"Cache '{cache_dir}' is a {source} cache without reference_policy.json: "
+                "it was converted by a vepyr older than engine v0.23.1, so its BAM-edited "
+                "transcript policy is unknown and annotation would differ from Ensembl VEP "
+                "at BAM-edited loci. Rebuild it with vepyr.build_cache(..., overwrite=True), "
+                "or download the v0.23.1 revision of the prebuilt cache."
+            )
 
 
 def _validate_cache_type(cache_type: str) -> None:
