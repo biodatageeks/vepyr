@@ -370,7 +370,17 @@ def _require_reference_policy(cache_dir: str) -> None:
         return  # not a converted Parquet cache; the engine reports that itself
     import pyarrow.parquet as pq
 
-    metadata = pq.read_schema(shards[0]).metadata or {}
+    # Use the first readable shard: an unrelated damaged contig must not block
+    # a run that never touches it; the engine validates the contigs it uses.
+    metadata = None
+    for shard in shards:
+        try:
+            metadata = pq.read_schema(shard).metadata or {}
+            break
+        except Exception:  # noqa: BLE001 - any unreadable footer: try the next
+            continue
+    if metadata is None:
+        return
     source = metadata.get(b"bio.vep.cache_source_type", b"").decode()
     # Every cache vepyr has converted or published since cache identity was
     # added carries bio.vep.cache_version; only pre-identity fixtures lack it.
