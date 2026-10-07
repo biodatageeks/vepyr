@@ -196,7 +196,7 @@ entity's `chrom_manifest.json` and every contig present in the VCF:
 ```groovy
 process {
     withName: 'HUGGINGFACE_DOWNLOAD' {
-        ext.args = "--revision <commit> --include '*/chr22.parquet' --include '*/chrom_manifest.json'"
+        ext.args = "--revision <commit> --include '*/chr22.parquet' --include '*/chrom_manifest.json' --include 'reference_policy.json' --include 'chr_synonyms.txt'"
     }
 }
 ```
