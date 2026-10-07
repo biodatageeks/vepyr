@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import importlib.metadata
 import logging
+import glob
 import os
 import re
 import warnings
@@ -347,6 +348,35 @@ def _cache_version_for_release(release: int) -> str:
     cache_version = str(release)
     _validate_expected_cache_version(cache_version)
     return cache_version
+
+
+def _require_reference_policy(cache_dir: str) -> None:
+    """Refuse merged/RefSeq caches converted before the reference policy existed.
+
+    Without ``reference_policy.json`` the engine cannot tell whether the native
+    cache used BAM-edited transcripts, so ``USED_REF`` and RNA-edited HGVSc
+    would silently diverge from Ensembl VEP at edited loci. Ensembl caches are
+    never BAM-edited and need no policy.
+    """
+    if os.path.exists(os.path.join(cache_dir, "reference_policy.json")):
+        return
+    shards = sorted(glob.glob(os.path.join(cache_dir, "variation", "*.parquet")))
+    if not shards:
+        return  # not a converted Parquet cache; the engine reports that itself
+    import pyarrow.parquet as pq
+
+    metadata = pq.read_schema(shards[0]).metadata or {}
+    source = metadata.get(b"bio.vep.cache_source_type", b"").decode()
+    # Every cache vepyr has converted or published since cache identity was
+    # added carries bio.vep.cache_version; only pre-identity fixtures lack it.
+    if source in ("merged", "refseq") and b"bio.vep.cache_version" in metadata:
+        raise ValueError(
+            f"Cache '{cache_dir}' is a {source} cache without reference_policy.json: "
+            "it was converted by a vepyr older than engine v0.23.1, so its BAM-edited "
+            "transcript policy is unknown and annotation would differ from Ensembl VEP "
+            "at BAM-edited loci. Rebuild it with vepyr.build_cache(..., overwrite=True), "
+            "or download the v0.23.1 revision of the prebuilt cache."
+        )
 
 
 def _validate_cache_type(cache_type: str) -> None:
@@ -1405,6 +1435,7 @@ def annotate(
 
     options_json = json.dumps(opts)
 
+    _require_reference_policy(cache_dir)
     log.info("Running annotation on %s with cache %s", vcf, cache_dir)
 
     # VCF output path: write directly and return the path.
