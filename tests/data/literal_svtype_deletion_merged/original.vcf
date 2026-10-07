@@ -1,0 +1,6 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="SV type">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25587759	.	AC	A	.	.	SVTYPE=DEL
