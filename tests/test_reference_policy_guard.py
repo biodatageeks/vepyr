@@ -43,3 +43,11 @@ def test_pre_identity_cache_is_left_to_the_engine(tmp_path):
 
 def test_directory_without_parquet_variation_is_left_to_the_engine(tmp_path):
     _require_reference_policy(str(tmp_path))
+
+
+def test_cache_path_with_glob_metacharacters_is_still_checked(tmp_path):
+    # A path containing [ ] must not be read as a glob pattern.
+    with pytest.raises(ValueError, match="reference_policy.json"):
+        _require_reference_policy(
+            _cache(tmp_path / "cache[v1]", "merged", policy=False)
+        )

@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import importlib.metadata
 import logging
-import glob
 import os
 import re
 import warnings
@@ -360,7 +359,13 @@ def _require_reference_policy(cache_dir: str) -> None:
     """
     if os.path.exists(os.path.join(cache_dir, "reference_policy.json")):
         return
-    shards = sorted(glob.glob(os.path.join(cache_dir, "variation", "*.parquet")))
+    variation = os.path.join(cache_dir, "variation")
+    # listdir, not glob: a cache path may legitimately contain [ ] or *.
+    shards = sorted(
+        os.path.join(variation, name)
+        for name in (os.listdir(variation) if os.path.isdir(variation) else [])
+        if name.endswith(".parquet")
+    )
     if not shards:
         return  # not a converted Parquet cache; the engine reports that itself
     import pyarrow.parquet as pq
