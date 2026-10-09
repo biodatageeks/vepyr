@@ -1,0 +1,7 @@
+	Command being timed: "/home/tgambin/workspace/vepyr/venv/vepyr-0.9.0/bin/python -P /home/tgambin/workspace/vepyr/performance-tests/vepyr/scripts/benchmark_vepyr_once.py --input-vcf /home/tgambin/workspace/vep_data/input/HG002_normalized.vcf.gz --cache-dir /home/tgambin/workspace/vep_data/cache/116_GRCh38_refseq --cache-type refseq --reference-fasta /home/tgambin/workspace/vep_data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --output-vcf /home/tgambin/workspace/vep_data/output/116/vepyr_refseq_worker_scaling/HG002_annotated_wgs_everything_hgvs_vepyr_refseq_workers4.vcf --metrics-json /home/tgambin/workspace/vep_data/output/116/vepyr_refseq_worker_scaling/refseq_workers4.metrics.json --workers 4 --expected-records 4096123 --compression plain --preserve-record-layout on"
+	User time (seconds): 349.57
+	System time (seconds): 64.89
+	Percent of CPU this job got: 477%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:26.86
+	Maximum resident set size (kbytes): 3599524
+	Exit status: 0

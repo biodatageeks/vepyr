@@ -1,0 +1,7 @@
+	Command being timed: "/Users/mwiewior/research/git/vepyr/.venv/bin/python3 -P /Users/mwiewior/research/git/vepyr/performance-tests/vepyr/scripts/benchmark_vepyr_once.py --input-vcf /Users/mwiewior/research/git/vepyr/performance-tests/vep/outputs/116/macos_mwiewior_chr22_20260913/work/input/HG002_normalized.vcf.gz --cache-dir /Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged --cache-type merged --reference-fasta /Users/mwiewior/research/git/vepyr/performance-tests/vep/outputs/116/macos_mwiewior_chr22_20260913/work/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --output-vcf /Users/mwiewior/research/git/vepyr/performance-tests/vepyr/outputs/116/macos_mwiewior_chr22_20260914/work/run/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers4.vcf --metrics-json /Users/mwiewior/research/git/vepyr/performance-tests/vepyr/outputs/116/macos_mwiewior_chr22_20260914/work/run/merged_workers4.metrics.json --workers 4 --expected-records 50861 --compression plain --preserve-record-layout on"
+	User time (seconds): 5.72
+	System time (seconds): 0.73
+	Percent of CPU this job got: 224%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.88
+	Maximum resident set size (kbytes): 1730320
+	Exit status: 0
