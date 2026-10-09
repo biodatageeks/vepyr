@@ -2326,7 +2326,7 @@ wheels = [
 
 [[package]]
 name = "polars-bio"
-version = "0.36.0"
+version = "0.36.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datafusion", version = "53.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -2335,13 +2335,13 @@ dependencies = [
     { name = "pyarrow", marker = "python_full_version >= '3.11'" },
     { name = "tqdm", marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/f3/76ac5b21de6e48f1c17fe2876c57185e7c8f3e1b9d834b43cb8c71f334ed/polars_bio-0.36.0.tar.gz", hash = "sha256:3fc6346f5978c4c2587678d2eef03efebb238db1d7542388e5ae3ed1b5d2381d", size = 49858735, upload-time = "2026-09-21T19:28:43.687Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/57/2afa5be69317637221debcdb51bcde7f5c7bc903fb7b39495756b4a96214/polars_bio-0.36.1.tar.gz", hash = "sha256:0a2fdaed6c8fa936720f64b844754ae6f875153786111e278c9867eafeee9af8", size = 49857805, upload-time = "2026-10-07T10:56:17.012Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/43/96c0ee2d2e1511649fecdd997638822b7ce9d79a6ecac6c1742dccf2d4c7/polars_bio-0.36.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:bf2bc1922a02b92f9b064f738189dd6c99a0f8d2f12b33fa784bfd9c175f6f1d", size = 89120190, upload-time = "2026-09-21T19:28:25.851Z" },
-    { url = "https://files.pythonhosted.org/packages/46/3b/fb00b90af500c5236ee54a37cb96efe85e359d5b6244ce5c9108ec34ea80/polars_bio-0.36.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:ba94e21fb8304616026270af05e2322d63bd56f2d846f79ae374bdb13c1c7d2d", size = 85611235, upload-time = "2026-09-21T19:28:19.837Z" },
-    { url = "https://files.pythonhosted.org/packages/b1/32/b867af3c1689c35c7c5360a264051b38f5061121bab9a24b571688c85320/polars_bio-0.36.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:84239f2041ce434a0cd494c043ed03672d8aeff1bc1090efc7a159f0e61c8991", size = 93697024, upload-time = "2026-09-21T19:28:32.998Z" },
-    { url = "https://files.pythonhosted.org/packages/4e/13/6199e26189f9d083dec3d769acc64f1918fd1131518e94e3330a4f48803e/polars_bio-0.36.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f075c31f5d669cd5b653adf5e0967387e47d907c0084ae17f525dfeca59fb82", size = 94382554, upload-time = "2026-09-21T19:28:38.57Z" },
-    { url = "https://files.pythonhosted.org/packages/fa/7e/034e4f3a87e0cc3ff7ceb1ba149e09c6a4ea37f0e6af046a5ddd3a9e810b/polars_bio-0.36.0-cp310-abi3-win_amd64.whl", hash = "sha256:5cadf68ee22f0a1f280bcc31f2bd92b371aadc5cc8b2791667313d6e3884ab0f", size = 85709181, upload-time = "2026-09-21T19:28:49.418Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/cb/75fc6a63b1059dd7fa4fa131536b45103ca09b8490293bb85782ceec29c9/polars_bio-0.36.1-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:3cbcbc24a9013e245ab342ffeee12fa44f8cca79851db37716c2371ebafd8dda", size = 89135235, upload-time = "2026-10-07T10:56:01.597Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/43/f29af0516beda3f37e8baeaea99294bdcfdcf1760876378e32f3d6b6a89e/polars_bio-0.36.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:2e10a18e155db1f5797fc92eb9834929fda158844dfdcbe9054a007fb162be83", size = 85623616, upload-time = "2026-10-07T10:55:55.326Z" },
+    { url = "https://files.pythonhosted.org/packages/14/17/5240523d69c68c6e21172477081579827dc91570fef10ae686739e5e379d/polars_bio-0.36.1-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0ccab41f12d529cd5b4cd073d1cbb44e592349aad3bafcff2c4de8c51bc831e9", size = 93722419, upload-time = "2026-10-07T10:56:06.604Z" },
+    { url = "https://files.pythonhosted.org/packages/34/33/0d14f86b861b58684d97fd1df7e9b8c3038228ded33f0d32682b0175b513/polars_bio-0.36.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:49922d89a3fde0dd644bfbf74b851889cf44f68164b9b7126e108671ce0129e7", size = 94405742, upload-time = "2026-10-07T10:56:11.727Z" },
+    { url = "https://files.pythonhosted.org/packages/08/6a/2d8e5b49d741d4131d17b40923b848749cac8542b34079cf72714a832510/polars_bio-0.36.1-cp310-abi3-win_amd64.whl", hash = "sha256:f2032c1d004264c147818a13af80ccb1dec161119d37cb45a4cb6a6903975a06", size = 85706421, upload-time = "2026-10-07T10:56:23.145Z" },
 ]
 
 [[package]]
@@ -3403,7 +3403,7 @@ requires-dist = [
     { name = "mkdocstrings", marker = "extra == 'docs'", specifier = ">=0.27" },
     { name = "mkdocstrings-python", marker = "extra == 'docs'", specifier = ">=1.12" },
     { name = "polars", specifier = ">=1.40.0,<2" },
-    { name = "polars-bio", marker = "python_full_version >= '3.11' and extra == 'polars-bio'", specifier = ">=0.36.0" },
+    { name = "polars-bio", marker = "python_full_version >= '3.11' and extra == 'polars-bio'", specifier = ">=0.36.1" },
     { name = "pyarrow", specifier = ">=23.0.1,<25" },
     { name = "tqdm", specifier = ">=4.67.0,<5" },
 ]

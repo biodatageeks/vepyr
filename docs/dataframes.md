@@ -587,7 +587,7 @@ Filter the frame in Polars and write it back as VCF with
 [polars-bio](https://biodatageeks.org/polars-bio/)'s `sink_vcf`:
 
 ```bash
-pip install "vepyr[polars-bio]"    # polars-bio >= 0.36.0, Python 3.11+
+pip install "vepyr[polars-bio]"    # polars-bio >= 0.36.1, Python 3.11+
 ```
 
 ```python
