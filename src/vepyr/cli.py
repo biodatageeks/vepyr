@@ -101,7 +101,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Annotation pipelines to run. N>1 needs a tabix-indexed input.",
     )
     vep.add_argument(
-        "--buffer_size",
+        "--buffer-size",
         type=int,
         metavar="N",
         help="Variants per annotation buffer. Must be positive (default: 5000).",

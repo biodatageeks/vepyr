@@ -184,7 +184,7 @@ def test_main_forwards_positionals_and_kwargs(monkeypatch, buffer_size):
             "--fasta",
             "ref.fa",
             "--no_progress",
-            "--buffer_size",
+            "--buffer-size",
             str(buffer_size),
         ]
     )
@@ -204,7 +204,7 @@ def test_main_forwards_positionals_and_kwargs(monkeypatch, buffer_size):
 @pytest.mark.parametrize("value", ["not-an-integer", "1.5"])
 def test_buffer_size_rejects_non_integers(value):
     with pytest.raises(SystemExit) as excinfo:
-        _parse(*MINIMAL, "--buffer_size", value)
+        _parse(*MINIMAL, "--buffer-size", value)
     assert excinfo.value.code == 2
 
 
@@ -322,7 +322,7 @@ def test_cli_rejects_non_positive_buffer_size(tmp_path, golden_cache, value):
             golden_cache,
             "--fasta",
             str(GOLDEN_FASTA),
-            "--buffer_size",
+            "--buffer-size",
             value,
             "--no_progress",
         ],
@@ -355,7 +355,7 @@ def test_cli_buffer_size_preserves_output(tmp_path, golden_cache):
             "--no_progress",
         ]
         if size is not None:
-            argv.extend(["--buffer_size", str(size)])
+            argv.extend(["--buffer-size", str(size)])
         result = subprocess.run(argv, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
         bodies.append(
