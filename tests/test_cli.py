@@ -157,7 +157,8 @@ def test_full_version_flag_still_works(capsys):
     assert capsys.readouterr().out.startswith("vepyr ")
 
 
-def test_main_forwards_positionals_and_kwargs(monkeypatch):
+@pytest.mark.parametrize("buffer_size", [1, 2, 3, 5, 5000])
+def test_main_forwards_positionals_and_kwargs(monkeypatch, buffer_size):
     import vepyr
 
     calls = []
@@ -183,6 +184,8 @@ def test_main_forwards_positionals_and_kwargs(monkeypatch):
             "--fasta",
             "ref.fa",
             "--no_progress",
+            "--buffer-size",
+            str(buffer_size),
         ]
     )
 
@@ -195,6 +198,14 @@ def test_main_forwards_positionals_and_kwargs(monkeypatch):
     assert kwargs["reference_fasta"] == "ref.fa"
     assert kwargs["output_vcf"] == "out.vcf.gz"
     assert kwargs["show_progress"] is False
+    assert kwargs["buffer_size"] == buffer_size
+
+
+@pytest.mark.parametrize("value", ["not-an-integer", "1.5"])
+def test_buffer_size_rejects_non_integers(value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--buffer-size", value)
+    assert excinfo.value.code == 2
 
 
 @pytest.mark.parametrize("error", [ValueError, FileNotFoundError])
@@ -292,6 +303,70 @@ def test_cli_reports_a_bad_cache_version_and_exits_2(tmp_path, golden_cache):
 
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_cli_rejects_non_positive_buffer_size(tmp_path, golden_cache, value):
+    output = tmp_path / "invalid.vcf"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(output),
+            "--dir_cache",
+            golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
+            "--buffer-size",
+            value,
+            "--no_progress",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "buffer_size must be a positive integer" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not output.exists()
+
+
+def test_cli_buffer_size_preserves_output(tmp_path, golden_cache):
+    bodies = []
+    for size in [None, 1, 2, 3, 5]:
+        output = tmp_path / f"buffer-{size}.vcf"
+        argv = [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(output),
+            "--dir_cache",
+            golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
+            "--no_progress",
+        ]
+        if size is not None:
+            argv.extend(["--buffer-size", str(size)])
+        result = subprocess.run(argv, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        bodies.append(
+            b"".join(
+                line
+                for line in output.read_bytes().splitlines(keepends=True)
+                if not line.startswith(b"#")
+            )
+        )
+    assert len(bodies[0].splitlines()) == 100
+    assert all(body == bodies[0] for body in bodies[1:])
 
 
 def test_cli_version_matches_the_installed_package():
