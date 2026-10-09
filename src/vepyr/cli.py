@@ -101,6 +101,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Annotation pipelines to run. N>1 needs a tabix-indexed input.",
     )
     vep.add_argument(
+        "--buffer_size",
+        type=int,
+        metavar="N",
+        help="Variants per annotation buffer. Must be positive (default: 5000).",
+    )
+    vep.add_argument(
         "--allow_non_variant",
         action="store_true",
         help="Keep ALT=. records instead of dropping them, as VEP does.",
@@ -147,6 +153,8 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
     }
     if args.allow_non_variant:
         kwargs["allow_non_variant"] = True
+    if args.buffer_size is not None:
+        kwargs["buffer_size"] = args.buffer_size
     if args.cache_version is not None:
         # annotate() validates this as a string.
         kwargs["expected_cache_version"] = str(args.cache_version)

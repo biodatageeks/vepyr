@@ -43,6 +43,7 @@ directory.
 | `--everything` | Always on; accepted and ignored for Ensembl VEP compatibility. |
 | `--hgvsc` | Implied by `--everything`; accepted and ignored for Ensembl VEP compatibility. |
 | `--fork N`, `--workers N` | Annotation pipelines to run. Default 1. |
+| `--buffer_size N` | Variants per annotation buffer. Positive integer; defaults to the Python API's 5000. |
 | `--allow_non_variant` | Keep `ALT=.` records instead of dropping them, as VEP does. |
 | `--cache_version N` | Assert the cache version in the Parquet metadata. |
 | `--plugin_cache_root DIR` | Root of a plugin cache tree. |
@@ -93,6 +94,10 @@ with a `.tbi` or `.csi` beside it, or the run fails. Results are identical to
 
 **No index is written.** The output is bgzf but unindexed; run `tabix` afterwards
 if you need one.
+
+**`--buffer_size` controls batching.** For example, `--buffer_size 1000` forwards
+`buffer_size=1000` to `annotate()`. Omit it to use the API default of 5000.
+Zero, negative values and non-integers are rejected with exit code 2.
 
 **Records with no alternate allele are dropped.** A record whose first `ALT` is
 `.` carries no alternate allele, and — as Ensembl VEP does — it is left out of
