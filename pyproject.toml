@@ -14,7 +14,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-dependencies = ["pyarrow>=18.0", "polars>=1.37.1", "tqdm>=4.60"]
+# Same ranges as polars-bio 0.36.1, so the base install and the polars-bio extra
+# resolve to one environment (and polars 2.x is not picked up untested).
+dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2", "tqdm>=4.67.0,<5"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
