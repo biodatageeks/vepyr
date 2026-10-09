@@ -39,9 +39,10 @@ requirements:
     - maturin >=1.0,<2.0
   run:
     - python >={{ python_min }}
-    - pyarrow >=18.0
-    - polars >=1.37.1
-    - tqdm >=4.60
+    # Same ranges as pyproject.toml (and polars-bio 0.36.1): polars 2.x is untested.
+    - pyarrow >=23.0.1,<25
+    - polars >=1.40.0,<2
+    - tqdm >=4.67.0,<5
 
 test:
   imports:
