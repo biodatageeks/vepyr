@@ -20,6 +20,10 @@ on:
 
 permissions: {}
 
+# Release builds read no Actions cache (no rust-cache, setup-uv cache or
+# sccache): admin-dispatched parity-tests.yml runs execute PR code in master's
+# cache scope, so anything they can write must never feed a published wheel.
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -90,7 +94,6 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.ref }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
       # extension-module makes PyO3 skip linking libpython; build tests without
       # it so the standalone test binary links libpython, and expose LIBDIR.
       - name: cargo test
@@ -109,8 +112,9 @@ jobs:
           ref: ${{ needs.prepare.outputs.ref }}
           lfs: true
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: false
       - name: Install VCF command-line tools
         run: |
           sudo apt-get update
@@ -156,7 +160,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: true
+          sccache: false
           manylinux: auto
       - uses: actions/upload-artifact@v4
         with:
@@ -180,7 +184,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: true
+          sccache: false
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-macos-${{ matrix.target }}
@@ -204,7 +208,7 @@ jobs:
           target: ${{ matrix.target }}
           maturin-version: v1.13.3
           args: --release --out dist --find-interpreter
-          sccache: true
+          sccache: false
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-win-${{ matrix.target }}
@@ -245,9 +249,59 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist
+          name: wheels-sdist
+          path: dist-in/wheels-sdist
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist-in/wheels-manylinux-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-aarch64
+          path: dist-in/wheels-manylinux-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-x86_64
+          path: dist-in/wheels-macos-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-aarch64
+          path: dist-in/wheels-macos-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-win-x64
+          path: dist-in/wheels-win-x64
+      # Exactly the named build artifacts, nothing else: one sdist plus at
+      # least one wheel per platform, every file named for this version.
+      - name: Assemble and check dist/
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob dotglob
+          mkdir -p dist
+          for name in wheels-sdist wheels-manylinux-x86_64 wheels-manylinux-aarch64 wheels-macos-x86_64 wheels-macos-aarch64 wheels-win-x64; do
+            files=(dist-in/"$name"/*)
+            [ "${#files[@]}" -gt 0 ] || { echo "::error::artifact $name is empty"; exit 1; }
+            if [ "$name" = wheels-sdist ] && [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::wheels-sdist holds ${#files[@]} files, expected 1"; exit 1
+            fi
+            for f in "${files[@]}"; do
+              base=$(basename "$f")
+              [ -f "$f" ] && [ ! -L "$f" ] || { echo "::error::$name/$base is not a regular file"; exit 1; }
+              if [ "$name" = wheels-sdist ]; then
+                [ "$base" = "vepyr-${VERSION}.tar.gz" ] || { echo "::error::unexpected sdist $base"; exit 1; }
+              else
+                case "$base" in
+                  "vepyr-${VERSION}-"*.whl) ;;
+                  *) echo "::error::unexpected file $name/$base"; exit 1 ;;
+                esac
+              fi
+              [ ! -e "dist/$base" ] || { echo "::error::duplicate file $base"; exit 1; }
+              mv "$f" dist/
+            done
+          done
+          ls -l dist
       - name: Publish to PyPI (OIDC Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -265,9 +319,59 @@ jobs:
           ref: ${{ needs.prepare.outputs.ref }}
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist
+          name: wheels-sdist
+          path: dist-in/wheels-sdist
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist-in/wheels-manylinux-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-aarch64
+          path: dist-in/wheels-manylinux-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-x86_64
+          path: dist-in/wheels-macos-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-aarch64
+          path: dist-in/wheels-macos-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-win-x64
+          path: dist-in/wheels-win-x64
+      # Exactly the named build artifacts, nothing else: one sdist plus at
+      # least one wheel per platform, every file named for this version.
+      - name: Assemble and check dist/
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob dotglob
+          mkdir -p dist
+          for name in wheels-sdist wheels-manylinux-x86_64 wheels-manylinux-aarch64 wheels-macos-x86_64 wheels-macos-aarch64 wheels-win-x64; do
+            files=(dist-in/"$name"/*)
+            [ "${#files[@]}" -gt 0 ] || { echo "::error::artifact $name is empty"; exit 1; }
+            if [ "$name" = wheels-sdist ] && [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::wheels-sdist holds ${#files[@]} files, expected 1"; exit 1
+            fi
+            for f in "${files[@]}"; do
+              base=$(basename "$f")
+              [ -f "$f" ] && [ ! -L "$f" ] || { echo "::error::$name/$base is not a regular file"; exit 1; }
+              if [ "$name" = wheels-sdist ]; then
+                [ "$base" = "vepyr-${VERSION}.tar.gz" ] || { echo "::error::unexpected sdist $base"; exit 1; }
+              else
+                case "$base" in
+                  "vepyr-${VERSION}-"*.whl) ;;
+                  *) echo "::error::unexpected file $name/$base"; exit 1 ;;
+                esac
+              fi
+              [ ! -e "dist/$base" ] || { echo "::error::duplicate file $base"; exit 1; }
+              mv "$f" dist/
+            done
+          done
+          ls -l dist
       - name: Create or update the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

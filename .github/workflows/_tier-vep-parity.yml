@@ -28,7 +28,11 @@ jobs:
           ref: ${{ inputs.ref }}
       - name: Set the cache root
         run: echo "VEPYR_CACHE_ROOT=$RUNNER_TEMP/vcache" >> "$GITHUB_ENV"
+      # No uv cache: parity-tests.yml runs this job on PR code in master's
+      # cache scope, and release runs of this tier would restore it.
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: false
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.wheel-artifact }}
