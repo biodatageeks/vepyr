@@ -93,7 +93,7 @@ docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
   '
 ```
 
-The download helper fetches only chr22 shards and manifests from **Hugging Face**
+The download helper fetches only chr22 shards, manifests and the cache-root policy files from **Hugging Face**
 at pinned revisions, plus the BGZF golden VCF and FASTA through **Git LFS**.
 The comparison CLI prints the strict and canonical record-body md5 verdicts and
 exits nonzero on a mismatch. Downloads and results persist in the mounted folder.
