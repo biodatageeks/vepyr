@@ -67,9 +67,24 @@ jobs:
       - uses: nf-core/setup-nextflow@v2
         with:
           version: "26.04.6"
-      - uses: nf-core/setup-nf-test@v1
-        with:
-          version: "0.9.5"
+      # Not nf-core/setup-nf-test: it always writes an Actions cache, and
+      # parity runs execute PR code in master's cache scope, so a PR could
+      # pre-seed the key that the release run would then restore and execute.
+      - name: Install nf-test (pinned, checksummed, no Actions cache)
+        env:
+          NFT_VERSION: "0.9.5"
+          NFT_SHA256: b7679eb90cdc9642bfa89e9634db02ce6e699de53ad35ef0e2f4847634fc1641
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          curl -fsSL --retry 3 -o "$tmp/nf-test.tar.gz" \
+            "https://github.com/askimed/nf-test/releases/download/v${NFT_VERSION}/nf-test-${NFT_VERSION}.tar.gz"
+          echo "${NFT_SHA256}  $tmp/nf-test.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.nf-test"
+          tar -xzf "$tmp/nf-test.tar.gz" -C "$HOME/.nf-test" nf-test nf-test.jar
+          chmod +x "$HOME/.nf-test/nf-test"
+          echo "$HOME/.nf-test" >> "$GITHUB_PATH"
+          "$HOME/.nf-test/nf-test" version
       # Module snapshot only: the subworkflow snapshot carries no vepyr version.
       - name: Point the module snapshot at the wheel's version
         run: |
