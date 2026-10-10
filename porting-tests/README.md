@@ -8,6 +8,11 @@ history). This directory is its own uv project: run every command from
 In CI, `./run_tests --wheel <wheel>` runs against the wheel built from the
 code under review (see "Continuous integration" in the root README).
 
+References below to `AGENTS.md`, the issue/PR tooling, the campaign scripts
+and `docs/porting` point to files that were not imported: read them in the
+archived upstream repository at
+[biodatageeks/vepyr-porting-tests@6f59db4](https://github.com/biodatageeks/vepyr-porting-tests/tree/6f59db4).
+
 ## ./run_tests
 
 Run the 205 named data tests through the vepyr Python CLI:
