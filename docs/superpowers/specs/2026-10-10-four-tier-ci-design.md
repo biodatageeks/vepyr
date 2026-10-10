@@ -292,3 +292,5 @@ archive it. Done by hand, on the maintainer's go-ahead.
   like the rest of `nf-core-module/`.
 - **#144 review state:** its commits land unreviewed except by this PR's
   review; the PR description calls them out as a distinct section.
+
+<!-- /parity smoke test: dummy change, do not merge -->
