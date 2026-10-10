@@ -1,0 +1,17 @@
+# Synthetic fixture for tools/build_test_index (#92): optional columns absent.
+name = "beta_minimal"
+description = "Synthetic test without optional keys."
+
+[origin]
+vep_test = "https://example.org/release/t/Beta.t#L3"
+
+[vepyr]
+required_contigs = ["chr1"]
+
+[compare]
+body_md5 = "fedcba9876543210fedcba9876543210"
+
+[vep]
+cache_source = "https://example.org/vepyr-cache"
+vep_cache = "https://example.org/vep-cache.tar.gz"
+fasta_source = "https://example.org/reference.fa.gz"

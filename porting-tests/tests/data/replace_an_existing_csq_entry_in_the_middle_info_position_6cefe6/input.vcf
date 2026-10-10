@@ -1,0 +1,8 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Stale consequence">
+##INFO=<ID=A,Number=1,Type=Integer,Description="A">
+##INFO=<ID=B,Number=1,Type=Integer,Description="B">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25585733	rs142513484	C	T	.	.	A=1;CSQ=stale;B=2

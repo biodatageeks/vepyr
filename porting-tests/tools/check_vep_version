@@ -1,0 +1,338 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""Check that every data-test and the repo text use the one VEP pin (#239).
+
+::
+
+    tools/check_vep_version [--root DIR] [--allowlist FILE]
+
+The pin is ``tools/vep_pin.toml`` (VEP software 116.2, cache 116). For every
+``<root>/tests/data/*/test.toml`` the check requires:
+
+* ``[vep] image`` equal to the pinned digest reference;
+* every ``[[tests]] vep_test`` to name the pinned release tag; external
+  single-test ``[origin]`` tables follow the same rule;
+* none of the legacy literals (:data:`LEGACY_PATTERN`) in the file.
+
+A directory named in the **temporary** allow-list
+``tools/vep_pin_legacy_allowlist.txt`` (one name per line; a missing file is an
+empty list) is exempt, but must still record the legacy image digest: the list
+names exactly :data:`LEGACY_COUNT` fixtures blessed with VEP 116.0 before the
+pin, and is deleted by #237 when they are re-blessed. An entry whose test was
+re-blessed therefore fails, forcing its removal.
+
+Finally ``git grep`` must find no legacy literal in the rest of the repo, outside
+:data:`GREP_EXCLUDES` (the ledger axis, which stays keyed to its own upstream tag,
+the generated index, the historical porting notes, and this checker and its
+tests, which need the literals as fixtures) and the allow-listed ``test.toml``.
+
+Exit codes: ``0`` all consistent; ``1`` a violation (each one printed);
+``2`` the pin or the allow-list cannot be read, or ``git`` fails.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import subprocess
+import sys
+import tomllib
+from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Final
+
+from vep_pin import UPSTREAM_REPO_URL, PinError, VepPin, load_pin
+
+REPO_ROOT: Final[Path] = Path(__file__).resolve().parent.parent
+ALLOWLIST: Final[Path] = Path("tools") / "vep_pin_legacy_allowlist.txt"
+"""Allow-list path, relative to the root."""
+
+PIN: Final[Path] = Path("tools") / "vep_pin.toml"
+"""Pin path, relative to the root."""
+
+LEGACY_DIGEST: Final[str] = (
+    "sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11"
+)
+"""Digest of ``ensemblorg/ensembl-vep:release_116.0``, the pre-pin image."""
+
+LEGACY_COUNT: Final[int] = 15
+"""15 legacy fixtures contain 16 tests after grouping the HGVS/Runner pair."""
+
+LEGACY_PATTERN: Final[str] = r"release_116\.0|release/116\.0|57ea5c52"
+"""Literals naming VEP 116.0 (image tag, upstream tag, upstream commit)."""
+
+LEGACY_IN_TOML: Final[re.Pattern[str]] = re.compile(
+    rf"{LEGACY_PATTERN}|{LEGACY_DIGEST.removeprefix('sha256:')[:8]}"
+)
+
+GREP_EXCLUDES: Final[tuple[str, ...]] = (
+    "docs/porting/**",
+    "ledger/assertions.csv",
+    "tools/check_ledger",
+    ".github/workflows/ledger-check.yml",
+    "tests/INDEX.csv",
+    "tools/check_vep_version",
+    "tools/test_check_vep_version.py",
+)
+"""Paths the repo-wide grep skips (#239 AC1), besides allow-listed test.toml."""
+
+
+class SetupError(Exception):
+    """The check cannot run (exit code 2)."""
+
+
+@dataclass(frozen=True, slots=True)
+class Violation:
+    """One inconsistency with the pin.
+
+    Attributes:
+        where: File (or ``file:line``) the violation is in.
+        what: Human-readable description.
+    """
+
+    where: str
+    what: str
+
+    def __str__(self) -> str:
+        return f"{self.where}: {self.what}"
+
+
+def read_allowlist(path: Path) -> list[str]:
+    """Read the allow-list: one directory name per non-empty line.
+
+    Args:
+        path: The allow-list file; a missing file is an empty list.
+
+    Returns:
+        The names, in file order.
+
+    Raises:
+        SetupError: The file exists but cannot be read as UTF-8.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SetupError(f"{path}: cannot read: {exc}") from exc
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def check_allowlist(data: Path, names: Sequence[str]) -> Iterator[Violation]:
+    """Check the allow-list itself (#239 AC7a, AC7b).
+
+    Args:
+        data: The ``tests/data`` directory.
+        names: The allow-list entries.
+
+    Yields:
+        One violation per problem.
+    """
+    if names and len(names) != LEGACY_COUNT:
+        yield Violation(
+            str(ALLOWLIST),
+            f"has {len(names)} entries, expected exactly {LEGACY_COUNT} "
+            "(the legacy data-tests; #237 deletes the whole list)",
+        )
+    seen: set[str] = set()
+    for name in names:
+        if name in seen:
+            yield Violation(str(ALLOWLIST), f"duplicate entry {name!r}")
+        seen.add(name)
+        toml_path = data / name / "test.toml"
+        if "/" in name or not toml_path.is_file():
+            yield Violation(str(ALLOWLIST), f"{name!r} is not a data-test directory")
+        elif LEGACY_DIGEST not in toml_path.read_text(encoding="utf-8"):
+            yield Violation(
+                str(ALLOWLIST),
+                f"{name!r} no longer records the legacy image digest; "
+                "it was re-blessed, remove it from the list",
+            )
+
+
+def _provenance(doc: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    """The link tables of a ``test.toml``: each ``[[tests]]``, else ``[origin]``.
+
+    Returns:
+        ``(label, table)`` pairs; a missing or mistyped table is checked as empty.
+    """
+    match doc.get("tests"):
+        case list() as props if props:
+            return [
+                (f"[[tests]] {p.get('id')!r}", p if isinstance(p, dict) else {})
+                for p in props
+            ]
+    origin = doc.get("origin", {})
+    return [("[origin]", origin if isinstance(origin, dict) else {})]
+
+
+def _check_links(
+    where: str, label: str, links: dict[str, Any], pin: VepPin
+) -> Iterator[Violation]:
+    """Check the upstream links of one ``[origin]`` / ``[[tests]]`` table."""
+    for key in (
+        "vep_test_pinned",
+        "vep_subject",
+        "ledger",
+        "issue",
+        "source_assertions",
+    ):
+        if key in links:
+            yield Violation(where, f"{label} obsolete key {key!r}; keep only vep_test")
+    match links.get("vep_test"):
+        case str() as url if re.fullmatch(
+            re.escape(f"{UPSTREAM_REPO_URL}/blob/{pin.upstream_tag}/t/")
+            + r"[^/\s?#]+\.t(?:#L[0-9]+(?:-L[0-9]+)?)?",
+            url,
+        ):
+            pass
+        case url:
+            yield Violation(
+                where,
+                f"{label} vep_test {url!r} is not a test URL at tag {pin.upstream_tag}",
+            )
+
+
+def check_test_toml(toml_path: Path, pin: VepPin) -> Iterator[Violation]:
+    """Check one non-allow-listed ``test.toml`` against the pin (#239 AC7c).
+
+    Args:
+        toml_path: The file.
+        pin: The VEP pin.
+
+    Yields:
+        One violation per mismatching key or legacy literal.
+    """
+    where = str(toml_path)
+    text = toml_path.read_text(encoding="utf-8")
+    try:
+        doc = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        yield Violation(where, f"not valid TOML: {exc}")
+        return
+    vep = doc.get("vep", {})
+    if not isinstance(vep, dict) or vep.get("image") != pin.pinned_image:
+        image = vep.get("image") if isinstance(vep, dict) else None
+        yield Violation(where, f"[vep] image is {image!r}, pin is {pin.pinned_image!r}")
+    for label, links in _provenance(doc):
+        yield from _check_links(where, label, links, pin)
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if match := LEGACY_IN_TOML.search(line):
+            yield Violation(f"{where}:{lineno}", f"legacy literal {match[0]!r}")
+
+
+def check_data(root: Path, pin: VepPin, names: Sequence[str]) -> Iterator[Violation]:
+    """Check every ``tests/data/*/test.toml`` and the allow-list.
+
+    Args:
+        root: Repository root.
+        pin: The VEP pin.
+        names: The allow-list entries.
+
+    Yields:
+        One violation per problem.
+    """
+    data = root / "tests" / "data"
+    yield from check_allowlist(data, names)
+    exempt = set(names)
+    for toml_path in sorted(data.glob("*/test.toml")):
+        if toml_path.parent.name not in exempt:
+            yield from check_test_toml(toml_path, pin)
+
+
+def grep_legacy(root: Path, names: Sequence[str]) -> Iterator[Violation]:
+    """``git grep`` the repo for legacy literals outside the exclusions (#239 AC1).
+
+    Args:
+        root: Repository root (a git work tree).
+        names: Allow-listed directories, whose ``test.toml`` is skipped.
+
+    Yields:
+        One violation per matching line.
+
+    Raises:
+        SetupError: ``git grep`` fails (exit code other than 0 or 1).
+    """
+    pathspec = [
+        ".",
+        *(f":!{p}" for p in GREP_EXCLUDES),
+        *(f":!tests/data/{n}/test.toml" for n in names),
+    ]
+    proc = subprocess.run(
+        ["git", "-C", str(root), "grep", "--untracked", "-n", "-I", "-E",
+         LEGACY_PATTERN, "--", *pathspec],
+        capture_output=True,
+        text=True,
+        check=False,
+    )  # fmt: skip
+    match proc.returncode:
+        case 1:
+            return
+        case 0:
+            for hit in proc.stdout.splitlines():
+                path, lineno, line = hit.split(":", 2)
+                yield Violation(
+                    f"{path}:{lineno}", f"legacy literal in {line.strip()!r}"
+                )
+        case code:
+            raise SetupError(f"git grep failed (exit {code}): {proc.stderr.strip()}")
+
+
+def run(root: Path, allowlist: Path) -> list[Violation]:
+    """Run every check.
+
+    Args:
+        root: Repository root.
+        allowlist: The allow-list file.
+
+    Returns:
+        All violations, in check order.
+
+    Raises:
+        SetupError: The pin, the allow-list or git cannot be used.
+    """
+    try:
+        pin = load_pin(root / PIN)
+    except (OSError, PinError) as exc:
+        raise SetupError(f"cannot load the VEP pin: {exc}") from exc
+    names = read_allowlist(allowlist)
+    return [*check_data(root, pin, names), *grep_legacy(root, names)]
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Command-line entry point; see the module docstring for the exit codes."""
+    parser = argparse.ArgumentParser(
+        prog="tools/check_vep_version", description=__doc__.splitlines()[0]
+    )
+    parser.add_argument("--root", type=Path, default=REPO_ROOT, help="repository root")
+    parser.add_argument(
+        "--allowlist",
+        type=Path,
+        default=None,
+        help=f"temporary legacy allow-list (default: <root>/{ALLOWLIST})",
+    )
+    args = parser.parse_args(argv)
+    root: Path = args.root
+    try:
+        violations = run(root, args.allowlist or root / ALLOWLIST)
+    except SetupError as exc:
+        print(f"check_vep_version: {exc}", file=sys.stderr)
+        return 2
+    for violation in violations:
+        print(f"check_vep_version: {violation}", file=sys.stderr)
+    if violations:
+        print(
+            f"check_vep_version: {len(violations)} violation(s) of {PIN}",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"check_vep_version: ok: every data-test and the repo text match {PIN}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

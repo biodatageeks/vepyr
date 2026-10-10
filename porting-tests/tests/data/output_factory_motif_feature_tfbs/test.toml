@@ -1,0 +1,88 @@
+name = "output_factory_motif_feature_tfbs"
+description = "One comparison covering 12 VEP assertion tests, one [[tests]] each: vepyr's output body must equal native VEP's (expected_output.vcf)."
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[vepyr]
+flavour = "merged"
+# Names the cache shard (chr21.parquet), not the input spelling; the input uses "21".
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-09"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+extra_flags = ["--merged"]
+
+[compare]
+body_md5 = "81021e91fbbfcd516fece4a8d32f272e"
+
+[[tests]]
+id = "output_factory_motif_feature_tfbs"
+description = "vepyr annotates 21 25735354 C>T, which overlaps a CTCF binding motif (MotifFeature), to the same output body as native VEP 116 --everything, including TF_binding_site_variant with MOTIF_NAME/MOTIF_POS/HIGH_INF_POS/MOTIF_SCORE_CHANGE/TRANSCRIPTION_FACTORS."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1243-L1271"
+
+[[tests]]
+id = "report_allele_for_a_motif_consequence_89ca3b"
+description = "Report Allele for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_consequence_for_a_motif_consequence_69df5a"
+description = "Report Consequence for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_feature_for_a_motif_consequence_d65a57"
+description = "Report Feature for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_feature_type_for_a_motif_consequence_b6232c"
+description = "Report Feature_type for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_high_inf_pos_for_a_motif_consequence_f5f2ae"
+description = "Report HIGH_INF_POS for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_impact_for_a_motif_consequence_f46d4c"
+description = "Report IMPACT for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_motif_name_for_a_motif_consequence_e75b12"
+description = "Report MOTIF_NAME for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_motif_pos_for_a_motif_consequence_f9c83d"
+description = "Report MOTIF_POS for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_motif_score_change_for_a_motif_consequence_da148c"
+description = "Report MOTIF_SCORE_CHANGE for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_strand_for_a_motif_consequence_d81787"
+description = "Report STRAND for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"
+
+[[tests]]
+id = "report_transcription_factors_for_a_motif_consequence_0b972c"
+description = "Report TRANSCRIPTION_FACTORS for a motif consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1253-L1271"

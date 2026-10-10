@@ -1,0 +1,37 @@
+name = "exclude_a_colocated_record_whose_alt_does_not_match_b6697a"
+description = "Fixture covering 2 tests. Compare the complete output body with expected_output.vcf."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "7cadf5291d3a29cb748dbd0512fe511b"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "exclude_a_colocated_record_whose_alt_does_not_match_b6697a"
+description = "Exclude a colocated record whose ALT does not match."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Variation.t#L110-L114"
+
+[[tests]]
+id = "leave_af_empty_when_the_alt_has_no_matching_frequency_ca2375"
+description = "Leave AF empty when the ALT has no matching frequency."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L707-L711"

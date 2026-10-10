@@ -1,0 +1,37 @@
+name = "leave_exon_empty_for_an_intronic_consequence_df45e3"
+description = "Fixture covering 2 tests. Compare the complete output body with expected_output.vcf."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "0b39a21f183644aa23479b2445fd256e"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "leave_exon_empty_for_an_intronic_consequence_df45e3"
+description = "Leave EXON empty for an intronic consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L890-L894"
+
+[[tests]]
+id = "report_the_intron_ordinal_and_total_in_intron_3e9b50"
+description = "Report the intron ordinal and total in INTRON."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L890-L894"

@@ -1,0 +1,8 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25587759	.	C	A	.	.	.
+21	25587760	.	C	.	.	.	.
+21	25587761	.	C	.	.	.	.
+21	25587762	.	C	A	.	.	.

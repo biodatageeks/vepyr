@@ -1,0 +1,77 @@
+name = "emit_one_regulatory_overlap_entry_without_duplicate_features_3f2d86"
+description = "One comparison covering 10 VEP assertion tests, one [[tests]] each: vepyr's output body must equal native VEP's (expected_output.vcf)."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "6cec87c42c7dead869390e5412009575"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "emit_one_regulatory_overlap_entry_without_duplicate_features_3f2d86"
+description = "Emit one regulatory overlap entry without duplicate features."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_RegFeat.t#L163-L163"
+
+[[tests]]
+id = "keep_regulatory_cache_annotation_when_no_regulatory_gff_is_supplied_446ec6"
+description = "Keep regulatory cache annotation when no regulatory GFF is supplied."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_File_RegFeat.t#L509-L512"
+
+[[tests]]
+id = "report_allele_for_a_promoter_regulatory_consequence_533e4f"
+description = "Report Allele for a promoter regulatory consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1217-L1230"
+
+[[tests]]
+id = "report_biotype_for_a_promoter_regulatory_consequence_70cf6d"
+description = "Report BIOTYPE for a promoter regulatory consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1217-L1230"
+
+[[tests]]
+id = "report_consequence_for_a_promoter_regulatory_consequence_082062"
+description = "Report Consequence for a promoter regulatory consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1217-L1230"
+
+[[tests]]
+id = "report_feature_for_a_promoter_regulatory_consequence_2ecc45"
+description = "Report Feature for a promoter regulatory consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1217-L1230"
+
+[[tests]]
+id = "report_feature_type_for_a_promoter_regulatory_consequence_90bcc8"
+description = "Report Feature_type for a promoter regulatory consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1217-L1230"
+
+[[tests]]
+id = "report_impact_for_a_promoter_regulatory_consequence_c9518e"
+description = "Report IMPACT for a promoter regulatory consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1217-L1230"
+
+[[tests]]
+id = "report_the_regulatory_region_consequence_at_the_selected_overlap_bcb46f"
+description = "Report the regulatory-region consequence at the selected overlap."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_RegFeat.t#L166-L166"
+
+[[tests]]
+id = "output_factory_regulatory_promoter"
+description = "vepyr annotates 21 25734924 C>T, which lies in a promoter of the VEP 116 regulatory build, to the same output body as native VEP 116 --everything, including the RegulatoryFeature regulatory_region_variant entry with BIOTYPE promoter."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1207-L1230"

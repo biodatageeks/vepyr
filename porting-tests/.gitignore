@@ -1,0 +1,25 @@
+# Session-local Claude Code state (worktrees, settings.local.json, command scratch) is
+# ignored; the project skills under .claude/skills/ are tracked, except each skill's
+# machine-local local.toml.
+.claude/*
+!.claude/skills/
+.claude/skills/*/local.toml
+
+# Rust
+/target/
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Local credentials — never committed.
+.env
+
+# ./run_tests reports (LEDGER.md, verdict.json, step logs) — local, never committed.
+.run_tests/
+# ./bless per-run Docker work directories (default --docker-work-dir) — never committed.
+.bless/
+
+# Local agent scratch specs — never repository documentation.
+docs/superpowers/

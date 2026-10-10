@@ -1,0 +1,10 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21,length=46709983>
+##INFO=<ID=BAR,Number=1,Type=String,Description="Carried before CSQ">
+##INFO=<ID=BAR2,Number=1,Type=String,Description="Carried after CSQ">
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Stale consequence annotation from an earlier run">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25585733	.	C	T	.	.	BAR=blah;CSQ=foo;BAR2=blah2
+21	25585733	.	C	T	.	.	CSQ=foo;BAR=blah
+21	25585733	.	C	T	.	.	BAR=blah;CSQ=foo

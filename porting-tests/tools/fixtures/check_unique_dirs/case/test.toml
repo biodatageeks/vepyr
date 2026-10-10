@@ -1,0 +1,34 @@
+# Synthetic fixture for the Python deduplication tests — NOT a real data-test.
+# input.vcf was written by `tools/normalize_input` from a 3-record synthetic VCF on
+# chr1 (one multiallelic record split into two). expected_output.vcf is a
+# hand-written VEP-shaped file, not a VEP run. It is copied into temporary
+# directories to check duplicate detection and preservation during fixture merges.
+name = "case"
+description = "Synthetic fixture exercising duplicate detection and fixture merging."
+
+[origin]
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/Runner.t#L244-L292"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[vep]
+image = "synthetic:not-a-vep-run"
+command = "synthetic: expected_output.vcf is hand-written for the self-test --everything --fasta --vcf"
+date = "2026-09-24"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_ensembl/tree/15a048f0585a7a40d2d40cb1c2f7806638ee500b"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[vepyr]
+flavour = "ensembl"
+required_contigs = ["chr1"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[compare]
+body_md5 = "4808b70c64d5f76a2411ae1b193da419"

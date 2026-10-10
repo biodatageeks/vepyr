@@ -1,0 +1,9 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE
+21	25585733	rs142513484	C	T	.	.	.	GT	0|0
+21	25587701	rs187353664	T	C	.	.	.	GT	0|0
+21	25587758	rs116645811	G	A	.	.	.	GT	0|0
+21	25588859	rs199510789	C	T	.	.	.	GT	0|0

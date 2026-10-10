@@ -1,0 +1,77 @@
+name = "emit_an_intergenic_consequence_for_a_snv_with_no_feature_overlap_89a42d"
+description = "Fixture covering 10 tests. Compare the complete output body with expected_output.vcf."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "16bf8dea7972ee5abe6e173dbfecb82b"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "emit_an_intergenic_consequence_for_a_snv_with_no_feature_overlap_89a42d"
+description = "Emit an intergenic consequence for a SNV with no feature overlap."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L511-L515"
+
+[[tests]]
+id = "emit_an_intergenic_consequence_when_no_annotation_source_claims_a_variant_4d423a"
+description = "Emit an intergenic consequence when no annotation source claims a variant."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/InputBuffer.t#L347-L347"
+
+[[tests]]
+id = "leave_feature_empty_for_an_intergenic_consequence_105cc4"
+description = "Leave Feature empty for an intergenic consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1294-L1304"
+
+[[tests]]
+id = "leave_feature_type_empty_for_an_intergenic_consequence_554060"
+description = "Leave Feature_type empty for an intergenic consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1294-L1304"
+
+[[tests]]
+id = "leave_gene_empty_for_an_intergenic_consequence_a0cfe5"
+description = "Leave Gene empty for an intergenic consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1294-L1304"
+
+[[tests]]
+id = "place_the_allele_value_in_the_first_csq_field_d0d9e1"
+description = "Place the Allele value in the first CSQ field."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L202-L206"
+
+[[tests]]
+id = "preserve_empty_csq_field_positions_using_pipe_delimiters_f981f4"
+description = "Preserve empty CSQ field positions using pipe delimiters."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L266-L270"
+
+[[tests]]
+id = "report_modifier_impact_for_an_intergenic_snv_dc45e0"
+description = "Report MODIFIER impact for an intergenic SNV."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1294-L1304"
+
+[[tests]]
+id = "report_the_input_alt_as_the_intergenic_csq_allele_88c4dd"
+description = "Report the input ALT as the intergenic CSQ allele."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1294-L1304"
+
+[[tests]]
+id = "represent_a_missing_non_allele_value_with_an_empty_csq_slot_aaaa35"
+description = "Represent a missing non-Allele value with an empty CSQ slot."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L214-L218"

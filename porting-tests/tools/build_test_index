@@ -1,0 +1,331 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""Build the CSV index of all data-tests -- the only code that writes it (#92).
+
+::
+
+    tools/build_test_index [--root DIR] [--out FILE] [--check]
+
+Walks ``<root>/*/test.toml`` (default root ``tests/data``) sorted by directory
+name and writes one row per *test* to ``<out>`` (default ``tests/INDEX.csv``)
+(#238): a directory with ``[[tests]]`` tables gives one row per table, in file
+order; a single-test directory (``[origin]``) gives one row whose ``id`` is
+the directory name and whose ``description`` and links come from the top-level
+``description`` and ``[origin]``. The ``dir`` column names the directory (the one
+comparison), so rows sharing a ``dir`` share ``body_md5``. Every column comes
+from a real ``test.toml`` key (schema: #80/#87/#238, enforced by
+``tools/run_tests/fixtures.py``); the index is a generated artefact and is never edited
+by hand.
+
+Format: RFC 4180 (``csv``, ``QUOTE_MINIMAL``), LF line endings, UTF-8 without
+a BOM, header first. An empty root is valid and yields a header-only file.
+
+Exit codes:
+
+* ``0`` -- index written, or (``--check``) the committed file is byte-identical
+  to the regenerated one;
+* ``1`` -- (``--check``) the committed file differs or is absent; the first
+  differing line and its slug are printed;
+* ``2`` -- a test directory has no ``test.toml``, the file is not valid TOML, or
+  it lacks a key (or has a wrongly typed key) that a column needs; the file and
+  the key are named. Command-line usage errors also exit 2 (argparse).
+
+``--check`` never writes anything; it is the same audit contract as
+``./bless --check`` (#32) and the idempotence of ``tools/normalize_input`` (#85).
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import io
+import sys
+import tomllib
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Final
+
+from fixture_skip import skip_reason
+
+REPO_ROOT: Final[Path] = Path(__file__).resolve().parent.parent
+DEFAULT_ROOT: Final[Path] = REPO_ROOT / "tests" / "data"
+DEFAULT_OUT: Final[Path] = REPO_ROOT / "tests" / "INDEX.csv"
+
+
+class TestTomlError(Exception):
+    """A ``test.toml`` cannot produce a row (exit code 2)."""
+
+
+type Extractor = Callable[[dict[str, Any], Path], str]
+"""Reads one cell from a row's view: the directory's ``test.toml`` with the
+``origin`` table and the top-level ``id`` / ``description`` set to the row's
+test (see :func:`test_views`)."""
+
+
+def _lookup(
+    doc: dict[str, Any], path: Path, table: str | None, key: str, *, required: bool
+) -> Any:
+    """Return ``doc[table][key]`` (or ``doc[key]``), enforcing presence.
+
+    Args:
+        doc: The parsed ``test.toml``.
+        path: The file, for error messages.
+        table: Top-level table name, or ``None`` for a top-level key.
+        key: Key inside the table.
+        required: Whether an absent key is an error.
+
+    Returns:
+        The value, or ``None`` when an optional key is absent.
+
+    Raises:
+        TestTomlError: A required key (or its table) is missing.
+    """
+    dotted = key if table is None else f"{table}.{key}"
+    scope: Any = doc if table is None else doc.get(table)
+    if not isinstance(scope, dict) or key not in scope:
+        if required:
+            raise TestTomlError(f"{path}: missing required key '{dotted}'")
+        return None
+    return scope[key]
+
+
+def _str(table: str | None, key: str, *, required: bool = True) -> Extractor:
+    """Column extractor for a string key (empty cell when optional and absent)."""
+
+    def extract(doc: dict[str, Any], path: Path) -> str:
+        value = _lookup(doc, path, table, key, required=required)
+        match value:
+            case None:
+                return ""
+            case str():
+                return value
+            case _:
+                raise TestTomlError(f"{path}: key '{table}.{key}' must be a string")
+
+    return extract
+
+
+def _contigs(doc: dict[str, Any], path: Path) -> str:
+    """``[vepyr] required_contigs``, ``;``-joined."""
+    value = _lookup(doc, path, "vepyr", "required_contigs", required=True)
+    if not isinstance(value, list) or not all(isinstance(c, str) for c in value):
+        raise TestTomlError(
+            f"{path}: key 'vepyr.required_contigs' must be a list of strings"
+        )
+    return ";".join(value)
+
+
+def _runs(doc: dict[str, Any], path: Path) -> str:
+    """Number of ``[[vepyr_run]]`` tables, 0 when absent."""
+    match doc.get("vepyr_run", []):
+        case list() as runs:
+            return str(len(runs))
+        case _:
+            raise TestTomlError(f"{path}: key 'vepyr_run' must be an array of tables")
+
+
+def _skip_reason(doc: dict[str, Any], path: Path) -> str:
+    """Retain skipped coverage in the index without implying it passed."""
+    try:
+        return skip_reason(doc) or ""
+    except ValueError as exc:
+        raise TestTomlError(f"{path}: {exc}") from exc
+
+
+COLUMNS: Final[tuple[tuple[str, Extractor], ...]] = (
+    ("dir", _str(None, "name")),
+    ("id", _str(None, "id")),
+    ("description", _str(None, "description")),
+    ("skip_reason", _skip_reason),
+    ("vep_test", _str("origin", "vep_test")),
+    ("cache_source", _str("vep", "cache_source")),
+    ("vep_cache", _str("vep", "vep_cache")),
+    ("fasta_source", _str("vep", "fasta_source")),
+    ("required_contigs", _contigs),
+    ("vepyr_runs", _runs),
+    ("body_md5", _str("compare", "body_md5")),
+)
+"""Column name and extractor, in output order (issue #92)."""
+
+
+def test_views(doc: dict[str, Any], path: Path) -> list[dict[str, Any]]:
+    """Return one view of ``doc`` per test, for the column extractors.
+
+    Args:
+        doc: The parsed ``test.toml``.
+        path: The file, for error messages.
+
+    Returns:
+        For each ``[[tests]]`` table (or, without them, for the directory
+        itself), ``doc`` with ``id``, ``description`` and ``origin`` taken from
+        that test.
+
+    Raises:
+        TestTomlError: ``test`` is not an array of tables.
+    """
+    match doc.get("tests"):
+        case None:
+            return [{**doc, "id": doc.get("name")}]
+        case list() as props if props and all(isinstance(p, dict) for p in props):
+            return [
+                {
+                    **doc,
+                    "id": p.get("id"),
+                    "description": p.get("description"),
+                    "origin": p,
+                }
+                for p in props
+            ]
+        case _:
+            raise TestTomlError(
+                f"{path}: key 'tests' must be a non-empty array of tables"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class Row:
+    """One test's index row (``slug`` = its directory)."""
+
+    slug: str
+    cells: tuple[str, ...]
+
+
+def read_rows(root: Path) -> list[Row]:
+    """Read every ``<root>/*/test.toml`` into a row, sorted by directory name.
+
+    Args:
+        root: Directory whose subdirectories are data-tests.
+
+    Returns:
+        The rows; empty for a root without subdirectories.
+
+    Raises:
+        TestTomlError: A directory lacks ``test.toml``, it is invalid, or a
+            column's key is missing.
+    """
+    if not root.is_dir():
+        raise TestTomlError(f"{root}: root is not a directory")
+    rows: list[Row] = []
+    for test_dir in sorted(
+        (d for d in root.iterdir() if d.is_dir()), key=lambda d: d.name
+    ):
+        toml_path = test_dir / "test.toml"
+        if not toml_path.is_file():
+            raise TestTomlError(f"{toml_path}: missing test.toml")
+        try:
+            doc = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
+            raise TestTomlError(f"{toml_path}: not valid TOML: {exc}") from exc
+        rows.extend(
+            Row(
+                test_dir.name, tuple(extract(view, toml_path) for _, extract in COLUMNS)
+            )
+            for view in test_views(doc, toml_path)
+        )
+    return rows
+
+
+def render(rows: Sequence[Row]) -> str:
+    """Render the rows as RFC 4180 CSV text with LF line endings and a header."""
+    buf = io.StringIO()
+    writer = csv.writer(buf, quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+    writer.writerow(name for name, _ in COLUMNS)
+    writer.writerows(row.cells for row in rows)
+    return buf.getvalue()
+
+
+def first_difference(expected: str, actual: str, rows: Sequence[Row]) -> str:
+    """Describe the first line where the committed index departs from the fresh one.
+
+    Args:
+        expected: Freshly generated CSV text.
+        actual: Committed CSV text.
+        rows: The fresh rows, to name the slug of a differing data line.
+
+    Returns:
+        A one-line human-readable description.
+    """
+    exp = expected.splitlines(keepends=True)
+    act = actual.splitlines(keepends=True)
+    lineno = next(
+        (i for i, (w, g) in enumerate(zip(exp, act, strict=False), 1) if w != g),
+        min(len(exp), len(act)) + 1,
+    )
+    eof = "<end of file>"
+    want = exp[lineno - 1] if lineno <= len(exp) else eof
+    got = act[lineno - 1] if lineno <= len(act) else eof
+    if lineno == 1:
+        where = "header"
+    elif lineno - 2 < len(rows):
+        where = rows[lineno - 2].slug
+    else:
+        where = "extra line"
+    return f"line {lineno} ({where}): expected {want!r}, found {got!r}"
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Command-line entry point; see the module docstring for the exit codes."""
+    parser = argparse.ArgumentParser(
+        prog="tools/build_test_index", description=__doc__.splitlines()[0]
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=DEFAULT_ROOT,
+        help="data-test root (default: tests/data)",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=DEFAULT_OUT,
+        help="index file (default: tests/INDEX.csv)",
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="compare with --out instead of writing it"
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        rows = read_rows(args.root)
+    except TestTomlError as exc:
+        print(f"build_test_index: {exc}", file=sys.stderr)
+        return 2
+    text = render(rows)
+
+    if not args.check:
+        args.out.write_bytes(text.encode("utf-8"))
+        print(f"build_test_index: wrote {args.out} ({len(rows)} test rows)")
+        return 0
+
+    try:
+        committed = args.out.read_bytes().decode("utf-8")
+    except FileNotFoundError:
+        print(
+            f"build_test_index: {args.out} does not exist; run tools/build_test_index",
+            file=sys.stderr,
+        )
+        return 1
+    except UnicodeDecodeError:
+        print(
+            f"build_test_index: {args.out} is not UTF-8; run tools/build_test_index",
+            file=sys.stderr,
+        )
+        return 1
+    if committed == text:
+        print(f"build_test_index: {args.out} is up to date ({len(rows)} test rows)")
+        return 0
+    print(
+        f"build_test_index: {args.out} is stale or hand-edited; "
+        "run tools/build_test_index and commit it\n"
+        f"  {first_difference(text, committed, rows)}",
+        file=sys.stderr,
+    )
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,38 @@
+# Dataset pins only: Hugging Face VEP 116 GRCh38 caches and the GRCh38 FASTA.
+# The engine under test (vepyr / datafusion-bio-*) is a run-time argument, not a
+# repository contract — do not add engine SHAs here.
+#
+# For HF tables, `sha` is the dataset COMMIT on huggingface.co (40 hex).
+# For grch38_fasta, `sha` is the sha256 of the UNCOMPRESSED .fa.
+# Measured 2026-09-04.
+
+schema_version = 1
+
+[hf_cache_ensembl]
+repo = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_ensembl"
+ref  = "main"
+sha  = "15a048f0585a7a40d2d40cb1c2f7806638ee500b"
+role = "dataset"
+note = "VEP 116 GRCh38 ensembl; deterministic rebuild 2026-09-03T16:38:58Z; pinned tree 7633 files, 34 191 612 150 B (dataset README says 7,632)"
+
+[hf_cache_refseq]
+repo = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_refseq"
+ref  = "main"
+sha  = "d1b97a0a72d8ed94418b7a65562e89d8a0a5b3ca"
+role = "dataset"
+note = "VEP 116 GRCh38 refseq; deterministic rebuild 2026-09-03T16:39:02Z; pinned tree 2351 files, 32 623 535 154 B"
+
+[hf_cache_merged]
+repo = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged"
+ref  = "main"
+sha  = "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+role = "dataset"
+note = "VEP 116 GRCh38 merged; Hub commit 2026-10-07T05:31:06Z (measured 2026-10-08); pinned tree 7699 files, 37 702 759 839 B"
+
+[grch38_fasta]
+repo = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna"
+ref  = "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+sha  = "1e74081a49ceb9739cc14c812fbb8b3db978eb80ba8e5350beb80d8ad8dfef3b"
+role = "dataset"
+ensembl_sum = "22450 861294"
+note = "sha = sha256 of the UNCOMPRESSED .fa (3 151 425 851 B, 194 sequences); .gz is 881 964 081 B, sha256 d8c3af0094a7bba6125763bad779ec18a81483c739c6ed122094bdf86c187b92, Ensembl CHECKSUMS `22450 861294`"

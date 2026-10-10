@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# ./check_test_dir [DIR] — structural invariants of data-test directories (#164).
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$here/tools" uv run --frozen --project "$here" python -m check_test_dir "$@"

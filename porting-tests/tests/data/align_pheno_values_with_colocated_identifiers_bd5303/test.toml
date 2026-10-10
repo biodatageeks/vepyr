@@ -1,0 +1,62 @@
+name = "align_pheno_values_with_colocated_identifiers_bd5303"
+description = "One comparison covering 7 VEP assertion tests, one [[tests]] each: vepyr's output body must equal native VEP's (expected_output.vcf)."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "4e6fb229c5dc5526e4100f6c92d036de"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "align_pheno_values_with_colocated_identifiers_bd5303"
+description = "Align PHENO values with colocated identifiers."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L105-L124"
+
+[[tests]]
+id = "merge_colocated_clin_sig_values_720760"
+description = "Merge colocated CLIN_SIG values."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L105-L124"
+
+[[tests]]
+id = "merge_colocated_identifiers_in_vep_order_ab4101"
+description = "Merge colocated identifiers in VEP order."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L105-L124"
+
+[[tests]]
+id = "report_clin_sig_on_the_baseline_matched_variant_dd2416"
+description = "Report CLIN_SIG on the matched variant using a release-116 witness."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Variation.t#L281-L321"
+
+[[tests]]
+id = "report_global_af_from_the_colocated_clinical_variant_s_matched_allele_f5c8dd"
+description = "Report global AF from the colocated clinical variant's matched allele."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_VariationTabix.t#L288-L296"
+
+[[tests]]
+id = "report_pheno_on_the_baseline_matched_variant_8942b6"
+description = "Report PHENO on the matched variant using a release-116 witness."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Variation.t#L281-L321"
+
+[[tests]]
+id = "output_factory_colocated_merge"
+description = "vepyr annotates 21 25891796 C>T, where the VEP 116 cache holds two co-located variants (rs63750066, CM930033), to the same output body as native VEP 116 --everything."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L99-L124"

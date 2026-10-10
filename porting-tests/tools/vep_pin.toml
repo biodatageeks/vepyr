@@ -1,0 +1,14 @@
+# The single source of the VEP software pin (#239): the Ensembl VEP release that
+# produces every data-test oracle. Read by tools/vep_pin.py (./bless,
+# tools/check_campaign.py, tools/check_vep_version) and the Python fixture loader.
+# Other source files read this pin rather than hard-coding the digest or commit.
+#
+# VEP software 116.2; the cache stays version 116 (point releases reuse the
+# release-116 cache; there is no 116.2 cache). The assertion ledger is a separate
+# axis keyed to its own upstream tag in tools/check_ledger, not to this pin.
+[vep]
+image_tag = "ensemblorg/ensembl-vep:release_116.2"
+image_digest = "sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+upstream_tag = "release/116.2"
+upstream_commit = "2cb0bbe216bb31c75de8f8000e2da7ff4fb7b451"
+cache_version = "116"

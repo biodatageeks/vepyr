@@ -1,0 +1,32 @@
+name = "continue_to_the_next_snv_after_a_ref_equals_alt_record_431b85"
+description = "Fixture covering 1 test. Compare the complete output body with expected_output.vcf."
+
+[[tests]]
+id = "continue_to_the_next_snv_after_a_ref_equals_alt_record_431b85"
+description = "Continue to the next SNV after a REF-equals-ALT record."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/Runner.t#L1234-L1234"
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21", "chr22"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "14331c8ab8dc1dc99ebdbe96dc58957f"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"

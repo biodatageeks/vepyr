@@ -1,0 +1,23 @@
+# Synthetic fixture for tools/build_test_index (#92): every optional column set.
+name = "alpha_full"
+description = "Synthetic test, with a comma and a \"quoted\" word."
+
+[origin]
+vep_test = "https://example.org/release/t/Alpha.t#L1-L2"
+
+[vepyr]
+required_contigs = ["chr21", "chr22"]
+
+[compare]
+body_md5 = "0123456789abcdef0123456789abcdef"
+
+[[vepyr_run]]
+buffer_size = 1
+
+[[vepyr_run]]
+buffer_size = 2
+
+[vep]
+cache_source = "https://example.org/vepyr-cache"
+vep_cache = "https://example.org/vep-cache.tar.gz"
+fasta_source = "https://example.org/reference.fa.gz"

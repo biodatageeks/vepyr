@@ -12,3 +12,7 @@ tests/data/** -text
 e2e-testing/**/*.vcf -text
 e2e-testing/**/*.fa -text
 e2e-testing/**/*.fai -text
+
+# Porting data tests (porting-tests/): VCF bodies are compared by md5, so keep LF.
+porting-tests/tests/data/** -text
+porting-tests/tests/INDEX.csv linguist-generated=true
