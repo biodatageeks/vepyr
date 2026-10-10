@@ -30,59 +30,67 @@
   "caches": {
     "ensembl": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_ensembl",
-      "revision": "15a048f0585a7a40d2d40cb1c2f7806638ee500b",
+      "revision": "058d887ec86163333fcbdd20c28ef75683faa8b5",
       "files": {
+        "chr_synonyms.txt": {
+          "size": 122763,
+          "git_blob": "37c18e4e4db5bdd132d9056bb067295cea15dbc3"
+        },
         "exon/chr22.parquet": {
-          "size": 1065995,
-          "sha256": "8574bf635e5f9801e4e3601b1bf3f90818dbb6460f4097370334b7b899c365f3"
+          "size": 1066075,
+          "sha256": "f8daf06a0a20bab61fb2c798518458a2faafcdafcf065e2dfbfbac246f5ec1de"
         },
         "exon/chrom_manifest.json": {
           "size": 159671,
           "git_blob": "7362e1ccb3775fcea827ff39179ef23336858068"
         },
         "motif/chr22.parquet": {
-          "size": 562364,
-          "sha256": "9e76ce8d624eea314aab924418f5b5cb70248f34c42017abf09e6be5345f8916"
+          "size": 562444,
+          "sha256": "0ae977c486a3dd8cb1004c45b349a198135bf94a1ab2ed5c97dfefc34c8d75ed"
         },
         "motif/chrom_manifest.json": {
           "size": 1922,
           "git_blob": "5e86813629d08a4917327baf122e9d7c963c055b"
         },
+        "reference_policy.json": {
+          "size": 109,
+          "git_blob": "7111c599e9f28ebf8bfadd00a084bb45da781bbb"
+        },
         "regulatory/chr22.parquet": {
-          "size": 157655,
-          "sha256": "6953f613f6d05ff43515d12a87317cab95e3dd90b1166e69ea2ad560a0629923"
+          "size": 157735,
+          "sha256": "e7e1d34c3cd91001c81443b8949e2b521bbc0811171c5d5d073431de583fde9d"
         },
         "regulatory/chrom_manifest.json": {
           "size": 1918,
           "git_blob": "bd93637832511451b1b2e54ed7019612818fffa0"
         },
         "transcript/chr22.parquet": {
-          "size": 3530340,
-          "sha256": "6b4ea8272e3bbb3daf3d4033243e0e7cd3ceb27eadc456317db0d938df09b008"
+          "size": 3530420,
+          "sha256": "de98648460a567d4ad4ae73b71d1efebacf9019b3b807ba63428f08913e7094c"
         },
         "transcript/chrom_manifest.json": {
           "size": 158572,
           "git_blob": "a29df53d3d952dbc8cbbb81902dadd3a5ebf452e"
         },
         "translation_core/chr22.parquet": {
-          "size": 3718453,
-          "sha256": "bcae5272ff9bb3cdde55a4bc6dcc6914db3d05c483139975288420a74520bd91"
+          "size": 3749834,
+          "sha256": "0893667f4352ede7d8cabd883cdf5fcb4df25a7f9ccb48248aa2e1de82b4b9c5"
         },
         "translation_core/chrom_manifest.json": {
           "size": 146669,
           "git_blob": "58ba5641d4d37d0df94bc7322022868a584893e3"
         },
         "translation_sift/chr22.parquet": {
-          "size": 97097029,
-          "sha256": "06a9ffc324783c49064113beafcbde5dcba70dc60468e1bc1d9c0d47f4407176"
+          "size": 97128502,
+          "sha256": "677fbf7f158d99fa526a1c4c39703864993287353da93d38dd5b4eb7c3da1c86"
         },
         "translation_sift/chrom_manifest.json": {
           "size": 148221,
           "git_blob": "2361682a86442ffdcd35c2998c23211f8bd347e8"
         },
         "variation/chr22.parquet": {
-          "size": 388756098,
-          "sha256": "df31abcbd97d4b0d47d7420b54348ef9c185d6041acd7b398bbc4fde6715dd12"
+          "size": 389598858,
+          "sha256": "62942ee29d7ee82cf75fef61a825bcb2322ee07ce3c291a2fe243c6ba349bdf2"
         },
         "variation/chrom_manifest.json": {
           "size": 46700,
@@ -92,59 +100,67 @@
     },
     "merged": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-      "revision": "13c9f50ce73e08f10d29fa62751bdf009dfc4e43",
+      "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
       "files": {
+        "chr_synonyms.txt": {
+          "size": 122763,
+          "git_blob": "37c18e4e4db5bdd132d9056bb067295cea15dbc3"
+        },
         "exon/chr22.parquet": {
-          "size": 1456554,
-          "sha256": "f2e9ac884b33c55fcf371300cfebb8f70b5bf72b7625747b46ccc7304b46871c"
+          "size": 1456634,
+          "sha256": "0412ace4954d316c2fdda0d9a661a6dceffbfcffe75ff0429cc4f7b2bc48bce8"
         },
         "exon/chrom_manifest.json": {
           "size": 161633,
           "git_blob": "fed700a5a8cfa4a6c73dc5f4294b4d0145bd8eb4"
         },
         "motif/chr22.parquet": {
-          "size": 562978,
-          "sha256": "d5b67f915c6855d90bcdd7bcff345d8c3538ed0d39cba22ee6214696659616fa"
+          "size": 563058,
+          "sha256": "20c1e47d55178297b0b260f03e0ff2b3f7b62c322cb03328e5eb9b0d3ed57b64"
         },
         "motif/chrom_manifest.json": {
           "size": 1922,
           "git_blob": "5e86813629d08a4917327baf122e9d7c963c055b"
         },
+        "reference_policy.json": {
+          "size": 107,
+          "git_blob": "0c439e7db1d0ca5f75ef0905d94a475daf905361"
+        },
         "regulatory/chr22.parquet": {
-          "size": 158265,
-          "sha256": "1459060295f39435fc0096830ccbbecd3e33e113abb8d90e9872b666ce526fb7"
+          "size": 158345,
+          "sha256": "66ba4efd1a69756efb4b2d16678f390351a5325fe1a54891792a2afe77ddd287"
         },
         "regulatory/chrom_manifest.json": {
           "size": 1918,
           "git_blob": "bd93637832511451b1b2e54ed7019612818fffa0"
         },
         "transcript/chr22.parquet": {
-          "size": 4360630,
-          "sha256": "f33706318f36ba8d28add6a2e22d024d32f1753e7c8a5f8f1bf68ced55aaca70"
+          "size": 4360710,
+          "sha256": "2e9d7f826a5e58ac6f344d6126ddbccf31ffc72d895040d9216d1635b21dc8bd"
         },
         "transcript/chrom_manifest.json": {
           "size": 160463,
           "git_blob": "42c76ea0517e319b502c4781d3eb00c442a94cce"
         },
         "translation_core/chr22.parquet": {
-          "size": 5397712,
-          "sha256": "03d889f5c645d1b10b14513711b61c151572a9f53c63eb6e6b479513aac5e56b"
+          "size": 5429269,
+          "sha256": "3dd6023fb2e81bdf05bdd083ffcd8a3c72b70524d0b9fe90b6fb7461dc6f0dd3"
         },
         "translation_core/chrom_manifest.json": {
           "size": 148784,
           "git_blob": "c8338f51b8f670df060ad073c3fda8539d5fc8f3"
         },
         "translation_sift/chr22.parquet": {
-          "size": 153247432,
-          "sha256": "8bb8e1fe909435068aa29073c33540414ef07a96686bf360fbd785f0bd72932d"
+          "size": 153279081,
+          "sha256": "f74f76ee8c2d1d6bef760a247226df9fa0c30628b11bb4e9a63a24c0a17f91ee"
         },
         "translation_sift/chrom_manifest.json": {
           "size": 148717,
           "git_blob": "21204007949473bf8668db6ea54befac006b5f6b"
         },
         "variation/chr22.parquet": {
-          "size": 388756098,
-          "sha256": "1efacb5ac232f172ce03de964e061a0fbed17d7291dd2dcab096db1623ac7e9b"
+          "size": 389598858,
+          "sha256": "c327cb94d68aedebfae96a8af391cb44d355f9ead78fda27eb9b2f2f404fb5ba"
         },
         "variation/chrom_manifest.json": {
           "size": 46700,
@@ -154,59 +170,67 @@
     },
     "refseq": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_refseq",
-      "revision": "d1b97a0a72d8ed94418b7a65562e89d8a0a5b3ca",
+      "revision": "ae28273ce0b4744201ddaecd71a7ea8bf2c19d95",
       "files": {
+        "chr_synonyms.txt": {
+          "size": 122763,
+          "git_blob": "37c18e4e4db5bdd132d9056bb067295cea15dbc3"
+        },
         "exon/chr22.parquet": {
-          "size": 387035,
-          "sha256": "9ae1b3526222191a9c8cd206d18cab5bf0a02e27a08c75980b901fac3e71fcc5"
+          "size": 387115,
+          "sha256": "c861bd230744db867f2e3e77535e24ab3461eeb549809ccd843f8beaced88473"
         },
         "exon/chrom_manifest.json": {
           "size": 50452,
           "git_blob": "95ebe3228819a045975b1511a73d490d3da34b53"
         },
         "motif/chr22.parquet": {
-          "size": 562980,
-          "sha256": "a2a08d904e64686edb4bbfd4e2e0d6e683dc0497cf16fb18095e1f6fd8597f35"
+          "size": 563060,
+          "sha256": "6b92260a1bf6d880aade652b0cbbe694c2f1b73a257363539643e589d5c82c5c"
         },
         "motif/chrom_manifest.json": {
           "size": 1922,
           "git_blob": "5e86813629d08a4917327baf122e9d7c963c055b"
         },
+        "reference_policy.json": {
+          "size": 107,
+          "git_blob": "dad3674cf5d6fb2452a5614bd86a635715b96b93"
+        },
         "regulatory/chr22.parquet": {
-          "size": 158267,
-          "sha256": "c161cd91c15f0534bb307ae899cbe08099f5eaa18681331503281b21e2afa23a"
+          "size": 158347,
+          "sha256": "51ced5cb800cf30af557bbeff925f340469a94a962add1e48fa908b202a1047b"
         },
         "regulatory/chrom_manifest.json": {
           "size": 1918,
           "git_blob": "bd93637832511451b1b2e54ed7019612818fffa0"
         },
         "transcript/chr22.parquet": {
-          "size": 1899809,
-          "sha256": "0456ca1c297290217d88eb3e1e6b29a98c1ecff89de5b3e23c9eaacc0617defb"
+          "size": 1899889,
+          "sha256": "b56fae84f198877f1b0b93806317363a10d35a3954567dd91c20544976b0de8c"
         },
         "transcript/chrom_manifest.json": {
           "size": 50087,
           "git_blob": "d4ffc341099dd9afa65cf7ecd130416ba3a54350"
         },
         "translation_core/chr22.parquet": {
-          "size": 1782445,
-          "sha256": "a828e6820ee9ab06ab5e0949dbb0f56c232fcaa989577e28b1a86ac1895693ba"
+          "size": 1794901,
+          "sha256": "5254bf5492827a81d76992e7b80bfb1964c7fbb8a49f4421bef5917c13bf9c1a"
         },
         "translation_core/chrom_manifest.json": {
           "size": 40577,
           "git_blob": "4d53aa4160e1ace72180b9256b854e7d89a16b26"
         },
         "translation_sift/chr22.parquet": {
-          "size": 56168998,
-          "sha256": "3d58f676bf2bdc3df2cff76dd9780a4003ced874c369c8a7aed8dc30aa596dcb"
+          "size": 56181550,
+          "sha256": "15c591474fe9affaacca4008ebb99c949226f92fb9791ba5f4981c743b22cf2c"
         },
         "translation_sift/chrom_manifest.json": {
           "size": 37348,
           "git_blob": "e14ff2b05fec657fbdabad80e242ee9fa714696b"
         },
         "variation/chr22.parquet": {
-          "size": 388756098,
-          "sha256": "19e8b4f3f01f1aebac649ece536c34357d7e19b9c95f9fb9a656a00aef97cb59"
+          "size": 389598858,
+          "sha256": "b154a416157bfc3a3822c468ea684fd4c0405961cc91605ef64508c51339a562"
         },
         "variation/chrom_manifest.json": {
           "size": 46700,

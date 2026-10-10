@@ -5,7 +5,7 @@ RUN apt-get update \
         bcftools tabix git git-lfs ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-ARG VEPYR_VERSION=0.9.0
+ARG VEPYR_VERSION=0.9.2
 RUN pip install --no-cache-dir "vepyr==${VEPYR_VERSION}" "huggingface_hub==1.28.0"
 
 ENV PYTHONUNBUFFERED=1 \

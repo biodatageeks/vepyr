@@ -187,14 +187,45 @@ def test_lfs_fetch_is_limited_to_selected_fixtures(tmp_path, monkeypatch):
     ]
 
 
+def test_cache_download_fetches_missing_root_files(tmp_path, monkeypatch):
+    content = b"{}"
+    metadata = {"size": len(content), "sha256": hashlib.sha256(content).hexdigest()}
+    manifest = {
+        "caches": {
+            "merged": {
+                "repo_id": "owner/cache",
+                "revision": "c" * 40,
+                "files": {"reference_policy.json": metadata},
+            }
+        }
+    }
+    destination = tmp_path / "cache/116_GRCh38_merged"
+    destination.mkdir(parents=True)
+    calls = []
+
+    def fetch(command):
+        calls.append(command)
+        (destination / "reference_policy.json").write_bytes(content)
+
+    monkeypatch.setattr(download, "run", fetch)
+    download.prepare_caches(manifest, ["merged"], tmp_path, False)
+    assert calls[0][3] == "reference_policy.json"
+    assert (destination / "reference_policy.json").read_bytes() == content
+
+
 def test_manifest_pins_only_chr22_for_ten_profiles():
     manifest = json.loads(download.MANIFEST.read_text())
     assert set(manifest["profiles"]) == set(download.CORE_PROFILES)
     for cache in manifest["caches"].values():
         assert len(cache["revision"]) == 40
-        assert len(cache["files"]) == 14
+        assert len(cache["files"]) == 16
+        assert {p for p in cache["files"] if "/" not in p} == {
+            "reference_policy.json",
+            "chr_synonyms.txt",
+        }
         assert all(
-            Path(path).name in ("chr22.parquet", "chrom_manifest.json")
+            "/" not in path
+            or Path(path).name in ("chr22.parquet", "chrom_manifest.json")
             for path in cache["files"]
         )
     for name, reference in manifest["profiles"].items():

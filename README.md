@@ -73,7 +73,7 @@ source and running the test suite.
 ## Quick sanity check with chr22
 
 Check Ensembl VEP **116.0** parity on the 50,861 normalized HG002 GRCh38 chr22
-records using the existing `run_comparison.py` CLI. Docker provides vepyr 0.9.0,
+records using the existing `run_comparison.py` CLI. Docker provides vepyr 0.9.2,
 the Hugging Face client, Git LFS and the VCF tools.
 
 From the repository root, download the merged chr22 cache and run its md5 check:

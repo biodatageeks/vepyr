@@ -9,7 +9,7 @@ dataset (4,096,123 variants across chr1–22).
 Use the existing [`run_comparison.py`](scripts/run_comparison.py) CLI to check
 release-116 chr22 parity. The [main README](../README.md#quick-sanity-check-with-chr22)
 shows a short merged-profile check. The image in [`docker/`](docker/) provides
-**vepyr 0.9.0**, `hf`, Git LFS, `bcftools`, `bgzip` and `tabix` on Linux amd64 or
+**vepyr 0.9.2**, `hf`, Git LFS, `bcftools`, `bgzip` and `tabix` on Linux amd64 or
 arm64. It has no script entrypoint: pass the command to `docker run` explicitly.
 Only Git and Docker are needed on the host.
 
