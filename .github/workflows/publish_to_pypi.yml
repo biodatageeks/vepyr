@@ -12,6 +12,11 @@ on:
         description: "Version to release (must already be merged to the default branch), e.g. 0.2.0"
         required: true
         type: string
+      dry_run:
+        description: "Dry run: build and run every test tier at the dispatched commit; no tag, no publish"
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -23,18 +28,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      ref: ${{ steps.ref.outputs.ref }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Ensure the tag exists for this version
+      - name: Check the version files match the requested version
         env:
-          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version }}"
-          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
-            echo "Tag ${VERSION} already exists; using it."
+          # An existing tag is authoritative: the files at the dispatched
+          # commit may legitimately differ from a tag cut earlier.
+          if [ "$DRY_RUN" != "true" ] && git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists; skipping the version-file check."
             exit 0
           fi
           FILE_VER=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
@@ -43,11 +52,33 @@ jobs:
             echo "::error::Version mismatch on ${GITHUB_REF_NAME}: Cargo.toml=${FILE_VER} pyproject.toml=${PY_VER} but requested ${VERSION}. Merge the Version Bump PR first."
             exit 1
           fi
+      - name: Ensure the tag exists for this version
+        if: ${{ !inputs.dry_run }}
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists; using it."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${VERSION}" -m "Release ${VERSION}"
           git push origin "refs/tags/${VERSION}"
           echo "Created and pushed tag ${VERSION}."
+      - id: ref
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "ref=${SHA}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
 
   test-rust:
     needs: prepare
@@ -57,7 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # extension-module makes PyO3 skip linking libpython; build tests without
@@ -75,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
           lfs: true
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -98,7 +129,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - uses: PyO3/maturin-action@v1
         with:
           command: sdist
@@ -119,7 +150,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -143,7 +174,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -166,7 +197,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -179,9 +210,34 @@ jobs:
           name: wheels-win-${{ matrix.target }}
           path: dist
 
+  tier-porting:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-porting.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
+  tier-integration:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-integration.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
+  tier-nfcore:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-nfcore.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
   publish:
     name: Publish to PyPI
-    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows]
+    if: ${{ !inputs.dry_run }}
+    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-porting, tier-integration, tier-nfcore]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -199,14 +255,14 @@ jobs:
           attestations: true
 
   github-release:
-    needs: [publish]
+    needs: [prepare, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - uses: actions/download-artifact@v4
         with:
           pattern: wheels-*
@@ -215,8 +271,9 @@ jobs:
       - name: Create or update the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          TAG="${{ inputs.version }}"
+          TAG="$VERSION"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
