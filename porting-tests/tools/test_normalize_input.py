@@ -245,9 +245,7 @@ def test_one_record_still_accepted(tmp_path: Path) -> None:
 
 
 @requires_bcftools
-def test_a_gzipped_raw_file_gives_the_same_bytes(
-    raw_vcf: Path, tmp_path: Path
-) -> None:
+def test_a_gzipped_raw_file_gives_the_same_bytes(raw_vcf: Path, tmp_path: Path) -> None:
     """bcftools detects the container, so the script passes it through (AC 6)."""
     gz = tmp_path / "multi.vcf.gz"
     gz.write_bytes(gzip.compress(raw_vcf.read_bytes()))
@@ -416,7 +414,7 @@ def test_a_table_with_no_trivia_before_the_next_one_still_round_trips(
 ) -> None:
     """The backward scan must not run past the table it is replacing."""
     toml_path = tmp_path / "test.toml"
-    toml_path.write_text("[input]\ncommand = \"stale\"\n[vep]\n", encoding="utf-8")
+    toml_path.write_text('[input]\ncommand = "stale"\n[vep]\n', encoding="utf-8")
     text = normalize_input.render_input_table(toml_path, version="bcftools 1.23")
     assert "stale" not in text
     assert "[vep]" in text
@@ -428,7 +426,7 @@ def test_an_empty_input_table_is_replaced_without_eating_the_next_header(
 ) -> None:
     """``end`` may never reach ``start``, even when the table body is blank."""
     toml_path = tmp_path / "test.toml"
-    toml_path.write_text("[input]\n\n[vep]\nargs = \"--cache\"\n", encoding="utf-8")
+    toml_path.write_text('[input]\n\n[vep]\nargs = "--cache"\n', encoding="utf-8")
     parsed = tomllib.loads(
         normalize_input.render_input_table(toml_path, version="bcftools 1.23")
     )
@@ -507,7 +505,7 @@ def test_a_broken_test_toml_leaves_the_whole_test_directory_untouched(
     """
     test_dir = tmp_path / "t9"
     test_dir.mkdir()
-    broken = "name = \"demo\"\nbroken = = toml\n"
+    broken = 'name = "demo"\nbroken = = toml\n'
     (test_dir / "test.toml").write_text(broken, encoding="utf-8")
     (test_dir / "input.vcf").write_text("PREVIOUS-GOOD-INPUT\n", encoding="utf-8")
 
@@ -516,9 +514,9 @@ def test_a_broken_test_toml_leaves_the_whole_test_directory_untouched(
     assert done.returncode == 1
     assert "not valid TOML" in done.stderr
     assert (test_dir / "test.toml").read_text(encoding="utf-8") == broken
-    assert (
-        test_dir / "input.vcf"
-    ).read_text(encoding="utf-8") == "PREVIOUS-GOOD-INPUT\n"
+    assert (test_dir / "input.vcf").read_text(
+        encoding="utf-8"
+    ) == "PREVIOUS-GOOD-INPUT\n"
 
 
 @requires_bcftools

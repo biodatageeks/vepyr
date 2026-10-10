@@ -23,6 +23,7 @@ from pathlib import Path
 
 __all__ = ["VcfFormatError", "VcfRecord", "iter_records", "read_records"]
 
+
 class VcfFormatError(ValueError):
     """A body line that is not a tab-separated VCF record."""
 

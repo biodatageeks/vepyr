@@ -375,8 +375,7 @@ def parser() -> argparse.ArgumentParser:
         "--vepyr-cache-root",
         type=_absolute,
         metavar="DIR",
-        help="vepyr cache root (a ./run_tests cache), "
-        "prechecked against PINS.toml",
+        help="vepyr cache root (a ./run_tests cache), prechecked against PINS.toml",
     )
     p.add_argument(
         "--vep-cache-dir",

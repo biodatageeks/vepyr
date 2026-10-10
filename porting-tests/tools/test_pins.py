@@ -34,7 +34,7 @@ def test_a_short_sha_is_rejected(tmp_path: Path) -> None:
     """A truncated SHA is the exact failure this validator exists to catch (AC-2)."""
     bad = tmp_path / "PINS.toml"
     bad.write_text(
-        'schema_version = 1\n\n[x]\n'
+        "schema_version = 1\n\n[x]\n"
         'repo = "https://huggingface.co/datasets/o/d"\n'
         'ref = "main"\n'
         'sha = "391f94bd"\n'
@@ -50,7 +50,7 @@ def test_a_non_hex_sha_is_rejected(tmp_path: Path) -> None:
     """Forty characters is not enough; they must all be hex."""
     bad = tmp_path / "PINS.toml"
     bad.write_text(
-        'schema_version = 1\n\n[x]\n'
+        "schema_version = 1\n\n[x]\n"
         'repo = "https://huggingface.co/datasets/o/d"\n'
         'ref = "main"\n'
         f'sha = "{"z" * 40}"\n'
@@ -66,7 +66,7 @@ def test_a_missing_field_is_rejected(tmp_path: Path) -> None:
     """Every pin carries all five fields; a missing one names itself in the error."""
     bad = tmp_path / "PINS.toml"
     bad.write_text(
-        'schema_version = 1\n\n[x]\n'
+        "schema_version = 1\n\n[x]\n"
         'repo = "https://huggingface.co/datasets/o/d"\n'
         'ref = "main"\n'
         f'sha = "{"a" * 40}"\n'
@@ -81,7 +81,7 @@ def test_an_unknown_role_is_rejected(tmp_path: Path) -> None:
     """`role` is a closed set so a typo cannot invent a new class of pin."""
     bad = tmp_path / "PINS.toml"
     bad.write_text(
-        'schema_version = 1\n\n[x]\n'
+        "schema_version = 1\n\n[x]\n"
         'repo = "https://huggingface.co/datasets/o/d"\n'
         'ref = "main"\n'
         f'sha = "{"a" * 40}"\n'
@@ -119,7 +119,7 @@ def test_a_wrong_schema_version_is_rejected(tmp_path: Path) -> None:
     """A file written against another schema must not be read as if it were this one."""
     bad = tmp_path / "PINS.toml"
     bad.write_text(
-        'schema_version = 2\n\n[x]\n'
+        "schema_version = 2\n\n[x]\n"
         'repo = "https://huggingface.co/datasets/o/d"\n'
         'ref = "main"\n'
         f'sha = "{"a" * 40}"\n'
@@ -135,7 +135,7 @@ def test_a_missing_schema_version_is_rejected(tmp_path: Path) -> None:
     """`schema_version` is mandatory, so an unversioned file cannot slip through."""
     bad = tmp_path / "PINS.toml"
     bad.write_text(
-        '[x]\n'
+        "[x]\n"
         'repo = "https://huggingface.co/datasets/o/d"\n'
         'ref = "main"\n'
         f'sha = "{"a" * 40}"\n'
