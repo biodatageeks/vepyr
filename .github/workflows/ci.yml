@@ -67,6 +67,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      # ./bless resolves uv from fixed install locations when PATH is empty
+      # (tools/test_bless.py::test_wrapper_runs_without_path); setup-uv uses the tool cache.
+      - name: Expose uv at a standard location
+        run: mkdir -p "$HOME/.local/bin" && ln -sf "$(command -v uv)" "$HOME/.local/bin/uv"
       - name: Set up bcftools 1.23 / htslib 1.23.1 (the pin in tools/normalize_input)
         uses: mamba-org/setup-micromamba@v2
         with:
