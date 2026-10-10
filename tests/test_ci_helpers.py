@@ -80,3 +80,11 @@ def test_cli_result_writes_json(tmp_path):
 def test_cli_error_exits_nonzero(tmp_path, capsys):
     assert ci_helpers.main(["find-wheel", str(tmp_path)]) == 1
     assert "exactly one" in capsys.readouterr().err
+
+
+def test_find_wheel_returns_absolute_path_for_relative_dir(tmp_path, monkeypatch):
+    touch(tmp_path / "dist", X86)
+    monkeypatch.chdir(tmp_path)
+    found = ci_helpers.find_wheel(Path("dist"))
+    assert found.is_absolute()
+    assert found.is_file()

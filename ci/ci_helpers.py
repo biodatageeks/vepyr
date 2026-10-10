@@ -23,8 +23,14 @@ class CiError(Exception):
 
 
 def find_wheel(directory: Path) -> Path:
-    """The one manylinux x86_64 vepyr wheel under ``directory``."""
-    found = sorted(p for p in directory.rglob("vepyr-*.whl") if WHEEL.match(p.name))
+    """The one manylinux x86_64 vepyr wheel under ``directory``, as an absolute path.
+
+    Absolute because callers may run from another working directory (the porting
+    run changes into porting-tests/ before it reads the wheel).
+    """
+    found = sorted(
+        p.resolve() for p in directory.rglob("vepyr-*.whl") if WHEEL.match(p.name)
+    )
     if len(found) != 1:
         names = [p.name for p in found]
         raise CiError(
