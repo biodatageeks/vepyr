@@ -1,8 +1,8 @@
 name: Parity tests
 
-# Admin-only gate for a PR: Ensembl VEP parity (tier 2) and integration (tier 3)
-# on the
-# PR head, reported as commit statuses that branch protection requires.
+# Admin-only gate for a PR: Ensembl VEP parity (tier 2) and integration
+# (tier 3) on the PR head, reported as commit statuses that branch protection
+# requires.
 #   gh workflow run parity-tests.yml -f pr=123
 # The SHA is resolved once by `authorize`; a push during the run leaves the new
 # head without a status, so it stays blocked until an admin re-runs this.
@@ -44,7 +44,10 @@ jobs:
           [ "$REF" = "refs/heads/master" ] || { echo "::error::dispatch from master, not $REF"; exit 1; }
       - name: Only admins may run this
         run: |
-          # A re-run keeps github.actor as the original dispatcher, so check both.
+          # A re-run keeps github.actor as the original dispatcher, so check
+          # both. "Re-run all jobs" re-runs this job, so triggering_actor must be
+          # an admin; "Re-run failed jobs" reuses the earlier successful
+          # authorize, which is acceptable: an admin already approved that SHA.
           for who in "$ACTOR" "$TRIGGERING_ACTOR"; do
             perm=$(gh api "repos/$REPO/collaborators/$who/permission" --jq .permission)
             if [ "$perm" != "admin" ]; then
