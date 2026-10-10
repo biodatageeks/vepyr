@@ -33,13 +33,23 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       PR: ${{ inputs.pr }}
+      REF: ${{ github.ref }}
+      ACTOR: ${{ github.actor }}
+      TRIGGERING_ACTOR: ${{ github.triggering_actor }}
     steps:
+      - name: Only master's workflow may run this
+        run: |
+          # Dispatching from a branch would run that branch's workflow and helper.
+          [ "$REF" = "refs/heads/master" ] || { echo "::error::dispatch from master, not $REF"; exit 1; }
       - name: Only admins may run this
         run: |
-          perm=$(gh api "repos/$REPO/collaborators/$GITHUB_ACTOR/permission" --jq .permission)
-          if [ "$perm" != "admin" ]; then
-            echo "::error::$GITHUB_ACTOR has '$perm' permission; parity tests are admin-only"; exit 1
-          fi
+          # A re-run keeps github.actor as the original dispatcher, so check both.
+          for who in "$ACTOR" "$TRIGGERING_ACTOR"; do
+            perm=$(gh api "repos/$REPO/collaborators/$who/permission" --jq .permission)
+            if [ "$perm" != "admin" ]; then
+              echo "::error::$who has '$perm' permission; parity tests are admin-only"; exit 1
+            fi
+          done
       - id: pr
         name: Resolve the PR head SHA
         run: |
@@ -50,12 +60,17 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "Testing PR #$PR at $sha" >> "$GITHUB_STEP_SUMMARY"
       - name: Mark pending
+        env:
+          SHA: ${{ steps.pr.outputs.sha }}
         run: |
           url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          failed=0
           for ctx in parity/porting parity/integration; do
-            gh api -X POST "repos/$REPO/statuses/${{ steps.pr.outputs.sha }}" \
-              -f state=pending -f context="$ctx" -f description="running" -f target_url="$url"
+            gh api -X POST "repos/$REPO/statuses/$SHA" \
+              -f state=pending -f context="$ctx" -f description="running" \
+              -f target_url="$url" || failed=1
           done
+          exit "$failed"
 
   build-wheel:
     needs: authorize
@@ -71,7 +86,8 @@ jobs:
         with:
           target: x86_64
           args: --release --out dist --find-interpreter
-          sccache: true
+          # No sccache: a PR build.rs could poison entries in master's cache scope.
+          sccache: false
           manylinux: auto
       - uses: actions/upload-artifact@v4
         with:
@@ -96,7 +112,7 @@ jobs:
 
   report:
     needs: [authorize, porting, integration]
-    if: always() && needs.authorize.result == 'success'
+    if: ${{ !cancelled() && needs.authorize.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -106,6 +122,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       SHA: ${{ needs.authorize.outputs.sha }}
+      # Produced by jobs that ran PR code: data only, never interpolated into a script.
+      PROFILES: ${{ needs.integration.outputs.profiles }}
+      PORTING_RESULT: ${{ needs.porting.result }}
+      INTEGRATION_RESULT: ${{ needs.integration.result }}
     steps:
       # The workflow's own ref (master), never the PR: this job holds statuses: write.
       - uses: actions/checkout@v4
@@ -120,9 +140,14 @@ jobs:
           url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
           mkdir -p results
           python3 ci/ci_helpers.py statuses --results-dir results \
-            --profiles '${{ needs.integration.outputs.profiles }}' > statuses.tsv
+            --profiles "$PROFILES" \
+            --porting-job "$PORTING_RESULT" --integration-job "$INTEGRATION_RESULT" \
+            > statuses.tsv
           cat statuses.tsv
+          failed=0
           while IFS=$'\t' read -r ctx state desc; do
             gh api -X POST "repos/$REPO/statuses/$SHA" \
-              -f state="$state" -f context="$ctx" -f description="$desc" -f target_url="$url"
+              -f state="$state" -f context="$ctx" -f description="$desc" \
+              -f target_url="$url" || failed=1
           done < statuses.tsv
+          exit "$failed"

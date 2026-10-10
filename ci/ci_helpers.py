@@ -127,20 +127,78 @@ def _clip(text: str) -> str:
     return text if len(text) <= STATUS_LIMIT else text[: STATUS_LIMIT - 1] + "…"
 
 
-def statuses(results_dir: Path, profiles: list[str]) -> list[tuple[str, str, str]]:
-    """Commit statuses for one dispatch run; a missing verdict is an error."""
-    records = {}
+PROFILE_NAME = re.compile(r"^[A-Za-z0-9_.-]+$")
+VERDICTS = ("success", "failure")
+
+
+def parse_profiles(text: str) -> list[str]:
+    """The profiles JSON from the (untrusted) integration job; '' means none."""
+    try:
+        names = json.loads(text or "[]")
+    except json.JSONDecodeError as exc:
+        raise CiError(f"profiles is not valid JSON: {exc}") from exc
+    if not isinstance(names, list):
+        raise CiError("profiles must be a JSON list")
+    for name in names:
+        if not isinstance(name, str) or not PROFILE_NAME.match(name):
+            raise CiError(f"invalid profile name: {name!r}")
+    return names
+
+
+def _load_records(results_dir: Path) -> tuple[dict[str, dict], set[str]]:
+    """Valid result records by name, plus names reported more than once."""
+    records: dict[str, dict] = {}
+    duplicates: set[str] = set()
     for path in sorted(results_dir.rglob("result-*.json")):
-        record = json.loads(path.read_text())
+        try:
+            record = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        if not (
+            isinstance(record, dict)
+            and isinstance(record.get("name"), str)
+            and isinstance(record.get("conclusion"), str)
+        ):
+            continue
+        if record["name"] in records:
+            duplicates.add(record["name"])
         records[record["name"]] = record
+    return records, duplicates
+
+
+def statuses(
+    results_dir: Path, profiles: list[str], job_results: dict[str, str]
+) -> list[tuple[str, str, str]]:
+    """Commit statuses for one dispatch run; a missing verdict is an error.
+
+    Result files come from jobs that ran PR code, so they are untrusted: a
+    success is only believed when the tier job's own result agrees.
+    """
+    for name in profiles:
+        if not PROFILE_NAME.match(name):
+            raise CiError(f"invalid profile name: {name!r}")
+    records, duplicates = _load_records(results_dir)
 
     def state(name: str) -> tuple[str, str]:
+        if name in duplicates:
+            return "error", f"duplicate result for {name}"
         record = records.get(name)
         if record is None:
             return "error", "no result reported (job cancelled, timed out or never ran)"
-        return record["conclusion"], record.get("summary") or record["conclusion"]
+        conclusion = record["conclusion"]
+        summary = record.get("summary")
+        summary = summary if isinstance(summary, str) and summary else conclusion
+        if conclusion not in VERDICTS:
+            return "error", summary
+        return conclusion, summary
 
-    rows = [("parity/porting", *state("porting"))]
+    def confirmed(verdict: tuple[str, str], tier: str) -> tuple[str, str]:
+        job = job_results.get(tier, "unknown")
+        if verdict[0] == "success" and job != "success":
+            return "error", f"job result {job} contradicts verdict"
+        return verdict
+
+    rows = [("parity/porting", *confirmed(state("porting"), "porting"))]
     if not profiles:
         rows.append(
             (
@@ -157,17 +215,13 @@ def statuses(results_dir: Path, profiles: list[str]) -> list[tuple[str, str, str
             if conclusion != "success":
                 bad.append(profile)
         if bad:
-            rows.append(
-                (
-                    "parity/integration",
-                    "failure",
-                    f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
-                )
+            aggregate = (
+                "failure",
+                f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
             )
         else:
-            rows.append(
-                ("parity/integration", "success", f"{len(profiles)} profiles pass")
-            )
+            aggregate = ("success", f"{len(profiles)} profiles pass")
+        rows.append(("parity/integration", *confirmed(aggregate, "integration")))
     return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
 
 
@@ -193,6 +247,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("statuses")
     p.add_argument("--results-dir", type=Path, required=True)
     p.add_argument("--profiles", default="[]", help="JSON list (may be empty)")
+    p.add_argument("--porting-job", required=True, help="needs.porting.result")
+    p.add_argument("--integration-job", required=True, help="needs.integration.result")
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -211,8 +267,9 @@ def main(argv: list[str] | None = None) -> int:
                 set_snapshot_version(args.snap.read_text(), args.version)
             )
         elif args.command == "statuses":
-            names = json.loads(args.profiles or "[]")
-            for ctx, st, desc in statuses(args.results_dir, names):
+            names = parse_profiles(args.profiles)
+            jobs = {"porting": args.porting_job, "integration": args.integration_job}
+            for ctx, st, desc in statuses(args.results_dir, names, jobs):
                 print(f"{ctx}\t{st}\t{desc}")
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)

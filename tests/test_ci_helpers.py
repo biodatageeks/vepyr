@@ -206,6 +206,9 @@ def write_result(
     )
 
 
+OK = {"porting": "success", "integration": "success"}
+
+
 def as_dict(rows):
     return {ctx: (state, desc) for ctx, state, desc in rows}
 
@@ -214,7 +217,7 @@ def test_statuses_all_green(tmp_path):
     write_result(tmp_path / "a", "porting", "success", "204 pass")
     for p in ("ensembl", "merged"):
         write_result(tmp_path / p, f"integration/{p}", "success")
-    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"]))
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"], OK))
     assert rows["parity/porting"][0] == "success"
     assert rows["parity/integration"][0] == "success"
     assert rows["parity/integration/merged"][0] == "success"
@@ -224,7 +227,7 @@ def test_statuses_failed_profile_fails_aggregate_and_is_named(tmp_path):
     write_result(tmp_path, "porting", "success")
     write_result(tmp_path, "integration/ensembl", "success")
     write_result(tmp_path, "integration/merged", "failure", "md5 strict: MISMATCH")
-    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"]))
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"], OK))
     assert rows["parity/integration/merged"] == ("failure", "md5 strict: MISMATCH")
     assert rows["parity/integration"][0] == "failure"
     assert "merged" in rows["parity/integration"][1]
@@ -232,7 +235,7 @@ def test_statuses_failed_profile_fails_aggregate_and_is_named(tmp_path):
 
 def test_statuses_missing_result_is_error_never_success(tmp_path):
     write_result(tmp_path, "integration/ensembl", "success")
-    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"]))
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"], OK))
     assert rows["parity/porting"][0] == "error"
     assert rows["parity/integration/merged"][0] == "error"
     assert rows["parity/integration"][0] != "success"
@@ -240,13 +243,13 @@ def test_statuses_missing_result_is_error_never_success(tmp_path):
 
 def test_statuses_without_profile_list_is_error(tmp_path):
     write_result(tmp_path, "porting", "success")
-    rows = as_dict(ci_helpers.statuses(tmp_path, []))
+    rows = as_dict(ci_helpers.statuses(tmp_path, [], OK))
     assert rows["parity/integration"][0] == "error"
 
 
 def test_statuses_descriptions_fit_github_limit(tmp_path):
     write_result(tmp_path, "porting", "failure", "x" * 500)
-    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"]))
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
     assert all(len(desc) <= 140 for _, desc in rows.values())
 
 
@@ -255,7 +258,17 @@ def test_statuses_cli_tab_separated(tmp_path, capsys):
     write_result(tmp_path, "integration/merged", "success")
     assert (
         ci_helpers.main(
-            ["statuses", "--results-dir", str(tmp_path), "--profiles", '["merged"]']
+            [
+                "statuses",
+                "--results-dir",
+                str(tmp_path),
+                "--profiles",
+                '["merged"]',
+                "--porting-job",
+                "success",
+                "--integration-job",
+                "success",
+            ]
         )
         == 0
     )
@@ -265,3 +278,110 @@ def test_statuses_cli_tab_separated(tmp_path, capsys):
         "parity/integration/merged",
         "parity/integration",
     }
+
+
+def cli_statuses(tmp_path, profiles, porting="success", integration="success"):
+    return ci_helpers.main(
+        [
+            "statuses",
+            "--results-dir",
+            str(tmp_path),
+            "--profiles",
+            profiles,
+            "--porting-job",
+            porting,
+            "--integration-job",
+            integration,
+        ]
+    )
+
+
+def test_statuses_cli_empty_profiles_is_error(tmp_path, capsys):
+    write_result(tmp_path, "porting", "success")
+    assert cli_statuses(tmp_path, "") == 0
+    out = {
+        ln.split("\t")[0]: ln.split("\t")[1]
+        for ln in capsys.readouterr().out.splitlines()
+    }
+    assert out["parity/integration"] == "error"
+
+
+@pytest.mark.parametrize(
+    "bad", ['"merged"', '{"a": 1}', "not json", '["a\\tb"]', '["a\\nb"]', '[""]', "[1]"]
+)
+def test_statuses_cli_rejects_bad_profiles(tmp_path, bad):
+    assert cli_statuses(tmp_path, bad) == 1
+
+
+def test_statuses_rejects_forged_profile_name(tmp_path):
+    with pytest.raises(ci_helpers.CiError):
+        ci_helpers.statuses(tmp_path, ["a\tsuccess\tx\nparity/porting"], OK)
+
+
+def test_statuses_unknown_conclusion_is_error(tmp_path):
+    write_result(tmp_path, "porting", "skipped")
+    write_result(tmp_path, "integration/a", "neutral")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
+    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/integration/a"][0] == "error"
+    assert rows["parity/integration"][0] != "success"
+
+
+def test_statuses_malformed_results_do_not_crash(tmp_path):
+    write_result(tmp_path, "integration/a", "success")
+    (tmp_path / "result-bad.json").write_text("{not json")
+    (tmp_path / "result-noname.json").write_text(json.dumps({"conclusion": "success"}))
+    (tmp_path / "result-nocon.json").write_text(json.dumps({"name": "porting"}))
+    (tmp_path / "result-list.json").write_text("[1]")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
+    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/integration"][0] == "success"
+
+
+def test_statuses_duplicate_result_is_error(tmp_path):
+    write_result(tmp_path / "x", "porting", "success")
+    write_result(tmp_path / "y", "porting", "success")
+    write_result(tmp_path, "integration/a", "success")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
+    assert rows["parity/porting"] == ("error", "duplicate result for porting")
+
+
+def test_statuses_job_result_must_confirm_success(tmp_path):
+    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "integration/a", "success")
+    rows = as_dict(
+        ci_helpers.statuses(
+            tmp_path, ["a"], {"porting": "cancelled", "integration": "failure"}
+        )
+    )
+    assert rows["parity/porting"] == (
+        "error",
+        "job result cancelled contradicts verdict",
+    )
+    assert rows["parity/integration"] == (
+        "error",
+        "job result failure contradicts verdict",
+    )
+    assert (
+        rows["parity/integration/a"][0] == "success"
+    )  # per-profile stays record-based
+
+
+def test_statuses_failure_verdict_survives_job_mismatch(tmp_path):
+    write_result(tmp_path, "porting", "failure", "3 fail")
+    write_result(tmp_path, "integration/a", "failure")
+    rows = as_dict(
+        ci_helpers.statuses(
+            tmp_path, ["a"], {"porting": "failure", "integration": "failure"}
+        )
+    )
+    assert rows["parity/porting"] == ("failure", "3 fail")
+    assert rows["parity/integration"][0] == "failure"
+
+
+def test_statuses_missing_job_results_never_success(tmp_path):
+    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "integration/a", "success")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], {}))
+    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/integration"][0] == "error"
