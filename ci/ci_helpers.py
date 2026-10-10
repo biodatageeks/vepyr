@@ -64,6 +64,61 @@ def profiles(manifest: Path) -> list[str]:
     return names
 
 
+def conda_specs(environment_yml: Path) -> list[str]:
+    """The module's conda dependencies minus vepyr (installed from the wheel).
+
+    A line-level reader for the nf-core environment.yml layout (no PyYAML on a
+    bare runner): ``- spec`` items under the top-level ``dependencies:`` key.
+    """
+    specs, in_deps = [], False
+    for line in environment_yml.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not line.startswith((" ", "-")) or stripped == "---":
+            in_deps = stripped == "dependencies:"
+            continue
+        if in_deps and stripped.startswith("- "):
+            spec = stripped[2:].strip()
+            name = spec.split("::")[-1].split("=")[0].split("<")[0].split(">")[0]
+            if name != "vepyr":
+                specs.append(spec)
+    if not specs:
+        raise CiError(f"no non-vepyr dependencies in {environment_yml}")
+    return specs
+
+
+def set_snapshot_version(text: str, version: str) -> str:
+    """Point every ``[process, "vepyr", version]`` entry at ``version``.
+
+    Only the vepyr version changes; md5s and every other entry stay strict.
+    """
+    data = json.loads(text)
+    hits = 0
+
+    def walk(node):
+        nonlocal hits
+        if isinstance(node, list):
+            if (
+                len(node) == 3
+                and all(isinstance(x, str) for x in node)
+                and node[1] == "vepyr"
+            ):
+                node[2] = version
+                hits += 1
+                return
+            for item in node:
+                walk(item)
+        elif isinstance(node, dict):
+            for item in node.values():
+                walk(item)
+
+    walk(data)
+    if hits == 0:
+        raise CiError('no [process, "vepyr", version] entry in the snapshot')
+    return json.dumps(data, indent=4) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ci_helpers.py")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -78,6 +133,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, required=True)
     p = sub.add_parser("profiles")
     p.add_argument("manifest", type=Path)
+    p = sub.add_parser("conda-specs")
+    p.add_argument("environment_yml", type=Path)
+    p = sub.add_parser("snap-version")
+    p.add_argument("--snap", type=Path, required=True)
+    p.add_argument("--version", required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -89,6 +149,12 @@ def main(argv: list[str] | None = None) -> int:
             args.out.write_text(json.dumps(record) + "\n")
         elif args.command == "profiles":
             print(json.dumps(profiles(args.manifest)))
+        elif args.command == "conda-specs":
+            print(" ".join(conda_specs(args.environment_yml)))
+        elif args.command == "snap-version":
+            args.snap.write_text(
+                set_snapshot_version(args.snap.read_text(), args.version)
+            )
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)
         return 1

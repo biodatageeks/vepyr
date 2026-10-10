@@ -119,3 +119,78 @@ def test_profiles_matches_the_committed_manifest():
         / "e2e-testing/golden/116/chr22/manifest.json"
     )
     assert len(ci_helpers.profiles(manifest)) == 10
+
+
+ENV_YML = """---
+# yaml-language-server: $schema=https://example/schema.json
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  # renovate: datasource=conda depName=bioconda/htslib
+  - bioconda::htslib=1.24
+  # renovate: datasource=conda depName=bioconda/vepyr
+  - bioconda::vepyr=0.9.0
+"""
+
+
+def test_conda_specs_drops_vepyr_and_channels(tmp_path):
+    env = tmp_path / "environment.yml"
+    env.write_text(ENV_YML)
+    assert ci_helpers.conda_specs(env) == ["bioconda::htslib=1.24"]
+
+
+def test_conda_specs_of_the_committed_module():
+    env = (
+        Path(__file__).resolve().parents[1]
+        / "nf-core-module/modules/nf-core/vepyr/annotate/environment.yml"
+    )
+    specs = ci_helpers.conda_specs(env)
+    assert specs and not any("vepyr" in s for s in specs)
+
+
+SNAP = {
+    "homo_sapiens - vcf": {
+        "content": [
+            {
+                "vcf": ["test_vepyr.vcf.gz,variantsMD5:fdddbf25"],
+                "versions_vepyr": [["VEPYR_ANNOTATE", "vepyr", "0.9.0"]],
+            }
+        ],
+        "meta": {"nf-test": "0.9.2", "nextflow": "25.04.6"},
+    },
+    "stub": {
+        "content": [
+            {
+                "versions_vepyr": [["VEPYR_ANNOTATE", "vepyr", "0.9.0"]],
+                "versions_bcftools": [["BCFTOOLS_NORM", "bcftools", "1.22"]],
+            }
+        ]
+    },
+}
+
+
+def test_set_snapshot_version_rewrites_only_vepyr():
+    out = json.loads(ci_helpers.set_snapshot_version(json.dumps(SNAP), "0.9.3"))
+    first = out["homo_sapiens - vcf"]["content"][0]
+    assert first["versions_vepyr"] == [["VEPYR_ANNOTATE", "vepyr", "0.9.3"]]
+    assert out["stub"]["content"][0]["versions_bcftools"] == [
+        ["BCFTOOLS_NORM", "bcftools", "1.22"]
+    ]
+    assert first["vcf"] == ["test_vepyr.vcf.gz,variantsMD5:fdddbf25"]
+    assert out["homo_sapiens - vcf"]["meta"] == SNAP["homo_sapiens - vcf"]["meta"]
+
+
+def test_set_snapshot_version_fails_when_nothing_matches():
+    with pytest.raises(ci_helpers.CiError, match="no .*vepyr"):
+        ci_helpers.set_snapshot_version(json.dumps({"t": {"content": [1]}}), "0.9.3")
+
+
+def test_snap_version_cli_rewrites_in_place(tmp_path):
+    snap = tmp_path / "main.nf.test.snap"
+    snap.write_text(json.dumps(SNAP))
+    assert (
+        ci_helpers.main(["snap-version", "--snap", str(snap), "--version", "1.0.0"])
+        == 0
+    )
+    assert '"1.0.0"' in snap.read_text() and '"0.9.0"' not in snap.read_text()
