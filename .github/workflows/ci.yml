@@ -15,6 +15,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only token for every job: no CI job writes to the repository.
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -219,7 +223,9 @@ jobs:
       contents: read
     uses: ./.github/workflows/_tier-nfcore.yml
     with:
-      ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # On pull_request github.sha is the merge commit: the tree `linux` built
+      # the wheel from.
+      ref: ${{ github.sha }}
 
   macos:
     runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}

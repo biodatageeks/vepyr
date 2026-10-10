@@ -122,6 +122,13 @@ Admins run tiers 2-3 for a PR with `gh workflow run parity-tests.yml -f pr=<n>`
 (`publish_to_pypi.yml`) run all tiers and publish only if all pass;
 `dry_run=true` runs everything without tagging or publishing.
 
+The `parity/*` statuses are posted with `GITHUB_TOKEN`, so branch protection
+can only pin them to the GitHub Actions app. A collaborator with write access
+could post the same contexts from a workflow on their own branch. Setting
+Settings -> Actions -> General -> Workflow permissions to read-only narrows
+this (such a workflow must then request `statuses: write` explicitly); only a
+dedicated status-posting GitHub App, required by branch protection, closes it.
+
 ## License
 
 [Apache-2.0](LICENSE)
