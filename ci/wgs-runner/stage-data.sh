@@ -22,16 +22,36 @@ check_sha() { # file expected-sha256
   [ "$got" = "$2" ] || { echo "sha256 mismatch for $1: got $got, want $2" >&2; exit 1; }
 }
 
+fetch() { # url dest [sha256]: download to .part, re-download when the sha differs
+  local url="$1" dest="$2" want="${3:-}"
+  if [ -f "$dest" ] && [ -n "$want" ] && [ "$(sha256sum "$dest" | awk '{print $1}')" != "$want" ]; then
+    echo "re-downloading $dest (sha256 differs)"; rm -f "$dest"
+  fi
+  [ -f "$dest" ] || { curl -fL --retry 3 -o "$dest.part" "$url" && mv "$dest.part" "$dest"; }
+}
+
 # 1. layout (a previous run leaves $DATA read-only)
 [ ! -d "$DATA" ] || chmod -R u+w "$DATA"
 mkdir -p "$DATA/cache" "$DATA/input" "$DATA/output/116"
 
-# 2. caches
+# 2. caches. `hf download --local-dir` never deletes files that a newer
+# revision dropped, and record-staged hashes everything under $DATA, so a cache
+# at another revision is rebuilt in a fresh sibling dir and swapped in.
 for flavour in $(mf "' '.join(sorted(d['caches']))"); do
   repo_id="$(mf "d['caches']['$flavour']['repo_id']")"
   rev="$(mf "d['caches']['$flavour']['revision']")"
+  dest="$DATA/cache/116_GRCh38_$flavour"
+  if [ -f "$dest/.revision" ] && [ "$(cat "$dest/.revision")" = "$rev" ]; then
+    echo "cache $flavour already at $rev"
+    continue
+  fi
+  rm -rf "$dest.new" "$dest.old"
   uvx --from huggingface_hub hf download "$repo_id" --repo-type dataset \
-    --revision "$rev" --local-dir "$DATA/cache/116_GRCh38_$flavour"
+    --revision "$rev" --local-dir "$dest.new"
+  echo "$rev" > "$dest.new/.revision"
+  [ ! -e "$dest" ] || mv "$dest" "$dest.old"
+  mv "$dest.new" "$dest"
+  rm -rf "$dest.old"
 done
 
 # 3. reference FASTA
@@ -41,22 +61,26 @@ print(tomllib.load(open(sys.argv[1], "rb"))["grch38_fasta"][sys.argv[2]])
 PY
 }
 fa="$DATA/$(mf "d['fasta']")"
+if [ -f "$fa" ] && [ "$(sha256sum "$fa" | awk '{print $1}')" != "$(pin sha)" ]; then
+  echo "re-downloading $fa (sha256 differs)"; rm -f "$fa"
+fi
 if [ ! -f "$fa" ]; then
   gz="$fa.gz"
-  curl -fL --retry 3 -o "$gz" "$(pin repo)/$(pin ref)"
+  fetch "$(pin repo)/$(pin ref)" "$gz"
   [ "$(sum "$gz" | awk '{print $1, $2}')" = "$(pin ensembl_sum)" ] \
     || { echo "Ensembl checksum mismatch for $gz" >&2; exit 1; }
-  gunzip "$gz"
+  gunzip -c "$gz" > "$fa.part" && mv "$fa.part" "$fa" && rm -f "$gz"
 fi
+check_sha "$fa" "$(pin sha)"
 PYTHONPATH="$repo/porting-tests/tools" python3 -c \
   'import sys; from pathlib import Path; from run_tests.fetch import write_fai; write_fai(Path(sys.argv[1]))' "$fa"
-check_sha "$fa" "$(pin sha)"
 
 # 4. HG002 VCF + index
 giab=https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38
 for f in HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi; do
-  [ -f "$DATA/input/$f" ] || curl -fL --retry 3 -o "$DATA/input/$f" "$giab/$f"
-  check_sha "$DATA/input/$f" "$(mf "d['inputs']['input/$f']['sha256']")"
+  want="$(mf "d['inputs']['input/$f']['sha256']")"
+  fetch "$giab/$f" "$DATA/input/$f" "$want"
+  check_sha "$DATA/input/$f" "$want"
 done
 
 # 5. goldens (+ tbi) from the host that holds the VEP reference runs

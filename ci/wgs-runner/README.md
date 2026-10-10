@@ -16,7 +16,7 @@ It writes `/work/result.json` and `/work/summary.txt`.
    runner service.
 2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, 4682).
 3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
-   `.github/workflows/parity-wgs.yml@refs/heads/master`.
+   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
 5. In a checkout of `master`, run `ci/wgs-runner/build-image.sh`.
 6. Run `ci/wgs-runner/stage-data.sh --goldens-from <user@host:~/workspace/data_vepyr/output/116>`.
@@ -41,9 +41,25 @@ that was not built locally fails fast.
 
 ## Accepted residual risk
 
-The runner executes a PR's wheel on a persistent host. The label, the runner
-group restriction to this repository and the workflow ref pin, the read-only
-data mount, the throw-away container and the absence of secrets in it bound
-the exposure, but they do not eliminate it: a hostile wheel can still burn the
-runner's CPU and disk for the length of the job. This is accepted for a
-maintainer-triggered command (see the design spec, section 5).
+The runner agent and its `_work` directory persist between jobs. A hostile
+fork PR, after an admin has commented `/parity-wgs` on it, could run code that
+leaves files behind for a later job to read (design spec, section 5).
+Mitigations:
+
+- the staged data is mounted read-only and the job container is throw-away;
+- no secrets are available to the job, and its GitHub token is read-only;
+- privileged jobs (anything with secrets or write access) never run on this
+  machine;
+- `_work` and scratch are cleaned before and after each job;
+- the runner group is restricted to this repository and to the
+  `parity-wgs.yml` workflow on `master`.
+
+The main defence is the admin's review of the PR before commenting
+`/parity-wgs`. The upgrade path, if that is not enough, is ephemeral runners.
+
+Two further rules for the host:
+
+- Docker-group membership is root-equivalent for anything running as the
+  runner user, so treat the runner user as root on this machine.
+- Never leave a private SSH key on the runner after the goldens rsync. Use
+  agent forwarding, or push the goldens from the maintainer's machine.
