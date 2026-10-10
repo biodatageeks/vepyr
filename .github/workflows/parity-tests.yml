@@ -1,6 +1,7 @@
 name: Parity tests
 
-# Admin-only gate for a PR: porting (tier 2) and integration (tier 3) on the
+# Admin-only gate for a PR: Ensembl VEP parity (tier 2) and integration (tier 3)
+# on the
 # PR head, reported as commit statuses that branch protection requires.
 #   gh workflow run parity-tests.yml -f pr=123
 # The SHA is resolved once by `authorize`; a push during the run leaves the new
@@ -65,7 +66,7 @@ jobs:
         run: |
           url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
           failed=0
-          for ctx in parity/porting parity/integration; do
+          for ctx in parity/vep-parity parity/integration; do
             gh api -X POST "repos/$REPO/statuses/$SHA" \
               -f state=pending -f context="$ctx" -f description="running" \
               -f target_url="$url" || failed=1
@@ -94,11 +95,11 @@ jobs:
           name: wheels-manylinux-x86_64
           path: dist
 
-  porting:
+  vep-parity:
     needs: [authorize, build-wheel]
     permissions:
       contents: read
-    uses: ./.github/workflows/_tier-porting.yml
+    uses: ./.github/workflows/_tier-vep-parity.yml
     with:
       ref: ${{ needs.authorize.outputs.sha }}
 
@@ -111,7 +112,7 @@ jobs:
       ref: ${{ needs.authorize.outputs.sha }}
 
   report:
-    needs: [authorize, porting, integration]
+    needs: [authorize, vep-parity, integration]
     if: ${{ !cancelled() && needs.authorize.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -124,7 +125,7 @@ jobs:
       SHA: ${{ needs.authorize.outputs.sha }}
       # Produced by jobs that ran PR code: data only, never interpolated into a script.
       PROFILES: ${{ needs.integration.outputs.profiles }}
-      PORTING_RESULT: ${{ needs.porting.result }}
+      VEP_PARITY_RESULT: ${{ needs.vep-parity.result }}
       INTEGRATION_RESULT: ${{ needs.integration.result }}
     steps:
       # The workflow's own ref (master), never the PR: this job holds statuses: write.
@@ -141,7 +142,7 @@ jobs:
           mkdir -p results
           python3 ci/ci_helpers.py statuses --results-dir results \
             --profiles "$PROFILES" \
-            --porting-job "$PORTING_RESULT" --integration-job "$INTEGRATION_RESULT" \
+            --vep-parity-job "$VEP_PARITY_RESULT" --integration-job "$INTEGRATION_RESULT" \
             > statuses.tsv
           cat statuses.tsv
           failed=0

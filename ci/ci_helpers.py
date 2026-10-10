@@ -198,7 +198,7 @@ def statuses(
             return "error", f"job result {job} contradicts verdict"
         return verdict
 
-    rows = [("parity/porting", *confirmed(state("porting"), "porting"))]
+    rows = [("parity/vep-parity", *confirmed(state("vep-parity"), "vep-parity"))]
     if not profiles:
         rows.append(
             (
@@ -247,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("statuses")
     p.add_argument("--results-dir", type=Path, required=True)
     p.add_argument("--profiles", default="[]", help="JSON list (may be empty)")
-    p.add_argument("--porting-job", required=True, help="needs.porting.result")
+    p.add_argument("--vep-parity-job", required=True, help="needs.vep-parity.result")
     p.add_argument("--integration-job", required=True, help="needs.integration.result")
     args = parser.parse_args(argv)
     try:
@@ -268,7 +268,10 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "statuses":
             names = parse_profiles(args.profiles)
-            jobs = {"porting": args.porting_job, "integration": args.integration_job}
+            jobs = {
+                "vep-parity": args.vep_parity_job,
+                "integration": args.integration_job,
+            }
             for ctx, st, desc in statuses(args.results_dir, names, jobs):
                 print(f"{ctx}\t{st}\t{desc}")
     except CiError as exc:

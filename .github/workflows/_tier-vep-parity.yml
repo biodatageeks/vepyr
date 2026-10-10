@@ -1,4 +1,4 @@
-name: Tier 2 - porting tests
+name: Tier 2 - Ensembl VEP parity
 
 # Reusable: the Ensembl VEP porting data suite (porting-tests/) against a
 # prebuilt manylinux x86_64 wheel. Called by parity-tests.yml (admin dispatch
@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  porting:
+  vep-parity:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ env.VEPYR_CACHE_ROOT }}/fasta/${{ steps.pins.outputs.gz }}
-          key: porting-fasta-${{ steps.pins.outputs.sha }}
+          key: vep-parity-fasta-${{ steps.pins.outputs.sha }}
       - name: Verify the restored FASTA archive
         run: |
           gz="$VEPYR_CACHE_ROOT/fasta/${{ steps.pins.outputs.gz }}"
@@ -66,25 +66,25 @@ jobs:
         working-directory: porting-tests
         run: |
           ./run_tests --wheel "${{ steps.wheel.outputs.path }}" \
-            --summary-md "$RUNNER_TEMP/porting-summary.md" \
-            --keep-failed "$RUNNER_TEMP/porting-failed"
+            --summary-md "$RUNNER_TEMP/vep-parity-summary.md" \
+            --keep-failed "$RUNNER_TEMP/vep-parity-failed"
       - name: Step summary
         if: always()
-        run: cat "$RUNNER_TEMP/porting-summary.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "no summary (run did not reach the suite)" >> "$GITHUB_STEP_SUMMARY"
+        run: cat "$RUNNER_TEMP/vep-parity-summary.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "no summary (run did not reach the suite)" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: porting-failed-outputs
-          path: ${{ runner.temp }}/porting-failed
+          name: vep-parity-failed-outputs
+          path: ${{ runner.temp }}/vep-parity-failed
           if-no-files-found: ignore
       - name: Record the verdict
         if: always()
         run: |
-          python3 ci/ci_helpers.py result --name porting --outcome "${{ steps.run.outcome }}" \
-            --summary "$(head -1 "$RUNNER_TEMP/porting-summary.md" 2>/dev/null | sed 's/^### //')" \
-            --out result-porting.json
+          python3 ci/ci_helpers.py result --name vep-parity --outcome "${{ steps.run.outcome }}" \
+            --summary "$(head -1 "$RUNNER_TEMP/vep-parity-summary.md" 2>/dev/null | sed 's/^### //')" \
+            --out result-vep-parity.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: result-porting
-          path: result-porting.json
+          name: result-vep-parity
+          path: result-vep-parity.json

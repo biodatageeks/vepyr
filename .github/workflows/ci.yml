@@ -58,7 +58,7 @@ jobs:
 
   # Cheap checks of the imported porting suite (porting-tests/): no cache or
   # FASTA download. The data suite itself runs in parity-tests.yml / release.
-  porting-checks:
+  vep-parity-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:

@@ -54,17 +54,17 @@ def test_wheel_version_rejects_other_files():
     ],
 )
 def test_result_record_maps_step_outcomes(outcome, conclusion):
-    record = ci_helpers.result_record("porting", outcome, "s")
-    assert record == {"name": "porting", "conclusion": conclusion, "summary": "s"}
+    record = ci_helpers.result_record("vep-parity", outcome, "s")
+    assert record == {"name": "vep-parity", "conclusion": conclusion, "summary": "s"}
 
 
 def test_cli_result_writes_json(tmp_path):
-    out = tmp_path / "result-porting.json"
+    out = tmp_path / "result-vep-parity.json"
     code = ci_helpers.main(
         [
             "result",
             "--name",
-            "porting",
+            "vep-parity",
             "--outcome",
             "success",
             "--summary",
@@ -206,7 +206,7 @@ def write_result(
     )
 
 
-OK = {"porting": "success", "integration": "success"}
+OK = {"vep-parity": "success", "integration": "success"}
 
 
 def as_dict(rows):
@@ -214,17 +214,17 @@ def as_dict(rows):
 
 
 def test_statuses_all_green(tmp_path):
-    write_result(tmp_path / "a", "porting", "success", "204 pass")
+    write_result(tmp_path / "a", "vep-parity", "success", "204 pass")
     for p in ("ensembl", "merged"):
         write_result(tmp_path / p, f"integration/{p}", "success")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"], OK))
-    assert rows["parity/porting"][0] == "success"
+    assert rows["parity/vep-parity"][0] == "success"
     assert rows["parity/integration"][0] == "success"
     assert rows["parity/integration/merged"][0] == "success"
 
 
 def test_statuses_failed_profile_fails_aggregate_and_is_named(tmp_path):
-    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "vep-parity", "success")
     write_result(tmp_path, "integration/ensembl", "success")
     write_result(tmp_path, "integration/merged", "failure", "md5 strict: MISMATCH")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"], OK))
@@ -236,25 +236,25 @@ def test_statuses_failed_profile_fails_aggregate_and_is_named(tmp_path):
 def test_statuses_missing_result_is_error_never_success(tmp_path):
     write_result(tmp_path, "integration/ensembl", "success")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"], OK))
-    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/vep-parity"][0] == "error"
     assert rows["parity/integration/merged"][0] == "error"
     assert rows["parity/integration"][0] != "success"
 
 
 def test_statuses_without_profile_list_is_error(tmp_path):
-    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "vep-parity", "success")
     rows = as_dict(ci_helpers.statuses(tmp_path, [], OK))
     assert rows["parity/integration"][0] == "error"
 
 
 def test_statuses_descriptions_fit_github_limit(tmp_path):
-    write_result(tmp_path, "porting", "failure", "x" * 500)
+    write_result(tmp_path, "vep-parity", "failure", "x" * 500)
     rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
     assert all(len(desc) <= 140 for _, desc in rows.values())
 
 
 def test_statuses_cli_tab_separated(tmp_path, capsys):
-    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "vep-parity", "success")
     write_result(tmp_path, "integration/merged", "success")
     assert (
         ci_helpers.main(
@@ -264,7 +264,7 @@ def test_statuses_cli_tab_separated(tmp_path, capsys):
                 str(tmp_path),
                 "--profiles",
                 '["merged"]',
-                "--porting-job",
+                "--vep-parity-job",
                 "success",
                 "--integration-job",
                 "success",
@@ -274,13 +274,13 @@ def test_statuses_cli_tab_separated(tmp_path, capsys):
     )
     lines = capsys.readouterr().out.strip().splitlines()
     assert {line.split("\t")[0] for line in lines} == {
-        "parity/porting",
+        "parity/vep-parity",
         "parity/integration/merged",
         "parity/integration",
     }
 
 
-def cli_statuses(tmp_path, profiles, porting="success", integration="success"):
+def cli_statuses(tmp_path, profiles, vep_parity="success", integration="success"):
     return ci_helpers.main(
         [
             "statuses",
@@ -288,8 +288,8 @@ def cli_statuses(tmp_path, profiles, porting="success", integration="success"):
             str(tmp_path),
             "--profiles",
             profiles,
-            "--porting-job",
-            porting,
+            "--vep-parity-job",
+            vep_parity,
             "--integration-job",
             integration,
         ]
@@ -297,7 +297,7 @@ def cli_statuses(tmp_path, profiles, porting="success", integration="success"):
 
 
 def test_statuses_cli_empty_profiles_is_error(tmp_path, capsys):
-    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "vep-parity", "success")
     assert cli_statuses(tmp_path, "") == 0
     out = {
         ln.split("\t")[0]: ln.split("\t")[1]
@@ -315,14 +315,14 @@ def test_statuses_cli_rejects_bad_profiles(tmp_path, bad):
 
 def test_statuses_rejects_forged_profile_name(tmp_path):
     with pytest.raises(ci_helpers.CiError):
-        ci_helpers.statuses(tmp_path, ["a\tsuccess\tx\nparity/porting"], OK)
+        ci_helpers.statuses(tmp_path, ["a\tsuccess\tx\nparity/vep-parity"], OK)
 
 
 def test_statuses_unknown_conclusion_is_error(tmp_path):
-    write_result(tmp_path, "porting", "skipped")
+    write_result(tmp_path, "vep-parity", "skipped")
     write_result(tmp_path, "integration/a", "neutral")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
-    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/vep-parity"][0] == "error"
     assert rows["parity/integration/a"][0] == "error"
     assert rows["parity/integration"][0] != "success"
 
@@ -331,30 +331,30 @@ def test_statuses_malformed_results_do_not_crash(tmp_path):
     write_result(tmp_path, "integration/a", "success")
     (tmp_path / "result-bad.json").write_text("{not json")
     (tmp_path / "result-noname.json").write_text(json.dumps({"conclusion": "success"}))
-    (tmp_path / "result-nocon.json").write_text(json.dumps({"name": "porting"}))
+    (tmp_path / "result-nocon.json").write_text(json.dumps({"name": "vep-parity"}))
     (tmp_path / "result-list.json").write_text("[1]")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
-    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/vep-parity"][0] == "error"
     assert rows["parity/integration"][0] == "success"
 
 
 def test_statuses_duplicate_result_is_error(tmp_path):
-    write_result(tmp_path / "x", "porting", "success")
-    write_result(tmp_path / "y", "porting", "success")
+    write_result(tmp_path / "x", "vep-parity", "success")
+    write_result(tmp_path / "y", "vep-parity", "success")
     write_result(tmp_path, "integration/a", "success")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], OK))
-    assert rows["parity/porting"] == ("error", "duplicate result for porting")
+    assert rows["parity/vep-parity"] == ("error", "duplicate result for vep-parity")
 
 
 def test_statuses_job_result_must_confirm_success(tmp_path):
-    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "vep-parity", "success")
     write_result(tmp_path, "integration/a", "success")
     rows = as_dict(
         ci_helpers.statuses(
-            tmp_path, ["a"], {"porting": "cancelled", "integration": "failure"}
+            tmp_path, ["a"], {"vep-parity": "cancelled", "integration": "failure"}
         )
     )
-    assert rows["parity/porting"] == (
+    assert rows["parity/vep-parity"] == (
         "error",
         "job result cancelled contradicts verdict",
     )
@@ -368,20 +368,20 @@ def test_statuses_job_result_must_confirm_success(tmp_path):
 
 
 def test_statuses_failure_verdict_survives_job_mismatch(tmp_path):
-    write_result(tmp_path, "porting", "failure", "3 fail")
+    write_result(tmp_path, "vep-parity", "failure", "3 fail")
     write_result(tmp_path, "integration/a", "failure")
     rows = as_dict(
         ci_helpers.statuses(
-            tmp_path, ["a"], {"porting": "failure", "integration": "failure"}
+            tmp_path, ["a"], {"vep-parity": "failure", "integration": "failure"}
         )
     )
-    assert rows["parity/porting"] == ("failure", "3 fail")
+    assert rows["parity/vep-parity"] == ("failure", "3 fail")
     assert rows["parity/integration"][0] == "failure"
 
 
 def test_statuses_missing_job_results_never_success(tmp_path):
-    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "vep-parity", "success")
     write_result(tmp_path, "integration/a", "success")
     rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], {}))
-    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/vep-parity"][0] == "error"
     assert rows["parity/integration"][0] == "error"

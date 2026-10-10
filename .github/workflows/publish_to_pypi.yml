@@ -210,11 +210,11 @@ jobs:
           name: wheels-win-${{ matrix.target }}
           path: dist
 
-  tier-porting:
+  tier-vep-parity:
     needs: [prepare, linux]
     permissions:
       contents: read
-    uses: ./.github/workflows/_tier-porting.yml
+    uses: ./.github/workflows/_tier-vep-parity.yml
     with:
       ref: ${{ needs.prepare.outputs.ref }}
 
@@ -237,7 +237,7 @@ jobs:
   publish:
     name: Publish to PyPI
     if: ${{ !inputs.dry_run }}
-    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-porting, tier-integration, tier-nfcore]
+    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
