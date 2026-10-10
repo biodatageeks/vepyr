@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21,length=46709983>
+##INFO=<ID=BAR,Number=1,Type=String,Description="a key with no CSQ in its name">
+##INFO=<ID=BCSQ,Number=1,Type=String,Description="bcftools csq">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25585733	.	C	T	.	.	BAR=blah;BCSQ=foo

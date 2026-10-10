@@ -123,6 +123,11 @@ def parse_args(argv=None):
     )
     p.add_argument("--vcf", default=None, help="Input VCF (default: $DATA/input/...)")
     p.add_argument(
+        "--output-dir",
+        default=None,
+        help="Write results/<release>/ and reports/ under this directory",
+    )
+    p.add_argument(
         "--fasta", default=None, help="Reference FASTA (default: $DATA/input/...)"
     )
     p.add_argument(
@@ -537,6 +542,8 @@ def _run_contig_isolated(chrom, args):
         cmd += ["--cache-dir", args.cache_dir]
     if args.plugin_cache:
         cmd += ["--plugin-cache", args.plugin_cache]
+    if args.output_dir:
+        cmd += ["--output-dir", args.output_dir]
     return subprocess.run(cmd).returncode == 0
 
 
@@ -609,6 +616,8 @@ def main(argv=None):
     e2e_dir = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
+    if args.output_dir:
+        e2e_dir = os.path.abspath(args.output_dir)
     results_dir = results_root(e2e_dir, args.release)
     report_dir = os.path.join(e2e_dir, "reports")
     os.makedirs(results_dir, exist_ok=True)

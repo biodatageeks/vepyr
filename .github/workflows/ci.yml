@@ -9,14 +9,15 @@ on:
       - "*.md"
   pull_request:
     branches: [master]
-    paths-ignore:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "*.md"
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# Read-only token for every job: no CI job writes to the repository.
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -32,6 +33,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
+      # Pre-existing shellcheck findings in publish_to_pypi.yml and
+      # version-bump.yml are ignored by message rather than rewritten: those
+      # workflows ship releases and are not changed here.
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color \
+            -ignore 'SC2155:warning:1:8: Declare and assign separately' \
+            -ignore 'SC2086:info:15:17: Double quote to prevent globbing' \
+            -ignore 'SC2209:warning:(22|25):5: Use var=\$\(command\)'
 
   test-rust:
     runs-on: ubuntu-latest
@@ -46,8 +56,64 @@ jobs:
       # library dir to the runtime linker.
       - name: cargo test
         run: |
-          export LD_LIBRARY_PATH="$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))'):${LD_LIBRARY_PATH:-}"
+          libdir="$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')"
+          export LD_LIBRARY_PATH="${libdir}:${LD_LIBRARY_PATH:-}"
           cargo test --no-default-features
+
+  # Cheap checks of the imported porting suite (porting-tests/): no cache or
+  # FASTA download. The data suite itself runs in parity-tests.yml / release.
+  vep-parity-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: porting-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # ./bless resolves uv from fixed install locations when PATH is empty
+      # (tools/test_bless.py::test_wrapper_runs_without_path); setup-uv uses the tool cache.
+      - name: Expose uv at a standard location
+        run: mkdir -p "$HOME/.local/bin" && ln -sf "$(command -v uv)" "$HOME/.local/bin/uv"
+      - name: Set up bcftools 1.23 / htslib 1.23.1 (the pin in tools/normalize_input)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: bcftools
+          # `==` is an exact match; `bcftools=1.23` would also accept 1.23.1.
+          create-args: >-
+            -c conda-forge -c bioconda
+            bcftools==1.23
+            htslib==1.23.1
+          init-shell: bash
+          cache-environment: true
+      - name: Record the bcftools banner
+        shell: bash -el {0}
+        run: |
+          set -euo pipefail
+          bcftools --version | head -2 | tee banner.txt
+          {
+            echo '### bcftools --version'
+            echo '```'
+            cat banner.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # Login shell so the micromamba bcftools 1.23 is first on PATH: the
+      # normalize_input tests need exactly that version.
+      - name: Runner unit tests
+        shell: bash -el {0}
+        run: uv run --frozen pytest tools/ -q
+      - name: tests/INDEX.csv is current
+        run: tools/build_test_index --check
+      - name: Every data test matches the VEP pin
+        run: tools/check_vep_version
+      - name: Data-test inputs are normalised
+        shell: bash -el {0}
+        run: ./check_normalised_input
+      - name: Ledger matches upstream
+        run: |
+          tools/check_ledger --sweep
+          tools/check_ledger --sweep --glob 't/*.pm'
+          tools/check_ledger --csv ledger/assertions.csv
 
   linux-tests:
     runs-on: ubuntu-latest
@@ -147,6 +213,19 @@ jobs:
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
+
+  # Tier 4 on non-draft PRs and pushes to master. A draft's skipped job is
+  # harmless: GitHub never merges drafts, and ready_for_review re-runs CI.
+  nfcore:
+    needs: linux
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-nfcore.yml
+    with:
+      # On pull_request github.sha is the merge commit: the tree `linux` built
+      # the wheel from.
+      ref: ${{ github.sha }}
 
   macos:
     runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}

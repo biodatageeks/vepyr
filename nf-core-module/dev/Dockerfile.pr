@@ -1,0 +1,13 @@
+# CI only: the VEPYR_ANNOTATE task image built from an unreleased vepyr wheel.
+# Same conda packages as the module's environment.yml except vepyr, which
+# comes from the wheel (with its Python dependencies). Build context: a
+# directory holding exactly one vepyr-*.whl. See .github/workflows/_tier-nfcore.yml.
+FROM mambaorg/micromamba:2.0.5
+ARG CONDA_SPECS
+COPY --chown=$MAMBA_USER:$MAMBA_USER *.whl /tmp/wheel/
+# procps: Nextflow needs `ps` inside task containers for its metrics.
+RUN micromamba install -y -n base -c conda-forge -c bioconda \
+        python=3.12 pip procps-ng ${CONDA_SPECS} \
+    && micromamba run -n base pip install --no-cache-dir /tmp/wheel/*.whl \
+    && micromamba clean -a -y
+ENV PATH=/opt/conda/bin:$PATH

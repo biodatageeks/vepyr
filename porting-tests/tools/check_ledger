@@ -1,0 +1,1258 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""Check that ``ledger/assertions.csv`` covers every upstream VEP assertion (#110).
+
+::
+
+    tools/check_ledger [--csv PATH] [--upstream DIR] [--ref REF]
+                       [--list | --sweep | --sweep-dir DIR] [--glob GLOB]
+
+Default mode checks the CSV (default ``ledger/assertions.csv``, schema of #109):
+
+(i) schema: the 13 header names of #109, optionally followed by exactly one
+    ``data_test_verdict`` column (#101); field counts, enums, integer columns,
+    conditional columns, ``issue`` empty or ``https://``, no newline in a field,
+    rows sorted by ``vep_file`` (byte order) then ``n`` (numeric), unique key,
+    and file bytes equal to their canonical RFC 4180 re-serialisation (LF, no BOM);
+(ii) coverage: the upstream assertions of the 49 ``t/*.t`` of Ensembl VEP
+    ``release/116.0`` are enumerated and compared two-way with the CSV keys
+    ``(vep_file, n)``: missing rows, orphan rows, ``perl_line`` / ``perl_kind``
+    mismatches. ``data_test_verdict`` is never compared.
+
+The enumerator is a line-start regex over 22 assertion function names (#110
+Q2 = iii): a line is a row if it matches ``^\\s*(<name>)\\b``; ``n`` is the ordinal
+in file order. It is correct for these 49 files at the pinned commit only, which
+is why any other commit is refused (exit 2).
+
+The upstream checkout (#110 Q1 = B) is a partial sparse clone of the pinned tag
+into a temp dir, or ``--upstream DIR``; either way ``git rev-parse HEAD`` must be
+the pinned commit, ``git status --porcelain`` must be empty, and the files the
+glob selects on disk must equal those in ``git ls-tree -r HEAD`` (a sparse
+checkout that omits a file is refused), none may be flagged assume-unchanged or
+skip-worktree in the index, and the bytes the tool reads must hash (in Python, not
+through git) to the pinned blob ids, raw or after the ``core.autocrlf=true`` CRLF to
+LF conversion (#184): a checkout whose own config (``core.worktree``,
+``core.fsmonitor``) or index flags hide an edit from ``git status`` is refused;
+every git call runs with ``--no-replace-objects``, so a replace ref cannot swap
+the pinned tree. ``--ref`` only selects the tag to clone;
+the pin never changes.
+
+``--list`` prints the enumeration as ``vep_file<TAB>n<TAB>perl_line<TAB>perl_kind``.
+``--sweep`` (iii) searches the files for every documented function name of the four
+test modules as a bare word, at line start or mid-line, after removing comments,
+strings, regex literals, sigiled names (``$ @ % &``, so ``&ok(...)`` is not seen),
+every ``{ word }`` (so ``{ fail }`` and ``eval { pass }`` are not seen) and
+``word =>``,
+and prints every occurrence the 22-name rule did not count and no fixed rule
+explains, as ``file:line: uncounted `name`: text``; explained occurrences are
+tallied on the stderr summary line. ``--sweep-dir DIR`` runs the sweep on ``DIR``
+without the pin check (for fixtures only; the summary says ``unpinned``).
+``--glob`` (default ``t/*.t``) selects the files for ``--list`` and the sweeps.
+
+Exit codes: ``0`` ok; ``1`` violations (one ``file:n: reason`` line each on stdout);
+``2`` cannot measure (CSV unreadable or a field over 131072 bytes, upstream
+unavailable, not the pinned commit, dirty upstream tree, ``--upstream`` is a
+subdirectory rather than the work-tree top level, the glob selects no file of the
+pinned tree, file set differs from the pinned tree, a selected file is flagged
+assume-unchanged or skip-worktree, file content differs from the pinned blobs, git
+missing). The check summary
+``rows R, files F, missing M, orphan O`` is the last stdout line of the default mode.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import io
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from collections import Counter
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from enum import StrEnum
+from fnmatch import fnmatchcase
+from pathlib import Path
+from typing import Final
+
+REPO_ROOT: Final[Path] = Path(__file__).resolve().parent.parent
+DEFAULT_CSV: Final[Path] = REPO_ROOT / "ledger" / "assertions.csv"
+
+UPSTREAM_URL: Final[str] = "https://github.com/Ensembl/ensembl-vep"
+DEFAULT_REF: Final[str] = "release/116.0"
+PINNED_COMMIT: str = "57ea5c52340acc1f156267f810ad162e26597082"
+"""The only upstream commit the enumerator is valid for (tests re-pin it)."""
+SPARSE_PATTERNS: Final[tuple[str, ...]] = (
+    "/t/*.t",
+    "/t/*.pm",
+    "/modules/Bio/EnsEMBL/VEP/Config.pm",
+)
+"""Sparse checkout set: the 49 test files, the 8 top-level support modules
+(swept by ``--glob 't/*.pm'``) and ``Config.pm`` (read by #101)."""
+DEFAULT_GLOB: Final[str] = "t/*.t"
+
+# --- CSV schema (#109) -------------------------------------------------------------
+
+COLUMNS: Final[tuple[str, ...]] = (
+    "vep_file",
+    "n",
+    "perl_line",
+    "perl_kind",
+    "category",
+    "desc",
+    "rationale",
+    "vep116_delta",
+    "rust_test",
+    "coverage_area",
+    "feature_area",
+    "deferred_reason",
+    "issue",
+)
+OPTIONAL_COLUMN: Final[str] = "data_test_verdict"
+"""The one column #101 may append; its values are #101's, only presence is checked."""
+
+
+class Category(StrEnum):
+    """``category`` values of #109."""
+
+    UNIT_PORT = "unit-port"
+    ANALOG_PORT = "analog-port"
+    DEFERRED = "deferred"
+    NO_FEATURE = "no-feature"
+    NOT_APPLICABLE = "not-applicable"
+
+
+class Delta(StrEnum):
+    """``vep116_delta`` values of #109."""
+
+    UNCHANGED = "unchanged"
+    CHANGED = "changed"
+    NEW = "new"
+
+
+PORTED: Final[frozenset[str]] = frozenset({Category.UNIT_PORT, Category.ANALOG_PORT})
+
+# --- The enumerator rule (#110 Q2 = iii) --------------------------------------------
+
+ASSERTIONS: Final[tuple[str, ...]] = (
+    # Test::More (14)
+    "ok", "is", "isnt", "like", "unlike", "is_deeply", "cmp_ok", "isa_ok",
+    "can_ok", "new_ok", "pass", "fail", "use_ok", "require_ok",
+    # Test::Exception (4)
+    "throws_ok", "dies_ok", "lives_ok", "lives_and",
+    # Test::Deep (4)
+    "cmp_deeply", "cmp_bag", "cmp_set", "cmp_methods",
+)  # fmt: skip
+"""The 22 assertion functions; also the ``perl_kind`` vocabulary. The Test::Warnings
+capture functions ``warning`` / ``warnings`` are deliberately absent (#110 Q4)."""
+
+ROW_RE: Final[re.Pattern[str]] = re.compile(rf"^\s*({'|'.join(ASSERTIONS)})\b")
+
+# --- Documented function lists for the sweep (#110 (iii)) ---------------------------
+# Read from the current pods on 2026-09-29/30:
+#   Test::More 1.302225      https://metacpan.org/pod/Test::More
+#   Test::Exception 0.43     https://metacpan.org/pod/Test::Exception
+#   Test::Deep 1.205         https://metacpan.org/pod/Test::Deep
+#   Test::Warnings 0.038     https://metacpan.org/pod/Test::Warnings
+
+NON_ASSERTIONS: Final[frozenset[str]] = frozenset({
+    # Test::More: plan/flow control, diagnostics, boolean predicates, internals
+    "plan", "done_testing", "subtest", "diag", "note", "explain", "skip", "todo",
+    "todo_skip", "BAIL_OUT", "eq_array", "eq_hash", "eq_set", "builder",
+    # Test::Deep boolean predicate
+    "eq_deeply",
+})  # fmt: skip
+"""Documented functions that emit no check of their own (tallied by name)."""
+
+COMPARATORS: Final[frozenset[str]] = frozenset({
+    "ignore", "methods", "listmethods", "shallow", "noclass", "useclass", "re",
+    "all", "any", "Isa", "isa", "obj_isa", "array_each", "hash_each", "str", "num",
+    "bool", "true", "false", "code", "set", "supersetof", "subsetof", "none",
+    "noneof", "bag", "superbagof", "subbagof", "superhashof", "subhashof",
+})  # fmt: skip
+"""Test::Deep special comparisons: explained only as arguments (not a statement)."""
+
+CAPTURES: Final[frozenset[str]] = frozenset({"warning", "warnings"})
+"""Test::Warnings capture functions: explained only as ``warning {``."""
+
+OTHER_DOCUMENTED: Final[frozenset[str]] = frozenset({
+    # Test::Deep functions that are neither assertions nor explained
+    "cmp_details", "deep_diag",
+    # Test::Warnings (had_no_warnings is an assertion outside the 22)
+    "allow_warnings", "allowing_warnings", "had_no_warnings", "allow_patterns",
+    "disallow_patterns",
+})  # fmt: skip
+"""Documented names with no explaining rule: every occurrence is reported."""
+
+SWEEP_NAMES: Final[frozenset[str]] = (
+    frozenset(ASSERTIONS) | NON_ASSERTIONS | COMPARATORS | CAPTURES | OTHER_DOCUMENTED
+)
+NAME_RE: Final[re.Pattern[str]] = re.compile(
+    rf"(?<![\w$@%])({'|'.join(sorted(SWEEP_NAMES, key=len, reverse=True))})\b"
+)
+USE_WARNINGS_RE: Final[re.Pattern[str]] = re.compile(r"^\s*(?:use|no)\s+warnings\b")
+USE_TEST_RE: Final[re.Pattern[str]] = re.compile(r"^\s*(?:use|no)\s+Test::[\w:]+")
+
+EXIT_OK: Final[int] = 0
+EXIT_VIOLATION: Final[int] = 1
+EXIT_CANNOT_MEASURE: Final[int] = 2
+
+
+class CannotMeasure(Exception):
+    """The check cannot produce a verdict (exit code 2)."""
+
+
+# --- Upstream ----------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Assertion:
+    """One upstream assertion found by the line-start rule."""
+
+    vep_file: str
+    n: int
+    perl_line: int
+    perl_kind: str
+
+    @property
+    def key(self) -> tuple[str, int]:
+        """The CSV key ``(vep_file, n)``."""
+        return (self.vep_file, self.n)
+
+
+def _git_env() -> dict[str, str]:
+    """The caller's environment with every ``GIT_*`` variable removed.
+
+    Variables such as ``GIT_DIR``, ``GIT_WORK_TREE``, ``GIT_INDEX_FILE``,
+    ``GIT_OBJECT_DIRECTORY``, ``GIT_ALTERNATE_OBJECT_DIRECTORIES``,
+    ``GIT_COMMON_DIR``, ``GIT_NAMESPACE`` or ``GIT_CEILING_DIRECTORIES`` make git
+    inspect a different repository or tree than the ``-C`` directory whose bytes
+    the tool reads, so a clean verdict could describe another checkout. None is
+    needed: every call names its directory with ``-C`` (or clones into a fresh
+    temporary directory over public HTTPS), so all of them are dropped and none
+    is re-added. ``git -c`` / ``GIT_CONFIG_*`` injection is covered by the same
+    prefix rule.
+    """
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+
+
+def _git(*args: str) -> subprocess.CompletedProcess[str]:
+    """Run ``git`` with ``args``, capturing text output (never raises on exit code).
+
+    The child gets :func:`_git_env`, so no inherited ``GIT_*`` variable can
+    redirect it away from the checkout being measured, and runs with
+    ``--no-replace-objects``, so ``refs/replace/*`` stored in the checkout cannot
+    swap the pinned commit's tree (and with it the blob ids the bytes are
+    compared with) behind an unchanged ``rev-parse HEAD`` (#184, PR #191 F1).
+    Grafts and ``.git/shallow`` change only parents, never the tree of HEAD.
+
+    Raises:
+        CannotMeasure: ``git`` is not on ``PATH``.
+    """
+    if shutil.which("git") is None:
+        raise CannotMeasure("git not found on PATH")
+    return subprocess.run(
+        ["git", "--no-replace-objects", *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=_git_env(),
+    )
+
+
+def verify_checkout(root: Path) -> None:
+    """Refuse anything but a clean checkout of the pinned commit.
+
+    Args:
+        root: The upstream checkout.
+
+    Raises:
+        CannotMeasure: Not a directory, not a git checkout, HEAD is not
+            ``PINNED_COMMIT``, the tree is dirty, or ``root`` is a
+            subdirectory of the work tree rather than its top level.
+    """
+    if not root.is_dir():
+        raise CannotMeasure(f"upstream {root}: not a git checkout (no such directory)")
+    head = _git("-C", str(root), "rev-parse", "HEAD")
+    if head.returncode != 0:
+        raise CannotMeasure(f"upstream {root}: not a git checkout")
+    prefix = _git("-C", str(root), "rev-parse", "--show-prefix")
+    if prefix.returncode != 0 or prefix.stdout.strip():
+        raise CannotMeasure(
+            f"upstream {root}: not the top level of the work tree (prefix "
+            f"{prefix.stdout.strip()!r}); pass the checkout root, not a subdirectory"
+        )
+    sha = head.stdout.strip()
+    if sha != PINNED_COMMIT:
+        raise CannotMeasure(f"upstream HEAD {sha} != pinned {PINNED_COMMIT}")
+    status = _git("-C", str(root), "status", "--porcelain")
+    if status.returncode != 0:
+        raise CannotMeasure(f"upstream {root}: git status failed")
+    if status.stdout.strip():
+        first = status.stdout.splitlines()[0]
+        raise CannotMeasure(f"upstream tree is dirty ({first.strip()})")
+
+
+@contextmanager
+def upstream_checkout(upstream: Path | None, ref: str) -> Iterator[Path]:
+    """Yield a verified checkout: ``upstream``, or a temp sparse clone of ``ref``.
+
+    Args:
+        upstream: An existing checkout, or ``None`` to clone.
+        ref: The tag to clone (only used when ``upstream`` is ``None``).
+
+    Yields:
+        The checkout root, verified by :func:`verify_checkout`.
+
+    Raises:
+        CannotMeasure: The clone failed or the checkout is not the pinned commit.
+    """
+    if upstream is not None:
+        verify_checkout(upstream)
+        yield upstream
+        return
+    with tempfile.TemporaryDirectory(prefix="check_ledger.") as tmp:
+        root = Path(tmp) / "up"
+        steps = (
+            ("clone", "-q", "--depth", "1", "--filter=blob:none", "--no-checkout",
+             "--branch", ref, UPSTREAM_URL, str(root)),
+            ("-C", str(root), "sparse-checkout", "set", "--no-cone", *SPARSE_PATTERNS),
+            ("-C", str(root), "checkout", "-q"),
+        )  # fmt: skip
+        for step in steps:
+            done = _git(*step)
+            if done.returncode != 0:
+                detail = done.stderr.strip().splitlines()[-1:] or ["no stderr"]
+                raise CannotMeasure(f"cannot fetch upstream {ref}: {detail[0]}")
+        verify_checkout(root)
+        yield root
+
+
+def upstream_files(root: Path, glob: str) -> list[Path]:
+    """Files under ``root`` matching ``glob``, sorted by relative POSIX path bytes."""
+    return sorted(
+        (p for p in root.glob(glob) if p.is_file()),
+        key=lambda p: p.relative_to(root).as_posix().encode(),
+    )
+
+
+def glob_matches(rel: str, glob: str) -> bool:
+    """Whether the relative POSIX path ``rel`` matches ``glob`` as ``Path.glob`` does.
+
+    Segment-wise ``fnmatch`` (``*`` never crosses ``/``); ``**`` is not supported.
+
+    Raises:
+        CannotMeasure: ``glob`` contains ``**``.
+    """
+    if "**" in glob:
+        raise CannotMeasure(
+            f"--glob {glob!r}: '**' is not supported on a pinned checkout"
+        )
+    parts, pattern = rel.split("/"), glob.split("/")
+    return len(parts) == len(pattern) and all(map(fnmatchcase, parts, pattern))
+
+
+def pinned_blobs(root: Path, glob: str) -> dict[str, str]:
+    """Map each file of HEAD's tree matching ``glob`` to its object id.
+
+    Args:
+        root: A checkout already verified by :func:`verify_checkout`.
+        glob: The file selection.
+
+    Returns:
+        ``{relative POSIX path: oid}`` for every tree entry matching ``glob``
+        (any mode: a symlink or submodule entry then fails :func:`verify_blobs`).
+
+    Raises:
+        CannotMeasure: ``git ls-tree`` failed or printed an unexpected line.
+    """
+    tree = _git("-C", str(root), "ls-tree", "-r", "-z", "--full-tree", "HEAD")
+    if tree.returncode != 0:
+        raise CannotMeasure(f"upstream {root}: git ls-tree failed")
+    blobs: dict[str, str] = {}
+    for entry in filter(None, tree.stdout.split("\0")):
+        match entry.split("\t", 1):
+            case [meta, rel] if len(meta.split()) == 3:
+                if glob_matches(rel, glob):
+                    blobs[rel] = meta.split()[2]
+            case _:
+                raise CannotMeasure(
+                    f"upstream {root}: unexpected ls-tree line {entry!r}"
+                )
+    return blobs
+
+
+def blob_id(data: bytes, oid_hex_len: int) -> str:
+    """The git blob id of ``data``: hash of ``b"blob <len>\\0" + data``.
+
+    Args:
+        data: The file content.
+        oid_hex_len: Length of the repository's object ids (40 for SHA-1,
+            64 for SHA-256), which selects the hash function.
+
+    Raises:
+        CannotMeasure: An object-id length git does not use.
+    """
+    match oid_hex_len:
+        case 40:
+            digest = hashlib.sha1(usedforsecurity=False)
+        case 64:
+            digest = hashlib.sha256()
+        case _:
+            raise CannotMeasure(f"unknown object id length {oid_hex_len}")
+    digest.update(b"blob %d\0" % len(data))
+    digest.update(data)
+    return digest.hexdigest()
+
+
+def autocrlf_clean(data: bytes) -> bytes | None:
+    """``data`` as git's ``core.autocrlf=true`` clean filter stores it, if it changes.
+
+    The filter turns every CRLF into LF when the file has no lone CR (otherwise
+    git leaves it unchanged). Returns ``None`` when the conversion is a no-op.
+    """
+    if b"\r\n" not in data:
+        return None
+    converted = data.replace(b"\r\n", b"\n")
+    return None if b"\r" in converted else converted
+
+
+def verify_index_flags(root: Path, rels: Iterable[str]) -> None:
+    """Refuse any selected file the index marks assume-unchanged or skip-worktree.
+
+    Such a flag makes ``git status`` skip the file, so an edit of it stays
+    invisible to :func:`verify_checkout` (#184). ``git ls-files -v`` prints a
+    lowercase tag for assume-unchanged and ``S`` (or ``s``) for skip-worktree.
+
+    Args:
+        root: A checkout already verified by :func:`verify_checkout`.
+        rels: The selected files (relative POSIX paths).
+
+    Raises:
+        CannotMeasure: ``git ls-files`` failed, or a selected file is flagged.
+    """
+    listed = _git("-C", str(root), "ls-files", "-v", "-z", "--full-name")
+    if listed.returncode != 0:
+        detail = listed.stderr.strip().splitlines()[-1:] or ["no stderr"]
+        raise CannotMeasure(f"upstream {root}: git ls-files failed ({detail[0]})")
+    selected = set(rels)
+    flagged: list[str] = []
+    for entry in filter(None, listed.stdout.split("\0")):
+        tag, _, rel = entry.partition(" ")
+        if rel not in selected:
+            continue
+        if tag.islower():
+            flagged.append(f"{rel} is marked assume-unchanged")
+        elif tag == "S":
+            flagged.append(f"{rel} is marked skip-worktree")
+    if flagged:
+        flagged.sort()
+        raise CannotMeasure(
+            f"upstream {root}: {'; '.join(flagged[:5])}"
+            f"{' ...' * (len(flagged) > 5)}; git status does not see edits of a "
+            "flagged file (git update-index --no-assume-unchanged / "
+            "--no-skip-worktree, or re-clone)"
+        )
+
+
+def verify_blobs(root: Path, pinned: Mapping[str, str]) -> None:
+    """Refuse a checkout whose bytes differ from the pinned blobs (#184).
+
+    The bytes hashed are the ones the tool reads, ``root / rel``, hashed in
+    Python: nothing goes through ``git -C root``, whose view follows the
+    checkout's own ``core.worktree``, ``core.fsmonitor``, index flags and
+    attribute/filter configuration. A file passes when its raw bytes hash to the
+    pinned blob id or, for a ``core.autocrlf=true`` checkout (#184 Q1 = b), when
+    the bytes after git's autocrlf clean conversion (CRLF to LF) do: line numbers
+    and assertion kinds are the same either way.
+
+    Args:
+        root: A checkout already verified by :func:`verify_checkout`.
+        pinned: ``{relative POSIX path: pinned oid}`` of the selected files.
+
+    Raises:
+        CannotMeasure: Any selected file's content differs from its pinned blob.
+    """
+    bad: list[str] = []
+    for rel, oid in sorted(pinned.items()):
+        data = (root / rel).read_bytes()
+        candidates = (data, autocrlf_clean(data))
+        if not any(c is not None and blob_id(c, len(oid)) == oid for c in candidates):
+            bad.append(rel)
+    if bad:
+        raise CannotMeasure(
+            f"upstream {root}: file content differs from the pinned tree "
+            f"({len(bad)}: {', '.join(bad[:5])}{', ...' * (len(bad) > 5)})"
+        )
+
+
+def verify_file_set(root: Path, glob: str) -> None:
+    """Refuse a checkout whose files matching ``glob`` differ from the pinned tree.
+
+    A sparse or partial checkout is clean and at the pinned commit, yet can lack
+    files; the set read from disk must equal the set in ``git ls-tree`` of HEAD.
+    Then no selected file may carry an assume-unchanged or skip-worktree flag
+    (:func:`verify_index_flags`), and every selected file's bytes must hash to
+    its pinned blob id (:func:`verify_blobs`).
+
+    Args:
+        root: A checkout already verified by :func:`verify_checkout`.
+        glob: The file selection (for example ``t/*.t``).
+
+    Raises:
+        CannotMeasure: ``git ls-tree`` failed, the pinned tree has no file
+            matching ``glob``, any file is missing on disk or not in the
+            pinned tree, a selected file is flagged in the index, or its
+            content differs from the pinned blob.
+    """
+    pinned_ids = pinned_blobs(root, glob)
+    pinned = set(pinned_ids)
+    if not pinned:
+        raise CannotMeasure(
+            f"upstream {root}: the pinned tree has no file matching {glob!r}; "
+            "an empty selection cannot be measured"
+        )
+    on_disk = {p.relative_to(root).as_posix() for p in upstream_files(root, glob)}
+    if pinned == on_disk:
+        verify_index_flags(root, pinned)
+        verify_blobs(root, pinned_ids)
+        return
+    missing, extra = sorted(pinned - on_disk), sorted(on_disk - pinned)
+    detail = "; ".join(
+        f"{label} {len(names)} ({', '.join(names[:5])}{', ...' * (len(names) > 5)})"
+        for label, names in (("missing", missing), ("extra", extra))
+        if names
+    )
+    raise CannotMeasure(
+        f"upstream {root}: files matching {glob!r} differ from the pinned tree "
+        f"({detail}); a sparse or partial checkout cannot be measured"
+    )
+
+
+def read_lines(path: Path) -> list[str]:
+    """Lines of ``path`` split on LF only (as ``perl_line`` counts)."""
+    return path.read_bytes().decode("utf-8", errors="replace").split("\n")
+
+
+def enumerate_file(root: Path, path: Path) -> list[Assertion]:
+    """Apply the line-start rule to one file.
+
+    Args:
+        root: The checkout root (``vep_file`` is relative to it).
+        path: The file.
+
+    Returns:
+        The assertions in file order, ``n`` counting from 1.
+    """
+    vep_file = path.relative_to(root).as_posix()
+    found: list[Assertion] = []
+    for line_no, line in enumerate(read_lines(path), start=1):
+        if match := ROW_RE.match(line):
+            found.append(Assertion(vep_file, len(found) + 1, line_no, match[1]))
+    return found
+
+
+def enumerate_upstream(root: Path, glob: str = DEFAULT_GLOB) -> list[Assertion]:
+    """Enumerate every assertion of the files selected by ``glob``, in key order."""
+    return [a for p in upstream_files(root, glob) for a in enumerate_file(root, p)]
+
+
+# --- CSV check -------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Violation:
+    """One reported problem: ``where`` is ``file:n`` (or ``csv:line``)."""
+
+    where: str
+    reason: str
+
+    def __str__(self) -> str:
+        return f"{self.where}: {self.reason}"
+
+
+@dataclass(frozen=True, slots=True)
+class CsvRow:
+    """The coverage fields of a data row (``n`` / ``perl_line`` parsed when valid)."""
+
+    line: int
+    vep_file: str
+    n: int | None
+    perl_line: int | None
+    perl_kind: str
+
+    @property
+    def where(self) -> str:
+        """``vep_file:n`` as printed in violations."""
+        return f"{self.vep_file}:{self.n if self.n is not None else '?'}"
+
+
+@dataclass(slots=True)
+class CsvReport:
+    """Result of reading and validating the CSV."""
+
+    rows: list[CsvRow] = field(default_factory=list)
+    violations: list[Violation] = field(default_factory=list)
+    keyed: bool = True
+    """False when there is no usable header, so rows cannot be keyed for coverage."""
+
+
+INT_RE: Final[re.Pattern[str]] = re.compile(r"[1-9][0-9]*")
+
+
+def _as_int(text: str) -> int | None:
+    """``int(text)`` for a positive decimal (no sign or leading 0), else ``None``."""
+    return int(text) if INT_RE.fullmatch(text) else None
+
+
+def canonical(records: Sequence[Sequence[str]]) -> str:
+    """Serialise ``records`` the canonical way: RFC 4180, ``QUOTE_MINIMAL``, LF."""
+    buf = io.StringIO(newline="")
+    csv.writer(buf, lineterminator="\n").writerows(records)
+    return buf.getvalue()
+
+
+def _check_fields(row: dict[str, str], extra: bool) -> Iterator[str]:
+    """Yield the schema reasons for one well-shaped row (#109 rules)."""
+    for name, value in row.items():
+        if "\n" in value or "\r" in value:
+            yield f"newline in field {name}"
+    if not row["vep_file"].startswith("t/"):
+        yield f"vep_file {row['vep_file']!r} does not start with t/"
+    for name in ("n", "perl_line"):
+        if _as_int(row[name]) is None:
+            yield f"{name} {row[name]!r} is not a positive integer"
+    if row["perl_kind"] not in ASSERTIONS:
+        yield f"perl_kind {row['perl_kind']!r} is not one of the 22 assertion names"
+    if row["vep116_delta"] not in Delta:
+        yield f"vep116_delta {row['vep116_delta']!r} not in {[d.value for d in Delta]}"
+    for name in ("desc", "rationale"):
+        if not row[name]:
+            yield f"{name} is empty"
+    issue = row["issue"]
+    if issue and not issue.startswith("https://"):
+        yield f"issue {issue!r} is neither empty nor an https:// URL"
+    if extra and not row[OPTIONAL_COLUMN]:
+        yield f"{OPTIONAL_COLUMN} is empty"
+    match row["category"]:
+        case category if category in Category:
+            conditional = {
+                "rust_test": category in PORTED,
+                "coverage_area": category in PORTED,
+                "feature_area": category == Category.NO_FEATURE,
+                "deferred_reason": category == Category.DEFERRED,
+            }
+            for name, wanted in conditional.items():
+                if bool(row[name]) != wanted:
+                    state = "empty" if wanted else "set"
+                    yield f"{name} is {state} for category {category}"
+        case category:
+            yield f"category {category!r} not in {[c.value for c in Category]}"
+
+
+def read_csv(path: Path) -> CsvReport:
+    """Read the CSV and apply every schema rule of #110 (i).
+
+    Args:
+        path: The CSV file.
+
+    Returns:
+        The parsed rows (for coverage) and the schema violations.
+
+    Raises:
+        CannotMeasure: The file is missing, unreadable or not UTF-8.
+    """
+    try:
+        data = path.read_bytes()
+    except OSError as err:
+        raise CannotMeasure(f"{path}: cannot read CSV ({err.strerror})") from err
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as err:
+        raise CannotMeasure(f"{path}: not UTF-8 ({err.reason})") from err
+    try:
+        records = list(csv.reader(io.StringIO(text, newline=""), strict=True))
+    except csv.Error as err:
+        raise CannotMeasure(f"{path}: not parseable as CSV ({err})") from err
+
+    report = CsvReport()
+    bad = report.violations.append
+    if text.startswith("\ufeff"):
+        bad(Violation(f"{path}:1", "file starts with a UTF-8 BOM"))
+    if (canon := canonical(records)) != text:
+        pairs = zip(canon.split("\n"), text.split("\n"), strict=False)
+        line = next((i for i, (x, y) in enumerate(pairs, 1) if x != y), 0)
+        reason = "not its canonical RFC 4180 re-serialisation (LF, QUOTE_MINIMAL)"
+        bad(Violation(f"{path}:{line}", f"file is {reason}"))
+    if not records:
+        bad(Violation(f"{path}:1", "empty file, no header"))
+        report.keyed = False
+        return report
+    header, *body = records
+    extra = header[len(COLUMNS) :] == [OPTIONAL_COLUMN]
+    if tuple(header[: len(COLUMNS)]) != COLUMNS or not (
+        len(header) == len(COLUMNS) or extra
+    ):
+        bad(
+            Violation(
+                f"{path}:1",
+                f"header must be the 13 columns of #109, optionally "
+                f"followed by {OPTIONAL_COLUMN}; got {','.join(header)!r}",
+            )
+        )
+        report.keyed = False
+        return report
+
+    seen: dict[tuple[str, int], int] = {}
+    previous: tuple[bytes, int] | None = None
+    for line, record in enumerate(body, start=2):
+        if len(record) != len(header):
+            shown = f"{record[0]}:{record[1]}" if len(record) > 1 else f"{path}:{line}"
+            bad(
+                Violation(
+                    shown,
+                    f"{len(record)} fields, header has {len(header)} (CSV line {line})",
+                )
+            )
+            if len(record) < 4:
+                continue
+            row = dict(zip(COLUMNS[:4], record, strict=False))
+        else:
+            row = dict(zip(header, record, strict=True))
+            where = f"{row['vep_file']}:{row['n']}"
+            for reason in _check_fields(row, extra):
+                bad(Violation(where, reason))
+        parsed = CsvRow(line, row["vep_file"], _as_int(row["n"]),
+                        _as_int(row["perl_line"]), row["perl_kind"])  # fmt: skip
+        report.rows.append(parsed)
+        if parsed.n is None:
+            continue
+        key = (parsed.vep_file, parsed.n)
+        if key in seen:
+            bad(Violation(parsed.where, f"duplicate key (also CSV line {seen[key]})"))
+            continue
+        seen[key] = line
+        order = (parsed.vep_file.encode(), parsed.n)
+        if previous is not None and order < previous:
+            bad(
+                Violation(
+                    parsed.where,
+                    f"row out of order (CSV line {line}: rows must "
+                    "be sorted by vep_file bytes, then n)",
+                )
+            )
+        previous = order
+    return report
+
+
+def coverage(
+    rows: Sequence[CsvRow], upstream: Sequence[Assertion]
+) -> tuple[list[Violation], int, int]:
+    """Compare the CSV rows with the upstream enumeration, both ways.
+
+    Args:
+        rows: The CSV rows (the first row per key counts; duplicates are schema errors).
+        upstream: The upstream assertions.
+
+    Returns:
+        The violations (sorted by key), the number of missing and of orphan rows.
+    """
+    csv_rows: dict[tuple[str, int], CsvRow] = {}
+    for row in rows:
+        if row.n is not None:
+            csv_rows.setdefault((row.vep_file, row.n), row)
+    ups = {a.key: a for a in upstream}
+    found: list[tuple[tuple[bytes, int], Violation]] = []
+
+    def add(key: tuple[str, int], reason: str) -> None:
+        found.append(
+            ((key[0].encode(), key[1]), Violation(f"{key[0]}:{key[1]}", reason))
+        )
+
+    missing_keys = ups.keys() - csv_rows.keys()
+    orphan_keys = csv_rows.keys() - ups.keys()
+    for key in missing_keys:
+        a = ups[key]
+        add(key, f"missing row (upstream line {a.perl_line}, {a.perl_kind})")
+    for key in orphan_keys:
+        add(key, "orphan row (no upstream assertion with this key)")
+    for key in csv_rows.keys() & ups.keys():
+        row, a = csv_rows[key], ups[key]
+        if row.perl_line is not None and row.perl_line != a.perl_line:
+            add(key, f"perl_line {row.perl_line} != upstream {a.perl_line}")
+        if row.perl_kind != a.perl_kind:
+            add(key, f"perl_kind {row.perl_kind} != upstream {a.perl_kind}")
+    found.sort(key=lambda item: item[0])
+    missing, orphan = len(missing_keys), len(orphan_keys)
+    return [v for _, v in found], missing, orphan
+
+
+# --- Sweep (#110 (iii)) ------------------------------------------------------------
+
+
+QUOTE_OPS: Final[frozenset[str]] = frozenset(
+    {"q", "qq", "qw", "qr", "m", "s", "tr", "y"}
+)
+TWO_PART_OPS: Final[frozenset[str]] = frozenset({"s", "tr", "y"})
+BRACKETS: Final[dict[str, str]] = {"(": ")", "[": "]", "{": "}", "<": ">"}
+REGEX_AFTER_WORDS: Final[frozenset[str]] = frozenset({
+    "split", "grep", "map", "join", "return", "and", "or", "not", "if", "unless",
+    "while", "until", "x", "lt", "gt", "le", "ge", "eq", "ne", "cmp", "push", "unshift",
+})  # fmt: skip
+"""Words after which ``/`` starts a regex rather than a division."""
+HEREDOC_RE: Final[re.Pattern[str]] = re.compile(
+    r"<<(~?)(?:\"([^\"\n]*)\"|'([^'\n]*)'|([A-Za-z_]\w*))"
+)
+AUTOQUOTE_BRACE_RE: Final[re.Pattern[str]] = re.compile(
+    r"(?<=\{)(\s*-?[A-Za-z_]\w*\s*)(?=\})"
+)
+AUTOQUOTE_ARROW_RE: Final[re.Pattern[str]] = re.compile(r"\b[A-Za-z_]\w*(?=\s*=>)")
+
+
+class _Stripper:
+    """Blank comments, strings, regex/quote-like literals, POD and heredoc bodies.
+
+    Not a Perl parser: a small lexer that is good enough for the pinned test files
+    (no POD, heredoc or ``__END__`` there, see #110 Evidence) and keeps every
+    newline, so line and column numbers of the result equal the source's.
+    """
+
+    def __init__(self, src: str) -> None:
+        self.src = src
+        self.out = list(src)
+        self.i = 0
+        self.regex_ok = True  # would a '/' here start a regex?
+        self.heredocs: list[tuple[str, bool]] = []
+
+    def blank(self, start: int, end: int) -> None:
+        """Replace ``src[start:end]`` by spaces, keeping newlines."""
+        for k in range(start, min(end, len(self.out))):
+            if self.out[k] != "\n":
+                self.out[k] = " "
+
+    def delimited(self, start: int) -> int:
+        """Index after the literal whose opening delimiter is at ``start``."""
+        src, opener = self.src, self.src[start]
+        closer = BRACKETS.get(opener, opener)
+        depth, k = 1, start + 1
+        while k < len(src):
+            c = src[k]
+            if c == "\\":
+                k += 2
+                continue
+            if c == closer and closer != opener:
+                depth -= 1
+            elif c == opener and closer != opener:
+                depth += 1
+            elif c == closer:
+                depth = 0
+            k += 1
+            if depth == 0:
+                return k
+        return k
+
+    def quote_op(self, word: str, after_word: int) -> int | None:
+        """End of the quote-like operator ``word`` (ends at ``after_word``), if any."""
+        src, k = self.src, after_word
+        while k < len(src) and src[k] in " \t":
+            k += 1
+        if k >= len(src):
+            return None
+        d = src[k]
+        if d.isalnum() or d in "_,;)]}>=\n\r\t " or (d == "#" and k != after_word):
+            return None
+        end = self.delimited(k)
+        if word in TWO_PART_OPS:
+            if d in BRACKETS:
+                while end < len(src) and src[end] in " \t\n":
+                    end += 1
+                if end < len(src):
+                    end = self.delimited(end)
+            else:
+                end = self.delimited(end - 1)
+        while end < len(src) and src[end].isalpha():
+            end += 1
+        return end
+
+    def end_of_line(self, k: int) -> int:
+        """Index of the next newline at or after ``k`` (or the end)."""
+        nl = self.src.find("\n", k)
+        return len(self.src) if nl < 0 else nl
+
+    def newline(self) -> None:
+        """Consume a newline and any pending heredoc bodies after it."""
+        self.i += 1
+        for tag, indented in self.heredocs:
+            while self.i < len(self.src):
+                end = self.end_of_line(self.i)
+                line = self.src[self.i : end]
+                self.blank(self.i, end)
+                self.i = end + 1
+                if (line.strip() if indented else line) == tag:
+                    break
+        self.heredocs.clear()
+
+    def run(self) -> str:
+        """Return the blanked source."""
+        src = self.src
+        while self.i < len(src):
+            i, c = self.i, src[self.i]
+            at_line_start = i == 0 or src[i - 1] == "\n"
+            if c == "\n":
+                self.newline()
+            elif c in " \t\r":
+                self.i += 1
+            elif at_line_start and c == "=" and src[i + 1 : i + 2].isalpha():
+                end = src.find("\n=cut", i)
+                end = len(src) if end < 0 else self.end_of_line(end + 1)
+                self.blank(i, end)
+                self.i = end
+            elif at_line_start and src.startswith(("__END__", "__DATA__"), i):
+                self.blank(i, len(src))
+                self.i = len(src)
+            elif c == "#":
+                end = self.end_of_line(i)
+                self.blank(i, end)
+                self.i = end
+            elif c in "'\"`":
+                end = self.delimited(i)
+                self.blank(i, end)
+                self.i, self.regex_ok = end, False
+            elif c in "$@" or (
+                c in "%&"
+                and (src[i + 1 : i + 2].isalpha() or src[i + 1 : i + 2] in "_{$")
+            ):
+                self.variable(i)
+            elif c.isalpha() or c == "_":
+                self.word(i)
+            elif c.isdigit():
+                k = i
+                while k < len(src) and (src[k].isalnum() or src[k] in "._"):
+                    k += 1
+                self.i, self.regex_ok = k, False
+            elif c == "/":
+                if self.regex_ok:
+                    end = self.delimited(i)
+                    while end < len(src) and src[end].isalpha():
+                        end += 1
+                    self.blank(i, end)
+                    self.i, self.regex_ok = end, False
+                else:
+                    self.i = i + (2 if src[i + 1 : i + 2] == "/" else 1)
+                    self.regex_ok = True
+            elif c == "<" and (m := HEREDOC_RE.match(src, i)) and self.regex_ok:
+                self.heredocs.append((m[2] or m[3] or m[4] or "", bool(m[1])))
+                self.i, self.regex_ok = m.end(), False
+            elif c == "-" and src[i + 1 : i + 2] == ">":
+                self.i = i + 2
+                k = self.i
+                while k < len(src) and (src[k].isalnum() or src[k] == "_"):
+                    k += 1
+                self.blank(self.i, k)  # method name: not a function call
+                self.i, self.regex_ok = k, False
+            else:
+                self.i = i + 1
+                self.regex_ok = c not in ")]}"
+        return "".join(self.out)
+
+    def variable(self, i: int) -> None:
+        """Consume a sigil and blank the variable name after it."""
+        src, k = self.src, i + 1
+        if src[i] == "$" and src[k : k + 1] == "#":
+            k += 1
+        while src[k : k + 1] == "$":
+            k += 1
+        start = k
+        if src[k : k + 1] and (src[k].isalnum() or src[k] == "_" or src[k] == ":"):
+            while k < len(src) and (src[k].isalnum() or src[k] in "_:"):
+                k += 1
+        elif src[k : k + 1] and src[k] not in "{ \t\n":
+            k += 1  # punctuation variable such as $' $" $/ $;
+        self.blank(start, k)
+        self.i, self.regex_ok = k, False
+
+    def word(self, i: int) -> None:
+        """Consume an identifier; handle quote-like operators and filetest ``-s``."""
+        src, k = self.src, i
+        while k < len(src) and (src[k].isalnum() or src[k] == "_"):
+            k += 1
+        word = src[i:k]
+        filetest = i > 0 and src[i - 1] == "-"
+        arrow_key = re.match(r"\s*=>", src[k : k + 8]) is not None
+        if word in QUOTE_OPS and not filetest and not arrow_key:
+            end = self.quote_op(word, k)
+            if end is not None:
+                self.blank(i, end)
+                self.i, self.regex_ok = end, False
+                return
+        self.i = k
+        self.regex_ok = word in REGEX_AFTER_WORDS
+
+
+def strip_perl(src: str) -> str:
+    """Blank comments, literals and autoquoted barewords of ``src``, keeping positions.
+
+    Args:
+        src: Perl source.
+
+    Returns:
+        Text of the same length and line structure, with only code identifiers
+        and punctuation left (hash keys such as ``{pass}`` and ``pass =>`` blanked).
+    """
+    code = _Stripper(src).run()
+    blank = lambda m: " " * len(m[0])  # noqa: E731
+    code = AUTOQUOTE_BRACE_RE.sub(blank, code)
+    return AUTOQUOTE_ARROW_RE.sub(blank, code)
+
+
+class Kind(StrEnum):
+    """How the sweep classifies one occurrence of a documented name."""
+
+    COUNTED = "counted"
+    UNEXPLAINED = "unexplained"
+
+
+@dataclass(frozen=True, slots=True)
+class Occurrence:
+    """One occurrence the sweep reports (not explained, not counted)."""
+
+    vep_file: str
+    line: int
+    name: str
+    text: str
+
+    def __str__(self) -> str:
+        return (
+            f"{self.vep_file}:{self.line}: uncounted `{self.name}`: {self.text.strip()}"
+        )
+
+
+@dataclass(slots=True)
+class SweepResult:
+    """Everything the sweep found over a set of files."""
+
+    files: int = 0
+    counted: int = 0
+    tally: Counter[str] = field(default_factory=Counter)
+    unexplained: list[Occurrence] = field(default_factory=list)
+
+
+def statement_start(code: str, offset: int) -> bool:
+    """Whether ``offset`` in the stripped ``code`` begins a statement.
+
+    True when the previous non-blank character is ``;``, ``{`` or ``}`` (or there
+    is none), so a name on a continuation line of an argument list is not one.
+    """
+    k = offset - 1
+    while k >= 0 and code[k].isspace():
+        k -= 1
+    return k < 0 or code[k] in ";{}"
+
+
+def classify(name: str, code: str, offset: int, counted: bool) -> str:
+    """Return the tally category of one occurrence, ``counted`` or ``unexplained``.
+
+    Args:
+        name: The documented function name.
+        code: The stripped file.
+        offset: Offset of the name in ``code``.
+        counted: Whether the line-start rule counted this very token.
+    """
+    statement = statement_start(code, offset)
+    rest = code[offset + len(name) : offset + len(name) + 80]
+    before = code[max(0, offset - 80) : offset]
+    match name:
+        case _ if counted:
+            return Kind.COUNTED
+        case _ if name in NON_ASSERTIONS:
+            return name
+        case _ if name in COMPARATORS and not statement:
+            return "comparator"
+        case _ if (
+            name in CAPTURES
+            and re.match(r"\s*\{", rest)
+            and (statement or re.search(r"=\s*$", before))
+        ):
+            return "capture warning/warnings"
+        case _:
+            return Kind.UNEXPLAINED
+
+
+def sweep_file(root: Path, path: Path, result: SweepResult) -> None:
+    """Sweep one file, adding to ``result``.
+
+    Args:
+        root: The directory ``vep_file`` is relative to.
+        path: The file.
+        result: Accumulator.
+    """
+    vep_file = path.relative_to(root).as_posix()
+    raw = read_lines(path)
+    code = strip_perl("\n".join(raw))
+    result.files += 1
+    offset = 0
+    for line_no, (raw_line, code_line) in enumerate(
+        zip(raw, code.split("\n"), strict=True), 1
+    ):
+        line_offset, offset = offset, offset + len(code_line) + 1
+        if USE_WARNINGS_RE.match(raw_line):
+            result.tally["use/no warnings"] += 1
+            continue
+        if m := USE_TEST_RE.match(raw_line):
+            if NAME_RE.search(raw_line, m.end()):
+                result.tally["import list"] += 1
+            continue
+        row = ROW_RE.match(raw_line)
+        if row:
+            result.counted += 1
+            if code_line[row.start(1) : row.end(1)] != row[1]:
+                raise CannotMeasure(
+                    f"{vep_file}:{line_no}: the literal stripper blanked a counted "
+                    f"`{row[1]}`; the sweep cannot trust this file"
+                )
+        for m in NAME_RE.finditer(code_line):
+            counted = row is not None and m.start() == row.start(1)
+            match classify(m[1], code, line_offset + m.start(), counted):
+                case Kind.COUNTED:
+                    pass
+                case Kind.UNEXPLAINED:
+                    result.unexplained.append(
+                        Occurrence(vep_file, line_no, m[1], raw_line)
+                    )
+                case category:
+                    result.tally[category] += 1
+
+
+def sweep(root: Path, glob: str) -> SweepResult:
+    """Sweep every file of ``root`` matching ``glob``."""
+    result = SweepResult()
+    for path in upstream_files(root, glob):
+        sweep_file(root, path, result)
+    return result
+
+
+def sweep_summary(result: SweepResult, pin: str) -> str:
+    """The one stderr summary line of a sweep."""
+    tally = ", ".join(f"{k} {v}" for k, v in sorted(result.tally.items()))
+    return (
+        f"sweep ({pin}): files {result.files}, counted {result.counted}; "
+        f"{tally or 'nothing else'}; unexplained {len(result.unexplained)}"
+    )
+
+
+# --- CLI ---------------------------------------------------------------------------
+
+
+def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
+    """Parse the command line (usage errors exit 2 through argparse)."""
+    parser = argparse.ArgumentParser(
+        prog="tools/check_ledger",
+        description="Check ledger/assertions.csv against the assertions of the "
+        f"upstream VEP tests at {DEFAULT_REF} ({PINNED_COMMIT}).",
+    )
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=DEFAULT_CSV,
+        help="CSV to check (default: ledger/assertions.csv)",
+    )
+    parser.add_argument(
+        "--upstream",
+        type=Path,
+        metavar="DIR",
+        help="existing checkout of the pinned commit (default: clone)",
+    )
+    parser.add_argument(
+        "--ref",
+        default=DEFAULT_REF,
+        help="tag to clone (default: %(default)s); the pin never changes",
+    )
+    parser.add_argument(
+        "--glob",
+        default=DEFAULT_GLOB,
+        help="files for --list and the sweeps (default: %(default)s)",
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--list", action="store_true", help="print the enumeration")
+    mode.add_argument(
+        "--sweep",
+        action="store_true",
+        help="report documented names the 22-name rule did not count",
+    )
+    mode.add_argument(
+        "--sweep-dir",
+        type=Path,
+        metavar="DIR",
+        help="sweep DIR without the pin check (fixtures only)",
+    )
+    return parser.parse_args(argv)
+
+
+def run(args: argparse.Namespace) -> int:
+    """Execute the selected mode and return its exit code.
+
+    Raises:
+        CannotMeasure: See the module docstring, exit code 2.
+    """
+    if args.sweep_dir is not None:
+        if not args.sweep_dir.is_dir():
+            raise CannotMeasure(f"--sweep-dir {args.sweep_dir}: not a directory")
+        result = sweep(args.sweep_dir, args.glob)
+        return _report_sweep(result, "unpinned")
+    if args.list or args.sweep:
+        with upstream_checkout(args.upstream, args.ref) as root:
+            verify_file_set(root, args.glob)
+            if args.sweep:
+                return _report_sweep(sweep(root, args.glob), f"pinned {PINNED_COMMIT}")
+            for a in enumerate_upstream(root, args.glob):
+                print(f"{a.vep_file}\t{a.n}\t{a.perl_line}\t{a.perl_kind}")
+            return EXIT_OK
+    report = read_csv(args.csv)
+    with upstream_checkout(args.upstream, args.ref) as root:
+        verify_file_set(root, DEFAULT_GLOB)
+        upstream = enumerate_upstream(root)
+    files = len({row.vep_file for row in report.rows})
+    if report.keyed:
+        found, missing, orphan = coverage(report.rows, upstream)
+        summary = f"rows {len(report.rows)}, files {files}, "
+        summary += f"missing {missing}, orphan {orphan}"
+    else:
+        found, summary = [], "coverage not checked: no usable header"
+    violations = [*report.violations, *found]
+    for violation in violations:
+        print(violation)
+    print(summary)
+    if violations:
+        print(f"check_ledger: {len(violations)} violation(s)", file=sys.stderr)
+        return EXIT_VIOLATION
+    return EXIT_OK
+
+
+def _report_sweep(result: SweepResult, pin: str) -> int:
+    """Print the unexplained occurrences (stdout) and the summary (stderr)."""
+    for occurrence in result.unexplained:
+        print(occurrence)
+    print(sweep_summary(result, pin), file=sys.stderr)
+    return EXIT_VIOLATION if result.unexplained else EXIT_OK
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point: parse, run, map :class:`CannotMeasure` to exit 2."""
+    args = parse_args(argv)
+    try:
+        return run(args)
+    except CannotMeasure as err:
+        print(f"check_ledger: cannot measure: {err}", file=sys.stderr)
+        return EXIT_CANNOT_MEASURE
+
+
+if __name__ == "__main__":
+    sys.exit(main())

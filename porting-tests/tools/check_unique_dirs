@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# tools/check_unique_dirs [DIR] — fail when two data-test directories make the same comparison (#238).
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$here" uv run --frozen --project "$here/.." python -m check_unique_dirs "$@"

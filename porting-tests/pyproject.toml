@@ -1,0 +1,31 @@
+[project]
+name = "vepyr-port-tools"
+version = "0.1.0"
+description = "Tooling for curated VEP→vepyr data-problem porting tests"
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub>=1.31,<2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.14",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tools"]
+pythonpath = ["tools"]
+addopts = "-q"
+markers = [
+    "integration: needs a real gh/network (opt in with RUN_TESTS_INTEGRATION=1)",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "ISC", "RUF", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bless", "check_normalised_input", "check_test_dir", "fixture_match", "pins", "run_tests", "vcf_records", "vep_pin"]

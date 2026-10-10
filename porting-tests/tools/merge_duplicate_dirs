@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# tools/merge_duplicate_dirs [--exclude-flavour F ...] [--index FILE] [--dry-run] [DIR]
+# One-off migration: merge duplicate data-test directories into [[tests]] tables (#238).
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$here" uv run --frozen --project "$here/.." python -m merge_duplicate_dirs "$@"

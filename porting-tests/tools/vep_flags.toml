@@ -1,0 +1,32 @@
+# The one data-test mode: VEP --everything (#143).
+#
+# Single source of truth for what that mode sets on both sides. Each [[mapping]]
+# row pairs a flag of the fixed VEP command (tools/bless/vep.py VEP_ARGV) with the
+# [vepyr] key and value of test.toml that reproduces it in vepyr:
+#
+# - tools/bless (Python) refuses to bless or reproduce a test.toml whose [vepyr]
+#   disagrees, and tools/test_bless.py -k everything_mode checks that every
+#   vep_flag is in VEP_ARGV and that the README table lists exactly these rows;
+# - tools/run_tests/fixtures.py (Python) refuses on a [vepyr] (or [[vepyr_run]]) value that
+#   differs, and on a [vep] command that lacks a vep_flag.
+#
+# [vepyr] has no `fields` key: vepyr emits its full --everything CSQ layout, as
+# VEP does. A run without --everything is unsupported and disabled.
+
+[[mapping]]
+vep_flag = "--everything"
+vepyr_key = "everything"
+vepyr_value = true
+note = "all annotation features, the full --everything CSQ layout"
+
+[[mapping]]
+vep_flag = "--fasta"
+vepyr_key = "reference_fasta"
+vepyr_value = true
+note = "reference FASTA, required by --everything; vepyr reads $VEPYR_CACHE_ROOT's GRCh38 FASTA"
+
+[[mapping]]
+vep_flag = "--vcf"
+vepyr_key = "preserve_record_layout"
+vepyr_value = true
+note = "VCF output: VEP copies each input line and only appends CSQ to INFO"

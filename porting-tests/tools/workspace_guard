@@ -1,0 +1,280 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""Workspace safety guards for agents working on clones of this repository.
+
+Four read-only checks, each printing one ``OK <what>`` or
+``REFUSED <what>: <reason>`` line::
+
+    tools/workspace_guard write-target DIR --protect PATH [--protect PATH ...] [--expect-checkout PATH]
+    tools/workspace_guard outside-checkouts PATH [PATH ...]
+    tools/workspace_guard base [--ref origin/master]
+    tools/workspace_guard upstream --not REF
+
+``write-target`` allows a write to ``DIR`` only if ``DIR`` is absolute and a direct
+child of ``<toplevel>/tests/data`` (``<toplevel>`` = the git checkout containing
+``DIR``, compared after ``realpath``), the cwd is in that same checkout, it is the
+``--expect-checkout`` checkout when one is given, and it is none of the
+``--protect`` paths. Paths are compared by inode (``os.path.samefile``), with a
+case-folded ``realpath`` fallback, so a symlink or a case variant on a
+case-insensitive filesystem (macOS APFS) names the same checkout. ``DT_ALLOW_MAIN=1``
+in the environment is the only override of the protect check. A ``--protect`` value
+that is relative, empty or missing is a usage error and is never resolved against
+the cwd (fail closed).
+
+``outside-checkouts`` refuses any ``PATH`` whose nearest existing ancestor lies
+inside a git checkout or worktree (e.g. ``UV_PROJECT_ENVIRONMENT`` or a scratch
+root). ``base`` checks that ``HEAD`` contains ``REF``. ``upstream --not REF``
+refuses a current branch whose upstream is ``REF``; no upstream or a detached
+``HEAD`` is fine.
+
+The tool only enforces what it is handed: which directory is "main" and where
+scratch lives is the caller's policy (the data-test skill's ``dt`` config). It
+never writes or deletes anything.
+
+Exit codes: ``0`` allowed/ok; ``1`` a check failed or a write is refused; ``2``
+usage error, an unusable input (relative, missing or empty path) or a git failure
+that prevents the check. There is no silent pass.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+from collections.abc import Sequence
+from dataclasses import dataclass
+from enum import IntEnum
+from pathlib import Path
+from typing import Final, NoReturn
+
+PROG: Final[str] = "workspace_guard"
+ALLOW_MAIN: Final[str] = "DT_ALLOW_MAIN"
+GIT_DISCOVERY_ENV: Final[tuple[str, ...]] = ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES")
+"""Variables that would make git answer for another repository than the one at ``-C``."""
+
+
+class Exit(IntEnum):
+    """Process exit codes (see the module docstring)."""
+
+    OK = 0
+    REFUSED = 1
+    USAGE = 2
+
+
+class Refused(Exception):
+    """A check failed or a write is refused (exit 1)."""
+
+
+class Unusable(Exception):
+    """A usage error, an unusable input or a git failure that prevents the check (exit 2)."""
+
+
+@dataclass(frozen=True, slots=True)
+class GitResult:
+    """Exit code and stripped output streams of one ``git`` call."""
+
+    code: int
+    out: str
+    err: str
+
+
+def git(cwd: Path, *args: str) -> GitResult:
+    """Run ``git -C cwd <args>`` with repository discovery left to git; not runnable is :class:`Unusable`."""
+    env = {k: v for k, v in os.environ.items() if k not in GIT_DISCOVERY_ENV}
+    try:
+        proc = subprocess.run(["git", "-C", str(cwd), *args], text=True, capture_output=True, env=env)
+    except OSError as e:
+        raise Unusable(f"cannot run git: {e}") from e
+    return GitResult(proc.returncode, proc.stdout.strip(), proc.stderr.strip())
+
+
+def absolute(text: str, what: str, *, must_exist: bool = False) -> Path:
+    """``text`` as an absolute path, never resolved against the cwd.
+
+    An empty or relative value (or a missing one when ``must_exist``) is :class:`Unusable`.
+    """
+    if not text:
+        raise Unusable(f"{what} is empty (unset variable?)")
+    path = Path(text)
+    if not path.is_absolute():
+        raise Unusable(f"{what} {text!r} is not an absolute path; it is never resolved against the cwd")
+    if must_exist and not path.exists():
+        raise Unusable(f"{what} {text} does not exist")
+    return path
+
+
+def nearest_existing(path: Path) -> Path:
+    """``path`` or its nearest existing ancestor."""
+    return next(p for p in (path, *path.parents) if p.exists())
+
+
+def realpath(path: Path) -> Path:
+    """``os.path.realpath`` as a :class:`Path` (symlinks resolved, ``/var`` -> ``/private/var`` on macOS)."""
+    return Path(os.path.realpath(path))
+
+
+def same_path(a: Path, b: Path) -> bool:
+    """``a`` and ``b`` name the same file: by inode when both exist, else case-insensitively.
+
+    ``realpath`` keeps the caller's spelling on case-insensitive APFS, so a plain ``==``
+    misses ``/users/x`` vs ``/Users/x``; the fallback errs towards "same".
+    """
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        def norm(p: Path) -> str:
+            return os.path.normcase(os.path.realpath(p)).casefold()
+        return norm(a) == norm(b)
+
+
+def checkout_of(path: Path) -> Path | None:
+    """Toplevel of the git checkout or worktree containing ``path`` (nearest existing ancestor), else ``None``.
+
+    Any git failure other than "not a git repository" is :class:`Unusable`, so an
+    unreadable repository is never taken for "outside every checkout".
+    """
+    start = nearest_existing(path)
+    if not start.is_dir():
+        start = start.parent
+    r = git(start, "rev-parse", "--show-toplevel")
+    match r:
+        case GitResult(code=0, out=top) if top:
+            return realpath(Path(top))
+        case GitResult(err=err) if "not a git repository" in err:
+            return None
+        case GitResult(code=code, err=err):
+            raise Unusable(f"git rev-parse --show-toplevel in {start}: exit {code}: {err or '<no stderr>'}")
+
+
+# ---------------------------------------------------------------- subcommands
+
+
+def write_target(a: argparse.Namespace) -> str:
+    """Allow a write to ``a.dir`` or raise; see the module docstring for the rules."""
+    protects = [absolute(t, "--protect", must_exist=True) for t in a.protect]
+    expect = absolute(a.expect_checkout, "--expect-checkout", must_exist=True) if a.expect_checkout is not None \
+        else None
+    target = realpath(absolute(a.dir, "DIR"))
+    what = f"write-target {target}"
+    if (repo := checkout_of(target)) is None:
+        raise Refused(f"{what}: not inside a git checkout")
+    data = repo / "tests" / "data"
+    if not same_path(target.parent, data):
+        raise Refused(f"{what}: not a direct child of {data}")
+    here = checkout_of(Path.cwd())
+    if here is None or not same_path(here, repo):
+        raise Refused(f"{what}: target is in {repo} but the cwd checkout is {here or '<none>'}; "
+                      "cd into the checkout you are writing to")
+    if expect is not None and not same_path(expect, repo):
+        raise Refused(f"{what}: expected checkout {expect} differs from the target checkout {repo}")
+    if hit := next((p for p in protects if same_path(p, repo)), None):
+        if os.environ.get(ALLOW_MAIN) != "1":
+            raise Refused(f"{what}: {repo} is the protected checkout {hit}; work in your own worktree/clone "
+                          f"({ALLOW_MAIN}=1 overrides)")
+        return f"{what}: protected checkout {repo}, allowed by {ALLOW_MAIN}=1"
+    return f"{what}: checkout {repo}"
+
+
+def outside_checkouts(a: argparse.Namespace) -> str:
+    """Refuse if any path lies inside a git checkout or worktree."""
+    paths = [absolute(t, "PATH") for t in a.paths]
+    for p in paths:
+        if (top := checkout_of(p)) is not None:
+            raise Refused(f"outside-checkouts {p}: inside git checkout {top}")
+    return "outside-checkouts " + " ".join(map(str, paths))
+
+
+def base(a: argparse.Namespace) -> str:
+    """``HEAD`` of the cwd checkout contains ``a.ref``."""
+    what = f"base {a.ref}"
+    match git(Path.cwd(), "merge-base", "--is-ancestor", a.ref, "HEAD"):
+        case GitResult(code=0):
+            return f"{what}: HEAD contains {a.ref} as last fetched (git fetch first)"
+        case GitResult(code=1):
+            raise Refused(f"{what}: HEAD does not contain {a.ref}; branch from a freshly fetched {a.ref}")
+        case GitResult(code=code, err=err):
+            raise Unusable(f"{what}: git merge-base exit {code}: {err or '<no stderr>'}")
+
+
+def upstream(a: argparse.Namespace) -> str:
+    """The current branch does not track ``a.ref`` (no upstream or a detached ``HEAD`` is fine)."""
+    what = f"upstream --not {a.ref}"
+    cwd = Path.cwd()
+    match git(cwd, "symbolic-ref", "-q", "HEAD"):
+        case GitResult(code=0, out=branch):
+            pass
+        case GitResult(code=1):
+            return f"{what}: detached HEAD, no upstream"
+        case GitResult(code=code, err=err):
+            raise Unusable(f"{what}: git symbolic-ref exit {code}: {err or '<no stderr>'}")
+    up = git(cwd, "for-each-ref", "--format=%(upstream)%00%(upstream:short)", branch)
+    if up.code != 0:
+        raise Unusable(f"{what}: git for-each-ref exit {up.code}: {up.err or '<no stderr>'}")
+    full, _, short = up.out.partition("\0")
+    if not full:
+        return f"{what}: {branch} has no upstream"
+    ref_full = git(cwd, "rev-parse", "--symbolic-full-name", a.ref).out
+    if full == ref_full or short == a.ref:
+        raise Refused(f"{what}: {branch} tracks {short}; recreate it with --no-track "
+                      f"or run git branch --unset-upstream")
+    return f"{what}: {branch} tracks {short}"
+
+
+# ---------------------------------------------------------------- CLI
+
+
+class Parser(argparse.ArgumentParser):
+    """``argparse`` parser whose usage errors print a ``REFUSED`` line too and exit 2."""
+
+    def error(self, message: str) -> NoReturn:
+        """Report a usage error (exit 2)."""
+        self.print_usage(sys.stderr)
+        print(f"REFUSED {self.prog.removeprefix(PROG).strip() or 'usage'}: {message}")
+        sys.exit(Exit.USAGE)
+
+
+def parser() -> argparse.ArgumentParser:
+    """Build the CLI."""
+    p = Parser(prog=PROG, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True, parser_class=Parser)
+    s = sub.add_parser("write-target", help="a write to DIR (tests/data/<slug>) is allowed")
+    s.add_argument("dir", metavar="DIR", help="absolute target directory")
+    s.add_argument("--protect", action="append", required=True, metavar="PATH",
+                   help="absolute existing checkout never written to (repeatable, at least one)")
+    s.add_argument("--expect-checkout", metavar="PATH", help="the target checkout must be this one")
+    s.set_defaults(fn=write_target)
+    s = sub.add_parser("outside-checkouts", help="every PATH is outside all git checkouts")
+    s.add_argument("paths", nargs="+", metavar="PATH")
+    s.set_defaults(fn=outside_checkouts)
+    s = sub.add_parser("base", help="HEAD contains REF")
+    s.add_argument("--ref", default="origin/master")
+    s.set_defaults(fn=base)
+    s = sub.add_parser("upstream", help="the current branch does not track REF")
+    s.add_argument("--not", dest="ref", required=True, metavar="REF")
+    s.set_defaults(fn=upstream)
+    return p
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point; returns 0 ok, 1 refused, 2 usage/unusable input (also for anything unexpected)."""
+    args = parser().parse_args(argv)
+    try:
+        print(f"OK {args.fn(args)}")
+        return Exit.OK
+    except Refused as e:
+        print(f"REFUSED {e}")
+        return Exit.REFUSED
+    except Unusable as e:
+        print(f"REFUSED {args.cmd}: {e}")
+        return Exit.USAGE
+    except Exception as e:  # noqa: BLE001 -- fail closed: an unexpected error is never a pass
+        print(f"REFUSED {args.cmd}: unexpected {type(e).__name__}: {e}")
+        return Exit.USAGE
+
+
+if __name__ == "__main__":
+    sys.exit(main())

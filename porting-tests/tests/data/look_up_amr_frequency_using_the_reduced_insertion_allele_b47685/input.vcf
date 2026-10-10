@@ -1,0 +1,6 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	8668876	.	CC	CCAA	.	.	.
+21	8668876	.	CC	CCAA	.	.	.

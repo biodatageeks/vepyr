@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+##contig=<ID=22>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25585733	.	C	C	.	.	.
+22	25769065	.	G	T	.	.	.

@@ -1,0 +1,584 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""Normalise one data-test input VCF — the only place in this repo that does it.
+
+Every data-test input must reach VEP and vepyr as *the same bytes*, produced by
+*the same command*. This script is that command::
+
+    tools/normalize_input <raw> <test-dir>
+
+It runs the one fixed bcftools invocation the project rule fixes (see
+``CLAUDE.md``), writes ``<test-dir>/input.vcf``, and records the invocation
+together with the bcftools version in the ``[input]`` table of
+``<test-dir>/test.toml``.
+
+The script takes **two positional arguments and nothing else**. It deliberately
+defines no options, so any extra switch is an argparse usage error (exit 2)
+before bcftools is ever started. In particular a reference FASTA cannot be
+passed: left-aligning indels would change VEP's own answers, and the oracle
+would no longer describe the file under test.
+
+Two header lines that bcftools stamps onto its output --
+``##bcftools_normVersion`` and ``##bcftools_normCommand`` -- carry a timestamp
+and a temporary path, so they differ between two otherwise identical runs. They
+are stripped from ``input.vcf``; their content lives in ``test.toml`` instead,
+where it is stable and auditable.
+
+Both documents are built and validated first, written to scratch files inside
+the test directory, and only then renamed into place. A run that fails while
+building, validating or staging therefore leaves every *file* exactly as it
+was; the only mark it can leave is the test directory itself, which is created
+before bcftools runs and is not removed again. The commit
+itself is a rename per file: each is atomic on its own, but the pair is not, so
+a rename that fails after an earlier one succeeded can still leave ``input.vcf``
+updated beside a stale ``test.toml``. See :func:`_publish` for what that costs.
+
+The toolchain itself is pinned: the run is refused unless both banner lines
+match exactly -- :data:`_REQUIRED_VERSION` and the :data:`_REQUIRED_HTSLIB`
+build under it. The command is only half of the contract -- the other half is
+the tool that executes it -- so "whatever bcftools is on PATH" would let a
+silent upstream behaviour change alter ``input.vcf`` under an oracle that was
+generated against a different binary. htslib is checked alongside bcftools
+because that is where the VCF handling actually lives.
+
+Exit codes: ``0`` success, ``1`` bcftools missing, bcftools or htslib being the
+wrong version, a banner that cannot be read, bcftools failing, a ``test.toml``
+that is not valid TOML, a test directory that cannot be written, or an input
+with no records; ``2`` bad usage.
+
+An input with no records is refused: a data-test built on it would have an
+empty oracle body and compare nothing. The records are counted on the
+normalised output with :mod:`vcf_records`, the repo's one VCF record reader,
+before anything is published, so a refusal leaves every file as it was.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Final
+
+from vcf_records import VcfFormatError, iter_records
+
+__all__ = [
+    "NormalizeError",
+    "ToolVersions",
+    "bcftools_versions",
+    "check_pinned_version",
+    "main",
+    "normalize",
+    "render_input_table",
+]
+
+_BCFTOOLS: Final[str] = "bcftools"
+
+_REQUIRED_VERSION: Final[str] = "bcftools 1.23"
+"""The one bcftools release this repo normalises with. Not "the latest".
+
+Every oracle, command-ledger entry and ``PROVENANCE.md`` in this project's
+history was produced and cross-checked with ``bcftools 1.23`` (htslib 1.23.1);
+it is also the banner already recorded in the ``[input]`` tables of the
+existing ``test.toml`` files. Pinning it exactly means a data-test's
+``input.vcf`` cannot quietly change because a different bcftools happened to be
+on ``PATH``: the bytes VEP saw when the oracle was generated are the bytes
+vepyr is handed. Changing this constant is a deliberate act -- it invalidates
+the recorded provenance and every affected oracle must be regenerated.
+"""
+
+_REQUIRED_HTSLIB: Final[str] = "htslib 1.23.1"
+"""The htslib build that must be under :data:`_REQUIRED_VERSION`.
+
+bcftools is a thin front end: VCF parsing, writing and much of what ``norm``
+does happen in htslib, so the bcftools release number alone does not identify
+the code that produces ``input.vcf``. The same ``bcftools 1.23`` linked against
+a different htslib is a different normaliser. The oracles were made with htslib
+1.23.1, so that is pinned too, and the rationale in :data:`_REQUIRED_VERSION`
+applies here unchanged.
+"""
+
+_HTSLIB_PREFIX: Final[str] = "Using "
+"""What bcftools puts in front of its second banner line (``Using htslib X``)."""
+
+COMMAND_TEMPLATE: Final[str] = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+"""The command recorded in ``test.toml``: a template, identical for every test.
+
+The concrete run differs only in the two paths, which are per-test and, for the
+output, a temporary file -- neither is part of the contract being recorded.
+"""
+
+_NORM_FLAGS: Final[tuple[str, ...]] = ("-m", "-both")
+"""Splits multiallelic records into one line per allele. Nothing else."""
+
+_STAMP_PREFIXES: Final[tuple[str, ...]] = (
+    "##bcftools_normVersion",
+    "##bcftools_normCommand",
+)
+"""Header lines bcftools stamps that are not reproducible run to run."""
+
+_INPUT_TABLE: Final[str] = "[input]"
+
+
+class NormalizeError(RuntimeError):
+    """Normalisation could not be carried out; the message is user-facing."""
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Args:
+    """Parsed command line.
+
+    Attributes:
+        raw: Source VCF -- plain ``.vcf`` or bgzipped ``.vcf.gz``; bcftools
+            detects the format itself, so both are passed through unchanged.
+        test_dir: Data-test directory that receives ``input.vcf`` and the
+            ``[input]`` table of ``test.toml``. Created if absent.
+    """
+
+    raw: Path
+    test_dir: Path
+
+
+def _parse_args(argv: list[str] | None = None) -> Args:
+    """Parse ``argv``, accepting exactly two positionals and no options.
+
+    Args:
+        argv: Argument list; ``None`` means :data:`sys.argv` minus the program.
+
+    Returns:
+        The parsed arguments.
+
+    Raises:
+        SystemExit: With code 2 on any usage error, including any extra switch.
+    """
+    parser = argparse.ArgumentParser(
+        prog="normalize_input",
+        description="Normalise a raw VCF into a data-test's input.vcf.",
+        epilog=f"Always runs: {COMMAND_TEMPLATE}",
+        allow_abbrev=False,
+    )
+    parser.add_argument("raw", type=Path, help="raw .vcf or .vcf.gz to normalise")
+    parser.add_argument("test_dir", type=Path, help="data-test directory to write")
+    ns = parser.parse_args(argv)
+    return Args(raw=ns.raw, test_dir=ns.test_dir)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ToolVersions:
+    """The two version lines ``bcftools --version`` prints.
+
+    Attributes:
+        bcftools: First banner line, e.g. ``bcftools 1.23``. This is the value
+            recorded in ``test.toml``.
+        htslib: Second banner line with its ``Using `` prefix removed, e.g.
+            ``htslib 1.23.1``. Not recorded -- it is implied by the pin -- but
+            it is checked.
+    """
+
+    bcftools: str
+    htslib: str
+
+
+def bcftools_versions() -> ToolVersions:
+    """Read both version lines from a single ``bcftools --version`` run.
+
+    One run rather than one per line: two runs could in principle disagree (a
+    ``PATH`` change between them), and the pair is checked as one thing.
+
+    This *reports* the versions and does not judge them; enforcing the pin is
+    :func:`check_pinned_version`'s job, so that a caller wanting only to record
+    the banner -- as :func:`render_input_table` does -- need not care which
+    release it is.
+
+    Returns:
+        Both lines, stripped, with the htslib line's ``Using `` prefix removed.
+
+    Raises:
+        NormalizeError: If bcftools is not on ``PATH``, does not answer, prints
+            nothing, or prints no second line. The last is not supposed to
+            happen -- every bcftools since long before 1.23 prints ``Using
+            htslib X`` -- but an ``IndexError`` traceback would be a poor way
+            to find out, and a banner we cannot read is a banner we cannot
+            check, which under a pin means refusing rather than guessing.
+    """
+    if shutil.which(_BCFTOOLS) is None:
+        raise NormalizeError(
+            f"bcftools is not on PATH; install {_REQUIRED_VERSION} "
+            f"({_REQUIRED_HTSLIB}) and retry"
+        )
+    try:
+        done = subprocess.run(
+            [_BCFTOOLS, "--version"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise NormalizeError(f"could not run `bcftools --version`: {exc}") from exc
+    lines = [line.strip() for line in done.stdout.splitlines()]
+    if not lines or not lines[0]:
+        raise NormalizeError("`bcftools --version` printed nothing")
+    if len(lines) < 2 or not lines[1]:
+        raise NormalizeError(
+            "`bcftools --version` printed no htslib line; expected a second "
+            f"line naming {_REQUIRED_HTSLIB}"
+        )
+    return ToolVersions(
+        bcftools=lines[0],
+        htslib=lines[1].removeprefix(_HTSLIB_PREFIX),
+    )
+
+
+def check_pinned_version(found: ToolVersions) -> None:
+    """Refuse anything but :data:`_REQUIRED_VERSION` on :data:`_REQUIRED_HTSLIB`.
+
+    Both lines are checked here, in one function, rather than by a pair of
+    callers: they are not two independent pins but one identification of one
+    normaliser, and splitting them would let a caller enforce half of it. The
+    messages stay separate so the reported mismatch names the component that
+    actually differs.
+
+    The comparisons are exact rather than lower bounds: a newer release is not
+    "good enough", because the point of the pin is that the code writing
+    ``input.vcf`` is the code the oracle was generated against.
+
+    Args:
+        found: The versions :func:`bcftools_versions` returned.
+
+    Raises:
+        NormalizeError: If either line is not exactly the required one.
+    """
+    if found.bcftools != _REQUIRED_VERSION:
+        raise NormalizeError(
+            f"bcftools version mismatch: found {found.bcftools!r}, this "
+            f"project requires exactly {_REQUIRED_VERSION!r}"
+        )
+    if found.htslib != _REQUIRED_HTSLIB:
+        raise NormalizeError(
+            f"htslib version mismatch: found {found.htslib!r} under "
+            f"{found.bcftools!r}, this project requires exactly "
+            f"{_REQUIRED_HTSLIB!r}"
+        )
+
+
+def _run_norm(raw: Path, out: Path) -> None:
+    """Run the one fixed bcftools invocation, writing ``out``.
+
+    Args:
+        raw: Source VCF, plain or bgzipped.
+        out: Destination path handed to bcftools.
+
+    Raises:
+        NormalizeError: If bcftools exits non-zero; its stderr is included.
+    """
+    argv = [_BCFTOOLS, "norm", *_NORM_FLAGS, "-o", str(out), str(raw)]
+    done = subprocess.run(argv, capture_output=True, text=True)
+    if done.returncode != 0:
+        raise NormalizeError(
+            f"`{' '.join(argv)}` failed with exit {done.returncode}\n"
+            f"{done.stderr.rstrip()}"
+        )
+
+
+def _strip_stamps(text: str) -> str:
+    """Drop the two unreproducible bcftools header stamps from VCF ``text``.
+
+    Args:
+        text: A VCF as bcftools wrote it.
+
+    Returns:
+        The same VCF without the stamped version/command header lines.
+    """
+    kept = [
+        line
+        for line in text.splitlines(keepends=True)
+        if not line.startswith(_STAMP_PREFIXES)
+    ]
+    return "".join(kept)
+
+
+def _require_records(body: str, *, raw: Path) -> None:
+    """Refuse a normalised VCF with no records.
+
+    Args:
+        body: The normalised VCF text, as it would be written to ``input.vcf``.
+        raw: The raw file it came from, named in the error message.
+
+    Raises:
+        NormalizeError: If ``body`` has no record, or a body line that is not
+            one.
+    """
+    try:
+        count = sum(1 for _ in iter_records(body.splitlines(), where=str(raw)))
+    except VcfFormatError as exc:
+        raise NormalizeError(str(exc)) from exc
+    if count == 0:
+        raise NormalizeError(
+            f"{raw} has no records; a data-test input needs at least one"
+        )
+
+
+def _is_trivia(line: str) -> bool:
+    """Say whether ``line`` is a blank line or a whole-line TOML comment.
+
+    Such lines directly above a table header belong to *that* table -- they are
+    its separator and its documentation -- so replacing the table above them
+    must not consume them.
+
+    Args:
+        line: One line of a TOML file, newline included or not.
+
+    Returns:
+        ``True`` for blank and ``#``-comment lines, ``False`` otherwise.
+    """
+    stripped = line.strip()
+    return not stripped or stripped.startswith("#")
+
+
+def _check_toml(text: str, *, toml_path: Path, stage: str) -> None:
+    """Fail loudly unless ``text`` parses as TOML.
+
+    ``render_input_table`` edits lines rather than parsing, which keeps every
+    comment in the file intact but cannot understand TOML's multi-line strings:
+    a line starting with ``[`` inside one looks exactly like a table header.
+    Rather than silently writing a file that :mod:`tomllib` can no longer read
+    -- and that the test runner would later choke on -- both the file as found
+    and the file as rebuilt are parsed, and either failure aborts the run.
+
+    Args:
+        text: Candidate TOML document.
+        toml_path: Path named in the error message.
+        stage: Human-readable description of which document this is.
+
+    Raises:
+        NormalizeError: If ``text`` is not valid TOML.
+    """
+    try:
+        tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        raise NormalizeError(
+            f"{toml_path}: {stage} is not valid TOML: {exc}"
+        ) from exc
+
+
+def render_input_table(toml_path: Path, *, version: str) -> str:
+    """Return what ``toml_path`` should contain, without touching the disk.
+
+    This is the whole of the upsert except the write. Keeping it separate lets
+    the caller find out that a ``test.toml`` will be refused *before* it has
+    replaced any other file in the test directory.
+
+    On its own this covers **validation** failures only: it guarantees that a
+    document this function rejects is never written, not that writing the one
+    it returns will succeed. Protection against a *write* failing partway
+    through the pair of documents comes from :func:`_publish`, which stages
+    both and renames them into place. :func:`normalize` combines the two, and
+    is where the promise that a failed run leaves the test unchanged actually
+    holds.
+
+    An existing ``[input]`` table is replaced in place; otherwise the table is
+    appended. Comments and blank lines that sit immediately above the following
+    table header are kept with that table -- ``test.toml`` is where the
+    per-test links to the upstream VEP test live, and losing them would defeat
+    the point of recording them.
+
+    Args:
+        toml_path: Path of the test's ``test.toml``; need not exist.
+        version: The bcftools banner from :func:`bcftools_versions`.
+
+    Returns:
+        The full text to write, already checked to parse as TOML.
+
+    Raises:
+        NormalizeError: If the existing file is not valid TOML, or if the
+            rebuilt document would not be.
+    """
+    table = (
+        f"{_INPUT_TABLE}\n"
+        f'command = "{COMMAND_TEMPLATE}"\n'
+        f'bcftools_version = "{version}"\n'
+    )
+    if not toml_path.exists():
+        # Validated like every other return: `version` is interpolated into a
+        # basic TOML string, so a quote or backslash in the bcftools banner
+        # would otherwise write an unparseable file and exit 0.
+        _check_toml(table, toml_path=toml_path, stage="the new file")
+        return table
+
+    try:
+        original = toml_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        # Reported here rather than by the caller's write-side handler, which
+        # would blame the wrong operation for an unreadable file.
+        raise NormalizeError(f"could not read {toml_path}: {exc}") from exc
+    _check_toml(original, toml_path=toml_path, stage="the existing file")
+
+    lines = original.splitlines(keepends=True)
+    start = next(
+        (i for i, ln in enumerate(lines) if ln.strip() == _INPUT_TABLE),
+        None,
+    )
+    if start is None:
+        head = original
+        if head and not head.endswith("\n"):
+            head += "\n"
+        sep = "\n" if head else ""
+        rebuilt = f"{head}{sep}{table}"
+    else:
+        end = next(
+            (
+                i
+                for i in range(start + 1, len(lines))
+                if lines[i].lstrip().startswith("[")
+            ),
+            len(lines),
+        )
+        # Give the trailing blank/comment run back to the table that follows it.
+        while end - 1 > start and _is_trivia(lines[end - 1]):
+            end -= 1
+        rebuilt = "".join(lines[:start]) + table + "".join(lines[end:])
+
+    _check_toml(rebuilt, toml_path=toml_path, stage="the rebuilt file")
+    return rebuilt
+
+
+def _publish(scratch: Path, documents: dict[Path, str]) -> None:
+    """Put ``documents`` in place, each by an atomic same-directory rename.
+
+    Every document is first written in full inside ``scratch``, which lives in
+    the destination directory and so is on the same filesystem; only once all
+    of them exist are the renames done, back to back. :func:`os.replace` is
+    atomic per file, so no reader can ever observe a half-written ``input.vcf``
+    or ``test.toml``, and a failure while *staging* -- a full disk, a directory
+    that turns out not to be writable -- happens while both destinations are
+    still untouched.
+
+    What this does **not** give is a transaction across the two files. The
+    renames are atomic individually, not together: if the first succeeds and
+    the second fails -- an immutable file (``chflags uchg``, ``chattr +i``), a
+    network filesystem, a path protected by something outside this process --
+    then ``input.vcf`` has been replaced while ``test.toml`` still holds the
+    old text, and the run reports failure having left the two disagreeing.
+    Closing that honestly would need a journal or a directory-level swap; a
+    writability pre-flight only narrows the window and cannot remove it. So it
+    is documented rather than half-fixed: staging, validation and bcftools
+    failures change nothing, and a failure during the commit can leave the
+    pair mismatched.
+
+    A rename needs write permission on the *directory*, not on the file being
+    replaced, so this also succeeds where a plain write would not: a read-only
+    ``test.toml`` in a writable test directory is updated rather than failing
+    halfway through the run.
+
+    Args:
+        scratch: Temporary directory inside the destination directory.
+        documents: Final path mapped to the text it should end up holding.
+
+    Raises:
+        OSError: If any document cannot be written or renamed.
+    """
+    staged: list[tuple[Path, Path]] = []
+    for final, text in documents.items():
+        tmp = scratch / f"{final.name}.new"
+        tmp.write_text(text, encoding="utf-8")
+        staged.append((tmp, final))
+    for tmp, final in staged:
+        os.replace(tmp, final)
+
+
+def normalize(raw: Path, test_dir: Path) -> Path:
+    """Normalise ``raw`` into ``test_dir/input.vcf`` and record it in test.toml.
+
+    Nothing in ``test_dir`` is modified until both documents are known good and
+    fully written to scratch files beside them; they are then renamed into
+    place. A rejected ``test.toml``, a bcftools error, or an I/O failure while
+    staging therefore leaves every file in the data-test exactly as it was
+    found. ``test_dir`` itself is the exception: it is created before bcftools
+    runs, so a failed run can leave an empty directory that was not there
+    before. No scratch file survives either way.
+
+    The one case that does not hold is a failure *between* the two renames,
+    which can leave a new ``input.vcf`` beside an unchanged ``test.toml``;
+    :func:`_publish` explains why that window is documented rather than closed.
+    Re-running on the same raw file repairs it, since the whole operation is
+    idempotent.
+
+    Args:
+        raw: Raw VCF, plain or bgzipped.
+        test_dir: Data-test directory; created with parents if needed.
+
+    Returns:
+        Path of the written ``input.vcf``.
+
+    bcftools must be exactly :data:`_REQUIRED_VERSION` on
+    :data:`_REQUIRED_HTSLIB`; that is checked before ``test_dir`` is created,
+    so a host with the wrong toolchain leaves not even an empty directory
+    behind.
+
+    Raises:
+        NormalizeError: If bcftools is missing, or bcftools or its htslib is
+            not the pinned version, or the raw file does not exist, or bcftools
+            rejects the input, or the normalised input has no records, or
+            ``test.toml`` is not valid TOML, or the test directory cannot be
+            written.
+    """
+    if not raw.is_file():
+        raise NormalizeError(f"no such raw VCF: {raw}")
+    versions = bcftools_versions()
+    # Ordered like the missing-bcftools check above it: both versions are
+    # settled before `test_dir` is created and long before `bcftools norm` is
+    # started, so a wrong toolchain leaves the filesystem exactly as it was.
+    check_pinned_version(versions)
+    version = versions.bcftools
+    try:
+        test_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise NormalizeError(f"could not create {test_dir}: {exc}") from exc
+
+    toml_path = test_dir / "test.toml"
+    out = test_dir / "input.vcf"
+    try:
+        with tempfile.TemporaryDirectory(dir=test_dir) as scratch:
+            scratch_dir = Path(scratch)
+            staged = scratch_dir / "staged.vcf"
+            _run_norm(raw, staged)
+            # Both documents are settled -- bcftools has run and test.toml has
+            # been read and validated -- before either final path is touched.
+            body = _strip_stamps(staged.read_text(encoding="utf-8"))
+            _require_records(body, raw=raw)
+            toml_text = render_input_table(toml_path, version=version)
+            _publish(scratch_dir, {out: body, toml_path: toml_text})
+    except OSError as exc:
+        raise NormalizeError(f"could not write into {test_dir}: {exc}") from exc
+    return out
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point.
+
+    Args:
+        argv: Argument list; ``None`` means the real command line.
+
+    Returns:
+        Process exit code: ``0`` on success, ``1`` on a normalisation failure.
+    """
+    args = _parse_args(argv)
+    try:
+        out = normalize(args.raw, args.test_dir)
+    except NormalizeError as exc:
+        print(f"normalize_input: {exc}", file=sys.stderr)
+        return 1
+    print(out)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

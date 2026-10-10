@@ -12,8 +12,17 @@ on:
         description: "Version to release (must already be merged to the default branch), e.g. 0.2.0"
         required: true
         type: string
+      dry_run:
+        description: "Dry run: build and run every test tier at the dispatched commit; no tag, no publish"
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
+
+# Release builds read no Actions cache (no rust-cache, setup-uv cache or
+# sccache): admin-dispatched parity-tests.yml runs execute PR code in master's
+# cache scope, so anything they can write must never feed a published wheel.
 
 env:
   CARGO_TERM_COLOR: always
@@ -23,18 +32,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      ref: ${{ steps.ref.outputs.ref }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Ensure the tag exists for this version
+      - name: Check the version files match the requested version
         env:
-          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version }}"
-          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
-            echo "Tag ${VERSION} already exists; using it."
+          # An existing tag is authoritative: the files at the dispatched
+          # commit may legitimately differ from a tag cut earlier.
+          if [ "$DRY_RUN" != "true" ] && git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists; skipping the version-file check."
             exit 0
           fi
           FILE_VER=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
@@ -43,11 +56,33 @@ jobs:
             echo "::error::Version mismatch on ${GITHUB_REF_NAME}: Cargo.toml=${FILE_VER} pyproject.toml=${PY_VER} but requested ${VERSION}. Merge the Version Bump PR first."
             exit 1
           fi
+      - name: Ensure the tag exists for this version
+        if: ${{ !inputs.dry_run }}
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists; using it."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${VERSION}" -m "Release ${VERSION}"
           git push origin "refs/tags/${VERSION}"
           echo "Created and pushed tag ${VERSION}."
+      - id: ref
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "ref=${SHA}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
 
   test-rust:
     needs: prepare
@@ -57,9 +92,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
       # extension-module makes PyO3 skip linking libpython; build tests without
       # it so the standalone test binary links libpython, and expose LIBDIR.
       - name: cargo test
@@ -75,11 +109,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
           lfs: true
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: false
       - name: Install VCF command-line tools
         run: |
           sudo apt-get update
@@ -98,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - uses: PyO3/maturin-action@v1
         with:
           command: sdist
@@ -119,13 +154,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: true
+          sccache: false
           manylinux: auto
       - uses: actions/upload-artifact@v4
         with:
@@ -143,13 +178,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: true
+          sccache: false
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-macos-${{ matrix.target }}
@@ -166,22 +201,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           maturin-version: v1.13.3
           args: --release --out dist --find-interpreter
-          sccache: true
+          sccache: false
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-win-${{ matrix.target }}
           path: dist
 
+  tier-vep-parity:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-vep-parity.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
+  tier-integration:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-integration.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
+  tier-nfcore:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-nfcore.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+
   publish:
     name: Publish to PyPI
-    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows]
+    if: ${{ !inputs.dry_run }}
+    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -189,9 +249,61 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist
+          name: wheels-sdist
+          path: dist-in/wheels-sdist
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist-in/wheels-manylinux-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-aarch64
+          path: dist-in/wheels-manylinux-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-x86_64
+          path: dist-in/wheels-macos-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-aarch64
+          path: dist-in/wheels-macos-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-win-x64
+          path: dist-in/wheels-win-x64
+      # Exactly the named build artifacts, nothing else: one sdist plus at
+      # least one wheel per platform, every file named for this version.
+      - name: Assemble and check dist/
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob dotglob
+          mkdir -p dist
+          for name in wheels-sdist wheels-manylinux-x86_64 wheels-manylinux-aarch64 wheels-macos-x86_64 wheels-macos-aarch64 wheels-win-x64; do
+            files=(dist-in/"$name"/*)
+            [ "${#files[@]}" -gt 0 ] || { echo "::error::artifact $name is empty"; exit 1; }
+            if [ "$name" = wheels-sdist ] && [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::wheels-sdist holds ${#files[@]} files, expected 1"; exit 1
+            fi
+            for f in "${files[@]}"; do
+              base=$(basename "$f")
+              if [ ! -f "$f" ] || [ -L "$f" ]; then
+                echo "::error::$name/$base is not a regular file"; exit 1
+              fi
+              if [ "$name" = wheels-sdist ]; then
+                [ "$base" = "vepyr-${VERSION}.tar.gz" ] || { echo "::error::unexpected sdist $base"; exit 1; }
+              else
+                case "$base" in
+                  "vepyr-${VERSION}-"*.whl) ;;
+                  *) echo "::error::unexpected file $name/$base"; exit 1 ;;
+                esac
+              fi
+              [ ! -e "dist/$base" ] || { echo "::error::duplicate file $base"; exit 1; }
+              mv "$f" dist/
+            done
+          done
+          ls -l dist
       - name: Publish to PyPI (OIDC Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -199,24 +311,77 @@ jobs:
           attestations: true
 
   github-release:
-    needs: [publish]
+    needs: [prepare, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ needs.prepare.outputs.ref }}
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist
+          name: wheels-sdist
+          path: dist-in/wheels-sdist
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist-in/wheels-manylinux-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-aarch64
+          path: dist-in/wheels-manylinux-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-x86_64
+          path: dist-in/wheels-macos-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-aarch64
+          path: dist-in/wheels-macos-aarch64
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-win-x64
+          path: dist-in/wheels-win-x64
+      # Exactly the named build artifacts, nothing else: one sdist plus at
+      # least one wheel per platform, every file named for this version.
+      - name: Assemble and check dist/
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob dotglob
+          mkdir -p dist
+          for name in wheels-sdist wheels-manylinux-x86_64 wheels-manylinux-aarch64 wheels-macos-x86_64 wheels-macos-aarch64 wheels-win-x64; do
+            files=(dist-in/"$name"/*)
+            [ "${#files[@]}" -gt 0 ] || { echo "::error::artifact $name is empty"; exit 1; }
+            if [ "$name" = wheels-sdist ] && [ "${#files[@]}" -ne 1 ]; then
+              echo "::error::wheels-sdist holds ${#files[@]} files, expected 1"; exit 1
+            fi
+            for f in "${files[@]}"; do
+              base=$(basename "$f")
+              if [ ! -f "$f" ] || [ -L "$f" ]; then
+                echo "::error::$name/$base is not a regular file"; exit 1
+              fi
+              if [ "$name" = wheels-sdist ]; then
+                [ "$base" = "vepyr-${VERSION}.tar.gz" ] || { echo "::error::unexpected sdist $base"; exit 1; }
+              else
+                case "$base" in
+                  "vepyr-${VERSION}-"*.whl) ;;
+                  *) echo "::error::unexpected file $name/$base"; exit 1 ;;
+                esac
+              fi
+              [ ! -e "dist/$base" ] || { echo "::error::duplicate file $base"; exit 1; }
+              mv "$f" dist/
+            done
+          done
+          ls -l dist
       - name: Create or update the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          TAG="${{ inputs.version }}"
+          TAG="$VERSION"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else

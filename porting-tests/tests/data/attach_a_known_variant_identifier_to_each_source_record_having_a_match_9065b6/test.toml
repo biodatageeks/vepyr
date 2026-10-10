@@ -1,0 +1,307 @@
+name = "attach_a_known_variant_identifier_to_each_source_record_having_a_match_9065b6"
+description = "Fixture covering 56 tests. Compare the complete output body with expected_output.vcf."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "05bf31b59c70febbbace9660e9b5288e"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "attach_a_known_variant_identifier_to_each_source_record_having_a_match_9065b6"
+description = "Attach a known-variant identifier to each source record having a match."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Variation.t#L323-L323"
+
+[[tests]]
+id = "emit_the_baseline_snv_s_transcript_consequence_set_once_each_1273d0"
+description = "Emit the baseline SNV's transcript consequence set once each."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L493-L497"
+
+[[tests]]
+id = "include_a_non_failed_cache_record_in_existing_variation_c44397"
+description = "Include a non-failed cache record in Existing_variation."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Variation.t#L52-L52"
+
+[[tests]]
+id = "include_the_baseline_snv_s_most_severe_missense_consequence_8501cb"
+description = "Include the baseline SNV's most-severe missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Transcript.t#L293-L293"
+
+[[tests]]
+id = "include_the_default_distance_upstream_consequence_e1e740"
+description = "Include the default-distance upstream consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/Runner.t#L623-L623"
+
+[[tests]]
+id = "leave_amino_acids_empty_on_the_utr_consequence_4ea64b"
+description = "Leave Amino_acids empty on the UTR consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1138-L1153"
+
+[[tests]]
+id = "leave_cds_position_empty_on_the_utr_consequence_7afb73"
+description = "Leave CDS_position empty on the UTR consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1138-L1153"
+
+[[tests]]
+id = "leave_codons_empty_on_the_utr_consequence_ef1983"
+description = "Leave Codons empty on the UTR consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1138-L1153"
+
+[[tests]]
+id = "leave_protein_position_empty_on_the_utr_consequence_71fc47"
+description = "Leave Protein_position empty on the UTR consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1138-L1153"
+
+[[tests]]
+id = "match_a_cache_variant_by_the_same_forward_strand_alt_cd558d"
+description = "Match a cache variant by the same forward-strand ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Cache_Variation.t#L79-L91"
+
+[[tests]]
+id = "preserve_all_consequence_entries_when_no_pick_filter_is_active_67fa8e"
+description = "Preserve all consequence entries when no pick filter is active."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L373-L373"
+
+[[tests]]
+id = "report_afr_af_for_the_matched_alt_dc8c2f"
+description = "Report AFR_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L724-L736"
+
+[[tests]]
+id = "report_allele_matched_existing_variation_for_the_baseline_snv_4e6f3f"
+description = "Report allele-matched Existing_variation for the baseline SNV."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L71-L75"
+
+[[tests]]
+id = "report_amr_af_for_the_matched_alt_37851a"
+description = "Report AMR_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L724-L736"
+
+[[tests]]
+id = "report_appris_on_the_corresponding_coding_transcript_3e26c5"
+description = "Report APPRIS on the corresponding coding transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L349-L363"
+
+[[tests]]
+id = "report_biotype_for_the_selected_transcript_afe52a"
+description = "Report BIOTYPE for the selected transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L947-L947"
+
+[[tests]]
+id = "report_canonical_for_the_selected_transcript_435723"
+description = "Report CANONICAL for the selected transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L947-L947"
+
+[[tests]]
+id = "report_ccds_for_the_selected_transcript_19498a"
+description = "Report CCDS for the selected transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L947-L947"
+
+[[tests]]
+id = "report_cdna_position_for_the_coding_transcript_consequence_4aaf19"
+description = "Report cDNA_position for the coding transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1077-L1096"
+
+[[tests]]
+id = "report_cdna_position_for_the_utr_consequence_de435c"
+description = "Report cDNA_position for the UTR consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1138-L1153"
+
+[[tests]]
+id = "report_distance_for_the_upstream_transcript_consequence_771ad1"
+description = "Report DISTANCE for the upstream transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L841-L854"
+
+[[tests]]
+id = "report_eas_af_for_the_matched_alt_79139c"
+description = "Report EAS_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L724-L736"
+
+[[tests]]
+id = "report_ensp_for_the_selected_transcript_e0d56e"
+description = "Report ENSP for the selected transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L947-L947"
+
+[[tests]]
+id = "report_eur_af_for_the_matched_alt_270b07"
+description = "Report EUR_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L724-L736"
+
+[[tests]]
+id = "report_feature_for_the_upstream_transcript_consequence_09656e"
+description = "Report Feature for the upstream transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L841-L854"
+
+[[tests]]
+id = "report_feature_type_for_the_upstream_transcript_consequence_1d114e"
+description = "Report Feature_type for the upstream transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L841-L854"
+
+[[tests]]
+id = "report_gene_for_the_upstream_transcript_consequence_b1b634"
+description = "Report Gene for the upstream transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L841-L854"
+
+[[tests]]
+id = "report_global_af_for_the_matched_alt_117bc4"
+description = "Report global AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L701-L705"
+
+[[tests]]
+id = "report_gnomade_af_for_the_matched_alt_e9d93f"
+description = "Report gnomADe_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_afr_af_for_the_matched_alt_656349"
+description = "Report gnomADe_AFR_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_amr_af_for_the_matched_alt_c46dff"
+description = "Report gnomADe_AMR_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_asj_af_for_the_matched_alt_0858e8"
+description = "Report gnomADe_ASJ_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_eas_af_for_the_matched_alt_91fbf8"
+description = "Report gnomADe_EAS_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_fin_af_for_the_matched_alt_7577bd"
+description = "Report gnomADe_FIN_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_mid_af_for_the_matched_alt_81261d"
+description = "Report gnomADe_MID_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_nfe_af_for_the_matched_alt_7fc273"
+description = "Report gnomADe_NFE_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_remaining_af_for_the_matched_alt_2ad5c5"
+description = "Report gnomADe_REMAINING_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_gnomade_sas_af_for_the_matched_alt_f01113"
+description = "Report gnomADe_SAS_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L765-L801"
+
+[[tests]]
+id = "report_hgnc_id_for_the_transcript_s_gene_eb395e"
+description = "Report HGNC_ID for the transcript's gene."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L909-L921"
+
+[[tests]]
+id = "report_hgvsp_for_the_coding_transcript_consequence_f3d297"
+description = "Report HGVSp for the coding transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1130-L1134"
+
+[[tests]]
+id = "report_max_af_for_the_baseline_snv_b55949"
+description = "Report MAX_AF for the baseline SNV."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L349-L363"
+
+[[tests]]
+id = "report_max_af_pops_for_the_baseline_snv_5e367f"
+description = "Report MAX_AF_POPS for the baseline SNV."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L349-L363"
+
+[[tests]]
+id = "report_polyphen_prediction_and_score_as_one_formatted_field_1b38de"
+description = "Report PolyPhen prediction and score as one formatted field."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1201-L1201"
+
+[[tests]]
+id = "report_protein_position_for_the_coding_transcript_consequence_b5328c"
+description = "Report Protein_position for the coding transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1077-L1096"
+
+[[tests]]
+id = "report_sas_af_for_the_matched_alt_0c0daa"
+description = "Report SAS_AF for the matched ALT."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L724-L736"
+
+[[tests]]
+id = "report_sift_prediction_and_score_as_one_formatted_field_aa0aad"
+description = "Report SIFT prediction and score as one formatted field."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1201-L1201"
+
+[[tests]]
+id = "report_strand_for_the_coding_transcript_consequence_52d40d"
+description = "Report STRAND for the coding transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1077-L1096"
+
+[[tests]]
+id = "report_strand_for_the_upstream_transcript_consequence_224983"
+description = "Report STRAND for the upstream transcript consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L841-L854"
+
+[[tests]]
+id = "report_swissprot_protein_cross_references_03c684"
+description = "Report SWISSPROT protein cross-references."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L962-L962"
+
+[[tests]]
+id = "report_symbol_for_the_transcript_s_gene_e97e95"
+description = "Report SYMBOL for the transcript's gene."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L909-L921"
+
+[[tests]]
+id = "report_symbol_source_for_the_transcript_s_gene_d2e44a"
+description = "Report SYMBOL_SOURCE for the transcript's gene."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L909-L921"
+
+[[tests]]
+id = "report_the_3_prime_utr_consequence_term_c6f354"
+description = "Report the 3-prime-UTR consequence term."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L1138-L1153"
+
+[[tests]]
+id = "report_the_exon_ordinal_and_total_in_exon_2ecdac"
+description = "Report the exon ordinal and total in EXON."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L881-L885"
+
+[[tests]]
+id = "report_tsl_for_the_selected_transcript_d21296"
+description = "Report TSL for the selected transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L947-L947"
+
+[[tests]]
+id = "report_uniparc_protein_cross_references_63ef94"
+description = "Report UNIPARC protein cross-references."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L962-L962"
+
+[[tests]]
+id = "report_variant_class_snv_for_a_single_base_substitution_17292c"
+description = "Report VARIANT_CLASS=SNV for a single-base substitution."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L202-L210"

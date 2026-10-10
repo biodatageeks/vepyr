@@ -1,0 +1,42 @@
+name = "preserve_zero_valued_csq_annotations_instead_of_treating_them_as_missing_0a787d"
+description = "Fixture covering 3 tests. Compare the complete output body with expected_output.vcf."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "8ca336860f78a5650f0527fbf2e2b8b4"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "preserve_zero_valued_csq_annotations_instead_of_treating_them_as_missing_0a787d"
+description = "Preserve zero-valued CSQ annotations instead of treating them as missing."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L254-L258"
+
+[[tests]]
+id = "report_the_overlapping_protein_domain_annotations_in_domains_bce9ee"
+description = "Report the overlapping protein-domain annotations in DOMAINS."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory.t#L900-L904"
+
+[[tests]]
+id = "report_the_protein_domain_identifiers_on_a_domain_overlapping_consequence_5758e2"
+description = "Report the protein-domain identifiers on a domain-overlapping consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/AnnotationSource_Database_Transcript.t#L142-L203"

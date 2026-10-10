@@ -60,7 +60,7 @@ Needed on every host:
 
 - **Docker** — Docker Desktop on macOS; Docker Engine on Linux, with your user
   allowed to run `docker` without `sudo`.
-- **Nextflow** (>= 24.10.2) and **Java 11+**.
+- **Nextflow 26.04** (the committed snapshots record 26.04.6; 24.10.x rejects the module under strict syntax), **nf-test 0.9.5** and **Java 11+**.
 - **uv** and the project environment (`uv sync` at the repository root):
   `stage-testdata.sh` uses it to build and verify the test data (it also needs
   samtools, bgzip and tabix on `PATH`).
@@ -173,6 +173,8 @@ nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 | `VEPYR_DOCKER_PLATFORM` | `dev/local.config` | `linux/arm64` (Apple Silicon, Linux aarch64) or `linux/amd64` (Linux x86_64) |
 | `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:ebb29e9a21ff05c9` (arm64) or `…:408f2021357958aa` (amd64) |
 | `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above leaves it unset. |
+| `VEPYR_NF_TESTDATA=published` | `dev/nf-test-local.sh` | the runner skips staging and runs against nf-core's published test-datasets, as the committed snapshots were made |
+| `VEPYR_NF_TESTS` | `dev/nf-test-local.sh` | space-separated test files to run instead of the default four |
 | `VEPYR_HG002_CHR22` | `dev/local.config` | absolute path to `tests/data/hg002_chr22`; the parity test only |
 
 The test appends file paths to `VEPYR_NF_TESTDATA`, so the base URL itself is
@@ -186,8 +188,15 @@ it on first run.
 `modules/nf-core/vepyr/annotate/tests/main.nf.test.snap`. A leftover file from
 an earlier run — for instance one where a task failed and nf-test recorded empty
 outputs — fails the next run with `Different Snapshot`. Delete it, or pass
-`--update-snapshot` to rewrite it. Commit one only when it comes from nf-core's
-published URLs (`VEPYR_NF_TESTDATA` unset), after #2270 merges.
+`--update-snapshot` to rewrite it.
+
+The committed `main.nf.test.snap` files are verbatim copies from
+nf-core/modules (commit `79f59f34008aa403b409acd90df0cd9328023653`). Refresh them with the module
+and subworkflow when upstream changes. CI runs the submission tests against the
+published test data (`VEPYR_NF_TESTDATA=published`) with `--ci`, after
+rewriting only the vepyr version in its working copy to the version of the
+wheel under test (`ci/ci_helpers.py snap-version`). A local run against
+staged `.testdata/` will not match them; do not commit snapshots it produces.
 
 ## Linting
 

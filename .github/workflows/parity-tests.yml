@@ -1,0 +1,257 @@
+name: Parity tests
+
+# Admin-only gate for a PR: Ensembl VEP parity (tier 2) and integration
+# (tier 3) on the PR head, reported as commit statuses that branch protection
+# requires. Two ways to start it:
+#   gh workflow run parity-tests.yml -f pr=123
+#   a PR comment that is exactly `/parity`
+# issue_comment always runs the default branch's copy of this workflow, so a PR
+# cannot change the workflow that judges it.
+# The SHA is resolved once by `authorize`; a push during the run leaves the new
+# head without a status, so it stays blocked until an admin re-runs this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+# Every PR comment starts a run, so only a candidate command from the owner or
+# a repository collaborator joins (and may cancel) the PR's group; any other comment
+# gets a group of its own and cannot cancel a running parity run.
+concurrency:
+  group: >-
+    ${{
+      (github.event_name == 'workflow_dispatch'
+        || (github.event.issue.pull_request
+            && startsWith(github.event.comment.body, '/parity')
+            && contains(fromJSON('["OWNER","COLLABORATOR"]'), github.event.comment.author_association)))
+      && format('parity-{0}', inputs.pr || github.event.issue.number)
+      || format('parity-ignored-{0}', github.run_id)
+    }}
+  cancel-in-progress: true
+
+jobs:
+  # Exact command check, separate from authorize so that a non-command comment
+  # ends here with every later job skipped. Runs master's helper only: for
+  # issue_comment the ref is always the default branch.
+  command:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.issue.pull_request
+          && startsWith(github.event.comment.body, '/parity'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - if: github.event_name == 'issue_comment'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: ci
+      - id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ] \
+            || python3 ci/ci_helpers.py is-parity-command --env COMMENT_BODY; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            echo "Comment is not exactly /parity; nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  authorize:
+    needs: command
+    if: needs.command.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      # Read the PR; for a /parity comment, also reply (pull-requests) and
+      # react on the comment (issue comment reactions need issues: write).
+      pull-requests: write
+      issues: write
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr || github.event.issue.number }}
+      COMMENT_ID: ${{ github.event.comment.id }}
+      REF: ${{ github.ref }}
+      ACTOR: ${{ github.actor }}
+      TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+    steps:
+      - name: Only master's workflow may run this
+        run: |
+          # Dispatching from a branch would run that branch's workflow and helper.
+          [ "$REF" = "refs/heads/master" ] || { echo "::error::dispatch from master, not $REF"; exit 1; }
+      - id: admin
+        name: Only admins may run this
+        run: |
+          # A re-run keeps github.actor as the original dispatcher, so check
+          # both. "Re-run all jobs" re-runs this job, so triggering_actor must be
+          # an admin; "Re-run failed jobs" reuses the earlier successful
+          # authorize, which is acceptable: an admin already approved that SHA.
+          # For a /parity comment, github.actor is the commenter.
+          for who in "$ACTOR" "$TRIGGERING_ACTOR"; do
+            perm=$(gh api "repos/$REPO/collaborators/$who/permission" --jq .permission)
+            if [ "$perm" != "admin" ]; then
+              echo "::error::$who has '$perm' permission; parity tests are admin-only"; exit 1
+            fi
+          done
+      - id: pr
+        name: Resolve the PR head SHA
+        run: |
+          [[ "$PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number, got '$PR'"; exit 1; }
+          state=$(gh api "repos/$REPO/pulls/$PR" --jq .state)
+          [ "$state" = "open" ] || { echo "::error::PR #$PR is $state"; exit 1; }
+          sha=$(gh api "repos/$REPO/pulls/$PR" --jq .head.sha)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Testing PR #$PR at $sha" >> "$GITHUB_STEP_SUMMARY"
+      - name: Mark pending
+        env:
+          SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          failed=0
+          for ctx in parity/vep-parity parity/integration; do
+            gh api -X POST "repos/$REPO/statuses/$SHA" \
+              -f state=pending -f context="$ctx" -f description="running" \
+              -f target_url="$url" || failed=1
+          done
+          exit "$failed"
+      - name: Acknowledge the /parity comment
+        if: github.event_name == 'issue_comment'
+        # The run is already authorized and pending; a failed reply must not
+        # skip the tests and leave the statuses pending.
+        continue-on-error: true
+        env:
+          SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          gh api -X POST "repos/$REPO/issues/$PR/comments" \
+            -f body="Parity tests started on \`$SHA\` for @$ACTOR: $url"
+          gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=rocket \
+            || echo "::warning::reaction failed"
+      - name: Refuse a non-admin /parity comment
+        if: failure() && github.event_name == 'issue_comment' && steps.admin.outcome == 'failure'
+        run: |
+          gh api -X POST "repos/$REPO/issues/$PR/comments" \
+            -f body="@$ACTOR /parity is admin-only; ask a maintainer to run it."
+      - name: Report a /parity comment that could not start
+        if: failure() && github.event_name == 'issue_comment' && steps.admin.outcome == 'success'
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          gh api -X POST "repos/$REPO/issues/$PR/comments" \
+            -f body="/parity could not start; see $url"
+
+  build-wheel:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+      - uses: PyO3/maturin-action@v1
+        with:
+          target: x86_64
+          args: --release --out dist --find-interpreter
+          # No sccache: a PR build.rs could poison entries in master's cache scope.
+          sccache: false
+          manylinux: auto
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist
+
+  vep-parity:
+    needs: [authorize, build-wheel]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-vep-parity.yml
+    with:
+      ref: ${{ needs.authorize.outputs.sha }}
+
+  integration:
+    needs: [authorize, build-wheel]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-integration.yml
+    with:
+      ref: ${{ needs.authorize.outputs.sha }}
+
+  report:
+    needs: [authorize, vep-parity, integration]
+    if: ${{ !cancelled() && needs.authorize.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+      # Reply on the PR for a /parity comment.
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr || github.event.issue.number }}
+      SHA: ${{ needs.authorize.outputs.sha }}
+      # Produced by jobs that ran PR code: data only, never interpolated into a script.
+      PROFILES: ${{ needs.integration.outputs.profiles }}
+      VEP_PARITY_RESULT: ${{ needs.vep-parity.result }}
+      INTEGRATION_RESULT: ${{ needs.integration.result }}
+    steps:
+      # The workflow's own ref (master), never the PR: this job holds statuses: write.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: results
+      - name: Post statuses
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          mkdir -p results
+          python3 ci/ci_helpers.py statuses --results-dir results \
+            --profiles "$PROFILES" \
+            --vep-parity-job "$VEP_PARITY_RESULT" --integration-job "$INTEGRATION_RESULT" \
+            > statuses.tsv
+          cat statuses.tsv
+          failed=0
+          while IFS=$'\t' read -r ctx state desc; do
+            gh api -X POST "repos/$REPO/statuses/$SHA" \
+              -f state="$state" -f context="$ctx" -f description="$desc" \
+              -f target_url="$url" || failed=1
+          done < statuses.tsv
+          exit "$failed"
+      - name: Reply to the /parity comment
+        if: ${{ !cancelled() && github.event_name == 'issue_comment' }}
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          body="Parity tests on \`$SHA\`:"
+          # Descriptions can carry text from jobs that ran PR code: keep them
+          # inside code spans so they cannot render as markdown or mentions.
+          for want in parity/vep-parity parity/integration; do
+            row=$(awk -F'\t' -v c="$want" '$1 == c { print $2 "\t" $3; exit }' statuses.tsv 2>/dev/null || true)
+            state=${row%%$'\t'*}
+            desc=${row#*$'\t'}
+            [ -n "$row" ] || { state=error; desc="no status computed"; }
+            body+=$'\n'"- \`$want\`: **${state//[^a-z]/}** \`${desc//\`/}\`"
+          done
+          body+=$'\n\n'"Run: $url"
+          gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$body"

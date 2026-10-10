@@ -1,0 +1,6 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=21>
+##INFO=<ID=BCSQ,Number=1,Type=String,Description="Preserved value">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+21	25585733	rs142513484	C	T	.	.	BCSQ=sentinel

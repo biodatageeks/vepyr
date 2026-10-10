@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# ./run_tests — single entry point for this repository's tooling; `./run_tests --help`.
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$here/tools" uv run --frozen --project "$here" python -m run_tests "$@"

@@ -1,0 +1,33 @@
+name = "existing_csq_info_replaced"
+description = "Fixture covering 1 test. Compare the complete output body with expected_output.vcf."
+
+[[tests]]
+id = "existing_csq_info_replaced"
+description = "vepyr annotates three records 21 25585733 C>T whose input INFO already holds CSQ=foo (first, middle, last key) to the same output body as native VEP 116: the old CSQ is replaced and the new one comes last."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L453-L491"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[vepyr]
+flavour = "merged"
+# Names the cache shard (chr21.parquet), not the input spelling; the input uses "21".
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-09"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+extra_flags = ["--merged"]
+
+[compare]
+body_md5 = "4bd552e6cc1cea0e0f84c2b29f2a1254"

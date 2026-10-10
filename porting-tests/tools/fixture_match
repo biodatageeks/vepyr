@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# tools/fixture_match --input PATH --fixture SRC --records N [--rust-const NAME] [--by-pos] [--negative-control]
+# First N records of an input equal an upstream fixture's (#171).
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$here" uv run --frozen --project "$here/.." python -m fixture_match "$@"

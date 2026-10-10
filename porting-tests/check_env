@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# ./check_env [--vepyr-cache-root DIR] [--vep-cache-dir DIR] [--vep-fasta FILE] [--docker-timeout S]
+# Check the local prerequisites of the repo tools (#170). --no-project: the tools import only
+# the standard library, and a project run would create the uv environment before it is checked.
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec env PYTHONPATH="$here/tools" uv run --no-project --python '>=3.12' python -m check_env "$@"

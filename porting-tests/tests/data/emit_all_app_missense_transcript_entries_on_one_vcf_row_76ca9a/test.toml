@@ -1,0 +1,97 @@
+name = "emit_all_app_missense_transcript_entries_on_one_vcf_row_76ca9a"
+description = "Fixture covering 14 tests. Compare the complete output body with expected_output.vcf."
+
+[vepyr]
+flavour = "merged"
+required_contigs = ["chr21"]
+everything = true
+preserve_record_layout = true
+reference_fasta = true
+
+[vep]
+extra_flags = ["--merged"]
+image = "ensemblorg/ensembl-vep@sha256:5c57abdc40b637cac198370b4c114777fa24de3336141fdf09d2b0c43cd4b8da"
+command = "vep --offline --cache --dir_cache /opt/vep/.vep --species homo_sapiens --cache_version 116 --assembly GRCh38 --fasta /opt/vep/fasta/Homo_sapiens.GRCh38.dna.primary_assembly.fa --everything --vcf --input_file input.vcf --output_file expected_output.vcf --force_overwrite --merged"
+date = "2026-10-03"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+vep_cache_checksum = "unverified"
+fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+fasta_checksum = "unverified"
+
+[compare]
+body_md5 = "e4a8977ffa983361a70be47d05515bbb"
+
+[input]
+command = "bcftools norm -m -both -o <out.vcf> <in.vcf.gz>"
+bcftools_version = "bcftools 1.23"
+
+[[tests]]
+id = "emit_all_app_missense_transcript_entries_on_one_vcf_row_76ca9a"
+description = "Emit all APP missense transcript entries on one VCF row."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_amino_acids_on_the_app_missense_consequence_d7ccf3"
+description = "Report Amino_acids on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_cdna_position_on_the_app_missense_consequence_977462"
+description = "Report cDNA_position on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_cds_position_on_the_app_missense_consequence_056000"
+description = "Report CDS_position on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_cds_start_nf_on_the_corresponding_app_transcript_cb9981"
+description = "Report cds_start_NF on the corresponding APP transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_codons_on_the_app_missense_consequence_cbe4c8"
+description = "Report Codons on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_combined_cds_start_nf_cds_end_nf_on_the_corresponding_app_transcript_29953f"
+description = "Report combined cds_start_NF/cds_end_NF on the corresponding APP transcript."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_consequence_on_the_app_missense_consequence_ee42f3"
+description = "Report Consequence on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_feature_on_the_app_missense_consequence_1af3b5"
+description = "Report Feature on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_feature_type_on_the_app_missense_consequence_abf690"
+description = "Report Feature_type on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_gene_on_the_app_missense_consequence_6a2934"
+description = "Report Gene on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_impact_on_the_app_missense_consequence_0a7efe"
+description = "Report IMPACT on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_protein_position_on_the_app_missense_consequence_8d0c56"
+description = "Report Protein_position on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"
+
+[[tests]]
+id = "report_strand_on_the_app_missense_consequence_295378"
+description = "Report STRAND on the APP missense consequence."
+vep_test = "https://github.com/Ensembl/ensembl-vep/blob/release/116.2/t/OutputFactory_VCF.t#L294-L309"

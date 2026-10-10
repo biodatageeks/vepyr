@@ -100,40 +100,40 @@ fetch_module bcftools/norm 45778ac3f84844e33a7afd9282a3a26409c277b2
 fetch_module huggingface/download 45778ac3f84844e33a7afd9282a3a26409c277b2
 
 testdata="${module_root}/.testdata"
-# Restage whenever anything the staged data is built from changes: the staging
-# scripts and the chr22 fixture they cut it from. The hash of those inputs is
-# stored beside .testdata/data; a missing or different hash restages, so a
-# local run never tests data built by an older stage_testdata.py or fixture.
 fixture="${module_root}/../tests/data/hg002_chr22"
-# nullglob: an empty cache entity directory contributes nothing instead of a
-# literal pattern that cat cannot open.
-shopt -s nullglob
-stage_inputs=(
-    stage-testdata.sh
-    stage_testdata.py
-    "${fixture}/prepare.py"
-    "${fixture}"/input_chr22.vcf.gz*
-    "${fixture}"/chr22.fa.gz*
-    "${fixture}"/cache/*/*
-)
-shopt -u nullglob
-if command -v sha256sum >/dev/null 2>&1; then
-    stage_hash="$(cat "${stage_inputs[@]}" | sha256sum | cut -d' ' -f1)"
+
+# VEPYR_NF_TESTDATA=published: run the submission tests against nf-core's
+# published test-datasets (what the committed snapshots were made from) and
+# skip local staging. Anything else (or unset) stages .testdata/ as before.
+if [[ "${VEPYR_NF_TESTDATA:-}" == "published" ]]; then
+    unset VEPYR_NF_TESTDATA
 else
-    stage_hash="$(cat "${stage_inputs[@]}" | shasum -a 256 | cut -d' ' -f1)"
-fi
-stage_stamp="${testdata}/stage-inputs.sha256"
-if [[ "$(cat "${stage_stamp}" 2>/dev/null)" != "${stage_hash}" ]]; then
-    ./stage-testdata.sh "${testdata}"
-    echo "${stage_hash}" > "${stage_stamp}"
+    shopt -s nullglob
+    stage_inputs=(
+        stage-testdata.sh
+        stage_testdata.py
+        "${fixture}/prepare.py"
+        "${fixture}"/input_chr22.vcf.gz*
+        "${fixture}"/chr22.fa.gz*
+        "${fixture}"/cache/*/*
+    )
+    shopt -u nullglob
+    if command -v sha256sum >/dev/null 2>&1; then
+        stage_hash="$(cat "${stage_inputs[@]}" | sha256sum | cut -d' ' -f1)"
+    else
+        stage_hash="$(cat "${stage_inputs[@]}" | shasum -a 256 | cut -d' ' -f1)"
+    fi
+    stage_stamp="${testdata}/stage-inputs.sha256"
+    if [[ "$(cat "${stage_stamp}" 2>/dev/null)" != "${stage_hash}" ]]; then
+        ./stage-testdata.sh "${testdata}"
+        echo "${stage_hash}" > "${stage_stamp}"
+    fi
+    export VEPYR_NF_TESTDATA="${testdata}/data/"
 fi
 
+# VEPYR_NF_TESTS: space-separated subset of test files (default: all four).
+read -r -a nf_tests <<< "${VEPYR_NF_TESTS:-modules/nf-core/vepyr/annotate/tests/main.nf.test subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test dev/tests/hg002_chr22.nf.test dev/tests/hg002_chr22_normalize.nf.test}"
+
 # dev/tests/hg002_chr22*.nf.test read the offline VEP parity fixture in place.
-VEPYR_NF_TESTDATA="${testdata}/data/" \
-VEPYR_HG002_CHR22="${module_root}/../tests/data/hg002_chr22" \
-    "${nf_test}" test \
-    modules/nf-core/vepyr/annotate/tests/main.nf.test \
-    subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test \
-    dev/tests/hg002_chr22.nf.test \
-    dev/tests/hg002_chr22_normalize.nf.test \
-    --config dev/nf-test.config "$@"
+VEPYR_HG002_CHR22="${fixture}" \
+    "${nf_test}" test "${nf_tests[@]}" --config dev/nf-test.config "$@"

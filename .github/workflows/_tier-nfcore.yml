@@ -1,0 +1,111 @@
+name: Tier 4 - nf-core module and subworkflow
+
+# Reusable: nf-test with a task image built from the wheel under test (never
+# pushed). Two jobs so a failure says whether the module or the
+# subworkflow/parity tests broke.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      wheel-artifact:
+        type: string
+        default: wheels-manylinux-x86_64
+
+permissions:
+  contents: read
+
+jobs:
+  nfcore:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: nfcore-module
+            tests: modules/nf-core/vepyr/annotate/tests/main.nf.test
+            lfs: ""
+          - suite: nfcore-subworkflow-parity
+            tests: >-
+              subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test
+              dev/tests/hg002_chr22.nf.test
+              dev/tests/hg002_chr22_normalize.nf.test
+            lfs: tests/data/hg002_chr22/**
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          lfs: false
+      - name: Fetch the offline parity fixture from LFS
+        if: matrix.lfs != ''
+        run: git lfs pull --include '${{ matrix.lfs }}'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.wheel-artifact }}
+          path: dist
+      - id: wheel
+        run: |
+          wheel=$(python3 ci/ci_helpers.py find-wheel dist)
+          echo "path=$wheel" >> "$GITHUB_OUTPUT"
+          echo "version=$(python3 ci/ci_helpers.py wheel-version "$wheel")" >> "$GITHUB_OUTPUT"
+      - name: Build the task image from the wheel
+        run: |
+          mkdir -p "$RUNNER_TEMP/ctx"
+          cp "${{ steps.wheel.outputs.path }}" "$RUNNER_TEMP/ctx/"
+          docker build -f nf-core-module/dev/Dockerfile.pr \
+            --build-arg CONDA_SPECS="$(python3 ci/ci_helpers.py conda-specs nf-core-module/modules/nf-core/vepyr/annotate/environment.yml)" \
+            -t "vepyr-pr:${{ inputs.ref }}" "$RUNNER_TEMP/ctx"
+          docker run --rm "vepyr-pr:${{ inputs.ref }}" vepyr --version
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: nf-core/setup-nextflow@v2
+        with:
+          version: "26.04.6"
+      # Not nf-core/setup-nf-test: it always writes an Actions cache, and
+      # parity runs execute PR code in master's cache scope, so a PR could
+      # pre-seed the key that the release run would then restore and execute.
+      - name: Install nf-test (pinned, checksummed, no Actions cache)
+        env:
+          NFT_VERSION: "0.9.5"
+          NFT_SHA256: b7679eb90cdc9642bfa89e9634db02ce6e699de53ad35ef0e2f4847634fc1641
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          curl -fsSL --retry 3 -o "$tmp/nf-test.tar.gz" \
+            "https://github.com/askimed/nf-test/releases/download/v${NFT_VERSION}/nf-test-${NFT_VERSION}.tar.gz"
+          echo "${NFT_SHA256}  $tmp/nf-test.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.nf-test"
+          tar -xzf "$tmp/nf-test.tar.gz" -C "$HOME/.nf-test" nf-test nf-test.jar
+          chmod +x "$HOME/.nf-test/nf-test"
+          echo "$HOME/.nf-test" >> "$GITHUB_PATH"
+          "$HOME/.nf-test/nf-test" version
+      # Module snapshot only: the subworkflow snapshot carries no vepyr version.
+      - name: Point the module snapshot at the wheel's version
+        run: |
+          python3 ci/ci_helpers.py snap-version \
+            --snap nf-core-module/modules/nf-core/vepyr/annotate/tests/main.nf.test.snap \
+            --version "${{ steps.wheel.outputs.version }}"
+      - name: nf-test
+        working-directory: nf-core-module
+        env:
+          # docker.io/library/ is what Docker resolves the local tag to; the
+          # explicit registry stops tests/config/nf-test.config prepending quay.io.
+          VEPYR_CONTAINER: docker.io/library/vepyr-pr:${{ inputs.ref }}
+          VEPYR_DOCKER_PLATFORM: linux/amd64
+          VEPYR_NF_TESTDATA: published
+          VEPYR_NF_TESTS: ${{ matrix.tests }}
+        run: ./dev/nf-test-local.sh --ci
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ matrix.suite }}-nf-test
+          path: |
+            nf-core-module/.nf-test/tests/*/meta
+            nf-core-module/.nf-test.log
+          if-no-files-found: ignore

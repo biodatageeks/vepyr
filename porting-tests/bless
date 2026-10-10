@@ -1,0 +1,18 @@
+#!/bin/bash
+# ./bless — make or check a data-test's VEP 116.2 oracle; `./bless --help`.
+# Deliberately independent of PATH (no /usr/bin/env, no dirname): `./bless --check`
+# must work with PATH=/nonexistent, and a missing docker must be reported by bless
+# itself rather than by the shell. uv is located on PATH first, then in its
+# standard install locations.
+here="${BASH_SOURCE[0]%/*}"; [[ "$here" == "${BASH_SOURCE[0]}" ]] && here=.
+here="$(cd -- "$here" && pwd)"
+uv="$(command -v uv 2>/dev/null)"
+for candidate in "$HOME/.local/bin/uv" "$HOME/.cargo/bin/uv" /opt/homebrew/bin/uv /usr/local/bin/uv /usr/bin/uv; do
+  [[ -n "$uv" ]] && break
+  [[ -x "$candidate" ]] && uv="$candidate"
+done
+if [[ -z "$uv" ]]; then
+  echo "bless: uv is not installed (looked on PATH and in ~/.local/bin, ~/.cargo/bin, /opt/homebrew/bin, /usr/local/bin); install it from https://docs.astral.sh/uv/" >&2
+  exit 1
+fi
+PYTHONPATH="$here/tools" exec "$uv" run --frozen --project "$here" python -m bless "$@"
