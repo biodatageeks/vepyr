@@ -25,20 +25,6 @@ permissions: {}
 env:
   WGS_IMAGE: vepyr-wgs:1
 
-# One whole-genome run at a time on the machine; a second request waits.
-# Non-command comments get their own group so they never queue behind a run.
-concurrency:
-  group: >-
-    ${{
-      (github.event_name == 'workflow_dispatch'
-        || (github.event.issue.pull_request
-            && startsWith(github.event.comment.body, '/parity-wgs')
-            && contains(fromJSON('["OWNER","COLLABORATOR"]'), github.event.comment.author_association)))
-      && 'parity-wgs'
-      || format('parity-wgs-ignored-{0}', github.run_id)
-    }}
-  cancel-in-progress: false
-
 jobs:
   # Exact command check, separate from authorize so that a non-command comment
   # ends here with every later job skipped. Runs master's helper only: for
@@ -199,6 +185,15 @@ jobs:
   # (PR) code on the host: the wheel is found with a shell glob, the fallback
   # result is written with printf, and the PR's run-profile.sh runs only
   # inside a throwaway, unprivileged container.
+  # The host never follows a PR-controlled path: after checkout it neither
+  # reads nor writes the workspace (a PR can commit symlinks there), and it
+  # reads $SCRATCH (written by PR code in the container) only after purging
+  # every non-regular entry, copying size-capped regular files into $RES,
+  # a host-created directory outside the workspace that all uploads come from.
+  # Serialisation: one runner carries the vepyr-wgs label, so jobs queue FIFO
+  # there; max-parallel keeps a run's own profiles in sequence. No workflow
+  # concurrency group: GitHub keeps only one pending run per group, so any
+  # third request would evict a queued admin run.
   profile:
     needs: [authorize, build-wheel]
     name: wgs (${{ matrix.profile }})
@@ -219,6 +214,8 @@ jobs:
         run: |
           find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
           rm -rf "$SCRATCH" && mkdir -p "$SCRATCH"
+          res=$(mktemp -d "$RUNNER_TEMP/wgs-res.XXXXXX")
+          echo "RES=$res" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.authorize.outputs.sha }}
@@ -232,41 +229,61 @@ jobs:
         name: Whole-genome parity in a fresh container
         run: |
           docker image inspect "$WGS_IMAGE" >/dev/null || { echo "::error::image $WGS_IMAGE missing on runner; run ci/wgs-runner/build-image.sh"; exit 3; }
-          # No checked-out (PR) code runs on the host: shell only here.
+          # No checked-out (PR) code runs on the host: shell only here. The
+          # container has not run yet, so dist/ holds only the downloaded wheel.
           shopt -s nullglob
           wheels=("$SCRATCH"/dist/vepyr-*manylinux*x86_64*.whl)
           [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one x86_64 wheel, got ${#wheels[@]}"; exit 3; }
           wheel="${wheels[0]}"
           docker run --rm --network bridge \
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 4096 \
+            --memory 56g --memory-swap 56g \
             --user "$(id -u):$(id -g)" --read-only --tmpfs /tmp:rw,size=4g \
             -e DATA_VEPYR_DIR=/data -e HOME=/work -e WORK=/work \
             -v /data/vepyr:/data:ro -v "$SCRATCH":/work:rw -v "$GITHUB_WORKSPACE":/src:ro \
             "$WGS_IMAGE" bash /src/ci/wgs-runner/run-profile.sh "$PROFILE" "/work/dist/$(basename "$wheel")"
-      - name: Step summary
+      - name: Collect results
         if: always()
         run: |
-          { echo "### wgs ($PROFILE)"; cat "$SCRATCH/summary.txt" 2>/dev/null || echo "did not run"; } >> "$GITHUB_STEP_SUMMARY"
-          cp "$SCRATCH/result.json" "result-wgs-$PROFILE.json" 2>/dev/null \
-            || printf '{"name":"wgs/%s","conclusion":"error","summary":"no result written"}\n' "$PROFILE" > "result-wgs-$PROFILE.json"
+          if [ -z "${RES:-}" ] || [ ! -d "$RES" ]; then echo "::error::no host results dir"; exit 1; fi
+          # $SCRATCH was written by PR code: drop symlinks and specials first
+          # (twice, around the chmod that undoes any unreadable directories).
+          find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
+          chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
+          find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
+          take() {  # take SRC DEST MAXBYTES: copy a capped regular file into $RES
+            [ -f "$1" ] && [ ! -L "$1" ] || return 1
+            mkdir -p "$(dirname "$2")" && head -c "$3" -- "$1" > "$2"
+          }
+          take "$SCRATCH/summary.txt" "$RES/summary.txt" 65536 || true
+          take "$SCRATCH/run.log" "$RES/reports/run.log" 5242880 || true
+          take "$SCRATCH/result.json" "$RES/result-wgs-$PROFILE.json" 16384 \
+            || printf '{"name":"wgs/%s","conclusion":"error","summary":"no result written"}\n' "$PROFILE" > "$RES/result-wgs-$PROFILE.json"
+          if [ -f "$RES/summary.txt" ]; then mkdir -p "$RES/reports" && cp -- "$RES/summary.txt" "$RES/reports/summary.txt"; fi
+          if [ -d "$SCRATCH/out/reports" ] && [ ! -L "$SCRATCH/out/reports" ]; then
+            n=0
+            while IFS= read -r -d '' f; do
+              n=$((n + 1)); [ "$n" -le 200 ] || break
+              take "$f" "$RES/reports/out/${f#"$SCRATCH/out/reports/"}" 5242880 || true
+            done < <(find "$SCRATCH/out/reports" -type f -print0)
+          fi
+          { echo "### wgs ($PROFILE)"; cat "$RES/summary.txt" 2>/dev/null || echo "did not run"; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: result-wgs-${{ matrix.profile }}
-          path: result-wgs-${{ matrix.profile }}.json
+          path: ${{ env.RES }}/result-wgs-${{ matrix.profile }}.json
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: wgs-${{ matrix.profile }}-reports
-          path: |
-            ${{ env.SCRATCH }}/out/reports
-            ${{ env.SCRATCH }}/summary.txt
-            ${{ env.SCRATCH }}/run.log
+          path: ${{ env.RES }}/reports
           if-no-files-found: ignore
-      - name: Remove scratch and workspace
+      - name: Remove scratch, results and workspace
         if: always()
         run: |
-          rm -rf "$SCRATCH"
+          chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
+          rm -rf "$SCRATCH" ${RES:+"$RES"}
           find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
 
   report:

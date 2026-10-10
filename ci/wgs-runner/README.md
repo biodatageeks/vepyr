@@ -18,19 +18,67 @@ It writes `/work/result.json` and `/work/summary.txt`.
 3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
    `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
-5. In a checkout of `master`, run `ci/wgs-runner/build-image.sh`.
-6. Run `ci/wgs-runner/stage-data.sh --goldens-from <user@host:~/workspace/data_vepyr/output/116>`.
+5. **Mandatory: egress firewall.** Job containers run PR code with
+   `--network bridge` (dependencies come from PyPI). They must reach only the
+   public internet, never the host, the LAN or cloud metadata. From a checkout
+   of `master`:
+
+   ```bash
+   # Containers must not use a LAN resolver once RFC1918 is dropped
+   # (merge these keys into an existing daemon.json instead of overwriting it).
+   echo '{"dns": ["1.1.1.1", "8.8.8.8"], "ipv6": false}' | sudo tee /etc/docker/daemon.json
+   sudo systemctl restart docker
+   sudo install -m 0755 ci/wgs-runner/egress-firewall.sh /usr/local/sbin/vepyr-wgs-egress
+   sudo tee /etc/systemd/system/vepyr-wgs-egress.service >/dev/null <<'UNIT'
+   [Unit]
+   Description=Egress firewall for /parity-wgs job containers
+   After=docker.service
+   Requires=docker.service
+   PartOf=docker.service
+
+   [Service]
+   Type=oneshot
+   ExecStart=/usr/local/sbin/vepyr-wgs-egress
+   RemainAfterExit=yes
+
+   [Install]
+   WantedBy=docker.service
+   UNIT
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now vepyr-wgs-egress.service
+   sudo iptables -S DOCKER-USER; sudo iptables -S INPUT   # expect the docker0 DROPs
+   ```
+
+   The script inserts, for traffic entering from `docker0`, a `DROP` in
+   `DOCKER-USER` for 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16,
+   169.254.0.0/16 and 100.64.0.0/10, and an `INPUT` `DROP` that blocks the
+   docker0 host address (and every other host address). It is idempotent and
+   the unit re-applies it whenever Docker starts, so the rules survive reboots
+   and Docker restarts (a systemd unit rather than `netfilter-persistent`,
+   whose boot-time restore would also replay stale Docker rules).
+   `check.sh` fails if any rule is missing.
+6. In a checkout of `master`, run `ci/wgs-runner/build-image.sh`.
+7. Run `ci/wgs-runner/stage-data.sh --goldens-from <user@host:~/workspace/data_vepyr/output/116>`.
    Needs `uvx`, `curl`, `rsync`, `python3` (3.11+) on the host.
-7. Run `ci/wgs-runner/check.sh`.
+8. Run `ci/wgs-runner/check.sh` (as root or with passwordless sudo, so it can
+   read the firewall rules; otherwise it warns and you check them by hand).
 
 ## Re-staging when the manifest changes
 
 `wgs-manifest.json` pins the goldens, inputs and cache revisions. When it
-changes (a new cache revision or regenerated goldens), re-run step 6. The
+changes (a new cache revision or regenerated goldens), re-run step 7. The
 script is idempotent: existing verified downloads are reused, and the final
 `record-staged` rewrites `STAGED.json`. Until then every job exits 3 (stale
 data) rather than comparing against the wrong files. `check.sh` shows the
 same drift without running a job.
+
+## Serialisation
+
+The workflow has no concurrency group: jobs are serialised only because a
+single runner carries the `vepyr-wgs` label (GitHub queues jobs for it FIFO,
+for up to 24 hours) and the profile matrix uses `max-parallel: 1`. Adding a
+second `vepyr-wgs` runner removes that serialisation: two runs would then
+share `/data/vepyr`, the disk and the memory budget at once.
 
 ## Rebuilding the image
 
@@ -46,7 +94,14 @@ fork PR, after an admin has commented `/parity-wgs` on it, could run code that
 leaves files behind for a later job to read (design spec, section 5).
 Mitigations:
 
-- the staged data is mounted read-only and the job container is throw-away;
+- the staged data is mounted read-only and the job container is throw-away
+  (no capabilities, read-only root, non-root user, pid and memory limits);
+- the host never follows a path the PR controls: after checkout it does not
+  touch the workspace, and it reads the container's scratch only after
+  deleting every symlink and special file in it, copying size-capped regular
+  files to a host-made directory from which all artifacts are uploaded;
+- the egress firewall (setup step 5) keeps job containers off the host and
+  the LAN;
 - no secrets are available to the job, and its GitHub token is read-only;
 - privileged jobs (anything with secrets or write access) never run on this
   machine;

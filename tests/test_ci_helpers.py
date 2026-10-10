@@ -106,6 +106,14 @@ def test_profiles_refuses_empty(tmp_path, body):
         ci_helpers.profiles(manifest)
 
 
+@pytest.mark.parametrize("bad", ["a b", "x;rm", "", "../up", "ok\n"])
+def test_profiles_refuses_invalid_names(tmp_path, bad):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"profiles": {"good": {}, bad: {}}}))
+    with pytest.raises(ci_helpers.CiError, match="invalid profile name"):
+        ci_helpers.profiles(manifest)
+
+
 def test_profiles_cli_prints_json(tmp_path, capsys):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps({"profiles": {"merged": {}}}))

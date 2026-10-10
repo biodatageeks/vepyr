@@ -5,12 +5,42 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WF = (ROOT / ".github/workflows/parity-wgs.yml").read_text()
+PARITY_TESTS = (ROOT / ".github/workflows/parity-tests.yml").read_text()
+PURGE = r'find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete'
 
 
-def job_block(name: str) -> str:
-    m = re.search(rf"^  {name}:\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)", WF, re.S | re.M)
+def job_block(name: str, wf: str = WF) -> str:
+    m = re.search(
+        rf"^  {name}:\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|^\S|\Z)", wf, re.S | re.M
+    )
     assert m, name
     return m.group(1)
+
+
+def run_scripts(block: str) -> list[str]:
+    """Every `run:` body in a job block, inline or block scalar."""
+    lines = block.splitlines()
+    scripts = []
+    for i, line in enumerate(lines):
+        m = re.match(r"^(\s*)(?:- )?run:\s*(.*)$", line)
+        if not m:
+            continue
+        indent, rest = len(m.group(1)), m.group(2)
+        if rest and rest[0] not in "|>":
+            scripts.append(rest)
+            continue
+        body = []
+        for nxt in lines[i + 1 :]:
+            if nxt.strip() and len(nxt) - len(nxt.lstrip()) <= indent:
+                break
+            body.append(nxt)
+        scripts.append("\n".join(body))
+    return scripts
+
+
+def test_run_scripts_parser_sees_inline_and_block_runs():
+    block = "    steps:\n      - run: echo ${{ x }}\n      - run: |\n          a\n          b\n      - uses: y\n"
+    assert run_scripts(block) == ["echo ${{ x }}", "          a\n          b"]
 
 
 def test_image_tag_matches_runner_kit():
@@ -25,8 +55,9 @@ def test_only_profile_job_uses_self_hosted():
 
 def test_privileged_jobs_have_no_expressions_in_run_scripts():
     for job in ("authorize", "report"):
-        block = job_block(job)
-        for run in re.findall(r"run: \|\n((?:\s{10,}.*\n)+)", block):
+        scripts = run_scripts(job_block(job))
+        assert scripts, job
+        for run in scripts:
             assert "${{" not in run, (job, run)
 
 
@@ -45,8 +76,10 @@ def test_top_level_permissions_empty_and_master_only():
     assert "refs/heads/master" in job_block("authorize")
 
 
-def test_queue_not_cancel():
-    assert re.search(r"cancel-in-progress: false", WF)
+def test_no_concurrency_group_runner_serialises():
+    # A group keeps one pending run, so a third request would evict a queued one.
+    assert not re.search(r"^\s*concurrency:", WF, re.M)
+    assert "cancel-in-progress" not in WF
     assert "max-parallel: 1" in job_block("profile")
 
 
@@ -54,3 +87,44 @@ def test_profile_job_runs_no_checked_out_code_on_host():
     block = job_block("profile")
     assert "python3 ci/" not in block
     assert "python3 e2e-testing/" not in block
+
+
+def test_profile_job_purges_scratch_before_reading_it():
+    block = job_block("profile")
+    after_run = block[block.index("docker run --rm") :]
+    purge = after_run.index(PURGE)
+    reads = [
+        after_run.find(s)
+        for s in ('"$SCRATCH/', "$SCRATCH/out", "env.SCRATCH }}/")
+        if after_run.find(s) != -1
+    ]
+    assert reads and purge < min(reads)
+    assert "env.SCRATCH" not in after_run  # nothing uploaded from scratch
+
+
+def test_profile_job_writes_and_uploads_only_outside_workspace():
+    block = job_block("profile")
+    for run in run_scripts(block):
+        for target in re.findall(r"(?<![0-9&])>>?\s*(\S+)", run):
+            assert target.startswith(('"$', "/dev/null", "&")), (target, run)
+    uploads = re.findall(
+        r"uses: actions/upload-artifact@v4.*?path: (.*?)\n(?=\s*(?:if-no|- |$))",
+        block,
+        re.S,
+    )
+    assert len(uploads) == 2
+    for path in uploads:
+        assert path.startswith("${{ env.RES }}/"), path
+    assert 'mktemp -d "$RUNNER_TEMP/' in block
+
+
+def test_profile_container_has_memory_cap():
+    assert "--memory 56g --memory-swap 56g" in job_block("profile")
+
+
+def test_parity_tests_ignores_parity_wgs_comments():
+    head = PARITY_TESTS[: PARITY_TESTS.index("\njobs:\n")]
+    conc = head[head.index("concurrency:") :]
+    assert "!startsWith(github.event.comment.body, '/parity-wgs')" in conc
+    command_if = job_block("command", PARITY_TESTS).split("runs-on:")[0]
+    assert "!startsWith(github.event.comment.body, '/parity-wgs')" in command_if

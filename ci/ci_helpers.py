@@ -62,6 +62,10 @@ def profiles(manifest: Path) -> list[str]:
     names = sorted(json.loads(manifest.read_text()).get("profiles") or {})
     if not names:
         raise CiError(f"no profiles in {manifest}")
+    for name in names:
+        # fullmatch: ``$`` alone would accept a trailing newline.
+        if not PROFILE_NAME.fullmatch(name):
+            raise CiError(f"invalid profile name: {name!r}")
     return names
 
 

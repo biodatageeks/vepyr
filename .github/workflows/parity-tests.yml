@@ -24,13 +24,15 @@ permissions: {}
 
 # Every PR comment starts a run, so only a candidate command from the owner or
 # a repository collaborator joins (and may cancel) the PR's group; any other comment
-# gets a group of its own and cannot cancel a running parity run.
+# gets a group of its own and cannot cancel a running parity run. /parity-wgs
+# is excluded: it has its own workflow and must not cancel a /parity run.
 concurrency:
   group: >-
     ${{
       (github.event_name == 'workflow_dispatch'
         || (github.event.issue.pull_request
             && startsWith(github.event.comment.body, '/parity')
+            && !startsWith(github.event.comment.body, '/parity-wgs')
             && contains(fromJSON('["OWNER","COLLABORATOR"]'), github.event.comment.author_association)))
       && format('parity-{0}', inputs.pr || github.event.issue.number)
       || format('parity-ignored-{0}', github.run_id)
@@ -45,7 +47,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch'
       || (github.event.issue.pull_request
-          && startsWith(github.event.comment.body, '/parity'))
+          && startsWith(github.event.comment.body, '/parity')
+          && !startsWith(github.event.comment.body, '/parity-wgs'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

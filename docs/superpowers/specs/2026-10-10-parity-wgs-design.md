@@ -155,6 +155,8 @@ Mitigations:
 - Each profile job's first and last steps delete `_work` contents and the job scratch.
 - The runner group is restricted to this one workflow.
 
+`result.json` is written by PR code, so a malicious PR can claim success; the admin's review before `/parity-wgs` is the defence (same as parity-tests).
+
 The admin's review before `/parity-wgs` stays the main defence. If this proves insufficient, the upgrade is ephemeral runners in containers, which keep the same workflow shape with a different runner setup.
 
 ## 6. Setup and documentation
