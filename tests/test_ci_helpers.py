@@ -387,7 +387,7 @@ def test_statuses_missing_job_results_never_success(tmp_path):
     assert rows["parity/integration"][0] == "error"
 
 
-@pytest.mark.parametrize("text", ["/parity", " /parity", "/parity\n", "\t/parity \r\n"])
+@pytest.mark.parametrize("text", ["/parity", "/parity\n", "/parity \r\n", "/parity\t "])
 def test_is_parity_command_accepts_exactly_the_command(text):
     assert ci_helpers.is_parity_command(text) is True
 
@@ -397,6 +397,9 @@ def test_is_parity_command_accepts_exactly_the_command(text):
     [
         "",
         "   ",
+        " /parity",
+        "\t/parity",
+        "\n/parity",
         "/parity please",
         "/parityx",
         "/Parity",
@@ -408,7 +411,7 @@ def test_is_parity_command_accepts_exactly_the_command(text):
         "/parity\nand more",
         "lgtm\n/parity",
         "/ parity",
-        "/parity ",
+        "/parity\u00a0",  # NBSP is not stripped
     ],
 )
 def test_is_parity_command_rejects_anything_else(text):

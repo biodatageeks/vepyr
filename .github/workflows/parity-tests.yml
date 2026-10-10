@@ -22,8 +22,8 @@ on:
 
 permissions: {}
 
-# Every PR comment starts a run, so only a candidate command from someone with
-# repository access joins (and may cancel) the PR's group; any other comment
+# Every PR comment starts a run, so only a candidate command from the owner or
+# a repository collaborator joins (and may cancel) the PR's group; any other comment
 # gets a group of its own and cannot cancel a running parity run.
 concurrency:
   group: >-
@@ -31,7 +31,7 @@ concurrency:
       (github.event_name == 'workflow_dispatch'
         || (github.event.issue.pull_request
             && startsWith(github.event.comment.body, '/parity')
-            && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
+            && contains(fromJSON('["OWNER","COLLABORATOR"]'), github.event.comment.author_association)))
       && format('parity-{0}', inputs.pr || github.event.issue.number)
       || format('parity-ignored-{0}', github.run_id)
     }}
@@ -77,8 +77,10 @@ jobs:
     timeout-minutes: 5
     permissions:
       statuses: write
-      # Read the PR; for a /parity comment, also react and reply on it.
+      # Read the PR; for a /parity comment, also reply (pull-requests) and
+      # react on the comment (issue comment reactions need issues: write).
       pull-requests: write
+      issues: write
     outputs:
       sha: ${{ steps.pr.outputs.sha }}
     env:
@@ -138,9 +140,10 @@ jobs:
           SHA: ${{ steps.pr.outputs.sha }}
         run: |
           url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
-          gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=rocket
           gh api -X POST "repos/$REPO/issues/$PR/comments" \
             -f body="Parity tests started on \`$SHA\` for @$ACTOR: $url"
+          gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=rocket \
+            || echo "::warning::reaction failed"
       - name: Refuse a non-admin /parity comment
         if: failure() && github.event_name == 'issue_comment' && steps.admin.outcome == 'failure'
         run: |
@@ -201,6 +204,7 @@ jobs:
       statuses: write
       # Reply on the PR for a /parity comment.
       pull-requests: write
+      issues: write
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}

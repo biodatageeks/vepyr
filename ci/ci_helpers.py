@@ -232,11 +232,12 @@ PARITY_COMMAND = "/parity"
 def is_parity_command(text: str) -> bool:
     """True only for a comment that is exactly the /parity command.
 
-    Surrounding ASCII whitespace is ignored (str.strip() would also drop
-    Unicode spaces such as NBSP); anything else, including arguments, quoting
-    or a second line, is not the command.
+    Trailing ASCII whitespace is ignored (str.rstrip() would also drop Unicode
+    spaces such as NBSP); leading whitespace is not, matching the workflow's
+    startsWith(body, '/parity') filter. Anything else, including arguments,
+    quoting or a second line, is not the command.
     """
-    return text.strip(" \t\r\n") == PARITY_COMMAND
+    return text.rstrip(" \t\r\n") == PARITY_COMMAND
 
 
 def main(argv: list[str] | None = None) -> int:
