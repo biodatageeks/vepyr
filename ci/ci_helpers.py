@@ -56,6 +56,14 @@ def result_record(name: str, outcome: str, summary: str) -> dict:
     }
 
 
+def profiles(manifest: Path) -> list[str]:
+    """Integration profiles = the golden manifest's ``profiles`` keys."""
+    names = sorted(json.loads(manifest.read_text()).get("profiles") or {})
+    if not names:
+        raise CiError(f"no profiles in {manifest}")
+    return names
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ci_helpers.py")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -68,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--outcome", required=True)
     p.add_argument("--summary", default="")
     p.add_argument("--out", type=Path, required=True)
+    p = sub.add_parser("profiles")
+    p.add_argument("manifest", type=Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -77,6 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "result":
             record = result_record(args.name, args.outcome, args.summary)
             args.out.write_text(json.dumps(record) + "\n")
+        elif args.command == "profiles":
+            print(json.dumps(profiles(args.manifest)))
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)
         return 1

@@ -88,3 +88,34 @@ def test_find_wheel_returns_absolute_path_for_relative_dir(tmp_path, monkeypatch
     found = ci_helpers.find_wheel(Path("dist"))
     assert found.is_absolute()
     assert found.is_file()
+
+
+def test_profiles_reads_manifest_keys_sorted(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"profiles": {"refseq": {}, "ensembl": {}, "merged": {}}})
+    )
+    assert ci_helpers.profiles(manifest) == ["ensembl", "merged", "refseq"]
+
+
+@pytest.mark.parametrize("body", [{}, {"profiles": {}}])
+def test_profiles_refuses_empty(tmp_path, body):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(body))
+    with pytest.raises(ci_helpers.CiError, match="no profiles"):
+        ci_helpers.profiles(manifest)
+
+
+def test_profiles_cli_prints_json(tmp_path, capsys):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"profiles": {"merged": {}}}))
+    assert ci_helpers.main(["profiles", str(manifest)]) == 0
+    assert json.loads(capsys.readouterr().out) == ["merged"]
+
+
+def test_profiles_matches_the_committed_manifest():
+    manifest = (
+        Path(__file__).resolve().parents[1]
+        / "e2e-testing/golden/116/chr22/manifest.json"
+    )
+    assert len(ci_helpers.profiles(manifest)) == 10

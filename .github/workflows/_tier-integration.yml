@@ -1,0 +1,131 @@
+name: Tier 3 - integration (chr22 VEP 116 parity)
+
+# Reusable: one job per golden profile, so a failure names its profile.
+# Goldens and fixtures come from Git LFS once per manifest change (cached);
+# HF cache shards download fresh in each job (only that profile's flavour).
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      wheel-artifact:
+        type: string
+        default: wheels-manylinux-x86_64
+    outputs:
+      profiles:
+        description: JSON list of the profiles that were run
+        value: ${{ jobs.profiles.outputs.list }}
+
+permissions:
+  contents: read
+
+env:
+  # The cached paths: per-profile goldens plus the inputs download_chr22.py
+  # verifies from the manifest. Keyed on the manifest that pins their sha256s.
+  FIXTURE_PATHS: |
+    e2e-testing/golden/116/chr22/*.vcf.gz
+    tests/data/hg002_chr22/input_chr22.vcf.gz
+    tests/data/hg002_chr22/input_chr22.vcf.gz.tbi
+    tests/data/hg002_chr22/chr22.fa.gz
+    tests/data/hg002_chr22/chr22.fa.gz.fai
+    tests/data/hg002_chr22/chr22.fa.gz.gzi
+
+jobs:
+  profiles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.FIXTURE_PATHS }}
+          key: integration-fixtures-${{ hashFiles('e2e-testing/golden/116/chr22/manifest.json') }}
+      - name: Fetch fixtures from LFS (cache miss only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: git lfs pull --include 'e2e-testing/golden/116/chr22/*,tests/data/hg002_chr22/input_chr22.vcf.gz*,tests/data/hg002_chr22/chr22.fa.gz*'
+      - id: list
+        run: echo "list=$(python3 ci/ci_helpers.py profiles e2e-testing/golden/116/chr22/manifest.json)" >> "$GITHUB_OUTPUT"
+
+  profile:
+    needs: profiles
+    name: profile (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ${{ fromJSON(needs.profiles.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          lfs: false
+      # Restored files are re-verified by download_chr22.py against the
+      # manifest sha256s; a mismatch makes it re-fetch from LFS.
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.FIXTURE_PATHS }}
+          key: integration-fixtures-${{ hashFiles('e2e-testing/golden/116/chr22/manifest.json') }}
+      - uses: astral-sh/setup-uv@v5
+      - name: Install VCF command-line tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bcftools tabix
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.wheel-artifact }}
+          path: dist
+      - name: Install the wheel
+        run: |
+          uv venv --python 3.12 "$RUNNER_TEMP/venv"
+          uv pip install --python "$RUNNER_TEMP/venv/bin/python" \
+            "$(python3 ci/ci_helpers.py find-wheel dist)" "huggingface_hub==1.28.0"
+      - name: Download the ${{ matrix.profile }} cache
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" e2e-testing/scripts/download_chr22.py \
+            --work-dir "$RUNNER_TEMP/work" --profiles "${{ matrix.profile }}"
+      - id: compare
+        name: Compare with VEP 116 (strict + canonical md5)
+        env:
+          DATA_VEPYR_DIR: ${{ runner.temp }}/work
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/venv/bin/python" e2e-testing/scripts/run_comparison.py \
+            --release 116 --profile "${{ matrix.profile }}" --chroms 22 \
+            --vcf "$RUNNER_TEMP/work/input/input_chr22.vcf.gz" \
+            --fasta "$RUNNER_TEMP/work/input/chr22.fa.gz" \
+            --output-dir "$RUNNER_TEMP/work" \
+            --comparison-mode md5 --md5-mode both --bgzf --no-normalize \
+            | tee "$RUNNER_TEMP/compare.log"
+      - name: Step summary
+        if: always()
+        run: |
+          {
+            echo "### ${{ matrix.profile }}"
+            grep -E 'md5 (strict|canonical)|PASS|FAIL' "$RUNNER_TEMP/compare.log" 2>/dev/null || echo "comparison did not run"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: integration-${{ matrix.profile }}-outputs
+          path: ${{ runner.temp }}/work/output
+          if-no-files-found: ignore
+      - name: Record the verdict
+        if: always()
+        run: |
+          python3 ci/ci_helpers.py result --name "integration/${{ matrix.profile }}" \
+            --outcome "${{ steps.compare.outcome }}" \
+            --summary "$(grep -E 'md5 strict' "$RUNNER_TEMP/compare.log" 2>/dev/null | head -1 | xargs)" \
+            --out "result-integration-${{ matrix.profile }}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-integration-${{ matrix.profile }}
+          path: result-integration-${{ matrix.profile }}.json
