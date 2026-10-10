@@ -133,14 +133,18 @@ are resolved relative to `porting-tests/`.
 4. `./run_tests --wheel <wheel> --summary-md summary.md`.
 5. Append the summary to `$GITHUB_STEP_SUMMARY`; upload mismatching outputs on
    failure; upload `result-porting.json`.
-6. If runner disk is short (measured in the plan), a free-disk step runs
-   first.
+6. Measured on `ubuntu-latest` (probe run 38047319640, 2026-10-10, vepyr
+   0.9.2): 204 pass / 1 skipped, 17m52s wall end to end including downloads,
+   peak RSS 2.1 GB, 7.7 GB of data (3.9 GB shards + 3.8 GB FASTA); the runner
+   had 86 GB free, 4 cores, 15 GB RAM. No free-disk step is needed.
 
 ## 3. Integration tier
 
-Depends on PR #144 (`download_chr22.py`, VEP 116 chr22 goldens and manifest,
-`run_comparison.py --output-dir`). The plan either lands #144 first or
-builds on its branch.
+PR #144 (`download_chr22.py`, the VEP 116 chr22 goldens and manifest via Git
+LFS, `run_comparison.py --output-dir`, the reviewer Docker image, and their
+tests) is folded into this work: its three commits are carried onto the
+`ci/four-tier-testing` branch and land in the same PR, and #144 is closed
+pointing at it.
 
 CI does not use #144's Docker image (it installs vepyr from PyPI); jobs run
 natively with the wheel plus `bcftools`/`tabix` from apt.
@@ -275,10 +279,11 @@ archive it. Done by hand, on the maintainer's go-ahead.
 
 ## Open risks
 
-- **Runner disk:** chr1/21/22 merged shards plus the unpacked FASTA
-  (3.1 GB) plus the venv on a GitHub-hosted runner — measured first in the
-  plan.
+- **Porting wall time (~18 min)** is the longest tier. It is acceptable for an
+  admin-dispatched gate; if it becomes a bottleneck, shard the 74 run
+  configurations across a matrix. Self-hosted runners are not needed.
 - **Upstream snapshot drift:** the committed `.snap` files mirror
   nf-core/modules and are refreshed by hand when the upstream tests change,
   like the rest of `nf-core-module/`.
-- **#144 not merged:** tier 3 cannot land before it.
+- **#144 review state:** its commits land unreviewed except by this PR's
+  review; the PR description calls them out as a distinct section.
