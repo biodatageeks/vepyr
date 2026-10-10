@@ -1,0 +1,128 @@
+name: Parity tests
+
+# Admin-only gate for a PR: porting (tier 2) and integration (tier 3) on the
+# PR head, reported as commit statuses that branch protection requires.
+#   gh workflow run parity-tests.yml -f pr=123
+# The SHA is resolved once by `authorize`; a push during the run leaves the new
+# head without a status, so it stays blocked until an admin re-runs this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: parity-${{ inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr }}
+    steps:
+      - name: Only admins may run this
+        run: |
+          perm=$(gh api "repos/$REPO/collaborators/$GITHUB_ACTOR/permission" --jq .permission)
+          if [ "$perm" != "admin" ]; then
+            echo "::error::$GITHUB_ACTOR has '$perm' permission; parity tests are admin-only"; exit 1
+          fi
+      - id: pr
+        name: Resolve the PR head SHA
+        run: |
+          [[ "$PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number, got '$PR'"; exit 1; }
+          state=$(gh api "repos/$REPO/pulls/$PR" --jq .state)
+          [ "$state" = "open" ] || { echo "::error::PR #$PR is $state"; exit 1; }
+          sha=$(gh api "repos/$REPO/pulls/$PR" --jq .head.sha)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Testing PR #$PR at $sha" >> "$GITHUB_STEP_SUMMARY"
+      - name: Mark pending
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          for ctx in parity/porting parity/integration; do
+            gh api -X POST "repos/$REPO/statuses/${{ steps.pr.outputs.sha }}" \
+              -f state=pending -f context="$ctx" -f description="running" -f target_url="$url"
+          done
+
+  build-wheel:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+      - uses: PyO3/maturin-action@v1
+        with:
+          target: x86_64
+          args: --release --out dist --find-interpreter
+          sccache: true
+          manylinux: auto
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist
+
+  porting:
+    needs: [authorize, build-wheel]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-porting.yml
+    with:
+      ref: ${{ needs.authorize.outputs.sha }}
+
+  integration:
+    needs: [authorize, build-wheel]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-integration.yml
+    with:
+      ref: ${{ needs.authorize.outputs.sha }}
+
+  report:
+    needs: [authorize, porting, integration]
+    if: always() && needs.authorize.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ needs.authorize.outputs.sha }}
+    steps:
+      # The workflow's own ref (master), never the PR: this job holds statuses: write.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: results
+      - name: Post statuses
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          mkdir -p results
+          python3 ci/ci_helpers.py statuses --results-dir results \
+            --profiles '${{ needs.integration.outputs.profiles }}' > statuses.tsv
+          cat statuses.tsv
+          while IFS=$'\t' read -r ctx state desc; do
+            gh api -X POST "repos/$REPO/statuses/$SHA" \
+              -f state="$state" -f context="$ctx" -f description="$desc" -f target_url="$url"
+          done < statuses.tsv

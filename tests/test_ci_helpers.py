@@ -194,3 +194,74 @@ def test_snap_version_cli_rewrites_in_place(tmp_path):
         == 0
     )
     assert '"1.0.0"' in snap.read_text() and '"0.9.0"' not in snap.read_text()
+
+
+def write_result(
+    directory: Path, name: str, conclusion: str, summary: str = ""
+) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    safe = name.replace("/", "-")
+    (directory / f"result-{safe}.json").write_text(
+        json.dumps({"name": name, "conclusion": conclusion, "summary": summary})
+    )
+
+
+def as_dict(rows):
+    return {ctx: (state, desc) for ctx, state, desc in rows}
+
+
+def test_statuses_all_green(tmp_path):
+    write_result(tmp_path / "a", "porting", "success", "204 pass")
+    for p in ("ensembl", "merged"):
+        write_result(tmp_path / p, f"integration/{p}", "success")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"]))
+    assert rows["parity/porting"][0] == "success"
+    assert rows["parity/integration"][0] == "success"
+    assert rows["parity/integration/merged"][0] == "success"
+
+
+def test_statuses_failed_profile_fails_aggregate_and_is_named(tmp_path):
+    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "integration/ensembl", "success")
+    write_result(tmp_path, "integration/merged", "failure", "md5 strict: MISMATCH")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"]))
+    assert rows["parity/integration/merged"] == ("failure", "md5 strict: MISMATCH")
+    assert rows["parity/integration"][0] == "failure"
+    assert "merged" in rows["parity/integration"][1]
+
+
+def test_statuses_missing_result_is_error_never_success(tmp_path):
+    write_result(tmp_path, "integration/ensembl", "success")
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["ensembl", "merged"]))
+    assert rows["parity/porting"][0] == "error"
+    assert rows["parity/integration/merged"][0] == "error"
+    assert rows["parity/integration"][0] != "success"
+
+
+def test_statuses_without_profile_list_is_error(tmp_path):
+    write_result(tmp_path, "porting", "success")
+    rows = as_dict(ci_helpers.statuses(tmp_path, []))
+    assert rows["parity/integration"][0] == "error"
+
+
+def test_statuses_descriptions_fit_github_limit(tmp_path):
+    write_result(tmp_path, "porting", "failure", "x" * 500)
+    rows = as_dict(ci_helpers.statuses(tmp_path, ["a"]))
+    assert all(len(desc) <= 140 for _, desc in rows.values())
+
+
+def test_statuses_cli_tab_separated(tmp_path, capsys):
+    write_result(tmp_path, "porting", "success")
+    write_result(tmp_path, "integration/merged", "success")
+    assert (
+        ci_helpers.main(
+            ["statuses", "--results-dir", str(tmp_path), "--profiles", '["merged"]']
+        )
+        == 0
+    )
+    lines = capsys.readouterr().out.strip().splitlines()
+    assert {line.split("\t")[0] for line in lines} == {
+        "parity/porting",
+        "parity/integration/merged",
+        "parity/integration",
+    }

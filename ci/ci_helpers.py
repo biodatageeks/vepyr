@@ -119,6 +119,58 @@ def set_snapshot_version(text: str, version: str) -> str:
     return json.dumps(data, indent=4) + "\n"
 
 
+STATUS_LIMIT = 140  # GitHub's commit status description limit
+
+
+def _clip(text: str) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= STATUS_LIMIT else text[: STATUS_LIMIT - 1] + "…"
+
+
+def statuses(results_dir: Path, profiles: list[str]) -> list[tuple[str, str, str]]:
+    """Commit statuses for one dispatch run; a missing verdict is an error."""
+    records = {}
+    for path in sorted(results_dir.rglob("result-*.json")):
+        record = json.loads(path.read_text())
+        records[record["name"]] = record
+
+    def state(name: str) -> tuple[str, str]:
+        record = records.get(name)
+        if record is None:
+            return "error", "no result reported (job cancelled, timed out or never ran)"
+        return record["conclusion"], record.get("summary") or record["conclusion"]
+
+    rows = [("parity/porting", *state("porting"))]
+    if not profiles:
+        rows.append(
+            (
+                "parity/integration",
+                "error",
+                "profile list missing (profiles job failed)",
+            )
+        )
+    else:
+        bad = []
+        for profile in profiles:
+            conclusion, summary = state(f"integration/{profile}")
+            rows.append((f"parity/integration/{profile}", conclusion, summary))
+            if conclusion != "success":
+                bad.append(profile)
+        if bad:
+            rows.append(
+                (
+                    "parity/integration",
+                    "failure",
+                    f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
+                )
+            )
+        else:
+            rows.append(
+                ("parity/integration", "success", f"{len(profiles)} profiles pass")
+            )
+    return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ci_helpers.py")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -138,6 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("snap-version")
     p.add_argument("--snap", type=Path, required=True)
     p.add_argument("--version", required=True)
+    p = sub.add_parser("statuses")
+    p.add_argument("--results-dir", type=Path, required=True)
+    p.add_argument("--profiles", default="[]", help="JSON list (may be empty)")
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -155,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
             args.snap.write_text(
                 set_snapshot_version(args.snap.read_text(), args.version)
             )
+        elif args.command == "statuses":
+            names = json.loads(args.profiles or "[]")
+            for ctx, st, desc in statuses(args.results_dir, names):
+                print(f"{ctx}\t{st}\t{desc}")
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)
         return 1
