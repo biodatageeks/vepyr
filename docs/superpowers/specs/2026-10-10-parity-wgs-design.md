@@ -7,10 +7,10 @@ Builds on: PR #174 (four-tier CI); this branch (`ci/parity-wgs`) starts from its
 ## Goal
 
 An admin can run the full HG002 GRCh38 **whole-genome** md5 parity gate against
-the Ensembl VEP golden VCFs for every profile, on demand, for any PR, on the
-biodatageeks self-hosted runner (organization runner id 4682: 8 cores, 64 GB
-RAM, 1 TB disk). The result is a commit status on the PR head, `parity/wgs`
-(release 116) or `parity/wgs-115`.
+the Ensembl VEP 116.0 golden VCFs for the three cache profiles (`ensembl`,
+`merged`, `refseq`), on demand, for any PR, on the biodatageeks self-hosted
+runner (organization runner id 4682: 8 cores, 64 GB RAM, 1 TB disk). The result
+is a commit status on the PR head, `parity/wgs`.
 
 This is the same check maintainers run locally today with
 `e2e-testing/scripts/run_comparison.py --comparison-mode md5 --bgzf`, moved to
@@ -22,6 +22,12 @@ a runner where the data is staged once.
   `ci/apply_branch_protection.py` later).
 - Nightly or release-time WGS runs.
 - Performance or timing gates.
+- Release 115 and the seven pick/per-gene profiles at whole-genome scale. Today's
+  goldens do not support them: VEP 116 pick references exist for chr1 and chr22
+  only, and there are no 115 ensembl/refseq parquet caches. A follow-up PR
+  generates the missing goldens once on the runner and extends the matrix. This
+  design keeps the release and profile list data-driven (the manifest) so the
+  follow-up adds data and manifest entries, not workflow logic.
 - Ephemeral or VM-isolated runners (option considered and declined; see
   "Isolation" for the accepted residual risk).
 
@@ -29,9 +35,9 @@ a runner where the data is staged once.
 
 | Question | Decision |
 |---|---|
-| Scope | Whole genome (chr1–22, 4,096,123 variants), all 10 profiles, strict + canonical body md5 vs the VEP golden VCFs |
+| Scope | Whole genome (chr1–22, 4,096,123 variants), release 116, profiles `ensembl`, `merged`, `refseq`, strict + canonical body md5 vs the VEP 116.0 golden VCFs (the only WGS goldens that exist for 116); pick profiles and 115 deferred to a follow-up PR |
 | Trigger | Separate admin command `/parity-wgs` (PR comment) plus `workflow_dispatch`; `/parity` unchanged |
-| Releases | 116 by default; `/parity-wgs 115` (or dispatch input) for 115 on demand |
+| Releases | 116 only in this PR (the user narrowed scope after the golden inventory) |
 | Fork PRs | Allowed after the admin command; every job runs in a fresh container with data mounted read-only |
 | Isolation mechanism | GitHub `container:` jobs on the existing persistent runner (not ephemeral runners) |
 | Data | Staged once on the runner host; no per-run downloads |
@@ -42,22 +48,23 @@ a runner where the data is staged once.
 New workflow `.github/workflows/parity-wgs.yml`, structured like `parity-tests.yml`:
 
 ```
-on: issue_comment [created] (/parity-wgs [115|116])  +  workflow_dispatch(pr, release: 116|115)
-command      # GitHub-hosted · default-branch ci/ only · tested helper parses the command → release
+on: issue_comment [created] (/parity-wgs)  +  workflow_dispatch(pr)
+command      # GitHub-hosted · default-branch ci/ only · tested helper recognises the command
 authorize    # GitHub-hosted · master-only · admin for actor AND triggering_actor · resolve PR head SHA once
              #   post pending status · reply with run link (comment route) · forks allowed
 build-wheel  # GitHub-hosted · manylinux x86_64 wheel from that SHA · sccache off
-profile      # matrix over the 10 profiles · runs-on: [self-hosted, linux, x64, vepyr-wgs]
+profile      # matrix over the profiles listed in the WGS manifest (today: ensembl, merged, refseq) · runs-on: [self-hosted, linux, x64, vepyr-wgs]
              #   container: local image, volumes /data/vepyr:/data:ro and the per-job scratch dir
              #   permissions: contents: read · runs PR code
 report       # GitHub-hosted · default-branch ci/ only · posts aggregate + per-profile statuses + summary reply
 ```
 
-- **Status contexts:** `parity/wgs` for 116 and `parity/wgs-115` for 115 (aggregate), plus `parity/wgs/<profile>` and `parity/wgs-115/<profile>` (informational). The two releases never overwrite each other.
-- **Command helper:** `ci_helpers.parse_parity_wgs_command(text) -> str | None`. It returns `"116"` for `/parity-wgs`, `"115"`/`"116"` for `/parity-wgs 115|116`, and `None` for anything else, with the same trailing-whitespace-only rule as `is_parity_command`. Tested.
+- **Status contexts:** `parity/wgs` (aggregate) plus `parity/wgs/<profile>` (informational).
+- **Command helper:** `ci_helpers.is_parity_wgs_command(text) -> bool`. It accepts exactly `/parity-wgs`, with the same trailing-whitespace-only rule as `is_parity_command`. Tested. Any arguments (for example a release) are rejected for now; the follow-up PR adds them.
+- **Profile list:** `ci_helpers.profiles()` reads the WGS manifest's `profiles` keys, as the chr22 tier reads its manifest. No profile names are hard-coded in the workflow.
 - **Statuses:** `ci_helpers.statuses()` is generalised over a tier description (aggregate context, per-profile context prefix, record-name prefix, job key) rather than copied. `parity-tests.yml` keeps its current output exactly, and its existing tests stay green.
 - **Concurrency:** one group for the whole workflow (`parity-wgs`) with `cancel-in-progress: false`, so a second request queues behind the running one. The non-command comment filtering from `parity-tests.yml` is reused so ordinary comments never enter the group.
-- **Verdict:** confirmed as in `parity-tests.yml`. The aggregate is success only if all 10 profile records say success **and** the matrix job result is success. A missing, malformed or duplicate record counts as `error`.
+- **Verdict:** confirmed as in `parity-tests.yml`. The aggregate is success only if all profile records say success **and** the matrix job result is success. A missing, malformed or duplicate record counts as `error`.
 - **Security invariants, as in `parity-tests.yml`:**
   - No `${{ }}` in `run:` scripts of privileged jobs.
   - Write scopes (`statuses`, `pull-requests`, `issues`) only on `authorize` and `report`, which never check out PR code and run on GitHub-hosted runners.
@@ -84,17 +91,16 @@ Mounted read-only as `/data` (`DATA_VEPYR_DIR=/data`), in the layout `run_compar
 input/   HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz(+.tbi)
          Homo_sapiens.GRCh38.dna.primary_assembly.fa(+.fai)
 cache/   116_GRCh38_{ensembl,merged,refseq}/   HF revisions = e2e-testing/golden/116/chr22/manifest.json caches
-         115_GRCh38_{ensembl,merged,refseq}/   HF revisions recorded in the WGS manifest
-output/  116/ (VEP 116.0 WGS goldens + pick/), 115/ (VEP 115.2 goldens)
+output/  116/HG002_annotated_wgs_everything_hgvs_{vep,merged,refseq}.vcf.gz(+.tbi)   VEP 116.0 WGS goldens
 STAGED.json   path, size, sha256 of every file + the source revisions
 ```
 
-About 235 GB in total.
+About 110 GB in total (caches ~105 GB, goldens and inputs ~5 GB).
 
 **Committed manifest** `e2e-testing/golden/wgs-manifest.json` records:
-- for each release and profile, the golden path, sha256, size, record count and expected strict and canonical body md5 per contig;
+- for each profile, the golden path, sha256, size, record count and expected strict and canonical body md5 per contig;
 - the HG002 input and FASTA identities;
-- the cache revisions per release.
+- the cache revisions.
 
 It is generated once from the maintainer's verified local copies (`~/workspace/data_vepyr`) by a new `e2e-testing/scripts/prepare_wgs_manifest.py`.
 
@@ -105,7 +111,7 @@ It is generated once from the maintainer's verified local copies (`~/workspace/d
 - rsyncs the goldens from a maintainer-provided source and verifies every golden's sha256 against the manifest;
 - writes `STAGED.json`.
 
-**Per-job data check** (in the profile job, before annotating): compare `STAGED.json` with the committed manifest (revisions, golden digests, file sizes). On mismatch the job errors with "data on runner differs from the manifest — re-run ci/wgs-runner/stage-data.sh". It does not re-hash 235 GB; the read-only mount is what keeps PR code from changing the data.
+**Per-job data check** (in the profile job, before annotating): compare `STAGED.json` with the committed manifest (revisions, golden digests, file sizes). On mismatch the job errors with "data on runner differs from the manifest — re-run ci/wgs-runner/stage-data.sh". It does not re-hash 110 GB; the read-only mount is what keeps PR code from changing the data.
 
 ### Per-job scratch
 - **Location:** `/scratch/vepyr-wgs/<run_id>-<attempt>-<profile>` on the host, mounted read-write into the container as `/work`.
@@ -131,10 +137,10 @@ This also cuts local WGS runs' scratch from about 35 GB to about 5 GB per profil
 
 ## 4. Failure handling
 
-- **Per-profile verdict.** Each profile job writes `result-wgs<rel>-<profile>.json` (`success` / `failure` / `error` plus the strict and canonical md5 lines and the record count).
+- **Per-profile verdict.** Each profile job writes `result-wgs-<profile>.json` (`success` / `failure` / `error` plus the strict and canonical md5 lines and the record count).
 - **Failure artifacts.** On failure the job uploads that profile's `reports/` and md5 summary, never the full VCFs.
 - **Stale data or missing image** is reported as `error` with a remediation message. It is never reported as a parity failure.
-- **Timeouts.** 120 min per profile job and 20 h for the workflow run. The runner executes one job at a time, so the 10 profiles run one after another. The expected total is 2–3 h at `--workers 8` (measured and recorded during the first run).
+- **Timeouts.** 120 min per profile job and 20 h for the workflow run. The runner executes one job at a time, so the three profiles run one after another. The expected total is about 1 h at `--workers 8` (measured and recorded during the first run).
 - **Cancellation.** A cancelled run leaves the aggregate as `error`, via `report` with `if: !cancelled()`, mirroring parity-tests. Scratch is removed by the `always()` step.
 
 ## 5. Isolation: accepted residual risk
@@ -174,12 +180,12 @@ The root README's "Continuous integration" section gets a "Whole-genome parity (
   - A second probe run deliberately corrupts that profile's expected md5 in a throwaway branch and must fail only that job.
   - Both probes are removed before merge.
 - **After merge:**
-  - `/parity-wgs` on dummy PR #175 runs all 10 profiles for 116, and `/parity-wgs 115` runs 115.
+  - `/parity-wgs` on dummy PR #175 runs the three profiles.
   - A non-admin `/parity-wgs` is refused.
   - Status creator is `github-actions[bot]`.
 
 ## Open risks
 
-- **Runtime is unmeasured.** The 2–3 h estimate is from local runs, and the timeouts get adjusted after the first probe.
-- **115 cache revisions and goldens** must be identified from the maintainer's local data when writing the manifest. If the 115 caches are not on Hugging Face, `stage-data.sh` copies them from the same rsync source as the goldens.
+- **Runtime is unmeasured.** The ~1 h estimate is from local runs, and the timeouts get adjusted after the first probe.
+- **Golden/cache pairing.** The 116 WGS goldens were produced against the Ensembl 116 cache; the parquet caches pinned for chr22 (2026-10-07 revisions) must reproduce them. If a profile mismatches on first run, that is a genuine parity finding to report, not something to paper over by changing goldens.
 - **Runner availability.** If 4682 is offline, `/parity-wgs` jobs queue until it is back (GitHub cancels a job after 24 h unassigned). `report` then posts `error`.
