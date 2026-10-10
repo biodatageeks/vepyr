@@ -128,3 +128,39 @@ def test_parity_tests_ignores_parity_wgs_comments():
     assert "!startsWith(github.event.comment.body, '/parity-wgs')" in conc
     command_if = job_block("command", PARITY_TESTS).split("runs-on:")[0]
     assert "!startsWith(github.event.comment.body, '/parity-wgs')" in command_if
+
+
+def _step(block: str, name: str) -> str:
+    start = block.index(f"- name: {name}")
+    nxt = block.find("\n      - ", start + 1)
+    return block[start : nxt if nxt != -1 else len(block)]
+
+
+def test_collect_kills_container_before_touching_scratch():
+    collect = _step(job_block("profile"), "Collect results")
+    kill = collect.index('docker rm -f "$CONTAINER"')
+    verify = collect.index('docker ps -aq --filter "name=^${CONTAINER}')
+    assert kill < verify < collect.index(PURGE)
+    assert collect.index(PURGE) < collect.index('"$SCRATCH/')
+
+
+def test_container_is_named_and_labelled_via_env():
+    block = job_block("profile")
+    assert (
+        "CONTAINER: vepyr-wgs-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}"
+        in block
+    )
+    assert 'docker run --rm --name "$CONTAINER" --label vepyr-wgs=1' in block
+
+
+def test_leftover_containers_removed_at_job_start():
+    clean = _step(job_block("profile"), "Clean leftovers from earlier jobs")
+    assert "docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f" in clean
+
+
+def test_take_has_realpath_guard_and_total_cap():
+    collect = _step(job_block("profile"), "Collect results")
+    assert 'real_scratch=$(realpath -e -- "$SCRATCH")' in collect
+    assert 'real=$(realpath -e -- "$1")' in collect
+    assert 'case "$real" in "$real_scratch"/*)' in collect
+    assert "budget=$((200 * 1024 * 1024))" in collect

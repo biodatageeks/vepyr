@@ -9,17 +9,19 @@ python3 "$repo/e2e-testing/scripts/wgs_manifest.py" check --data "$data" --manif
 # Egress firewall (README step 5): fail if the rules are missing, warn if
 # they cannot be read (needs root or passwordless sudo).
 ipt() { iptables "$@" 2>/dev/null || sudo -n iptables "$@" 2>/dev/null; }
-if user_rules=$(ipt -S DOCKER-USER) && input_rules=$(ipt -S INPUT); then
+ipt6() { ip6tables "$@" 2>/dev/null || sudo -n ip6tables "$@" 2>/dev/null; }
+if user_rules=$(ipt -S DOCKER-USER) && input_rules=$(ipt -S INPUT) && input6_rules=$(ipt6 -S INPUT); then
   missing=()
   for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 100.64.0.0/10; do
     grep -- "-d $net" <<<"$user_rules" | grep -- "-i docker0" | grep -q -- "-j DROP" || missing+=("DOCKER-USER $net")
   done
   grep -- "-i docker0" <<<"$input_rules" | grep -v -- " -d \| -p \| -s " | grep -q -- "-j DROP" || missing+=("INPUT docker0")
+  grep -- "-i docker0" <<<"$input6_rules" | grep -v -- " -d \| -p \| -s " | grep -q -- "-j DROP" || missing+=("ip6tables INPUT docker0")
   if [ "${#missing[@]}" -gt 0 ]; then
     echo "egress firewall missing: ${missing[*]}; run sudo ci/wgs-runner/egress-firewall.sh"; exit 1
   fi
 else
-  echo "WARNING: cannot read iptables (not root, no passwordless sudo); verify the egress firewall by hand: sudo iptables -S DOCKER-USER; sudo iptables -S INPUT" >&2
+  echo "WARNING: cannot read iptables (not root, no passwordless sudo); verify the egress firewall by hand: sudo iptables -S DOCKER-USER; sudo iptables -S INPUT; sudo ip6tables -S INPUT" >&2
 fi
 mkdir -p /scratch/vepyr-wgs
 avail=$(df -Pk /scratch/vepyr-wgs | awk 'NR==2 {print $4}')

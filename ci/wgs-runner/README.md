@@ -24,9 +24,12 @@ It writes `/work/result.json` and `/work/summary.txt`.
    of `master`:
 
    ```bash
-   # Containers must not use a LAN resolver once RFC1918 is dropped
-   # (merge these keys into an existing daemon.json instead of overwriting it).
-   echo '{"dns": ["1.1.1.1", "8.8.8.8"], "ipv6": false}' | sudo tee /etc/docker/daemon.json
+   # Containers must not use a LAN resolver once RFC1918 is dropped. Merge the
+   # keys into any existing daemon.json (needs jq); do not overwrite it.
+   sudo test -f /etc/docker/daemon.json || echo '{}' | sudo tee /etc/docker/daemon.json >/dev/null
+   sudo jq '. + {"dns": ["1.1.1.1", "8.8.8.8"], "ipv6": false}' /etc/docker/daemon.json \
+     | sudo tee /etc/docker/daemon.json.new >/dev/null
+   sudo mv /etc/docker/daemon.json.new /etc/docker/daemon.json
    sudo systemctl restart docker
    sudo install -m 0755 ci/wgs-runner/egress-firewall.sh /usr/local/sbin/vepyr-wgs-egress
    sudo tee /etc/systemd/system/vepyr-wgs-egress.service >/dev/null <<'UNIT'
@@ -46,13 +49,17 @@ It writes `/work/result.json` and `/work/summary.txt`.
    UNIT
    sudo systemctl daemon-reload
    sudo systemctl enable --now vepyr-wgs-egress.service
-   sudo iptables -S DOCKER-USER; sudo iptables -S INPUT   # expect the docker0 DROPs
+   sudo iptables -S DOCKER-USER; sudo iptables -S INPUT; sudo ip6tables -S INPUT   # expect the docker0 DROPs
    ```
 
    The script inserts, for traffic entering from `docker0`, a `DROP` in
    `DOCKER-USER` for 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16,
    169.254.0.0/16 and 100.64.0.0/10, and an `INPUT` `DROP` that blocks the
-   docker0 host address (and every other host address). It is idempotent and
+   docker0 host address (and every other host address), with the same `INPUT`
+   rule in `ip6tables`. That `INPUT` drop also cuts every other container on
+   this host's default bridge off from host services (a host DNS stub, a
+   local proxy or registry); run such containers on a user-defined network
+   or not on this host. The script is idempotent and
    the unit re-applies it whenever Docker starts, so the rules survive reboots
    and Docker restarts (a systemd unit rather than `netfilter-persistent`,
    whose boot-time restore would also replay stale Docker rules).
@@ -98,7 +105,7 @@ Mitigations:
   (no capabilities, read-only root, non-root user, pid and memory limits);
 - the host never follows a path the PR controls: after checkout it does not
   touch the workspace, and it reads the container's scratch only after
-  deleting every symlink and special file in it, copying size-capped regular
+  force-removing the (named, labelled) job container and deleting every symlink and special file in it, copying size-capped regular
   files to a host-made directory from which all artifacts are uploaded;
 - the egress firewall (setup step 5) keeps job containers off the host and
   the LAN;

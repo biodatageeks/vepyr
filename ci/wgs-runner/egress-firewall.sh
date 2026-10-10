@@ -13,4 +13,6 @@ done
 # Container -> host (docker0 address and every other host address) goes
 # through INPUT, not DOCKER-USER.
 iptables -C INPUT -i docker0 -j DROP 2>/dev/null || iptables -I INPUT 1 -i docker0 -j DROP
+# Same for IPv6, in case IPv6 is ever enabled on the bridge.
+ip6tables -C INPUT -i docker0 -j DROP 2>/dev/null || ip6tables -I INPUT 1 -i docker0 -j DROP
 echo "egress firewall applied for docker0"

@@ -209,9 +209,12 @@ jobs:
     env:
       PROFILE: ${{ matrix.profile }}
       SCRATCH: /scratch/vepyr-wgs/${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}
+      CONTAINER: vepyr-wgs-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}
     steps:
       - name: Clean leftovers from earlier jobs
         run: |
+          # A job container that outlived a cancelled or timed-out job.
+          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
           rm -rf "$SCRATCH" && mkdir -p "$SCRATCH"
           res=$(mktemp -d "$RUNNER_TEMP/wgs-res.XXXXXX")
@@ -235,7 +238,7 @@ jobs:
           wheels=("$SCRATCH"/dist/vepyr-*manylinux*x86_64*.whl)
           [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one x86_64 wheel, got ${#wheels[@]}"; exit 3; }
           wheel="${wheels[0]}"
-          docker run --rm --network bridge \
+          docker run --rm --name "$CONTAINER" --label vepyr-wgs=1 --network bridge \
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 4096 \
             --memory 56g --memory-swap 56g \
             --user "$(id -u):$(id -g)" --read-only --tmpfs /tmp:rw,size=4g \
@@ -246,14 +249,28 @@ jobs:
         if: always()
         run: |
           if [ -z "${RES:-}" ] || [ ! -d "$RES" ]; then echo "::error::no host results dir"; exit 1; fi
+          fail() {  # host-side error result; $SCRATCH is not read
+            printf '{"name":"wgs/%s","conclusion":"error","summary":"%s"}\n' "$PROFILE" "$1" > "$RES/result-wgs-$PROFILE.json"
+            echo "::error::$1"; exit 1
+          }
+          # On cancel or timeout the runner kills the docker CLI, not the
+          # container: make sure no PR code is still writing to $SCRATCH.
+          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+          left=$(docker ps -aq --filter "name=^${CONTAINER}\$") || fail "cannot list containers"
+          [ -z "$left" ] || fail "job container still present"
           # $SCRATCH was written by PR code: drop symlinks and specials first
           # (twice, around the chmod that undoes any unreadable directories).
           find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
           chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
           find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
+          real_scratch=$(realpath -e -- "$SCRATCH") || fail "scratch missing"
           take() {  # take SRC DEST MAXBYTES: copy a capped regular file into $RES
             [ -f "$1" ] && [ ! -L "$1" ] || return 1
-            mkdir -p "$(dirname "$2")" && head -c "$3" -- "$1" > "$2"
+            local real
+            # Defence in depth against a symlinked directory component.
+            real=$(realpath -e -- "$1") || return 1
+            case "$real" in "$real_scratch"/*) ;; *) return 1 ;; esac
+            mkdir -p "$(dirname "$2")" && head -c "$3" -- "$real" > "$2"
           }
           take "$SCRATCH/summary.txt" "$RES/summary.txt" 65536 || true
           take "$SCRATCH/run.log" "$RES/reports/run.log" 5242880 || true
@@ -261,10 +278,15 @@ jobs:
             || printf '{"name":"wgs/%s","conclusion":"error","summary":"no result written"}\n' "$PROFILE" > "$RES/result-wgs-$PROFILE.json"
           if [ -f "$RES/summary.txt" ]; then mkdir -p "$RES/reports" && cp -- "$RES/summary.txt" "$RES/reports/summary.txt"; fi
           if [ -d "$SCRATCH/out/reports" ] && [ ! -L "$SCRATCH/out/reports" ]; then
-            n=0
+            # At most 200 files, 5 MiB each, 200 MiB in total.
+            n=0; budget=$((200 * 1024 * 1024))
             while IFS= read -r -d '' f; do
-              n=$((n + 1)); [ "$n" -le 200 ] || break
-              take "$f" "$RES/reports/out/${f#"$SCRATCH/out/reports/"}" 5242880 || true
+              n=$((n + 1))
+              if [ "$n" -gt 200 ] || [ "$budget" -le 0 ]; then break; fi
+              cap=$((budget < 5242880 ? budget : 5242880))
+              dest="$RES/reports/out/${f#"$SCRATCH/out/reports/"}"
+              take "$f" "$dest" "$cap" || continue
+              budget=$((budget - $(stat -c %s -- "$dest")))
             done < <(find "$SCRATCH/out/reports" -type f -print0)
           fi
           { echo "### wgs ($PROFILE)"; cat "$RES/summary.txt" 2>/dev/null || echo "did not run"; } >> "$GITHUB_STEP_SUMMARY"
@@ -282,6 +304,7 @@ jobs:
       - name: Remove scratch, results and workspace
         if: always()
         run: |
+          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
           chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
           rm -rf "$SCRATCH" ${RES:+"$RES"}
           find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
