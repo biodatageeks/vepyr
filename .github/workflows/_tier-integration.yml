@@ -51,7 +51,9 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: git lfs pull --include 'e2e-testing/golden/116/chr22/*,tests/data/hg002_chr22/input_chr22.vcf.gz*,tests/data/hg002_chr22/chr22.fa.gz*'
       - id: list
-        run: echo "list=$(python3 ci/ci_helpers.py profiles e2e-testing/golden/116/chr22/manifest.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          list=$(python3 ci/ci_helpers.py profiles e2e-testing/golden/116/chr22/manifest.json)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
 
   profile:
     needs: profiles
@@ -87,6 +89,7 @@ jobs:
           uv venv --python 3.12 "$RUNNER_TEMP/venv"
           uv pip install --python "$RUNNER_TEMP/venv/bin/python" \
             "$(python3 ci/ci_helpers.py find-wheel dist)" "huggingface_hub==1.28.0"
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Download the ${{ matrix.profile }} cache
         run: |
           "$RUNNER_TEMP/venv/bin/python" e2e-testing/scripts/download_chr22.py \
@@ -115,7 +118,9 @@ jobs:
         if: failure()
         with:
           name: integration-${{ matrix.profile }}-outputs
-          path: ${{ runner.temp }}/work/output
+          path: |
+            ${{ runner.temp }}/work/results
+            ${{ runner.temp }}/work/reports
           if-no-files-found: ignore
       - name: Record the verdict
         if: always()
