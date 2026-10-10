@@ -281,7 +281,10 @@ archive it. Done by hand, on the maintainer's go-ahead.
 
 - **Porting wall time (~18 min)** is the longest tier. It is acceptable for an
   admin-dispatched gate; if it becomes a bottleneck, shard the 74 run
-  configurations across a matrix. Self-hosted runners are not needed.
+  configurations across a matrix. Self-hosted runners are not needed; if
+  that changes, the org's own Linux runner (organization runner id 4682) is
+  the fallback, used only for release and master runs and never for jobs
+  that execute fork PR code.
 - **Upstream snapshot drift:** the committed `.snap` files mirror
   nf-core/modules and are refreshed by hand when the upstream tests change,
   like the rest of `nf-core-module/`.
