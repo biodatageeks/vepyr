@@ -32,6 +32,16 @@ def validate_target(value: str) -> str:
     )
 
 
+def wheel_target(wheel: Path) -> str:
+    """Cache key for a local wheel: its content, never its file name."""
+    if wheel.suffix != ".whl" or not wheel.is_file():
+        raise RunTestsError(
+            Exit.USAGE, f"--wheel must name an existing .whl file: {wheel}"
+        )
+    with wheel.open("rb") as handle:
+        return "wheel-" + hashlib.file_digest(handle, "sha256").hexdigest()
+
+
 @dataclass(frozen=True)
 class CliBuild:
     python: Path
@@ -72,10 +82,17 @@ def _run(argv: list[str], *, cwd: Path | None = None, capture=False) -> str:
         raise RunTestsError(Exit.ENGINE, f"cannot run {argv[0]}: {exc}") from exc
 
 
-def install(target: str, cache_root: Path) -> CliBuild:
-    target = validate_target(target)
-    from_git = bool(SHA.fullmatch(target))
-    source = "Git build with uv" if from_git else "PyPI wheel"
+def install(
+    target: str | None, cache_root: Path, *, wheel: Path | None = None
+) -> CliBuild:
+    if wheel is None:
+        target = validate_target(target)
+        from_git = bool(SHA.fullmatch(target))
+        source = "Git build with uv" if from_git else "PyPI wheel"
+    else:
+        target = wheel_target(wheel)
+        from_git = False
+        source = "local wheel"
     base = cache_root / ".vepyr_cli" / target
     base.mkdir(parents=True, exist_ok=True)
     python = base / "venv/bin/python"
@@ -159,6 +176,8 @@ def install(target: str, cache_root: Path) -> CliBuild:
                 ).hexdigest()
             progress.update(3, force=True)
             requirement = str(wheel)
+        elif wheel is not None:
+            requirement = str(wheel.resolve())
         else:
             requirement = f"vepyr=={target}"
         _run(

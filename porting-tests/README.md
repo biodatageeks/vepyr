@@ -18,7 +18,21 @@ export VEPYR_CACHE_ROOT=/tmp/cache
 ./run_tests <full-40-character-git-sha>
 ```
 
-The only argument is the version under test. A release version installs from
+Give exactly one of the version under test or `--wheel`. Two optional flags
+work with either: `--summary-md PATH` writes a Markdown table of every test that
+did not pass (for `$GITHUB_STEP_SUMMARY`), and `--keep-failed DIR` copies each
+mismatching run's vepyr output to `DIR/<fixture>/` for upload as a CI artifact.
+
+```bash
+./run_tests --wheel dist/vepyr-0.9.2-cp310-abi3-manylinux_2_17_x86_64.whl \
+    --summary-md summary.md --keep-failed failed/
+```
+
+`--wheel PATH` installs that local wheel (dependencies still come from PyPI,
+wheels only). Its install is cached under the cache root by the SHA-256 of the
+file, so a rebuilt wheel is never confused with an earlier one.
+
+The version argument is the version under test. A release version installs from
 PyPI using wheels only; it never compiles vepyr. A full Git SHA checks out that
 exact commit of `biodatageeks/vepyr` and builds its wheel with `uv build`, using
 vepyr's own dependencies. Git builds require the Rust compiler required by that

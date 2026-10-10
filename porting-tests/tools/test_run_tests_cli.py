@@ -35,7 +35,7 @@ def test_entire_suite_loads_and_preserves_counts():
 
 @pytest.mark.parametrize("target", ["0.9.0", "0.10.0rc1", "a" * 40])
 def test_one_positional_argument(target):
-    assert cli.parse_args([target]) == target
+    assert cli.parse_args([target]).vepyr == target
 
 
 @pytest.mark.parametrize(

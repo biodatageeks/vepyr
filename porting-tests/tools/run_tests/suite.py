@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,8 @@ class Report:
     skipped: list[tuple[str, str]] = field(default_factory=list)
     mismatched: list[str] = field(default_factory=list)
     errors: list[tuple[str, RunTestsError]] = field(default_factory=list)
+    notes: dict[str, tuple[str, str]] = field(default_factory=dict)
+    """Test id -> (fixture directory name, one-line detail) for every non-pass."""
 
     @property
     def code(self) -> Exit:
@@ -66,6 +69,7 @@ def run(
     cache_root: Path,
     fasta: Path,
     runner=None,
+    keep_failed: Path | None = None,
     out=None,
     err=None,
 ) -> Report:
@@ -79,11 +83,13 @@ def run(
         if fixture.skip:
             for id_ in fixture.ids:
                 report.skipped.append((id_, fixture.skip))
+                report.notes[id_] = (fixture.directory.name, fixture.skip)
                 _progress(total, report, f"SKIP {id_}: {fixture.skip}", out)
             continue
         for id_ in fixture.ids:
             print(f"RUN {id_}", file=out, flush=True)
         mismatch = None
+        first_diff = ""
         try:
             with tempfile.TemporaryDirectory(prefix="vepyr-data-") as scratch:
                 for index, settings in enumerate(fixture.runs, 1):
@@ -115,6 +121,10 @@ def run(
                     actual = body_md5(actual_bytes)
                     if actual != fixture.expected and mismatch is None:
                         mismatch = actual
+                        if keep_failed is not None:
+                            kept = keep_failed / fixture.directory.name
+                            kept.mkdir(parents=True, exist_ok=True)
+                            shutil.copyfile(output, kept / output.name)
                         expected_lines = body_lines(
                             (fixture.directory / "expected_output.vcf").read_bytes()
                         )
@@ -131,6 +141,7 @@ def run(
                                 else b"<missing>"
                             )
                             if want != got:
+                                first_diff = f"run {index}, record {row + 1}"
                                 print(
                                     f"[{fixture.directory.name}] run {index}, "
                                     f"first differing record {row + 1}",
@@ -151,6 +162,7 @@ def run(
             print(f"[{fixture.directory.name}] {exc}", file=err, flush=True)
             for id_ in fixture.ids:
                 report.errors.append((id_, exc))
+                report.notes[id_] = (fixture.directory.name, str(exc))
                 _progress(total, report, f"ERROR {id_}", out)
             continue
         for id_ in fixture.ids:
@@ -159,6 +171,10 @@ def run(
                 _progress(total, report, f"PASS {id_}", out)
             else:
                 report.mismatched.append(id_)
+                report.notes[id_] = (
+                    fixture.directory.name,
+                    f"expected {fixture.expected}, got {mismatch}; {first_diff}",
+                )
                 _progress(
                     total,
                     report,
@@ -167,3 +183,20 @@ def run(
                 )
     _progress(total, report, "DONE", out)
     return report
+
+
+def write_summary(report: Report, path: Path) -> None:
+    """Markdown for $GITHUB_STEP_SUMMARY: one row per test that did not pass."""
+    rows = (
+        [(id_, "MISMATCH") for id_ in report.mismatched]
+        + [(id_, "ERROR") for id_, _ in report.errors]
+        + [(id_, "SKIP") for id_, _ in report.skipped]
+    )
+    lines = [f"### Porting tests: {report.detail}", ""]
+    if rows:
+        lines += ["| test | fixture | verdict | detail |", "|---|---|---|---|"]
+        for id_, verdict in rows:
+            fixture, detail = report.notes.get(id_, ("", ""))
+            detail = detail.replace("|", "\\|")
+            lines.append(f"| `{id_}` | `{fixture}` | {verdict} | {detail} |")
+    path.write_text("\n".join(lines) + "\n")

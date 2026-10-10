@@ -13,18 +13,35 @@ from run_tests.progress import Progress
 from run_tests.verdict import Exit, RunTestsError
 
 
-def parse_args(argv):
+def parse_args(argv) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="./run_tests",
         allow_abbrev=False,
-        description="Run data tests with a vepyr PyPI wheel or a Git build using uv.",
+        description="Run data tests with a vepyr release, Git build, or local wheel.",
     )
     parser.add_argument(
         "vepyr",
+        nargs="?",
         metavar="VERSION_OR_SHA",
         help="PyPI release (e.g. 0.9.0) or a full 40-character Git commit SHA",
     )
-    return install.validate_target(parser.parse_args(argv).vepyr)
+    parser.add_argument(
+        "--wheel", type=Path, help="test this local vepyr wheel instead"
+    )
+    parser.add_argument(
+        "--summary-md",
+        type=Path,
+        help="write a Markdown table of every test that did not pass",
+    )
+    parser.add_argument(
+        "--keep-failed", type=Path, help="copy each mismatching run's vepyr output here"
+    )
+    args = parser.parse_args(argv)
+    if (args.vepyr is None) == (args.wheel is None):
+        parser.error("give exactly one of VERSION_OR_SHA or --wheel")
+    if args.vepyr is not None:
+        args.vepyr = install.validate_target(args.vepyr)
+    return args
 
 
 def cache_root() -> Path:
@@ -95,9 +112,12 @@ def prepare_cache(cases: list[fixtures.Fixture], root: Path, repo: Path) -> Path
 
 
 def run_selection(
-    target: str,
+    target: str | None,
     directories,
     *,
+    wheel: Path | None = None,
+    summary_md: Path | None = None,
+    keep_failed: Path | None = None,
     root: Path | None = None,
     repo: Path | None = None,
     installer=None,
@@ -105,7 +125,7 @@ def run_selection(
     runner=None,
 ) -> int:
     """Programmatic selection for campaign tooling; the public CLI runs all tests."""
-    target = install.validate_target(target)
+    target = install.validate_target(target) if wheel is None else None
     repo = fixtures.ROOT if repo is None else repo
     root = cache_root() if root is None else root.resolve()
     progress = Progress("Preparing data tests", 3, unit="steps")
@@ -115,28 +135,45 @@ def run_selection(
     print(f"{total} named tests in {len(cases)} fixtures; cache: {root}", flush=True)
     if all(case.skip for case in cases):
         build = install.CliBuild(
-            Path(sys.executable), target, "not installed (all skipped)"
+            Path(sys.executable), target or "local wheel", "not installed (all skipped)"
         )
         fasta = Path("unused")
     else:
         fasta = (preparer or prepare_cache)(cases, root, repo)
         progress.update(2, force=True)
-        build = (installer or install.install)(target, root)
+        build = (installer or (lambda t, r: install.install(t, r, wheel=wheel)))(
+            target, root
+        )
     progress.update(3, force=True)
     print(build.label, flush=True)
-    report = suite.run(cases, build=build, cache_root=root, fasta=fasta, runner=runner)
+    report = suite.run(
+        cases,
+        build=build,
+        cache_root=root,
+        fasta=fasta,
+        runner=runner,
+        keep_failed=keep_failed,
+    )
+    if summary_md is not None:
+        suite.write_summary(report, summary_md)
     print(f"run_tests: {report.detail}; exit {int(report.code)}", flush=True)
     return int(report.code)
 
 
 def main(argv=None) -> int:
     try:
-        target = parse_args(sys.argv[1:] if argv is None else argv)
+        args = parse_args(sys.argv[1:] if argv is None else argv)
         repo = fixtures.ROOT
         directories = sorted(
             path for path in (repo / tests.DATA_DIR).iterdir() if path.is_dir()
         )
-        return run_selection(target, directories)
+        return run_selection(
+            args.vepyr,
+            directories,
+            wheel=args.wheel,
+            summary_md=args.summary_md,
+            keep_failed=args.keep_failed,
+        )
     except RunTestsError as exc:
         print(
             f"run_tests: error ({exc.code.name.lower()}, exit {int(exc.code)}): {exc}",
