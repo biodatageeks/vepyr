@@ -1,4 +1,12 @@
-"""Require the four CI tiers on master, keeping every other protection setting.
+"""Require the four CI tiers on master, keeping the other protection settings.
+
+Carried over from the current protection: the pull-request review settings
+(dismiss_stale_reviews, require_code_owner_reviews, require_last_push_approval,
+required_approving_review_count), enforce_admins, required_linear_history,
+allow_force_pushes, allow_deletions, required_conversation_resolution,
+block_creations, lock_branch and allow_fork_syncing. Replaced: the required
+status checks (REQUIRED below, strict=False) and push restrictions (none).
+Signed-commit protection has its own endpoint and is left untouched.
 
 Dry run by default (prints the PUT payload). --apply sends it. Apply only after
 each check below has reported at least once: GitHub can only require a check
@@ -62,6 +70,9 @@ def build_payload(current: dict) -> dict:
         "required_conversation_resolution": _enabled(
             current, "required_conversation_resolution"
         ),
+        "block_creations": _enabled(current, "block_creations"),
+        "lock_branch": _enabled(current, "lock_branch"),
+        "allow_fork_syncing": _enabled(current, "allow_fork_syncing"),
     }
 
 

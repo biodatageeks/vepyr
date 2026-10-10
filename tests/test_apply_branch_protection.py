@@ -16,6 +16,9 @@ CURRENT = {  # trimmed GET .../branches/master/protection, 2026-10-10
     "allow_force_pushes": {"enabled": False},
     "allow_deletions": {"enabled": False},
     "required_conversation_resolution": {"enabled": False},
+    "block_creations": {"enabled": False},
+    "lock_branch": {"enabled": False},
+    "allow_fork_syncing": {"enabled": False},
 }
 
 
@@ -26,6 +29,24 @@ def test_payload_preserves_existing_settings():
     assert payload["enforce_admins"] is False
     assert payload["allow_force_pushes"] is False
     assert payload["restrictions"] is None
+    for key in ("block_creations", "lock_branch", "allow_fork_syncing"):
+        assert payload[key] is False
+
+
+def test_payload_carries_enabled_flags():
+    keys = (
+        "enforce_admins",
+        "required_linear_history",
+        "allow_force_pushes",
+        "allow_deletions",
+        "required_conversation_resolution",
+        "block_creations",
+        "lock_branch",
+        "allow_fork_syncing",
+    )
+    payload = abp.build_payload({**CURRENT, **{k: {"enabled": True} for k in keys}})
+    for key in keys:
+        assert payload[key] is True, key
 
 
 def test_payload_requires_every_tier():
