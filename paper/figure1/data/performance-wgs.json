@@ -1,0 +1,227 @@
+{
+  "source_commit": "844464c6b5805a021eb28b2859a203654cd4c5e0",
+  "dataset": "HG002 GRCh38 chr1\u201322",
+  "records": 4096123,
+  "cache_release": 116,
+  "cache_type": "merged",
+  "metric": "Whole-process elapsed wall time, including plain VCF writing",
+  "repetitions_per_setting": 1,
+  "parallelism": "VEP processes (fork children + parent) / vepyr workers; not a CPU-thread cap",
+  "panels": [
+    {
+      "platform": "linux",
+      "cache_type": "merged",
+      "vepyr_version": "0.9.0",
+      "runs": [
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 1,
+          "fork": "none",
+          "wall_seconds": 39192.0,
+          "summary": "performance-tests/vep/outputs/116/merged_fork_scaling/summary.tsv",
+          "time_log": "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_forknone.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.9.0",
+          "parallelism": 1,
+          "workers": 1,
+          "wall_seconds": 482.31,
+          "output_records": 4096123,
+          "measured_at": "2026-10-02T21:00:13.268872+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.metrics.json"
+        },
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 2,
+          "fork": "1",
+          "wall_seconds": 21440.0,
+          "summary": "performance-tests/vep/outputs/116/merged_fork_scaling/summary.tsv",
+          "time_log": "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork1.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.9.0",
+          "parallelism": 2,
+          "workers": 2,
+          "wall_seconds": 320.53,
+          "output_records": 4096123,
+          "measured_at": "2026-10-02T21:10:24.392347+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.metrics.json"
+        },
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 4,
+          "fork": "3",
+          "wall_seconds": 11418.0,
+          "summary": "performance-tests/vep/outputs/116/merged_fork_scaling/summary.tsv",
+          "time_log": "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork3.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.9.0",
+          "parallelism": 4,
+          "workers": 4,
+          "wall_seconds": 218.4,
+          "output_records": 4096123,
+          "measured_at": "2026-10-02T21:17:55.519433+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.metrics.json"
+        },
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 8,
+          "fork": "7",
+          "wall_seconds": 6858.0,
+          "summary": "performance-tests/vep/outputs/116/merged_fork_scaling/summary.tsv",
+          "time_log": "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork7.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.9.0",
+          "parallelism": 8,
+          "workers": 8,
+          "wall_seconds": 216.11,
+          "output_records": 4096123,
+          "measured_at": "2026-10-02T21:23:54.911148+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.metrics.json"
+        }
+      ]
+    },
+    {
+      "platform": "macos",
+      "cache_type": "merged",
+      "vepyr_version": "0.7.0",
+      "runs": [
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 1,
+          "fork": "none",
+          "wall_seconds": 31541.0,
+          "summary": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/summary.tsv",
+          "time_log": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_forknone.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.7.0",
+          "parallelism": 1,
+          "workers": 1,
+          "wall_seconds": 280.98,
+          "output_records": 4096123,
+          "measured_at": "2026-09-14T04:26:20.813496+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers1.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers1.metrics.json"
+        },
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 2,
+          "fork": "1",
+          "wall_seconds": 16149.0,
+          "summary": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/summary.tsv",
+          "time_log": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_fork1.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.7.0",
+          "parallelism": 2,
+          "workers": 2,
+          "wall_seconds": 160.45,
+          "output_records": 4096123,
+          "measured_at": "2026-09-14T04:23:39.330579+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers2.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers2.metrics.json"
+        },
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 4,
+          "fork": "3",
+          "wall_seconds": 9005.0,
+          "summary": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork_scaling_summary_7_3.tsv",
+          "time_log": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork3.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.7.0",
+          "parallelism": 4,
+          "workers": 4,
+          "wall_seconds": 106.58,
+          "output_records": 4096123,
+          "measured_at": "2026-09-14T04:21:51.720649+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers4.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers4.metrics.json"
+        },
+        {
+          "tool": "Ensembl VEP",
+          "version": "116.0",
+          "parallelism": 8,
+          "fork": "7",
+          "wall_seconds": 5372.0,
+          "summary": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork_scaling_summary_7_3.tsv",
+          "time_log": "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork7.time.txt"
+        },
+        {
+          "tool": "vepyr",
+          "version": "0.7.0",
+          "parallelism": 8,
+          "workers": 8,
+          "wall_seconds": 83.57,
+          "output_records": 4096123,
+          "measured_at": "2026-09-14T04:20:27.545841+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers8.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers8.metrics.json"
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "performance-tests/vep/outputs/116/merged_fork_scaling/summary.tsv": "f4ba7a4af4b8672ecc35e8dae2478e1507793812c47bd4e4bf6340b42a1c4ff8",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv": "c4e15d1feb388a2a62f98a46aa32273f49202b185d3ee8e1d0b287e3ea6d18b5",
+    "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_forknone.time.txt": "20c500c6affde5ee3efebbfeee62969e3932356e454e3b0d9ff5cefad3acd6b6",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.metrics.json": "313ab84c7c4b28295620877202bdccb4e8c9d135177edd20bd0225a4515c6290",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.time.txt": "6add1ab0fa1298c8d4d8ba65abc20051d449fd9922e39254ab9ef641a34d67a1",
+    "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork1.time.txt": "0431ce8adb9f968d4d93a1b35a30aaaa66ea644ba4499ccb5bff2367427a4c15",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.metrics.json": "24a6c00be561fba42b151af07a1f7d8f877e1a90e7a585fb5e6ec5c375262182",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.time.txt": "7180cae42921d00ada4c550a9906ad51ecc8a298a1e791055b6587252512a6de",
+    "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork3.time.txt": "c39ba044dcd038b7ead35e29f14a348ce4b3eb22b9a6b5565a3e1d267026fad2",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.metrics.json": "7d255a5d96c0db56b0dc9cf4040d1614d7a0c22df8950fffcf08c54f516da395",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.time.txt": "221b4eb009868bd42d4ac833708379a8795a6e3a0e5ea4731a8eb894a98c64a6",
+    "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork7.time.txt": "fa92a81c18f53c340cd9153ea162c7f54e092cd6f42486039b1614b959c7c114",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.metrics.json": "ccfddac1b5eaaa3d38e88da72507453c62479705273592221c3ff0a613e10e5f",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.time.txt": "7b2455d572b54419383013bf950dce2e4347ce9a2f3417e171ebde91e75d674b",
+    "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/summary.tsv": "e454aa0b650b00deec153159e20dbe76fc369654a25eb87ce32a505bf7bcca35",
+    "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork_scaling_summary_7_3.tsv": "b4618e0a23a00987104e4043ef7e77aee3ea948c6be98d9766a95d5f540abab0",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/summary.tsv": "3143d4b980ed8127cdf0c371c68255e8287c9b2c894efad19eb9243c59cf02e9",
+    "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_forknone.time.txt": "a74c8292e7b9ea5750de8407319deab850670bafed2f0f745e916ad65b25054d",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers1.metrics.json": "aa250c2cf45372c46d72c53127b6f78062d45ef7230c2320be8ab271bbe76be6",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers1.time.txt": "b68426eca1c023689e62934c8c379847c2ce2483e8d1576666e096ee10da3b7b",
+    "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_fork1.time.txt": "6f8f10448f7d6971188f5ecadb7ceea336c959db507b82ae8d089ae00ef123f1",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers2.metrics.json": "7df4b60360a4b10f99c5146b3ebefb86d121ba0d6622e945cb9bd5a416b94fee",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers2.time.txt": "343542cfdcaa949f08d113693778965146eebf8e311e30a4035521f54e57ff90",
+    "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork3.time.txt": "a397151fea6f88612798e5a843889b13c0b4f3a7509d53b7aa90016730ce0ce2",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers4.metrics.json": "3161cccd065ea23f5b98c30084a392acff3ab82b182df70271a6c9a9a7dcd6a5",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers4.time.txt": "0cf437cd7381ebc1d3f6b15e4d77b7b3fc952071c1ed29a3ff741d824885d513",
+    "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork7.time.txt": "55a746d695d6e4d409ba58d4778e9261665870a0e59f58560ac6204a8651b69f",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers8.metrics.json": "e3133933d94e0126164885f7d5e7c36f1be23667e2ef74f6f67c3131dd103ec2",
+    "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_20260914/raw/merged_workers8.time.txt": "079ab0dd4b521142c6c5a8c656c8bd300b4de04736de0182ef3f2bf1b7c3b7ea",
+    "performance-tests/README.md": "57d29670220e0e4ed4650f763065975f8331114a32ecd5d78dd079fa2631e416",
+    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/README.md": "91d7bc9018ea70ea4bc1cb335fd8fc4fbf921f5dad188aba7b88ca7ca7f556ae"
+  }
+}
