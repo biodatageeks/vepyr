@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -225,6 +226,19 @@ def statuses(
     return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
 
 
+PARITY_COMMAND = "/parity"
+
+
+def is_parity_command(text: str) -> bool:
+    """True only for a comment that is exactly the /parity command.
+
+    Surrounding ASCII whitespace is ignored (str.strip() would also drop
+    Unicode spaces such as NBSP); anything else, including arguments, quoting
+    or a second line, is not the command.
+    """
+    return text.strip(" \t\r\n") == PARITY_COMMAND
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ci_helpers.py")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -249,6 +263,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--profiles", default="[]", help="JSON list (may be empty)")
     p.add_argument("--vep-parity-job", required=True, help="needs.vep-parity.result")
     p.add_argument("--integration-job", required=True, help="needs.integration.result")
+    p = sub.add_parser("is-parity-command", help="exit 0 iff the text is /parity")
+    p.add_argument("--env", help="read the text from this variable, not stdin")
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -274,6 +290,10 @@ def main(argv: list[str] | None = None) -> int:
             }
             for ctx, st, desc in statuses(args.results_dir, names, jobs):
                 print(f"{ctx}\t{st}\t{desc}")
+        elif args.command == "is-parity-command":
+            text = os.environ.get(args.env, "") if args.env else sys.stdin.read()
+            if not is_parity_command(text):
+                raise CiError("not the /parity command")
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)
         return 1

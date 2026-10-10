@@ -116,9 +116,13 @@ under review.
 | 3 Integration | chr22 VEP 116 parity, one job per profile | no | admin dispatch, required | no | yes |
 | 4 nf-core | module + subworkflow nf-test on a PR-built image | no | required | yes | yes |
 
-Admins run tiers 2-3 for a PR with `gh workflow run parity-tests.yml -f pr=<n>`
-(or Actions -> Parity tests). They report `parity/vep-parity` and
-`parity/integration` on the PR head; a new push needs a new run. Releases
+Admins run tiers 2-3 for a PR by commenting exactly `/parity` on it, or with
+`gh workflow run parity-tests.yml -f pr=<n>` (or Actions -> Parity tests). They
+report `parity/vep-parity` and `parity/integration` on the PR head; a new push
+needs a new run. A `/parity` comment gets a rocket reaction and a reply with the
+run link, then a final reply with both statuses; a non-admin's `/parity` is
+refused with a reply. The comment route always runs master's copy of the
+workflow, so it works for fork PRs and a PR cannot alter its own gate. Releases
 (`publish_to_pypi.yml`) run all tiers and publish only if all pass;
 `dry_run=true` runs everything without tagging or publishing.
 

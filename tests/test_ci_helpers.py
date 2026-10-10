@@ -385,3 +385,49 @@ def test_statuses_missing_job_results_never_success(tmp_path):
     rows = as_dict(ci_helpers.statuses(tmp_path, ["a"], {}))
     assert rows["parity/vep-parity"][0] == "error"
     assert rows["parity/integration"][0] == "error"
+
+
+@pytest.mark.parametrize("text", ["/parity", " /parity", "/parity\n", "\t/parity \r\n"])
+def test_is_parity_command_accepts_exactly_the_command(text):
+    assert ci_helpers.is_parity_command(text) is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "   ",
+        "/parity please",
+        "/parityx",
+        "/Parity",
+        "/PARITY",
+        "parity",
+        "> /parity",
+        "`/parity`",
+        '"/parity"',
+        "/parity\nand more",
+        "lgtm\n/parity",
+        "/ parity",
+        "/parity ",
+    ],
+)
+def test_is_parity_command_rejects_anything_else(text):
+    assert ci_helpers.is_parity_command(text) is False
+
+
+def test_main_is_parity_command_from_env(monkeypatch):
+    monkeypatch.setenv("COMMENT_BODY", "/parity\n")
+    assert ci_helpers.main(["is-parity-command", "--env", "COMMENT_BODY"]) == 0
+    monkeypatch.setenv("COMMENT_BODY", "/parity now")
+    assert ci_helpers.main(["is-parity-command", "--env", "COMMENT_BODY"]) == 1
+    monkeypatch.delenv("COMMENT_BODY")
+    assert ci_helpers.main(["is-parity-command", "--env", "COMMENT_BODY"]) == 1
+
+
+def test_main_is_parity_command_from_stdin(monkeypatch):
+    import io
+
+    monkeypatch.setattr(sys, "stdin", io.StringIO("/parity"))
+    assert ci_helpers.main(["is-parity-command"]) == 0
+    monkeypatch.setattr(sys, "stdin", io.StringIO("/parity?"))
+    assert ci_helpers.main(["is-parity-command"]) == 1
