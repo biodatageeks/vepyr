@@ -133,6 +133,18 @@ Settings -> Actions -> General -> Workflow permissions to read-only narrows
 this (such a workflow must then request `statuses: write` explicitly); only a
 dedicated status-posting GitHub App, required by branch protection, closes it.
 
+### Whole-genome parity (`/parity-wgs`)
+
+An admin comment that is exactly `/parity-wgs` (or
+`gh workflow run parity-wgs.yml -f pr=<n>`) runs the HG002 GRCh38
+whole-genome md5 parity gate against the Ensembl VEP 116.0 golden VCFs for
+the `ensembl`, `merged` and `refseq` profiles on the self-hosted runner.
+It reports `parity/wgs` (and `parity/wgs/<profile>`) on the PR head. Runs
+run one at a time on the self-hosted runner, take about an hour, and are not
+a required check unless added to branch protection. PR code runs only inside
+a fresh, locked-down container with the staged data mounted read-only. Runner
+setup and the accepted residual risk are in `ci/wgs-runner/README.md`.
+
 ## License
 
 [Apache-2.0](LICENSE)
