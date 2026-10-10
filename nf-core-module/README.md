@@ -60,7 +60,7 @@ Needed on every host:
 
 - **Docker** — Docker Desktop on macOS; Docker Engine on Linux, with your user
   allowed to run `docker` without `sudo`.
-- **Nextflow** (>= 24.10.2) and **Java 11+**.
+- **Nextflow 26.04** (the committed snapshots record 26.04.6; 24.10.x rejects the module under strict syntax), **nf-test 0.9.5** and **Java 11+**.
 - **uv** and the project environment (`uv sync` at the repository root):
   `stage-testdata.sh` uses it to build and verify the test data (it also needs
   samtools, bgzip and tabix on `PATH`).

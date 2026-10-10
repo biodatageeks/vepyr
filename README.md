@@ -104,6 +104,24 @@ for the command that runs **all 10 profiles**, offline reuse and golden-data
 provenance. The three caches total ~1.5 GB and the ten BGZF goldens total ~178 MB;
 allow about 6 GB of disk space for the complete run and Docker image.
 
+## Continuous integration
+
+Four tiers gate every change; tiers 2-4 test the wheel built from the code
+under review.
+
+| Tier | What | Draft PR | PR | master | Release |
+|---|---|---|---|---|---|
+| 1 Unit | lint, `cargo test`, pytest, wheels, `vep-parity-checks` | yes | required | yes | yes |
+| 2 Ensembl VEP parity | `porting-tests/` data suite (205 tests) | no | admin dispatch, required | no | yes |
+| 3 Integration | chr22 VEP 116 parity, one job per profile | no | admin dispatch, required | no | yes |
+| 4 nf-core | module + subworkflow nf-test on a PR-built image | no | required | yes | yes |
+
+Admins run tiers 2-3 for a PR with `gh workflow run parity-tests.yml -f pr=<n>`
+(or Actions -> Parity tests). They report `parity/vep-parity` and
+`parity/integration` on the PR head; a new push needs a new run. Releases
+(`publish_to_pypi.yml`) run all tiers and publish only if all pass;
+`dry_run=true` runs everything without tagging or publishing.
+
 ## License
 
 [Apache-2.0](LICENSE)
