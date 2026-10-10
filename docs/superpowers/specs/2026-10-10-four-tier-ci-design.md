@@ -58,8 +58,10 @@ container from that wheel.
 
 Each reusable workflow takes `ref` (commit SHA to check out) and
 `wheel-artifact` (name of the artifact holding the manylinux x86_64 wheel),
-and uploads one `result-<name>.json` per verdict-bearing job
-(`{"name": ..., "conclusion": "success"|"failure"|"error", "summary": ...}`).
+and the porting and integration workflows upload one `result-<name>.json` per
+verdict-bearing job (`{"name": ..., "conclusion": "success"|"failure"|"error",
+"summary": ...}`) for the dispatch reporter. The nf-core workflow needs none:
+its jobs are required checks by name.
 
 ## 2. Porting tier
 
@@ -164,8 +166,8 @@ profile    # matrix over that list, fail-fast: false
   no workflow edit. Today: ensembl, refseq, merged, merged_flag_pick,
   merged_flag_pick_allele, merged_flag_pick_allele_gene, merged_per_gene,
   merged_pick_allele, merged_pick_allele_gene, merged_pick_filter.
-- `download_chr22.py` gains a flavour selector if #144 lacks one, so each job
-  fetches only the cache its profile uses.
+- `download_chr22.py --profiles X` already downloads only the cache flavour
+  that profile uses.
 - Git LFS bandwidth: goldens (178 MB) are cached in `actions/cache` keyed on
   the hash of `manifest.json`. Only on a miss does the `profiles` job run
   `git lfs pull --include 'e2e-testing/golden/116/chr22/*'` and save the
