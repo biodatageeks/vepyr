@@ -14,7 +14,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data/performance-wgs.json"
-WIDTH, HEIGHT = 1010, 665
+WIDTH, HEIGHT = 1010, 780
 INK, MUTED, GRID = "#111111", "#555555", "#dddddd"
 LEVELS = (1, 2, 4, 8)
 
@@ -58,20 +58,31 @@ def rows(panel):
     return result
 
 
+def format_time(seconds):
+    """Compact endpoint labels, using the units in the reference chart."""
+    if seconds >= 3600:
+        hours, rest = divmod(round(seconds), 3600)
+        return f"{hours}h {rest // 60:02d}m"
+    if seconds >= 60:
+        minutes, rest = divmod(round(seconds), 60)
+        return f"{minutes}m {rest:02d}s"
+    return f"{seconds:.1f}s"
+
+
 def chart(parts, x, title, subtitle, panel):
     values = rows(panel)
     text(parts, x, 76, title, size=28, weight=700)
     text(parts, x, 106, subtitle, size=22, fill=MUTED)
-    # Identical limits on both platforms; the x slots are categorical settings.
-    plot_x, plot_y, plot_w, plot_h = x + 70, 134, 344, 332
+    # Shared log limits and inset categorical slots leave room for endpoint labels.
+    plot_x, plot_y, plot_w, plot_h = x + 70, 134, 344, 540
 
     def px(level):
-        return plot_x + LEVELS.index(level) * plot_w / 3
+        return plot_x + 38 + LEVELS.index(level) * (plot_w - 76) / 3
 
     def py(seconds):
-        if not 50 <= seconds <= 70000:
+        if not 30 <= seconds <= 80000:
             raise ValueError(f"Measurement outside shared axis limits: {seconds}")
-        return plot_y + plot_h * (1 - math.log(seconds / 50) / math.log(70000 / 50))
+        return plot_y + plot_h * (1 - math.log(seconds / 30) / math.log(80000 / 30))
 
     for tick, label in ((60, "1 min"), (600, "10 min"), (3600, "1 h"), (36000, "10 h")):
         yy = py(tick)
@@ -100,23 +111,34 @@ def chart(parts, x, title, subtitle, panel):
                     f'<circle cx="{xx:.1f}" cy="{yy:.1f}" r="5.5" fill="{color}"/>'
                 )
 
-    for level in (1, 8):
+    for level in LEVELS:
         vep, vepyr = values["Ensembl VEP"][level], values["vepyr"][level]
-        # Inset endpoint labels to keep them inside their own chart.
-        xx = px(level) + (62 if level == 1 else -38)
+        xx = px(level)
         yy = py(math.sqrt(vep * vepyr))
         parts.append(
-            f'<rect x="{xx - 46:.1f}" y="{yy - 22:.1f}" width="92" height="36" fill="white"/>'
+            f'<rect x="{xx - 43:.1f}" y="{yy - 20:.1f}" width="86" height="34" fill="white"/>'
         )
         text(
             parts,
             xx,
             yy + 5,
             f"{vep / vepyr:.1f}×",
-            size=27,
+            size=24,
             weight=700,
             anchor="middle",
         )
+
+    for tool, offset in (("Ensembl VEP", -17), ("vepyr", 29)):
+        for level in (1, 8):
+            text(
+                parts,
+                px(level),
+                py(values[tool][level]) + offset,
+                format_time(values[tool][level]),
+                size=22,
+                anchor="middle",
+                fill=MUTED,
+            )
 
 
 def build_svg():
@@ -136,51 +158,32 @@ def build_svg():
         "<title>HG002 whole-genome annotation: VEP and vepyr on Linux and macOS</title>",
         "<desc>Whole-process wall time on a shared logarithmic scale. "
         "VEP no fork, fork 1, 3 and 7 are paired with vepyr workers 1, 2, 4 and 8. "
-        "Ratios are VEP time divided by vepyr time. One run per setting; "
-        "the vepyr version differs between platforms.</desc>",
+        "Ratios are VEP time divided by vepyr time at each setting. "
+        "Endpoint labels show elapsed times. One run per setting.</desc>",
         '<rect width="100%" height="100%" fill="white"/>',
         '<g font-family="Arial, Helvetica, sans-serif">',
     ]
     line(parts, 74, 23, 114, 23, color="#666666", width=3.5, dash="9 6")
     text(parts, 125, 31, "VEP 116.0 (Docker)", size=24)
     line(parts, 455, 23, 495, 23, color=INK, width=3.5)
-    text(parts, 508, 31, "vepyr (native)", size=24)
+    text(parts, 508, 31, "vepyr", size=24)
     text(parts, 983, 31, "wall time · log scale", size=22, anchor="end", fill=MUTED)
     chart(
         parts,
         47,
         "Linux · Ryzen 9 5950X",
-        f"vepyr {panels['linux']['vepyr_version']} · x86-64",
+        "x86-64",
         panels["linux"],
     )
     chart(
         parts,
         545,
         "macOS · Apple M3 Max",
-        f"vepyr {panels['macos']['vepyr_version']} · arm64",
+        "arm64",
         panels["macos"],
     )
     text(
-        parts, WIDTH / 2, 537, "VEP processes / vepyr workers", size=25, anchor="middle"
-    )
-    text(
-        parts,
-        WIDTH / 2,
-        568,
-        "VEP: no fork, 1, 3, 7  ↔  vepyr: 1, 2, 4, 8",
-        size=22,
-        anchor="middle",
-        fill=MUTED,
-    )
-    line(parts, 47, 589, 970, 589)
-    text(parts, 47, 620, "HG002 · 4,096,123 variants · merged cache 116", size=24)
-    text(
-        parts,
-        47,
-        653,
-        "--everything + HGVS · FASTA · plain VCF output",
-        size=23,
-        fill=MUTED,
+        parts, WIDTH / 2, 753, "VEP processes / vepyr workers", size=25, anchor="middle"
     )
     parts.extend(["</g>", "</svg>"])
     return "\n".join(parts) + "\n"

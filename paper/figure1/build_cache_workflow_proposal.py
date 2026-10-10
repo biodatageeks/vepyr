@@ -337,15 +337,12 @@ def full_figure(performance_uri: str) -> fig.Scene:
     # Panel C is generated from the frozen, audited performance-data snapshot.
     s.label(1540, 1439, 64, 44, "C", font_size=31, weight=700)
     s.label(1610, 1440, 750, 42, "Performance", font_size=29, weight=700)
-    s.image(1540, 1510, 820, 820 * 665 / 1010, performance_uri)
-    s.label(
+    s.image(
         1540,
-        2070,
+        1510,
         820,
-        70,
-        "One run per setting · ratios = VEP / vepyr\nWhole-process time, including VCF writing",
-        font_size=20,
-        color=GREY,
+        820 * build_performance.HEIGHT / build_performance.WIDTH,
+        performance_uri,
     )
     return s
 
@@ -368,7 +365,7 @@ def save(s: fig.Scene, path: Path, width: int, height: int, title: str) -> None:
         "Lookup example rows and payload values are illustrative. The anatomy chart "
         "reports 920 versus 220 position pages for one buffer from Marek's source. "
         "Warm and cold are on-disk frequency tiers. Panel C uses audited merged-cache "
-        "whole-genome timings from master: vepyr 0.9.0 on Linux and 0.7.0 on macOS."
+        "whole-genome timings from master for VEP and vepyr on Linux and macOS."
     )
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     path.with_suffix(".svg").write_text(ET.tostring(root, encoding="unicode") + "\n")
