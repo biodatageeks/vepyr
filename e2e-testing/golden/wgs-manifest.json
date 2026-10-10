@@ -1,0 +1,58 @@
+{
+  "caches": {
+    "ensembl": {
+      "repo_id": "biodatageeks/vepyr_116_GRCh38_ensembl",
+      "revision": "058d887ec86163333fcbdd20c28ef75683faa8b5"
+    },
+    "merged": {
+      "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+      "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+    },
+    "refseq": {
+      "repo_id": "biodatageeks/vepyr_116_GRCh38_refseq",
+      "revision": "ae28273ce0b4744201ddaecd71a7ea8bf2c19d95"
+    }
+  },
+  "fasta": "input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+  "inputs": {
+    "input/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz": {
+      "sha256": "adb4d4a50048aa13353a06b84fcfcbca09a5d17525efaa4cea44f8822e81175c",
+      "size": 156252944
+    },
+    "input/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi": {
+      "sha256": "23162712553413b10f88916c28bd1238deb703a7237be2910440773beea71894",
+      "size": 1657747
+    },
+    "output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz.tbi": {
+      "sha256": "25743350a285fbbe6ea8378207a34e5bb78bf94b4a86fd87e8c912e34e67f986",
+      "size": 2022560
+    },
+    "output/116/HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz.tbi": {
+      "sha256": "b25e743e7db0aadc246bf5a479f08f117c7042d5e6332c7a35243a796444e679",
+      "size": 1896158
+    },
+    "output/116/HG002_annotated_wgs_everything_hgvs_vep.vcf.gz.tbi": {
+      "sha256": "b4e56c91cf6ebc3be6cac41b3c77382e48863dc226ea3fdba22a6a549962badf",
+      "size": 1987545
+    }
+  },
+  "profiles": {
+    "ensembl": {
+      "golden": "output/116/HG002_annotated_wgs_everything_hgvs_vep.vcf.gz",
+      "sha256": "0e923c8202726bfcbe64d160a7b43e3f6968e91705794b0e6654b97fb9ab0e21",
+      "size": 1248311431
+    },
+    "merged": {
+      "golden": "output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+      "sha256": "d23d6848a4bdec5fa12bffb0bdf8ef11a97ee97cdade24a321a91300e79f5ed6",
+      "size": 1709395431
+    },
+    "refseq": {
+      "golden": "output/116/HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz",
+      "sha256": "b973b6078d098319162295f7f44f9c79c478ae4dbf830866c0d6577ea6455781",
+      "size": 738758167
+    }
+  },
+  "release": "116",
+  "schema_version": 1
+}
