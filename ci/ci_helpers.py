@@ -167,6 +167,62 @@ def _load_records(results_dir: Path) -> tuple[dict[str, dict], set[str]]:
     return records, duplicates
 
 
+def _record_state(
+    records: dict[str, dict], duplicates: set[str], name: str
+) -> tuple[str, str]:
+    if name in duplicates:
+        return "error", f"duplicate result for {name}"
+    record = records.get(name)
+    if record is None:
+        return "error", "no result reported (job cancelled, timed out or never ran)"
+    conclusion = record["conclusion"]
+    summary = record.get("summary")
+    summary = summary if isinstance(summary, str) and summary else conclusion
+    if conclusion not in VERDICTS:
+        return "error", summary
+    return conclusion, summary
+
+
+def _tier_rows(
+    records: dict[str, dict],
+    duplicates: set[str],
+    *,
+    context: str,
+    record_prefix: str,
+    profiles: list[str],
+    job_result: str,
+) -> list[tuple[str, str, str]]:
+    """Per-profile rows plus a job-confirmed aggregate for one matrix tier."""
+    if not profiles:
+        return [(context, "error", "profile list missing (profiles job failed)")]
+    rows = []
+    bad = []
+    for profile in profiles:
+        conclusion, summary = _record_state(
+            records, duplicates, f"{record_prefix}{profile}"
+        )
+        rows.append((f"{context}/{profile}", conclusion, summary))
+        if conclusion != "success":
+            bad.append(profile)
+    if bad:
+        aggregate = (
+            "failure",
+            f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
+        )
+    else:
+        aggregate = ("success", f"{len(profiles)} profiles pass")
+    if aggregate[0] == "success" and job_result != "success":
+        aggregate = ("error", f"job result {job_result} contradicts verdict")
+    rows.append((context, *aggregate))
+    return rows
+
+
+def _check_profiles(profiles: list[str]) -> None:
+    for name in profiles:
+        if not PROFILE_NAME.match(name):
+            raise CiError(f"invalid profile name: {name!r}")
+
+
 def statuses(
     results_dir: Path, profiles: list[str], job_results: dict[str, str]
 ) -> list[tuple[str, str, str]]:
@@ -175,58 +231,49 @@ def statuses(
     Result files come from jobs that ran PR code, so they are untrusted: a
     success is only believed when the tier job's own result agrees.
     """
-    for name in profiles:
-        if not PROFILE_NAME.match(name):
-            raise CiError(f"invalid profile name: {name!r}")
+    _check_profiles(profiles)
     records, duplicates = _load_records(results_dir)
-
-    def state(name: str) -> tuple[str, str]:
-        if name in duplicates:
-            return "error", f"duplicate result for {name}"
-        record = records.get(name)
-        if record is None:
-            return "error", "no result reported (job cancelled, timed out or never ran)"
-        conclusion = record["conclusion"]
-        summary = record.get("summary")
-        summary = summary if isinstance(summary, str) and summary else conclusion
-        if conclusion not in VERDICTS:
-            return "error", summary
-        return conclusion, summary
-
-    def confirmed(verdict: tuple[str, str], tier: str) -> tuple[str, str]:
-        job = job_results.get(tier, "unknown")
-        if verdict[0] == "success" and job != "success":
-            return "error", f"job result {job} contradicts verdict"
-        return verdict
-
-    rows = [("parity/vep-parity", *confirmed(state("vep-parity"), "vep-parity"))]
-    if not profiles:
-        rows.append(
-            (
-                "parity/integration",
-                "error",
-                "profile list missing (profiles job failed)",
-            )
+    vep = _record_state(records, duplicates, "vep-parity")
+    if vep[0] == "success" and job_results.get("vep-parity", "unknown") != "success":
+        vep = (
+            "error",
+            f"job result {job_results.get('vep-parity', 'unknown')} "
+            "contradicts verdict",
         )
-    else:
-        bad = []
-        for profile in profiles:
-            conclusion, summary = state(f"integration/{profile}")
-            rows.append((f"parity/integration/{profile}", conclusion, summary))
-            if conclusion != "success":
-                bad.append(profile)
-        if bad:
-            aggregate = (
-                "failure",
-                f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
-            )
-        else:
-            aggregate = ("success", f"{len(profiles)} profiles pass")
-        rows.append(("parity/integration", *confirmed(aggregate, "integration")))
+    rows = [("parity/vep-parity", *vep)]
+    rows += _tier_rows(
+        records,
+        duplicates,
+        context="parity/integration",
+        record_prefix="integration/",
+        profiles=profiles,
+        job_result=job_results.get("integration", "unknown"),
+    )
+    return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
+
+
+def wgs_statuses(
+    results_dir: Path, profiles: list[str], job_result: str
+) -> list[tuple[str, str, str]]:
+    """Commit statuses for one /parity-wgs run, same trust rules as statuses()."""
+    _check_profiles(profiles)
+    records, duplicates = _load_records(results_dir)
+    rows = _tier_rows(
+        records,
+        duplicates,
+        context="parity/wgs",
+        record_prefix="wgs/",
+        profiles=profiles,
+        job_result=job_result,
+    )
     return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
 
 
 PARITY_COMMAND = "/parity"
+
+
+def _is_command(text: str, command: str) -> bool:
+    return text.rstrip(" \t\r\n") == command
 
 
 def is_parity_command(text: str) -> bool:
@@ -237,7 +284,15 @@ def is_parity_command(text: str) -> bool:
     startsWith(body, '/parity') filter. Anything else, including arguments,
     quoting or a second line, is not the command.
     """
-    return text.rstrip(" \t\r\n") == PARITY_COMMAND
+    return _is_command(text, PARITY_COMMAND)
+
+
+PARITY_WGS_COMMAND = "/parity-wgs"
+
+
+def is_parity_wgs_command(text: str) -> bool:
+    """True only for a comment that is exactly the /parity-wgs command."""
+    return _is_command(text, PARITY_WGS_COMMAND)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -266,6 +321,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--integration-job", required=True, help="needs.integration.result")
     p = sub.add_parser("is-parity-command", help="exit 0 iff the text is /parity")
     p.add_argument("--env", help="read the text from this variable, not stdin")
+    p = sub.add_parser(
+        "is-parity-wgs-command", help="exit 0 iff the text is /parity-wgs"
+    )
+    p.add_argument("--env", help="read the text from this variable, not stdin")
+    p = sub.add_parser("wgs-statuses")
+    p.add_argument("--results-dir", type=Path, required=True)
+    p.add_argument("--profiles", default="[]", help="JSON list (may be empty)")
+    p.add_argument("--job", required=True, help="needs.<job>.result")
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -295,6 +358,14 @@ def main(argv: list[str] | None = None) -> int:
             text = os.environ.get(args.env, "") if args.env else sys.stdin.read()
             if not is_parity_command(text):
                 raise CiError("not the /parity command")
+        elif args.command == "is-parity-wgs-command":
+            text = os.environ.get(args.env, "") if args.env else sys.stdin.read()
+            if not is_parity_wgs_command(text):
+                raise CiError("not the /parity-wgs command")
+        elif args.command == "wgs-statuses":
+            names = parse_profiles(args.profiles)
+            for ctx, st, desc in wgs_statuses(args.results_dir, names, args.job):
+                print(f"{ctx}\t{st}\t{desc}")
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)
         return 1

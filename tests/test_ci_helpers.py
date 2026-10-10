@@ -434,3 +434,82 @@ def test_main_is_parity_command_from_stdin(monkeypatch):
     assert ci_helpers.main(["is-parity-command"]) == 0
     monkeypatch.setattr(sys, "stdin", io.StringIO("/parity?"))
     assert ci_helpers.main(["is-parity-command"]) == 1
+
+
+@pytest.mark.parametrize("text", ["/parity-wgs", "/parity-wgs\n", "/parity-wgs \r\n"])
+def test_is_parity_wgs_command_accepts(text):
+    assert ci_helpers.is_parity_wgs_command(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "/parity",
+        " /parity-wgs",
+        "/parity-wgs 115",
+        "/parity-wgsx",
+        "`/parity-wgs`",
+        "/parity-wgs\nplease",
+    ],
+)
+def test_is_parity_wgs_command_rejects(text):
+    assert not ci_helpers.is_parity_wgs_command(text)
+
+
+def test_parity_and_wgs_commands_do_not_overlap():
+    assert not ci_helpers.is_parity_command("/parity-wgs")
+    assert not ci_helpers.is_parity_wgs_command("/parity")
+
+
+def test_wgs_statuses_all_green(tmp_path):
+    for p in ("ensembl", "merged", "refseq"):
+        write_result(tmp_path, f"wgs/{p}", "success", "md5 strict: body MATCH")
+    rows = as_dict(
+        ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged", "refseq"], "success")
+    )
+    assert rows["parity/wgs"] == ("success", "3 profiles pass")
+    assert rows["parity/wgs/merged"][0] == "success"
+
+
+def test_wgs_statuses_missing_record_is_error(tmp_path):
+    write_result(tmp_path, "wgs/ensembl", "success")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "failure"))
+    assert rows["parity/wgs/merged"][0] == "error"
+    assert rows["parity/wgs"][0] != "success"
+
+
+def test_wgs_statuses_cancelled_job_never_success(tmp_path):
+    for p in ("ensembl", "merged"):
+        write_result(tmp_path, f"wgs/{p}", "success")
+    rows = as_dict(
+        ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "cancelled")
+    )
+    assert rows["parity/wgs"][0] == "error"
+
+
+def test_wgs_statuses_empty_profiles_is_error(tmp_path):
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, [], "success"))
+    assert rows["parity/wgs"][0] == "error"
+
+
+def test_wgs_statuses_cli(tmp_path, capsys):
+    write_result(tmp_path, "wgs/merged", "success")
+    assert (
+        ci_helpers.main(
+            [
+                "wgs-statuses",
+                "--results-dir",
+                str(tmp_path),
+                "--profiles",
+                '["merged"]',
+                "--job",
+                "success",
+            ]
+        )
+        == 0
+    )
+    ctxs = {
+        line.split("\t")[0] for line in capsys.readouterr().out.strip().splitlines()
+    }
+    assert ctxs == {"parity/wgs/merged", "parity/wgs"}
