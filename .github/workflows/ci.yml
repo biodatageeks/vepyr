@@ -9,10 +9,7 @@ on:
       - "*.md"
   pull_request:
     branches: [master]
-    paths-ignore:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "*.md"
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -208,6 +205,17 @@ jobs:
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
+
+  # Tier 4 on non-draft PRs and pushes to master. A draft's skipped job is
+  # harmless: GitHub never merges drafts, and ready_for_review re-runs CI.
+  nfcore:
+    needs: linux
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-nfcore.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
   macos:
     runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}
