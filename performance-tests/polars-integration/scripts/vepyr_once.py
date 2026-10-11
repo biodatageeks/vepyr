@@ -21,7 +21,6 @@ def build(
     lf = vepyr.annotate(
         str(INPUT_VCF),
         str(VEPYR_CACHE[q.cache]),
-        everything=True,
         reference_fasta=str(FASTA),
         workers=workers,
         skip_csq=(path != "vcf"),
