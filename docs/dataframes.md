@@ -391,7 +391,7 @@ Operator by operator:
 |---|---|
 | `is`, `=`, `eq` | `==` on the whole value, including `&`-joined fields |
 | `!=`, `ne` | `!=` |
-| `match`, `matches`, `re`, `regex` | `str.contains(pattern)` |
+| `match`, `matches`, `re`, `regex` | `str.contains("(?i)" + pattern)`: `filter_vep` matches case-insensitively |
 | `<`, `>`, `<=`, `>=` | the same, after `cast()` from the string form where needed |
 | `exists`, `ex`, `defined`, bare field | `is_not_null()` |
 | `not` | `~` or `is_null()` |
@@ -410,6 +410,10 @@ the split terms. To find a term inside a joined value, use `match`, which is
 `Consequence is missense_variant and SIFT < 0.05` keeps 789 entries in 83
 variants and `Consequence match missense_variant and SIFT < 0.05` keeps 983
 entries in 108 variants, in both `filter_vep` 116.0 and Polars.
+
+`filter_vep`'s parser splits the filter string on spaces and parentheses and
+drops `^` from every word, so a pattern can contain none of them:
+`Consequence regex ^splice` is evaluated as `Consequence regex splice`.
 
 The same expressions on the wide frame keep whole variants:
 
