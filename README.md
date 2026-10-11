@@ -140,7 +140,8 @@ An admin comment that is exactly `/parity-wgs` (or
 whole-genome md5 parity gate against the Ensembl VEP 116.0 golden VCFs for
 the `ensembl`, `merged` and `refseq` profiles on the self-hosted runner.
 It reports `parity/wgs` (and `parity/wgs/<profile>`) on the PR head. Runs
-run one at a time on the self-hosted runner, take about an hour, and are not
+run one at a time on the self-hosted runner, take about 1.5 hours (wheel build,
+then 20–30 minutes per profile), and are not
 a required check unless added to branch protection. PR code runs only inside
 a fresh, locked-down container with the staged data mounted read-only. Runner
 setup and the accepted residual risk are in `ci/wgs-runner/README.md`.

@@ -87,6 +87,14 @@ for up to 24 hours) and the profile matrix uses `max-parallel: 1`. Adding a
 second `vepyr-wgs` runner removes that serialisation: two runs would then
 share `/data/vepyr`, the disk and the memory budget at once.
 
+## Runtime
+
+Measured 2026-10-11 on `gh-runner-bdg-1` (16 vCPU, 64 GB): `merged` 29 min,
+`ensembl` 23 min, `refseq` 21 min per job, after a ~15 min wheel build on
+`ubuntu-latest`. Annotation is ~15 s per contig; the rest is the
+single-threaded reference slicing and md5 verification. Each profile job has
+a 60-minute timeout (2x the slowest).
+
 ## Rebuilding the image
 
 When `Dockerfile` changes, bump `IMAGE` (for example `vepyr-wgs:2`) and the

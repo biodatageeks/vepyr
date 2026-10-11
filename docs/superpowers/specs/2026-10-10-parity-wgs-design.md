@@ -140,7 +140,7 @@ This also cuts local WGS runs' scratch from about 35 GB to about 5 GB per profil
 - **Per-profile verdict.** Each profile job writes `result-wgs-<profile>.json` (`success` / `failure` / `error` plus the strict and canonical md5 lines and the record count).
 - **Failure artifacts.** On failure the job uploads that profile's `reports/` and md5 summary, never the full VCFs.
 - **Stale data or missing image** is reported as `error` with a remediation message. It is never reported as a parity failure.
-- **Timeouts.** 120 min per profile job and 20 h for the workflow run. The runner executes one job at a time, so the three profiles run one after another. The expected total is about 1 h at `--workers 8` (measured and recorded during the first run).
+- **Timeouts.** 60 min per profile job and 20 h for the workflow run. The runner executes one job at a time, so the three profiles run one after another. Measured on the first probe (16 vCPU, `--workers $(nproc)`): merged 29, ensembl 23, refseq 21 min per job, about 1.5 h in total with the wheel build.
 - **Cancellation.** A cancelled run leaves the aggregate as `error`, via `report` with `if: !cancelled()`, mirroring parity-tests. Scratch is removed by the `always()` step.
 
 ## 5. Isolation: accepted residual risk
@@ -188,6 +188,6 @@ The root README's "Continuous integration" section gets a "Whole-genome parity (
 
 ## Open risks
 
-- **Runtime is unmeasured.** The ~1 h estimate is from local runs, and the timeouts get adjusted after the first probe.
+- **Runtime is dominated by single-threaded verification.** Annotation is ~15 s per contig; slicing and md5 take the rest. Parallel verification or profile slots are a follow-up.
 - **Golden/cache pairing.** The 116 WGS goldens were produced against the Ensembl 116 cache; the parquet caches pinned for chr22 (2026-10-07 revisions) must reproduce them. If a profile mismatches on first run, that is a genuine parity finding to report, not something to paper over by changing goldens.
 - **Runner availability.** If 4682 is offline, `/parity-wgs` jobs queue until it is back (GitHub cancels a job after 24 h unassigned). `report` then posts `error`.

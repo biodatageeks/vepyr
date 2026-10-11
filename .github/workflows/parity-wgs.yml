@@ -198,7 +198,8 @@ jobs:
     needs: [authorize, build-wheel]
     name: wgs (${{ matrix.profile }})
     runs-on: [self-hosted, linux, x64, vepyr-wgs]
-    timeout-minutes: 120
+    # Measured on gh-runner-bdg-1 (16 vCPU): merged 29, ensembl 23, refseq 21 min.
+    timeout-minutes: 60
     permissions:
       contents: read
     strategy:
