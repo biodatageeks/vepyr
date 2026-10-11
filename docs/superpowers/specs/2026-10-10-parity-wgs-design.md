@@ -14,6 +14,8 @@ Builds on: PR #174 (four-tier CI); this branch (`ci/parity-wgs`) starts from its
 > - Cancellation: `report` is skipped on a cancelled run, so `parity/wgs` stays `pending`, never `success`.
 > - Aggregate: any profile in `error` makes `parity/wgs` `error`; mismatches alone make it `failure`.
 > - The negative probe compared merged output against the refseq golden instead of corrupting an expected md5.
+> - Fork PRs must pin the reviewed head (`/parity-wgs <sha>` or dispatch `sha`); any pin must equal the current head.
+> - The runner group is **not** restricted (shared default group `bdg-runners`, Free plan); accepted as residual risk, see `ci/wgs-runner/README.md`.
 
 ## Goal
 

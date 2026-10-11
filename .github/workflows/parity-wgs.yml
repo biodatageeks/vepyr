@@ -2,8 +2,11 @@ name: Parity tests (whole genome)
 
 # Admin-only whole-genome md5 parity (HG002, VEP 116, profiles in
 # e2e-testing/golden/wgs-manifest.json) on the self-hosted runner.
-#   gh workflow run parity-wgs.yml -f pr=123
-#   a PR comment that is exactly `/parity-wgs`
+#   gh workflow run parity-wgs.yml -f pr=123 [-f sha=<head sha>]
+#   a PR comment that is exactly `/parity-wgs` or `/parity-wgs <head sha>`
+# A fork PR must pin the head SHA the admin reviewed (7+ hex characters), so a
+# push between the comment and `authorize` cannot run unreviewed code on the
+# persistent runner. A pinned SHA is enforced for any PR.
 # issue_comment always runs the default branch's copy of this workflow.
 # PR code runs only inside a fresh `docker run` of the locally built image,
 # with the staged data mounted read-only. See ci/wgs-runner/README.md.
@@ -16,6 +19,10 @@ on:
       pr:
         description: Pull request number
         required: true
+        type: string
+      sha:
+        description: Head SHA you reviewed (required for fork PRs; 7+ hex characters)
+        required: false
         type: string
   issue_comment:
     types: [created]
@@ -40,6 +47,7 @@ jobs:
       contents: read
     outputs:
       go: ${{ steps.check.outputs.go }}
+      pin: ${{ steps.check.outputs.pin }}
     steps:
       - if: github.event_name == 'issue_comment'
         uses: actions/checkout@v4
@@ -49,10 +57,15 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           COMMENT_BODY: ${{ github.event.comment.body }}
+          SHA_INPUT: ${{ inputs.sha }}
         run: |
-          if [ "$EVENT" = "workflow_dispatch" ] \
-            || python3 ci/ci_helpers.py is-parity-wgs-command --env COMMENT_BODY; then
+          # The pin is validated (hex, 7-40) again in authorize.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
             echo "go=true" >> "$GITHUB_OUTPUT"
+            printf 'pin=%s\n' "${SHA_INPUT//[^0-9A-Za-z]/}" >> "$GITHUB_OUTPUT"
+          elif pin=$(python3 ci/ci_helpers.py parity-wgs-pin --env COMMENT_BODY); then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            echo "pin=$pin" >> "$GITHUB_OUTPUT"
           else
             echo "go=false" >> "$GITHUB_OUTPUT"
             echo "Comment is not exactly /parity-wgs; nothing to do." >> "$GITHUB_STEP_SUMMARY"
@@ -82,6 +95,7 @@ jobs:
       REF: ${{ github.ref }}
       ACTOR: ${{ github.actor }}
       TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+      PIN: ${{ needs.command.outputs.pin }}
     steps:
       - name: Only master's workflow may run this
         run: |
@@ -105,9 +119,23 @@ jobs:
         name: Resolve the PR head SHA
         run: |
           [[ "$PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number, got '$PR'"; exit 1; }
-          state=$(gh api "repos/$REPO/pulls/$PR" --jq .state)
-          [ "$state" = "open" ] || { echo "::error::PR #$PR is $state"; exit 1; }
-          sha=$(gh api "repos/$REPO/pulls/$PR" --jq .head.sha)
+          refuse() {  # message for the reply step, then fail
+            printf 'msg=%s\n' "$1" >> "$GITHUB_OUTPUT"; echo "::error::$1"; exit 1
+          }
+          # One read, so state, head and fork-ness describe the same moment.
+          read -r state sha head_repo < <(gh api "repos/$REPO/pulls/$PR" \
+            --jq '[.state, .head.sha, (.head.repo.full_name // "deleted")] | @tsv')
+          [ "$state" = "open" ] || refuse "PR #$PR is $state"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || refuse "unexpected head SHA"
+          # Master's helper is not checked out yet: match the pin in shell.
+          pin=${PIN,,}
+          if [ -n "$pin" ]; then
+            [[ "$pin" =~ ^[0-9a-f]{7,40}$ ]] || refuse "pinned SHA must be 7-40 hex characters"
+            [[ "$sha" == "$pin"* ]] \
+              || refuse "pinned SHA does not match the PR head \`$sha\` (pushed after review?); re-check and pin the new head"
+          elif [ "$head_repo" != "$REPO" ]; then
+            refuse "fork PR: pin the head you reviewed with \`/parity-wgs ${sha:0:12}\`"
+          fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "Testing PR #$PR at $sha" >> "$GITHUB_STEP_SUMMARY"
       # The workflow's own ref (master), never the PR: the profile list decides
@@ -154,10 +182,13 @@ jobs:
             -f body="@$ACTOR /parity-wgs is admin-only; ask a maintainer to run it."
       - name: Report a /parity-wgs comment that could not start
         if: failure() && github.event_name == 'issue_comment' && steps.admin.outcome == 'success'
+        env:
+          # Built in the pr step from API values and fixed text only.
+          MSG: ${{ steps.pr.outputs.msg }}
         run: |
           url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
           gh api -X POST "repos/$REPO/issues/$PR/comments" \
-            -f body="/parity-wgs could not start; see $url"
+            -f body="/parity-wgs could not start${MSG:+: $MSG}; see $url"
 
   build-wheel:
     needs: authorize

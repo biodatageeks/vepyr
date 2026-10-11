@@ -16,7 +16,9 @@ It writes `/work/result.json` and `/work/summary.txt`.
    runner service.
 2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, `gh-runner-bdg-1`).
 3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
-   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`.
+   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`
+   where the plan allows it. **Currently not done** (see "Accepted residual
+   risk"): the runner is in the shared default group `bdg-runners`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
 5. **Mandatory: egress firewall.** Job containers run PR code with
    `--network bridge` (dependencies come from PyPI). They must reach only the
@@ -129,11 +131,26 @@ Mitigations:
 - privileged jobs (anything with secrets or write access) never run on this
   machine;
 - `_work` and scratch are cleaned before and after each job;
-- the runner group is restricted to this repository and to the
-  `parity-wgs.yml` workflow on `master`.
+- a fork PR must pin the reviewed head (`/parity-wgs <sha>`), so a push after
+  the admin's comment cannot run; any pinned SHA must equal the head.
 
 The main defence is the admin's review of the PR before commenting
 `/parity-wgs`. The upgrade path, if that is not enough, is ephemeral runners.
+
+**Shared runner group (accepted 2026-10-11).** `gh-runner-bdg-1` is in the
+org's default runner group `bdg-runners`, which is not restricted to a
+workflow and serves eight repositories (vepyr, polars-bio, the sequila repos,
+openstack-bdg-runners, biodatageeks.github.io). The organization is on the
+Free plan. Any workflow in those repositories that targets this runner's
+labels runs **on the host**, outside the container, as the runner user
+(docker group, so root-equivalent): an outside contributor's PR that is
+auto-approved (vepyr's fork policy only gates first-time contributors), or
+anyone with write access to one of those repositories, could alter
+`/data/vepyr`, the image or the firewall, or leave files for later jobs. The
+md5 verdicts are only as trustworthy as that host. To close it: a dedicated
+VM registered as a vepyr repository runner, with fork-PR approval required for
+all outside collaborators, or a workflow-restricted runner group (GitHub
+Team).
 
 Two further rules for the host:
 

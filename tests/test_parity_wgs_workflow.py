@@ -175,3 +175,17 @@ def test_run_profile_outcome_strings_match_run_comparison():
         assert marker in script
         assert marker in cli
     assert "grep -q 'FAIL: body digest differs' /work/run.log" in script
+
+
+def test_fork_prs_must_pin_the_reviewed_sha():
+    authorize = job_block("authorize")
+    assert "PIN: ${{ needs.command.outputs.pin }}" in authorize
+    pr_step = authorize[authorize.index("id: pr") : authorize.index("sparse-checkout")]
+    # The pin is checked against the head from the same API read as fork-ness.
+    assert '[[ "$sha" == "$pin"* ]]' in pr_step
+    assert 'elif [ "$head_repo" != "$REPO" ]; then' in pr_step
+    assert "fork PR: pin the head you reviewed" in pr_step
+    # sha is written only after every check passed.
+    assert pr_step.index('echo "sha=$sha"') > pr_step.index("fork PR: pin")
+    command = job_block("command")
+    assert "parity-wgs-pin --env COMMENT_BODY" in command

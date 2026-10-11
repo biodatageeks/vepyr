@@ -444,7 +444,16 @@ def test_main_is_parity_command_from_stdin(monkeypatch):
     assert ci_helpers.main(["is-parity-command"]) == 1
 
 
-@pytest.mark.parametrize("text", ["/parity-wgs", "/parity-wgs\n", "/parity-wgs \r\n"])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "/parity-wgs",
+        "/parity-wgs\n",
+        "/parity-wgs \r\n",
+        "/parity-wgs 3bba0d5",
+        "/parity-wgs " + "a" * 40,
+    ],
+)
 def test_is_parity_wgs_command_accepts(text):
     assert ci_helpers.is_parity_wgs_command(text)
 
@@ -459,10 +468,33 @@ def test_is_parity_wgs_command_accepts(text):
         "/parity-wgsx",
         "`/parity-wgs`",
         "/parity-wgs\nplease",
+        "/parity-wgs 3bba0d",  # too short
+        "/parity-wgs 3BBA0D5",  # not lowercase
+        "/parity-wgs  3bba0d5",
+        "/parity-wgs 3bba0d5 extra",
+        "/parity-wgs " + "a" * 41,
+        "/parity-wgs main",
     ],
 )
 def test_is_parity_wgs_command_rejects(text):
     assert not ci_helpers.is_parity_wgs_command(text)
+    assert ci_helpers.parity_wgs_pin(text) is None
+
+
+def test_parity_wgs_pin_values():
+    assert ci_helpers.parity_wgs_pin("/parity-wgs") == ""
+    assert ci_helpers.parity_wgs_pin("/parity-wgs 3bba0d5\n") == "3bba0d5"
+
+
+def test_parity_wgs_pin_cli(monkeypatch, capsys):
+    monkeypatch.setenv("BODY", "/parity-wgs 3bba0d5")
+    assert ci_helpers.main(["parity-wgs-pin", "--env", "BODY"]) == 0
+    assert capsys.readouterr().out == "3bba0d5\n"
+    monkeypatch.setenv("BODY", "/parity-wgs")
+    assert ci_helpers.main(["parity-wgs-pin", "--env", "BODY"]) == 0
+    assert capsys.readouterr().out == "\n"
+    monkeypatch.setenv("BODY", "/parity-wgs now")
+    assert ci_helpers.main(["parity-wgs-pin", "--env", "BODY"]) == 1
 
 
 def test_parity_and_wgs_commands_do_not_overlap():

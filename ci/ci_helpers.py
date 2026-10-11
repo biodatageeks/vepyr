@@ -306,9 +306,28 @@ def is_parity_command(text: str) -> bool:
 PARITY_WGS_COMMAND = "/parity-wgs"
 
 
+# A pinned commit: 7-40 lowercase hex, matched as a prefix of the PR head.
+PINNED_SHA = re.compile(r"[0-9a-f]{7,40}")
+
+
+def parity_wgs_pin(text: str) -> str | None:
+    """Pinned SHA of a /parity-wgs comment: "" when bare, None if not the command.
+
+    The command is exactly `/parity-wgs` or `/parity-wgs <sha>`; fork PRs must
+    pin the head the admin reviewed, so a push after the comment cannot run.
+    """
+    text = text.rstrip(" \t\r\n")
+    if text == PARITY_WGS_COMMAND:
+        return ""
+    head, sep, pin = text.partition(" ")
+    if head == PARITY_WGS_COMMAND and sep and PINNED_SHA.fullmatch(pin):
+        return pin
+    return None
+
+
 def is_parity_wgs_command(text: str) -> bool:
-    """True only for a comment that is exactly the /parity-wgs command."""
-    return _is_command(text, PARITY_WGS_COMMAND)
+    """True only for `/parity-wgs`, optionally followed by one pinned SHA."""
+    return parity_wgs_pin(text) is not None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -339,6 +358,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--env", help="read the text from this variable, not stdin")
     p = sub.add_parser(
         "is-parity-wgs-command", help="exit 0 iff the text is /parity-wgs"
+    )
+    p.add_argument("--env", help="read the text from this variable, not stdin")
+    p = sub.add_parser(
+        "parity-wgs-pin",
+        help="print the pinned SHA of a /parity-wgs comment (empty if bare); "
+        "exit 1 if the text is not the command",
     )
     p.add_argument("--env", help="read the text from this variable, not stdin")
     p = sub.add_parser("wgs-statuses")
@@ -378,6 +403,12 @@ def main(argv: list[str] | None = None) -> int:
             text = os.environ.get(args.env, "") if args.env else sys.stdin.read()
             if not is_parity_wgs_command(text):
                 raise CiError("not the /parity-wgs command")
+        elif args.command == "parity-wgs-pin":
+            text = os.environ.get(args.env, "") if args.env else sys.stdin.read()
+            pin = parity_wgs_pin(text)
+            if pin is None:
+                raise CiError("not the /parity-wgs command")
+            print(pin)
         elif args.command == "wgs-statuses":
             names = parse_profiles(args.profiles)
             for ctx, st, desc in wgs_statuses(args.results_dir, names, args.job):
