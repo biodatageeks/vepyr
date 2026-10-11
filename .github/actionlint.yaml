@@ -1,0 +1,4 @@
+# Custom labels of the org self-hosted runners (see ci/wgs-runner/README.md).
+self-hosted-runner:
+  labels:
+    - vepyr-wgs

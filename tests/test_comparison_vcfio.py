@@ -398,3 +398,45 @@ def test_normalize_vcf_reruns_when_the_source_changes(indexed_multi_contig, tmp_
 
     sidecar = json.loads((out_dir / "normalized.source.json").read_text())
     assert sidecar["path"] == str(other)
+
+
+def test_slice_vep_writes_bgzf(indexed_multi_contig, tmp_path):
+    out = vcfio.slice_vep(str(indexed_multi_contig), "chr1", str(tmp_path), "merged")
+    assert out.endswith("vep_chr1_merged.vcf.gz")
+    assert vcfio.is_bgzf(out)
+    assert not (tmp_path / "vep_chr1_merged.vcf").exists()
+    assert vcfio.count_data_lines(out) == 2
+
+
+def test_slice_vep_ignores_a_stale_plain_slice(indexed_multi_contig, tmp_path):
+    stale = tmp_path / "vep_chr1_merged.vcf"
+    stale.write_text("##stale\n")
+    out = vcfio.slice_vep(str(indexed_multi_contig), "chr1", str(tmp_path), "merged")
+    assert out.endswith(".vcf.gz") and vcfio.count_data_lines(out) == 2
+
+
+def test_slice_vep_linear_scan_writes_bgzf(tmp_path):
+    src = tmp_path / "bare.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "22\t100\t.\tA\tT\t50\tPASS\t.\n"
+    )
+    out = vcfio.slice_vep(str(src), "chr22", str(tmp_path / "w"), "merged")
+    assert vcfio.is_bgzf(out) and vcfio.count_data_lines(out) == 1
+
+
+@pytest.mark.parametrize("mode", ["strict", "canonical"])
+@pytest.mark.parametrize("ignore_csq_order", [False, True])
+def test_bgzf_slice_digest_equals_plain_digest(
+    indexed_multi_contig, tmp_path, mode, ignore_csq_order
+):
+    import md5_concordance
+
+    gz = vcfio.slice_vep(str(indexed_multi_contig), "chr1", str(tmp_path / "gz"), "m")
+    plain = tmp_path / "plain.vcf"
+    with vcfio.open_text(gz) as fh:
+        plain.write_text(fh.read())
+    a = md5_concordance.digest_vcf(gz, mode, ignore_csq_order)
+    b = md5_concordance.digest_vcf(str(plain), mode, ignore_csq_order)
+    assert a.body == b.body

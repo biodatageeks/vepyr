@@ -6,6 +6,7 @@ extension present.
 """
 
 import gzip
+import contextlib
 import json
 import os
 import re
@@ -354,6 +355,20 @@ def slice_contig(vcf_gz, chrom, out_dir, force=False):
     return out_gz
 
 
+@contextlib.contextmanager
+def _bgzip_writer(path):
+    """Yield a `bgzip -c` process whose stdin is compressed into `path`."""
+    with open(path, "wb") as fh:
+        proc = subprocess.Popen(["bgzip", "-c"], stdin=subprocess.PIPE, stdout=fh)
+        try:
+            yield proc
+        finally:
+            proc.stdin.close()
+            rc = proc.wait()
+    if rc != 0:
+        raise RuntimeError(f"bgzip exited with status {rc} writing {path}")
+
+
 def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
     """Extract one contig from a VEP reference VCF, plain or block-gzipped.
 
@@ -363,7 +378,8 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
     open() here and raised UnicodeDecodeError on any block-gzipped reference.
     """
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.vcf")
+    out_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.vcf.gz")
+    tmp_path = out_path + ".tmp"
     sidecar_path = os.path.join(out_dir, f"vep_{chrom}_{suffix}.source.json")
     source = source_identity(vep_vcf)
     previous = _read_json(sidecar_path)
@@ -383,9 +399,9 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
             if result.returncode == 0 and result.stdout:
                 body = result.stdout
                 break
-        with open(out_path, "wb") as f:
-            f.write(header)
-            f.write(body)
+        with _bgzip_writer(tmp_path) as proc:
+            proc.stdin.write(header)
+            proc.stdin.write(body)
         n = body.count(b"\n") + int(bool(body) and not body.endswith(b"\n"))
     else:
         if vep_vcf.endswith(GZIP_SUFFIXES):
@@ -397,14 +413,15 @@ def slice_vep(vep_vcf, chrom, out_dir, suffix, force=False):
         print(f"  Extracting {chrom} from VEP reference by scan ...")
         targets = contig_aliases(chrom)
         n = 0
-        with open_text(vep_vcf) as fin, open(out_path, "w") as fout:
+        with open_text(vep_vcf) as fin, _bgzip_writer(tmp_path) as proc:
             for line in fin:
                 if line.startswith("#"):
-                    fout.write(line)
+                    proc.stdin.write(line.encode("utf-8"))
                 elif line.split("\t", 1)[0] in targets:
-                    fout.write(line)
+                    proc.stdin.write(line.encode("utf-8"))
                     n += 1
 
+    os.replace(tmp_path, out_path)
     with open(sidecar_path, "w") as stream:
         json.dump(source, stream, indent=2)
     print(f"  Extracted {n:,} VEP records for {chrom}")

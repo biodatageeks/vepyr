@@ -106,6 +106,14 @@ def test_profiles_refuses_empty(tmp_path, body):
         ci_helpers.profiles(manifest)
 
 
+@pytest.mark.parametrize("bad", ["a b", "x;rm", "", "../up", "ok\n"])
+def test_profiles_refuses_invalid_names(tmp_path, bad):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"profiles": {"good": {}, bad: {}}}))
+    with pytest.raises(ci_helpers.CiError, match="invalid profile name"):
+        ci_helpers.profiles(manifest)
+
+
 def test_profiles_cli_prints_json(tmp_path, capsys):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps({"profiles": {"merged": {}}}))
@@ -434,3 +442,143 @@ def test_main_is_parity_command_from_stdin(monkeypatch):
     assert ci_helpers.main(["is-parity-command"]) == 0
     monkeypatch.setattr(sys, "stdin", io.StringIO("/parity?"))
     assert ci_helpers.main(["is-parity-command"]) == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "/parity-wgs",
+        "/parity-wgs\n",
+        "/parity-wgs \r\n",
+        "/parity-wgs 3bba0d5",
+        "/parity-wgs " + "a" * 40,
+    ],
+)
+def test_is_parity_wgs_command_accepts(text):
+    assert ci_helpers.is_parity_wgs_command(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "/parity",
+        " /parity-wgs",
+        "/parity-wgs 115",
+        "/parity-wgsx",
+        "`/parity-wgs`",
+        "/parity-wgs\nplease",
+        "/parity-wgs 3bba0d",  # too short
+        "/parity-wgs 3BBA0D5",  # not lowercase
+        "/parity-wgs  3bba0d5",
+        "/parity-wgs 3bba0d5 extra",
+        "/parity-wgs " + "a" * 41,
+        "/parity-wgs main",
+    ],
+)
+def test_is_parity_wgs_command_rejects(text):
+    assert not ci_helpers.is_parity_wgs_command(text)
+    assert ci_helpers.parity_wgs_pin(text) is None
+
+
+def test_parity_wgs_pin_values():
+    assert ci_helpers.parity_wgs_pin("/parity-wgs") == ""
+    assert ci_helpers.parity_wgs_pin("/parity-wgs 3bba0d5\n") == "3bba0d5"
+
+
+def test_parity_wgs_pin_cli(monkeypatch, capsys):
+    monkeypatch.setenv("BODY", "/parity-wgs 3bba0d5")
+    assert ci_helpers.main(["parity-wgs-pin", "--env", "BODY"]) == 0
+    assert capsys.readouterr().out == "3bba0d5\n"
+    monkeypatch.setenv("BODY", "/parity-wgs")
+    assert ci_helpers.main(["parity-wgs-pin", "--env", "BODY"]) == 0
+    assert capsys.readouterr().out == "\n"
+    monkeypatch.setenv("BODY", "/parity-wgs now")
+    assert ci_helpers.main(["parity-wgs-pin", "--env", "BODY"]) == 1
+
+
+def test_parity_and_wgs_commands_do_not_overlap():
+    assert not ci_helpers.is_parity_command("/parity-wgs")
+    assert not ci_helpers.is_parity_wgs_command("/parity")
+
+
+def test_wgs_statuses_all_green(tmp_path):
+    for p in ("ensembl", "merged", "refseq"):
+        write_result(tmp_path, f"wgs/{p}", "success", "md5 strict: body MATCH")
+    rows = as_dict(
+        ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged", "refseq"], "success")
+    )
+    assert rows["parity/wgs"] == ("success", "3 profiles pass")
+    assert rows["parity/wgs/merged"][0] == "success"
+
+
+def test_wgs_statuses_missing_record_is_error(tmp_path):
+    write_result(tmp_path, "wgs/ensembl", "success")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "failure"))
+    assert rows["parity/wgs/merged"][0] == "error"
+    assert rows["parity/wgs"][0] != "success"
+
+
+def test_wgs_statuses_cancelled_job_never_success(tmp_path):
+    for p in ("ensembl", "merged"):
+        write_result(tmp_path, f"wgs/{p}", "success")
+    rows = as_dict(
+        ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "cancelled")
+    )
+    assert rows["parity/wgs"][0] == "error"
+
+
+def test_wgs_statuses_error_beats_failure(tmp_path):
+    # Stale data on one profile must not read as a parity mismatch.
+    write_result(tmp_path, "wgs/ensembl", "failure", "FAIL: body digest differs")
+    write_result(tmp_path, "wgs/merged", "error", "staged data differs")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "failure"))
+    assert rows["parity/wgs"] == ("error", "1 of 2 profiles errored: merged")
+    assert rows["parity/wgs/ensembl"][0] == "failure"
+
+
+def test_wgs_statuses_mismatch_is_failure(tmp_path):
+    write_result(tmp_path, "wgs/ensembl", "success")
+    write_result(tmp_path, "wgs/merged", "failure", "FAIL: body digest differs")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "failure"))
+    assert rows["parity/wgs"][0] == "failure"
+
+
+def test_parity_statuses_keep_failure_aggregate(tmp_path):
+    # error_wins is /parity-wgs only: the /parity integration aggregate is unchanged.
+    rows = ci_helpers._tier_rows(
+        {"integration/a": {"conclusion": "error", "summary": "x"}},
+        set(),
+        context="parity/integration",
+        record_prefix="integration/",
+        profiles=["a"],
+        job_result="failure",
+    )
+    assert rows[-1][1] == "failure"
+
+
+def test_wgs_statuses_empty_profiles_is_error(tmp_path):
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, [], "success"))
+    assert rows["parity/wgs"][0] == "error"
+
+
+def test_wgs_statuses_cli(tmp_path, capsys):
+    write_result(tmp_path, "wgs/merged", "success")
+    assert (
+        ci_helpers.main(
+            [
+                "wgs-statuses",
+                "--results-dir",
+                str(tmp_path),
+                "--profiles",
+                '["merged"]',
+                "--job",
+                "success",
+            ]
+        )
+        == 0
+    )
+    ctxs = {
+        line.split("\t")[0] for line in capsys.readouterr().out.strip().splitlines()
+    }
+    assert ctxs == {"parity/wgs/merged", "parity/wgs"}
