@@ -317,9 +317,12 @@ UNALIGNED = {"Existing_variation", "CLIN_SIG", "PUBMED",
 
 def consequence_rows(df: pl.DataFrame) -> pl.DataFrame:
     """One row per CSQ entry. Keeps every scalar and per-variant column as is."""
+    # The annotation columns start at "Allele"; the input's own INFO and FORMAT
+    # fields come before it and may be lists of their own length (AD, ...).
+    names = list(df.schema)
     cols = [
-        c for c, t in df.schema.items()
-        if isinstance(t, pl.List) and c not in UNALIGNED
+        c for c in names[names.index("Allele"):]
+        if isinstance(df.schema[c], pl.List) and c not in UNALIGNED
     ]
     padded = [
         pl.when(pl.col(c).is_null())
@@ -331,7 +334,7 @@ def consequence_rows(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("Consequence").is_not_null())
           .with_columns(padded)
-          .explode(cols)
+          .explode(cols, empty_as_null=True)
     )
 
 
@@ -362,7 +365,7 @@ number in `2/10`, need the same extraction here.
 |---|---|
 | `Feature is ENST00000307301` | `pl.col("Feature") == "ENST00000307301"` |
 | `Feature_type is Transcript` | `pl.col("Feature_type") == "Transcript"` |
-| `Consequence is missense_variant` | `pl.col("Consequence").str.split("&").list.contains("missense_variant")` |
+| `Consequence is missense_variant` | `pl.col("Consequence") == "missense_variant"` |
 | `Consequence matches stream` | `pl.col("Consequence").str.contains("stream")` |
 | `Consequence match stop` | `pl.col("Consequence").str.contains("stop")` |
 | `SIFT != tolerated` | `pl.col("SIFT").str.replace(r"\(.*\)$", "") != "tolerated"` |
@@ -377,7 +380,7 @@ number in `2/10`, need the same extraction here.
 | `AFR_AF > 0.1 or EUR_AF > 0.1` | `pl.any_horizontal(pl.col("AFR_AF") > 0.1, pl.col("EUR_AF") > 0.1)` |
 | `AFR_AF > #EUR_AF` | `pl.col("AFR_AF") > pl.col("EUR_AF")` |
 | `(AFR_AF > 0.1 or EUR_AF > 0.1) and (EAS_AF < 0.1 and SAS_AF < 0.1)` | `pl.any_horizontal(pl.col("AFR_AF") > 0.1, pl.col("EUR_AF") > 0.1) & pl.all_horizontal(pl.col("EAS_AF") < 0.1, pl.col("SAS_AF") < 0.1)` |
-| `Consequence is missense_variant and CCDS and DOMAINS` | `pl.col("Consequence").str.split("&").list.contains("missense_variant") & pl.col("CCDS").is_not_null() & pl.col("DOMAINS").is_not_null()` |
+| `Consequence is missense_variant and CCDS and DOMAINS` | `(pl.col("Consequence") == "missense_variant") & pl.col("CCDS").is_not_null() & pl.col("DOMAINS").is_not_null()` |
 | `SYMBOL in BRCA1,BRCA2` | `pl.col("SYMBOL").is_in(["BRCA1", "BRCA2"])` |
 | `Feature in /data/files/motifs_list.txt` | `pl.col("Feature").is_in(Path("/data/files/motifs_list.txt").read_text().split())` |
 | `Consequence is coding_sequence_variant` with `--ontology` | No ontology expansion; list the child terms: `pl.col("Consequence").str.split("&").list.eval(pl.element().is_in(CHILD_TERMS)).list.any()` |
@@ -386,9 +389,9 @@ Operator by operator:
 
 | `filter_vep` | Polars |
 |---|---|
-| `is`, `=`, `eq` | `==`; on `&`-joined fields `str.split("&").list.contains(...)` |
+| `is`, `=`, `eq` | `==` on the whole value, including `&`-joined fields |
 | `!=`, `ne` | `!=` |
-| `match`, `matches`, `re`, `regex` | `str.contains(pattern)` |
+| `match`, `matches`, `re`, `regex` | `str.contains("(?i)" + pattern)`: `filter_vep` matches case-insensitively |
 | `<`, `>`, `<=`, `>=` | the same, after `cast()` from the string form where needed |
 | `exists`, `ex`, `defined`, bare field | `is_not_null()` |
 | `not` | `~` or `is_null()` |
@@ -398,6 +401,19 @@ Operator by operator:
 Where a value in the frame is null, the `filter_vep` field is empty, so
 `is_null()` and `is_not_null()` give the `not FIELD` and `FIELD` semantics
 exactly.
+
+`is` compares the whole value, also for `&`-joined fields: an entry whose
+`Consequence` is `missense_variant&splice_region_variant` does not satisfy
+`Consequence is missense_variant`, so the Polars form is `==`, not a test on
+the split terms. To find a term inside a joined value, use `match`, which is
+`str.contains`. On HG002 chr22 with `--only_matched`,
+`Consequence is missense_variant and SIFT < 0.05` keeps 789 entries in 83
+variants and `Consequence match missense_variant and SIFT < 0.05` keeps 983
+entries in 108 variants, in both `filter_vep` 116.0 and Polars.
+
+`filter_vep`'s parser splits the filter string on spaces and parentheses and
+drops `^` from every word, so a pattern can contain none of them:
+`Consequence regex ^splice` is evaluated as `Consequence regex splice`.
 
 The same expressions on the wide frame keep whole variants:
 
