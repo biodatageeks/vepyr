@@ -98,6 +98,14 @@ def test_repeated_plugin_flags_preserve_order():
     assert kwargs["plugins"] == ["cadd", "clinvar"]
 
 
+def test_several_plugin_cache_roots_are_forwarded_as_a_list():
+    # Nextflow stages a list of plugin directories as one space-separated value.
+    kwargs = annotate_kwargs(
+        _parse(*MINIMAL, "--plugin_cache_root", "/plugins", "/hf/clinvar")
+    )
+    assert kwargs["plugin_cache_root"] == ["/plugins", "/hf/clinvar"]
+
+
 def test_plugin_cache_root_alone_is_forwarded_without_plugins():
     kwargs = annotate_kwargs(_parse(*MINIMAL, "--plugin_cache_root", "/plugins"))
     assert kwargs["plugin_cache_root"] == "/plugins"

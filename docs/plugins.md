@@ -101,6 +101,28 @@ vepyr annotate \
     --plugin_cache_root /data/plugin_cache
 ```
 
+### Plugin directories and several roots
+
+`plugin_cache_root` also accepts a single plugin directory, one that holds
+`manifest.json` directly. That is the layout of a
+[Hugging Face plugin download](downloads.md#plugin-caches). The plugin is named
+by the manifest's `plugin_name`, not by the directory. A list combines roots
+and plugin directories:
+
+```python
+vepyr.annotate(
+    "sample.vcf",
+    "/data/116_GRCh38_merged",
+    reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+    plugin_cache_root=["/data/plugin_cache", "/downloads/vepyr_116_GRCh38_plugin_clinvar"],
+    plugins=["clinvar", "cadd"],
+)
+```
+
+vepyr links these into a staged root of symlinks under the system temp
+directory, named by its contents, and reuses it on later runs. A plugin that
+appears in two of the paths is an error.
+
 ### Plugin-only annotation
 
 Pass `fields="core"` to emit VEP's eleven VCF-side default fields followed by

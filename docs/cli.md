@@ -46,7 +46,7 @@ directory.
 | `--buffer-size N` | Variants per annotation buffer. Positive integer; defaults to the Python API's 5000. |
 | `--allow_non_variant` | Keep `ALT=.` records instead of dropping them, as VEP does. |
 | `--cache_version N` | Assert the cache version in the Parquet metadata. |
-| `--plugin_cache_root DIR` | Root of a plugin cache tree. |
+| `--plugin_cache_root DIR [DIR ...]` | Root of a plugin cache tree, or a plugin directory. Several combine. |
 | `--plugin NAME` | Restrict to this plugin. Repeatable; order is CSQ block order. |
 | `--no_progress` | Suppress the progress bar. |
 | `-h`, `--help` / `--version` | Usage, or the installed version. |
@@ -74,6 +74,10 @@ vepyr annotate \
     --plugin clinvar \
     --plugin cadd
 ```
+
+`--plugin_cache_root` also takes a single plugin directory, such as a
+[Hugging Face download](downloads.md#plugin-caches), and several paths combine:
+`--plugin_cache_root ~/vepyr_plugin_cache ~/hf/clinvar`.
 
 Omit `--plugin` to apply every plugin under the root, in alphabetical order.
 Each `--plugin` narrows the set to those named, and the order they are given in

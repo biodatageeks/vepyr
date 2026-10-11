@@ -499,6 +499,43 @@ class TestPartialPluginCache:
         assert partial == intact
         assert any("604358" in line and "|0.5" in line for line in partial)
 
+    def test_plugin_directory_annotates_like_its_root(
+        self, demo_plugin_cache, metadata_cache_dir, tmp_path
+    ):
+        import vepyr
+
+        # The layout of `hf download <plugin repo> --local-dir <dir>`.
+        download = tmp_path / "vepyr_116_GRCh38_plugin_demo"
+        shutil.copytree(Path(demo_plugin_cache) / "plugin" / "demo", download)
+
+        def run(plugin_cache_root, name):
+            out = tmp_path / f"{name}.vcf"
+            vepyr.annotate(
+                INPUT_VCF,
+                metadata_cache_dir,
+                output_vcf=str(out),
+                reference_fasta=REFERENCE_FASTA,
+                skip_csq=False,
+                plugin_cache_root=plugin_cache_root,
+                plugins=["demo"],
+                show_progress=False,
+            )
+            return self._records(out)
+
+        from_root = run(demo_plugin_cache, "root")
+        assert run(str(download), "directory") == from_root
+        assert any("604358" in line and "|0.5" in line for line in from_root[1])
+
+        frame = vepyr.annotate(
+            INPUT_VCF,
+            metadata_cache_dir,
+            reference_fasta=REFERENCE_FASTA,
+            fields="core",
+            plugin_cache_root=[download],
+            plugins=["demo"],
+        ).collect()
+        assert frame["DEMO"].is_not_null().sum() == 2
+
     def test_listed_contig_with_missing_shard_fails_loudly(
         self, demo_plugin_cache, metadata_cache_dir, tmp_path
     ):
@@ -1340,6 +1377,147 @@ def test_annotate_plugins_rejects_unknown_name_with_available_plugins(tmp_path):
             plugins=["nope"],
         )
     assert "Available: cadd, clinvar" in str(exc.value)
+
+
+# --- plugin cache inputs -------------------------------------------------
+
+
+def _plugin_dir(parent: Path, dirname: str, plugin_name: str) -> str:
+    """A single plugin directory, laid out as a Hugging Face download is."""
+    d = parent / dirname
+    d.mkdir(parents=True)
+    (d / "manifest.json").write_text(json.dumps({"plugin_name": plugin_name}))
+    (d / "chr22.parquet").write_bytes(b"")
+    return str(d)
+
+
+def _captured_opts(monkeypatch, **kwargs) -> dict:
+    import vepyr
+
+    seen = {}
+
+    def fake(vcf, cache_dir, options_json, skip_csq, limit):
+        seen["opts"] = json.loads(options_json)
+        raise _Stop()
+
+    monkeypatch.setattr(vepyr, "_create_annotator", fake)
+    with pytest.raises(_Stop):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            skip_csq=False,
+            **kwargs,
+        )
+    return seen["opts"]
+
+
+def _staged_plugins(root: str) -> dict[str, str]:
+    plugin_root = Path(root) / "plugin"
+    return {p.name: os.path.realpath(p) for p in sorted(plugin_root.iterdir())}
+
+
+def test_plugin_cache_root_single_root_is_passed_through(tmp_path, monkeypatch):
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    opts = _captured_opts(monkeypatch, plugin_cache_root=[root])
+    assert opts["plugin_cache_root"] == root
+
+
+def test_plugin_cache_root_accepts_a_path_object(tmp_path, monkeypatch):
+    root = _fake_plugin_root(tmp_path, ["cadd"])
+    opts = _captured_opts(monkeypatch, plugin_cache_root=Path(root))
+    assert opts["plugin_cache_root"] == root
+
+
+def test_plugin_cache_root_accepts_a_single_plugin_directory(tmp_path, monkeypatch):
+    # A Hugging Face download is one flat plugin directory, named after the
+    # repo rather than the plugin.
+    plugin = _plugin_dir(tmp_path, "vepyr_116_GRCh38_plugin_clinvar", "clinvar")
+    opts = _captured_opts(monkeypatch, plugin_cache_root=plugin, plugins=["clinvar"])
+    staged = opts["plugin_cache_root"]
+    assert staged != plugin
+    assert _staged_plugins(staged) == {"clinvar": os.path.realpath(plugin)}
+    assert opts["plugins"] == ["clinvar"]
+
+
+def test_plugin_cache_root_combines_roots_and_plugin_directories(tmp_path, monkeypatch):
+    root = _fake_plugin_root(tmp_path, ["cadd", "spliceai"])
+    clinvar = _plugin_dir(tmp_path / "hf", "clinvar_download", "clinvar")
+    opts = _captured_opts(
+        monkeypatch,
+        plugin_cache_root=[root, clinvar],
+        plugins=["clinvar", "cadd"],
+    )
+    assert _staged_plugins(opts["plugin_cache_root"]) == {
+        "cadd": os.path.realpath(Path(root) / "plugin" / "cadd"),
+        "clinvar": os.path.realpath(clinvar),
+        "spliceai": os.path.realpath(Path(root) / "plugin" / "spliceai"),
+    }
+    assert opts["plugins"] == ["clinvar", "cadd"]
+
+
+def test_plugin_cache_root_staging_is_reused(tmp_path, monkeypatch):
+    a = _plugin_dir(tmp_path, "a", "clinvar")
+    b = _plugin_dir(tmp_path, "b", "cadd")
+    first = _captured_opts(monkeypatch, plugin_cache_root=[a, b])
+    second = _captured_opts(monkeypatch, plugin_cache_root=[b, a])
+    assert first["plugin_cache_root"] == second["plugin_cache_root"]
+
+
+def test_plugin_cache_root_rejects_a_plugin_given_twice(tmp_path):
+    import vepyr
+
+    root = _fake_plugin_root(tmp_path, ["clinvar"])
+    clinvar = _plugin_dir(tmp_path / "hf", "download", "clinvar")
+    with pytest.raises(ValueError, match="Plugin 'clinvar' is given twice"):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=[root, clinvar],
+        )
+
+
+def test_plugin_cache_root_rejects_a_path_that_is_neither(tmp_path):
+    import vepyr
+
+    plugin = _plugin_dir(tmp_path, "clinvar", "clinvar")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(FileNotFoundError, match="is neither a plugin cache root"):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=[plugin, str(empty)],
+        )
+
+
+def test_plugin_cache_root_rejects_a_manifest_without_plugin_name(tmp_path):
+    import vepyr
+
+    d = tmp_path / "clinvar"
+    d.mkdir()
+    (d / "manifest.json").write_text("{}")
+    with pytest.raises(ValueError, match="has no plugin_name"):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=str(d),
+        )
+
+
+def test_plugin_cache_root_rejects_an_empty_sequence():
+    import vepyr
+
+    with pytest.raises(ValueError, match="plugin_cache_root must name at least"):
+        vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=[],
+        )
 
 
 def test_annotate_plugins_requires_plugin_cache_root():

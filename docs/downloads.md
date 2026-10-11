@@ -215,8 +215,10 @@ mapping and licence.
 ### Downloading
 
 `annotate()` takes a `plugin_cache_root`, and looks for each plugin under
-`<root>/plugin/<name>/`. Download each cache **into that layout** — the
-`plugin/` path component is required:
+`<root>/plugin/<name>/`. Download each cache into that layout to keep them in
+one root, as below. A download anywhere else works too: pass its directory as,
+or among, the `plugin_cache_root` paths (see
+[Annotating with a downloaded plugin cache](#annotating-with-a-downloaded-plugin-cache)).
 
 === "clinvar"
 
@@ -320,8 +322,21 @@ lf = vepyr.annotate(
 )
 ```
 
-Note `plugin_cache_root` points at the root that *contains* `plugin/`, not at
-an individual plugin directory.
+`plugin_cache_root` points at the root that *contains* `plugin/`. It can also
+name plugin directories directly, alone or in a list with roots, so a download
+outside that layout needs no moving:
+
+```python
+lf = vepyr.annotate(
+    vcf="sample.vcf.gz",
+    cache_dir=os.path.expanduser("~/vepyr_cache/116_GRCh38_merged"),
+    reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+    plugin_cache_root=[
+        os.path.expanduser("~/vepyr_plugin_cache"),
+        os.path.expanduser("~/downloads/vepyr_116_GRCh38_plugin_clinvar"),
+    ],
+)
+```
 
 !!! tip "Tiering is inherited, so match the releases"
     A plugin cache's warm/cold `tier` is copied row-for-row from the variation
