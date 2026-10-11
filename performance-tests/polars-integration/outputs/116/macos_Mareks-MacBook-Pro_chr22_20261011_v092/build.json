@@ -1,0 +1,6 @@
+{
+  "note": "Re-run of the vepyr side on vepyr 0.9.2: parity gate, Experiment C, and Experiment B with --reuse-filter-vep from the 20260926_master run (VEP + filter_vep rows reused; same host, VEP outputs and filter_vep). Experiment A, B_sliced, the VEP timings, C_old_build_pre_fix and verify_old_build.json are carried over from 20260926_master.",
+  "vepyr": "0.9.2 from PyPI (uv pip install vepyr==0.9.2 into the vepyr repo .venv)",
+  "engine": "datafusion-bio-function-vep = { git = \"https://github.com/biodatageeks/datafusion-bio-functions.git\", tag = \"v0.23.1\", features = [\"cache-builder\"] }",
+  "build": "prebuilt PyPI wheel; not compiled with -C target-cpu=native, unlike the 20260924 and 20260926_master runs"
+}
