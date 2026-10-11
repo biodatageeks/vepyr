@@ -1,24 +1,36 @@
-graph LR
+flowchart TB
     Q["LazyFrame query<br/>.select() .filter() .head()<br/>&rarr; Polars optimizer"]
 
-    subgraph CB["vepyr io source callback"]
-        N["needed columns<br/>projection + filter roots<br/>+ plugin template inputs"]
-        F["Flag inference<br/>drop unselected groups<br/>enable groups a column needs"]
-        S["CSQ skip<br/>no CSQ / plugin column<br/>&rarr; no string, no lookup"]
-        G["Region pushdown<br/>chrom / start / end<br/>&rarr; regions"]
-        M["LIMIT<br/>in the DataFusion query"]
+    subgraph PLAN["vepyr io source: once per collect"]
+        direction LR
+        N["needed columns<br/>projection + predicate roots"]
+        F["annotation flags<br/>--everything, or only the<br/>HGVS / co-located groups<br/>the needed columns and<br/>plugin templates use"]
+        I["input fields<br/>only the INFO / FORMAT<br/>fields the query reads"]
+        S["CSQ and plugins<br/>CSQ only if CSQ or a plugin<br/>column is read; only the<br/>plugins that own one"]
+        G["regions<br/>chrom / start / end conjuncts;<br/>no region &rarr; no scan"]
         N --> F
+        N --> I
         N --> S
     end
 
-    Q -->|with_columns| N
-    Q -->|predicate| N
-    Q -->|predicate| G
-    Q -->|n_rows| M
+    subgraph ENG["Rust engine"]
+        direction LR
+        C["create_annotator(vcf, cache,<br/>options JSON, skip_csq, limit)"]
+        D["DataFusion<br/>annotate_vep(...) LIMIT n"]
+        B["Arrow RecordBatches"]
+        C --> D --> B
+    end
 
-    F --> E["engine opts JSON<br/>create_annotator()"]
-    S --> E
-    G --> E
-    M --> E
-    E --> B["Arrow RecordBatches<br/>Polars re-applies the full predicate"]
-    B --> D[DataFrame]
+    subgraph BATCH["vepyr io source: per batch"]
+        direction LR
+        P["plugin columns<br/>parsed from CSQ"]
+        FI["filter(predicate)"]
+        SE["select(projection)"]
+        H["head(remaining rows)"]
+        P --> FI --> SE --> H
+    end
+
+    Q -->|"projection, predicate, n_rows"| PLAN
+    PLAN -->|"options JSON, skip_csq, limit"| ENG
+    ENG -->|"each batch"| BATCH
+    BATCH --> DF[DataFrame]

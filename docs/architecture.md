@@ -118,8 +118,12 @@ starts. Each one narrows the work the engine is asked to do:
   the scan entirely. See [Polars DataFrames](dataframes.md#region-filters).
 - **A row limit becomes a SQL `LIMIT`.**
 
-Polars re-applies the full predicate to every batch it receives, so pushdown can
-only narrow what the engine reads — never change the result.
+The row limit and the CSQ decision reach the engine as arguments of
+`create_annotator()`, next to the options JSON, and the limit becomes a SQL
+`LIMIT` on the `annotate_vep()` query. The io source then re-applies the full
+predicate, the projection and the row limit to every batch the engine returns,
+after parsing any plugin columns out of `CSQ`, so pushdown can only narrow what
+the engine reads — never change the result.
 
 ### Memory model
 
