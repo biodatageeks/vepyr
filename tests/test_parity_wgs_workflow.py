@@ -164,3 +164,14 @@ def test_take_has_realpath_guard_and_total_cap():
     assert 'real=$(realpath -e -- "$1")' in collect
     assert 'case "$real" in "$real_scratch"/*)' in collect
     assert "budget=$((200 * 1024 * 1024))" in collect
+
+
+def test_run_profile_outcome_strings_match_run_comparison():
+    # run-profile.sh tells a mismatch (failure) from a crash (error) by these
+    # exact run_comparison lines; rewording either turns mismatches into errors.
+    script = (ROOT / "ci/wgs-runner/run-profile.sh").read_text()
+    cli = (ROOT / "e2e-testing/scripts/comparison/cli.py").read_text()
+    for marker in ("FAIL: body digest differs", "FAILED contigs"):
+        assert marker in script
+        assert marker in cli
+    assert "grep -q 'FAIL: body digest differs' /work/run.log" in script

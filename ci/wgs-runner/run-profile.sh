@@ -34,11 +34,12 @@ rc=${PIPESTATUS[0]}
 grep -E 'md5 (strict|canonical)|^  chr[0-9XYM]+ |MD5 concordance|PASS|FAIL|no md5 evidence' /work/run.log | tail -80 > /work/summary.txt || true
 # run_comparison returns 1 for BOTH an md5 mismatch and a crashed contig (2 for
 # usage/provenance errors). Only the md5 table's "FAIL: body digest differs"
-# line marks a real mismatch; a bare 1 without it is an error.
+# line marks a real mismatch; a bare 1 without it is an error. The full log is
+# searched, not summary.txt, whose 80-line tail can drop that line.
 case "$rc" in
   0) outcome=success; code=0 ;;
   1)
-    if grep -q 'FAIL: body digest differs' /work/summary.txt; then
+    if grep -q 'FAIL: body digest differs' /work/run.log; then
       outcome=failure; code=1
     else
       outcome=error; code=4

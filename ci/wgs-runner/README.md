@@ -1,6 +1,6 @@
 # /parity-wgs runner kit
 
-Everything the self-hosted runner (org runner id 4682) needs to run the
+Everything the self-hosted runner (`gh-runner-bdg-1`, org runner id 4683; 16 vCPU, 64 GB) needs to run the
 whole-genome VEP 116 parity check (`/parity-wgs`). The job runs in a locally
 built image with the staged data mounted read-only; `run-profile.sh` is the
 in-container entrypoint (`run-profile.sh <profile> <wheel-path>`, repo at
@@ -14,7 +14,7 @@ It writes `/work/result.json` and `/work/summary.txt`.
 
 1. Install Docker, add the runner user to the `docker` group and restart the
    runner service.
-2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, 4682).
+2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, `gh-runner-bdg-1`).
 3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
    `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
@@ -94,6 +94,14 @@ Measured 2026-10-11 on `gh-runner-bdg-1` (16 vCPU, 64 GB): `merged` 29 min,
 `ubuntu-latest`. Annotation is ~15 s per contig; the rest is the
 single-threaded reference slicing and md5 verification. Each profile job has
 a 60-minute timeout (2x the slowest).
+
+## Statuses
+
+`parity/wgs` is the verdict to rely on: it is confirmed against the profile
+jobs' result and is `error` (not `failure`) when any profile hit stale data, a
+crash or a failed wheel build. `parity/wgs/<profile>` are informational and
+taken from the profile's own result file; do not make them required checks.
+A cancelled run posts nothing, so `parity/wgs` stays `pending` (never green).
 
 ## Rebuilding the image
 

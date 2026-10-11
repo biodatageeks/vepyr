@@ -4,6 +4,17 @@ Date: 2026-10-10
 Status: approved in conversation, awaiting written-spec review
 Builds on: PR #174 (four-tier CI); this branch (`ci/parity-wgs`) starts from its head `c44ea3f` and merges after it.
 
+
+> **As built (2026-10-11).** The implementation differs from the text below in these points; the code and `ci/wgs-runner/README.md` are authoritative.
+> - Runner: `gh-runner-bdg-1` (org runner id 4683 after re-registration), 16 vCPU, 64 GB, provisioned from `openstack-bdg-runners` (Ansible tag `vepyr-wgs`).
+> - Isolation: an explicit hardened `docker run` from a host-side job, not `container:` jobs. Image tag is the manual `vepyr-wgs:1` (bumped with `ci/wgs-runner/IMAGE`), without git-lfs.
+> - No workflow concurrency group: one runner plus `max-parallel: 1` serialises jobs, and a group would evict queued runs.
+> - The manifest pins golden sha256/size and cache revisions, not per-contig md5s; the generator is `wgs_manifest.py prepare`.
+> - Timeouts: 60 min per profile job; no run-level timeout.
+> - Cancellation: `report` is skipped on a cancelled run, so `parity/wgs` stays `pending`, never `success`.
+> - Aggregate: any profile in `error` makes `parity/wgs` `error`; mismatches alone make it `failure`.
+> - The negative probe compared merged output against the refseq golden instead of corrupting an expected md5.
+
 ## Goal
 
 An admin can run the full HG002 GRCh38 **whole-genome** md5 parity gate against

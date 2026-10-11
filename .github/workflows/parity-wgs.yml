@@ -296,11 +296,14 @@ jobs:
         with:
           name: result-wgs-${{ matrix.profile }}
           path: ${{ env.RES }}/result-wgs-${{ matrix.profile }}.json
+          # "Re-run failed jobs" uploads the same name again in this run.
+          overwrite: true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: wgs-${{ matrix.profile }}-reports
           path: ${{ env.RES }}/reports
+          overwrite: true
           if-no-files-found: ignore
       - name: Remove scratch, results and workspace
         if: always()

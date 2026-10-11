@@ -195,8 +195,13 @@ def _tier_rows(
     record_prefix: str,
     profiles: list[str],
     job_result: str,
+    error_wins: bool = False,
 ) -> list[tuple[str, str, str]]:
-    """Per-profile rows plus a job-confirmed aggregate for one matrix tier."""
+    """Per-profile rows plus a job-confirmed aggregate for one matrix tier.
+
+    With `error_wins`, any profile in `error` makes the aggregate `error`, so
+    stale data or a crash is never reported as a parity failure.
+    """
     if not profiles:
         return [(context, "error", "profile list missing (profiles job failed)")]
     rows = []
@@ -208,7 +213,13 @@ def _tier_rows(
         rows.append((f"{context}/{profile}", conclusion, summary))
         if conclusion != "success":
             bad.append(profile)
-    if bad:
+    errored = [p for p, (_, st, _) in zip(profiles, rows) if st == "error"]
+    if error_wins and errored:
+        aggregate = (
+            "error",
+            f"{len(errored)} of {len(profiles)} profiles errored: {', '.join(errored)}",
+        )
+    elif bad:
         aggregate = (
             "failure",
             f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
@@ -269,6 +280,7 @@ def wgs_statuses(
         record_prefix="wgs/",
         profiles=profiles,
         job_result=job_result,
+        error_wins=True,
     )
     return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
 

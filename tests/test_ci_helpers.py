@@ -496,6 +496,35 @@ def test_wgs_statuses_cancelled_job_never_success(tmp_path):
     assert rows["parity/wgs"][0] == "error"
 
 
+def test_wgs_statuses_error_beats_failure(tmp_path):
+    # Stale data on one profile must not read as a parity mismatch.
+    write_result(tmp_path, "wgs/ensembl", "failure", "FAIL: body digest differs")
+    write_result(tmp_path, "wgs/merged", "error", "staged data differs")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "failure"))
+    assert rows["parity/wgs"] == ("error", "1 of 2 profiles errored: merged")
+    assert rows["parity/wgs/ensembl"][0] == "failure"
+
+
+def test_wgs_statuses_mismatch_is_failure(tmp_path):
+    write_result(tmp_path, "wgs/ensembl", "success")
+    write_result(tmp_path, "wgs/merged", "failure", "FAIL: body digest differs")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged"], "failure"))
+    assert rows["parity/wgs"][0] == "failure"
+
+
+def test_parity_statuses_keep_failure_aggregate(tmp_path):
+    # error_wins is /parity-wgs only: the /parity integration aggregate is unchanged.
+    rows = ci_helpers._tier_rows(
+        {"integration/a": {"conclusion": "error", "summary": "x"}},
+        set(),
+        context="parity/integration",
+        record_prefix="integration/",
+        profiles=["a"],
+        job_result="failure",
+    )
+    assert rows[-1][1] == "failure"
+
+
 def test_wgs_statuses_empty_profiles_is_error(tmp_path):
     rows = as_dict(ci_helpers.wgs_statuses(tmp_path, [], "success"))
     assert rows["parity/wgs"][0] == "error"
