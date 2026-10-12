@@ -10,8 +10,8 @@ cd "$(dirname "$0")/../../.."
 
 export DATA_VEPYR_DIR=~/workspace/data_vepyr PIBENCH_MAX_LOAD=4
 PY=/Users/mwiewior/research/git/vepyr/.venv/bin/python
-VEPYR_EXPECTED=${VEPYR_EXPECTED:-0.9.2}
-RUN=outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v092
+VEPYR_EXPECTED=${VEPYR_EXPECTED:-0.9.0}
+RUN=outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v090
 DEST=${DEST:-$RUN/supplement}
 
 "$PY" -c "import vepyr, sys; v = vepyr.__version__; sys.exit(None if v == '$VEPYR_EXPECTED' else f'vepyr {v}, expected $VEPYR_EXPECTED')"

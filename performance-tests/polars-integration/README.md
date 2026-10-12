@@ -117,6 +117,7 @@ One difference is reported but not gated: polars-bio decodes the `%3D` in HGVSp 
 |---|---|---|
 | `…_chr22_20260924` | vepyr #131 at `9501251`, engine #261 at `cd38a19` through a local Cargo `[patch]` | The first full run on a pre-release build with both plugin fixes. The plugin curve is flat from 4 to 8 workers (4.0 s at both). |
 | `…_chr22_20260926_master` | vepyr master `9e37d43`, engine `v0.23.0` (#261 + #262) | Parity and C re-run; B re-timed vepyr only (`--reuse-filter-vep` from 20260924); A, B_sliced and `vep/` carried over. Plugin queries at 8 processes: 4.07 → 3.31 s median (63× → 76× vs VEP + `filter_vep`). The core groups are unchanged, as expected for the Ensembl cache. |
+| `…_chr22_merged_v090` | vepyr 0.9.0 PyPI wheel, engine `v0.23.0` | Full re-run with every query on the merged cache: VEP, parity gate, A, B, B_sliced and C. Run with `run.sh` in the run directory. |
 
 The engine-side cause of the old plugin plateau, and its fix, are in
 `docs/superpowers/specs/2026-09-26-lf-run-pool-scaling-design.md`.
