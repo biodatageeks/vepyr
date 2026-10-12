@@ -1,6 +1,8 @@
 """Command-line interface for vepyr.
 
-A thin VCF-in / VCF-out shell over :func:`vepyr.annotate`. Flag names follow
+``vepyr annotate`` is a thin VCF-in / VCF-out shell over :func:`vepyr.annotate`;
+``vepyr build-cache`` and ``vepyr build-plugin-cache`` wrap
+:func:`vepyr.build_cache` and :func:`vepyr.build_plugin_cache`. Flag names follow
 Ensembl VEP's own spelling so that ``ext.args`` strings written for the
 ``ensemblvep/vep`` nf-core module carry over unchanged.
 
@@ -15,6 +17,7 @@ the ``LazyFrame``-side parameters (``skip_csq``, ``info_fields``,
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from importlib.metadata import version as _package_version
 
@@ -294,7 +297,157 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write INFO in schema order and drop FORMAT keys missing in every "
         "sample, instead of each record's own layout.",
     )
+
+    _add_build_cache_parser(subcommands)
+    _add_build_plugin_cache_parser(subcommands)
     return parser
+
+
+# build_cache() entity names; the raw translation entity writes both
+# translation datasets.
+_ENTITIES = ("variation", "transcript", "exon", "translation", "regulatory", "motif")
+_CACHE_TYPES = ("ensembl", "merged", "refseq")
+_VERIFY_SOURCE_MODES = ("strict", "warn", "skip")
+
+
+def _add_build_cache_parser(subcommands) -> None:
+    build = subcommands.add_parser(
+        "build-cache",
+        help="Convert an Ensembl VEP cache to a vepyr Parquet cache.",
+        description="Download (or read a local copy of) an Ensembl VEP cache "
+        "and convert it to vepyr's Parquet format under "
+        "DIR/<release>_<assembly>_<cache_type>.",
+        allow_abbrev=False,
+    )
+    required = build.add_argument_group("required arguments")
+    required.add_argument(
+        "--release", required=True, type=int, metavar="N", help="Ensembl release."
+    )
+    required.add_argument(
+        "--cache_type",
+        required=True,
+        choices=_CACHE_TYPES,
+        help="Ensembl VEP cache type.",
+    )
+    required.add_argument(
+        "--dir_cache",
+        required=True,
+        metavar="DIR",
+        help="Root directory for the downloaded and the converted cache.",
+    )
+    options = build.add_argument_group("options")
+    options.add_argument(
+        "--local_cache",
+        metavar="DIR",
+        help="Already unpacked Ensembl VEP cache (the directory holding "
+        "info.txt); skips the download.",
+    )
+    options.add_argument(
+        "--entity",
+        choices=_ENTITIES,
+        help="Build only this entity, leaving the rest of the output untouched.",
+    )
+    options.add_argument(
+        "--chrom",
+        action="append",
+        dest="chroms",
+        metavar="NAME",
+        help="Build only this contig. Repeatable.",
+    )
+    options.add_argument(
+        "--species", metavar="NAME", help="Species (default: homo_sapiens)."
+    )
+    options.add_argument(
+        "--assembly", metavar="NAME", help="Genome assembly (default: GRCh38)."
+    )
+    options.add_argument(
+        "--partitions",
+        type=int,
+        metavar="N",
+        help="DataFusion partitions for the conversion (default: 8).",
+    )
+    options.add_argument(
+        "--download_retries",
+        type=int,
+        metavar="N",
+        help="Resume-retries for the cache download (default: 10).",
+    )
+    options.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Rebuild existing outputs instead of skipping them.",
+    )
+    options.add_argument(
+        "--no_progress", action="store_true", help="Suppress progress bars."
+    )
+
+
+def _add_build_plugin_cache_parser(subcommands) -> None:
+    build = subcommands.add_parser(
+        "build-plugin-cache",
+        help="Build a plugin cache from a vepyr-plugins manifest.",
+        description="Build a per-chromosome plugin cache under "
+        "PLUGIN_CACHE_ROOT/plugin/<plugin>/ from the source files named by "
+        "the plugin's "
+        "manifest in biodatageeks/vepyr-plugins.",
+        allow_abbrev=False,
+    )
+    required = build.add_argument_group("required arguments")
+    required.add_argument(
+        "--plugin", required=True, metavar="NAME", help="Plugin name, e.g. cadd."
+    )
+    required.add_argument(
+        "--version",
+        required=True,
+        metavar="TAG",
+        help="vepyr-plugins git tag of the manifest, e.g. v0.2.0.",
+    )
+    required.add_argument(
+        "--source",
+        required=True,
+        action="append",
+        dest="sources",
+        metavar="[PART=]PATH",
+        help="Source file. A manifest with several sources takes one "
+        "PART=PATH per source, e.g. snv=... and indel=... for CADD.",
+    )
+    required.add_argument(
+        "--dir_cache",
+        required=True,
+        metavar="DIR",
+        help="vepyr Parquet cache whose variation data sets the tiering, "
+        "e.g. .../116_GRCh38_merged.",
+    )
+    required.add_argument(
+        "--plugin_cache_root",
+        required=True,
+        metavar="DIR",
+        help="Root of the plugin cache tree; the cache is written to "
+        "DIR/plugin/<plugin>/.",
+    )
+    options = build.add_argument_group("options")
+    options.add_argument(
+        "--chrom",
+        action="append",
+        dest="chroms",
+        metavar="NAME",
+        help="Build only this contig. Repeatable.",
+    )
+    options.add_argument(
+        "--plugins_repo",
+        metavar="PATH",
+        help="Local clone of vepyr-plugins to read the manifest from (offline).",
+    )
+    options.add_argument(
+        "--verify_source",
+        choices=_VERIFY_SOURCE_MODES,
+        help="Checksum check of the source files (default: strict).",
+    )
+    options.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Rebuild an existing plugin cache.",
+    )
 
 
 # Store-true flags forwarded to annotate() under the same name when given.
@@ -353,11 +506,111 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
     return kwargs
 
 
+def build_cache_kwargs(args: argparse.Namespace) -> dict:
+    """Translate ``build-cache`` arguments into :func:`vepyr.build_cache` keywords.
+
+    ``release`` and ``dir_cache`` are positional on the API side and are passed
+    separately by :func:`main`. Unset options keep the API defaults.
+    """
+    kwargs: dict = {
+        "cache_type": args.cache_type,
+        "show_progress": not args.no_progress,
+    }
+    for name in (
+        "local_cache",
+        "entity",
+        "chroms",
+        "species",
+        "assembly",
+        "partitions",
+        "download_retries",
+    ):
+        value = getattr(args, name)
+        if value is not None:
+            kwargs[name] = value
+    if args.overwrite:
+        kwargs["overwrite"] = True
+    return kwargs
+
+
+def _source_path(sources: list[str]) -> str | dict[str, str]:
+    """One bare path, or one ``PART=PATH`` per source of a multi-source manifest."""
+    parts = [source.partition("=") for source in sources]
+    if all(sep == "" for _, sep, _ in parts):
+        if len(sources) != 1:
+            raise ValueError(
+                "--source: give one bare path, or PART=PATH for every source"
+            )
+        return sources[0]
+    if any(sep == "" for _, sep, _ in parts):
+        raise ValueError("--source: do not mix a bare path with PART=PATH sources")
+    mapping: dict[str, str] = {}
+    for name, _, path in parts:
+        if not name or not path:
+            raise ValueError("--source: expected PART=PATH with both parts non-empty")
+        if name in mapping:
+            raise ValueError(f"--source: part {name!r} given more than once")
+        mapping[name] = path
+    return mapping
+
+
+def build_plugin_cache_kwargs(args: argparse.Namespace) -> dict:
+    """Translate ``build-plugin-cache`` arguments into keywords.
+
+    ``plugin`` and ``version`` are positional on the API side. Raises
+    ``ValueError`` for a malformed ``--source`` list.
+    """
+    kwargs: dict = {
+        "source_path": _source_path(args.sources),
+        "cache_dir": args.dir_cache,
+        "plugin_cache_root": args.plugin_cache_root,
+    }
+    for name in ("chroms", "plugins_repo", "verify_source"):
+        value = getattr(args, name)
+        if value is not None:
+            kwargs[name] = value
+    if args.overwrite:
+        kwargs["overwrite"] = True
+    return kwargs
+
+
+def _print_cache_summary(
+    args: argparse.Namespace, files: list[tuple[str, int]]
+) -> None:
+    # Group the written files by entity directory: .../<entity>/chrN.parquet.
+    totals: dict[str, list[int]] = {}
+    for path, rows in files:
+        entity = os.path.basename(os.path.dirname(path)).removesuffix(".parquet")
+        entry = totals.setdefault(entity, [0, 0])
+        entry[0] += 1
+        entry[1] += rows
+    for entity, (count, rows) in totals.items():
+        print(f"{entity}: {count} files, {rows:,} rows")
+    assembly = args.assembly or "GRCh38"
+    cache = os.path.join(args.dir_cache, f"{args.release}_{assembly}_{args.cache_type}")
+    print(f"Cache ready: {cache}")
+    print(f"Next: vepyr annotate --dir_cache {cache} ...")
+
+
+def _print_plugin_summary(
+    args: argparse.Namespace, chroms: list[tuple[str, int, int, int]]
+) -> None:
+    for chrom, rows, warm, cold in chroms:
+        print(f"{chrom}: {rows:,} rows ({warm:,} warm, {cold:,} cold)")
+    target = os.path.join(args.plugin_cache_root, "plugin", args.plugin)
+    print(f"Plugin cache ready: {target}")
+    print(
+        "Next: vepyr annotate ... "
+        f"--plugin_cache_root {args.plugin_cache_root} --plugin {args.plugin}"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the ``vepyr`` console script.
 
-    Returns a process exit code: 0 on success, 2 when the annotation API
-    rejects the request.
+    Returns a process exit code: 0 on success, 2 when the arguments or the
+    request are rejected (bad flags, a malformed ``--source`` list, or an
+    error from the annotation or cache-building API).
 
     ``RuntimeError`` is caught alongside the argument-validation errors
     because the Rust boundary surfaces every engine failure as a
@@ -372,7 +625,17 @@ def main(argv: list[str] | None = None) -> int:
     import vepyr
 
     try:
-        vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
+        if args.command == "build-cache":
+            files = vepyr.build_cache(
+                args.release, args.dir_cache, **build_cache_kwargs(args)
+            )
+            _print_cache_summary(args, files)
+        elif args.command == "build-plugin-cache":
+            kwargs = build_plugin_cache_kwargs(args)
+            chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
+            _print_plugin_summary(args, chroms)
+        else:
+            vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
     except (ValueError, FileNotFoundError, RuntimeError) as exc:
         print(f"vepyr: error: {exc}", file=sys.stderr)
         return 2
