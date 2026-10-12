@@ -173,7 +173,7 @@ def _r(qid, regions, note):
     return Query(
         qid,
         "region",
-        "ensembl",
+        "merged",
         False,
         region_filter_vep(regions),
         ("chrom", "start"),
@@ -189,7 +189,7 @@ QUERIES: list[Query] = [
     Query(
         "R3",
         "region",
-        "ensembl",
+        "merged",
         False,
         "",
         ("chrom", "start"),
@@ -200,7 +200,7 @@ QUERIES: list[Query] = [
     Query(
         "Q1",
         "frequency",
-        "ensembl",
+        "merged",
         False,
         "MAX_AF < 0.01 or not MAX_AF",
         ("MAX_AF",),
@@ -209,7 +209,7 @@ QUERIES: list[Query] = [
     Query(
         "Q2",
         "frequency",
-        "ensembl",
+        "merged",
         False,
         "gnomADg_AF < 0.001 or not gnomADg_AF",
         ("gnomADg_AF",),
@@ -218,7 +218,7 @@ QUERIES: list[Query] = [
     Query(
         "Q3",
         "known",
-        "ensembl",
+        "merged",
         False,
         "not Existing_variation",
         ("Existing_variation",),
@@ -227,7 +227,7 @@ QUERIES: list[Query] = [
     Query(
         "Q4",
         "known",
-        "ensembl",
+        "merged",
         False,
         "CLIN_SIG match pathogenic",
         ("CLIN_SIG",),
@@ -237,7 +237,7 @@ QUERIES: list[Query] = [
     Query(
         "Q5",
         "consequence",
-        "ensembl",
+        "merged",
         False,
         "IMPACT is HIGH",
         ("IMPACT",),
@@ -246,7 +246,7 @@ QUERIES: list[Query] = [
     Query(
         "Q6",
         "consequence",
-        "ensembl",
+        "merged",
         False,
         "IMPACT in HIGH,MODERATE",
         ("IMPACT",),
@@ -255,7 +255,7 @@ QUERIES: list[Query] = [
     Query(
         "Q7",
         "consequence",
-        "ensembl",
+        "merged",
         False,
         f"{_LOF_FV} and (CANONICAL is YES or MANE_SELECT)",
         ("Consequence", "CANONICAL", "MANE_SELECT"),
@@ -266,7 +266,7 @@ QUERIES: list[Query] = [
     Query(
         "Q8",
         "consequence",
-        "ensembl",
+        "merged",
         False,
         "Consequence match missense_variant and SIFT match deleterious and PolyPhen match damaging",
         ("Consequence", "SIFT", "PolyPhen"),
@@ -281,7 +281,7 @@ QUERIES: list[Query] = [
     Query(
         "Q9",
         "consequence",
-        "ensembl",
+        "merged",
         False,
         "SYMBOL in /panels/acmg_sf_v3.2.txt",
         ("SYMBOL",),
@@ -290,7 +290,7 @@ QUERIES: list[Query] = [
     Query(
         "Q10",
         "composite",
-        "ensembl",
+        "merged",
         False,
         _Q10_FV,
         ("IMPACT", "MAX_AF", "CANONICAL", "MANE_SELECT"),

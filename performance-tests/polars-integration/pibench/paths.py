@@ -11,12 +11,11 @@ DATA = Path(os.environ.get("DATA_VEPYR_DIR", Path.home() / "workspace/data_vepyr
 WORK = Path(os.environ.get("PIBENCH_WORK", DATA / "polars_integration/chr22"))
 INPUT_VCF = WORK / "input/HG002_chr22.vcf.gz"
 FASTA = WORK / "input/Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+# Every query runs on the merged cache (Ensembl + RefSeq transcripts).
 VEPYR_CACHE = {
-    "ensembl": DATA / "cache/116_GRCh38_ensembl",
     "merged": DATA / "cache/116_GRCh38_merged",
 }
 VEP_CACHE = {
-    "ensembl": DATA / "homo_sapiens_ensembl/116_GRCh38",
     "merged": DATA / "homo_sapiens_merged/116_GRCh38",
 }
 PLUGIN_CACHE_ROOT = DATA / "plugin_cache_116"

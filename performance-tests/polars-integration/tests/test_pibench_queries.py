@@ -245,10 +245,10 @@ def test_panel_has_78_symbols_and_includes_nf2():
 def test_r3_is_the_nf2_locus():
     from pibench.queries import filter_vep_expression, panel_regions
 
-    assert panel_regions() == [("chr22", 29_603_520, 29_698_598)]
+    assert panel_regions() == [("chr22", 29_603_520, 29_698_600)]
     assert (
         filter_vep_expression(BY_ID["R3"])
-        == "(CHROM is chr22 and POS >= 29603520 and POS <= 29698598)"
+        == "(CHROM is chr22 and POS >= 29603520 and POS <= 29698600)"
     )
 
 

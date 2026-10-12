@@ -1,4 +1,4 @@
-"""Time Ensembl VEP 116 on chr22 at --fork 0/1/3/7, core (Ensembl cache) and plugins (merged + 5 plugins).
+"""Time Ensembl VEP 116 on chr22 at --fork 0/1/3/7, core and plugins (merged + 5 plugins), both on the merged cache.
 
 Core flags match PR #117's macOS runs. Plugin flags match
 e2e-testing/scripts/build_vep_plugin_reference.sh, whose --plugin order fixes the CSQ layout.
@@ -64,16 +64,17 @@ def vep_command(mode: str, fork: int, out: Path) -> list[str]:
     ]
     fork_args = ["--fork", str(fork)] if fork else []
     if mode == "core":
-        cache = VEP_CACHE["ensembl"]
+        cache = VEP_CACHE["merged"]
         return [
             *docker,
             "-v",
-            f"{cache}:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro",
+            f"{cache}:/opt/vep/.vep/homo_sapiens_merged/116_GRCh38:ro",
             VEP_IMAGE,
             "vep",
             "--dir",
             "/opt/vep/.vep",
             "--cache",
+            "--merged",
             "--assembly",
             "GRCh38",
             "--hgvs",

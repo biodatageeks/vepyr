@@ -544,7 +544,7 @@ def _fig_e2e(rows: list[dict], dest: Path) -> None:
     `rows` are e2e_rows(); each point is the median over the panel's queries.
     """
     panels = (
-        ("Core (Ensembl cache)", lambda q: not q.startswith("P")),
+        ("Core (merged cache)", lambda q: not q.startswith("P")),
         ("Plugins (merged cache + 5 plugins)", lambda q: q.startswith("P")),
     )
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.8), sharey=True)

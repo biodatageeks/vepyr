@@ -35,7 +35,7 @@ def test_equivalence_table_uses_filter_vep_expression_not_the_raw_field():
     # R3's filter_vep field is empty on purpose -- the table must call
     # filter_vep_expression(q) to get its region text, not q.filter_vep.
     tex = ms.equivalence_table(QUERIES)
-    assert "29603520" in tex and "29698598" in tex
+    assert "29603520" in tex and "29698600" in tex
 
 
 def test_filter_only_table_reports_speedup():

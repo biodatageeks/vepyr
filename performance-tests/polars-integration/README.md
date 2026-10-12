@@ -37,8 +37,8 @@ outputs/116/<host>_chr22_<date>[_suffix]/   one run: results, csv/, build.json, 
 - `bcftools`, `tabix` and `bgzip` on `PATH`.
 - Under `$DATA_VEPYR_DIR` (default `~/workspace/data_vepyr`):
   - `input/HG002_normalized.vcf.gz` and `input/Homo_sapiens.GRCh38.dna.primary_assembly.fa` (+ `.fai`);
-  - vepyr caches `cache/116_GRCh38_{ensembl,merged}`;
-  - VEP caches `homo_sapiens_{ensembl,merged}/116_GRCh38`;
+  - vepyr cache `cache/116_GRCh38_merged`;
+  - VEP cache `homo_sapiens_merged/116_GRCh38`;
   - plugin caches `plugin_cache_116`, and the VEP plugin sources and code (`output/116/plugins/plugin_code`).
 
   The VEP container mounts only this tree, so every path passed to VEP or `filter_vep` must
@@ -91,7 +91,7 @@ needs `C_old_build_pre_fix/` and `verify_old_build.json` copied across.
 - Every configuration runs once as a discarded warm-up, then three times. Tables report the median.
 - Each run is its own subprocess, so peak RSS belongs to that run alone.
 - VEP `--fork N` runs N+1 processes, so it is paired with vepyr `workers=N+1`: fork 0/1/3/7 against workers 1/2/4/8.
-- Queries without plugins use the Ensembl cache. P1–P5 use the merged cache with SpliceAI, CADD, AlphaMissense, dbNSFP and ClinVar.
+- Every query uses the release-116 merged cache, on both the VEP and the vepyr side. P1–P5 add SpliceAI, CADD, AlphaMissense, dbNSFP and ClinVar. Runs up to and including `…_20260926_master` used the Ensembl cache for the 13 queries without plugins.
 - **The host is shared.** Other projects' Docker containers start on their own and add load. `PIBENCH_MAX_LOAD=4` was the working compromise on a 16-core M3 Max, because the default 2.0 never clears with them running. Check `uptime` and `docker ps` before a run, and discard numbers taken under load rather than explaining them away.
 
 ## Parity (every published run)

@@ -1,4 +1,4 @@
-"""Write the chr22 loci of the panel genes from the 116 Ensembl transcript cache."""
+"""Write the chr22 loci of the panel genes from the 116 merged transcript cache."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from pibench.paths import VEPYR_CACHE  # noqa: E402
 def main() -> None:
     genes = (HERE / "acmg_sf_v3.2.txt").read_text().split()
     loci = (
-        pl.scan_parquet(VEPYR_CACHE["ensembl"] / "transcript/chr22.parquet")
+        pl.scan_parquet(VEPYR_CACHE["merged"] / "transcript/chr22.parquet")
         .filter(pl.col("gene_symbol").is_in(genes))
         .group_by("chrom", "gene_symbol")
         .agg(pl.col("start").min(), pl.col("end").max())

@@ -6,6 +6,7 @@ https://www.ncbi.nlm.nih.gov/clinvar/docs/acmg/ (ACMG SF v3.2), fetched
 "SYMBOL in <file>"` reads every line as a value.
 
 `acmg_sf_v3.2_chr22.bed`: the loci of those genes on chr22, from
-`make_panel_bed.py` over the release-116 Ensembl transcript cache: the
+`make_panel_bed.py` over the release-116 merged transcript cache (Ensembl and RefSeq
+transcripts): the
 min(start)-max(end) of each gene's transcripts, 0-based half-open, `chr`-prefixed.
 Only NF2 is on chr22.
