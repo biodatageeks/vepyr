@@ -1,6 +1,7 @@
 """Plugin-cache builder manifest resolution + annotate plugin_cache_root plumbing."""
 
 import subprocess
+import threading
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -988,6 +989,79 @@ def test_filtered_noop_build_restores_recoverable_cache(tmp_path):
     assert result == []
     assert not orphan.exists()
     assert (pc / "plugin" / "demo" / "chr2.parquet").read_bytes() == b"existing shard"
+
+
+def test_filtered_build_allows_revision_change_when_recoverable_shard_is_missing(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    (orphan / "chrZZ.parquet").unlink()
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    native_build = Mock(return_value=([], "[]"))
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.2.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        chroms=["2"],
+    )
+
+    assert result == []
+    assert not orphan.exists()
+    native_build.assert_called_once()
+
+
+def test_plugin_cache_build_lock_serializes_threads(tmp_path):
+    first_entered = threading.Event()
+    second_entered = threading.Event()
+    release_first = threading.Event()
+
+    def first_build():
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            first_entered.set()
+            release_first.wait(timeout=5)
+
+    def second_build():
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            second_entered.set()
+
+    first = threading.Thread(target=first_build)
+    second = threading.Thread(target=second_build)
+    first.start()
+    try:
+        assert first_entered.wait(timeout=5)
+        second.start()
+        assert not second_entered.wait(timeout=0.1)
+    finally:
+        release_first.set()
+        first.join(timeout=5)
+        if second.ident is not None:
+            second.join(timeout=5)
+
+    assert second_entered.is_set()
+
+
+def test_noop_leftover_scan_wraps_permission_error(tmp_path, monkeypatch):
+    root = tmp_path / "pc"
+    root.mkdir()
+    original_iterdir = Path.iterdir
+
+    def denied_iterdir(path):
+        if path == root:
+            raise PermissionError("list denied")
+        return original_iterdir(path)
+
+    monkeypatch.setattr(Path, "iterdir", denied_iterdir)
+
+    with pytest.raises(ValueError, match="Could not inspect.*list denied"):
+        vepyr._warn_about_plugin_cache_leftovers(str(root), "demo")
 
 
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import contextlib
+import errno
+import hashlib
 import importlib.metadata
 import logging
 import os
 import re
+import time
 import warnings
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -1136,7 +1139,9 @@ def build_plugin_cache(
 
     The cache manifest records the source as ``<version>@<commit SHA>``. This
     keeps mutable refs auditable and prevents an incremental build from mixing
-    chromosomes produced from different manifest revisions.
+    chromosomes produced from different manifest revisions. Builds for the
+    same plugin cache are serialized across processes so the revision check
+    and shard update observe one cache revision.
     """
     mode = _normalize_verify_source(verify_source)
     with _resolve_plugin_manifest(plugin, version, plugins_repo=plugins_repo) as (
@@ -1144,37 +1149,88 @@ def build_plugin_cache(
         resolved_commit,
     ):
         source_version = f"{version}@{resolved_commit}"
-        if chroms and not (Path(plugin_cache_root) / "plugin" / plugin).exists():
-            # The native builder recovers interrupted overwrites, but the
-            # Python incremental-build check may return early when all shards
-            # already exist. Recover first so that the orphan becomes visible.
-            _recover_plugin_cache(plugin_cache_root, plugin, source_version)
-        requested_chroms = _plugin_chroms_to_build(
-            plugin_cache_root,
-            plugin,
-            chroms,
-            source_version=source_version,
-            overwrite=overwrite,
-        )
-        if chroms and requested_chroms == []:
-            _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
-            result, sources_json = [], "[]"
-        else:
-            result, sources_json = _build_plugin_cache(
-                manifest_path,
-                source_path,
-                cache_dir,
+        with _plugin_cache_build_lock(plugin_cache_root, plugin):
+            if chroms and not (Path(plugin_cache_root) / "plugin" / plugin).exists():
+                # The native builder recovers interrupted overwrites, but the
+                # Python incremental-build check may return early when all shards
+                # already exist. Recover first so that the orphan becomes visible.
+                _recover_plugin_cache(plugin_cache_root, plugin, source_version)
+            requested_chroms = _plugin_chroms_to_build(
                 plugin_cache_root,
-                requested_chroms,
-                overwrite,
-                mode,
-                source_version,
+                plugin,
+                chroms,
+                source_version=source_version,
+                overwrite=overwrite,
             )
+            if chroms and requested_chroms == []:
+                _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
+                result, sources_json = [], "[]"
+            else:
+                result, sources_json = _build_plugin_cache(
+                    manifest_path,
+                    source_path,
+                    cache_dir,
+                    plugin_cache_root,
+                    requested_chroms,
+                    overwrite,
+                    mode,
+                    source_version,
+                )
     if mode == "warn":
         import json
 
         _warn_on_source_mismatch(plugin, json.loads(sources_json))
     return result
+
+
+@contextlib.contextmanager
+def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[None]:
+    """Serialize one plugin's revision check and cache update across processes."""
+    root = Path(plugin_cache_root).resolve()
+    lock_name = hashlib.sha256(plugin.encode("utf-8")).hexdigest()
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        lock_file = (root / f".plugin-cache-build-{lock_name}.lock").open("a+b")
+    except OSError as exc:
+        raise ValueError(
+            f"Could not open plugin cache build lock in {root}: {exc}"
+        ) from exc
+
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            lock_file.seek(0, os.SEEK_END)
+            if lock_file.tell() == 0:
+                lock_file.write(b"\0")
+                lock_file.flush()
+            lock_file.seek(0)
+            while True:
+                try:
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError as exc:
+                    if (
+                        exc.errno not in (errno.EACCES, errno.EDEADLK)
+                        and getattr(exc, "winerror", None) != 33
+                    ):
+                        raise
+                    time.sleep(0.05)
+            try:
+                yield
+            finally:
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+    finally:
+        lock_file.close()
 
 
 def _warn_on_source_mismatch(plugin: str, sources: list[dict]) -> None:
@@ -1217,8 +1273,6 @@ def _plugin_chroms_to_build(
     plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
     manifest_path = plugin_dir / "manifest.json"
     if not manifest_path.is_file():
-        if plugin_dir.exists():
-            return chroms
         return chroms
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -1270,6 +1324,11 @@ def _warn_about_plugin_cache_leftovers(plugin_cache_root: str, plugin: str) -> N
         candidates = list(root.iterdir())
     except FileNotFoundError:
         return
+    except OSError as exc:
+        raise ValueError(
+            f"Could not inspect {root} for plugin caches left by an interrupted "
+            f"overwrite: {exc}"
+        ) from exc
     for path in candidates:
         name = path.name
         for prefix, description in prefixes.items():

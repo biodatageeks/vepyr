@@ -472,7 +472,24 @@ fn recover_set_aside_cache(
                 let has_shards = manifest
                     .get("chroms")
                     .and_then(serde_json::Value::as_array)
-                    .is_some_and(|chroms| !chroms.is_empty());
+                    .is_some_and(|chroms| {
+                        chroms.iter().any(|chrom| {
+                            let rows_are_empty =
+                                chrom.get("rows").and_then(serde_json::Value::as_u64) == Some(0);
+                            let shard_path = chrom
+                                .get("file")
+                                .or_else(|| chrom.get("dataset"))
+                                .and_then(serde_json::Value::as_str)
+                                .map(|name| only.join(name))
+                                .or_else(|| {
+                                    chrom
+                                        .get("chrom")
+                                        .and_then(serde_json::Value::as_str)
+                                        .map(|name| only.join(format!("{name}.parquet")))
+                                });
+                            rows_are_empty || shard_path.is_some_and(|path| path.is_file())
+                        })
+                    });
                 let cached_version = manifest
                     .get("cache_source_version")
                     .and_then(serde_json::Value::as_str);
