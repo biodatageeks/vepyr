@@ -441,3 +441,38 @@ def test_generic_hub_http_errors_become_runtime_errors(monkeypatch):
     with pytest.raises(RuntimeError, match="429"):
         with _download._hub_errors("biodatageeks/x", "abc123"):
             raise fake("429 Too Many Requests")
+
+
+@pytest.mark.parametrize("http_subclass", [False, True])
+def test_offline_errors_say_so(monkeypatch, http_subclass):
+    """In some releases LocalEntryNotFoundError derives from HfHubHTTPError."""
+    if http_subclass:
+        offline = type("LocalEntryNotFoundError", (errors.HfHubHTTPError,), {})
+        monkeypatch.setattr(errors, "LocalEntryNotFoundError", offline)
+        error = hub_error(offline, "offline")
+    else:
+        error = errors.LocalEntryNotFoundError("offline")
+    with pytest.raises(RuntimeError, match="not available offline"):
+        with _download._hub_errors("biodatageeks/x", "abc123"):
+            raise error
+
+
+def test_a_corrupt_record_names_the_file(hub, tmp_path):
+    hub(PLUGIN_FILES)
+    record = tmp_path / "plugin" / "clinvar" / ".cache" / "vepyr" / "download.json"
+    record.parent.mkdir(parents=True)
+    record.write_text('{"repo_id": "biodatageeks/vep')
+    with pytest.raises(ValueError, match="download.json"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+
+
+def test_the_refusal_names_both_repositories(hub, tmp_path):
+    hub(PLUGIN_FILES)
+    vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
+    with pytest.raises(ValueError) as excinfo:
+        vepyr.download_plugin_cache(
+            "clinvar", 115, str(tmp_path), revision="main", show_progress=False
+        )
+    message = str(excinfo.value)
+    assert "vepyr_116_GRCh38_plugin_clinvar" in message
+    assert "vepyr_115_GRCh38_plugin_clinvar" in message

@@ -6,6 +6,7 @@ import contextlib
 import json
 import os
 import re
+import shutil
 from collections.abc import Iterator
 
 from vepyr import _published
@@ -81,13 +82,13 @@ def _hub_errors(repo_id: str, revision: str) -> Iterator[None]:
         raise ValueError(
             f"{where} was not found on Hugging Face: {_one_line(exc)}"
         ) from exc
-    except errors.HfHubHTTPError as exc:
-        # Not an OSError in huggingface_hub 1.x, where it derives from httpx.
-        raise RuntimeError(f"could not download {where}: {_one_line(exc)}") from exc
     except errors.LocalEntryNotFoundError as exc:
         raise RuntimeError(
             f"{where} is not available offline and could not be downloaded: {_one_line(exc)}"
         ) from exc
+    except errors.HfHubHTTPError as exc:
+        # Not an OSError in huggingface_hub 1.x, where it derives from httpx.
+        raise RuntimeError(f"could not download {where}: {_one_line(exc)}") from exc
     except OSError as exc:
         raise RuntimeError(f"could not download {where}: {_one_line(exc)}") from exc
     except Exception as exc:
@@ -161,11 +162,18 @@ def _commit(repo_id: str, revision: str) -> str:
 
 def _recorded(target: str) -> dict | None:
     """The repository and commit recorded in ``target``, if any."""
+    path = os.path.join(target, _RECORD)
     try:
-        with open(os.path.join(target, _RECORD)) as f:
+        with open(path) as f:
             return json.load(f)
     except FileNotFoundError:
         return None
+    except ValueError as exc:
+        raise ValueError(
+            f"{path} is unreadable ({exc}); it records which dataset revision "
+            f"{target} holds. Remove {target}, or that file if you know the "
+            "directory holds one revision, and download again."
+        ) from exc
 
 
 def _first_missing(path: str) -> str | None:
@@ -204,8 +212,9 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     if held is not None and held != wanted:
         raise ValueError(
             f"{target} already holds {held.get('repo_id')} at revision "
-            f"{held.get('commit')}; downloading revision {commit} into it would "
-            "mix revisions. Use an empty directory, or remove this one first."
+            f"{held.get('commit')}; downloading {repo_id} at revision {commit} "
+            "into it would mix revisions. Use an empty directory, or remove "
+            "this one first."
         )
     created = _first_missing(target)
     record = os.path.join(target, _RECORD)
@@ -219,8 +228,6 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
         yield
     except BaseException:
         if created is not None and _only_the_record(target):
-            import shutil
-
             shutil.rmtree(created, ignore_errors=True)
         raise
 

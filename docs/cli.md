@@ -203,7 +203,9 @@ redistribution); build it with `build-plugin-cache`.
 Re-running a download resumes and skips files already present, and `--chrom`
 can add contigs to an earlier download. A directory holds one dataset revision:
 downloading a different revision into it is refused, so a cache never mixes
-files from two revisions.
+files from two revisions. The record lives in `.cache/vepyr/download.json`;
+directories filled by `hf download` or `build-cache` have none, so download into
+a new directory rather than over one of those.
 
 ## Notes
 
