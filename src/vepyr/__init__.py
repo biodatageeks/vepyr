@@ -749,15 +749,11 @@ def _validate_raw_cache_inputs(
     if not chroms:
         return chroms
     available = _raw_cache_contigs(cache_root)
-    available_names: dict[str, str] = {}
+    available_names: dict[str, list[str]] = {}
     for name in available:
         identity = _normalise_contig_name(name)
-        if identity in available_names and available_names[identity] != name:
-            raise ValueError(
-                f"Raw cache at {cache_root} has ambiguous contig directories "
-                f"{available_names[identity]!r} and {name!r}"
-            )
-        available_names[identity] = name
+        available_names.setdefault(identity, []).append(name)
+    requested_names = {_normalise_contig_name(str(chrom)) for chrom in chroms}
     missing = [
         str(chrom)
         for chrom in chroms
@@ -768,11 +764,22 @@ def _validate_raw_cache_inputs(
             f"Requested contig(s) not present in raw cache at {cache_root}: "
             f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
         )
+    ambiguous = {
+        identity: names
+        for identity, names in available_names.items()
+        if identity in requested_names and len(names) > 1
+    }
+    if ambiguous:
+        identity, names = next(iter(ambiguous.items()))
+        raise ValueError(
+            f"Raw cache at {cache_root} has ambiguous contig directories "
+            f"{', '.join(repr(name) for name in names)} for {identity}"
+        )
     # The Rust builder strips only a `chr` prefix when filtering. Pass the raw
     # cache spelling so aliases and case differences select the actual source.
     return list(
         dict.fromkeys(
-            available_names[_normalise_contig_name(str(chrom))] for chrom in chroms
+            available_names[_normalise_contig_name(str(chrom))][0] for chrom in chroms
         )
     )
 

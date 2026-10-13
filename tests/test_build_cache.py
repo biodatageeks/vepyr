@@ -285,6 +285,38 @@ class TestBuildCacheTargetedValidation:
             chroms=[requested],
         ) == [raw_name]
 
+    def test_mitochondrial_aliases_are_deduplicated(self, tmp_path):
+        contig_dir = tmp_path / "MT"
+        contig_dir.mkdir()
+        (contig_dir / "1-100.gz").touch()
+
+        assert vepyr._validate_raw_cache_inputs(
+            str(tmp_path),
+            cache_type="ensembl",
+            species="homo_sapiens",
+            chroms=["chrM", "MT"],
+        ) == ["MT"]
+
+    def test_ambiguous_contigs_only_fail_when_requested(self, tmp_path):
+        for name in ("1", "M", "MT"):
+            contig_dir = tmp_path / name
+            contig_dir.mkdir()
+            (contig_dir / "1-100.gz").touch()
+
+        assert vepyr._validate_raw_cache_inputs(
+            str(tmp_path),
+            cache_type="ensembl",
+            species="homo_sapiens",
+            chroms=["1"],
+        ) == ["1"]
+        with pytest.raises(ValueError, match="ambiguous contig directories"):
+            vepyr._validate_raw_cache_inputs(
+                str(tmp_path),
+                cache_type="ensembl",
+                species="homo_sapiens",
+                chroms=["M"],
+            )
+
     def test_build_cache_forwards_resolved_contig_to_native_builder(self, tmp_path):
         local_cache = tmp_path / "raw"
         (local_cache / "MT").mkdir(parents=True)
