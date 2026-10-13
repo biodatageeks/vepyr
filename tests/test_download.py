@@ -222,7 +222,9 @@ def test_rejected_requests_create_nothing(hub, tmp_path, kwargs, match):
 
 
 def test_tilde_is_expanded(hub, tmp_path, monkeypatch):
+    # expanduser reads HOME on POSIX and USERPROFILE on Windows.
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     hub(CORE_FILES)
     path = vepyr.download_cache(
         116, "~/caches", cache_type="merged", show_progress=False
