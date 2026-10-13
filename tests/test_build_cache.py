@@ -267,6 +267,24 @@ class TestBuildCacheTargetedValidation:
     def test_mitochondrial_contig_names_share_identity(self, name):
         assert vepyr._normalise_contig_name(name) == "MT"
 
+    @pytest.mark.parametrize(
+        ("requested", "raw_name"),
+        [("chrM", "MT"), ("MT", "M"), ("M", "MT")],
+    )
+    def test_mitochondrial_alias_resolves_to_raw_cache_name(
+        self, tmp_path, requested, raw_name
+    ):
+        contig_dir = tmp_path / raw_name
+        contig_dir.mkdir()
+        (contig_dir / "1-100.gz").touch()
+
+        assert vepyr._validate_raw_cache_inputs(
+            str(tmp_path),
+            cache_type="ensembl",
+            species="homo_sapiens",
+            chroms=[requested],
+        ) == [raw_name]
+
     def test_rejects_cache_type_that_disagrees_with_raw_cache(self, tmp_path):
         output = tmp_path / "out"
         with patch("vepyr._build_cache") as mock_native:

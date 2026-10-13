@@ -738,7 +738,7 @@ def _raw_cache_contigs(cache_root: str) -> list[str]:
 
 def _validate_raw_cache_inputs(
     cache_root: str, *, cache_type: str, species: str, chroms: list[str] | None
-) -> None:
+) -> list[str] | None:
     actual_type = _raw_cache_source_type(cache_root, species)
     if actual_type is not None and actual_type != cache_type:
         raise ValueError(
@@ -747,9 +747,9 @@ def _validate_raw_cache_inputs(
         )
 
     if not chroms:
-        return
+        return chroms
     available = _raw_cache_contigs(cache_root)
-    available_names = {_normalise_contig_name(name) for name in available}
+    available_names = {_normalise_contig_name(name): name for name in available}
     missing = [
         str(chrom)
         for chrom in chroms
@@ -760,6 +760,13 @@ def _validate_raw_cache_inputs(
             f"Requested contig(s) not present in raw cache at {cache_root}: "
             f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
         )
+    # The Rust builder strips only a `chr` prefix when filtering. Resolve the
+    # mitochondrial alias to the raw cache's spelling so M and MT both select
+    # the actual source contig.
+    return [
+        available_names["MT"] if _normalise_contig_name(str(chrom)) == "MT" else chrom
+        for chrom in chroms
+    ]
 
 
 _DEFAULT_ASSEMBLY = "GRCh38"
@@ -864,7 +871,7 @@ def build_cache(
         download_retries=download_retries,
         show_progress=show_progress,
     )
-    _validate_raw_cache_inputs(
+    chroms = _validate_raw_cache_inputs(
         cache_root, cache_type=cache_type, species=species, chroms=chroms
     )
 
