@@ -1,10 +1,9 @@
 # Download published caches from Hugging Face — design
 
 Date: 2026-10-12
-Status: approved in conversation, awaiting written-spec review
-Builds on: PR #181 (`feat/cli-build-commands`, the `build-cache` and
-`build-plugin-cache` subcommands), itself stacked on PR #180. This branch
-(`feat/download-cache`) starts from #181 and merges after it.
+Status: approved (written spec reviewed 2026-10-13)
+Builds on: the `build-cache` and `build-plugin-cache` subcommands (#181, merged
+to `master`). This branch (`feat/download-cache`) starts from `master`.
 
 ## Goal
 
@@ -248,5 +247,4 @@ scheduled CI job is a possible follow-up.
 
 ## Delivery
 
-One PR from `feat/download-cache`, based on `feat/cli-build-commands` (#181),
-retargeted to `master` after #180 and #181 merge.
+One PR from `feat/download-cache` against `master`.
