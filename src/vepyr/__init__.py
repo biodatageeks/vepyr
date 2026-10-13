@@ -410,7 +410,11 @@ def _validate_cache_entity(entity: str) -> None:
 
 
 def _download_with_progress(
-    url: str, dest: str, _redirects: int = 0, max_retries: int = _DOWNLOAD_MAX_RETRIES
+    url: str,
+    dest: str,
+    _redirects: int = 0,
+    max_retries: int = _DOWNLOAD_MAX_RETRIES,
+    show_progress: bool = True,
 ) -> None:
     """Download a file with a tqdm progress bar and resume-on-failure.
 
@@ -441,7 +445,9 @@ def _download_with_progress(
                 raise RuntimeError(
                     f"Too many redirects ({_MAX_REDIRECTS}) fetching {url}"
                 )
-            return _download_with_progress(location, dest, _redirects + 1, max_retries)
+            return _download_with_progress(
+                location, dest, _redirects + 1, max_retries, show_progress
+            )
 
     if resp.status != 200:
         conn.close()
@@ -463,6 +469,7 @@ def _download_with_progress(
         unit_divisor=1024,
         desc=f"Downloading {filename}",
         miniters=1,
+        disable=not show_progress,
     )
 
     try:
@@ -568,8 +575,15 @@ def _download_cache(
     cache_type: str,
     dest: str,
     max_retries: int = _DOWNLOAD_MAX_RETRIES,
+    show_progress: bool = True,
 ) -> None:
-    """Try FTP URL patterns and download the cache tarball."""
+    """Try FTP URL patterns and download the cache tarball.
+
+    A missing tarball raises ``FileNotFoundError``; any other download
+    failure (DNS, connection, HTTP status, retries exhausted) raises
+    ``RuntimeError`` naming the URL.
+    """
+    import http.client
     import urllib.error
 
     method_infix = _CACHE_TYPE_TO_DOWNLOAD_INFIX[cache_type]
@@ -582,13 +596,17 @@ def _download_cache(
             method_infix=method_infix,
         )
         try:
-            _download_with_progress(url, dest, max_retries=max_retries)
+            _download_with_progress(
+                url, dest, max_retries=max_retries, show_progress=show_progress
+            )
             return
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 log.debug("Not found: %s", url)
                 continue
-            raise
+            raise RuntimeError(f"Could not download {url}: {e}") from e
+        except (OSError, http.client.HTTPException) as e:
+            raise RuntimeError(f"Could not download {url}: {e}") from e
     raise FileNotFoundError(
         f"VEP cache not found for {species} {cache_type} release {release} "
         f"assembly {assembly}. Browse available caches at "
@@ -605,6 +623,7 @@ def _resolve_raw_cache(
     assembly: str,
     local_cache: str | None,
     download_retries: int,
+    show_progress: bool = True,
 ) -> str:
     """Return an unpacked raw cache, downloading and extracting it if needed."""
     import tarfile
@@ -635,6 +654,7 @@ def _resolve_raw_cache(
                 cache_type,
                 tarball_path,
                 max_retries=download_retries,
+                show_progress=show_progress,
             )
 
         tarball_size_mb = os.path.getsize(tarball_path) / (1024 * 1024)
@@ -717,7 +737,8 @@ def build_cache(
         Maximum number of resume-retries for the cache download (default: 10).
         Each retry resumes from the last byte received.
     show_progress : bool
-        Show tqdm progress bars during conversion (default: True).
+        Show the download progress bar and the tqdm bars during conversion
+        (default: True).
 
         .. note::
            The partitioned-Parquet build path does not currently emit
@@ -752,6 +773,7 @@ def build_cache(
         assembly=assembly,
         local_cache=local_cache,
         download_retries=download_retries,
+        show_progress=show_progress,
     )
 
     # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet

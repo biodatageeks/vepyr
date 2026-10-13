@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import http.client
 import inspect
 import os
 import tempfile
+import urllib.error
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -1126,3 +1128,50 @@ class TestBuildCacheIntegration:
             )
             assert not os.path.isdir(os.path.join(cache_dir, "variation.fjall"))
             assert not os.path.isdir(os.path.join(cache_dir, "translation_sift.fjall"))
+
+
+class TestBuildCacheDownload:
+    @pytest.mark.parametrize("show_progress", [True, False])
+    def test_show_progress_reaches_the_download(self, show_progress, tmp_path):
+        with (
+            patch("vepyr._resolve_raw_cache", return_value=str(tmp_path)) as raw,
+            patch("vepyr._build_cache", return_value=[]),
+        ):
+            vepyr.build_cache(
+                115, str(tmp_path), cache_type="merged", show_progress=show_progress
+            )
+        assert raw.call_args.kwargs["show_progress"] is show_progress
+
+        with patch("vepyr._download_with_progress") as get:
+            vepyr._download_cache(
+                115,
+                "homo_sapiens",
+                "GRCh38",
+                "merged",
+                str(tmp_path / "t"),
+                show_progress=show_progress,
+            )
+        assert get.call_args.kwargs["show_progress"] is show_progress
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            OSError("nodename nor servname provided"),
+            urllib.error.HTTPError("https://x", 503, "Unavailable", None, None),
+            http.client.RemoteDisconnected("closed"),
+        ],
+    )
+    def test_download_failures_become_runtime_errors(self, error, tmp_path):
+        with patch("vepyr._download_with_progress", side_effect=error):
+            with pytest.raises(RuntimeError, match="Could not download https://"):
+                vepyr._download_cache(
+                    115, "homo_sapiens", "GRCh38", "merged", str(tmp_path / "t")
+                )
+
+    def test_missing_tarball_is_still_file_not_found(self, tmp_path):
+        missing = urllib.error.HTTPError("https://x", 404, "Not Found", None, None)
+        with patch("vepyr._download_with_progress", side_effect=missing):
+            with pytest.raises(FileNotFoundError, match="VEP cache not found"):
+                vepyr._download_cache(
+                    115, "homo_sapiens", "GRCh38", "merged", str(tmp_path / "t")
+                )

@@ -421,3 +421,18 @@ def test_build_plugin_cache_failed_clone_is_one_line(tmp_path):
     assert code.stderr.startswith("vepyr: error: could not resolve the demo")
     assert code.stderr.count("\n") == 1, code.stderr
     assert "no-such-repo" in code.stderr
+
+
+def test_build_cache_download_failure_becomes_exit_2(monkeypatch, capsys, tmp_path):
+    """A network error during the download is a one-line error, exit 2."""
+    import urllib.error
+
+    def fail(*args, **kwargs):
+        raise urllib.error.URLError("nodename nor servname provided")
+
+    monkeypatch.setattr(vepyr, "_download_with_progress", fail)
+    argv = ["build-cache", "--release", "116", "--cache_type", "merged"]
+    assert main([*argv, "--dir_cache", str(tmp_path), "--no_progress"]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("vepyr: error: Could not download https://")
+    assert err.count("\n") == 1
