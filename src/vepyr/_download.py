@@ -349,7 +349,11 @@ def _local_path(path: str) -> str:
     if os.name != "nt":
         return path
     path = os.path.abspath(path)
-    return path if path.startswith("\\\\?\\") else "\\\\?\\" + path
+    if path.startswith("\\\\?\\"):
+        return path
+    if path.startswith("\\\\"):  # UNC: \\server\share -> \\?\UNC\server\share
+        return "\\\\?\\UNC\\" + path[2:]
+    return "\\\\?\\" + path
 
 
 def _require_payload(
@@ -381,6 +385,12 @@ def _require_payload(
     if contigs is None:
         if not present:
             missing.append("any .parquet shard")
+        elif nested and not any(
+            n.startswith("variation/") and n.endswith(".parquet") and on_disk(n)
+            for n in selected
+        ):
+            # variation is the root table the engine opens the cache from.
+            missing.append("any variation shard")
     else:
         missing += [f"{c} shards" for c in contigs if c not in present]
     if missing:

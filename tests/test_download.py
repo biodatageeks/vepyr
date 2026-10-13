@@ -772,3 +772,31 @@ def test_local_paths_are_extended_only_on_windows(tmp_path):
         assert extended.startswith("\\\\?\\")
     else:
         assert extended == path
+
+
+def test_a_full_core_download_needs_a_variation_shard(hub, tmp_path):
+    hub(
+        [
+            n
+            for n in CORE_FILES
+            if not (n.startswith("variation/") and n.endswith(".parquet"))
+        ]
+    )
+    with pytest.raises(RuntimeError, match="variation shard"):
+        vepyr.download_cache(116, str(tmp_path), cache_type="merged")
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("C:\\cache\\f.parquet", "\\\\?\\C:\\cache\\f.parquet"),
+        ("\\\\server\\share\\f.parquet", "\\\\?\\UNC\\server\\share\\f.parquet"),
+        ("\\\\?\\C:\\f.parquet", "\\\\?\\C:\\f.parquet"),
+    ],
+)
+def test_windows_extended_paths(monkeypatch, path, expected):
+    import ntpath
+
+    monkeypatch.setattr(_download.os, "name", "nt")
+    monkeypatch.setattr(_download.os.path, "abspath", ntpath.abspath)
+    assert _download._local_path(path) == expected
