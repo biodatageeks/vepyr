@@ -1284,14 +1284,19 @@ def _plugin_chroms_to_build(
 
     plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
     manifest_path = plugin_dir / "manifest.json"
-    if not manifest_path.is_file():
-        return chroms
     try:
+        if not manifest_path.is_file():
+            return chroms
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(
             f"Could not read existing plugin cache manifest {manifest_path}: {exc}"
         ) from exc
+    if not isinstance(manifest, dict):
+        raise ValueError(
+            f"Could not read existing plugin cache manifest {manifest_path}: "
+            "expected a JSON object at the top level"
+        )
 
     existing: dict[str, str] = {}
     for entry in manifest.get("chroms", []):
