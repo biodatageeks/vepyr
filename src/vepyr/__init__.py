@@ -1204,6 +1204,15 @@ def build_plugin_cache(
     return result
 
 
+def _plugin_cache_lock_error(
+    action: str, plugin: str, lock_path: Path, exc: OSError
+) -> RuntimeError:
+    return RuntimeError(
+        f"Could not {action} plugin cache build lock for {plugin!r} "
+        f"at {lock_path}: {exc}"
+    )
+
+
 @contextlib.contextmanager
 def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[None]:
     """Serialize one plugin's revision check and cache update across processes."""
@@ -1222,11 +1231,16 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
         if os.name == "nt":
             import msvcrt
 
-            lock_file.seek(0, os.SEEK_END)
-            if lock_file.tell() == 0:
-                lock_file.write(b"\0")
-                lock_file.flush()
-            lock_file.seek(0)
+            try:
+                lock_file.seek(0, os.SEEK_END)
+                if lock_file.tell() == 0:
+                    lock_file.write(b"\0")
+                    lock_file.flush()
+                lock_file.seek(0)
+            except OSError as exc:
+                raise _plugin_cache_lock_error(
+                    "acquire", plugin, lock_path, exc
+                ) from exc
             waiting_logged = False
             while True:
                 try:
@@ -1237,7 +1251,9 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
                         exc.errno not in (errno.EACCES, errno.EDEADLK)
                         and getattr(exc, "winerror", None) != 33
                     ):
-                        raise
+                        raise _plugin_cache_lock_error(
+                            "acquire", plugin, lock_path, exc
+                        ) from exc
                     if not waiting_logged:
                         log.info(
                             "waiting for another build of plugin %r to finish", plugin
@@ -1247,8 +1263,13 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
             try:
                 yield
             finally:
-                lock_file.seek(0)
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                try:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError as exc:
+                    raise _plugin_cache_lock_error(
+                        "release", plugin, lock_path, exc
+                    ) from exc
         else:
             import fcntl
 
@@ -1259,14 +1280,12 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
                 try:
                     fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
                 except OSError as exc:
-                    raise RuntimeError(
-                        f"Could not acquire plugin cache build lock for {plugin!r} "
-                        f"at {lock_path}: {exc}"
+                    raise _plugin_cache_lock_error(
+                        "acquire", plugin, lock_path, exc
                     ) from exc
             except OSError as exc:
-                raise RuntimeError(
-                    f"Could not acquire plugin cache build lock for {plugin!r} "
-                    f"at {lock_path}: {exc}"
+                raise _plugin_cache_lock_error(
+                    "acquire", plugin, lock_path, exc
                 ) from exc
             try:
                 yield
@@ -1274,9 +1293,8 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
                 try:
                     fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
                 except OSError as exc:
-                    raise RuntimeError(
-                        f"Could not release plugin cache build lock for {plugin!r} "
-                        f"at {lock_path}: {exc}"
+                    raise _plugin_cache_lock_error(
+                        "release", plugin, lock_path, exc
                     ) from exc
     finally:
         lock_file.close()
