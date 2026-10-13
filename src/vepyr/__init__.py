@@ -719,7 +719,8 @@ def _normalise_contig_name(name: str) -> str:
     value = name.strip()
     if value[:3].lower() == "chr":
         value = value[3:]
-    return value.upper()
+    value = value.upper()
+    return "MT" if value == "M" else value
 
 
 def _raw_cache_contigs(cache_root: str) -> list[str]:
@@ -1338,7 +1339,8 @@ def annotate(
         Path to the input VCF file.
     cache_dir : str
         Path to the parquet cache directory produced by :func:`build_cache`,
-        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_ensembl"``.
+        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_ensembl"``. Cache directories
+        are local filesystem paths.
     reference_fasta : str
         Path to the reference FASTA. Required: annotation always runs
         Ensembl VEP ``--everything``, and HGVS needs it. ``--everything``

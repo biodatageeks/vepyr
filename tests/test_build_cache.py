@@ -263,6 +263,10 @@ class TestBuildCacheValidation:
 
 
 class TestBuildCacheTargetedValidation:
+    @pytest.mark.parametrize("name", ["M", "chrM", "MT", "chrMT"])
+    def test_mitochondrial_contig_names_share_identity(self, name):
+        assert vepyr._normalise_contig_name(name) == "MT"
+
     def test_rejects_cache_type_that_disagrees_with_raw_cache(self, tmp_path):
         output = tmp_path / "out"
         with patch("vepyr._build_cache") as mock_native:

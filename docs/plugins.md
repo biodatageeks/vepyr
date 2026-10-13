@@ -39,6 +39,8 @@ vepyr.build_plugin_cache(
 entries are split across several files, keyed by part name — those register as
 `plugin_<name>_src_<part>`. The call returns one
 `(chrom, rows, warm, cold)` tuple per chromosome written.
+Each source path must name a local file; remote object-store URIs are not
+supported as build inputs.
 
 One call builds one plugin at one version. To combine plugins at different
 versions (e.g. AlphaMissense `v0.2.0` + ClinVar `v0.3.0`), call
@@ -50,6 +52,9 @@ builds. The exact resolution is recorded in the cache's `manifest.json` as
 `cache_source_version: "<version>@<commit SHA>"`. An incremental build may add
 or replace chromosomes only when that value matches the existing cache; use a
 full build with `overwrite=True` to move a plugin cache to another revision.
+Existing caches without a recorded source version must also be fully rebuilt
+with `overwrite=True` before adding shards, since their manifest revision cannot
+be verified.
 Tiering (warm/cold) is **inherited from the variation cache** at
 `cache_dir` — plugins declare no tier policy of their own.
 
@@ -64,7 +69,7 @@ manifest's `md5`:
 | `verify_source` | Behaviour |
 |---|---|
 | `True` / `"strict"` (default) | A mismatch raises before anything is written, naming the part, the expected and actual digests and the upstream `url`. |
-| `"warn"` | A mismatch is logged and the build continues; the digest actually found is recorded. For deliberate builds against a re-compressed or derived artifact, such as AlphaMissense's BGZF build input (its plugin README documents the preprocessing). |
+| `"warn"` | A mismatch emits a Python `RuntimeWarning` and the build continues; the digest actually found is recorded. The CLI formats this warning once. Use it for deliberate builds against a re-compressed or derived artifact, such as AlphaMissense's BGZF build input (its plugin README documents the preprocessing). |
 | `False` / `"skip"` | Nothing is hashed. Use it for a chromosome slice cut with `tabix`, whose digest can never match the whole file's. |
 
 A manifest that declares no `md5` is never hashed, whatever the mode. The

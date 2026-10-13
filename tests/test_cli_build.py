@@ -384,6 +384,44 @@ def test_build_plugin_cache_warn_mode_prints_one_cli_warning(tmp_path, capsys):
     assert ".py:" not in error
 
 
+def test_build_plugin_cache_replays_warnings_when_build_fails(
+    monkeypatch, capsys, recwarn
+):
+    def warn_then_fail(*args, **kwargs):
+        import warnings
+
+        warnings.warn("mismatch before failure", RuntimeWarning)
+        warnings.warn("dependency warning", UserWarning)
+        raise RuntimeError("build failed")
+
+    monkeypatch.setattr(vepyr, "build_plugin_cache", warn_then_fail)
+    assert main(list(PLUGIN)) == 2
+    error = capsys.readouterr().err
+    assert "vepyr: warning: mismatch before failure\n" in error
+    assert any(
+        warning.category is UserWarning and str(warning.message) == "dependency warning"
+        for warning in recwarn
+    )
+    assert "vepyr: error: build failed\n" in error
+
+
+def test_build_plugin_cache_preserves_dependency_warnings(monkeypatch, capsys, recwarn):
+    def warn_then_succeed(*args, **kwargs):
+        import warnings
+
+        warnings.warn("dependency warning", UserWarning)
+        return []
+
+    monkeypatch.setattr(vepyr, "build_plugin_cache", warn_then_succeed)
+    assert main(list(PLUGIN)) == 0
+    error = capsys.readouterr().err
+    assert any(
+        warning.category is UserWarning and str(warning.message) == "dependency warning"
+        for warning in recwarn
+    )
+    assert "vepyr: warning:" not in error
+
+
 def test_annotate_missing_cache_reports_directory(tmp_path, capsys):
     missing = tmp_path / "missing-cache"
     argv = [

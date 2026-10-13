@@ -685,13 +685,26 @@ def main(argv: list[str] | None = None) -> int:
             _print_cache_summary(args, files)
         elif args.command == "build-plugin-cache":
             kwargs = build_plugin_cache_kwargs(args)
-            with warnings.catch_warnings(record=True) as caught:
+            with warnings.catch_warnings():
                 warnings.simplefilter("always", RuntimeWarning)
+                showwarning = warnings.showwarning
+
+                def format_cli_warning(
+                    message,
+                    category,
+                    filename,
+                    lineno,
+                    file=None,
+                    line=None,
+                ):
+                    if issubclass(category, RuntimeWarning):
+                        text = " ".join(str(message).splitlines())
+                        print(f"vepyr: warning: {text}", file=sys.stderr)
+                    else:
+                        showwarning(message, category, filename, lineno, file, line)
+
+                warnings.showwarning = format_cli_warning
                 chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
-            for warning in caught:
-                if issubclass(warning.category, RuntimeWarning):
-                    message = " ".join(str(warning.message).splitlines())
-                    print(f"vepyr: warning: {message}", file=sys.stderr)
             _print_plugin_summary(args, chroms)
         else:
             vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
