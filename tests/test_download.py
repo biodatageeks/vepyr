@@ -517,7 +517,7 @@ def _populate(target, files, commit=None):
         if commit is not None:
             meta = target / ".cache" / "huggingface" / "download" / f"{name}.metadata"
             meta.parent.mkdir(parents=True, exist_ok=True)
-            meta.write_text(f"{commit}\netag\n1791862013.1\n")
+            meta.write_text(f"{commit}\netag\n{path.stat().st_mtime}\n")
 
 
 def test_an_unrecorded_cache_from_another_source_is_refused(hub, tmp_path):
@@ -685,4 +685,36 @@ def test_an_interrupted_record_write_leaves_no_partial_record(
     with pytest.raises(RuntimeError, match="could not write"):
         vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
     assert _download._recorded(str(tmp_path / "plugin" / "clinvar")) is None
+    assert fake.snapshots == []
+
+
+@pytest.mark.parametrize("kind", ["cache", "plugin"])
+def test_a_download_that_returns_no_data_fails(hub, tmp_path, monkeypatch, kind):
+    """Offline, huggingface_hub may return a non-empty local_dir as is."""
+    hub(CORE_FILES + PLUGIN_FILES)
+    monkeypatch.setattr(
+        _download, "_snapshot_download", lambda repo_id, **kw: kw["local_dir"]
+    )
+    with pytest.raises(RuntimeError, match="missing"):
+        if kind == "cache":
+            vepyr.download_cache(116, str(tmp_path), cache_type="merged", chroms=["22"])
+        else:
+            vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), chroms=["22"])
+    target = (
+        tmp_path / "116_GRCh38_merged"
+        if kind == "cache"
+        else tmp_path / "plugin" / "clinvar"
+    )
+    assert _download._recorded(str(target)) is None
+
+
+def test_a_file_changed_after_hf_download_has_unknown_revision(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    target = tmp_path / "116_GRCh38_merged"
+    _populate(target, ["variation/chr1.parquet"], MERGED_PIN)
+    shard = target / "variation" / "chr1.parquet"
+    later = os.path.getmtime(shard) + 3600
+    os.utime(shard, (later, later))
+    with pytest.raises(ValueError, match="revision is unknown"):
+        vepyr.download_cache(116, str(tmp_path), cache_type="merged", chroms=["22"])
     assert fake.snapshots == []

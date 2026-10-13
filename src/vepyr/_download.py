@@ -209,11 +209,18 @@ def _unrecorded_commits(target: str) -> set[str | None]:
             meta = os.path.join(meta_root, rel + ".metadata")
             try:
                 with open(meta) as f:
-                    commits.add(f.readline().strip() or None)
+                    commit, _etag, stamp = (f.readline().strip() for _ in range(3))
+                fresh = os.path.getmtime(os.path.join(root, name)) - 1 <= float(stamp)
             except FileNotFoundError:
                 commits.add(None)
+                continue
+            except ValueError:  # malformed metadata
+                commit, fresh = None, False
             except OSError as exc:
                 raise RuntimeError(f"could not read {meta}: {exc}") from exc
+            # As huggingface_hub does: a file changed after the download no
+            # longer matches the commit its metadata names.
+            commits.add(commit or None if fresh else None)
     return commits
 
 
@@ -314,6 +321,39 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
             raise
 
 
+def _require_payload(
+    target: str,
+    where: str,
+    contigs: list[str] | None,
+    *,
+    nested: bool,
+    sidecars: list[str],
+) -> None:
+    """Fail if the download did not produce the shards and sidecars requested.
+
+    Offline, huggingface_hub may return a non-empty ``local_dir`` as is
+    without fetching anything, so its return value alone is not proof.
+    """
+    files = []
+    for root, dirs, names in os.walk(target):
+        dirs[:] = [d for d in dirs if not (root == target and d == ".cache")]
+        for name in names:
+            rel = os.path.relpath(os.path.join(root, name), target)
+            files.append(rel.replace(os.sep, "/"))
+    present = _shard_contigs(files, nested=nested)
+    missing = [name for name in sidecars if name not in files]
+    if contigs is None:
+        if not present:
+            missing.append("any .parquet shard")
+    else:
+        missing += [f"{c} shards" for c in contigs if c not in present]
+    if missing:
+        raise RuntimeError(
+            f"the download of {where} is incomplete (offline, or interrupted); "
+            f"missing in {target}: {', '.join(missing)}"
+        )
+
+
 def download_cache(
     release: int,
     cache_dir: str,
@@ -391,6 +431,13 @@ def download_cache(
             local_dir=target,
             allow_patterns=[*shards, *_CORE_SIDECARS],
         )
+        _require_payload(
+            target,
+            where,
+            contigs,
+            nested=True,
+            sidecars=["reference_policy.json", "variation/chrom_manifest.json"],
+        )
     return target
 
 
@@ -466,5 +513,8 @@ def download_plugin_cache(
             revision=resolved,
             local_dir=target,
             allow_patterns=[*shards, "*.json"],
+        )
+        _require_payload(
+            target, where, contigs, nested=False, sidecars=["manifest.json"]
         )
     return target
