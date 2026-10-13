@@ -121,8 +121,12 @@ def build_parser() -> argparse.ArgumentParser:
     vepyr_options = annotate.add_argument_group("vepyr options")
     vepyr_options.add_argument(
         "--plugin_cache_root",
+        nargs="+",
         metavar="DIR",
-        help="Root of a plugin cache tree holding plugin/<name>/ directories.",
+        help=(
+            "Root of a plugin cache tree holding plugin/<name>/ directories, "
+            "or a plugin directory holding manifest.json. Several combine."
+        ),
     )
     vepyr_options.add_argument(
         "--plugin",
@@ -159,7 +163,8 @@ def annotate_kwargs(args: argparse.Namespace) -> dict:
         # annotate() validates this as a string.
         kwargs["expected_cache_version"] = str(args.cache_version)
     if args.plugin_cache_root is not None:
-        kwargs["plugin_cache_root"] = args.plugin_cache_root
+        roots = args.plugin_cache_root
+        kwargs["plugin_cache_root"] = roots[0] if len(roots) == 1 else roots
     if args.plugins is not None:
         kwargs["plugins"] = list(args.plugins)
     return kwargs

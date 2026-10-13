@@ -1052,6 +1052,84 @@ def _require_index_for_workers(vcf: str, workers: int) -> None:
     )
 
 
+def _resolve_plugin_cache_root(
+    plugin_cache_root: str | os.PathLike | list | tuple | None,
+) -> str | None:
+    """One engine plugin root for any mix of plugin cache roots and plugins.
+
+    The engine only reads ``<root>/plugin/<name>/``, so a plugin directory
+    given on its own (the layout a Hugging Face download has), or several
+    paths, are linked into a staged root. One path that is not a plugin
+    directory is passed through untouched.
+    """
+    import hashlib
+    import json
+    import shutil
+    import tempfile
+
+    if plugin_cache_root is None:
+        return None
+    if isinstance(plugin_cache_root, (str, os.PathLike)):
+        paths = [os.fspath(plugin_cache_root)]
+    else:
+        paths = [os.fspath(path) for path in plugin_cache_root]
+        if not paths:
+            raise ValueError("plugin_cache_root must name at least one path")
+    if len(paths) == 1 and not os.path.isfile(os.path.join(paths[0], "manifest.json")):
+        return paths[0]
+
+    plugins: dict[str, str] = {}
+
+    def add(name: str, directory: str) -> None:
+        if name in plugins:
+            raise ValueError(
+                f"Plugin {name!r} is given twice: {plugins[name]} and {directory}"
+            )
+        plugins[name] = os.path.realpath(directory)
+
+    for path in paths:
+        manifest_path = os.path.join(path, "manifest.json")
+        if os.path.isfile(manifest_path):
+            with open(manifest_path, encoding="utf-8") as handle:
+                name = json.load(handle).get("plugin_name")
+            if not name:
+                raise ValueError(f"Plugin manifest {manifest_path} has no plugin_name")
+            add(name, path)
+        elif os.path.isdir(os.path.join(path, "plugin")):
+            source_root = os.path.join(path, "plugin")
+            for name in sorted(os.listdir(source_root)):
+                directory = os.path.join(source_root, name)
+                if os.path.isfile(os.path.join(directory, "manifest.json")):
+                    add(name, directory)
+        else:
+            raise FileNotFoundError(
+                f"{path} is neither a plugin cache root (no plugin/ directory) "
+                "nor a plugin directory (no manifest.json)"
+            )
+
+    # Named by content, so a lazy query collected later still finds it and
+    # repeated runs reuse it.
+    digest = hashlib.sha256(
+        json.dumps(sorted(plugins.items())).encode("utf-8")
+    ).hexdigest()[:16]
+    parent = os.path.join(tempfile.gettempdir(), "vepyr-plugin-roots")
+    staged = os.path.join(parent, digest)
+    if not os.path.isdir(staged):
+        os.makedirs(parent, exist_ok=True)
+        building = tempfile.mkdtemp(dir=parent, prefix=f".{digest}-")
+        os.mkdir(os.path.join(building, "plugin"))
+        for name, directory in plugins.items():
+            os.symlink(directory, os.path.join(building, "plugin", name))
+        try:
+            os.rename(building, staged)
+        except OSError:
+            # A concurrent run staged the same plugins first.
+            shutil.rmtree(building)
+            if not os.path.isdir(staged):
+                raise
+    return staged
+
+
 def annotate(
     vcf: str,
     cache_dir: str,
@@ -1085,7 +1163,11 @@ def annotate(
     skip_csq: bool = True,
     fields: str | list[str] | tuple[str, ...] | None = None,
     # Custom plugin caches
-    plugin_cache_root: str | None = None,
+    plugin_cache_root: str
+    | os.PathLike
+    | list[str | os.PathLike]
+    | tuple[str | os.PathLike, ...]
+    | None = None,
     plugins: list[str] | tuple[str, ...] | None = None,
     # Input record handling
     allow_non_variant: bool = False,
@@ -1194,7 +1276,7 @@ def annotate(
         preserves its supplied order. Plugin fields are always appended after
         the selected base block. On the DataFrame path, unselected annotation
         columns are omitted. ``None`` (default) keeps the full layout.
-    plugin_cache_root : str or None
+    plugin_cache_root : str, os.PathLike, list or tuple of them, or None
         Root of a plugin cache tree built by :func:`build_plugin_cache`, e.g.
         ``"/data/plugin_cache"`` holding ``plugin/<name>/`` directories. Every
         plugin found under the root is applied — see ``plugins`` to narrow
@@ -1202,6 +1284,12 @@ def annotate(
         transcript. A plugin's version is fixed when its cache is built, not
         chosen here. ``None`` (default) applies no plugins and is
         byte-identical to a plugin-free run.
+
+        A single plugin directory (one holding ``manifest.json``, as a Hugging
+        Face plugin download does) works too, named by its manifest's
+        ``plugin_name``. A list or tuple combines roots and plugin
+        directories; a plugin found twice is an error. These are linked into
+        a staged root under the system temp directory.
 
         Plugin values are appended to the ``CSQ`` field. With ``fields`` set,
         a ``LazyFrame`` also exposes each plugin field as a named list column,
@@ -1311,6 +1399,10 @@ def annotate(
     ... )
     """
     import json
+
+    if plugins != []:
+        # An empty selection applies no plugins, so its paths are not read.
+        plugin_cache_root = _resolve_plugin_cache_root(plugin_cache_root)
 
     if fields == "core":
         selected_fields = list(_CORE_CSQ_FIELDS)
