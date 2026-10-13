@@ -242,3 +242,67 @@ def test_listing_errors_are_translated(hub, tmp_path):
     hub(CORE_FILES, error=ConnectionError("refused"))
     with pytest.raises(RuntimeError, match="could not download"):
         vepyr.download_cache(116, str(tmp_path), cache_type="merged", chroms=["22"])
+
+
+PLUGIN_FILES = [
+    ".gitattributes",
+    "README.md",
+    "manifest.json",
+    "qa_profile.json",
+    *(f"chr{c}.parquet" for c in ("1", "22", "X", "MT")),
+]
+CLINVAR_PIN = "44b0029ed830bd5d4666b5575610e6f3ae56a2ba"
+
+
+def test_full_plugin_cache(hub, tmp_path):
+    fake = hub(PLUGIN_FILES)
+    path = vepyr.download_plugin_cache(
+        "clinvar", 116, str(tmp_path), show_progress=False
+    )
+    assert path == str(tmp_path / "plugin" / "clinvar")
+    (call,) = fake.snapshots
+    assert call["repo_id"] == "biodatageeks/vepyr_116_GRCh38_plugin_clinvar"
+    assert call["revision"] == CLINVAR_PIN
+    assert call["allow_patterns"] == ["*.parquet", "*.json"]
+    assert os.path.isfile(os.path.join(path, "manifest.json"))
+    assert not os.path.exists(os.path.join(path, "README.md"))
+
+
+def test_plugin_chroms(hub, tmp_path):
+    fake = hub(PLUGIN_FILES)
+    vepyr.download_plugin_cache(
+        "clinvar", 116, str(tmp_path), chroms=["22", "MT"], show_progress=False
+    )
+    assert fake.snapshots[0]["allow_patterns"] == [
+        "chr22.parquet",
+        "chrMT.parquet",
+        "*.json",
+    ]
+
+
+@pytest.mark.parametrize("plugin", ["../x", "a/b", "", "clin var"])
+def test_plugin_names_that_are_not_plain_are_rejected(hub, tmp_path, plugin):
+    fake = hub(PLUGIN_FILES)
+    with pytest.raises(ValueError, match="plugin name"):
+        vepyr.download_plugin_cache(plugin, 116, str(tmp_path / "pc"))
+    assert fake.snapshots == [] and not (tmp_path / "pc").exists()
+
+
+@pytest.mark.parametrize(
+    ("plugin", "match"),
+    [("dbnsfp", "redistribution"), ("revel", "alphamissense, cadd, clinvar")],
+)
+def test_unpublished_plugins_create_nothing(hub, tmp_path, plugin, match):
+    fake = hub(PLUGIN_FILES)
+    with pytest.raises(ValueError, match=match):
+        vepyr.download_plugin_cache(plugin, 116, str(tmp_path / "pc"))
+    assert fake.snapshots == [] and not (tmp_path / "pc").exists()
+
+
+def test_unknown_plugin_contig(hub, tmp_path):
+    fake = hub(PLUGIN_FILES)
+    with pytest.raises(
+        ValueError, match="no contig chrM; available: chr1, chr22, chrMT, chrX"
+    ):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), chroms=["chrM"])
+    assert fake.snapshots == []

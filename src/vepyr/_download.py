@@ -195,3 +195,71 @@ def download_cache(
             allow_patterns=[*shards, *_CORE_SIDECARS],
         )
     return target
+
+
+_PLUGIN_NAME = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def download_plugin_cache(
+    plugin: str,
+    release: int,
+    plugin_cache_root: str,
+    *,
+    assembly: str = "GRCh38",
+    chroms: list[str] | None = None,
+    revision: str | None = None,
+    show_progress: bool = True,
+) -> str:
+    """Download a published vepyr plugin cache from Hugging Face.
+
+    Parameters
+    ----------
+    plugin : str
+        Plugin name, e.g. ``"clinvar"``. dbNSFP is supported by
+        :func:`build_plugin_cache` but not published.
+    release : int
+        Ensembl release, e.g. ``116``.
+    plugin_cache_root : str
+        Root of the plugin cache tree; the cache is written to
+        ``<plugin_cache_root>/plugin/<plugin>``. ``~`` is expanded.
+    assembly : str
+        Genome assembly (default: ``"GRCh38"``).
+    chroms : list of str or None
+        Contigs to download, as for :func:`download_cache`. The manifest is
+        always included.
+    revision : str or None
+        Dataset revision; ``None`` uses the pinned one.
+    show_progress : bool
+        Show download progress bars (default: True).
+
+    Returns
+    -------
+    str
+        The plugin cache directory. Pass ``plugin_cache_root`` and
+        ``plugins=[plugin]`` to :func:`annotate`.
+    """
+    if not _PLUGIN_NAME.fullmatch(plugin):
+        raise ValueError(
+            f"invalid plugin name {plugin!r}: use letters, digits, '_' or '-'"
+        )
+    repo_id = _published.plugin_repo_id(release, assembly, plugin)
+    resolved = _published.plugin_revision(release, assembly, plugin, revision)
+    where = f"{repo_id} at revision {resolved}"
+    contigs = None
+    if chroms is not None:
+        if not chroms:
+            _select_contigs(chroms, set(), where)
+        with _hub_errors(repo_id, resolved):
+            files = _list_repo_files(repo_id, revision=resolved)
+        contigs = _select_contigs(chroms, _shard_contigs(files, nested=False), where)
+    shards = ["*.parquet"] if contigs is None else [f"{c}.parquet" for c in contigs]
+    target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
+    os.makedirs(target, exist_ok=True)
+    with _progress(show_progress), _hub_errors(repo_id, resolved):
+        _snapshot_download(
+            repo_id,
+            revision=resolved,
+            local_dir=target,
+            allow_patterns=[*shards, "*.json"],
+        )
+    return target

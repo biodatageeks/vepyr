@@ -30,7 +30,7 @@ from vepyr._vcf_columns import (
     validate_selection,
 )
 from vepyr._vcf_metadata import attach as _attach_vcf_metadata
-from vepyr._download import download_cache
+from vepyr._download import download_cache, download_plugin_cache
 
 __all__ = [
     "annotate",
@@ -38,6 +38,7 @@ __all__ = [
     "build_plugin_cache",
     "cache_contig_identity",
     "download_cache",
+    "download_plugin_cache",
     "supported_vep_targets",
 ]
 
