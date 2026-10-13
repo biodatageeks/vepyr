@@ -959,6 +959,37 @@ def test_filtered_build_allows_same_revision_in_recoverable_cache(
     assert native_build.call_args.args[4] == ["2"]
 
 
+def test_filtered_noop_build_restores_recoverable_cache(tmp_path):
+    import json
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    manifest_path = orphan / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["chroms"] = [
+        {"chrom": "chr2", "file": "chr2.parquet", "rows": 1, "warm": 1, "cold": 0}
+    ]
+    manifest_path.write_text(json.dumps(manifest))
+    (orphan / "chrZZ.parquet").unlink()
+    (orphan / "chr2.parquet").write_bytes(b"existing shard")
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        chroms=["2"],
+    )
+
+    assert result == []
+    assert not orphan.exists()
+    assert (pc / "plugin" / "demo" / "chr2.parquet").read_bytes() == b"existing shard"
+
+
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)

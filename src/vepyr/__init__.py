@@ -19,6 +19,7 @@ from vepyr._core import build_cache as _build_cache
 from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
+from vepyr._core import recover_plugin_cache as _recover_plugin_cache
 from vepyr._core import supported_vep_targets_json as _supported_vep_targets_json
 from vepyr._core import vcf_contigs as _vcf_contigs
 from vepyr._core import vcf_fields as _vcf_fields
@@ -1143,6 +1144,11 @@ def build_plugin_cache(
         resolved_commit,
     ):
         source_version = f"{version}@{resolved_commit}"
+        if chroms and not (Path(plugin_cache_root) / "plugin" / plugin).exists():
+            # The native builder recovers interrupted overwrites, but the
+            # Python incremental-build check may return early when all shards
+            # already exist. Recover first so that the orphan becomes visible.
+            _recover_plugin_cache(plugin_cache_root, plugin, source_version)
         requested_chroms = _plugin_chroms_to_build(
             plugin_cache_root,
             plugin,
@@ -1210,19 +1216,10 @@ def _plugin_chroms_to_build(
 
     plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
     manifest_path = plugin_dir / "manifest.json"
-    recovered_candidate = False
     if not manifest_path.is_file():
-        # The native builder restores one interrupted full-overwrite cache
-        # before applying this filtered build. Inspect that manifest first so
-        # recovery cannot bypass the revision guard below.
         if plugin_dir.exists():
             return chroms
-        candidates = _set_aside_plugin_cache_candidates(plugin_cache_root, plugin)
-        if len(candidates) != 1:
-            return chroms
-        plugin_dir = candidates[0]
-        manifest_path = plugin_dir / "manifest.json"
-        recovered_candidate = True
+        return chroms
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -1245,11 +1242,8 @@ def _plugin_chroms_to_build(
 
     cached_version = manifest.get("cache_source_version")
     if cached_version != source_version:
-        recovery_context = (
-            " (restored from an interrupted overwrite)" if recovered_candidate else ""
-        )
         raise ValueError(
-            f"Plugin cache at {plugin_dir}{recovery_context} contains existing shards from "
+            f"Plugin cache at {plugin_dir} contains existing shards from "
             f"{cached_version or 'an unversioned manifest'}, but this build uses "
             f"{source_version}; use overwrite=True without a chromosome filter "
             "for a full rebuild"
@@ -1262,31 +1256,6 @@ def _plugin_chroms_to_build(
         chrom for chrom in chroms if _normalise_contig_name(str(chrom)) not in existing
     ]
     return missing
-
-
-def _set_aside_plugin_cache_candidates(
-    plugin_cache_root: str, plugin: str
-) -> list[Path]:
-    """Find caches that the native builder can restore before a filtered build."""
-    root = Path(plugin_cache_root)
-    prefix = f".previous-{plugin}."
-    try:
-        paths = list(root.iterdir())
-    except FileNotFoundError:
-        return []
-    except OSError as exc:
-        raise ValueError(
-            f"Could not inspect {root} for plugin caches left by an interrupted "
-            f"overwrite: {exc}"
-        ) from exc
-    return [
-        path
-        for path in paths
-        if (suffix := path.name.removeprefix(prefix)) != path.name
-        and suffix
-        and all(character in "0123456789-" for character in suffix)
-        and (path / "manifest.json").is_file()
-    ]
 
 
 def _warn_about_plugin_cache_leftovers(plugin_cache_root: str, plugin: str) -> None:
