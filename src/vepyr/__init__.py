@@ -1202,7 +1202,7 @@ def _plugin_chroms_to_build(
     source_version: str,
     overwrite: bool,
 ) -> list[str] | None:
-    """Keep existing filtered shards unless the caller explicitly overwrites."""
+    """Keep filtered shards unless overwritten, without mixing cache revisions."""
     if not chroms:
         return chroms
 

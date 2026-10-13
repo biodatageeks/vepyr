@@ -2,6 +2,7 @@
 
 import subprocess
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -635,12 +636,16 @@ def test_filtered_overwrite_rebuilds_requested_shards_at_same_revision(tmp_path)
 
 
 @pytest.mark.parametrize("overwrite", [False, True])
-def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path, overwrite):
+def test_filtered_build_refuses_to_mix_manifest_versions(
+    tmp_path, overwrite, monkeypatch
+):
     """Filtered builds cannot mix plugin revisions, even with overwrite."""
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)
     _build_real(repo, tmp_path, str(src))
     subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    native_build = Mock()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
 
     with pytest.raises(ValueError, match="contains existing shards.*v0.2.0"):
         vepyr.build_plugin_cache(
@@ -653,6 +658,7 @@ def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path, overwrite):
             chroms=["2"],
             overwrite=overwrite,
         )
+    native_build.assert_not_called()
 
 
 def _stale_cache(pc: Path) -> None:
