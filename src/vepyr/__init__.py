@@ -745,6 +745,36 @@ def _raw_cache_contigs(cache_root: str) -> list[str]:
     return sorted(contigs)
 
 
+_PRIMARY_CONTIG_RANK = {
+    **{str(number): number for number in range(1, 23)},
+    "X": 23,
+    "Y": 24,
+    "MT": 25,
+}
+_MAX_INLINE_RAW_CACHE_CONTIGS = 20
+
+
+def _raw_cache_contig_summary(contigs: list[str]) -> str:
+    """Keep large missing-contig errors readable while surfacing primary names."""
+    if len(contigs) <= _MAX_INLINE_RAW_CACHE_CONTIGS:
+        return ", ".join(contigs) or "(none)"
+
+    primary = sorted(
+        (
+            name
+            for name in contigs
+            if _normalise_contig_name(name) in _PRIMARY_CONTIG_RANK
+        ),
+        key=lambda name: _PRIMARY_CONTIG_RANK[_normalise_contig_name(name)],
+    )
+    other_count = len(contigs) - len(primary)
+    primary_summary = ", ".join(primary) or "(no primary contigs found)"
+    if other_count:
+        plural = "s" if other_count != 1 else ""
+        return f"{primary_summary}; {other_count} additional contig{plural} omitted"
+    return primary_summary
+
+
 def _validate_raw_cache_inputs(
     cache_root: str, *, cache_type: str, species: str, chroms: list[str] | None
 ) -> list[str] | None:
@@ -776,7 +806,8 @@ def _validate_raw_cache_inputs(
     if missing:
         raise ValueError(
             f"Requested contig(s) not present in raw cache at {cache_root}: "
-            f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
+            f"{', '.join(missing)}. Raw cache contains {len(available)} contigs: "
+            f"{_raw_cache_contig_summary(available)}"
         )
     ambiguous = {
         identity: names
