@@ -293,10 +293,16 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
         stack.callback(lock.release)
         wrote_record = False
         if _check_revision(target, repo_id, commit) is None:
+            # Written to a temporary file and renamed, so an interrupted write
+            # never leaves a partial record that blocks later downloads.
+            partial = record + ".partial"
             try:
-                with open(record, "w") as f:
+                with open(partial, "w") as f:
                     json.dump({"repo_id": repo_id, "commit": commit}, f)
+                os.replace(partial, record)
             except OSError as exc:
+                with contextlib.suppress(OSError):
+                    os.remove(partial)
                 raise RuntimeError(f"could not write to {target}: {exc}") from exc
             wrote_record = True
         try:

@@ -670,3 +670,19 @@ def test_an_unlistable_directory_aborts_the_download(hub, tmp_path):
     finally:
         (target / "variation").chmod(0o700)
     assert fake.snapshots == []
+
+
+def test_an_interrupted_record_write_leaves_no_partial_record(
+    hub, tmp_path, monkeypatch
+):
+    fake = hub(PLUGIN_FILES)
+
+    def half_written(obj, f):
+        f.write('{"repo_id": "biodatageeks/vep')
+        raise OSError("disk full")
+
+    monkeypatch.setattr(_download.json, "dump", half_written)
+    with pytest.raises(RuntimeError, match="could not write"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+    assert _download._recorded(str(tmp_path / "plugin" / "clinvar")) is None
+    assert fake.snapshots == []
