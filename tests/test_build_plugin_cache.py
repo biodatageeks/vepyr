@@ -616,6 +616,30 @@ def test_filtered_build_treats_zero_row_manifest_entry_as_existing(
     assert result == expected
 
 
+@pytest.mark.parametrize("rows", [False, 0.0, -1, "0"])
+def test_filtered_build_rejects_malformed_manifest_row_counts(tmp_path, rows):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {
+        "cache_source_version": "v0.1.0@abc123",
+        "chroms": [{"chrom": "1", "file": "missing.parquet", "rows": rows}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        ValueError, match="shard row counts must be non-negative integers"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
 def test_filtered_build_rejects_non_object_manifest_root(tmp_path):
     plugin_dir = tmp_path / "plugin" / "demo"
     plugin_dir.mkdir(parents=True)
