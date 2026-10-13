@@ -1338,7 +1338,20 @@ def _plugin_chroms_to_build(
                 f"Could not read existing plugin cache manifest {manifest_path}: "
                 "shard paths must stay inside the plugin cache directory"
             )
-        if entry.get("rows") == 0 or (plugin_dir / relative_filename).is_file():
+        shard_path = plugin_dir / relative_filename
+        try:
+            shard_path.resolve().relative_to(plugin_dir.resolve())
+        except ValueError as exc:
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard paths must stay inside the plugin cache directory"
+            ) from exc
+        except (OSError, RuntimeError) as exc:
+            raise ValueError(
+                f"Could not resolve shard path {shard_path} from manifest "
+                f"{manifest_path}: {exc}"
+            ) from exc
+        if entry.get("rows") == 0 or shard_path.is_file():
             existing[_normalise_contig_name(entry["chrom"])] = entry["chrom"]
 
     if not existing:

@@ -693,6 +693,33 @@ def test_filtered_build_rejects_shard_path_outside_plugin_dir(tmp_path):
         )
 
 
+def test_filtered_build_rejects_symlinked_shard_path_outside_plugin_dir(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "chr1.parquet").write_bytes(b"existing")
+    try:
+        (plugin_dir / "shards").symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlinks are unavailable: {exc}")
+    manifest = {
+        "chroms": [{"chrom": "1", "file": "shards/chr1.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="shard paths must stay inside"):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
 def test_filtered_build_wraps_manifest_probe_permission_error(tmp_path, monkeypatch):
     plugin_dir = tmp_path / "plugin" / "demo"
     plugin_dir.mkdir(parents=True)
