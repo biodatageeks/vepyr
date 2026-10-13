@@ -653,8 +653,11 @@ def _resolve_raw_cache(
     return cache_root
 
 
+_DEFAULT_ASSEMBLY = "GRCh38"
+
+
 def _converted_cache_dir(
-    cache_dir: str, release: int, cache_type: str, assembly: str = "GRCh38"
+    cache_dir: str, release: int, cache_type: str, assembly: str = _DEFAULT_ASSEMBLY
 ) -> str:
     """Directory :func:`build_cache` writes to, e.g. ``.../116_GRCh38_merged``."""
     return os.path.join(cache_dir, f"{release}_{assembly}_{cache_type}")
@@ -668,7 +671,7 @@ def build_cache(
     entity: str | None = None,
     chroms: list[str] | None = None,
     species: str = "homo_sapiens",
-    assembly: str = "GRCh38",
+    assembly: str = _DEFAULT_ASSEMBLY,
     partitions: int = 8,
     cache_format: str = "parquet",
     local_cache: str | None = None,
@@ -862,7 +865,12 @@ def _resolve_plugin_manifest(
         # stale `vepyr-plugins-*` dir behind.
         if created_clone:
             repo = tempfile.mkdtemp(prefix="vepyr-plugins-")
-            subprocess.run(["git", "clone", "--quiet", repo_url, repo], check=True)
+            subprocess.run(
+                ["git", "clone", "--quiet", repo_url, repo],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
         resolved_ref = subprocess.run(
             [
                 "git",
@@ -907,6 +915,8 @@ def _resolve_plugin_manifest(
                 resolved_commit,
             ],
             check=True,
+            capture_output=True,
+            text=True,
         )
         rel = os.path.join("plugins", plugin, f"{plugin}.source.toml")
         manifest = os.path.join(worktree, rel)

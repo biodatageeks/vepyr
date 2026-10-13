@@ -145,7 +145,7 @@ vepyr build-plugin-cache --plugin cadd --version v0.2.0 \
 |---|---|
 | `--plugin NAME` | Plugin name. Required. |
 | `--version TAG` | vepyr-plugins git tag of the manifest. Required. |
-| `--source [PART=]PATH` | Source file: one bare path, or one `PART=PATH` for every source of a multi-source manifest (CADD: `snv`, `indel`). `PART` is letters, digits, `_` or `-`, so a bare path containing `=` stays whole. Required. |
+| `--source [PART=]PATH` | Source file: one bare path, or one `PART=PATH` for every source of a multi-source manifest (CADD: `snv`, `indel`). A single `--source` is always a path; with several, `PART` is letters, digits, `_` or `-`, so paths containing `=` stay whole. Required. |
 | `--dir_cache DIR` | vepyr Parquet cache whose variation data sets the tiering. Required. |
 | `--plugin_cache_root DIR` | Root of the plugin cache tree. Required. |
 | `--chrom NAME` | Build only this contig. Repeatable. |

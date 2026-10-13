@@ -573,14 +573,16 @@ def _split_source(source: str) -> tuple[str, str, str]:
 
 
 def _source_path(sources: list[str]) -> str | dict[str, str]:
-    """One bare path, or one ``PART=PATH`` per source of a multi-source manifest."""
+    """One bare path, or one ``PART=PATH`` per source of a multi-source manifest.
+
+    A single ``--source`` is always a path, whatever it contains: a
+    multi-source manifest needs at least two parts.
+    """
+    if len(sources) == 1:
+        return sources[0]
     parts = [_split_source(source) for source in sources]
     if all(sep == "" for _, sep, _ in parts):
-        if len(sources) != 1:
-            raise ValueError(
-                "--source: give one bare path, or PART=PATH for every source"
-            )
-        return sources[0]
+        raise ValueError("--source: give one bare path, or PART=PATH for every source")
     if any(sep == "" for _, sep, _ in parts):
         raise ValueError("--source: do not mix a bare path with PART=PATH sources")
     mapping: dict[str, str] = {}
@@ -689,7 +691,9 @@ def main(argv: list[str] | None = None) -> int:
         # build_plugin_cache() resolves the manifest with git: an unknown
         # --version, a bad --plugins_repo or a failed clone end up here.
         command = " ".join(str(arg) for arg in exc.cmd)
-        detail = (exc.stderr or "").strip() if isinstance(exc.stderr, str) else ""
+        stderr = exc.stderr if isinstance(exc.stderr, str) else ""
+        # git may report over several lines; keep the error to one.
+        detail = " ".join(line.strip() for line in stderr.splitlines() if line.strip())
         message = f"{command} failed with exit status {exc.returncode}"
         if args.command == "build-plugin-cache":
             message = (

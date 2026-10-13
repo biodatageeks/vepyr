@@ -212,8 +212,8 @@ def test_build_plugin_cache_optional_flags_map_to_keywords():
         ["a=/x", "/y"],  # mixing a bare path with parts
         ["/x", "/y"],  # two bare paths
         ["a=/x", "a=/y"],  # the same part twice
-        ["=/x"],  # empty part name
-        ["a="],  # empty path
+        ["=/x", "b=/y"],  # empty part name
+        ["a=", "b=/y"],  # empty path
     ],
 )
 def test_build_plugin_cache_rejects_malformed_sources(sources, capsys):
@@ -317,6 +317,13 @@ def test_build_plugin_cache_bare_path_may_contain_equals():
     assert kwargs["source_path"] == "/data/batch=1/cadd.tsv.gz"
 
 
+@pytest.mark.parametrize("path", ["batch=1/cadd.tsv.gz", "snv=x.tsv.gz", "=x"])
+def test_build_plugin_cache_single_source_is_always_a_path(path):
+    argv = list(PLUGIN)
+    argv[argv.index("/src/cadd.tsv.gz")] = path
+    assert build_plugin_cache_kwargs(_parse(*argv))["source_path"] == path
+
+
 def test_build_plugin_cache_part_path_may_contain_equals():
     argv = list(PLUGIN)
     i = argv.index("--source")
@@ -336,7 +343,9 @@ def test_build_plugin_cache_part_path_may_contain_equals():
 def test_build_plugin_cache_git_failure_becomes_exit_2(monkeypatch, capsys):
     def boom(*args, **kwargs):
         raise subprocess.CalledProcessError(
-            128, ["git", "clone", "--quiet", "https://x", "/tmp/y"], stderr="denied"
+            128,
+            ["git", "clone", "--quiet", "https://x", "/tmp/y"],
+            stderr="remote: denied\nfatal: could not read\n",
         )
 
     monkeypatch.setattr(vepyr, "build_plugin_cache", boom)
@@ -377,3 +386,38 @@ def test_build_plugin_cache_unknown_version_exits_2(tmp_path):
     assert result.returncode == 2
     assert result.stderr.startswith("vepyr: error: could not resolve the demo")
     assert "Traceback" not in result.stderr
+
+
+def test_build_plugin_cache_failed_clone_is_one_line(tmp_path):
+    """git's own diagnostic is captured into the single error line."""
+    missing = str(tmp_path / "no-such-repo")
+    src, _ = _write_source(tmp_path)
+    cache = _write_variation_shard(tmp_path)
+    code = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            # Point the online clone at a missing repository, offline.
+            "import sys, vepyr, vepyr.cli; "
+            "vepyr._resolve_plugin_manifest.__wrapped__.__kwdefaults__"
+            f"['repo_url'] = {missing!r}; "
+            "sys.exit(vepyr.cli.main(sys.argv[1:]))",
+            "build-plugin-cache",
+            "--plugin",
+            "demo",
+            "--version",
+            "v0.1.0",
+            "--source",
+            str(src),
+            "--dir_cache",
+            str(cache),
+            "--plugin_cache_root",
+            str(tmp_path / "pc"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert code.returncode == 2
+    assert code.stderr.startswith("vepyr: error: could not resolve the demo")
+    assert code.stderr.count("\n") == 1, code.stderr
+    assert "no-such-repo" in code.stderr
