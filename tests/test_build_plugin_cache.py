@@ -720,6 +720,37 @@ def test_filtered_build_rejects_symlinked_shard_path_outside_plugin_dir(tmp_path
         )
 
 
+def test_filtered_build_wraps_shard_probe_permission_error(tmp_path, monkeypatch):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    shard_path = plugin_dir / "shards" / "chr1.parquet"
+    manifest = {
+        "chroms": [{"chrom": "1", "file": "shards/chr1.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+    original_is_file = Path.is_file
+
+    def denied_shard_probe(path):
+        if path == shard_path:
+            raise PermissionError("shard probe denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_shard_probe)
+
+    with pytest.raises(
+        ValueError, match="Could not inspect shard path.*shard probe denied"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
 def test_filtered_build_wraps_manifest_probe_permission_error(tmp_path, monkeypatch):
     plugin_dir = tmp_path / "plugin" / "demo"
     plugin_dir.mkdir(parents=True)
