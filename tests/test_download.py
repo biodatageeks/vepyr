@@ -341,3 +341,39 @@ def test_network_download_opens_in_the_engine(tmp_path):
         show_progress=False,
     )
     assert sorted(os.listdir(plugin)) == [".cache", "chr22.parquet", "manifest.json"]
+
+
+@pytest.mark.parametrize("kind", ["cache", "plugin"])
+def test_a_failed_download_leaves_no_empty_directory(hub, tmp_path, kind):
+    hub(CORE_FILES + PLUGIN_FILES, error=ConnectionError("refused"))
+    with pytest.raises(RuntimeError):
+        if kind == "cache":
+            vepyr.download_cache(116, str(tmp_path / "c"), cache_type="merged")
+        else:
+            vepyr.download_plugin_cache("clinvar", 116, str(tmp_path / "c"))
+    assert not (tmp_path / "c").exists()
+
+
+@pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions")
+def test_an_unwritable_root_is_a_runtime_error(hub, tmp_path):
+    hub(PLUGIN_FILES)
+    root = tmp_path / "ro"
+    root.mkdir()
+    root.chmod(0o500)
+    try:
+        with pytest.raises(RuntimeError, match="could not download"):
+            vepyr.download_plugin_cache("clinvar", 116, str(root), show_progress=False)
+    finally:
+        root.chmod(0o700)
+
+
+def test_translated_errors_are_one_line():
+    multi = hub_error(
+        errors.RepositoryNotFoundError,
+        "404 Client Error.\n\nRepository Not Found\nhint",
+    )
+    with pytest.raises(ValueError) as excinfo:
+        with _download._hub_errors("biodatageeks/x", "main"):
+            raise multi
+    assert "\n" not in str(excinfo.value)
+    assert "404 Client Error. Repository Not Found hint" in str(excinfo.value)

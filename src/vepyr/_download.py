@@ -51,6 +51,11 @@ def _progress(show: bool) -> Iterator[None]:
             utils.enable_progress_bars()
 
 
+def _one_line(exc: BaseException) -> str:
+    """The exception text with line breaks folded, for one-line CLI errors."""
+    return " ".join(str(exc).split())
+
+
 def _is_transport_error(exc: Exception) -> bool:
     # huggingface_hub 1.x uses httpx, 2.x httpx2; neither error is an OSError.
     return type(exc).__module__.split(".")[0] in ("httpx", "httpx2")
@@ -65,16 +70,18 @@ def _hub_errors(repo_id: str, revision: str) -> Iterator[None]:
     try:
         yield
     except (errors.RepositoryNotFoundError, errors.RevisionNotFoundError) as exc:
-        raise ValueError(f"{where} was not found on Hugging Face: {exc}") from exc
+        raise ValueError(
+            f"{where} was not found on Hugging Face: {_one_line(exc)}"
+        ) from exc
     except errors.LocalEntryNotFoundError as exc:
         raise RuntimeError(
-            f"{where} is not available offline and could not be downloaded: {exc}"
+            f"{where} is not available offline and could not be downloaded: {_one_line(exc)}"
         ) from exc
     except OSError as exc:
-        raise RuntimeError(f"could not download {where}: {exc}") from exc
+        raise RuntimeError(f"could not download {where}: {_one_line(exc)}") from exc
     except Exception as exc:
         if _is_transport_error(exc):
-            raise RuntimeError(f"could not download {where}: {exc}") from exc
+            raise RuntimeError(f"could not download {where}: {_one_line(exc)}") from exc
         raise
 
 
@@ -186,7 +193,6 @@ def download_cache(
     target = vepyr._converted_cache_dir(
         os.path.expanduser(cache_dir), release, cache_type, assembly
     )
-    os.makedirs(target, exist_ok=True)
     with _progress(show_progress), _hub_errors(repo_id, resolved):
         _snapshot_download(
             repo_id,
@@ -254,7 +260,6 @@ def download_plugin_cache(
         contigs = _select_contigs(chroms, _shard_contigs(files, nested=False), where)
     shards = ["*.parquet"] if contigs is None else [f"{c}.parquet" for c in contigs]
     target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
-    os.makedirs(target, exist_ok=True)
     with _progress(show_progress), _hub_errors(repo_id, resolved):
         _snapshot_download(
             repo_id,
