@@ -147,6 +147,7 @@ def _shard_contigs(files: list[str], nested: bool) -> set[str]:
 # Records which repository and commit a download directory holds, next to
 # huggingface_hub's own resume metadata in .cache/.
 _RECORD = os.path.join(".cache", "vepyr", "download.json")
+_LOCK = os.path.join(".cache", "vepyr", "download.lock")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
@@ -218,25 +219,31 @@ def _first_missing(path: str) -> str | None:
     return missing
 
 
-def _only_the_record(target: str) -> bool:
+def _only_our_files(target: str) -> bool:
+    """Whether ``target`` holds nothing but the record and the lock."""
+    ours = {_RECORD, _LOCK}
     for root, _dirs, files in os.walk(target):
         for name in files:
-            if os.path.relpath(os.path.join(root, name), target) != _RECORD:
+            if os.path.relpath(os.path.join(root, name), target) not in ours:
                 return False
     return True
 
 
-@contextlib.contextmanager
-def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
-    """Keep files of one repository and commit in ``target``.
+def _remove_our_files(target: str, created: str | None) -> None:
+    """Undo a download that wrote nothing but the record and the lock."""
+    if created is not None:
+        shutil.rmtree(created, ignore_errors=True)
+        return
+    for name in (_RECORD, _LOCK):
+        with contextlib.suppress(OSError):
+            os.remove(os.path.join(target, name))
+    for name in (os.path.dirname(_RECORD), ".cache"):
+        with contextlib.suppress(OSError):
+            os.rmdir(os.path.join(target, name))
 
-    Downloading another commit into a directory that holds one would update
-    only the selected files and keep the rest, mixing revisions in one cache,
-    so it is refused. The record is written before the download, so an
-    interrupted download resumes only at the same commit; a download that
-    fails before writing anything else leaves no directory behind.
-    """
-    wanted = {"repo_id": repo_id, "commit": commit}
+
+def _check_revision(target: str, repo_id: str, commit: str) -> dict | None:
+    """Raise if ``target`` holds another revision; return its record, if any."""
     held = _recorded(target)
     if held is None:
         found = _unrecorded_commits(target)
@@ -251,26 +258,48 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
                 "it could mix revisions. Use an empty directory, or remove this "
                 "one first."
             )
-    if held is not None and held != wanted:
+    elif held != {"repo_id": repo_id, "commit": commit}:
         raise ValueError(
             f"{target} already holds {held.get('repo_id')} at revision "
             f"{held.get('commit')}; downloading {repo_id} at revision {commit} "
             "into it would mix revisions. Use an empty directory, or remove "
             "this one first."
         )
+    return held
+
+
+@contextlib.contextmanager
+def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
+    """Keep files of one repository and commit in ``target``.
+
+    Downloading another commit into a directory that holds one would update
+    only the selected files and keep the rest, mixing revisions in one cache,
+    so it is refused. An inter-process lock covers the check, the record and
+    the download, so concurrent downloads into one directory cannot mix
+    revisions either. The record is written before the download, so an
+    interrupted download resumes only at the same commit; a download that
+    fails before writing anything else leaves no trace.
+    """
+    from filelock import FileLock
+
     created = _first_missing(target)
-    record = os.path.join(target, _RECORD)
+    lock_path = os.path.join(target, _LOCK)
     try:
-        os.makedirs(os.path.dirname(record), exist_ok=True)
-        with open(record, "w") as f:
-            json.dump(wanted, f)
+        os.makedirs(os.path.dirname(lock_path), exist_ok=True)
     except OSError as exc:
         raise RuntimeError(f"could not write to {target}: {exc}") from exc
     try:
-        yield
+        with FileLock(lock_path):
+            if _check_revision(target, repo_id, commit) is None:
+                try:
+                    with open(os.path.join(target, _RECORD), "w") as f:
+                        json.dump({"repo_id": repo_id, "commit": commit}, f)
+                except OSError as exc:
+                    raise RuntimeError(f"could not write to {target}: {exc}") from exc
+            yield
     except BaseException:
-        if created is not None and _only_the_record(target):
-            shutil.rmtree(created, ignore_errors=True)
+        if _only_our_files(target):
+            _remove_our_files(target, created)
         raise
 
 

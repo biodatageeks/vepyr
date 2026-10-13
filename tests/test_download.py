@@ -530,5 +530,45 @@ def test_a_record_that_is_not_an_object_is_unreadable(hub, tmp_path, content):
 def test_a_target_under_a_regular_file_is_a_runtime_error(hub, tmp_path):
     hub(PLUGIN_FILES)
     (tmp_path / "plugin").write_text("not a directory")
-    with pytest.raises(RuntimeError, match="could not read"):
+    with pytest.raises(RuntimeError, match="could not (read|write)"):
         vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+
+
+def test_a_failed_first_download_into_an_existing_directory_leaves_no_record(
+    hub, tmp_path
+):
+    hub(PLUGIN_FILES, error=ConnectionError("refused"))
+    target = tmp_path / "plugin" / "clinvar"
+    target.mkdir(parents=True)
+    with pytest.raises(RuntimeError):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+    assert target.is_dir()
+    assert _download._recorded(str(target)) is None
+    assert not (target / ".cache").exists()
+
+
+def test_the_target_is_locked_while_downloading(hub, tmp_path, monkeypatch):
+    from filelock import FileLock, Timeout
+
+    fake = hub(PLUGIN_FILES)
+    seen = []
+    download = fake.snapshot_download
+
+    def check_lock(repo_id, *, revision, local_dir, allow_patterns):
+        lock = FileLock(os.path.join(local_dir, _download._LOCK), timeout=0)
+        try:
+            lock.acquire()
+            lock.release()
+            seen.append("free")
+        except Timeout:
+            seen.append("held")
+        return download(
+            repo_id,
+            revision=revision,
+            local_dir=local_dir,
+            allow_patterns=allow_patterns,
+        )
+
+    monkeypatch.setattr(_download, "_snapshot_download", check_lock)
+    vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
+    assert seen == ["held"]
