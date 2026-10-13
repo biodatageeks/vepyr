@@ -91,6 +91,7 @@ CORE_FILES = [
 ]
 CORE_SIDECARS = ["*/chrom_manifest.json", "reference_policy.json", "chr_synonyms.txt"]
 MERGED_PIN = "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+MAIN_COMMIT = "f" * 40
 
 
 class FakeHub:
@@ -101,12 +102,17 @@ class FakeHub:
         self.error = error
         self.listed = []
         self.snapshots = []
+        self.resolved = []
 
     def list_repo_files(self, repo_id, *, revision):
         self.listed.append((repo_id, revision))
         if self.error is not None:
             raise self.error
         return list(self.files)
+
+    def resolve_commit(self, repo_id, *, revision):
+        self.resolved.append((repo_id, revision))
+        return MAIN_COMMIT
 
     def snapshot_download(self, repo_id, *, revision, local_dir, allow_patterns):
         self.snapshots.append(
@@ -134,6 +140,7 @@ def hub(monkeypatch):
         fake = FakeHub(files, error)
         monkeypatch.setattr(_download, "_list_repo_files", fake.list_repo_files)
         monkeypatch.setattr(_download, "_snapshot_download", fake.snapshot_download)
+        monkeypatch.setattr(_download, "_resolve_commit", fake.resolve_commit)
         return fake
 
     return install
@@ -196,12 +203,19 @@ def test_empty_chroms_is_rejected(hub, tmp_path):
     assert fake.snapshots == []
 
 
-def test_explicit_revision_is_passed_through(hub, tmp_path):
+def test_a_branch_revision_is_resolved_to_its_commit(hub, tmp_path):
     fake = hub(CORE_FILES)
     vepyr.download_cache(
         116, str(tmp_path), cache_type="ensembl", revision="main", show_progress=False
     )
-    assert fake.snapshots[0]["revision"] == "main"
+    assert fake.resolved == [("biodatageeks/vepyr_116_GRCh38_ensembl", "main")]
+    assert fake.snapshots[0]["revision"] == MAIN_COMMIT
+
+
+def test_a_pinned_commit_needs_no_resolution(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    vepyr.download_cache(116, str(tmp_path), cache_type="merged", show_progress=False)
+    assert fake.resolved == []
 
 
 @pytest.mark.parametrize(
@@ -361,7 +375,7 @@ def test_an_unwritable_root_is_a_runtime_error(hub, tmp_path):
     root.mkdir()
     root.chmod(0o500)
     try:
-        with pytest.raises(RuntimeError, match="could not download"):
+        with pytest.raises(RuntimeError, match="could not write"):
             vepyr.download_plugin_cache("clinvar", 116, str(root), show_progress=False)
     finally:
         root.chmod(0o700)
@@ -377,3 +391,53 @@ def test_translated_errors_are_one_line():
             raise multi
     assert "\n" not in str(excinfo.value)
     assert "404 Client Error. Repository Not Found hint" in str(excinfo.value)
+
+
+def test_the_downloaded_commit_is_recorded(hub, tmp_path):
+    hub(CORE_FILES)
+    path = vepyr.download_cache(
+        116, str(tmp_path), cache_type="merged", show_progress=False
+    )
+    assert _download._recorded(path) == {
+        "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+        "commit": MERGED_PIN,
+    }
+
+
+def test_another_revision_is_not_mixed_into_an_existing_cache(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    vepyr.download_cache(116, str(tmp_path), cache_type="merged", show_progress=False)
+    with pytest.raises(ValueError) as excinfo:
+        vepyr.download_cache(
+            116, str(tmp_path), cache_type="merged", chroms=["22"], revision="main"
+        )
+    message = str(excinfo.value)
+    assert MERGED_PIN in message and MAIN_COMMIT in message
+    assert len(fake.snapshots) == 1
+
+
+def test_the_same_revision_can_be_downloaded_again(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    for chroms in (["22"], ["1"]):
+        vepyr.download_cache(
+            116, str(tmp_path), cache_type="merged", chroms=chroms, show_progress=False
+        )
+    assert len(fake.snapshots) == 2
+
+
+def test_plugin_caches_do_not_mix_revisions(hub, tmp_path):
+    hub(PLUGIN_FILES)
+    vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
+    with pytest.raises(ValueError, match="already holds"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), revision="main")
+
+
+def test_generic_hub_http_errors_become_runtime_errors(monkeypatch):
+    """huggingface_hub 1.x: HfHubHTTPError derives from httpx, not OSError."""
+    fake = type(
+        "HfHubHTTPError", (Exception,), {"__module__": "huggingface_hub.errors"}
+    )
+    monkeypatch.setattr(errors, "HfHubHTTPError", fake)
+    with pytest.raises(RuntimeError, match="429"):
+        with _download._hub_errors("biodatageeks/x", "abc123"):
+            raise fake("429 Too Many Requests")

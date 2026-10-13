@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 import re
 from collections.abc import Iterator
@@ -17,6 +18,13 @@ def _list_repo_files(repo_id: str, *, revision: str) -> list[str]:
     from huggingface_hub import HfApi
 
     return HfApi().list_repo_files(repo_id, repo_type="dataset", revision=revision)
+
+
+def _resolve_commit(repo_id: str, *, revision: str) -> str:
+    """The commit a branch or tag of a dataset repository points to."""
+    from huggingface_hub import HfApi
+
+    return HfApi().repo_info(repo_id, repo_type="dataset", revision=revision).sha
 
 
 def _snapshot_download(
@@ -73,6 +81,9 @@ def _hub_errors(repo_id: str, revision: str) -> Iterator[None]:
         raise ValueError(
             f"{where} was not found on Hugging Face: {_one_line(exc)}"
         ) from exc
+    except errors.HfHubHTTPError as exc:
+        # Not an OSError in huggingface_hub 1.x, where it derives from httpx.
+        raise RuntimeError(f"could not download {where}: {_one_line(exc)}") from exc
     except errors.LocalEntryNotFoundError as exc:
         raise RuntimeError(
             f"{where} is not available offline and could not be downloaded: {_one_line(exc)}"
@@ -134,6 +145,86 @@ def _shard_contigs(files: list[str], nested: bool) -> set[str]:
     }
 
 
+# Records which repository and commit a download directory holds, next to
+# huggingface_hub's own resume metadata in .cache/.
+_RECORD = os.path.join(".cache", "vepyr", "download.json")
+_COMMIT = re.compile(r"[0-9a-f]{40}")
+
+
+def _commit(repo_id: str, revision: str) -> str:
+    """``revision`` as a commit hash, resolving a branch or tag."""
+    if _COMMIT.fullmatch(revision):
+        return revision
+    with _hub_errors(repo_id, revision):
+        return _resolve_commit(repo_id, revision=revision)
+
+
+def _recorded(target: str) -> dict | None:
+    """The repository and commit recorded in ``target``, if any."""
+    try:
+        with open(os.path.join(target, _RECORD)) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+
+
+def _first_missing(path: str) -> str | None:
+    """The outermost directory of ``path`` that does not exist yet, if any."""
+    missing = None
+    path = os.path.abspath(path)
+    while not os.path.exists(path):
+        missing = path
+        parent = os.path.dirname(path)
+        if parent == path:
+            break
+        path = parent
+    return missing
+
+
+def _only_the_record(target: str) -> bool:
+    for root, _dirs, files in os.walk(target):
+        for name in files:
+            if os.path.relpath(os.path.join(root, name), target) != _RECORD:
+                return False
+    return True
+
+
+@contextlib.contextmanager
+def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
+    """Keep files of one repository and commit in ``target``.
+
+    Downloading another commit into a directory that holds one would update
+    only the selected files and keep the rest, mixing revisions in one cache,
+    so it is refused. The record is written before the download, so an
+    interrupted download resumes only at the same commit; a download that
+    fails before writing anything else leaves no directory behind.
+    """
+    wanted = {"repo_id": repo_id, "commit": commit}
+    held = _recorded(target)
+    if held is not None and held != wanted:
+        raise ValueError(
+            f"{target} already holds {held.get('repo_id')} at revision "
+            f"{held.get('commit')}; downloading revision {commit} into it would "
+            "mix revisions. Use an empty directory, or remove this one first."
+        )
+    created = _first_missing(target)
+    record = os.path.join(target, _RECORD)
+    try:
+        os.makedirs(os.path.dirname(record), exist_ok=True)
+        with open(record, "w") as f:
+            json.dump(wanted, f)
+    except OSError as exc:
+        raise RuntimeError(f"could not write to {target}: {exc}") from exc
+    try:
+        yield
+    except BaseException:
+        if created is not None and _only_the_record(target):
+            import shutil
+
+            shutil.rmtree(created, ignore_errors=True)
+        raise
+
+
 def download_cache(
     release: int,
     cache_dir: str,
@@ -180,12 +271,14 @@ def download_cache(
 
     vepyr._validate_cache_type(cache_type)
     repo_id = _published.cache_repo_id(release, assembly, cache_type)
-    resolved = _published.cache_revision(release, assembly, cache_type, revision)
+    resolved = _commit(
+        repo_id, _published.cache_revision(release, assembly, cache_type, revision)
+    )
     where = f"{repo_id} at revision {resolved}"
     contigs = None
     if chroms is not None:
         if not chroms:
-            _select_contigs(chroms, set(), where)
+            raise ValueError("chroms must name at least one contig, or be None for all")
         with _hub_errors(repo_id, resolved):
             files = _list_repo_files(repo_id, revision=resolved)
         contigs = _select_contigs(chroms, _shard_contigs(files, nested=True), where)
@@ -193,7 +286,11 @@ def download_cache(
     target = vepyr._converted_cache_dir(
         os.path.expanduser(cache_dir), release, cache_type, assembly
     )
-    with _progress(show_progress), _hub_errors(repo_id, resolved):
+    with (
+        _single_revision(target, repo_id, resolved),
+        _progress(show_progress),
+        _hub_errors(repo_id, resolved),
+    ):
         _snapshot_download(
             repo_id,
             revision=resolved,
@@ -249,18 +346,24 @@ def download_plugin_cache(
             f"invalid plugin name {plugin!r}: use letters, digits, '_' or '-'"
         )
     repo_id = _published.plugin_repo_id(release, assembly, plugin)
-    resolved = _published.plugin_revision(release, assembly, plugin, revision)
+    resolved = _commit(
+        repo_id, _published.plugin_revision(release, assembly, plugin, revision)
+    )
     where = f"{repo_id} at revision {resolved}"
     contigs = None
     if chroms is not None:
         if not chroms:
-            _select_contigs(chroms, set(), where)
+            raise ValueError("chroms must name at least one contig, or be None for all")
         with _hub_errors(repo_id, resolved):
             files = _list_repo_files(repo_id, revision=resolved)
         contigs = _select_contigs(chroms, _shard_contigs(files, nested=False), where)
     shards = ["*.parquet"] if contigs is None else [f"{c}.parquet" for c in contigs]
     target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
-    with _progress(show_progress), _hub_errors(repo_id, resolved):
+    with (
+        _single_revision(target, repo_id, resolved),
+        _progress(show_progress),
+        _hub_errors(repo_id, resolved),
+    ):
         _snapshot_download(
             repo_id,
             revision=resolved,
