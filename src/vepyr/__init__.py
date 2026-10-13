@@ -679,9 +679,9 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
 
     Official cache archives encode the type in the directory immediately above
     the release directory. An unpacked cache moved out of that layout can still
-    be identified as Ensembl when its info file has no RefSeq/BAM markers. The
-    merged and RefSeq layouts both carry those markers, so an unrecognised path
-    cannot distinguish those two types.
+    be identified as Ensembl when its info file has no RefSeq/BAM markers. Those
+    markers identify a non-Ensembl cache, though they do not distinguish merged
+    from RefSeq when the original parent directory is missing.
     """
     root = Path(cache_root)
     parent_type = {
@@ -691,7 +691,7 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
         f"{species}_refseq": "refseq",
     }
     parent_source_type = parent_type.get(root.parent.name)
-    if parent_source_type in {"merged", "refseq"}:
+    if parent_source_type is not None:
         return parent_source_type
 
     info_path = root / "info.txt"
@@ -709,7 +709,7 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
         return None
 
     if "bam" in info or "source_refseq" in info:
-        return None
+        return "non-ensembl"
     if parent_source_type == "ensembl":
         return "ensembl"
     return "ensembl" if info.get("species", species) == species else None
@@ -740,7 +740,12 @@ def _validate_raw_cache_inputs(
     cache_root: str, *, cache_type: str, species: str, chroms: list[str] | None
 ) -> list[str] | None:
     actual_type = _raw_cache_source_type(cache_root, species)
-    if actual_type is not None and actual_type != cache_type:
+    if actual_type == "non-ensembl" and cache_type == "ensembl":
+        raise ValueError(
+            f"--cache_type ensembl, but the raw cache at {cache_root} has merged/"
+            "RefSeq markers in info.txt and is not an Ensembl cache"
+        )
+    if actual_type not in (None, "non-ensembl") and actual_type != cache_type:
         raise ValueError(
             f"--cache_type {cache_type}, but the raw cache at {cache_root} is an "
             f"{actual_type.title()} cache"
@@ -770,13 +775,17 @@ def _validate_raw_cache_inputs(
         if identity in requested_names and len(names) > 1
     }
     if ambiguous:
-        identity, names = next(iter(ambiguous.items()))
+        details = "; ".join(
+            f"{identity}: {', '.join(repr(name) for name in names)}"
+            for identity, names in ambiguous.items()
+        )
         raise ValueError(
-            f"Raw cache at {cache_root} has ambiguous contig directories "
-            f"{', '.join(repr(name) for name in names)} for {identity}"
+            f"Raw cache at {cache_root} has ambiguous contig directories: {details}"
         )
     # The Rust builder strips only a `chr` prefix when filtering. Pass the raw
     # cache spelling so aliases and case differences select the actual source.
+    # Requested ambiguous identities were rejected above, so each lookup has one
+    # raw spelling here.
     return list(
         dict.fromkeys(
             available_names[_normalise_contig_name(str(chrom))][0] for chrom in chroms
@@ -1216,7 +1225,7 @@ def _plugin_chroms_to_build(
         filename = entry.get("file") or entry.get("dataset")
         if not filename:
             filename = f"{entry['chrom']}.parquet"
-        if (plugin_dir / filename).is_file():
+        if entry.get("rows") == 0 or (plugin_dir / filename).is_file():
             existing[_normalise_contig_name(entry["chrom"])] = entry["chrom"]
 
     if not existing:

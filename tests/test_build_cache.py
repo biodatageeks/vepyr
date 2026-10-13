@@ -348,6 +348,24 @@ class TestBuildCacheTargetedValidation:
         mock_native.assert_not_called()
         assert not output.exists()
 
+    def test_rejects_relocated_merged_cache_as_ensembl(self, tmp_path):
+        local_cache = tmp_path / "relocated"
+        local_cache.mkdir()
+        (local_cache / "info.txt").write_text(
+            "species\thomo_sapiens\nbam\tknownrefseq.bam\n"
+        )
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match="not an Ensembl cache"):
+                vepyr.build_cache(
+                    115,
+                    str(tmp_path / "out"),
+                    cache_type="ensembl",
+                    local_cache=str(local_cache),
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+
     def test_rejects_requested_contig_missing_from_raw_cache(self, tmp_path):
         output = tmp_path / "out"
         with patch("vepyr._build_cache") as mock_native:

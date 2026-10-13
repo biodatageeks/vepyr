@@ -581,6 +581,36 @@ def test_filtered_build_keeps_existing_shard_without_overwrite(tmp_path):
     assert after.st_mtime_ns == before.st_mtime_ns
 
 
+@pytest.mark.parametrize(
+    ("rows", "expected"),
+    [(0, []), (1, ["chrM"])],
+)
+def test_filtered_build_treats_zero_row_manifest_entry_as_existing(
+    tmp_path, rows, expected
+):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {
+        "cache_source_version": "v0.1.0@abc123",
+        "chroms": [
+            {"chrom": "MT", "file": "MT.parquet", "rows": rows},
+        ],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    result = vepyr._plugin_chroms_to_build(
+        str(tmp_path),
+        "demo",
+        ["chrM"],
+        source_version="v0.1.0@abc123",
+        overwrite=False,
+    )
+
+    assert result == expected
+
+
 def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path):
     """A targeted build cannot add shards from another plugin manifest version."""
     src, _actual = _write_source(tmp_path)
