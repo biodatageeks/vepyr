@@ -317,9 +317,25 @@ class TestBuildCacheTargetedValidation:
         assert "1904 contigs" in message
         assert "1, 2, 3, 4, 5, 6, 7, 8, 9, 10" in message
         assert "X, Y, MT" in message
-        assert "1879 additional contigs omitted" in message
-        assert "GL000000" not in message
+        assert "1879 additional contigs" in message
+        assert "GL000000" in message
         assert len(message) < 500
+
+    def test_large_nonhuman_contig_error_shows_a_natural_sample(self, monkeypatch):
+        contigs = ["2L", "3L", *(f"scaffold{number}" for number in range(20))]
+        monkeypatch.setattr(vepyr, "_raw_cache_contigs", lambda _cache_root: contigs)
+
+        with pytest.raises(ValueError) as exc_info:
+            vepyr._validate_raw_cache_inputs(
+                str(ENSEMBL_CACHE_DIR),
+                cache_type="ensembl",
+                species="danio_rerio",
+                chroms=["not-present"],
+            )
+
+        message = str(exc_info.value)
+        assert "2L, 3L, scaffold0, scaffold1, scaffold2" in message
+        assert "more contigs omitted" in message
 
     def test_ambiguous_contigs_only_fail_when_requested(self, tmp_path):
         for name in ("1", "M", "MT"):

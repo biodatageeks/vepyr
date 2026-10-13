@@ -754,10 +754,17 @@ _PRIMARY_CONTIG_RANK = {
 _MAX_INLINE_RAW_CACHE_CONTIGS = 20
 
 
+def _natural_contig_sort_key(name: str) -> tuple[tuple[int, int | str], ...]:
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part.casefold())
+        for part in re.split(r"(\d+)", name)
+    )
+
+
 def _raw_cache_contig_summary(contigs: list[str]) -> str:
     """Keep large missing-contig errors readable while surfacing primary names."""
     if len(contigs) <= _MAX_INLINE_RAW_CACHE_CONTIGS:
-        return ", ".join(contigs) or "(none)"
+        return ", ".join(sorted(contigs, key=_natural_contig_sort_key)) or "(none)"
 
     primary = sorted(
         (
@@ -767,12 +774,25 @@ def _raw_cache_contig_summary(contigs: list[str]) -> str:
         ),
         key=lambda name: _PRIMARY_CONTIG_RANK[_normalise_contig_name(name)],
     )
-    other_count = len(contigs) - len(primary)
-    primary_summary = ", ".join(primary) or "(no primary contigs found)"
-    if other_count:
-        plural = "s" if other_count != 1 else ""
-        return f"{primary_summary}; {other_count} additional contig{plural} omitted"
-    return primary_summary
+    primary_names = set(primary)
+    other_contigs = sorted(
+        (name for name in contigs if name not in primary_names),
+        key=_natural_contig_sort_key,
+    )
+    if primary:
+        primary_summary = ", ".join(primary)
+        if other_contigs:
+            plural = "s" if len(other_contigs) != 1 else ""
+            examples = ", ".join(other_contigs[:5])
+            return (
+                f"{primary_summary}; {len(other_contigs)} additional contig{plural} "
+                f"(examples: {examples})"
+            )
+        return primary_summary
+
+    sample = other_contigs[:10]
+    omitted = len(other_contigs) - len(sample)
+    return f"{', '.join(sample)}; {omitted} more contigs omitted"
 
 
 def _validate_raw_cache_inputs(
