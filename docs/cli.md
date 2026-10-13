@@ -98,9 +98,73 @@ Omit `--plugin` to apply every plugin under the root, in alphabetical order.
 Each `--plugin` narrows the set to those named, and the order they are given in
 is the order of their blocks in the `CSQ` header and in every `CSQ` value.
 
-Building a plugin cache is a Python-API job — see
-[`build_plugin_cache()`](api.md#vepyr.build_plugin_cache) — or download a
+Build a plugin cache with [`vepyr build-plugin-cache`](#building-caches) or
+[`build_plugin_cache()`](api.md#vepyr.build_plugin_cache), or download a
 prebuilt one from [Downloads](downloads.md).
+
+## Building caches
+
+`vepyr build-cache` converts an Ensembl VEP cache to vepyr's Parquet format,
+wrapping [`build_cache()`](api.md#vepyr.build_cache). It downloads the cache
+from the Ensembl FTP site unless `--local_cache` points at an unpacked copy,
+and writes the result to `<dir_cache>/<release>_<assembly>_<cache_type>`:
+
+```bash
+vepyr build-cache --release 116 --cache_type merged --dir_cache ~/vepyr_cache
+```
+
+| Flag | Description |
+|---|---|
+| `--release N` | Ensembl release. Required. |
+| `--cache_type {ensembl,merged,refseq}` | Ensembl VEP cache type. Required. |
+| `--dir_cache DIR` | Root directory for the downloaded and the converted cache. Required. |
+| `--local_cache DIR` | Unpacked Ensembl VEP cache (the directory holding `info.txt`); skips the download. |
+| `--entity NAME` | Build only one entity: `variation`, `transcript`, `exon`, `translation`, `regulatory` or `motif`. |
+| `--chrom NAME` | Build only this contig. Repeatable. |
+| `--species NAME`, `--assembly NAME` | Default `homo_sapiens`, `GRCh38`. |
+| `--partitions N` | DataFusion partitions for the conversion; at least 1. Default 8. |
+| `--download_retries N` | Resume-retries for the download; 0 or more. Default 10. |
+| `--overwrite` | Rebuild existing outputs instead of skipping them. |
+| `--no_progress` | Suppress progress bars. |
+
+`vepyr build-plugin-cache` builds a [plugin cache](plugins.md) from a manifest in
+[biodatageeks/vepyr-plugins](https://github.com/biodatageeks/vepyr-plugins),
+wrapping [`build_plugin_cache()`](api.md#vepyr.build_plugin_cache). The cache is
+written to `<plugin_cache_root>/plugin/<plugin>/`, and `--dir_cache` is the
+vepyr cache whose variation data sets the frequency tiering:
+
+```bash
+vepyr build-plugin-cache --plugin cadd --version v0.2.0 \
+    --source snv=whole_genome_SNVs.tsv.gz \
+    --source indel=gnomad.genomes.r4.0.indel.tsv.gz \
+    --dir_cache ~/vepyr_cache/116_GRCh38_merged \
+    --plugin_cache_root ~/vepyr_plugin_cache
+```
+
+| Flag | Description |
+|---|---|
+| `--plugin NAME` | Plugin name. Required. |
+| `--version TAG` | vepyr-plugins git tag of the manifest. Required. |
+| `--source [PART=]PATH` | Source file: one bare path, or one `PART=PATH` for every source of a multi-source manifest (CADD: `snv`, `indel`). A single `--source` is always a path; with several, `PART` is letters, digits, `_` or `-`, so paths containing `=` stay whole. Required. |
+| `--dir_cache DIR` | vepyr Parquet cache whose variation data sets the tiering. Required. |
+| `--plugin_cache_root DIR` | Root of the plugin cache tree. Required. |
+| `--chrom NAME` | Build only this contig. Repeatable. |
+| `--plugins_repo PATH` | Local clone of vepyr-plugins, for offline builds. |
+| `--verify_source {strict,warn,skip}` | Checksum check of the source files. Default `strict`. |
+| `--overwrite` | Rebuild an existing plugin cache. |
+
+Both commands finish with a summary of what was written and the `vepyr annotate`
+flags that use it. When `build-cache` skips every existing output, the summary
+says so; `--overwrite` rebuilds them.
+
+**`--dir_cache` differs between the commands.** For `build-cache` it is the root
+under which `<release>_<assembly>_<cache_type>` is created. For
+`build-plugin-cache` and `annotate` it is that converted cache itself, e.g.
+`~/vepyr_cache/116_GRCh38_merged`, the path `build-cache` prints as
+`Cache ready:`.
+
+An unknown `--version`, an invalid `--plugins_repo` or a failed clone of
+vepyr-plugins ends `build-plugin-cache` with a one-line error and exit code 2.
 
 ## Notes
 
@@ -138,4 +202,4 @@ is not accepted.
 | Code | Meaning |
 |---|---|
 | 0 | Success. |
-| 2 | Bad arguments, or the annotation request was rejected (unusable cache, missing FASTA, unindexed input with `--fork` > 1). |
+| 2 | Bad arguments, or the request was rejected (unusable cache, missing FASTA, unindexed input with `--fork` > 1, a missing local cache or source file, a failed checksum). |
