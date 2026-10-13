@@ -696,7 +696,7 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
 
     info_path = root / "info.txt"
     if not info_path.is_file():
-        return None
+        return parent_source_type
     info: dict[str, str] = {}
     try:
         for line in info_path.read_text(
@@ -706,7 +706,7 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
             if separator:
                 info[key] = value
     except OSError:
-        return None
+        return parent_source_type
 
     if "bam" in info or "source_refseq" in info:
         return "non-ensembl"

@@ -378,6 +378,21 @@ class TestBuildCacheTargetedValidation:
                 )
                 mock_native.assert_called_once()
 
+    def test_official_ensembl_parent_identifies_cache_without_info_file(self, tmp_path):
+        local_cache = tmp_path / "homo_sapiens" / "115_GRCh38"
+        local_cache.mkdir(parents=True)
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match="Ensembl cache"):
+                vepyr.build_cache(
+                    115,
+                    str(tmp_path / "out"),
+                    cache_type="merged",
+                    local_cache=str(local_cache),
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+
     def test_rejects_requested_contig_missing_from_raw_cache(self, tmp_path):
         output = tmp_path / "out"
         with patch("vepyr._build_cache") as mock_native:
