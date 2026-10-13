@@ -44,7 +44,7 @@ requirements:
     - polars >=1.40.0,<2
     - tqdm >=4.67.0,<5
     - huggingface_hub >=1.0,<3
-    - filelock >=3.10
+    - filelock >=3.29.5
 
 test:
   imports:

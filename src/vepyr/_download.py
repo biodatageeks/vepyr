@@ -255,9 +255,10 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     revisions either. The record is written before the download, so an
     interrupted download resumes only at the same commit. If a download fails
     before writing any data, its record is removed under the lock. Nothing
-    else is deleted by vepyr: directories may be shared with other downloads,
-    and the lock file is left to filelock, which removes it on release and
-    discards a lock taken on a removed file.
+    else is deleted: directories may be shared with other downloads, and the
+    lock file must keep its pathname while other processes may wait on it
+    (filelock >= 3.29.5 no longer unlinks it on release; see
+    tox-dev/filelock#574).
     """
     import filelock
 
