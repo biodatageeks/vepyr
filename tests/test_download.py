@@ -643,3 +643,16 @@ def test_waiting_for_another_download_is_reported(hub, tmp_path, monkeypatch, ca
         vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
     assert "waiting for another download" in caplog.text
     assert BusyOnce.calls == 2
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need privileges on Windows")
+def test_a_symlinked_directory_counts_as_unknown_content(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    elsewhere = tmp_path / "elsewhere"
+    _populate(elsewhere, ["chr1.parquet"])
+    target = tmp_path / "c" / "116_GRCh38_merged"
+    target.mkdir(parents=True)
+    (target / "variation").symlink_to(elsewhere, target_is_directory=True)
+    with pytest.raises(ValueError, match="revision is unknown"):
+        vepyr.download_cache(116, str(tmp_path / "c"), cache_type="merged")
+    assert fake.snapshots == []

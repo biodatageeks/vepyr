@@ -195,6 +195,10 @@ def _unrecorded_commits(target: str) -> set[str | None]:
     meta_root = os.path.join(target, ".cache", "huggingface", "download")
     for root, dirs, files in os.walk(target):
         dirs[:] = [d for d in dirs if not (root == target and d == ".cache")]
+        # os.walk does not follow a symlinked directory; a download would write
+        # through it into data of unknown revision, so count it as such.
+        if any(os.path.islink(os.path.join(root, d)) for d in dirs):
+            commits.add(None)
         for name in files:
             rel = os.path.relpath(os.path.join(root, name), target)
             meta = os.path.join(meta_root, rel + ".metadata")
