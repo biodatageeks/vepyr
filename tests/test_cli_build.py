@@ -276,3 +276,104 @@ def test_build_plugin_cache_end_to_end(tmp_path):
     assert (root / "plugin" / "demo" / "manifest.json").is_file()
     assert "chr1" in result.stdout
     assert f"--plugin_cache_root {root} --plugin demo" in result.stdout
+
+
+# --- review follow-ups -------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "flag, value",
+    [
+        ("--partitions", "0"),
+        ("--partitions", "-1"),
+        ("--partitions", "x"),
+        ("--download_retries", "-1"),
+        ("--download_retries", "x"),
+    ],
+)
+def test_build_cache_rejects_out_of_range_numbers(flag, value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*CACHE, flag, value)
+    assert excinfo.value.code == 2
+
+
+def test_build_cache_accepts_zero_download_retries():
+    kwargs = build_cache_kwargs(_parse(*CACHE, "--download_retries", "0"))
+    assert kwargs["download_retries"] == 0
+
+
+def test_build_cache_reports_when_nothing_was_written(monkeypatch, capsys):
+    monkeypatch.setattr(vepyr, "build_cache", lambda *args, **kwargs: [])
+    assert main([*CACHE, "--assembly", "GRCh37"]) == 0
+    out = capsys.readouterr().out
+    assert "No files written" in out and "--overwrite" in out
+    assert "Cache ready: /c/116_GRCh37_merged" in out
+
+
+def test_build_plugin_cache_bare_path_may_contain_equals():
+    argv = list(PLUGIN)
+    argv[argv.index("/src/cadd.tsv.gz")] = "/data/batch=1/cadd.tsv.gz"
+    kwargs = build_plugin_cache_kwargs(_parse(*argv))
+    assert kwargs["source_path"] == "/data/batch=1/cadd.tsv.gz"
+
+
+def test_build_plugin_cache_part_path_may_contain_equals():
+    argv = list(PLUGIN)
+    i = argv.index("--source")
+    argv[i : i + 2] = [
+        "--source",
+        "snv=/s/run=1/snv.tsv.gz",
+        "--source",
+        "indel=/s/indel.tsv.gz",
+    ]
+    kwargs = build_plugin_cache_kwargs(_parse(*argv))
+    assert kwargs["source_path"] == {
+        "snv": "/s/run=1/snv.tsv.gz",
+        "indel": "/s/indel.tsv.gz",
+    }
+
+
+def test_build_plugin_cache_git_failure_becomes_exit_2(monkeypatch, capsys):
+    def boom(*args, **kwargs):
+        raise subprocess.CalledProcessError(
+            128, ["git", "clone", "--quiet", "https://x", "/tmp/y"], stderr="denied"
+        )
+
+    monkeypatch.setattr(vepyr, "build_plugin_cache", boom)
+    assert main(list(PLUGIN)) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("vepyr: error: could not resolve the cadd manifest")
+    assert "--version v0.2.0" in err and "denied" in err
+    assert err.count("\n") == 1
+
+
+def test_build_plugin_cache_unknown_version_exits_2(tmp_path):
+    """An unknown tag fails in git; the command reports it in one line."""
+    src, md5 = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=md5)
+    cache = _write_variation_shard(tmp_path)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "build-plugin-cache",
+            "--plugin",
+            "demo",
+            "--version",
+            "v9.9.9",
+            "--source",
+            str(src),
+            "--dir_cache",
+            str(cache),
+            "--plugin_cache_root",
+            str(tmp_path / "pc"),
+            "--plugins_repo",
+            str(repo),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert result.stderr.startswith("vepyr: error: could not resolve the demo")
+    assert "Traceback" not in result.stderr

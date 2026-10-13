@@ -122,8 +122,8 @@ vepyr build-cache --release 116 --cache_type merged --dir_cache ~/vepyr_cache
 | `--entity NAME` | Build only one entity: `variation`, `transcript`, `exon`, `translation`, `regulatory` or `motif`. |
 | `--chrom NAME` | Build only this contig. Repeatable. |
 | `--species NAME`, `--assembly NAME` | Default `homo_sapiens`, `GRCh38`. |
-| `--partitions N` | DataFusion partitions for the conversion. Default 8. |
-| `--download_retries N` | Resume-retries for the download. Default 10. |
+| `--partitions N` | DataFusion partitions for the conversion; at least 1. Default 8. |
+| `--download_retries N` | Resume-retries for the download; 0 or more. Default 10. |
 | `--overwrite` | Rebuild existing outputs instead of skipping them. |
 | `--no_progress` | Suppress progress bars. |
 
@@ -145,7 +145,7 @@ vepyr build-plugin-cache --plugin cadd --version v0.2.0 \
 |---|---|
 | `--plugin NAME` | Plugin name. Required. |
 | `--version TAG` | vepyr-plugins git tag of the manifest. Required. |
-| `--source [PART=]PATH` | Source file: one bare path, or one `PART=PATH` for every source of a multi-source manifest (CADD: `snv`, `indel`). Required. |
+| `--source [PART=]PATH` | Source file: one bare path, or one `PART=PATH` for every source of a multi-source manifest (CADD: `snv`, `indel`). `PART` is letters, digits, `_` or `-`, so a bare path containing `=` stays whole. Required. |
 | `--dir_cache DIR` | vepyr Parquet cache whose variation data sets the tiering. Required. |
 | `--plugin_cache_root DIR` | Root of the plugin cache tree. Required. |
 | `--chrom NAME` | Build only this contig. Repeatable. |
@@ -154,7 +154,17 @@ vepyr build-plugin-cache --plugin cadd --version v0.2.0 \
 | `--overwrite` | Rebuild an existing plugin cache. |
 
 Both commands finish with a summary of what was written and the `vepyr annotate`
-flags that use it.
+flags that use it. When `build-cache` skips every existing output, the summary
+says so; `--overwrite` rebuilds them.
+
+**`--dir_cache` differs between the commands.** For `build-cache` it is the root
+under which `<release>_<assembly>_<cache_type>` is created. For
+`build-plugin-cache` and `annotate` it is that converted cache itself, e.g.
+`~/vepyr_cache/116_GRCh38_merged`, the path `build-cache` prints as
+`Cache ready:`.
+
+An unknown `--version`, an invalid `--plugins_repo` or a failed clone of
+vepyr-plugins ends `build-plugin-cache` with a one-line error and exit code 2.
 
 ## Notes
 

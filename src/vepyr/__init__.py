@@ -653,6 +653,13 @@ def _resolve_raw_cache(
     return cache_root
 
 
+def _converted_cache_dir(
+    cache_dir: str, release: int, cache_type: str, assembly: str = "GRCh38"
+) -> str:
+    """Directory :func:`build_cache` writes to, e.g. ``.../116_GRCh38_merged``."""
+    return os.path.join(cache_dir, f"{release}_{assembly}_{cache_type}")
+
+
 def build_cache(
     release: int,
     cache_dir: str,
@@ -734,8 +741,6 @@ def build_cache(
     if cache_format != "parquet":
         raise ValueError("cache_format must be 'parquet'")
 
-    # Version directory name: e.g. "115_GRCh38_ensembl"
-    version_dir = f"{release}_{assembly}_{cache_type}"
     cache_root = _resolve_raw_cache(
         release,
         cache_dir,
@@ -747,7 +752,7 @@ def build_cache(
     )
 
     # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet
-    output_dir = os.path.join(cache_dir, version_dir)
+    output_dir = _converted_cache_dir(cache_dir, release, cache_type, assembly)
 
     # Build progress callback: explicit wins, then auto-tqdm, then None.
     progress_cb = on_progress

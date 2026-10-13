@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
+import subprocess
 import sys
 from importlib.metadata import version as _package_version
 
@@ -90,6 +92,30 @@ def _pick_order(value: str) -> str:
     supported set; only the list syntax is checked here.
     """
     return ",".join(_names(value))
+
+
+def _positive_int(value: str) -> int:
+    """An integer of at least 1."""
+    try:
+        number = int(value)
+    except ValueError:
+        number = 0
+    if number < 1:
+        raise argparse.ArgumentTypeError(f"expected a positive integer, got {value!r}")
+    return number
+
+
+def _non_negative_int(value: str) -> int:
+    """An integer of at least 0."""
+    try:
+        number = int(value)
+    except ValueError:
+        number = -1
+    if number < 0:
+        raise argparse.ArgumentTypeError(
+            f"expected a non-negative integer, got {value!r}"
+        )
+    return number
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -362,13 +388,13 @@ def _add_build_cache_parser(subcommands) -> None:
     )
     options.add_argument(
         "--partitions",
-        type=int,
+        type=_positive_int,
         metavar="N",
         help="DataFusion partitions for the conversion (default: 8).",
     )
     options.add_argument(
         "--download_retries",
-        type=int,
+        type=_non_negative_int,
         metavar="N",
         help="Resume-retries for the cache download (default: 10).",
     )
@@ -533,9 +559,22 @@ def build_cache_kwargs(args: argparse.Namespace) -> dict:
     return kwargs
 
 
+# A manifest part name: what may precede "=" in --source PART=PATH. Anything
+# else is a bare path, so a path such as /data/batch=1/x.tsv.gz stays whole.
+_PART_NAME = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def _split_source(source: str) -> tuple[str, str, str]:
+    """``(part, "=", path)`` for ``PART=PATH``, else ``("", "", source)``."""
+    name, sep, path = source.partition("=")
+    if sep and (not name or _PART_NAME.fullmatch(name)):
+        return name, sep, path
+    return "", "", source
+
+
 def _source_path(sources: list[str]) -> str | dict[str, str]:
     """One bare path, or one ``PART=PATH`` per source of a multi-source manifest."""
-    parts = [source.partition("=") for source in sources]
+    parts = [_split_source(source) for source in sources]
     if all(sep == "" for _, sep, _ in parts):
         if len(sources) != 1:
             raise ValueError(
@@ -586,8 +625,15 @@ def _print_cache_summary(
         entry[1] += rows
     for entity, (count, rows) in totals.items():
         print(f"{entity}: {count} files, {rows:,} rows")
-    assembly = args.assembly or "GRCh38"
-    cache = os.path.join(args.dir_cache, f"{args.release}_{assembly}_{args.cache_type}")
+    if not files:
+        print("No files written: existing outputs kept (use --overwrite to rebuild).")
+    from vepyr import _converted_cache_dir
+
+    # Unset --assembly keeps the API default, as in build_cache_kwargs().
+    assembly = {"assembly": args.assembly} if args.assembly else {}
+    cache = _converted_cache_dir(
+        args.dir_cache, args.release, args.cache_type, **assembly
+    )
     print(f"Cache ready: {cache}")
     print(f"Next: vepyr annotate --dir_cache {cache} ...")
 
@@ -638,5 +684,20 @@ def main(argv: list[str] | None = None) -> int:
             vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
     except (ValueError, FileNotFoundError, RuntimeError) as exc:
         print(f"vepyr: error: {exc}", file=sys.stderr)
+        return 2
+    except subprocess.CalledProcessError as exc:
+        # build_plugin_cache() resolves the manifest with git: an unknown
+        # --version, a bad --plugins_repo or a failed clone end up here.
+        command = " ".join(str(arg) for arg in exc.cmd)
+        detail = (exc.stderr or "").strip() if isinstance(exc.stderr, str) else ""
+        message = f"{command} failed with exit status {exc.returncode}"
+        if args.command == "build-plugin-cache":
+            message = (
+                f"could not resolve the {args.plugin} manifest at "
+                f"--version {args.version}: {message}"
+            )
+        print(
+            f"vepyr: error: {message}{': ' + detail if detail else ''}", file=sys.stderr
+        )
         return 2
     return 0
