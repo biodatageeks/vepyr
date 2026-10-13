@@ -119,8 +119,128 @@ def test_unknown_flag_exits_2():
     # An ext.args string copied from ensemblvep must fail loudly, never be
     # silently ignored.
     with pytest.raises(SystemExit) as excinfo:
-        _parse(*MINIMAL, "--pick")
+        _parse(*MINIMAL, "--tab")
     assert excinfo.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "no_escape",
+        "remove_hgvsp_version",
+        "hgvsp_use_prediction",
+        "gencode_basic",
+        "gencode_primary",
+        "all_refseq",
+        "exclude_predicted",
+        "pick",
+        "pick_allele",
+        "per_gene",
+        "pick_allele_gene",
+        "flag_pick",
+        "flag_pick_allele",
+        "flag_pick_allele_gene",
+    ],
+)
+def test_switch_flags_forward_the_same_named_keyword(name):
+    kwargs = annotate_kwargs(_parse(*MINIMAL, f"--{name}"))
+    assert kwargs[name] is True
+    assert kwargs.keys() - annotate_kwargs(_parse(*MINIMAL)).keys() == {name}
+
+
+def test_gencode_basic_and_primary_are_mutually_exclusive():
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--gencode_basic", "--gencode_primary")
+    assert excinfo.value.code == 2
+
+
+@pytest.mark.parametrize(("value", "expected"), [("0", False), ("1", True)])
+def test_shift_hgvs_takes_vep_0_or_1(value, expected):
+    assert (
+        annotate_kwargs(_parse(*MINIMAL, "--shift_hgvs", value))["shift_hgvs"]
+        is expected
+    )
+
+
+def test_shift_hgvs_rejects_other_values():
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--shift_hgvs", "2")
+    assert excinfo.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"), [("5000", 5000), ("100,200", (100, 200)), ("0", 0)]
+)
+def test_distance_takes_one_value_or_a_pair(value, expected):
+    assert annotate_kwargs(_parse(*MINIMAL, "--distance", value))["distance"] == (
+        expected
+    )
+
+
+@pytest.mark.parametrize("value", ["", "a", "1,2,3", "-1", "1,", "1.5"])
+def test_distance_rejects_malformed_values(value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--distance", value)
+    assert excinfo.value.code == 2
+
+
+def test_fields_list_keeps_its_order():
+    kwargs = annotate_kwargs(_parse(*MINIMAL, "--fields", "SYMBOL,Allele,Consequence"))
+    assert kwargs["fields"] == ["SYMBOL", "Allele", "Consequence"]
+
+
+def test_fields_core_is_passed_through():
+    assert annotate_kwargs(_parse(*MINIMAL, "--fields", "core"))["fields"] == "core"
+
+
+def test_fields_rejects_an_empty_name():
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--fields", "Allele,,SYMBOL")
+    assert excinfo.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "value", ["Allele,SYMBOL,Allele", "core,SYMBOL", "SYMBOL,core"]
+)
+def test_fields_rejects_repeats_and_core_in_a_list(value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--fields", value)
+    assert excinfo.value.code == 2
+
+
+@pytest.mark.parametrize("value", ["rank,,length", "rank,", "rank,tsl,rank"])
+def test_pick_order_rejects_empty_and_repeated_criteria(value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--pick", "--pick_order", value)
+    assert excinfo.value.code == 2
+
+
+def test_pick_order_is_forwarded_verbatim():
+    order = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
+    kwargs = annotate_kwargs(_parse(*MINIMAL, "--pick", "--pick_order", order))
+    assert kwargs["pick"] is True
+    assert kwargs["pick_order"] == order
+
+
+@pytest.mark.parametrize(("value", "expected"), [("0", 0), ("1", 1)])
+def test_failed_takes_vep_0_or_1(value, expected):
+    assert annotate_kwargs(_parse(*MINIMAL, "--failed", value))["failed"] == expected
+
+
+@pytest.mark.parametrize(("value", "expected"), [("bgzip", "bgzf"), ("gzip", "gzip")])
+def test_compress_output_maps_to_compression(value, expected):
+    kwargs = annotate_kwargs(_parse(*MINIMAL, "--compress_output", value))
+    assert kwargs["compression"] == expected
+
+
+def test_no_preserve_record_layout_turns_the_layout_off():
+    kwargs = annotate_kwargs(_parse(*MINIMAL, "--no_preserve_record_layout"))
+    assert kwargs["preserve_record_layout"] is False
+
+
+@pytest.mark.parametrize("flag", ["--buffer_size", "--buffer-size"])
+def test_buffer_size_accepts_both_spellings(flag):
+    assert annotate_kwargs(_parse(*MINIMAL, flag, "1000"))["buffer_size"] == 1000
 
 
 @pytest.mark.parametrize(
@@ -305,6 +425,37 @@ def test_cli_reports_a_bad_cache_version_and_exits_2(tmp_path, golden_cache):
     assert "Traceback" not in result.stderr
 
 
+def test_cli_reports_an_unknown_pick_order_criterion_and_exits_2(
+    tmp_path, golden_cache
+):
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(tmp_path / "annotated.vcf.gz"),
+            "--dir_cache",
+            golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
+            "--pick",
+            "--pick_order",
+            "rank,bogus",
+            "--no_progress",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "bogus" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 @pytest.mark.parametrize("value", ["0", "-1"])
 def test_cli_rejects_non_positive_buffer_size(tmp_path, golden_cache, value):
     output = tmp_path / "invalid.vcf"
@@ -367,6 +518,70 @@ def test_cli_buffer_size_preserves_output(tmp_path, golden_cache):
         )
     assert len(bodies[0].splitlines()) == 100
     assert all(body == bodies[0] for body in bodies[1:])
+
+
+@pytest.mark.parametrize(
+    ("flags", "kwargs"),
+    [
+        (
+            ["--pick", "--pick_order", "biotype,rank,canonical,length"],
+            {"pick": True, "pick_order": "biotype,rank,canonical,length"},
+        ),
+        (["--flag_pick_allele"], {"flag_pick_allele": True}),
+        (["--fields", "core"], {"fields": "core"}),
+        (["--distance", "100,200"], {"distance": (100, 200)}),
+        (
+            ["--shift_hgvs", "0", "--no_escape"],
+            {"shift_hgvs": False, "no_escape": True},
+        ),
+    ],
+)
+def test_cli_flags_match_the_python_api(tmp_path, golden_cache, flags, kwargs):
+    # The CLI output must equal annotate() called with the keywords the flags
+    # stand for, byte for byte.
+    import vepyr
+
+    cli_out = tmp_path / "cli.vcf"
+    api_out = tmp_path / "api.vcf"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(cli_out),
+            "--dir_cache",
+            golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
+            "--no_progress",
+            *flags,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    vepyr.annotate(
+        str(GOLDEN_INPUT),
+        golden_cache,
+        reference_fasta=str(GOLDEN_FASTA),
+        output_vcf=str(api_out),
+        show_progress=False,
+        **kwargs,
+    )
+
+    def without_command_line(path):
+        # The provenance header records the output path, which differs.
+        return [
+            line
+            for line in path.read_bytes().splitlines()
+            if not line.startswith(b"##datafusion-bio-function-vep-command-line=")
+        ]
+
+    assert without_command_line(cli_out) == without_command_line(api_out)
 
 
 def test_cli_version_matches_the_installed_package():
