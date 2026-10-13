@@ -3517,7 +3517,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "filelock", specifier = ">=3.29.5" },
-    { name = "huggingface-hub", specifier = ">=1.0,<3" },
+    { name = "huggingface-hub", specifier = ">=1.22,<3" },
     { name = "ipywidgets", marker = "extra == 'notebook'", specifier = ">=8.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
     { name = "mkdocs-glightbox", marker = "extra == 'docs'", specifier = ">=0.4" },

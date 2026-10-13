@@ -337,9 +337,10 @@ def _repo_files(target: str, repo_id: str, commit: str) -> list[str]:
     tree = os.path.join(target, ".cache", "huggingface", "trees", f"{commit}.json")
     try:
         with open(_local_path(tree)) as f:
-            files = json.load(f).get("files")
-        if isinstance(files, dict):
-            return list(files)
+            data = json.load(f)
+        # The only layout huggingface_hub (>= 1.22) has written so far.
+        if data.get("format_version") == 1 and isinstance(data.get("files"), dict):
+            return list(data["files"])
     except (OSError, ValueError, AttributeError):
         pass
     with _hub_errors(repo_id, commit):
@@ -467,13 +468,13 @@ def download_cache(
     if chroms is not None:
         if not chroms:
             raise ValueError("chroms must name at least one contig, or be None for all")
-        with _hub_errors(repo_id, resolved):
-            files = _list_repo_files(repo_id, revision=resolved)
-        contigs = _select_contigs(chroms, _shard_contigs(files, nested=True), where)
-    shards = ["*/*.parquet"] if contigs is None else [f"*/{c}.parquet" for c in contigs]
     target = vepyr._converted_cache_dir(
         os.path.expanduser(cache_dir), release, cache_type, assembly
     )
+    if chroms is not None:
+        files = _repo_files(target, repo_id, resolved)
+        contigs = _select_contigs(chroms, _shard_contigs(files, nested=True), where)
+    shards = ["*/*.parquet"] if contigs is None else [f"*/{c}.parquet" for c in contigs]
     patterns = [*shards, *_CORE_SIDECARS]
     checks = {
         "required": ["reference_policy.json", "variation/chrom_manifest.json"],
@@ -550,11 +551,11 @@ def download_plugin_cache(
     if chroms is not None:
         if not chroms:
             raise ValueError("chroms must name at least one contig, or be None for all")
-        with _hub_errors(repo_id, resolved):
-            files = _list_repo_files(repo_id, revision=resolved)
+    target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
+    if chroms is not None:
+        files = _repo_files(target, repo_id, resolved)
         contigs = _select_contigs(chroms, _shard_contigs(files, nested=False), where)
     shards = ["*.parquet"] if contigs is None else [f"{c}.parquet" for c in contigs]
-    target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
     patterns = [*shards, "*.json"]
     checks = {"required": ["manifest.json"], "nested": False, "contigs": contigs}
     with _single_revision(target, repo_id, resolved):

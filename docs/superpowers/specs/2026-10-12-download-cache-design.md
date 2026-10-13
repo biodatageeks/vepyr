@@ -196,9 +196,9 @@ existing ones: 0 on success, 2 for bad arguments or a rejected request.
 
 ## Packaging
 
-- `pyproject.toml`: add `huggingface_hub>=1.0,<3` to the base dependencies;
+- `pyproject.toml`: add `huggingface_hub>=1.22,<3` to the base dependencies;
   update `uv.lock`.
-- `bioconda-recipe/meta.yaml`: add `huggingface_hub >=1.0,<3` under `run`.
+- `bioconda-recipe/meta.yaml`: add `huggingface_hub >=1.22,<3` under `run`.
   The nf-core module container follows once Bioconda rebuilds.
 
 ## Tests

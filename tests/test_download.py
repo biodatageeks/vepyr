@@ -845,3 +845,32 @@ def test_the_tree_listing_is_read_through_the_local_path(hub, tmp_path, monkeypa
     hub(PLUGIN_FILES)
     vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
     assert any(os.path.join("trees", "") in p for p in seen)
+
+
+def test_an_offline_partial_rerun_uses_the_cached_tree(hub, tmp_path, monkeypatch):
+    hub(CORE_FILES)
+    target = tmp_path / "116_GRCh38_merged"
+    tree = target / ".cache" / "huggingface" / "trees" / f"{MERGED_PIN}.json"
+    tree.parent.mkdir(parents=True)
+    tree.write_text(
+        json.dumps({"format_version": 1, "files": {n: {} for n in CORE_FILES}})
+    )
+
+    def offline(*args, **kwargs):
+        raise ConnectionError("offline")
+
+    monkeypatch.setattr(_download, "_list_repo_files", offline)
+    path = vepyr.download_cache(
+        116, str(tmp_path), cache_type="merged", chroms=["22"], show_progress=False
+    )
+    assert os.path.isfile(os.path.join(path, "variation", "chr22.parquet"))
+
+
+def test_a_tree_listing_of_another_format_is_not_trusted(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    target = tmp_path / "116_GRCh38_merged"
+    tree = target / ".cache" / "huggingface" / "trees" / f"{MERGED_PIN}.json"
+    tree.parent.mkdir(parents=True)
+    tree.write_text(json.dumps({"format_version": 2, "files": {}}))
+    vepyr.download_cache(116, str(tmp_path), cache_type="merged", show_progress=False)
+    assert fake.listed == [("biodatageeks/vepyr_116_GRCh38_merged", MERGED_PIN)]
