@@ -1322,3 +1322,20 @@ class TestBuildCacheDownload:
                 vepyr._download_cache(
                     115, "homo_sapiens", "GRCh38", "merged", str(tmp_path / "t")
                 )
+
+
+def test_raw_cache_type_falls_back_when_info_probe_is_denied(tmp_path, monkeypatch):
+    cache_root = tmp_path / "homo_sapiens_ensembl" / "116_GRCh38"
+    cache_root.mkdir(parents=True)
+    info_path = cache_root / "info.txt"
+    info_path.write_text("species\thomo_sapiens\n")
+    original_is_file = Path.is_file
+
+    def denied_info_probe(path):
+        if path == info_path:
+            raise PermissionError("info probe denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_info_probe)
+
+    assert vepyr._raw_cache_source_type(str(cache_root), "homo_sapiens") == "ensembl"

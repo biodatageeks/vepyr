@@ -701,10 +701,10 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
         return parent_source_type
 
     info_path = root / "info.txt"
-    if not info_path.is_file():
-        return parent_source_type
-    info: dict[str, str] = {}
     try:
+        if not info_path.is_file():
+            return parent_source_type
+        info: dict[str, str] = {}
         for line in info_path.read_text(
             encoding="utf-8", errors="replace"
         ).splitlines():
