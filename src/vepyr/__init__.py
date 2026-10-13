@@ -1209,9 +1209,10 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
     """Serialize one plugin's revision check and cache update across processes."""
     root = Path(plugin_cache_root).resolve()
     lock_name = hashlib.sha256(plugin.encode("utf-8")).hexdigest()
+    lock_path = root / f".plugin-cache-build-{lock_name}.lock"
     try:
         root.mkdir(parents=True, exist_ok=True)
-        lock_file = (root / f".plugin-cache-build-{lock_name}.lock").open("a+b")
+        lock_file = lock_path.open("a+b")
     except OSError as exc:
         raise ValueError(
             f"Could not open plugin cache build lock in {root}: {exc}"
@@ -1255,11 +1256,28 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 log.info("waiting for another build of plugin %r to finish", plugin)
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                except OSError as exc:
+                    raise RuntimeError(
+                        f"Could not acquire plugin cache build lock for {plugin!r} "
+                        f"at {lock_path}: {exc}"
+                    ) from exc
+            except OSError as exc:
+                raise RuntimeError(
+                    f"Could not acquire plugin cache build lock for {plugin!r} "
+                    f"at {lock_path}: {exc}"
+                ) from exc
             try:
                 yield
             finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                try:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                except OSError as exc:
+                    raise RuntimeError(
+                        f"Could not release plugin cache build lock for {plugin!r} "
+                        f"at {lock_path}: {exc}"
+                    ) from exc
     finally:
         lock_file.close()
 

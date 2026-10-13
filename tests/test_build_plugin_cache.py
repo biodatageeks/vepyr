@@ -1,6 +1,8 @@
 """Plugin-cache builder manifest resolution + annotate plugin_cache_root plumbing."""
 
+import errno
 import logging
+import os
 import subprocess
 import threading
 from pathlib import Path
@@ -1396,6 +1398,38 @@ def test_plugin_cache_build_lock_serializes_threads(tmp_path, caplog):
 
     assert second_entered.is_set()
     assert "waiting for another build of plugin 'demo'" in caplog.text
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix advisory lock behavior")
+def test_plugin_cache_build_lock_wraps_advisory_lock_errors(tmp_path, monkeypatch):
+    import fcntl
+
+    def unsupported_lock(_fd, _operation):
+        raise OSError(errno.EOPNOTSUPP, "operation not supported")
+
+    monkeypatch.setattr(fcntl, "flock", unsupported_lock)
+    with pytest.raises(
+        RuntimeError, match="Could not acquire plugin cache build lock"
+    ) as exc:
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            pytest.fail("unsupported advisory locks must fail before building")
+
+    assert "'demo'" in str(exc.value)
+    assert str(tmp_path) in str(exc.value)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix advisory lock behavior")
+def test_plugin_cache_build_lock_wraps_advisory_unlock_errors(tmp_path, monkeypatch):
+    import fcntl
+
+    def fail_unlock(_fd, operation):
+        if operation == fcntl.LOCK_UN:
+            raise OSError(errno.EIO, "unlock failed")
+
+    monkeypatch.setattr(fcntl, "flock", fail_unlock)
+    with pytest.raises(RuntimeError, match="Could not release plugin cache build lock"):
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            pass
 
 
 def test_noop_leftover_scan_wraps_permission_error(tmp_path, monkeypatch):
