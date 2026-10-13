@@ -289,7 +289,11 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     except OSError as exc:
         raise RuntimeError(f"could not write to {target}: {exc}") from exc
     try:
-        with FileLock(lock_path):
+        with contextlib.ExitStack() as stack:
+            try:
+                stack.enter_context(FileLock(lock_path))
+            except OSError as exc:
+                raise RuntimeError(f"could not lock {target}: {exc}") from exc
             if _check_revision(target, repo_id, commit) is None:
                 try:
                     with open(os.path.join(target, _RECORD), "w") as f:

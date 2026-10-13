@@ -572,3 +572,22 @@ def test_the_target_is_locked_while_downloading(hub, tmp_path, monkeypatch):
     monkeypatch.setattr(_download, "_snapshot_download", check_lock)
     vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
     assert seen == ["held"]
+
+
+def test_a_lock_error_is_a_runtime_error(hub, tmp_path, monkeypatch):
+    import filelock
+
+    class BrokenLock:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            raise FileNotFoundError(self.path)
+
+        def __exit__(self, *exc):
+            return False
+
+    hub(PLUGIN_FILES)
+    monkeypatch.setattr(filelock, "FileLock", BrokenLock)
+    with pytest.raises(RuntimeError, match="could not lock"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))

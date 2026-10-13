@@ -3456,6 +3456,7 @@ name = "vepyr"
 version = "0.9.2"
 source = { editable = "." }
 dependencies = [
+    { name = "filelock" },
     { name = "huggingface-hub" },
     { name = "polars" },
     { name = "pyarrow" },
@@ -3496,6 +3497,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
+    { name = "filelock", specifier = ">=3.10" },
     { name = "huggingface-hub", specifier = ">=1.0,<3" },
     { name = "ipywidgets", marker = "extra == 'notebook'", specifier = ">=8.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },

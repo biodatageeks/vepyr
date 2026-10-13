@@ -16,7 +16,7 @@ classifiers = [
 ]
 # Same ranges as polars-bio 0.36.1, so the base install and the polars-bio extra
 # resolve to one environment (and polars 2.x is not picked up untested).
-dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2", "tqdm>=4.67.0,<5", "huggingface_hub>=1.0,<3"]
+dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2", "tqdm>=4.67.0,<5", "huggingface_hub>=1.0,<3", "filelock>=3.10"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
