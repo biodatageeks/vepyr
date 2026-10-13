@@ -1,0 +1,36 @@
+flowchart TB
+    Q["LazyFrame query<br/>.select() .filter() .head()<br/>&rarr; Polars optimizer"]
+
+    subgraph PLAN["vepyr io source: once per collect"]
+        direction LR
+        N["needed columns<br/>projection + predicate roots"]
+        F["annotation flags<br/>--everything, or only the<br/>HGVS / co-located groups<br/>the needed columns and<br/>plugin templates use"]
+        I["input fields<br/>only the INFO / FORMAT<br/>fields the query reads"]
+        S["CSQ and plugins<br/>CSQ only if CSQ or a plugin<br/>column is read; only the<br/>plugins that own one"]
+        G["regions<br/>chrom / start / end conjuncts;<br/>no region &rarr; no scan"]
+        N --> F
+        N --> I
+        N --> S
+    end
+
+    subgraph ENG["Rust engine"]
+        direction LR
+        C["create_annotator(vcf, cache,<br/>options JSON, skip_csq, limit)"]
+        D["DataFusion<br/>annotate_vep(...) LIMIT n"]
+        B["Arrow RecordBatches"]
+        C --> D --> B
+    end
+
+    subgraph BATCH["vepyr io source: per batch"]
+        direction LR
+        P["plugin columns<br/>parsed from CSQ"]
+        FI["filter(predicate)"]
+        SE["select(projection)"]
+        H["head(remaining rows)"]
+        P --> FI --> SE --> H
+    end
+
+    Q -->|"projection, predicate, n_rows"| PLAN
+    PLAN -->|"options JSON, skip_csq, limit"| ENG
+    ENG -->|"each batch"| BATCH
+    BATCH --> DF[DataFrame]
