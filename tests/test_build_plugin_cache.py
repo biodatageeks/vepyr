@@ -935,6 +935,30 @@ def test_filtered_build_rejects_new_revision_in_recoverable_cache(
     assert orphan.exists()
 
 
+def test_filtered_build_allows_same_revision_in_recoverable_cache(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _orphan(pc, ".previous-demo.4242-1", repo)
+    native_build = Mock(return_value=([], "[]"))
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        chroms=["2"],
+    )
+
+    assert result == []
+    assert native_build.call_args.args[4] == ["2"]
+
+
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)

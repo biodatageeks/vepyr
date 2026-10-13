@@ -1210,6 +1210,7 @@ def _plugin_chroms_to_build(
 
     plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
     manifest_path = plugin_dir / "manifest.json"
+    recovered_candidate = False
     if not manifest_path.is_file():
         # The native builder restores one interrupted full-overwrite cache
         # before applying this filtered build. Inspect that manifest first so
@@ -1221,6 +1222,7 @@ def _plugin_chroms_to_build(
             return chroms
         plugin_dir = candidates[0]
         manifest_path = plugin_dir / "manifest.json"
+        recovered_candidate = True
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -1243,8 +1245,11 @@ def _plugin_chroms_to_build(
 
     cached_version = manifest.get("cache_source_version")
     if cached_version != source_version:
+        recovery_context = (
+            " (restored from an interrupted overwrite)" if recovered_candidate else ""
+        )
         raise ValueError(
-            f"Plugin cache at {plugin_dir} contains existing shards from "
+            f"Plugin cache at {plugin_dir}{recovery_context} contains existing shards from "
             f"{cached_version or 'an unversioned manifest'}, but this build uses "
             f"{source_version}; use overwrite=True without a chromosome filter "
             "for a full rebuild"
@@ -1269,6 +1274,11 @@ def _set_aside_plugin_cache_candidates(
         paths = list(root.iterdir())
     except FileNotFoundError:
         return []
+    except OSError as exc:
+        raise ValueError(
+            f"Could not inspect {root} for plugin caches left by an interrupted "
+            f"overwrite: {exc}"
+        ) from exc
     return [
         path
         for path in paths
