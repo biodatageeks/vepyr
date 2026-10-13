@@ -208,6 +208,13 @@ directory without one is accepted only if `hf download` filled it at the same
 revision; a `build-cache` output or other files are refused, so download into a
 new directory.
 
+Downloads into one directory are serialised by a lock in `.cache/vepyr/`; a
+second one prints that it is waiting. The record and lock need a writable
+directory, so re-run downloads on a read-only cache from an account that can
+write to it. A failed download keeps its record only if it already fetched data,
+so that resuming stays on that revision; to switch revisions, remove the
+directory and download again.
+
 ## Notes
 
 **Compression is inferred from the output suffix.** `-o out.vcf.gz` writes bgzf;

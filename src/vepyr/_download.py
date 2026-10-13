@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import os
 import re
 from collections.abc import Iterator
 
 from vepyr import _published
+
+log = logging.getLogger(__name__)
 
 _CORE_SIDECARS = ["*/chrom_manifest.json", "reference_policy.json", "chr_synonyms.txt"]
 
@@ -256,7 +259,7 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     and the lock file is left to filelock, which removes it on release and
     discards a lock taken on a removed file.
     """
-    from filelock import FileLock
+    import filelock
 
     lock_path = os.path.join(target, _LOCK)
     record = os.path.join(target, _RECORD)
@@ -265,10 +268,16 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     except OSError as exc:
         raise RuntimeError(f"could not write to {target}: {exc}") from exc
     with contextlib.ExitStack() as stack:
+        lock = filelock.FileLock(lock_path)
         try:
-            stack.enter_context(FileLock(lock_path))
+            try:
+                lock.acquire(timeout=0)
+            except filelock.Timeout:
+                log.warning("waiting for another download into %s to finish", target)
+                lock.acquire()
         except OSError as exc:
             raise RuntimeError(f"could not lock {target}: {exc}") from exc
+        stack.callback(lock.release)
         wrote_record = False
         if _check_revision(target, repo_id, commit) is None:
             try:

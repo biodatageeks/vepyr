@@ -611,13 +611,35 @@ def test_a_lock_error_is_a_runtime_error(hub, tmp_path, monkeypatch):
         def __init__(self, path):
             self.path = path
 
-        def __enter__(self):
+        def acquire(self, timeout=-1):
             raise FileNotFoundError(self.path)
-
-        def __exit__(self, *exc):
-            return False
 
     hub(PLUGIN_FILES)
     monkeypatch.setattr(filelock, "FileLock", BrokenLock)
     with pytest.raises(RuntimeError, match="could not lock"):
         vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+
+
+def test_waiting_for_another_download_is_reported(hub, tmp_path, monkeypatch, caplog):
+    import filelock
+
+    class BusyOnce:
+        calls = 0
+
+        def __init__(self, path):
+            self.path = path
+
+        def acquire(self, timeout=-1):
+            BusyOnce.calls += 1
+            if timeout == 0 and BusyOnce.calls == 1:
+                raise filelock.Timeout(self.path)
+
+        def release(self):
+            pass
+
+    hub(PLUGIN_FILES)
+    monkeypatch.setattr(filelock, "FileLock", BusyOnce)
+    with caplog.at_level("WARNING", logger="vepyr"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
+    assert "waiting for another download" in caplog.text
+    assert BusyOnce.calls == 2
