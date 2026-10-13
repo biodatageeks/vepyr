@@ -357,15 +357,45 @@ def test_network_download_opens_in_the_engine(tmp_path):
     assert sorted(os.listdir(plugin)) == [".cache", "chr22.parquet", "manifest.json"]
 
 
+def _files(path):
+    """Files under ``path``, ignoring the lock (filelock >= 3.22 removes it)."""
+    return sorted(
+        rel
+        for root, _dirs, names in os.walk(path)
+        for name in names
+        if not (rel := os.path.relpath(os.path.join(root, name), path)).endswith(
+            "download.lock"
+        )
+    )
+
+
 @pytest.mark.parametrize("kind", ["cache", "plugin"])
-def test_a_failed_download_leaves_no_empty_directory(hub, tmp_path, kind):
+def test_a_failed_download_leaves_no_record_and_no_data(hub, tmp_path, kind):
+    """Directories stay (other downloads may share them); no files do."""
     hub(CORE_FILES + PLUGIN_FILES, error=ConnectionError("refused"))
     with pytest.raises(RuntimeError):
         if kind == "cache":
             vepyr.download_cache(116, str(tmp_path / "c"), cache_type="merged")
         else:
             vepyr.download_plugin_cache("clinvar", 116, str(tmp_path / "c"))
-    assert not (tmp_path / "c").exists()
+    assert _files(tmp_path / "c") == []
+
+
+def test_a_failed_download_never_deletes_a_shared_root(hub, tmp_path, monkeypatch):
+    fake = hub(PLUGIN_FILES)
+    root = tmp_path / "pc"
+
+    def other_plugin_then_fail(repo_id, *, revision, local_dir, allow_patterns):
+        other = root / "plugin" / "alphamissense"
+        other.mkdir(parents=True)
+        (other / "manifest.json").write_text("{}")
+        raise ConnectionError("refused")
+
+    monkeypatch.setattr(_download, "_snapshot_download", other_plugin_then_fail)
+    with pytest.raises(RuntimeError):
+        vepyr.download_plugin_cache("clinvar", 116, str(root))
+    assert (root / "plugin" / "alphamissense" / "manifest.json").is_file()
+    assert fake.snapshots == []
 
 
 @pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions")
@@ -544,7 +574,7 @@ def test_a_failed_first_download_into_an_existing_directory_leaves_no_record(
         vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
     assert target.is_dir()
     assert _download._recorded(str(target)) is None
-    assert not (target / ".cache").exists()
+    assert _files(target) == []
 
 
 def test_the_target_is_locked_while_downloading(hub, tmp_path, monkeypatch):

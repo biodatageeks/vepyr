@@ -6,7 +6,6 @@ import contextlib
 import json
 import os
 import re
-import shutil
 from collections.abc import Iterator
 
 from vepyr import _published
@@ -206,19 +205,6 @@ def _unrecorded_commits(target: str) -> set[str | None]:
     return commits
 
 
-def _first_missing(path: str) -> str | None:
-    """The outermost directory of ``path`` that does not exist yet, if any."""
-    missing = None
-    path = os.path.abspath(path)
-    while not os.path.exists(path):
-        missing = path
-        parent = os.path.dirname(path)
-        if parent == path:
-            break
-        path = parent
-    return missing
-
-
 def _only_our_files(target: str) -> bool:
     """Whether ``target`` holds nothing but the record and the lock."""
     ours = {_RECORD, _LOCK}
@@ -227,19 +213,6 @@ def _only_our_files(target: str) -> bool:
             if os.path.relpath(os.path.join(root, name), target) not in ours:
                 return False
     return True
-
-
-def _remove_our_files(target: str, created: str | None) -> None:
-    """Undo a download that wrote nothing but the record and the lock."""
-    if created is not None:
-        shutil.rmtree(created, ignore_errors=True)
-        return
-    for name in (_RECORD, _LOCK):
-        with contextlib.suppress(OSError):
-            os.remove(os.path.join(target, name))
-    for name in (os.path.dirname(_RECORD), ".cache"):
-        with contextlib.suppress(OSError):
-            os.rmdir(os.path.join(target, name))
 
 
 def _check_revision(target: str, repo_id: str, commit: str) -> dict | None:
@@ -277,34 +250,40 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     so it is refused. An inter-process lock covers the check, the record and
     the download, so concurrent downloads into one directory cannot mix
     revisions either. The record is written before the download, so an
-    interrupted download resumes only at the same commit; a download that
-    fails before writing anything else leaves no trace.
+    interrupted download resumes only at the same commit. If a download fails
+    before writing any data, its record is removed under the lock. Nothing
+    else is deleted by vepyr: directories may be shared with other downloads,
+    and the lock file is left to filelock, which removes it on release and
+    discards a lock taken on a removed file.
     """
     from filelock import FileLock
 
-    created = _first_missing(target)
     lock_path = os.path.join(target, _LOCK)
+    record = os.path.join(target, _RECORD)
     try:
         os.makedirs(os.path.dirname(lock_path), exist_ok=True)
     except OSError as exc:
         raise RuntimeError(f"could not write to {target}: {exc}") from exc
-    try:
-        with contextlib.ExitStack() as stack:
+    with contextlib.ExitStack() as stack:
+        try:
+            stack.enter_context(FileLock(lock_path))
+        except OSError as exc:
+            raise RuntimeError(f"could not lock {target}: {exc}") from exc
+        wrote_record = False
+        if _check_revision(target, repo_id, commit) is None:
             try:
-                stack.enter_context(FileLock(lock_path))
+                with open(record, "w") as f:
+                    json.dump({"repo_id": repo_id, "commit": commit}, f)
             except OSError as exc:
-                raise RuntimeError(f"could not lock {target}: {exc}") from exc
-            if _check_revision(target, repo_id, commit) is None:
-                try:
-                    with open(os.path.join(target, _RECORD), "w") as f:
-                        json.dump({"repo_id": repo_id, "commit": commit}, f)
-                except OSError as exc:
-                    raise RuntimeError(f"could not write to {target}: {exc}") from exc
+                raise RuntimeError(f"could not write to {target}: {exc}") from exc
+            wrote_record = True
+        try:
             yield
-    except BaseException:
-        if _only_our_files(target):
-            _remove_our_files(target, created)
-        raise
+        except BaseException:
+            if wrote_record and _only_our_files(target):
+                with contextlib.suppress(OSError):
+                    os.remove(record)
+            raise
 
 
 def download_cache(
