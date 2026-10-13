@@ -1152,7 +1152,14 @@ def build_plugin_cache(
     ):
         source_version = f"{version}@{resolved_commit}"
         with _plugin_cache_build_lock(plugin_cache_root, plugin):
-            if chroms and not (Path(plugin_cache_root) / "plugin" / plugin).exists():
+            plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
+            try:
+                plugin_dir_exists = plugin_dir.exists()
+            except OSError as exc:
+                raise ValueError(
+                    f"Could not inspect existing plugin cache directory {plugin_dir}: {exc}"
+                ) from exc
+            if chroms and not plugin_dir_exists:
                 # The native builder recovers interrupted overwrites, but the
                 # Python incremental-build check may return early when all shards
                 # already exist. Recover first so that the orphan becomes visible.
@@ -1297,9 +1304,15 @@ def _plugin_chroms_to_build(
             f"Could not read existing plugin cache manifest {manifest_path}: "
             "expected a JSON object at the top level"
         )
+    chrom_entries = manifest.get("chroms", [])
+    if not isinstance(chrom_entries, list):
+        raise ValueError(
+            f"Could not read existing plugin cache manifest {manifest_path}: "
+            "chroms must be a JSON array"
+        )
 
     existing: dict[str, str] = {}
-    for entry in manifest.get("chroms", []):
+    for entry in chrom_entries:
         if not isinstance(entry, dict) or not isinstance(entry.get("chrom"), str):
             continue
         filename = entry.get("file") or entry.get("dataset")

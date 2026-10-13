@@ -629,6 +629,25 @@ def test_filtered_build_rejects_non_object_manifest_root(tmp_path):
         )
 
 
+@pytest.mark.parametrize("chroms_value", [None, 5, {}])
+def test_filtered_build_rejects_non_array_manifest_chroms(tmp_path, chroms_value):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {"chroms": chroms_value}
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="chroms must be a JSON array"):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
 def test_filtered_build_wraps_manifest_probe_permission_error(tmp_path, monkeypatch):
     plugin_dir = tmp_path / "plugin" / "demo"
     plugin_dir.mkdir(parents=True)
@@ -652,6 +671,38 @@ def test_filtered_build_wraps_manifest_probe_permission_error(tmp_path, monkeypa
             ["1"],
             source_version="v0.1.0@abc123",
             overwrite=False,
+        )
+
+
+def test_filtered_build_wraps_plugin_directory_probe_permission_error(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    plugin_dir = pc / "plugin" / "demo"
+    original_exists = Path.exists
+
+    def denied_plugin_dir_probe(path):
+        if path == plugin_dir:
+            raise PermissionError("search denied")
+        return original_exists(path)
+
+    monkeypatch.setattr(Path, "exists", denied_plugin_dir_probe)
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", Mock())
+
+    with pytest.raises(
+        ValueError,
+        match="Could not inspect existing plugin cache directory.*search denied",
+    ):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
         )
 
 
