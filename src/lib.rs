@@ -434,12 +434,7 @@ fn recover_set_aside_cache(
         }
     }
     if warn_leftovers {
-        warn_about(
-            py,
-            stale_staging,
-            "was left behind by an overwrite that did not finish, or belongs to one in progress; \
-             it was not touched — delete it by hand once no overwrite is running",
-        )?;
+        warn_staging_leftovers(py, &stale_staging)?;
     }
     if live {
         // The swap completed but its cleanup did not (killed in between), or
@@ -464,18 +459,30 @@ fn recover_set_aside_cache(
         [only] => {
             if let Some(expected) = expected_source_version {
                 let manifest_path = only.join("manifest.json");
-                let text = std::fs::read_to_string(&manifest_path).map_err(|e| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!(
-                        "cannot read recoverable plugin cache manifest {}: {e}",
-                        manifest_path.display()
-                    ))
-                })?;
-                let manifest: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
-                    pyo3::exceptions::PyRuntimeError::new_err(format!(
-                        "cannot parse recoverable plugin cache manifest {}: {e}",
-                        manifest_path.display()
-                    ))
-                })?;
+                let text = match std::fs::read_to_string(&manifest_path) {
+                    Ok(text) => text,
+                    Err(e) => {
+                        if !warn_leftovers {
+                            warn_staging_leftovers(py, &stale_staging)?;
+                        }
+                        return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "cannot read recoverable plugin cache manifest {}: {e}",
+                            manifest_path.display()
+                        )));
+                    }
+                };
+                let manifest: serde_json::Value = match serde_json::from_str(&text) {
+                    Ok(manifest) => manifest,
+                    Err(e) => {
+                        if !warn_leftovers {
+                            warn_staging_leftovers(py, &stale_staging)?;
+                        }
+                        return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "cannot parse recoverable plugin cache manifest {}: {e}",
+                            manifest_path.display()
+                        )));
+                    }
+                };
                 let has_shards = manifest
                     .get("chroms")
                     .and_then(serde_json::Value::as_array)
@@ -501,6 +508,9 @@ fn recover_set_aside_cache(
                     .get("cache_source_version")
                     .and_then(serde_json::Value::as_str);
                 if has_shards && cached_version != Some(expected) {
+                    if !warn_leftovers {
+                        warn_staging_leftovers(py, &stale_staging)?;
+                    }
                     return Err(pyo3::exceptions::PyValueError::new_err(format!(
                         "Plugin cache at {} (restored from an interrupted overwrite) contains \
                          existing shards from {}, but this build uses {}; use overwrite=True \
@@ -586,6 +596,14 @@ fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
         }
     }
     leftovers
+}
+
+const STAGING_LEFTOVER_ADVICE: &str =
+    "was left behind by an overwrite that did not finish, or belongs to one in progress; \
+     it was not touched — delete it by hand once no overwrite is running";
+
+fn warn_staging_leftovers(py: Python<'_>, leftovers: &[String]) -> PyResult<()> {
+    warn_about(py, leftovers.to_vec(), STAGING_LEFTOVER_ADVICE)
 }
 
 /// A cleanup that fails must not pass silently: a leftover staging or
