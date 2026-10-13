@@ -226,14 +226,20 @@ def _unrecorded_commits(target: str) -> set[str | None]:
 
 
 def _only_our_files(target: str) -> bool:
-    """Whether ``target`` holds nothing but the record and the lock."""
-    ours = {_RECORD, _LOCK}
+    """Whether ``target`` holds no downloaded data, only bookkeeping.
+
+    Bookkeeping is vepyr's record and lock and huggingface_hub's files under
+    ``.cache/`` (tree listing, tags), except a partly downloaded file
+    (``*.incomplete``), which a resumed download must continue at the same
+    revision.
+    """
     errors: list[OSError] = []
     for root, _dirs, files in os.walk(target, onerror=errors.append):
         if errors:
             return False
         for name in files:
-            if os.path.relpath(os.path.join(root, name), target) not in ours:
+            rel = os.path.relpath(os.path.join(root, name), target)
+            if not rel.startswith(".cache" + os.sep) or name.endswith(".incomplete"):
                 return False
     return not errors
 
@@ -330,7 +336,7 @@ def _repo_files(target: str, repo_id: str, commit: str) -> list[str]:
     """
     tree = os.path.join(target, ".cache", "huggingface", "trees", f"{commit}.json")
     try:
-        with open(tree) as f:
+        with open(_local_path(tree)) as f:
             files = json.load(f).get("files")
         if isinstance(files, dict):
             return list(files)

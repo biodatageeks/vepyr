@@ -800,3 +800,48 @@ def test_windows_extended_paths(monkeypatch, path, expected):
     monkeypatch.setattr(_download.os, "name", "nt")
     monkeypatch.setattr(_download.os.path, "abspath", ntpath.abspath)
     assert _download._local_path(path) == expected
+
+
+def test_hub_bookkeeping_alone_does_not_keep_the_record(hub, tmp_path, monkeypatch):
+    hub(PLUGIN_FILES)
+    target = tmp_path / "plugin" / "clinvar"
+
+    def tree_only(repo_id, *, revision, local_dir, allow_patterns):
+        tree = os.path.join(local_dir, ".cache", "huggingface", "trees", "x.json")
+        os.makedirs(os.path.dirname(tree), exist_ok=True)
+        with open(tree, "w") as f:
+            f.write("{}")
+        return local_dir
+
+    monkeypatch.setattr(_download, "_snapshot_download", tree_only)
+    with pytest.raises(RuntimeError, match="missing"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+    assert _download._recorded(str(target)) is None
+
+
+def test_a_partial_hub_file_keeps_the_record_for_resuming(hub, tmp_path, monkeypatch):
+    hub(PLUGIN_FILES)
+    target = tmp_path / "plugin" / "clinvar"
+
+    def partial(repo_id, *, revision, local_dir, allow_patterns):
+        part = os.path.join(
+            local_dir, ".cache", "huggingface", "download", "x.incomplete"
+        )
+        os.makedirs(os.path.dirname(part), exist_ok=True)
+        with open(part, "w") as f:
+            f.write("x")
+        raise ConnectionError("dropped")
+
+    monkeypatch.setattr(_download, "_snapshot_download", partial)
+    with pytest.raises(RuntimeError):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+    assert _download._recorded(str(target)) is not None
+
+
+def test_the_tree_listing_is_read_through_the_local_path(hub, tmp_path, monkeypatch):
+    seen = []
+    real = _download._local_path
+    monkeypatch.setattr(_download, "_local_path", lambda p: seen.append(p) or real(p))
+    hub(PLUGIN_FILES)
+    vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), show_progress=False)
+    assert any(os.path.join("trees", "") in p for p in seen)
