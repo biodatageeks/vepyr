@@ -50,7 +50,7 @@ directory.
 | `--cache_version N` | Assert the cache version in the Parquet metadata. |
 | `--failed {0,1}` | Include co-located variants flagged as failed. Default 0. |
 | `--distance N[,M]` | Up- and downstream distance for transcript overlap; `N,M` sets them separately. Default 5000. |
-| `--fields LIST` | Comma-separated `CSQ` fields to output, in that order, or `core` for the eleven core fields. Plugin fields follow. |
+| `--fields LIST` | Comma-separated `CSQ` fields to output, in that order, or `core` alone for the eleven core fields. Names must not repeat. Plugin fields follow. |
 | `--compress_output {bgzip,gzip}` | Compress the output, overriding the suffix of `-o`. |
 | `--shift_hgvs {0,1}` | 3′ shift HGVS notation. Default 1. |
 | `--no_escape` | Do not URI-escape HGVS strings. |
@@ -60,8 +60,8 @@ directory.
 | `--all_refseq` | Keep all RefSeq transcripts, including CCDS and EST-based ones. |
 | `--exclude_predicted` | Exclude predicted RefSeq transcripts (`XM_`, `XR_`). |
 | `--pick`, `--pick_allele`, `--per_gene`, `--pick_allele_gene` | Report one selected consequence per variant, allele, gene, or allele and gene. |
-| `--flag_pick`, `--flag_pick_allele`, `--flag_pick_allele_gene` | Keep all consequences and mark the selected one with `PICK=1`. |
-| `--pick_order LIST` | Ranking criteria for the pick options, e.g. `biotype,rank,mane_select,tsl,canonical,appris,ccds,length`. |
+| `--flag_pick`, `--flag_pick_allele`, `--flag_pick_allele_gene` | Keep all consequences and mark the selected one with `PICK=1`. If several pick options are given, the first in this table's order applies, as in VEP. |
+| `--pick_order LIST` | Ranking criteria for the pick options, e.g. `biotype,rank,mane_select,tsl,canonical,appris,ccds,length`. Criteria must not repeat; unknown names are rejected with exit code 2. |
 | `--plugin_cache_root DIR` | Root of a plugin cache tree. |
 | `--plugin NAME` | Restrict to this plugin. Repeatable; order is CSQ block order. |
 | `--no_progress` | Suppress the progress bar. |

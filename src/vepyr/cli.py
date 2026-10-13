@@ -55,14 +55,38 @@ def _distance(value: str) -> int | tuple[int, int]:
     return numbers[0] if len(numbers) == 1 else (numbers[0], numbers[1])
 
 
-def _fields(value: str) -> str | list[str]:
-    """Parse VEP's comma-separated ``--fields``; ``core`` is passed through."""
-    if value == "core":
-        return value
+def _names(value: str) -> list[str]:
+    """Split a comma-separated list, rejecting empty and repeated names."""
     names = [name.strip() for name in value.split(",")]
     if not all(names):
-        raise argparse.ArgumentTypeError(f"empty field name in {value!r}")
+        raise argparse.ArgumentTypeError(f"empty name in {value!r}")
+    repeated = sorted({name for name in names if names.count(name) > 1})
+    if repeated:
+        raise argparse.ArgumentTypeError(
+            f"{', '.join(repeated)} given more than once in {value!r}"
+        )
     return names
+
+
+def _fields(value: str) -> str | list[str]:
+    """Parse VEP's comma-separated ``--fields``; ``core`` is passed through."""
+    if value.strip() == "core":
+        return "core"
+    names = _names(value)
+    if "core" in names:
+        raise argparse.ArgumentTypeError(
+            "'core' selects the eleven core fields and must be given alone"
+        )
+    return names
+
+
+def _pick_order(value: str) -> str:
+    """Check VEP's comma-separated ``--pick_order``.
+
+    The criterion names are validated by the engine, which knows the
+    supported set; only the list syntax is checked here.
+    """
+    return ",".join(_names(value))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -240,6 +264,7 @@ def build_parser() -> argparse.ArgumentParser:
         transcripts.add_argument(flag, action="store_true", help=text)
     transcripts.add_argument(
         "--pick_order",
+        type=_pick_order,
         metavar="LIST",
         help="Comma-separated ranking criteria for the pick options, e.g. "
         "biotype,rank,mane_select,tsl,canonical,appris,ccds,length.",

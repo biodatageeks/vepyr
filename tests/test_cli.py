@@ -199,6 +199,22 @@ def test_fields_rejects_an_empty_name():
     assert excinfo.value.code == 2
 
 
+@pytest.mark.parametrize(
+    "value", ["Allele,SYMBOL,Allele", "core,SYMBOL", "SYMBOL,core"]
+)
+def test_fields_rejects_repeats_and_core_in_a_list(value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--fields", value)
+    assert excinfo.value.code == 2
+
+
+@pytest.mark.parametrize("value", ["rank,,length", "rank,", "rank,tsl,rank"])
+def test_pick_order_rejects_empty_and_repeated_criteria(value):
+    with pytest.raises(SystemExit) as excinfo:
+        _parse(*MINIMAL, "--pick", "--pick_order", value)
+    assert excinfo.value.code == 2
+
+
 def test_pick_order_is_forwarded_verbatim():
     order = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
     kwargs = annotate_kwargs(_parse(*MINIMAL, "--pick", "--pick_order", order))
@@ -406,6 +422,37 @@ def test_cli_reports_a_bad_cache_version_and_exits_2(tmp_path, golden_cache):
     )
 
     assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+
+
+def test_cli_reports_an_unknown_pick_order_criterion_and_exits_2(
+    tmp_path, golden_cache
+):
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vepyr",
+            "annotate",
+            "-i",
+            str(GOLDEN_INPUT),
+            "-o",
+            str(tmp_path / "annotated.vcf.gz"),
+            "--dir_cache",
+            golden_cache,
+            "--fasta",
+            str(GOLDEN_FASTA),
+            "--pick",
+            "--pick_order",
+            "rank,bogus",
+            "--no_progress",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "bogus" in result.stderr
     assert "Traceback" not in result.stderr
 
 
