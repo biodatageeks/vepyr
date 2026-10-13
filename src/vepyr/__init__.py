@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import contextlib
+import errno
+import hashlib
 import importlib.metadata
 import logging
 import os
 import re
+import time
 import warnings
 from collections.abc import Callable, Iterator
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,6 +22,8 @@ from vepyr._core import build_cache as _build_cache
 from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
+from vepyr._core import plugin_manifest_name as _plugin_manifest_name
+from vepyr._core import recover_plugin_cache as _recover_plugin_cache
 from vepyr._core import supported_vep_targets_json as _supported_vep_targets_json
 from vepyr._core import vcf_contigs as _vcf_contigs
 from vepyr._core import vcf_fields as _vcf_fields
@@ -676,6 +682,126 @@ def _resolve_raw_cache(
     return cache_root
 
 
+def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
+    """Infer a raw cache's source type from its directory and ``info.txt``.
+
+    Official cache archives encode the type in the directory immediately above
+    the release directory, and that name remains authoritative if ``info.txt``
+    is missing or unreadable. An unpacked cache moved out of that layout can
+    still be identified as Ensembl when its info file has no RefSeq/BAM markers.
+    Those markers identify a non-Ensembl cache, though they do not distinguish
+    merged from RefSeq when the original parent directory is missing.
+    """
+    root = Path(cache_root)
+    parent_type = {
+        species: "ensembl",
+        f"{species}_ensembl": "ensembl",
+        f"{species}_merged": "merged",
+        f"{species}_refseq": "refseq",
+    }
+    parent_source_type = parent_type.get(root.parent.name)
+    if parent_source_type in {"merged", "refseq"}:
+        return parent_source_type
+
+    info_path = root / "info.txt"
+    try:
+        if not info_path.is_file():
+            return parent_source_type
+        info: dict[str, str] = {}
+        for line in info_path.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines():
+            key, separator, value = line.partition("\t")
+            if separator:
+                info[key] = value
+    except OSError:
+        return parent_source_type
+
+    if "bam" in info or "source_refseq" in info:
+        return "non-ensembl"
+    if parent_source_type == "ensembl":
+        return "ensembl"
+    return "ensembl" if info.get("species", species) == species else None
+
+
+def _normalise_contig_name(name: str) -> str:
+    value = name.strip()
+    if value[:3].lower() == "chr":
+        value = value[3:]
+    value = value.upper()
+    return "MT" if value == "M" else value
+
+
+def _raw_cache_contigs(cache_root: str) -> list[str]:
+    """Return contig directories with raw cache files beneath ``cache_root``."""
+    root = Path(cache_root)
+    contigs = []
+    try:
+        for path in root.iterdir():
+            if path.is_dir() and any(path.glob("*.gz")):
+                contigs.append(path.name)
+    except OSError:
+        return []
+    return sorted(contigs)
+
+
+def _validate_raw_cache_inputs(
+    cache_root: str, *, cache_type: str, species: str, chroms: list[str] | None
+) -> list[str] | None:
+    actual_type = _raw_cache_source_type(cache_root, species)
+    if actual_type == "non-ensembl" and cache_type == "ensembl":
+        raise ValueError(
+            f"--cache_type ensembl, but the raw cache at {cache_root} has merged/"
+            "RefSeq markers in info.txt and is not an Ensembl cache"
+        )
+    if actual_type not in (None, "non-ensembl") and actual_type != cache_type:
+        raise ValueError(
+            f"--cache_type {cache_type}, but the raw cache at {cache_root} is an "
+            f"{actual_type.title()} cache"
+        )
+
+    if not chroms:
+        return chroms
+    available = _raw_cache_contigs(cache_root)
+    available_names: dict[str, list[str]] = {}
+    for name in available:
+        identity = _normalise_contig_name(name)
+        available_names.setdefault(identity, []).append(name)
+    requested_names = {_normalise_contig_name(str(chrom)) for chrom in chroms}
+    missing = [
+        str(chrom)
+        for chrom in chroms
+        if _normalise_contig_name(str(chrom)) not in available_names
+    ]
+    if missing:
+        raise ValueError(
+            f"Requested contig(s) not present in raw cache at {cache_root}: "
+            f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
+        )
+    ambiguous = {
+        identity: names
+        for identity, names in available_names.items()
+        if identity in requested_names and len(names) > 1
+    }
+    if ambiguous:
+        details = "; ".join(
+            f"{identity}: {', '.join(repr(name) for name in names)}"
+            for identity, names in ambiguous.items()
+        )
+        raise ValueError(
+            f"Raw cache at {cache_root} has ambiguous contig directories: {details}"
+        )
+    # The Rust builder strips only a `chr` prefix when filtering. Pass the raw
+    # cache spelling so aliases and case differences select the actual source.
+    # Requested ambiguous identities were rejected above, so each lookup has one
+    # raw spelling here.
+    return list(
+        dict.fromkeys(
+            available_names[_normalise_contig_name(str(chrom))][0] for chrom in chroms
+        )
+    )
+
+
 _DEFAULT_ASSEMBLY = "GRCh38"
 
 
@@ -777,6 +903,9 @@ def build_cache(
         local_cache=local_cache,
         download_retries=download_retries,
         show_progress=show_progress,
+    )
+    chroms = _validate_raw_cache_inputs(
+        cache_root, cache_type=cache_type, species=species, chroms=chroms
     )
 
     # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet
@@ -1014,28 +1143,164 @@ def build_plugin_cache(
 
     The cache manifest records the source as ``<version>@<commit SHA>``. This
     keeps mutable refs auditable and prevents an incremental build from mixing
-    chromosomes produced from different manifest revisions.
+    chromosomes produced from different manifest revisions. Builds for the
+    same plugin cache are serialized across processes so the revision check
+    and shard update observe one cache revision. This coordination applies to
+    calls through this API on filesystems that honor advisory locks; external
+    writers are outside the lock.
     """
     mode = _normalize_verify_source(verify_source)
     with _resolve_plugin_manifest(plugin, version, plugins_repo=plugins_repo) as (
         manifest_path,
         resolved_commit,
     ):
-        result, sources_json = _build_plugin_cache(
-            manifest_path,
-            source_path,
-            cache_dir,
-            plugin_cache_root,
-            chroms,
-            overwrite,
-            mode,
-            f"{version}@{resolved_commit}",
-        )
+        manifest_plugin = _plugin_manifest_name(manifest_path)
+        if manifest_plugin != plugin:
+            raise ValueError(
+                f"Plugin manifest at {manifest_path} declares plugin_name "
+                f"{manifest_plugin!r}, but the requested plugin is {plugin!r}"
+            )
+        source_version = f"{version}@{resolved_commit}"
+        with _plugin_cache_build_lock(plugin_cache_root, plugin):
+            plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
+            try:
+                plugin_dir_exists = plugin_dir.exists()
+            except OSError as exc:
+                raise ValueError(
+                    f"Could not inspect existing plugin cache directory {plugin_dir}: {exc}"
+                ) from exc
+            if chroms and not plugin_dir_exists:
+                # The native builder recovers interrupted overwrites, but the
+                # Python incremental-build check may return early when all shards
+                # already exist. Recover first so that the orphan becomes visible.
+                _recover_plugin_cache(plugin_cache_root, plugin, source_version)
+            try:
+                requested_chroms = _plugin_chroms_to_build(
+                    plugin_cache_root,
+                    plugin,
+                    chroms,
+                    source_version=source_version,
+                    overwrite=overwrite,
+                )
+            except ValueError:
+                with contextlib.suppress(ValueError):
+                    _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
+                raise
+            if chroms and requested_chroms == []:
+                _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
+                result, sources_json = [], "[]"
+            else:
+                result, sources_json = _build_plugin_cache(
+                    manifest_path,
+                    source_path,
+                    cache_dir,
+                    plugin_cache_root,
+                    requested_chroms,
+                    overwrite,
+                    mode,
+                    source_version,
+                )
     if mode == "warn":
         import json
 
         _warn_on_source_mismatch(plugin, json.loads(sources_json))
     return result
+
+
+def _plugin_cache_lock_error(
+    action: str, plugin: str, lock_path: Path, exc: OSError
+) -> RuntimeError:
+    return RuntimeError(
+        f"Could not {action} plugin cache build lock for {plugin!r} "
+        f"at {lock_path}: {exc}"
+    )
+
+
+@contextlib.contextmanager
+def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[None]:
+    """Serialize one plugin's revision check and cache update across processes."""
+    root = Path(plugin_cache_root).resolve()
+    lock_name = hashlib.sha256(plugin.encode("utf-8")).hexdigest()
+    lock_path = root / f".plugin-cache-build-{lock_name}.lock"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        lock_file = lock_path.open("a+b")
+    except OSError as exc:
+        raise ValueError(
+            f"Could not open plugin cache build lock in {root}: {exc}"
+        ) from exc
+
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            try:
+                lock_file.seek(0, os.SEEK_END)
+                if lock_file.tell() == 0:
+                    lock_file.write(b"\0")
+                    lock_file.flush()
+                lock_file.seek(0)
+            except OSError as exc:
+                raise _plugin_cache_lock_error(
+                    "acquire", plugin, lock_path, exc
+                ) from exc
+            waiting_logged = False
+            while True:
+                try:
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError as exc:
+                    if (
+                        exc.errno not in (errno.EACCES, errno.EDEADLK)
+                        and getattr(exc, "winerror", None) != 33
+                    ):
+                        raise _plugin_cache_lock_error(
+                            "acquire", plugin, lock_path, exc
+                        ) from exc
+                    if not waiting_logged:
+                        log.info(
+                            "waiting for another build of plugin %r to finish", plugin
+                        )
+                        waiting_logged = True
+                    time.sleep(0.05)
+            try:
+                yield
+            finally:
+                try:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError as exc:
+                    raise _plugin_cache_lock_error(
+                        "release", plugin, lock_path, exc
+                    ) from exc
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                log.info("waiting for another build of plugin %r to finish", plugin)
+                try:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                except OSError as exc:
+                    raise _plugin_cache_lock_error(
+                        "acquire", plugin, lock_path, exc
+                    ) from exc
+            except OSError as exc:
+                raise _plugin_cache_lock_error(
+                    "acquire", plugin, lock_path, exc
+                ) from exc
+            try:
+                yield
+            finally:
+                try:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                except OSError as exc:
+                    raise _plugin_cache_lock_error(
+                        "release", plugin, lock_path, exc
+                    ) from exc
+    finally:
+        lock_file.close()
 
 
 def _warn_on_source_mismatch(plugin: str, sources: list[dict]) -> None:
@@ -1058,7 +1323,150 @@ def _warn_on_source_mismatch(plugin: str, sources: list[dict]) -> None:
             f"{found}, which differs from the manifest's {declared} "
             f"(verify_source='warn'); the cache manifest records the digest found"
         )
-        log.warning(message)
+        warnings.warn(message, RuntimeWarning, stacklevel=3)
+
+
+def _plugin_chroms_to_build(
+    plugin_cache_root: str,
+    plugin: str,
+    chroms: list[str] | None,
+    *,
+    source_version: str,
+    overwrite: bool,
+) -> list[str] | None:
+    """Keep filtered shards unless overwritten, without mixing cache revisions."""
+    if not chroms:
+        return chroms
+
+    import json
+
+    plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
+    manifest_path = plugin_dir / "manifest.json"
+    try:
+        if not manifest_path.is_file():
+            return chroms
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"Could not read existing plugin cache manifest {manifest_path}: {exc}"
+        ) from exc
+    if not isinstance(manifest, dict):
+        raise ValueError(
+            f"Could not read existing plugin cache manifest {manifest_path}: "
+            "expected a JSON object at the top level"
+        )
+    chrom_entries = manifest.get("chroms", [])
+    if not isinstance(chrom_entries, list):
+        raise ValueError(
+            f"Could not read existing plugin cache manifest {manifest_path}: "
+            "chroms must be a JSON array"
+        )
+
+    existing: dict[str, str] = {}
+    for entry in chrom_entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("chrom"), str):
+            continue
+        if "rows" in entry and (type(entry["rows"]) is not int or entry["rows"] < 0):
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard row counts must be non-negative integers"
+            )
+        file_value = entry.get("file")
+        dataset_value = entry.get("dataset")
+        if ("file" in entry and not isinstance(file_value, str)) or (
+            "dataset" in entry and not isinstance(dataset_value, str)
+        ):
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard file and dataset values must be strings"
+            )
+        filename = file_value or dataset_value
+        if not filename:
+            filename = f"{entry['chrom']}.parquet"
+        relative_filename = Path(filename)
+        if relative_filename.is_absolute() or ".." in relative_filename.parts:
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard paths must stay inside the plugin cache directory"
+            )
+        shard_path = plugin_dir / relative_filename
+        has_rows = entry.get("rows") == 0
+        try:
+            shard_path.resolve().relative_to(plugin_dir.resolve())
+            shard_exists = not has_rows and shard_path.is_file()
+        except ValueError as exc:
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard paths must stay inside the plugin cache directory"
+            ) from exc
+        except (OSError, RuntimeError) as exc:
+            raise ValueError(
+                f"Could not inspect shard path {shard_path} from manifest "
+                f"{manifest_path}: {exc}"
+            ) from exc
+        if has_rows or shard_exists:
+            existing[_normalise_contig_name(entry["chrom"])] = entry["chrom"]
+
+    if not existing:
+        return chroms
+
+    cached_version = manifest.get("cache_source_version")
+    if cached_version != source_version:
+        raise ValueError(
+            f"Plugin cache at {plugin_dir} contains existing shards from "
+            f"{cached_version or 'an unversioned manifest'}, but this build uses "
+            f"{source_version}; use overwrite=True without a chromosome filter "
+            "for a full rebuild"
+        )
+
+    if overwrite:
+        return chroms
+
+    missing = [
+        chrom for chrom in chroms if _normalise_contig_name(str(chrom)) not in existing
+    ]
+    return missing
+
+
+def _warn_about_plugin_cache_leftovers(plugin_cache_root: str, plugin: str) -> None:
+    """Keep reporting interrupted overwrite artifacts when a build is skipped."""
+    root = Path(plugin_cache_root)
+    prefixes = {
+        f".previous-{plugin}.": "a set-aside cache",
+        f".overwrite-{plugin}.": "a staging tree",
+    }
+    warnings_to_emit: list[str] = []
+    try:
+        candidates = list(root.iterdir())
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        raise ValueError(
+            f"Could not inspect {root} for plugin caches left by an interrupted "
+            f"overwrite: {exc}"
+        ) from exc
+    for path in candidates:
+        name = path.name
+        for prefix, description in prefixes.items():
+            suffix = name.removeprefix(prefix)
+            if (
+                suffix == name
+                or not suffix
+                or any(character not in "0123456789-" for character in suffix)
+            ):
+                continue
+            if description == "a set-aside cache":
+                try:
+                    if not (path / "manifest.json").is_file():
+                        continue
+                except OSError as exc:
+                    raise ValueError(
+                        f"Could not inspect plugin cache leftover {path}: {exc}"
+                    ) from exc
+            warnings_to_emit.append(
+                f"overwrite: {description} at {path} was left behind"
+            )
+    for message in warnings_to_emit:
         warnings.warn(message, RuntimeWarning, stacklevel=3)
 
 
@@ -1153,7 +1561,8 @@ def annotate(
         Path to the input VCF file.
     cache_dir : str
         Path to the parquet cache directory produced by :func:`build_cache`,
-        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_ensembl"``.
+        e.g. ``"/data/vep/wgs/parquet/115_GRCh38_ensembl"``. Cache directories
+        are local filesystem paths.
     reference_fasta : str
         Path to the reference FASTA. Required: annotation always runs
         Ensembl VEP ``--everything``, and HGVS needs it. ``--everything``
@@ -1351,6 +1760,9 @@ def annotate(
     ... )
     """
     import json
+
+    if not os.path.isdir(cache_dir):
+        raise FileNotFoundError(f"Cache directory does not exist: {cache_dir}")
 
     if fields == "core":
         selected_fields = list(_CORE_CSQ_FIELDS)

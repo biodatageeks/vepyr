@@ -263,13 +263,160 @@ class TestBuildCacheValidation:
 
 
 class TestBuildCacheTargetedValidation:
+    @pytest.mark.parametrize("name", ["M", "chrM", "MT", "chrMT"])
+    def test_mitochondrial_contig_names_share_identity(self, name):
+        assert vepyr._normalise_contig_name(name) == "MT"
+
+    @pytest.mark.parametrize(
+        ("requested", "raw_name"),
+        [("chrM", "MT"), ("MT", "M"), ("M", "MT"), ("x", "X")],
+    )
+    def test_mitochondrial_alias_resolves_to_raw_cache_name(
+        self, tmp_path, requested, raw_name
+    ):
+        contig_dir = tmp_path / raw_name
+        contig_dir.mkdir()
+        (contig_dir / "1-100.gz").touch()
+
+        assert vepyr._validate_raw_cache_inputs(
+            str(tmp_path),
+            cache_type="ensembl",
+            species="homo_sapiens",
+            chroms=[requested],
+        ) == [raw_name]
+
+    def test_mitochondrial_aliases_are_deduplicated(self, tmp_path):
+        contig_dir = tmp_path / "MT"
+        contig_dir.mkdir()
+        (contig_dir / "1-100.gz").touch()
+
+        assert vepyr._validate_raw_cache_inputs(
+            str(tmp_path),
+            cache_type="ensembl",
+            species="homo_sapiens",
+            chroms=["chrM", "MT"],
+        ) == ["MT"]
+
+    def test_ambiguous_contigs_only_fail_when_requested(self, tmp_path):
+        for name in ("1", "M", "MT"):
+            contig_dir = tmp_path / name
+            contig_dir.mkdir()
+            (contig_dir / "1-100.gz").touch()
+
+        assert vepyr._validate_raw_cache_inputs(
+            str(tmp_path),
+            cache_type="ensembl",
+            species="homo_sapiens",
+            chroms=["1"],
+        ) == ["1"]
+        with pytest.raises(ValueError, match="ambiguous contig directories"):
+            vepyr._validate_raw_cache_inputs(
+                str(tmp_path),
+                cache_type="ensembl",
+                species="homo_sapiens",
+                chroms=["M"],
+            )
+
+    def test_build_cache_forwards_resolved_contig_to_native_builder(self, tmp_path):
+        local_cache = tmp_path / "raw"
+        (local_cache / "MT").mkdir(parents=True)
+        (local_cache / "MT" / "1-100.gz").touch()
+        with patch("vepyr._build_cache", return_value=[]) as mock_native:
+            vepyr.build_cache(
+                116,
+                str(tmp_path / "out"),
+                cache_type="ensembl",
+                local_cache=str(local_cache),
+                chroms=["chrM"],
+                show_progress=False,
+            )
+
+        assert mock_native.call_args.args[-1] == ["MT"]
+
+    def test_rejects_cache_type_that_disagrees_with_raw_cache(self, tmp_path):
+        output = tmp_path / "out"
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match="cache_type refseq.*Ensembl"):
+                vepyr.build_cache(
+                    115,
+                    str(output),
+                    cache_type="refseq",
+                    local_cache=str(ENSEMBL_CACHE_DIR),
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+        assert not output.exists()
+
+    @pytest.mark.parametrize(
+        ("cache_type", "reject"), [("ensembl", True), ("merged", False)]
+    )
+    def test_relocated_merged_cache_markers(self, tmp_path, cache_type, reject):
+        local_cache = tmp_path / "relocated"
+        local_cache.mkdir()
+        (local_cache / "info.txt").write_text(
+            "species\thomo_sapiens\nbam\tknownrefseq.bam\n"
+        )
+        with patch("vepyr._build_cache", return_value=[]) as mock_native:
+            if reject:
+                with pytest.raises(ValueError, match="not an Ensembl cache"):
+                    vepyr.build_cache(
+                        115,
+                        str(tmp_path / "out"),
+                        cache_type=cache_type,
+                        local_cache=str(local_cache),
+                        show_progress=False,
+                    )
+                mock_native.assert_not_called()
+            else:
+                vepyr.build_cache(
+                    115,
+                    str(tmp_path / "out"),
+                    cache_type=cache_type,
+                    local_cache=str(local_cache),
+                    show_progress=False,
+                )
+                mock_native.assert_called_once()
+
+    def test_official_ensembl_parent_identifies_cache_without_info_file(self, tmp_path):
+        local_cache = tmp_path / "homo_sapiens" / "115_GRCh38"
+        local_cache.mkdir(parents=True)
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match="Ensembl cache"):
+                vepyr.build_cache(
+                    115,
+                    str(tmp_path / "out"),
+                    cache_type="merged",
+                    local_cache=str(local_cache),
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+
+    def test_rejects_requested_contig_missing_from_raw_cache(self, tmp_path):
+        output = tmp_path / "out"
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match=r"contig.*7.*22"):
+                vepyr.build_cache(
+                    115,
+                    str(output),
+                    cache_type="ensembl",
+                    local_cache=str(ENSEMBL_CACHE_DIR),
+                    chroms=["7"],
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+        assert not output.exists()
+
     @pytest.mark.parametrize(
         "entity",
         ["variation", "transcript", "exon", "translation", "regulatory", "motif"],
     )
-    def test_supported_entity_forwards_exact_identity(self, entity, tmp_path):
+    def test_supported_entity_forwards_raw_contig_spelling(self, entity, tmp_path):
         local_cache = tmp_path / "raw"
-        local_cache.mkdir()
+        (local_cache / "21").mkdir(parents=True)
+        (local_cache / "21" / "1-1000000.gz").touch()
 
         with patch("vepyr._build_cache") as mock_native:
             mock_native.return_value = [(entity, [(f"/out/{entity}/chr1.parquet", 17)])]
@@ -295,7 +442,7 @@ class TestBuildCacheTargetedValidation:
             "merged",
             True,
             "116",
-            ["chr21"],
+            ["21"],
         )
 
     @pytest.mark.parametrize("entity", ["translation_core", "translation_sift", "bad"])
@@ -432,7 +579,7 @@ class TestBuildCacheProgressCallback:
     def test_parquet_build_uses_top_level_cache_layout(self, mock_native, tmp_path):
         """Parquet writes directly to cache_dir/<release>_<assembly>_<cache_type>."""
         mock_native.return_value = []
-        local_cache = tmp_path / "homo_sapiens" / "115_GRCh38_merged"
+        local_cache = tmp_path / "homo_sapiens_merged" / "115_GRCh38"
         local_cache.mkdir(parents=True)
 
         vepyr.build_cache(
@@ -1175,3 +1322,20 @@ class TestBuildCacheDownload:
                 vepyr._download_cache(
                     115, "homo_sapiens", "GRCh38", "merged", str(tmp_path / "t")
                 )
+
+
+def test_raw_cache_type_falls_back_when_info_probe_is_denied(tmp_path, monkeypatch):
+    cache_root = tmp_path / "homo_sapiens_ensembl" / "116_GRCh38"
+    cache_root.mkdir(parents=True)
+    info_path = cache_root / "info.txt"
+    info_path.write_text("species\thomo_sapiens\n")
+    original_is_file = Path.is_file
+
+    def denied_info_probe(path):
+        if path == info_path:
+            raise PermissionError("info probe denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_info_probe)
+
+    assert vepyr._raw_cache_source_type(str(cache_root), "homo_sapiens") == "ensembl"

@@ -377,6 +377,8 @@ fn recover_set_aside_cache(
     root: &Path,
     plugin_dir: &Path,
     plugin_name: &str,
+    expected_source_version: Option<&str>,
+    warn_leftovers: bool,
 ) -> PyResult<()> {
     let live = path_exists(plugin_dir)?;
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
@@ -431,41 +433,101 @@ fn recover_set_aside_cache(
             }
         }
     }
-    warn_about(
-        py,
-        stale_staging,
-        "was left behind by an overwrite that did not finish, or belongs to one in progress; \
-         it was not touched — delete it by hand once no overwrite is running",
-    )?;
+    if warn_leftovers {
+        warn_staging_leftovers(py, &stale_staging)?;
+    }
     if live {
         // The swap completed but its cleanup did not (killed in between), or
         // another overwrite is mid-swap right now: not ours to delete, but
         // not to be left unmentioned either — each holds a cache's worth.
-        return warn_about(
-            py,
-            candidates
-                .iter()
-                .map(|p| format!("a set-aside cache at {}", p.display()))
-                .collect(),
-            "was left behind by an interrupted overwrite, or belongs to one in progress; \
-             it was not touched — delete it by hand once no overwrite is running",
-        );
+        return if warn_leftovers {
+            warn_about(
+                py,
+                candidates
+                    .iter()
+                    .map(|p| format!("a set-aside cache at {}", p.display()))
+                    .collect(),
+                "was left behind by an interrupted overwrite, or belongs to one in progress; \
+                 it was not touched — delete it by hand once no overwrite is running",
+            )
+        } else {
+            Ok(())
+        };
     }
     match candidates.as_slice() {
         [] => Ok(()),
         [only] => {
+            if let Some(expected) = expected_source_version {
+                let manifest_path = only.join("manifest.json");
+                let text = match std::fs::read_to_string(&manifest_path) {
+                    Ok(text) => text,
+                    Err(e) => {
+                        warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+                        return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "cannot read recoverable plugin cache manifest {}: {e}",
+                            manifest_path.display()
+                        )));
+                    }
+                };
+                let manifest: serde_json::Value = match serde_json::from_str(&text) {
+                    Ok(manifest) => manifest,
+                    Err(e) => {
+                        warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+                        return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                            "cannot parse recoverable plugin cache manifest {}: {e}",
+                            manifest_path.display()
+                        )));
+                    }
+                };
+                let has_shards = manifest
+                    .get("chroms")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|chroms| {
+                        chroms.iter().any(|chrom| {
+                            let rows_are_empty =
+                                chrom.get("rows").and_then(serde_json::Value::as_u64) == Some(0);
+                            let shard_path = chrom
+                                .get("file")
+                                .or_else(|| chrom.get("dataset"))
+                                .and_then(serde_json::Value::as_str)
+                                .map(|name| only.join(name))
+                                .or_else(|| {
+                                    chrom
+                                        .get("chrom")
+                                        .and_then(serde_json::Value::as_str)
+                                        .map(|name| only.join(format!("{name}.parquet")))
+                                });
+                            rows_are_empty || shard_path.is_some_and(|path| path.is_file())
+                        })
+                    });
+                let cached_version = manifest
+                    .get("cache_source_version")
+                    .and_then(serde_json::Value::as_str);
+                if has_shards && cached_version != Some(expected) {
+                    warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+                    return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                        "Plugin cache at {} (restored from an interrupted overwrite) contains \
+                         existing shards from {}, but this build uses {}; use overwrite=True \
+                         without a chromosome filter for a full rebuild",
+                        only.display(),
+                        cached_version.unwrap_or("an unversioned manifest"),
+                        expected
+                    )));
+                }
+            }
             if let Some(parent) = plugin_dir.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
-            std::fs::rename(only, plugin_dir).map_err(|e| {
-                pyo3::exceptions::PyRuntimeError::new_err(format!(
+            if let Err(e) = std::fs::rename(only, plugin_dir) {
+                warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "the plugin cache {} is missing and its copy set aside by an interrupted \
                      overwrite at {} could not be moved back ({e}); move it back by hand before \
                      building",
                     plugin_dir.display(),
                     only.display()
-                ))
-            })?;
+                )));
+            }
             log::warn!(
                 "recovered the plugin cache {} from {}, left behind by an interrupted overwrite",
                 plugin_dir.display(),
@@ -473,18 +535,44 @@ fn recover_set_aside_cache(
             );
             Ok(())
         }
-        several => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "the plugin cache {} is missing and several copies set aside by interrupted \
-             overwrites exist ({}); move the one to keep back by hand and delete the others \
-             before building",
-            plugin_dir.display(),
-            several
-                .iter()
-                .map(|p| p.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))),
+        several => {
+            warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+            Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "the plugin cache {} is missing and several copies set aside by interrupted \
+                 overwrites exist ({}); move the one to keep back by hand and delete the others \
+                 before building",
+                plugin_dir.display(),
+                several
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )))
+        }
     }
+}
+
+/// Restore a plugin cache left aside by an interrupted overwrite.
+/// For a filtered build, reject a recoverable cache from another manifest
+/// revision before moving it back into the live cache directory.
+#[pyfunction]
+fn recover_plugin_cache(
+    py: Python<'_>,
+    plugin_cache_root: &str,
+    plugin_name: &str,
+    source_version: Option<&str>,
+) -> PyResult<()> {
+    let root = Path::new(plugin_cache_root);
+    let plugin_dir = root.join("plugin").join(plugin_name);
+    recover_set_aside_cache(py, root, &plugin_dir, plugin_name, source_version, false)
+}
+
+/// Parse a plugin source manifest and return the output cache name it declares.
+#[pyfunction]
+fn plugin_manifest_name(manifest_path: &str) -> PyResult<String> {
+    let manifest = SourceManifest::load(Path::new(manifest_path))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
+    Ok(manifest.plugin_name)
 }
 
 /// Whether `path` exists, reporting a stat error instead of reading it as
@@ -514,6 +602,26 @@ fn remove_leftovers(dirs: &[(&Path, &str)]) -> Vec<String> {
         }
     }
     leftovers
+}
+
+const STAGING_LEFTOVER_ADVICE: &str =
+    "was left behind by an overwrite that did not finish, or belongs to one in progress; \
+     it was not touched — delete it by hand once no overwrite is running";
+
+fn warn_staging_leftovers(py: Python<'_>, leftovers: &[String]) -> PyResult<()> {
+    warn_about(py, leftovers.to_vec(), STAGING_LEFTOVER_ADVICE)
+}
+
+fn warn_staging_on_recovery_error(
+    py: Python<'_>,
+    leftovers: &[String],
+    already_warned: bool,
+) -> PyResult<()> {
+    if already_warned {
+        Ok(())
+    } else {
+        warn_staging_leftovers(py, leftovers)
+    }
 }
 
 /// A cleanup that fails must not pass silently: a leftover staging or
@@ -580,7 +688,30 @@ fn build_plugin_cache(
         Path::new(plugin_cache_root),
         &plugin_dir,
         &manifest.plugin_name,
+        if is_full_build {
+            None
+        } else {
+            source_version.as_deref()
+        },
+        true,
     )?;
+    if is_full_build && !overwrite && path_exists(&plugin_dir.join("manifest.json"))? {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+            "plugin cache already exists at {} (pass overwrite=True to rebuild all \
+             chromosomes, or chroms=[...] to add/rebuild specific ones)",
+            plugin_dir.join("manifest.json").display()
+        )));
+    }
+    // Check the source itself before the engine checks its tabix index. This
+    // preserves the useful source path in the error when both files are absent.
+    for source in &manifest.sources {
+        if !Path::new(&source.path).is_file() {
+            return Err(pyo3::exceptions::PyFileNotFoundError::new_err(format!(
+                "plugin source file not found: {}",
+                source.path
+            )));
+        }
+    }
     // A full overwrite must end with only freshly built chromosomes: `build_all`
     // carries chromosomes of an earlier build over when their provenance
     // matches, and a smaller/different chrom set would otherwise leave stale
@@ -612,12 +743,6 @@ fn build_plugin_cache(
                 ))
             })?;
             Some(staging)
-        } else if path_exists(&plugin_dir.join("manifest.json"))? {
-            return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "plugin cache already exists at {} (pass overwrite=True to rebuild all \
-                 chromosomes, or chroms=[...] to add/rebuild specific ones)",
-                plugin_dir.join("manifest.json").display()
-            )));
         } else {
             None
         }
@@ -773,6 +898,8 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<annotate::StreamingAnnotator>()?;
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(recover_plugin_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(plugin_manifest_name, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotation_header_lines, m)?)?;
     m.add_function(wrap_pyfunction!(vcf_contigs, m)?)?;

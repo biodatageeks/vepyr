@@ -1,7 +1,12 @@
 """Plugin-cache builder manifest resolution + annotate plugin_cache_root plumbing."""
 
+import errno
+import logging
+import os
 import subprocess
+import threading
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -298,6 +303,8 @@ def test_build_records_requested_ref_and_resolved_commit(monkeypatch, tmp_path):
 
 def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
     captured: dict = {}
+    cache = tmp_path / "cache"
+    cache.mkdir()
 
     def fake_annotate_vcf(vcf, cache_dir, output_path, options_json, *rest):
         captured["options_json"] = options_json
@@ -306,7 +313,7 @@ def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
     monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
     vepyr.annotate(
         "in.vcf",
-        "cache",
+        str(cache),
         reference_fasta=REFERENCE_FASTA,
         output_vcf=str(tmp_path / "out.vcf"),
         plugin_cache_root="/tmp/pc",
@@ -317,6 +324,8 @@ def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
 
 def test_no_plugin_cache_root_omits_key(monkeypatch, tmp_path):
     captured: dict = {}
+    cache = tmp_path / "cache"
+    cache.mkdir()
 
     def fake_annotate_vcf(vcf, cache_dir, output_path, options_json, *rest):
         captured["options_json"] = options_json
@@ -325,7 +334,7 @@ def test_no_plugin_cache_root_omits_key(monkeypatch, tmp_path):
     monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
     vepyr.annotate(
         "in.vcf",
-        "cache",
+        str(cache),
         reference_fasta=REFERENCE_FASTA,
         output_vcf=str(tmp_path / "out.vcf"),
         show_progress=False,
@@ -364,6 +373,8 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
     import pyarrow as pa
 
     root = tmp_path / "pc"
+    cache = tmp_path / "cache"
+    cache.mkdir()
     (root / "plugin" / "cadd").mkdir(parents=True)
     (root / "plugin" / "cadd" / "manifest.json").write_text(
         json.dumps(
@@ -385,7 +396,7 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
     monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
     lf = vepyr.annotate(
         "in.vcf",
-        "cache",
+        str(cache),
         reference_fasta=REFERENCE_FASTA,
         plugin_cache_root=str(root),
         show_progress=False,
@@ -404,6 +415,16 @@ def _build(repo, tmp_path, source_path, **kw):
     means path mapping succeeded and the build reached the join. A mapping error
     raises earlier, with its own message.
     """
+    paths = (
+        [source_path]
+        if isinstance(source_path, str)
+        else (list(source_path.values()) if isinstance(source_path, dict) else [])
+    )
+    for path in paths:
+        candidate = Path(path)
+        if candidate.is_absolute() and tmp_path in candidate.parents:
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            candidate.touch(exist_ok=True)
     return vepyr.build_plugin_cache(
         "demo",
         "v0.1.0",
@@ -460,8 +481,10 @@ def test_dict_requires_every_source_to_declare_a_part(tmp_path):
 def test_single_source_still_takes_a_plain_path(tmp_path):
     """Back-compat: the common case is unchanged."""
     repo = _init_full_repo(tmp_path)
+    src = tmp_path / "src.tsv.gz"
+    src.touch()
     with pytest.raises(Exception) as exc:
-        _build(repo, tmp_path, str(tmp_path / "src.tsv.gz"))
+        _build(repo, tmp_path, str(src))
     assert "variation shard" in str(exc.value)
 
 
@@ -521,6 +544,7 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     pc = tmp_path / "pc"
     (pc / "plugin" / "demo").mkdir(parents=True)
     (pc / "plugin" / "demo" / "manifest.json").write_text("{}")
+    (tmp_path / "src.tsv.gz").touch()
     with pytest.raises(Exception) as exc:
         vepyr.build_plugin_cache(
             "demo",
@@ -535,6 +559,377 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     msg = str(exc.value)
     assert "already exists" not in msg  # guard did NOT fire
     assert "variation shard" in msg  # it reached the build (no variation cache)
+
+
+def test_filtered_build_keeps_existing_shard_without_overwrite(tmp_path):
+    """A repeated filtered build is a no-op unless overwrite was requested."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    shard = tmp_path / "pc" / "plugin" / "demo" / "chr1.parquet"
+    before = shard.stat()
+    contents = shard.read_bytes()
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(tmp_path / "pc"),
+        plugins_repo=str(repo),
+        chroms=["1"],
+    )
+
+    after = shard.stat()
+    assert result == []
+    assert shard.read_bytes() == contents
+    assert after.st_mtime_ns == before.st_mtime_ns
+
+
+@pytest.mark.parametrize(
+    ("rows", "expected"),
+    [(0, []), (1, ["chrM"])],
+)
+def test_filtered_build_treats_zero_row_manifest_entry_as_existing(
+    tmp_path, rows, expected
+):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {
+        "cache_source_version": "v0.1.0@abc123",
+        "chroms": [
+            {"chrom": "MT", "file": "MT.parquet", "rows": rows},
+        ],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    result = vepyr._plugin_chroms_to_build(
+        str(tmp_path),
+        "demo",
+        ["chrM"],
+        source_version="v0.1.0@abc123",
+        overwrite=False,
+    )
+
+    assert result == expected
+
+
+@pytest.mark.parametrize("rows", [False, 0.0, -1, "0"])
+def test_filtered_build_rejects_malformed_manifest_row_counts(tmp_path, rows):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {
+        "cache_source_version": "v0.1.0@abc123",
+        "chroms": [{"chrom": "1", "file": "missing.parquet", "rows": rows}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        ValueError, match="shard row counts must be non-negative integers"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_rejects_non_object_manifest_root(tmp_path):
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "manifest.json").write_text("[]")
+
+    with pytest.raises(ValueError, match="expected a JSON object at the top level"):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+@pytest.mark.parametrize("chroms_value", [None, 5, {}])
+def test_filtered_build_rejects_non_array_manifest_chroms(tmp_path, chroms_value):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {"chroms": chroms_value}
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="chroms must be a JSON array"):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+@pytest.mark.parametrize("filename", [7, 0, False, []])
+def test_filtered_build_rejects_non_string_shard_filename(tmp_path, filename):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {
+        "chroms": [{"chrom": "1", "file": filename, "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        ValueError, match="shard file and dataset values must be strings"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_rejects_shard_path_outside_plugin_dir(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    outside = tmp_path / "outside.parquet"
+    outside.write_bytes(b"existing")
+    manifest = {
+        "chroms": [{"chrom": "1", "file": "../../outside.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="shard paths must stay inside"):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_rejects_symlinked_shard_path_outside_plugin_dir(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "chr1.parquet").write_bytes(b"existing")
+    try:
+        (plugin_dir / "shards").symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlinks are unavailable: {exc}")
+    manifest = {
+        "chroms": [{"chrom": "1", "file": "shards/chr1.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="shard paths must stay inside"):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_wraps_shard_probe_permission_error(tmp_path, monkeypatch):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    shard_path = plugin_dir / "shards" / "chr1.parquet"
+    manifest = {
+        "chroms": [{"chrom": "1", "file": "shards/chr1.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+    original_is_file = Path.is_file
+
+    def denied_shard_probe(path):
+        if path == shard_path:
+            raise PermissionError("shard probe denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_shard_probe)
+
+    with pytest.raises(
+        ValueError, match="Could not inspect shard path.*shard probe denied"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_wraps_manifest_probe_permission_error(tmp_path, monkeypatch):
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest_path = plugin_dir / "manifest.json"
+    manifest_path.write_text("{}")
+    original_is_file = Path.is_file
+
+    def denied_manifest_probe(path):
+        if path == manifest_path:
+            raise PermissionError("read denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_manifest_probe)
+
+    with pytest.raises(
+        ValueError, match="Could not read existing plugin cache manifest.*read denied"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_wraps_plugin_directory_probe_permission_error(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    plugin_dir = pc / "plugin" / "demo"
+    original_exists = Path.exists
+
+    def denied_plugin_dir_probe(path):
+        if path == plugin_dir:
+            raise PermissionError("search denied")
+        return original_exists(path)
+
+    monkeypatch.setattr(Path, "exists", denied_plugin_dir_probe)
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", Mock())
+
+    with pytest.raises(
+        ValueError,
+        match="Could not inspect existing plugin cache directory.*search denied",
+    ):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
+
+
+def test_build_rejects_manifest_name_different_from_requested_plugin(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    manifest_path = repo / "plugins" / "demo" / "demo.source.toml"
+    manifest_path.write_text(
+        manifest_path.read_text().replace(
+            'plugin_name = "demo"', 'plugin_name = "other"', 1
+        )
+    )
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "commit",
+            "-qm",
+            "mismatched-name",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(["git", "tag", "v0.2.0"], cwd=repo, check=True)
+    native_build = Mock()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+    pc = tmp_path / "pc"
+
+    with pytest.raises(
+        ValueError, match="declares plugin_name 'other'.*requested plugin is 'demo'"
+    ):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.2.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
+
+    native_build.assert_not_called()
+    assert not (pc / "plugin").exists()
+
+
+def test_filtered_overwrite_rebuilds_requested_shards_at_same_revision(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "1.parquet").write_bytes(b"existing")
+    manifest = {
+        "cache_source_version": "v0.1.0@abc123",
+        "chroms": [{"chrom": "1", "file": "1.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    result = vepyr._plugin_chroms_to_build(
+        str(tmp_path),
+        "demo",
+        ["1"],
+        source_version="v0.1.0@abc123",
+        overwrite=True,
+    )
+
+    assert result == ["1"]
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_filtered_build_refuses_to_mix_manifest_versions(
+    tmp_path, overwrite, monkeypatch
+):
+    """Filtered builds cannot mix plugin revisions, even with overwrite."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    _build_real(repo, tmp_path, str(src))
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    native_build = Mock()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    with pytest.raises(ValueError, match="contains existing shards.*v0.2.0"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.2.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(tmp_path / "pc"),
+            plugins_repo=str(repo),
+            chroms=["2"],
+            overwrite=overwrite,
+        )
+    native_build.assert_not_called()
 
 
 def _stale_cache(pc: Path) -> None:
@@ -783,6 +1178,384 @@ def _orphan(pc: Path, name: str, repo: Path | None = None) -> Path:
     (orphan / "manifest.json").write_text(json.dumps(manifest))
     (orphan / "chrZZ.parquet").write_bytes(b"old")
     return orphan
+
+
+def test_filtered_build_rejects_new_revision_in_recoverable_cache(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    native_build = Mock()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    with pytest.raises(ValueError, match="contains existing shards.*v0.2.0"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.2.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["2"],
+        )
+
+    native_build.assert_not_called()
+    assert orphan.exists()
+
+
+def test_filtered_recovery_error_still_warns_about_staging_leftover(
+    tmp_path, monkeypatch
+):
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _orphan(pc, ".previous-demo.4242-1", repo)
+    (pc / ".overwrite-demo.4242-2").mkdir()
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", Mock())
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        with pytest.raises(ValueError, match="contains existing shards.*v0.2.0"):
+            vepyr.build_plugin_cache(
+                "demo",
+                "v0.2.0",
+                source_path=str(src),
+                cache_dir=str(tmp_path / "cache"),
+                plugin_cache_root=str(pc),
+                plugins_repo=str(repo),
+                chroms=["2"],
+            )
+
+    staging_warnings = [
+        warning for warning in caught if "staging tree" in str(warning.message)
+    ]
+    assert len(staging_warnings) == 1
+    assert (pc / ".overwrite-demo.4242-2").is_dir()
+
+
+def test_unreadable_recovery_manifest_still_warns_about_staging_leftover(
+    tmp_path, monkeypatch
+):
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    (orphan / "manifest.json").write_text("not valid json")
+    (pc / ".overwrite-demo.4242-2").mkdir()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", Mock())
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        with pytest.raises(
+            RuntimeError, match="cannot parse recoverable plugin cache manifest"
+        ):
+            vepyr.build_plugin_cache(
+                "demo",
+                "v0.1.0",
+                source_path=str(src),
+                cache_dir=str(tmp_path / "cache"),
+                plugin_cache_root=str(pc),
+                plugins_repo=str(repo),
+                chroms=["2"],
+            )
+
+    staging_warnings = [
+        warning for warning in caught if "staging tree" in str(warning.message)
+    ]
+    assert len(staging_warnings) == 1
+    assert (pc / ".overwrite-demo.4242-2").is_dir()
+
+
+def test_ambiguous_recovery_still_warns_about_staging_leftover(tmp_path):
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _orphan(pc, ".previous-demo.4242-1", repo)
+    _orphan(pc, ".previous-demo.4243-1", repo)
+    (pc / ".overwrite-demo.4242-2").mkdir()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        with pytest.raises(RuntimeError, match="several copies"):
+            vepyr.build_plugin_cache(
+                "demo",
+                "v0.1.0",
+                source_path=str(src),
+                cache_dir=str(tmp_path / "cache"),
+                plugin_cache_root=str(pc),
+                plugins_repo=str(repo),
+                chroms=["2"],
+            )
+
+    staging_warnings = [
+        warning for warning in caught if "staging tree" in str(warning.message)
+    ]
+    assert len(staging_warnings) == 1
+    assert (pc / ".overwrite-demo.4242-2").is_dir()
+
+
+def test_filtered_build_allows_same_revision_in_recoverable_cache(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _orphan(pc, ".previous-demo.4242-1", repo)
+    native_build = Mock(return_value=([], "[]"))
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        chroms=["2"],
+    )
+
+    assert result == []
+    assert native_build.call_args.args[4] == ["2"]
+
+
+def test_filtered_noop_build_restores_recoverable_cache(tmp_path):
+    import json
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    manifest_path = orphan / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["chroms"] = [
+        {"chrom": "chr2", "file": "chr2.parquet", "rows": 1, "warm": 1, "cold": 0}
+    ]
+    manifest_path.write_text(json.dumps(manifest))
+    (orphan / "chrZZ.parquet").unlink()
+    (orphan / "chr2.parquet").write_bytes(b"existing shard")
+    (pc / ".overwrite-demo.4242-2").mkdir()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        result = vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["2"],
+        )
+
+    assert result == []
+    assert len(caught) == 1
+    assert "staging tree" in str(caught[0].message)
+    assert not orphan.exists()
+    assert (pc / "plugin" / "demo" / "chr2.parquet").read_bytes() == b"existing shard"
+
+
+def test_filtered_build_allows_revision_change_when_recoverable_shard_is_missing(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    (orphan / "chrZZ.parquet").unlink()
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    native_build = Mock(return_value=([], "[]"))
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.2.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(pc),
+        plugins_repo=str(repo),
+        chroms=["2"],
+    )
+
+    assert result == []
+    assert not orphan.exists()
+    native_build.assert_called_once()
+
+
+def test_plugin_cache_build_lock_serializes_threads(tmp_path, caplog):
+    first_entered = threading.Event()
+    second_entered = threading.Event()
+    release_first = threading.Event()
+
+    def first_build():
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            first_entered.set()
+            release_first.wait(timeout=5)
+
+    def second_build():
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            second_entered.set()
+
+    first = threading.Thread(target=first_build)
+    second = threading.Thread(target=second_build)
+    first.start()
+    try:
+        assert first_entered.wait(timeout=5)
+        with caplog.at_level(logging.INFO, logger="vepyr"):
+            second.start()
+            assert not second_entered.wait(timeout=0.1)
+    finally:
+        release_first.set()
+        first.join(timeout=5)
+        if second.ident is not None:
+            second.join(timeout=5)
+
+    assert second_entered.is_set()
+    assert "waiting for another build of plugin 'demo'" in caplog.text
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix advisory lock behavior")
+def test_plugin_cache_build_lock_wraps_advisory_lock_errors(tmp_path, monkeypatch):
+    import fcntl
+
+    def unsupported_lock(_fd, _operation):
+        raise OSError(errno.EOPNOTSUPP, "operation not supported")
+
+    monkeypatch.setattr(fcntl, "flock", unsupported_lock)
+    with pytest.raises(
+        RuntimeError, match="Could not acquire plugin cache build lock"
+    ) as exc:
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            pytest.fail("unsupported advisory locks must fail before building")
+
+    assert "'demo'" in str(exc.value)
+    assert str(tmp_path) in str(exc.value)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix advisory lock behavior")
+def test_plugin_cache_build_lock_wraps_advisory_unlock_errors(tmp_path, monkeypatch):
+    import fcntl
+
+    def fail_unlock(_fd, operation):
+        if operation == fcntl.LOCK_UN:
+            raise OSError(errno.EIO, "unlock failed")
+
+    monkeypatch.setattr(fcntl, "flock", fail_unlock)
+    with pytest.raises(RuntimeError, match="Could not release plugin cache build lock"):
+        with vepyr._plugin_cache_build_lock(str(tmp_path), "demo"):
+            pass
+
+
+def test_noop_leftover_scan_wraps_permission_error(tmp_path, monkeypatch):
+    root = tmp_path / "pc"
+    root.mkdir()
+    original_iterdir = Path.iterdir
+
+    def denied_iterdir(path):
+        if path == root:
+            raise PermissionError("list denied")
+        return original_iterdir(path)
+
+    monkeypatch.setattr(Path, "iterdir", denied_iterdir)
+
+    with pytest.raises(ValueError, match="Could not inspect.*list denied"):
+        vepyr._warn_about_plugin_cache_leftovers(str(root), "demo")
+
+
+def test_noop_leftover_scan_wraps_manifest_probe_permission_error(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "pc"
+    leftover = root / ".previous-demo.1234-1"
+    leftover.mkdir(parents=True)
+    manifest_path = leftover / "manifest.json"
+    manifest_path.write_text("{}")
+    original_is_file = Path.is_file
+
+    def denied_manifest_probe(path):
+        if path == manifest_path:
+            raise PermissionError("manifest probe denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_manifest_probe)
+
+    with pytest.raises(
+        ValueError, match="Could not inspect plugin cache leftover.*probe denied"
+    ):
+        vepyr._warn_about_plugin_cache_leftovers(str(root), "demo")
+
+
+def test_recovery_validation_error_still_warns_about_staging_leftover(tmp_path):
+    import json
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    manifest = json.loads((orphan / "manifest.json").read_text())
+    manifest["chroms"] = None
+    (orphan / "manifest.json").write_text(json.dumps(manifest))
+    (pc / ".overwrite-demo.4242-2").mkdir()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        with pytest.raises(ValueError, match="chroms must be a JSON array"):
+            vepyr.build_plugin_cache(
+                "demo",
+                "v0.1.0",
+                source_path=str(src),
+                cache_dir=str(tmp_path / "cache"),
+                plugin_cache_root=str(pc),
+                plugins_repo=str(repo),
+                chroms=["2"],
+            )
+
+    staging_warnings = [
+        warning for warning in caught if "staging tree" in str(warning.message)
+    ]
+    assert len(staging_warnings) == 1
+    assert not orphan.exists()
+    assert (pc / ".overwrite-demo.4242-2").is_dir()
+
+
+def test_leftover_scan_error_does_not_mask_filtered_manifest_error(
+    tmp_path, monkeypatch
+):
+    import json
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    plugin_dir = pc / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "manifest.json").write_text(json.dumps({"chroms": None}))
+    monkeypatch.setattr(
+        vepyr,
+        "_warn_about_plugin_cache_leftovers",
+        Mock(side_effect=ValueError("leftover scan failed")),
+    )
+
+    with pytest.raises(ValueError, match="chroms must be a JSON array"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
 
 
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):

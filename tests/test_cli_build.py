@@ -5,16 +5,20 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 import vepyr
 from tests.test_build_plugin_cache import (
+    _WRONG_MD5,
     _init_full_repo,
     _write_source,
     _write_variation_shard,
 )
 from vepyr.cli import build_cache_kwargs, build_parser, build_plugin_cache_kwargs, main
+
+RAW_ENSEMBL_CACHE = str(Path(__file__).parent / "data" / "ensembl_cache")
 
 
 def _parse(*argv: str):
@@ -164,6 +168,49 @@ def test_build_cache_missing_local_cache_exits_2(tmp_path):
     assert "Traceback" not in result.stderr
 
 
+def test_build_cache_rejects_mismatched_raw_cache_type_at_cli(tmp_path, capsys):
+    argv = [
+        "build-cache",
+        "--release",
+        "115",
+        "--cache_type",
+        "refseq",
+        "--dir_cache",
+        str(tmp_path / "out"),
+        "--local_cache",
+        RAW_ENSEMBL_CACHE,
+        "--no_progress",
+    ]
+
+    assert main(argv) == 2
+    error = capsys.readouterr().err
+    assert "cache_type refseq" in error and "Ensembl cache" in error
+    assert error.count("\n") == 1
+
+
+def test_build_cache_rejects_missing_requested_contig_at_cli(tmp_path, capsys):
+    argv = [
+        "build-cache",
+        "--release",
+        "115",
+        "--cache_type",
+        "ensembl",
+        "--dir_cache",
+        str(tmp_path / "out"),
+        "--local_cache",
+        RAW_ENSEMBL_CACHE,
+        "--chrom",
+        "7",
+        "--no_progress",
+    ]
+
+    assert main(argv) == 2
+    captured = capsys.readouterr()
+    error = captured.err
+    assert "contig" in error and "7" in error and "22" in error
+    assert "Cache ready" not in captured.out
+
+
 # --- build-plugin-cache ----------------------------------------------------
 
 
@@ -278,6 +325,125 @@ def test_build_plugin_cache_end_to_end(tmp_path):
     assert (root / "plugin" / "demo" / "manifest.json").is_file()
     assert "chr1" in result.stdout
     assert f"--plugin_cache_root {root} --plugin demo" in result.stdout
+
+
+def test_build_plugin_cache_missing_source_reports_source_not_index(tmp_path, capsys):
+    repo = _init_full_repo(tmp_path)
+    missing = tmp_path / "not-there.vcf.gz"
+    argv = [
+        "build-plugin-cache",
+        "--plugin",
+        "demo",
+        "--version",
+        "v0.1.0",
+        "--source",
+        str(missing),
+        "--dir_cache",
+        str(tmp_path / "cache"),
+        "--plugin_cache_root",
+        str(tmp_path / "pc"),
+        "--plugins_repo",
+        str(repo),
+        "--chrom",
+        "1",
+    ]
+
+    assert main(argv) == 2
+    error = capsys.readouterr().err
+    assert str(missing) in error
+    assert ".tbi" not in error
+    assert error.count("\n") == 1
+
+
+def test_build_plugin_cache_warn_mode_prints_one_cli_warning(tmp_path, capsys):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path, md5=_WRONG_MD5)
+    cache = _write_variation_shard(tmp_path)
+    argv = [
+        "build-plugin-cache",
+        "--plugin",
+        "demo",
+        "--version",
+        "v0.1.0",
+        "--source",
+        str(src),
+        "--dir_cache",
+        str(cache),
+        "--plugin_cache_root",
+        str(tmp_path / "pc"),
+        "--plugins_repo",
+        str(repo),
+        "--chrom",
+        "1",
+        "--verify_source",
+        "warn",
+    ]
+
+    assert main(argv) == 0
+    error = capsys.readouterr().err
+    assert error.count("vepyr: warning:") == 1
+    assert "RuntimeWarning" not in error
+    assert ".py:" not in error
+
+
+def test_build_plugin_cache_replays_warnings_when_build_fails(
+    monkeypatch, capsys, recwarn
+):
+    def warn_then_fail(*args, **kwargs):
+        import warnings
+
+        warnings.warn("mismatch before failure", RuntimeWarning)
+        warnings.warn("dependency warning", UserWarning)
+        raise RuntimeError("build failed")
+
+    monkeypatch.setattr(vepyr, "build_plugin_cache", warn_then_fail)
+    assert main(list(PLUGIN)) == 2
+    error = capsys.readouterr().err
+    assert "vepyr: warning: mismatch before failure\n" in error
+    assert any(
+        warning.category is UserWarning and str(warning.message) == "dependency warning"
+        for warning in recwarn
+    )
+    assert "vepyr: error: build failed\n" in error
+
+
+def test_build_plugin_cache_preserves_dependency_warnings(monkeypatch, capsys, recwarn):
+    def warn_then_succeed(*args, **kwargs):
+        import warnings
+
+        warnings.warn("dependency warning", UserWarning)
+        return []
+
+    monkeypatch.setattr(vepyr, "build_plugin_cache", warn_then_succeed)
+    assert main(list(PLUGIN)) == 0
+    error = capsys.readouterr().err
+    assert any(
+        warning.category is UserWarning and str(warning.message) == "dependency warning"
+        for warning in recwarn
+    )
+    assert "vepyr: warning:" not in error
+
+
+def test_annotate_missing_cache_reports_directory(tmp_path, capsys):
+    missing = tmp_path / "missing-cache"
+    argv = [
+        "annotate",
+        "-i",
+        "input.vcf",
+        "-o",
+        str(tmp_path / "out.vcf"),
+        "--dir_cache",
+        str(missing),
+        "--fasta",
+        str(tmp_path / "reference.fa"),
+        "--no_progress",
+    ]
+
+    assert main(argv) == 2
+    error = capsys.readouterr().err
+    assert f"Cache directory does not exist: {missing}" in error
+    assert "chrom_manifest.json" not in error
+    assert error.count("\n") == 1
 
 
 # --- review follow-ups -------------------------------------------------------

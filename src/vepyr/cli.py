@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import warnings
 from importlib.metadata import version as _package_version
 
 _EPILOG = """\
@@ -781,6 +782,10 @@ def _print_cache_summary(
 def _print_plugin_summary(
     args: argparse.Namespace, chroms: list[tuple[str, int, int, int]]
 ) -> None:
+    if not chroms:
+        print(
+            "No files written: existing plugin shards kept (use --overwrite to rebuild)."
+        )
     for chrom, rows, warm, cold in chroms:
         print(f"{chrom}: {rows:,} rows ({warm:,} warm, {cold:,} cold)")
     target = os.path.join(args.plugin_cache_root, "plugin", args.plugin)
@@ -818,7 +823,26 @@ def main(argv: list[str] | None = None) -> int:
             _print_cache_summary(args, files)
         elif args.command == "build-plugin-cache":
             kwargs = build_plugin_cache_kwargs(args)
-            chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
+            with warnings.catch_warnings():
+                warnings.simplefilter("always", RuntimeWarning)
+                showwarning = warnings.showwarning
+
+                def format_cli_warning(
+                    message,
+                    category,
+                    filename,
+                    lineno,
+                    file=None,
+                    line=None,
+                ):
+                    if issubclass(category, RuntimeWarning):
+                        text = " ".join(str(message).splitlines())
+                        print(f"vepyr: warning: {text}", file=sys.stderr)
+                    else:
+                        showwarning(message, category, filename, lineno, file, line)
+
+                warnings.showwarning = format_cli_warning
+                chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
             _print_plugin_summary(args, chroms)
         elif args.command in ("download-cache", "download-plugin-cache"):
             _download(args)
