@@ -112,8 +112,6 @@ def _select_contigs(
     """
     if requested is None:
         return None
-    if not requested:
-        raise ValueError("chroms must name at least one contig, or be None for all")
     selected: list[str] = []
     missing: list[str] = []
     for name in requested:
@@ -165,15 +163,20 @@ def _recorded(target: str) -> dict | None:
     path = os.path.join(target, _RECORD)
     try:
         with open(path) as f:
-            return json.load(f)
+            record = json.load(f)
     except FileNotFoundError:
         return None
     except ValueError as exc:
+        record = exc
+    except OSError as exc:
+        raise RuntimeError(f"could not read {path}: {exc}") from exc
+    if not isinstance(record, dict):
         raise ValueError(
-            f"{path} is unreadable ({exc}); it records which dataset revision "
-            f"{target} holds. Remove {target}, or that file if you know the "
-            "directory holds one revision, and download again."
-        ) from exc
+            f"{path} is unreadable ({record!r}); it records which dataset "
+            f"revision {target} holds. Remove {target}, or that file if you know "
+            "the directory holds one revision, and download again."
+        )
+    return record
 
 
 def _unrecorded_commits(target: str) -> set[str | None]:
@@ -191,11 +194,14 @@ def _unrecorded_commits(target: str) -> set[str | None]:
         dirs[:] = [d for d in dirs if not (root == target and d == ".cache")]
         for name in files:
             rel = os.path.relpath(os.path.join(root, name), target)
+            meta = os.path.join(meta_root, rel + ".metadata")
             try:
-                with open(os.path.join(meta_root, rel + ".metadata")) as f:
+                with open(meta) as f:
                     commits.add(f.readline().strip() or None)
             except FileNotFoundError:
                 commits.add(None)
+            except OSError as exc:
+                raise RuntimeError(f"could not read {meta}: {exc}") from exc
     return commits
 
 
@@ -308,7 +314,12 @@ def download_cache(
     str
         The cache directory, ready for ``annotate(cache_dir=...)``.
 
-    Re-running resumes and skips files already present.
+    Re-running resumes and skips files already present, and ``chroms`` can
+    add contigs to an earlier download. A directory holds one dataset
+    revision, recorded in ``.cache/vepyr/download.json``: downloading another
+    revision into it is refused, and so is downloading into a directory filled
+    some other way (e.g. by :func:`build_cache`) unless ``hf download`` wrote
+    it at the same revision.
     """
     import vepyr
 
@@ -383,6 +394,9 @@ def download_plugin_cache(
     str
         The plugin cache directory. Pass ``plugin_cache_root`` and
         ``plugins=[plugin]`` to :func:`annotate`.
+
+    Re-running resumes; the directory keeps one dataset revision, as for
+    :func:`download_cache`.
     """
     if not _PLUGIN_NAME.fullmatch(plugin):
         raise ValueError(

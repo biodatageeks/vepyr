@@ -515,3 +515,20 @@ def test_an_hf_download_at_the_same_commit_is_adopted(hub, tmp_path):
     )
     assert len(fake.snapshots) == 1
     assert _download._recorded(str(target))["commit"] == MERGED_PIN
+
+
+@pytest.mark.parametrize("content", ["[]", '"x"', "123", "null"])
+def test_a_record_that_is_not_an_object_is_unreadable(hub, tmp_path, content):
+    hub(PLUGIN_FILES)
+    record = tmp_path / "plugin" / "clinvar" / ".cache" / "vepyr" / "download.json"
+    record.parent.mkdir(parents=True)
+    record.write_text(content)
+    with pytest.raises(ValueError, match="download.json"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+
+
+def test_a_target_under_a_regular_file_is_a_runtime_error(hub, tmp_path):
+    hub(PLUGIN_FILES)
+    (tmp_path / "plugin").write_text("not a directory")
+    with pytest.raises(RuntimeError, match="could not read"):
+        vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
