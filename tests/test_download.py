@@ -745,3 +745,30 @@ def test_the_cached_tree_listing_verifies_without_the_hub(hub, tmp_path):
     )
     vepyr.download_cache(116, str(tmp_path), cache_type="merged", show_progress=False)
     assert fake.listed == []
+
+
+@pytest.mark.parametrize(
+    ("kind", "files"),
+    [
+        ("cache", [n for n in CORE_FILES if n != "variation/chrom_manifest.json"]),
+        ("cache", [n for n in CORE_FILES if not n.endswith(".parquet")]),
+        ("plugin", [n for n in PLUGIN_FILES if n != "manifest.json"]),
+        ("plugin", [n for n in PLUGIN_FILES if not n.endswith(".parquet")]),
+    ],
+)
+def test_a_revision_without_the_required_files_fails(hub, tmp_path, kind, files):
+    hub(files)
+    with pytest.raises(RuntimeError, match="missing"):
+        if kind == "cache":
+            vepyr.download_cache(116, str(tmp_path), cache_type="merged")
+        else:
+            vepyr.download_plugin_cache("clinvar", 116, str(tmp_path))
+
+
+def test_local_paths_are_extended_only_on_windows(tmp_path):
+    path = str(tmp_path / "a" / "b.parquet")
+    extended = _download._local_path(path)
+    if os.name == "nt":
+        assert extended.startswith("\\\\?\\")
+    else:
+        assert extended == path

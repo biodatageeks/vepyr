@@ -340,20 +340,49 @@ def _repo_files(target: str, repo_id: str, commit: str) -> list[str]:
         return _list_repo_files(repo_id, revision=commit)
 
 
-def _require_payload(
-    target: str, where: str, expected: list[str], patterns: list[str]
-) -> None:
-    """Fail unless every dataset file the patterns select is in ``target``.
+def _local_path(path: str) -> str:
+    """``path`` in the extended form Windows needs beyond MAX_PATH.
 
-    Offline, huggingface_hub may return an existing ``local_dir`` as is
-    without fetching anything, so its return value alone is not proof.
+    huggingface_hub writes long paths this way, and an unprefixed long path
+    can look absent there. Elsewhere the path is returned unchanged.
     """
-    missing = [
-        name
-        for name in expected
-        if any(fnmatch.fnmatchcase(name, p) for p in patterns)
-        and not os.path.isfile(os.path.join(target, *name.split("/")))
-    ]
+    if os.name != "nt":
+        return path
+    path = os.path.abspath(path)
+    return path if path.startswith("\\\\?\\") else "\\\\?\\" + path
+
+
+def _require_payload(
+    target: str,
+    where: str,
+    expected: list[str],
+    patterns: list[str],
+    *,
+    required: list[str],
+    nested: bool,
+    contigs: list[str] | None,
+) -> None:
+    """Fail unless the download left a usable cache in ``target``.
+
+    Every dataset file the patterns select must be on disk; offline,
+    huggingface_hub may return an existing ``local_dir`` as is without
+    fetching anything, so its return value alone is not proof. The
+    ``required`` files and a shard for every requested contig (at least one
+    shard for a full download) must also be there, so a malformed or empty
+    dataset revision is not reported as a cache ``annotate()`` can use.
+    """
+
+    def on_disk(name: str) -> bool:
+        return os.path.isfile(_local_path(os.path.join(target, *name.split("/"))))
+
+    selected = [n for n in expected if any(fnmatch.fnmatchcase(n, p) for p in patterns)]
+    missing = [n for n in dict.fromkeys([*selected, *required]) if not on_disk(n)]
+    present = _shard_contigs([n for n in selected if on_disk(n)], nested=nested)
+    if contigs is None:
+        if not present:
+            missing.append("any .parquet shard")
+    else:
+        missing += [f"{c} shards" for c in contigs if c not in present]
     if missing:
         shown = ", ".join(missing[:5]) + (" ..." if len(missing) > 5 else "")
         raise RuntimeError(
@@ -430,6 +459,11 @@ def download_cache(
         os.path.expanduser(cache_dir), release, cache_type, assembly
     )
     patterns = [*shards, *_CORE_SIDECARS]
+    checks = {
+        "required": ["reference_policy.json", "variation/chrom_manifest.json"],
+        "nested": True,
+        "contigs": contigs,
+    }
     with _single_revision(target, repo_id, resolved):
         with _progress(show_progress), _hub_errors(repo_id, resolved):
             _snapshot_download(
@@ -438,7 +472,7 @@ def download_cache(
         expected = (
             files if files is not None else _repo_files(target, repo_id, resolved)
         )
-        _require_payload(target, where, expected, patterns)
+        _require_payload(target, where, expected, patterns, **checks)
     return target
 
 
@@ -506,6 +540,7 @@ def download_plugin_cache(
     shards = ["*.parquet"] if contigs is None else [f"{c}.parquet" for c in contigs]
     target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
     patterns = [*shards, "*.json"]
+    checks = {"required": ["manifest.json"], "nested": False, "contigs": contigs}
     with _single_revision(target, repo_id, resolved):
         with _progress(show_progress), _hub_errors(repo_id, resolved):
             _snapshot_download(
@@ -514,5 +549,5 @@ def download_plugin_cache(
         expected = (
             files if files is not None else _repo_files(target, repo_id, resolved)
         )
-        _require_payload(target, where, expected, patterns)
+        _require_payload(target, where, expected, patterns, **checks)
     return target
