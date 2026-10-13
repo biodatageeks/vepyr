@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import fnmatch
 import json
 import logging
 import os
@@ -321,36 +322,43 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
             raise
 
 
-def _require_payload(
-    target: str,
-    where: str,
-    contigs: list[str] | None,
-    *,
-    nested: bool,
-    sidecars: list[str],
-) -> None:
-    """Fail if the download did not produce the shards and sidecars requested.
+def _repo_files(target: str, repo_id: str, commit: str) -> list[str]:
+    """The dataset's files at ``commit``.
 
-    Offline, huggingface_hub may return a non-empty ``local_dir`` as is
+    Read from the tree listing huggingface_hub keeps in ``target`` when it is
+    there (so a re-run can be verified offline), else asked from the Hub.
+    """
+    tree = os.path.join(target, ".cache", "huggingface", "trees", f"{commit}.json")
+    try:
+        with open(tree) as f:
+            files = json.load(f).get("files")
+        if isinstance(files, dict):
+            return list(files)
+    except (OSError, ValueError, AttributeError):
+        pass
+    with _hub_errors(repo_id, commit):
+        return _list_repo_files(repo_id, revision=commit)
+
+
+def _require_payload(
+    target: str, where: str, expected: list[str], patterns: list[str]
+) -> None:
+    """Fail unless every dataset file the patterns select is in ``target``.
+
+    Offline, huggingface_hub may return an existing ``local_dir`` as is
     without fetching anything, so its return value alone is not proof.
     """
-    files = []
-    for root, dirs, names in os.walk(target):
-        dirs[:] = [d for d in dirs if not (root == target and d == ".cache")]
-        for name in names:
-            rel = os.path.relpath(os.path.join(root, name), target)
-            files.append(rel.replace(os.sep, "/"))
-    present = _shard_contigs(files, nested=nested)
-    missing = [name for name in sidecars if name not in files]
-    if contigs is None:
-        if not present:
-            missing.append("any .parquet shard")
-    else:
-        missing += [f"{c} shards" for c in contigs if c not in present]
+    missing = [
+        name
+        for name in expected
+        if any(fnmatch.fnmatchcase(name, p) for p in patterns)
+        and not os.path.isfile(os.path.join(target, *name.split("/")))
+    ]
     if missing:
+        shown = ", ".join(missing[:5]) + (" ..." if len(missing) > 5 else "")
         raise RuntimeError(
             f"the download of {where} is incomplete (offline, or interrupted); "
-            f"missing in {target}: {', '.join(missing)}"
+            f"{len(missing)} file(s) missing in {target}: {shown}"
         )
 
 
@@ -410,6 +418,7 @@ def download_cache(
     )
     where = f"{repo_id} at revision {resolved}"
     contigs = None
+    files = None
     if chroms is not None:
         if not chroms:
             raise ValueError("chroms must name at least one contig, or be None for all")
@@ -420,24 +429,16 @@ def download_cache(
     target = vepyr._converted_cache_dir(
         os.path.expanduser(cache_dir), release, cache_type, assembly
     )
-    with (
-        _single_revision(target, repo_id, resolved),
-        _progress(show_progress),
-        _hub_errors(repo_id, resolved),
-    ):
-        _snapshot_download(
-            repo_id,
-            revision=resolved,
-            local_dir=target,
-            allow_patterns=[*shards, *_CORE_SIDECARS],
+    patterns = [*shards, *_CORE_SIDECARS]
+    with _single_revision(target, repo_id, resolved):
+        with _progress(show_progress), _hub_errors(repo_id, resolved):
+            _snapshot_download(
+                repo_id, revision=resolved, local_dir=target, allow_patterns=patterns
+            )
+        expected = (
+            files if files is not None else _repo_files(target, repo_id, resolved)
         )
-        _require_payload(
-            target,
-            where,
-            contigs,
-            nested=True,
-            sidecars=["reference_policy.json", "variation/chrom_manifest.json"],
-        )
+        _require_payload(target, where, expected, patterns)
     return target
 
 
@@ -495,6 +496,7 @@ def download_plugin_cache(
     )
     where = f"{repo_id} at revision {resolved}"
     contigs = None
+    files = None
     if chroms is not None:
         if not chroms:
             raise ValueError("chroms must name at least one contig, or be None for all")
@@ -503,18 +505,14 @@ def download_plugin_cache(
         contigs = _select_contigs(chroms, _shard_contigs(files, nested=False), where)
     shards = ["*.parquet"] if contigs is None else [f"{c}.parquet" for c in contigs]
     target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
-    with (
-        _single_revision(target, repo_id, resolved),
-        _progress(show_progress),
-        _hub_errors(repo_id, resolved),
-    ):
-        _snapshot_download(
-            repo_id,
-            revision=resolved,
-            local_dir=target,
-            allow_patterns=[*shards, "*.json"],
+    patterns = [*shards, "*.json"]
+    with _single_revision(target, repo_id, resolved):
+        with _progress(show_progress), _hub_errors(repo_id, resolved):
+            _snapshot_download(
+                repo_id, revision=resolved, local_dir=target, allow_patterns=patterns
+            )
+        expected = (
+            files if files is not None else _repo_files(target, repo_id, resolved)
         )
-        _require_payload(
-            target, where, contigs, nested=False, sidecars=["manifest.json"]
-        )
+        _require_payload(target, where, expected, patterns)
     return target

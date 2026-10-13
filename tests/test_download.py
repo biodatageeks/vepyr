@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
+import json
 import os
 
 import pytest
@@ -157,7 +158,8 @@ def test_full_cache_uses_the_pin_and_skips_readme(hub, tmp_path):
     assert call["revision"] == MERGED_PIN
     assert call["local_dir"] == path
     assert call["allow_patterns"] == ["*/*.parquet", *CORE_SIDECARS]
-    assert fake.listed == []  # no listing without chroms
+    # Listed once, after the download, to check nothing is missing.
+    assert fake.listed == [("biodatageeks/vepyr_116_GRCh38_merged", MERGED_PIN)]
     assert not os.path.exists(os.path.join(path, "README.md"))
     assert os.path.isfile(os.path.join(path, "variation", "chr22.parquet"))
 
@@ -718,3 +720,28 @@ def test_a_file_changed_after_hf_download_has_unknown_revision(hub, tmp_path):
     with pytest.raises(ValueError, match="revision is unknown"):
         vepyr.download_cache(116, str(tmp_path), cache_type="merged", chroms=["22"])
     assert fake.snapshots == []
+
+
+def test_a_full_download_over_a_partial_cache_must_complete(hub, tmp_path, monkeypatch):
+    """Offline, a full request may return an earlier chr22-only download as is."""
+    hub(CORE_FILES)
+    vepyr.download_cache(
+        116, str(tmp_path), cache_type="merged", chroms=["22"], show_progress=False
+    )
+    monkeypatch.setattr(
+        _download, "_snapshot_download", lambda repo_id, **kw: kw["local_dir"]
+    )
+    with pytest.raises(RuntimeError, match="missing"):
+        vepyr.download_cache(116, str(tmp_path), cache_type="merged")
+
+
+def test_the_cached_tree_listing_verifies_without_the_hub(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    target = tmp_path / "116_GRCh38_merged"
+    tree = target / ".cache" / "huggingface" / "trees" / f"{MERGED_PIN}.json"
+    tree.parent.mkdir(parents=True)
+    tree.write_text(
+        json.dumps({"format_version": 1, "files": {n: {} for n in CORE_FILES}})
+    )
+    vepyr.download_cache(116, str(tmp_path), cache_type="merged", show_progress=False)
+    assert fake.listed == []
