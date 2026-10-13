@@ -648,6 +648,28 @@ def test_filtered_build_rejects_non_array_manifest_chroms(tmp_path, chroms_value
         )
 
 
+def test_filtered_build_rejects_non_string_shard_filename(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    manifest = {
+        "chroms": [{"chrom": "1", "file": 7, "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(
+        ValueError, match="shard file and dataset values must be strings"
+    ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
 def test_filtered_build_wraps_manifest_probe_permission_error(tmp_path, monkeypatch):
     plugin_dir = tmp_path / "plugin" / "demo"
     plugin_dir.mkdir(parents=True)
@@ -1261,6 +1283,63 @@ def test_noop_leftover_scan_wraps_permission_error(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="Could not inspect.*list denied"):
         vepyr._warn_about_plugin_cache_leftovers(str(root), "demo")
+
+
+def test_noop_leftover_scan_wraps_manifest_probe_permission_error(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "pc"
+    leftover = root / ".previous-demo.1234-1"
+    leftover.mkdir(parents=True)
+    manifest_path = leftover / "manifest.json"
+    manifest_path.write_text("{}")
+    original_is_file = Path.is_file
+
+    def denied_manifest_probe(path):
+        if path == manifest_path:
+            raise PermissionError("manifest probe denied")
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, "is_file", denied_manifest_probe)
+
+    with pytest.raises(
+        ValueError, match="Could not inspect plugin cache leftover.*probe denied"
+    ):
+        vepyr._warn_about_plugin_cache_leftovers(str(root), "demo")
+
+
+def test_recovery_validation_error_still_warns_about_staging_leftover(tmp_path):
+    import json
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    manifest = json.loads((orphan / "manifest.json").read_text())
+    manifest["chroms"] = None
+    (orphan / "manifest.json").write_text(json.dumps(manifest))
+    (pc / ".overwrite-demo.4242-2").mkdir()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        with pytest.raises(ValueError, match="chroms must be a JSON array"):
+            vepyr.build_plugin_cache(
+                "demo",
+                "v0.1.0",
+                source_path=str(src),
+                cache_dir=str(tmp_path / "cache"),
+                plugin_cache_root=str(pc),
+                plugins_repo=str(repo),
+                chroms=["2"],
+            )
+
+    staging_warnings = [
+        warning for warning in caught if "staging tree" in str(warning.message)
+    ]
+    assert len(staging_warnings) == 1
+    assert not orphan.exists()
+    assert (pc / ".overwrite-demo.4242-2").is_dir()
 
 
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):

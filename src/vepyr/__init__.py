@@ -1164,13 +1164,18 @@ def build_plugin_cache(
                 # Python incremental-build check may return early when all shards
                 # already exist. Recover first so that the orphan becomes visible.
                 _recover_plugin_cache(plugin_cache_root, plugin, source_version)
-            requested_chroms = _plugin_chroms_to_build(
-                plugin_cache_root,
-                plugin,
-                chroms,
-                source_version=source_version,
-                overwrite=overwrite,
-            )
+            try:
+                requested_chroms = _plugin_chroms_to_build(
+                    plugin_cache_root,
+                    plugin,
+                    chroms,
+                    source_version=source_version,
+                    overwrite=overwrite,
+                )
+            except ValueError:
+                if chroms:
+                    _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
+                raise
             if chroms and requested_chroms == []:
                 _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
                 result, sources_json = [], "[]"
@@ -1316,6 +1321,11 @@ def _plugin_chroms_to_build(
         if not isinstance(entry, dict) or not isinstance(entry.get("chrom"), str):
             continue
         filename = entry.get("file") or entry.get("dataset")
+        if filename is not None and not isinstance(filename, str):
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard file and dataset values must be strings"
+            )
         if not filename:
             filename = f"{entry['chrom']}.parquet"
         if entry.get("rows") == 0 or (plugin_dir / filename).is_file():
@@ -1369,11 +1379,14 @@ def _warn_about_plugin_cache_leftovers(plugin_cache_root: str, plugin: str) -> N
                 or any(character not in "0123456789-" for character in suffix)
             ):
                 continue
-            if (
-                description == "a set-aside cache"
-                and not (path / "manifest.json").is_file()
-            ):
-                continue
+            if description == "a set-aside cache":
+                try:
+                    if not (path / "manifest.json").is_file():
+                        continue
+                except OSError as exc:
+                    raise ValueError(
+                        f"Could not inspect plugin cache leftover {path}: {exc}"
+                    ) from exc
             warnings_to_emit.append(
                 f"overwrite: {description} at {path} was left behind"
             )
