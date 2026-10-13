@@ -648,19 +648,42 @@ def test_filtered_build_rejects_non_array_manifest_chroms(tmp_path, chroms_value
         )
 
 
-def test_filtered_build_rejects_non_string_shard_filename(tmp_path):
+@pytest.mark.parametrize("filename", [7, 0, False, []])
+def test_filtered_build_rejects_non_string_shard_filename(tmp_path, filename):
     import json
 
     plugin_dir = tmp_path / "plugin" / "demo"
     plugin_dir.mkdir(parents=True)
     manifest = {
-        "chroms": [{"chrom": "1", "file": 7, "rows": 1}],
+        "chroms": [{"chrom": "1", "file": filename, "rows": 1}],
     }
     (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
 
     with pytest.raises(
         ValueError, match="shard file and dataset values must be strings"
     ):
+        vepyr._plugin_chroms_to_build(
+            str(tmp_path),
+            "demo",
+            ["1"],
+            source_version="v0.1.0@abc123",
+            overwrite=False,
+        )
+
+
+def test_filtered_build_rejects_shard_path_outside_plugin_dir(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    outside = tmp_path / "outside.parquet"
+    outside.write_bytes(b"existing")
+    manifest = {
+        "chroms": [{"chrom": "1", "file": "../../outside.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="shard paths must stay inside"):
         vepyr._plugin_chroms_to_build(
             str(tmp_path),
             "demo",
@@ -1340,6 +1363,35 @@ def test_recovery_validation_error_still_warns_about_staging_leftover(tmp_path):
     assert len(staging_warnings) == 1
     assert not orphan.exists()
     assert (pc / ".overwrite-demo.4242-2").is_dir()
+
+
+def test_leftover_scan_error_does_not_mask_filtered_manifest_error(
+    tmp_path, monkeypatch
+):
+    import json
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    plugin_dir = pc / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "manifest.json").write_text(json.dumps({"chroms": None}))
+    monkeypatch.setattr(
+        vepyr,
+        "_warn_about_plugin_cache_leftovers",
+        Mock(side_effect=ValueError("leftover scan failed")),
+    )
+
+    with pytest.raises(ValueError, match="chroms must be a JSON array"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
 
 
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):

@@ -1173,7 +1173,7 @@ def build_plugin_cache(
                     overwrite=overwrite,
                 )
             except ValueError:
-                if chroms:
+                with contextlib.suppress(ValueError):
                     _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
                 raise
             if chroms and requested_chroms == []:
@@ -1320,15 +1320,25 @@ def _plugin_chroms_to_build(
     for entry in chrom_entries:
         if not isinstance(entry, dict) or not isinstance(entry.get("chrom"), str):
             continue
-        filename = entry.get("file") or entry.get("dataset")
-        if filename is not None and not isinstance(filename, str):
+        file_value = entry.get("file")
+        dataset_value = entry.get("dataset")
+        if ("file" in entry and not isinstance(file_value, str)) or (
+            "dataset" in entry and not isinstance(dataset_value, str)
+        ):
             raise ValueError(
                 f"Could not read existing plugin cache manifest {manifest_path}: "
                 "shard file and dataset values must be strings"
             )
+        filename = file_value or dataset_value
         if not filename:
             filename = f"{entry['chrom']}.parquet"
-        if entry.get("rows") == 0 or (plugin_dir / filename).is_file():
+        relative_filename = Path(filename)
+        if relative_filename.is_absolute() or ".." in relative_filename.parts:
+            raise ValueError(
+                f"Could not read existing plugin cache manifest {manifest_path}: "
+                "shard paths must stay inside the plugin cache directory"
+            )
+        if entry.get("rows") == 0 or (plugin_dir / relative_filename).is_file():
             existing[_normalise_contig_name(entry["chrom"])] = entry["chrom"]
 
     if not existing:
