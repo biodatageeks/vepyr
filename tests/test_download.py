@@ -656,3 +656,17 @@ def test_a_symlinked_directory_counts_as_unknown_content(hub, tmp_path):
     with pytest.raises(ValueError, match="revision is unknown"):
         vepyr.download_cache(116, str(tmp_path / "c"), cache_type="merged")
     assert fake.snapshots == []
+
+
+@pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions")
+def test_an_unlistable_directory_aborts_the_download(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    target = tmp_path / "116_GRCh38_merged"
+    _populate(target, ["variation/chr1.parquet"])
+    (target / "variation").chmod(0o300)
+    try:
+        with pytest.raises(RuntimeError, match="could not read"):
+            vepyr.download_cache(116, str(tmp_path), cache_type="merged")
+    finally:
+        (target / "variation").chmod(0o700)
+    assert fake.snapshots == []

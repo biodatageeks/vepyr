@@ -193,7 +193,12 @@ def _unrecorded_commits(target: str) -> set[str | None]:
     if not os.path.isdir(target):
         return commits
     meta_root = os.path.join(target, ".cache", "huggingface", "download")
-    for root, dirs, files in os.walk(target):
+
+    def unreadable(exc: OSError) -> None:
+        # A directory that cannot be listed may hold files of any revision.
+        raise RuntimeError(f"could not read {exc.filename}: {exc}") from exc
+
+    for root, dirs, files in os.walk(target, onerror=unreadable):
         dirs[:] = [d for d in dirs if not (root == target and d == ".cache")]
         # os.walk does not follow a symlinked directory; a download would write
         # through it into data of unknown revision, so count it as such.
@@ -215,11 +220,14 @@ def _unrecorded_commits(target: str) -> set[str | None]:
 def _only_our_files(target: str) -> bool:
     """Whether ``target`` holds nothing but the record and the lock."""
     ours = {_RECORD, _LOCK}
-    for root, _dirs, files in os.walk(target):
+    errors: list[OSError] = []
+    for root, _dirs, files in os.walk(target, onerror=errors.append):
+        if errors:
+            return False
         for name in files:
             if os.path.relpath(os.path.join(root, name), target) not in ours:
                 return False
-    return True
+    return not errors
 
 
 def _check_revision(target: str, repo_id: str, commit: str) -> dict | None:
