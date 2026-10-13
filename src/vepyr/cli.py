@@ -326,6 +326,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     _add_build_cache_parser(subcommands)
     _add_build_plugin_cache_parser(subcommands)
+    _add_download_cache_parser(subcommands)
+    _add_download_plugin_cache_parser(subcommands)
     return parser
 
 
@@ -476,6 +478,77 @@ def _add_build_plugin_cache_parser(subcommands) -> None:
     )
 
 
+def _add_download_options(options) -> None:
+    """Options shared by the two download subcommands."""
+    options.add_argument(
+        "--assembly", metavar="NAME", help="Genome assembly (default: GRCh38)."
+    )
+    options.add_argument(
+        "--chrom",
+        action="append",
+        dest="chroms",
+        metavar="NAME",
+        help="Download only this contig, e.g. 22 or chr22. Repeatable.",
+    )
+    options.add_argument(
+        "--revision",
+        metavar="REV",
+        help="Dataset branch, tag or commit (default: the revision pinned by "
+        "this vepyr release).",
+    )
+    options.add_argument(
+        "--no_progress", action="store_true", help="Suppress progress bars."
+    )
+
+
+def _add_download_cache_parser(subcommands) -> None:
+    download = subcommands.add_parser(
+        "download-cache",
+        help="Download a published vepyr cache from Hugging Face.",
+        description="Download a published vepyr Parquet cache from Hugging Face "
+        "into DIR_CACHE/<release>_<assembly>_<cache_type>.",
+        allow_abbrev=False,
+    )
+    required = download.add_argument_group("required arguments")
+    required.add_argument(
+        "--release", required=True, type=int, metavar="N", help="Ensembl release."
+    )
+    required.add_argument(
+        "--cache_type", required=True, choices=_CACHE_TYPES, help="Cache type."
+    )
+    required.add_argument(
+        "--dir_cache",
+        required=True,
+        metavar="DIR",
+        help="Root directory under which the cache directory is created.",
+    )
+    _add_download_options(download.add_argument_group("options"))
+
+
+def _add_download_plugin_cache_parser(subcommands) -> None:
+    download = subcommands.add_parser(
+        "download-plugin-cache",
+        help="Download a published plugin cache from Hugging Face.",
+        description="Download a published vepyr plugin cache from Hugging Face "
+        "into PLUGIN_CACHE_ROOT/plugin/<plugin>/.",
+        allow_abbrev=False,
+    )
+    required = download.add_argument_group("required arguments")
+    required.add_argument(
+        "--plugin", required=True, metavar="NAME", help="Plugin name, e.g. clinvar."
+    )
+    required.add_argument(
+        "--release", required=True, type=int, metavar="N", help="Ensembl release."
+    )
+    required.add_argument(
+        "--plugin_cache_root",
+        required=True,
+        metavar="DIR",
+        help="Root of the plugin cache tree.",
+    )
+    _add_download_options(download.add_argument_group("options"))
+
+
 # Store-true flags forwarded to annotate() under the same name when given.
 _SWITCHES = (
     "no_escape",
@@ -615,6 +688,71 @@ def build_plugin_cache_kwargs(args: argparse.Namespace) -> dict:
     return kwargs
 
 
+def _download_options(args: argparse.Namespace) -> dict:
+    kwargs: dict = {"show_progress": not args.no_progress}
+    for name in ("assembly", "chroms", "revision"):
+        value = getattr(args, name)
+        if value is not None:
+            kwargs[name] = value
+    return kwargs
+
+
+def download_cache_kwargs(args: argparse.Namespace) -> dict:
+    """Translate ``download-cache`` arguments into keywords.
+
+    ``release`` and ``dir_cache`` are positional on the API side. Unset options
+    keep the API defaults.
+    """
+    return {"cache_type": args.cache_type, **_download_options(args)}
+
+
+def download_plugin_cache_kwargs(args: argparse.Namespace) -> dict:
+    """Translate ``download-plugin-cache`` arguments into keywords."""
+    return _download_options(args)
+
+
+def _print_download_summary(
+    args: argparse.Namespace, repo_id: str, revision: str, path: str
+) -> None:
+    shown = revision[:7] if re.fullmatch(r"[0-9a-f]{40}", revision) else revision
+    contigs = f" ({', '.join(args.chroms)})" if args.chroms else ""
+    print(f"Downloaded {repo_id} @ {shown}{contigs} -> {path}")
+
+
+def _download(args: argparse.Namespace) -> None:
+    """Run a download subcommand and print where the files went."""
+    import vepyr
+    from vepyr import _published
+
+    assembly = args.assembly or vepyr._DEFAULT_ASSEMBLY
+    if args.command == "download-cache":
+        path = vepyr.download_cache(
+            args.release, args.dir_cache, **download_cache_kwargs(args)
+        )
+        repo_id = _published.cache_repo_id(args.release, assembly, args.cache_type)
+        revision = _published.cache_revision(
+            args.release, assembly, args.cache_type, args.revision
+        )
+        _print_download_summary(args, repo_id, revision, path)
+        print(f"Next: vepyr annotate --dir_cache {path} ...")
+        return
+    path = vepyr.download_plugin_cache(
+        args.plugin,
+        args.release,
+        args.plugin_cache_root,
+        **download_plugin_cache_kwargs(args),
+    )
+    repo_id = _published.plugin_repo_id(args.release, assembly, args.plugin)
+    revision = _published.plugin_revision(
+        args.release, assembly, args.plugin, args.revision
+    )
+    _print_download_summary(args, repo_id, revision, path)
+    print(
+        "Next: vepyr annotate ... "
+        f"--plugin_cache_root {args.plugin_cache_root} --plugin {args.plugin}"
+    )
+
+
 def _print_cache_summary(
     args: argparse.Namespace, files: list[tuple[str, int]]
 ) -> None:
@@ -682,6 +820,8 @@ def main(argv: list[str] | None = None) -> int:
             kwargs = build_plugin_cache_kwargs(args)
             chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
             _print_plugin_summary(args, chroms)
+        elif args.command in ("download-cache", "download-plugin-cache"):
+            _download(args)
         else:
             vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))
     except (ValueError, FileNotFoundError, RuntimeError) as exc:

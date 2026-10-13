@@ -43,6 +43,8 @@ requirements:
     - pyarrow >=23.0.1,<25
     - polars >=1.40.0,<2
     - tqdm >=4.67.0,<5
+    - huggingface_hub >=1.22,<3
+    - filelock >=3.29.5
 
 test:
   imports:
