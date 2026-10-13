@@ -909,6 +909,32 @@ def _orphan(pc: Path, name: str, repo: Path | None = None) -> Path:
     return orphan
 
 
+def test_filtered_build_rejects_new_revision_in_recoverable_cache(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    orphan = _orphan(pc, ".previous-demo.4242-1", repo)
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+    native_build = Mock()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+
+    with pytest.raises(ValueError, match="contains existing shards.*v0.2.0"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.2.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["2"],
+        )
+
+    native_build.assert_not_called()
+    assert orphan.exists()
+
+
 def test_interrupted_overwrite_is_recovered_before_the_next_build(tmp_path):
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)

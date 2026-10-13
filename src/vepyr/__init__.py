@@ -1211,7 +1211,16 @@ def _plugin_chroms_to_build(
     plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
     manifest_path = plugin_dir / "manifest.json"
     if not manifest_path.is_file():
-        return chroms
+        # The native builder restores one interrupted full-overwrite cache
+        # before applying this filtered build. Inspect that manifest first so
+        # recovery cannot bypass the revision guard below.
+        if plugin_dir.exists():
+            return chroms
+        candidates = _set_aside_plugin_cache_candidates(plugin_cache_root, plugin)
+        if len(candidates) != 1:
+            return chroms
+        plugin_dir = candidates[0]
+        manifest_path = plugin_dir / "manifest.json"
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -1248,6 +1257,26 @@ def _plugin_chroms_to_build(
         chrom for chrom in chroms if _normalise_contig_name(str(chrom)) not in existing
     ]
     return missing
+
+
+def _set_aside_plugin_cache_candidates(
+    plugin_cache_root: str, plugin: str
+) -> list[Path]:
+    """Find caches that the native builder can restore before a filtered build."""
+    root = Path(plugin_cache_root)
+    prefix = f".previous-{plugin}."
+    try:
+        paths = list(root.iterdir())
+    except FileNotFoundError:
+        return []
+    return [
+        path
+        for path in paths
+        if (suffix := path.name.removeprefix(prefix)) != path.name
+        and suffix
+        and all(character in "0123456789-" for character in suffix)
+        and (path / "manifest.json").is_file()
+    ]
 
 
 def _warn_about_plugin_cache_leftovers(plugin_cache_root: str, plugin: str) -> None:
