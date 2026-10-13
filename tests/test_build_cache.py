@@ -269,7 +269,7 @@ class TestBuildCacheTargetedValidation:
 
     @pytest.mark.parametrize(
         ("requested", "raw_name"),
-        [("chrM", "MT"), ("MT", "M"), ("M", "MT")],
+        [("chrM", "MT"), ("MT", "M"), ("M", "MT"), ("x", "X")],
     )
     def test_mitochondrial_alias_resolves_to_raw_cache_name(
         self, tmp_path, requested, raw_name
@@ -284,6 +284,22 @@ class TestBuildCacheTargetedValidation:
             species="homo_sapiens",
             chroms=[requested],
         ) == [raw_name]
+
+    def test_build_cache_forwards_resolved_contig_to_native_builder(self, tmp_path):
+        local_cache = tmp_path / "raw"
+        (local_cache / "MT").mkdir(parents=True)
+        (local_cache / "MT" / "1-100.gz").touch()
+        with patch("vepyr._build_cache", return_value=[]) as mock_native:
+            vepyr.build_cache(
+                116,
+                str(tmp_path / "out"),
+                cache_type="ensembl",
+                local_cache=str(local_cache),
+                chroms=["chrM"],
+                show_progress=False,
+            )
+
+        assert mock_native.call_args.args[-1] == ["MT"]
 
     def test_rejects_cache_type_that_disagrees_with_raw_cache(self, tmp_path):
         output = tmp_path / "out"
@@ -320,7 +336,7 @@ class TestBuildCacheTargetedValidation:
         "entity",
         ["variation", "transcript", "exon", "translation", "regulatory", "motif"],
     )
-    def test_supported_entity_forwards_exact_identity(self, entity, tmp_path):
+    def test_supported_entity_forwards_raw_contig_spelling(self, entity, tmp_path):
         local_cache = tmp_path / "raw"
         (local_cache / "21").mkdir(parents=True)
         (local_cache / "21" / "1-1000000.gz").touch()
@@ -349,7 +365,7 @@ class TestBuildCacheTargetedValidation:
             "merged",
             True,
             "116",
-            ["chr21"],
+            ["21"],
         )
 
     @pytest.mark.parametrize("entity", ["translation_core", "translation_sift", "bad"])

@@ -749,7 +749,15 @@ def _validate_raw_cache_inputs(
     if not chroms:
         return chroms
     available = _raw_cache_contigs(cache_root)
-    available_names = {_normalise_contig_name(name): name for name in available}
+    available_names: dict[str, str] = {}
+    for name in available:
+        identity = _normalise_contig_name(name)
+        if identity in available_names and available_names[identity] != name:
+            raise ValueError(
+                f"Raw cache at {cache_root} has ambiguous contig directories "
+                f"{available_names[identity]!r} and {name!r}"
+            )
+        available_names[identity] = name
     missing = [
         str(chrom)
         for chrom in chroms
@@ -760,13 +768,13 @@ def _validate_raw_cache_inputs(
             f"Requested contig(s) not present in raw cache at {cache_root}: "
             f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
         )
-    # The Rust builder strips only a `chr` prefix when filtering. Resolve the
-    # mitochondrial alias to the raw cache's spelling so M and MT both select
-    # the actual source contig.
-    return [
-        available_names["MT"] if _normalise_contig_name(str(chrom)) == "MT" else chrom
-        for chrom in chroms
-    ]
+    # The Rust builder strips only a `chr` prefix when filtering. Pass the raw
+    # cache spelling so aliases and case differences select the actual source.
+    return list(
+        dict.fromkeys(
+            available_names[_normalise_contig_name(str(chrom))] for chrom in chroms
+        )
+    )
 
 
 _DEFAULT_ASSEMBLY = "GRCh38"
