@@ -348,23 +348,35 @@ class TestBuildCacheTargetedValidation:
         mock_native.assert_not_called()
         assert not output.exists()
 
-    def test_rejects_relocated_merged_cache_as_ensembl(self, tmp_path):
+    @pytest.mark.parametrize(
+        ("cache_type", "reject"), [("ensembl", True), ("merged", False)]
+    )
+    def test_relocated_merged_cache_markers(self, tmp_path, cache_type, reject):
         local_cache = tmp_path / "relocated"
         local_cache.mkdir()
         (local_cache / "info.txt").write_text(
             "species\thomo_sapiens\nbam\tknownrefseq.bam\n"
         )
-        with patch("vepyr._build_cache") as mock_native:
-            with pytest.raises(ValueError, match="not an Ensembl cache"):
+        with patch("vepyr._build_cache", return_value=[]) as mock_native:
+            if reject:
+                with pytest.raises(ValueError, match="not an Ensembl cache"):
+                    vepyr.build_cache(
+                        115,
+                        str(tmp_path / "out"),
+                        cache_type=cache_type,
+                        local_cache=str(local_cache),
+                        show_progress=False,
+                    )
+                mock_native.assert_not_called()
+            else:
                 vepyr.build_cache(
                     115,
                     str(tmp_path / "out"),
-                    cache_type="ensembl",
+                    cache_type=cache_type,
                     local_cache=str(local_cache),
                     show_progress=False,
                 )
-
-        mock_native.assert_not_called()
+                mock_native.assert_called_once()
 
     def test_rejects_requested_contig_missing_from_raw_cache(self, tmp_path):
         output = tmp_path / "out"

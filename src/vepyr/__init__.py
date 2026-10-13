@@ -691,7 +691,7 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
         f"{species}_refseq": "refseq",
     }
     parent_source_type = parent_type.get(root.parent.name)
-    if parent_source_type is not None:
+    if parent_source_type in {"merged", "refseq"}:
         return parent_source_type
 
     info_path = root / "info.txt"
