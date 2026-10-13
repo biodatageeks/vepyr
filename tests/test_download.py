@@ -874,3 +874,12 @@ def test_a_tree_listing_of_another_format_is_not_trusted(hub, tmp_path):
     tree.write_text(json.dumps({"format_version": 2, "files": {}}))
     vepyr.download_cache(116, str(tmp_path), cache_type="merged", show_progress=False)
     assert fake.listed == [("biodatageeks/vepyr_116_GRCh38_merged", MERGED_PIN)]
+
+
+def test_returned_paths_are_normalised(hub, tmp_path):
+    hub(CORE_FILES + PLUGIN_FILES)
+    root = str(tmp_path) + "/./a/../caches/"
+    path = vepyr.download_cache(116, root, cache_type="merged", show_progress=False)
+    assert path == os.path.join(str(tmp_path), "caches", "116_GRCh38_merged")
+    plugin = vepyr.download_plugin_cache("clinvar", 116, root, show_progress=False)
+    assert plugin == os.path.join(str(tmp_path), "caches", "plugin", "clinvar")

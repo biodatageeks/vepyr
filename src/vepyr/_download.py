@@ -469,7 +469,7 @@ def download_cache(
         if not chroms:
             raise ValueError("chroms must name at least one contig, or be None for all")
     target = vepyr._converted_cache_dir(
-        os.path.expanduser(cache_dir), release, cache_type, assembly
+        os.path.normpath(os.path.expanduser(cache_dir)), release, cache_type, assembly
     )
     if chroms is not None:
         files = _repo_files(target, repo_id, resolved)
@@ -551,7 +551,8 @@ def download_plugin_cache(
     if chroms is not None:
         if not chroms:
             raise ValueError("chroms must name at least one contig, or be None for all")
-    target = os.path.join(os.path.expanduser(plugin_cache_root), "plugin", plugin)
+    root = os.path.normpath(os.path.expanduser(plugin_cache_root))
+    target = os.path.join(root, "plugin", plugin)
     if chroms is not None:
         files = _repo_files(target, repo_id, resolved)
         contigs = _select_contigs(chroms, _shard_contigs(files, nested=False), where)
