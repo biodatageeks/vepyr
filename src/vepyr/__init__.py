@@ -678,10 +678,11 @@ def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
     """Infer a raw cache's source type from its directory and ``info.txt``.
 
     Official cache archives encode the type in the directory immediately above
-    the release directory. An unpacked cache moved out of that layout can still
-    be identified as Ensembl when its info file has no RefSeq/BAM markers. Those
-    markers identify a non-Ensembl cache, though they do not distinguish merged
-    from RefSeq when the original parent directory is missing.
+    the release directory, and that name remains authoritative if ``info.txt``
+    is missing or unreadable. An unpacked cache moved out of that layout can
+    still be identified as Ensembl when its info file has no RefSeq/BAM markers.
+    Those markers identify a non-Ensembl cache, though they do not distinguish
+    merged from RefSeq when the original parent directory is missing.
     """
     root = Path(cache_root)
     parent_type = {
