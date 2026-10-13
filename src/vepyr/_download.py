@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import contextlib
+import os
+import re
 from collections.abc import Iterator
+
+from vepyr import _published
+
+_CORE_SIDECARS = ["*/chrom_manifest.json", "reference_policy.json", "chr_synonyms.txt"]
 
 
 def _list_repo_files(repo_id: str, *, revision: str) -> list[str]:
@@ -70,3 +76,122 @@ def _hub_errors(repo_id: str, revision: str) -> Iterator[None]:
         if _is_transport_error(exc):
             raise RuntimeError(f"could not download {where}: {exc}") from exc
         raise
+
+
+def _natural_key(name: str) -> list:
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", name)]
+
+
+def _select_contigs(
+    requested: list[str] | None, available: set[str], where: str
+) -> list[str] | None:
+    """Map requested names to dataset contigs; ``None`` means all contigs.
+
+    A name is matched as given; failing that, a name without a ``chr`` prefix
+    is tried with one (``22`` -> ``chr22``, ``MT`` -> ``chrMT``). Duplicates
+    after matching are dropped, keeping the first occurrence.
+    """
+    if requested is None:
+        return None
+    if not requested:
+        raise ValueError("chroms must name at least one contig, or be None for all")
+    selected: list[str] = []
+    missing: list[str] = []
+    for name in requested:
+        if name in available:
+            contig = name
+        elif not name.startswith("chr") and f"chr{name}" in available:
+            contig = f"chr{name}"
+        else:
+            missing.append(name)
+            continue
+        if contig not in selected:
+            selected.append(contig)
+    if missing:
+        main = sorted((c for c in available if c.startswith("chr")), key=_natural_key)
+        others = len(available) - len(main)
+        listing = ", ".join(main) + (f" and {others} other contigs" if others else "")
+        raise ValueError(
+            f"{where} has no contig {', '.join(missing)}; available: {listing}"
+        )
+    return selected
+
+
+def _shard_contigs(files: list[str], nested: bool) -> set[str]:
+    """Contig names of the ``.parquet`` shards (``<entity>/<contig>`` if nested)."""
+    depth = 2 if nested else 1
+    return {
+        name.rsplit("/", 1)[-1].removesuffix(".parquet")
+        for name in files
+        if name.endswith(".parquet") and name.count("/") == depth - 1
+    }
+
+
+def download_cache(
+    release: int,
+    cache_dir: str,
+    *,
+    cache_type: str,
+    assembly: str = "GRCh38",
+    chroms: list[str] | None = None,
+    revision: str | None = None,
+    show_progress: bool = True,
+) -> str:
+    """Download a published vepyr cache from Hugging Face.
+
+    Parameters
+    ----------
+    release : int
+        Ensembl release, e.g. ``116``.
+    cache_dir : str
+        Root directory; the cache is written to
+        ``<cache_dir>/<release>_<assembly>_<cache_type>``, the layout
+        :func:`build_cache` produces. ``~`` is expanded.
+    cache_type : {"ensembl", "merged", "refseq"}
+        Cache type.
+    assembly : str
+        Genome assembly (default: ``"GRCh38"``).
+    chroms : list of str or None
+        Contigs to download, e.g. ``["22"]`` or ``["chr22", "chrX"]``; a name
+        without ``chr`` also matches the prefixed one. ``None`` downloads every
+        contig. The per-entity manifests and the root sidecars are always
+        included.
+    revision : str or None
+        Dataset revision. ``None`` uses the revision pinned by this vepyr
+        release; any branch, tag or commit (e.g. ``"main"``) is passed on.
+    show_progress : bool
+        Show download progress bars (default: True).
+
+    Returns
+    -------
+    str
+        The cache directory, ready for ``annotate(cache_dir=...)``.
+
+    Re-running resumes and skips files already present.
+    """
+    import vepyr
+
+    vepyr._validate_cache_type(cache_type)
+    repo_id = _published.cache_repo_id(release, assembly, cache_type)
+    resolved = _published.cache_revision(release, assembly, cache_type, revision)
+    where = f"{repo_id} at revision {resolved}"
+    contigs = None
+    if chroms is not None:
+        if not chroms:
+            _select_contigs(chroms, set(), where)
+        with _hub_errors(repo_id, resolved):
+            files = _list_repo_files(repo_id, revision=resolved)
+        contigs = _select_contigs(chroms, _shard_contigs(files, nested=True), where)
+    shards = ["*/*.parquet"] if contigs is None else [f"*/{c}.parquet" for c in contigs]
+    target = vepyr._converted_cache_dir(
+        os.path.expanduser(cache_dir), release, cache_type, assembly
+    )
+    os.makedirs(target, exist_ok=True)
+    with _progress(show_progress), _hub_errors(repo_id, resolved):
+        _snapshot_download(
+            repo_id,
+            revision=resolved,
+            local_dir=target,
+            allow_patterns=[*shards, *_CORE_SIDECARS],
+        )
+    return target
