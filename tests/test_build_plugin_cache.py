@@ -1005,6 +1005,36 @@ def test_unreadable_recovery_manifest_still_warns_about_staging_leftover(
     assert (pc / ".overwrite-demo.4242-2").is_dir()
 
 
+def test_ambiguous_recovery_still_warns_about_staging_leftover(tmp_path):
+    import warnings
+
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    pc = tmp_path / "pc"
+    _orphan(pc, ".previous-demo.4242-1", repo)
+    _orphan(pc, ".previous-demo.4243-1", repo)
+    (pc / ".overwrite-demo.4242-2").mkdir()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        with pytest.raises(RuntimeError, match="several copies"):
+            vepyr.build_plugin_cache(
+                "demo",
+                "v0.1.0",
+                source_path=str(src),
+                cache_dir=str(tmp_path / "cache"),
+                plugin_cache_root=str(pc),
+                plugins_repo=str(repo),
+                chroms=["2"],
+            )
+
+    staging_warnings = [
+        warning for warning in caught if "staging tree" in str(warning.message)
+    ]
+    assert len(staging_warnings) == 1
+    assert (pc / ".overwrite-demo.4242-2").is_dir()
+
+
 def test_filtered_build_allows_same_revision_in_recoverable_cache(
     tmp_path, monkeypatch
 ):

@@ -462,9 +462,7 @@ fn recover_set_aside_cache(
                 let text = match std::fs::read_to_string(&manifest_path) {
                     Ok(text) => text,
                     Err(e) => {
-                        if !warn_leftovers {
-                            warn_staging_leftovers(py, &stale_staging)?;
-                        }
+                        warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
                         return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                             "cannot read recoverable plugin cache manifest {}: {e}",
                             manifest_path.display()
@@ -474,9 +472,7 @@ fn recover_set_aside_cache(
                 let manifest: serde_json::Value = match serde_json::from_str(&text) {
                     Ok(manifest) => manifest,
                     Err(e) => {
-                        if !warn_leftovers {
-                            warn_staging_leftovers(py, &stale_staging)?;
-                        }
+                        warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
                         return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                             "cannot parse recoverable plugin cache manifest {}: {e}",
                             manifest_path.display()
@@ -508,9 +504,7 @@ fn recover_set_aside_cache(
                     .get("cache_source_version")
                     .and_then(serde_json::Value::as_str);
                 if has_shards && cached_version != Some(expected) {
-                    if !warn_leftovers {
-                        warn_staging_leftovers(py, &stale_staging)?;
-                    }
+                    warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
                     return Err(pyo3::exceptions::PyValueError::new_err(format!(
                         "Plugin cache at {} (restored from an interrupted overwrite) contains \
                          existing shards from {}, but this build uses {}; use overwrite=True \
@@ -524,15 +518,16 @@ fn recover_set_aside_cache(
             if let Some(parent) = plugin_dir.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
-            std::fs::rename(only, plugin_dir).map_err(|e| {
-                pyo3::exceptions::PyRuntimeError::new_err(format!(
+            if let Err(e) = std::fs::rename(only, plugin_dir) {
+                warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                     "the plugin cache {} is missing and its copy set aside by an interrupted \
                      overwrite at {} could not be moved back ({e}); move it back by hand before \
                      building",
                     plugin_dir.display(),
                     only.display()
-                ))
-            })?;
+                )));
+            }
             log::warn!(
                 "recovered the plugin cache {} from {}, left behind by an interrupted overwrite",
                 plugin_dir.display(),
@@ -540,17 +535,20 @@ fn recover_set_aside_cache(
             );
             Ok(())
         }
-        several => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
-            "the plugin cache {} is missing and several copies set aside by interrupted \
-             overwrites exist ({}); move the one to keep back by hand and delete the others \
-             before building",
-            plugin_dir.display(),
-            several
-                .iter()
-                .map(|p| p.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))),
+        several => {
+            warn_staging_on_recovery_error(py, &stale_staging, warn_leftovers)?;
+            Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "the plugin cache {} is missing and several copies set aside by interrupted \
+                 overwrites exist ({}); move the one to keep back by hand and delete the others \
+                 before building",
+                plugin_dir.display(),
+                several
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )))
+        }
     }
 }
 
@@ -604,6 +602,18 @@ const STAGING_LEFTOVER_ADVICE: &str =
 
 fn warn_staging_leftovers(py: Python<'_>, leftovers: &[String]) -> PyResult<()> {
     warn_about(py, leftovers.to_vec(), STAGING_LEFTOVER_ADVICE)
+}
+
+fn warn_staging_on_recovery_error(
+    py: Python<'_>,
+    leftovers: &[String],
+    already_warned: bool,
+) -> PyResult<()> {
+    if already_warned {
+        Ok(())
+    } else {
+        warn_staging_leftovers(py, leftovers)
+    }
 }
 
 /// A cleanup that fails must not pass silently: a leftover staging or
