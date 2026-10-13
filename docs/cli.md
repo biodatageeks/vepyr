@@ -166,6 +166,42 @@ under which `<release>_<assembly>_<cache_type>` is created. For
 An unknown `--version`, an invalid `--plugins_repo` or a failed clone of
 vepyr-plugins ends `build-plugin-cache` with a one-line error and exit code 2.
 
+## Downloading caches
+
+`vepyr download-cache` fetches a published cache from Hugging Face, wrapping
+[`download_cache()`](api.md#vepyr.download_cache). It writes
+`<dir_cache>/<release>_<assembly>_<cache_type>`, the directory `annotate`
+takes as `--dir_cache`:
+
+```bash
+vepyr download-cache --release 116 --cache_type merged --dir_cache ~/vepyr_cache --chrom 22
+```
+
+| Flag | Description |
+|---|---|
+| `--release N` | Ensembl release. Required. |
+| `--cache_type {ensembl,merged,refseq}` | Cache type. Required. |
+| `--dir_cache DIR` | Root directory for the cache. Required. |
+| `--assembly NAME` | Default `GRCh38`. |
+| `--chrom NAME` | Download only this contig (`22` or `chr22`). Repeatable. The manifests and sidecar files are always included. |
+| `--revision REV` | Dataset branch, tag or commit. Default: the revision pinned by this vepyr release. |
+| `--no_progress` | Suppress progress bars. |
+
+`vepyr download-plugin-cache` does the same for a plugin cache, writing
+`<plugin_cache_root>/plugin/<plugin>/`:
+
+```bash
+vepyr download-plugin-cache --plugin clinvar --release 116 \
+    --plugin_cache_root ~/vepyr_plugin_cache --chrom 22
+```
+
+It takes `--plugin NAME`, `--release N` and `--plugin_cache_root DIR`
+(required) and the same `--assembly`, `--chrom`, `--revision` and
+`--no_progress` options. dbNSFP is not published (its licence does not allow
+redistribution); build it with `build-plugin-cache`.
+
+Re-running a download resumes and skips files already present.
+
 ## Notes
 
 **Compression is inferred from the output suffix.** `-o out.vcf.gz` writes bgzf;

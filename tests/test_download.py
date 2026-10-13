@@ -306,3 +306,36 @@ def test_unknown_plugin_contig(hub, tmp_path):
     ):
         vepyr.download_plugin_cache("clinvar", 116, str(tmp_path), chroms=["chrM"])
     assert fake.snapshots == []
+
+
+network = pytest.mark.skipif(
+    os.environ.get("VEPYR_NETWORK_TESTS") != "1",
+    reason="set VEPYR_NETWORK_TESTS=1 to download from Hugging Face",
+)
+
+
+@network
+def test_network_download_opens_in_the_engine(tmp_path):
+    """Real downloads of one small contig; the engine opens the result."""
+    cache = vepyr.download_cache(
+        116,
+        str(tmp_path / "c"),
+        cache_type="merged",
+        chroms=["MT"],
+        show_progress=False,
+    )
+    assert os.path.isfile(os.path.join(cache, "variation", "chrMT.parquet"))
+    assert os.path.isfile(os.path.join(cache, "reference_policy.json"))
+    # The resume metadata stays inside the cache and must not disturb the engine.
+    assert os.path.isdir(os.path.join(cache, ".cache", "huggingface"))
+    identity = vepyr.cache_contig_identity(cache, "chrMT")
+    assert identity
+
+    plugin = vepyr.download_plugin_cache(
+        "phenotypeorthologous",
+        116,
+        str(tmp_path / "pc"),
+        chroms=["22"],
+        show_progress=False,
+    )
+    assert sorted(os.listdir(plugin)) == [".cache", "chr22.parquet", "manifest.json"]

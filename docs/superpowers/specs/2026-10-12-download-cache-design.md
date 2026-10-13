@@ -45,7 +45,7 @@ Layout on Hugging Face (checked 2026-10-12):
 
 - Core: `<entity>/<contig>.parquet` for `exon`, `transcript`,
   `translation_core`, `translation_sift`, `variation`, `motif`, `regulatory`;
-  contigs are `chr1`–`chr22`, `chrX`, `chrY`, `chrM` and unplaced/patch contigs
+  contigs are `chr1`–`chr22`, `chrX`, `chrY`, `chrMT` and unplaced/patch contigs
   such as `GL000008.2` and `HG1012_PATCH`. Each entity directory has a
   `chrom_manifest.json`; the root has `reference_policy.json` and
   `chr_synonyms.txt`, plus `README.md` and `.gitattributes`.
@@ -229,12 +229,13 @@ into `local_dir`.
 required flags, the summary output against a spy, and API errors becoming
 exit 2 with one line on stderr.
 
-Network test, skipped unless `VEPYR_NETWORK_TESTS=1`: download
-`plugin_phenotypeorthologous` for chr22 and the merged cache for one small
-contig into `tmp_path`, check the files, and run `annotate()` with that cache
-and plugin on a one-record VCF on that contig to prove the engine opens the
-downloaded directory including `.cache/`. It runs locally on demand; a
-scheduled CI job is a possible follow-up.
+Network test, skipped unless `VEPYR_NETWORK_TESTS=1`: download the merged
+cache for `MT` (the datasets name it `chrMT`) and `plugin_phenotypeorthologous`
+for chr22 into `tmp_path`, check the files and the `.cache/` resume metadata,
+and open the downloaded core cache with `cache_contig_identity()` to prove the
+engine reads a directory that contains `.cache/`. Annotating needs a reference
+FASTA, so annotation of downloaded caches is verified on HG002 chromosome 22
+outside CI, against the output of caches fetched with `hf download`.
 
 ## Documentation
 

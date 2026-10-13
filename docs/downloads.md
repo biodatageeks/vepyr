@@ -38,37 +38,48 @@ Each cache is a public dataset repository holding the Parquet shard tree
 directly, so no extraction step is needed and the download lands in the layout
 `annotate()` expects.
 
-Install the client once:
+vepyr downloads them itself; the Hugging Face client is installed with it:
 
 ```bash
-pip install -U "huggingface_hub[cli]"
+vepyr download-cache --release 116 --cache_type merged --dir_cache ~/vepyr_cache
 ```
 
-Then download the cache you want:
+or from Python:
 
-=== "merged"
+```python
+import vepyr
 
-    ```bash
-    hf download biodatageeks/vepyr_116_GRCh38_merged \
-      --repo-type dataset \
-      --local-dir ~/vepyr_cache/116_GRCh38_merged
-    ```
+cache = vepyr.download_cache(116, "~/vepyr_cache", cache_type="merged")
+```
 
-=== "ensembl"
+`--cache_type` is `merged`, `ensembl` or `refseq`. The default revision is the
+one pinned by your vepyr release, so a given vepyr version always fetches the
+same cache; pass `--revision main` (or `revision="main"`) for the latest.
 
-    ```bash
-    hf download biodatageeks/vepyr_116_GRCh38_ensembl \
-      --repo-type dataset \
-      --local-dir ~/vepyr_cache/116_GRCh38_ensembl
-    ```
+??? note "Manual alternative: the `hf` command"
+    === "merged"
 
-=== "refseq"
+        ```bash
+        hf download biodatageeks/vepyr_116_GRCh38_merged \
+          --repo-type dataset \
+          --local-dir ~/vepyr_cache/116_GRCh38_merged
+        ```
 
-    ```bash
-    hf download biodatageeks/vepyr_116_GRCh38_refseq \
-      --repo-type dataset \
-      --local-dir ~/vepyr_cache/116_GRCh38_refseq
-    ```
+    === "ensembl"
+
+        ```bash
+        hf download biodatageeks/vepyr_116_GRCh38_ensembl \
+          --repo-type dataset \
+          --local-dir ~/vepyr_cache/116_GRCh38_ensembl
+        ```
+
+    === "refseq"
+
+        ```bash
+        hf download biodatageeks/vepyr_116_GRCh38_refseq \
+          --repo-type dataset \
+          --local-dir ~/vepyr_cache/116_GRCh38_refseq
+        ```
 
 The download is resumable — rerun the same command after an interruption and it
 continues where it stopped. Integrity is checked by the client, so there is no
@@ -81,6 +92,14 @@ cache. Every entity directory carries a `chrom_manifest.json` that the engine
 requires, so it has to be included alongside the shards, together with the two
 root sidecars: `reference_policy.json` (vepyr refuses merged and RefSeq caches
 without it) and `chr_synonyms.txt` (contig-name aliases):
+
+```bash
+vepyr download-cache --release 116 --cache_type merged \
+  --dir_cache ~/vepyr_cache --chrom 22
+```
+
+`--chrom` adds the manifests and sidecar files itself, and writes to
+`~/vepyr_cache/116_GRCh38_merged`. With `hf`:
 
 ```bash
 hf download biodatageeks/vepyr_116_GRCh38_merged \
@@ -215,8 +234,15 @@ mapping and licence.
 ### Downloading
 
 `annotate()` takes a `plugin_cache_root`, and looks for each plugin under
-`<root>/plugin/<name>/`. Download each cache **into that layout** — the
-`plugin/` path component is required:
+`<root>/plugin/<name>/`. `vepyr download-plugin-cache` writes that layout:
+
+```bash
+vepyr download-plugin-cache --plugin clinvar --release 116 \
+  --plugin_cache_root ~/vepyr_plugin_cache
+```
+
+`--chrom 22` limits it to one chromosome. With `hf`, download each cache
+**into that layout** — the `plugin/` path component is required:
 
 === "clinvar"
 
