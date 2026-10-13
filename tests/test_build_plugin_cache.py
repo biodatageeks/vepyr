@@ -611,8 +611,32 @@ def test_filtered_build_treats_zero_row_manifest_entry_as_existing(
     assert result == expected
 
 
-def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path):
-    """A targeted build cannot add shards from another plugin manifest version."""
+def test_filtered_overwrite_rebuilds_requested_shards_at_same_revision(tmp_path):
+    import json
+
+    plugin_dir = tmp_path / "plugin" / "demo"
+    plugin_dir.mkdir(parents=True)
+    (plugin_dir / "1.parquet").write_bytes(b"existing")
+    manifest = {
+        "cache_source_version": "v0.1.0@abc123",
+        "chroms": [{"chrom": "1", "file": "1.parquet", "rows": 1}],
+    }
+    (plugin_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    result = vepyr._plugin_chroms_to_build(
+        str(tmp_path),
+        "demo",
+        ["1"],
+        source_version="v0.1.0@abc123",
+        overwrite=True,
+    )
+
+    assert result == ["1"]
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path, overwrite):
+    """Filtered builds cannot mix plugin revisions, even with overwrite."""
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)
     _build_real(repo, tmp_path, str(src))
@@ -627,6 +651,7 @@ def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path):
             plugin_cache_root=str(tmp_path / "pc"),
             plugins_repo=str(repo),
             chroms=["2"],
+            overwrite=overwrite,
         )
 
 

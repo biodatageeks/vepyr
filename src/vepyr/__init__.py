@@ -1203,7 +1203,7 @@ def _plugin_chroms_to_build(
     overwrite: bool,
 ) -> list[str] | None:
     """Keep existing filtered shards unless the caller explicitly overwrites."""
-    if overwrite or not chroms:
+    if not chroms:
         return chroms
 
     import json
@@ -1237,8 +1237,12 @@ def _plugin_chroms_to_build(
         raise ValueError(
             f"Plugin cache at {plugin_dir} contains existing shards from "
             f"{cached_version or 'an unversioned manifest'}, but this build uses "
-            f"{source_version}; pass overwrite=True for a full rebuild"
+            f"{source_version}; use overwrite=True without a chromosome filter "
+            "for a full rebuild"
         )
+
+    if overwrite:
+        return chroms
 
     missing = [
         chrom for chrom in chroms if _normalise_contig_name(str(chrom)) not in existing
