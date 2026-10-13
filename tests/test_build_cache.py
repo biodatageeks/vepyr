@@ -297,6 +297,46 @@ class TestBuildCacheTargetedValidation:
             chroms=["chrM", "MT"],
         ) == ["MT"]
 
+    def test_missing_contig_error_summarizes_large_raw_cache(self, monkeypatch):
+        primary = [*(str(chrom) for chrom in range(1, 23)), "X", "Y", "MT"]
+        alternate = [f"GL{chrom:06d}" for chrom in range(1879)]
+        monkeypatch.setattr(
+            vepyr, "_raw_cache_contigs", lambda _cache_root: primary + alternate
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            vepyr._validate_raw_cache_inputs(
+                str(ENSEMBL_CACHE_DIR),
+                cache_type="ensembl",
+                species="homo_sapiens",
+                chroms=["ZZZ"],
+            )
+
+        message = str(exc_info.value)
+        assert "ZZZ" in message
+        assert "1904 contigs" in message
+        assert "1, 2, 3, 4, 5, 6, 7, 8, 9, 10" in message
+        assert "X, Y, MT" in message
+        assert "1879 additional contigs" in message
+        assert "GL000000" in message
+        assert len(message) < 500
+
+    def test_large_nonhuman_contig_error_shows_a_natural_sample(self, monkeypatch):
+        contigs = ["2L", "3L", *(f"scaffold{number}" for number in range(20))]
+        monkeypatch.setattr(vepyr, "_raw_cache_contigs", lambda _cache_root: contigs)
+
+        with pytest.raises(ValueError) as exc_info:
+            vepyr._validate_raw_cache_inputs(
+                str(ENSEMBL_CACHE_DIR),
+                cache_type="ensembl",
+                species="danio_rerio",
+                chroms=["not-present"],
+            )
+
+        message = str(exc_info.value)
+        assert "2L, 3L, scaffold0, scaffold1, scaffold2" in message
+        assert "more contigs omitted" in message
+
     def test_ambiguous_contigs_only_fail_when_requested(self, tmp_path):
         for name in ("1", "M", "MT"):
             contig_dir = tmp_path / name

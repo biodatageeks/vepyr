@@ -745,6 +745,56 @@ def _raw_cache_contigs(cache_root: str) -> list[str]:
     return sorted(contigs)
 
 
+_PRIMARY_CONTIG_RANK = {
+    **{str(number): number for number in range(1, 23)},
+    "X": 23,
+    "Y": 24,
+    "MT": 25,
+}
+_MAX_INLINE_RAW_CACHE_CONTIGS = 20
+
+
+def _natural_contig_sort_key(name: str) -> tuple[tuple[int, int | str], ...]:
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part.casefold())
+        for part in re.split(r"(\d+)", name)
+    )
+
+
+def _raw_cache_contig_summary(contigs: list[str]) -> str:
+    """Keep large missing-contig errors readable while surfacing primary names."""
+    if len(contigs) <= _MAX_INLINE_RAW_CACHE_CONTIGS:
+        return ", ".join(sorted(contigs, key=_natural_contig_sort_key)) or "(none)"
+
+    primary = sorted(
+        (
+            name
+            for name in contigs
+            if _normalise_contig_name(name) in _PRIMARY_CONTIG_RANK
+        ),
+        key=lambda name: _PRIMARY_CONTIG_RANK[_normalise_contig_name(name)],
+    )
+    primary_names = set(primary)
+    other_contigs = sorted(
+        (name for name in contigs if name not in primary_names),
+        key=_natural_contig_sort_key,
+    )
+    if primary:
+        primary_summary = ", ".join(primary)
+        if other_contigs:
+            plural = "s" if len(other_contigs) != 1 else ""
+            examples = ", ".join(other_contigs[:5])
+            return (
+                f"{primary_summary}; {len(other_contigs)} additional contig{plural} "
+                f"(examples: {examples})"
+            )
+        return primary_summary
+
+    sample = other_contigs[:10]
+    omitted = len(other_contigs) - len(sample)
+    return f"{', '.join(sample)}; {omitted} more contigs omitted"
+
+
 def _validate_raw_cache_inputs(
     cache_root: str, *, cache_type: str, species: str, chroms: list[str] | None
 ) -> list[str] | None:
@@ -776,7 +826,8 @@ def _validate_raw_cache_inputs(
     if missing:
         raise ValueError(
             f"Requested contig(s) not present in raw cache at {cache_root}: "
-            f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
+            f"{', '.join(missing)}. Raw cache contains {len(available)} contigs: "
+            f"{_raw_cache_contig_summary(available)}"
         )
     ambiguous = {
         identity: names
