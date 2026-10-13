@@ -1,5 +1,6 @@
 """Plugin-cache builder manifest resolution + annotate plugin_cache_root plumbing."""
 
+import logging
 import subprocess
 import threading
 from pathlib import Path
@@ -962,6 +963,7 @@ def test_filtered_build_allows_same_revision_in_recoverable_cache(
 
 def test_filtered_noop_build_restores_recoverable_cache(tmp_path):
     import json
+    import warnings
 
     src, _actual = _write_source(tmp_path)
     repo = _init_full_repo(tmp_path)
@@ -975,18 +977,23 @@ def test_filtered_noop_build_restores_recoverable_cache(tmp_path):
     manifest_path.write_text(json.dumps(manifest))
     (orphan / "chrZZ.parquet").unlink()
     (orphan / "chr2.parquet").write_bytes(b"existing shard")
+    (pc / ".overwrite-demo.4242-2").mkdir()
 
-    result = vepyr.build_plugin_cache(
-        "demo",
-        "v0.1.0",
-        source_path=str(src),
-        cache_dir=str(tmp_path / "cache"),
-        plugin_cache_root=str(pc),
-        plugins_repo=str(repo),
-        chroms=["2"],
-    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        result = vepyr.build_plugin_cache(
+            "demo",
+            "v0.1.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["2"],
+        )
 
     assert result == []
+    assert len(caught) == 1
+    assert "staging tree" in str(caught[0].message)
     assert not orphan.exists()
     assert (pc / "plugin" / "demo" / "chr2.parquet").read_bytes() == b"existing shard"
 
@@ -1018,7 +1025,7 @@ def test_filtered_build_allows_revision_change_when_recoverable_shard_is_missing
     native_build.assert_called_once()
 
 
-def test_plugin_cache_build_lock_serializes_threads(tmp_path):
+def test_plugin_cache_build_lock_serializes_threads(tmp_path, caplog):
     first_entered = threading.Event()
     second_entered = threading.Event()
     release_first = threading.Event()
@@ -1037,8 +1044,9 @@ def test_plugin_cache_build_lock_serializes_threads(tmp_path):
     first.start()
     try:
         assert first_entered.wait(timeout=5)
-        second.start()
-        assert not second_entered.wait(timeout=0.1)
+        with caplog.at_level(logging.INFO, logger="vepyr"):
+            second.start()
+            assert not second_entered.wait(timeout=0.1)
     finally:
         release_first.set()
         first.join(timeout=5)
@@ -1046,6 +1054,7 @@ def test_plugin_cache_build_lock_serializes_threads(tmp_path):
             second.join(timeout=5)
 
     assert second_entered.is_set()
+    assert "waiting for another build of plugin 'demo'" in caplog.text
 
 
 def test_noop_leftover_scan_wraps_permission_error(tmp_path, monkeypatch):

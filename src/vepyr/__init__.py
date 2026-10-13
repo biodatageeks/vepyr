@@ -1141,7 +1141,9 @@ def build_plugin_cache(
     keeps mutable refs auditable and prevents an incremental build from mixing
     chromosomes produced from different manifest revisions. Builds for the
     same plugin cache are serialized across processes so the revision check
-    and shard update observe one cache revision.
+    and shard update observe one cache revision. This coordination applies to
+    calls through this API on filesystems that honor advisory locks; external
+    writers are outside the lock.
     """
     mode = _normalize_verify_source(verify_source)
     with _resolve_plugin_manifest(plugin, version, plugins_repo=plugins_repo) as (
@@ -1205,6 +1207,7 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
                 lock_file.write(b"\0")
                 lock_file.flush()
             lock_file.seek(0)
+            waiting_logged = False
             while True:
                 try:
                     msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
@@ -1215,6 +1218,11 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
                         and getattr(exc, "winerror", None) != 33
                     ):
                         raise
+                    if not waiting_logged:
+                        log.info(
+                            "waiting for another build of plugin %r to finish", plugin
+                        )
+                        waiting_logged = True
                     time.sleep(0.05)
             try:
                 yield
@@ -1224,7 +1232,11 @@ def _plugin_cache_build_lock(plugin_cache_root: str, plugin: str) -> Iterator[No
         else:
             import fcntl
 
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                log.info("waiting for another build of plugin %r to finish", plugin)
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
             try:
                 yield
             finally:

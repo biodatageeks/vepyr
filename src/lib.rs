@@ -378,6 +378,7 @@ fn recover_set_aside_cache(
     plugin_dir: &Path,
     plugin_name: &str,
     expected_source_version: Option<&str>,
+    warn_leftovers: bool,
 ) -> PyResult<()> {
     let live = path_exists(plugin_dir)?;
     // `<name>.` then only digits and dashes (pid, timestamp, attempt): a plugin
@@ -432,25 +433,31 @@ fn recover_set_aside_cache(
             }
         }
     }
-    warn_about(
-        py,
-        stale_staging,
-        "was left behind by an overwrite that did not finish, or belongs to one in progress; \
-         it was not touched — delete it by hand once no overwrite is running",
-    )?;
+    if warn_leftovers {
+        warn_about(
+            py,
+            stale_staging,
+            "was left behind by an overwrite that did not finish, or belongs to one in progress; \
+             it was not touched — delete it by hand once no overwrite is running",
+        )?;
+    }
     if live {
         // The swap completed but its cleanup did not (killed in between), or
         // another overwrite is mid-swap right now: not ours to delete, but
         // not to be left unmentioned either — each holds a cache's worth.
-        return warn_about(
-            py,
-            candidates
-                .iter()
-                .map(|p| format!("a set-aside cache at {}", p.display()))
-                .collect(),
-            "was left behind by an interrupted overwrite, or belongs to one in progress; \
-             it was not touched — delete it by hand once no overwrite is running",
-        );
+        return if warn_leftovers {
+            warn_about(
+                py,
+                candidates
+                    .iter()
+                    .map(|p| format!("a set-aside cache at {}", p.display()))
+                    .collect(),
+                "was left behind by an interrupted overwrite, or belongs to one in progress; \
+                 it was not touched — delete it by hand once no overwrite is running",
+            )
+        } else {
+            Ok(())
+        };
     }
     match candidates.as_slice() {
         [] => Ok(()),
@@ -549,7 +556,7 @@ fn recover_plugin_cache(
 ) -> PyResult<()> {
     let root = Path::new(plugin_cache_root);
     let plugin_dir = root.join("plugin").join(plugin_name);
-    recover_set_aside_cache(py, root, &plugin_dir, plugin_name, source_version)
+    recover_set_aside_cache(py, root, &plugin_dir, plugin_name, source_version, false)
 }
 
 /// Whether `path` exists, reporting a stat error instead of reading it as
@@ -650,6 +657,7 @@ fn build_plugin_cache(
         } else {
             source_version.as_deref()
         },
+        true,
     )?;
     if is_full_build && !overwrite && path_exists(&plugin_dir.join("manifest.json"))? {
         return Err(pyo3::exceptions::PyValueError::new_err(format!(
