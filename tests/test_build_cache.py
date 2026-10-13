@@ -263,13 +263,45 @@ class TestBuildCacheValidation:
 
 
 class TestBuildCacheTargetedValidation:
+    def test_rejects_cache_type_that_disagrees_with_raw_cache(self, tmp_path):
+        output = tmp_path / "out"
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match="cache_type refseq.*Ensembl"):
+                vepyr.build_cache(
+                    115,
+                    str(output),
+                    cache_type="refseq",
+                    local_cache=str(ENSEMBL_CACHE_DIR),
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+        assert not output.exists()
+
+    def test_rejects_requested_contig_missing_from_raw_cache(self, tmp_path):
+        output = tmp_path / "out"
+        with patch("vepyr._build_cache") as mock_native:
+            with pytest.raises(ValueError, match=r"contig.*7.*22"):
+                vepyr.build_cache(
+                    115,
+                    str(output),
+                    cache_type="ensembl",
+                    local_cache=str(ENSEMBL_CACHE_DIR),
+                    chroms=["7"],
+                    show_progress=False,
+                )
+
+        mock_native.assert_not_called()
+        assert not output.exists()
+
     @pytest.mark.parametrize(
         "entity",
         ["variation", "transcript", "exon", "translation", "regulatory", "motif"],
     )
     def test_supported_entity_forwards_exact_identity(self, entity, tmp_path):
         local_cache = tmp_path / "raw"
-        local_cache.mkdir()
+        (local_cache / "21").mkdir(parents=True)
+        (local_cache / "21" / "1-1000000.gz").touch()
 
         with patch("vepyr._build_cache") as mock_native:
             mock_native.return_value = [(entity, [(f"/out/{entity}/chr1.parquet", 17)])]
@@ -432,7 +464,7 @@ class TestBuildCacheProgressCallback:
     def test_parquet_build_uses_top_level_cache_layout(self, mock_native, tmp_path):
         """Parquet writes directly to cache_dir/<release>_<assembly>_<cache_type>."""
         mock_native.return_value = []
-        local_cache = tmp_path / "homo_sapiens" / "115_GRCh38_merged"
+        local_cache = tmp_path / "homo_sapiens_merged" / "115_GRCh38"
         local_cache.mkdir(parents=True)
 
         vepyr.build_cache(

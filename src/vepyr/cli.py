@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import warnings
 from importlib.metadata import version as _package_version
 
 _EPILOG = """\
@@ -643,6 +644,10 @@ def _print_cache_summary(
 def _print_plugin_summary(
     args: argparse.Namespace, chroms: list[tuple[str, int, int, int]]
 ) -> None:
+    if not chroms:
+        print(
+            "No files written: existing plugin shards kept (use --overwrite to rebuild)."
+        )
     for chrom, rows, warm, cold in chroms:
         print(f"{chrom}: {rows:,} rows ({warm:,} warm, {cold:,} cold)")
     target = os.path.join(args.plugin_cache_root, "plugin", args.plugin)
@@ -680,7 +685,13 @@ def main(argv: list[str] | None = None) -> int:
             _print_cache_summary(args, files)
         elif args.command == "build-plugin-cache":
             kwargs = build_plugin_cache_kwargs(args)
-            chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", RuntimeWarning)
+                chroms = vepyr.build_plugin_cache(args.plugin, args.version, **kwargs)
+            for warning in caught:
+                if issubclass(warning.category, RuntimeWarning):
+                    message = " ".join(str(warning.message).splitlines())
+                    print(f"vepyr: warning: {message}", file=sys.stderr)
             _print_plugin_summary(args, chroms)
         else:
             vepyr.annotate(args.input_file, args.dir_cache, **annotate_kwargs(args))

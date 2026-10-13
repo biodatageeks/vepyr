@@ -581,6 +581,23 @@ fn build_plugin_cache(
         &plugin_dir,
         &manifest.plugin_name,
     )?;
+    if is_full_build && !overwrite && path_exists(&plugin_dir.join("manifest.json"))? {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+            "plugin cache already exists at {} (pass overwrite=True to rebuild all \
+             chromosomes, or chroms=[...] to add/rebuild specific ones)",
+            plugin_dir.join("manifest.json").display()
+        )));
+    }
+    // Check the source itself before the engine checks its tabix index. This
+    // preserves the useful source path in the error when both files are absent.
+    for source in &manifest.sources {
+        if !Path::new(&source.path).is_file() {
+            return Err(pyo3::exceptions::PyFileNotFoundError::new_err(format!(
+                "plugin source file not found: {}",
+                source.path
+            )));
+        }
+    }
     // A full overwrite must end with only freshly built chromosomes: `build_all`
     // carries chromosomes of an earlier build over when their provenance
     // matches, and a smaller/different chrom set would otherwise leave stale
@@ -612,12 +629,6 @@ fn build_plugin_cache(
                 ))
             })?;
             Some(staging)
-        } else if path_exists(&plugin_dir.join("manifest.json"))? {
-            return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "plugin cache already exists at {} (pass overwrite=True to rebuild all \
-                 chromosomes, or chroms=[...] to add/rebuild specific ones)",
-                plugin_dir.join("manifest.json").display()
-            )));
         } else {
             None
         }

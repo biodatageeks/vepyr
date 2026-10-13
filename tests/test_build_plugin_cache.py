@@ -298,6 +298,8 @@ def test_build_records_requested_ref_and_resolved_commit(monkeypatch, tmp_path):
 
 def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
     captured: dict = {}
+    cache = tmp_path / "cache"
+    cache.mkdir()
 
     def fake_annotate_vcf(vcf, cache_dir, output_path, options_json, *rest):
         captured["options_json"] = options_json
@@ -306,7 +308,7 @@ def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
     monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
     vepyr.annotate(
         "in.vcf",
-        "cache",
+        str(cache),
         reference_fasta=REFERENCE_FASTA,
         output_vcf=str(tmp_path / "out.vcf"),
         plugin_cache_root="/tmp/pc",
@@ -317,6 +319,8 @@ def test_plugin_cache_root_reaches_options(monkeypatch, tmp_path):
 
 def test_no_plugin_cache_root_omits_key(monkeypatch, tmp_path):
     captured: dict = {}
+    cache = tmp_path / "cache"
+    cache.mkdir()
 
     def fake_annotate_vcf(vcf, cache_dir, output_path, options_json, *rest):
         captured["options_json"] = options_json
@@ -325,7 +329,7 @@ def test_no_plugin_cache_root_omits_key(monkeypatch, tmp_path):
     monkeypatch.setattr(vepyr, "_annotate_vcf", fake_annotate_vcf)
     vepyr.annotate(
         "in.vcf",
-        "cache",
+        str(cache),
         reference_fasta=REFERENCE_FASTA,
         output_vcf=str(tmp_path / "out.vcf"),
         show_progress=False,
@@ -364,6 +368,8 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
     import pyarrow as pa
 
     root = tmp_path / "pc"
+    cache = tmp_path / "cache"
+    cache.mkdir()
     (root / "plugin" / "cadd").mkdir(parents=True)
     (root / "plugin" / "cadd" / "manifest.json").write_text(
         json.dumps(
@@ -385,7 +391,7 @@ def test_plugin_cache_root_reaches_streaming_options(monkeypatch, tmp_path):
     monkeypatch.setattr(vepyr, "_create_annotator", fake_create_annotator)
     lf = vepyr.annotate(
         "in.vcf",
-        "cache",
+        str(cache),
         reference_fasta=REFERENCE_FASTA,
         plugin_cache_root=str(root),
         show_progress=False,
@@ -404,6 +410,16 @@ def _build(repo, tmp_path, source_path, **kw):
     means path mapping succeeded and the build reached the join. A mapping error
     raises earlier, with its own message.
     """
+    paths = (
+        [source_path]
+        if isinstance(source_path, str)
+        else (list(source_path.values()) if isinstance(source_path, dict) else [])
+    )
+    for path in paths:
+        candidate = Path(path)
+        if candidate.is_absolute() and tmp_path in candidate.parents:
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            candidate.touch(exist_ok=True)
     return vepyr.build_plugin_cache(
         "demo",
         "v0.1.0",
@@ -460,8 +476,10 @@ def test_dict_requires_every_source_to_declare_a_part(tmp_path):
 def test_single_source_still_takes_a_plain_path(tmp_path):
     """Back-compat: the common case is unchanged."""
     repo = _init_full_repo(tmp_path)
+    src = tmp_path / "src.tsv.gz"
+    src.touch()
     with pytest.raises(Exception) as exc:
-        _build(repo, tmp_path, str(tmp_path / "src.tsv.gz"))
+        _build(repo, tmp_path, str(src))
     assert "variation shard" in str(exc.value)
 
 
@@ -521,6 +539,7 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     pc = tmp_path / "pc"
     (pc / "plugin" / "demo").mkdir(parents=True)
     (pc / "plugin" / "demo" / "manifest.json").write_text("{}")
+    (tmp_path / "src.tsv.gz").touch()
     with pytest.raises(Exception) as exc:
         vepyr.build_plugin_cache(
             "demo",
@@ -535,6 +554,50 @@ def test_filtered_build_not_blocked_by_overwrite_guard(tmp_path):
     msg = str(exc.value)
     assert "already exists" not in msg  # guard did NOT fire
     assert "variation shard" in msg  # it reached the build (no variation cache)
+
+
+def test_filtered_build_keeps_existing_shard_without_overwrite(tmp_path):
+    """A repeated filtered build is a no-op unless overwrite was requested."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    assert _build_real(repo, tmp_path, str(src)) == [("chr1", 1, 1, 0)]
+    shard = tmp_path / "pc" / "plugin" / "demo" / "chr1.parquet"
+    before = shard.stat()
+    contents = shard.read_bytes()
+
+    result = vepyr.build_plugin_cache(
+        "demo",
+        "v0.1.0",
+        source_path=str(src),
+        cache_dir=str(tmp_path / "cache"),
+        plugin_cache_root=str(tmp_path / "pc"),
+        plugins_repo=str(repo),
+        chroms=["1"],
+    )
+
+    after = shard.stat()
+    assert result == []
+    assert shard.read_bytes() == contents
+    assert after.st_mtime_ns == before.st_mtime_ns
+
+
+def test_filtered_build_refuses_to_mix_manifest_versions(tmp_path):
+    """A targeted build cannot add shards from another plugin manifest version."""
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    _build_real(repo, tmp_path, str(src))
+    subprocess.run(["git", "-C", str(repo), "tag", "v0.2.0"], check=True)
+
+    with pytest.raises(ValueError, match="contains existing shards.*v0.2.0"):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.2.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(tmp_path / "pc"),
+            plugins_repo=str(repo),
+            chroms=["2"],
+        )
 
 
 def _stale_cache(pc: Path) -> None:

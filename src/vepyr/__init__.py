@@ -7,6 +7,7 @@ import os
 import re
 import warnings
 from collections.abc import Callable, Iterator
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -673,6 +674,93 @@ def _resolve_raw_cache(
     return cache_root
 
 
+def _raw_cache_source_type(cache_root: str, species: str) -> str | None:
+    """Infer a raw cache's source type from its directory and ``info.txt``.
+
+    Official cache archives encode the type in the directory immediately above
+    the release directory. An unpacked cache moved out of that layout can still
+    be identified as Ensembl when its info file has no RefSeq/BAM markers. The
+    merged and RefSeq layouts both carry those markers, so an unrecognised path
+    cannot distinguish those two types.
+    """
+    root = Path(cache_root)
+    parent_type = {
+        species: "ensembl",
+        f"{species}_ensembl": "ensembl",
+        f"{species}_merged": "merged",
+        f"{species}_refseq": "refseq",
+    }
+    parent_source_type = parent_type.get(root.parent.name)
+    if parent_source_type in {"merged", "refseq"}:
+        return parent_source_type
+
+    info_path = root / "info.txt"
+    if not info_path.is_file():
+        return None
+    info: dict[str, str] = {}
+    try:
+        for line in info_path.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines():
+            key, separator, value = line.partition("\t")
+            if separator:
+                info[key] = value
+    except OSError:
+        return None
+
+    if "bam" in info or "source_refseq" in info:
+        return None
+    if parent_source_type == "ensembl":
+        return "ensembl"
+    return "ensembl" if info.get("species", species) == species else None
+
+
+def _normalise_contig_name(name: str) -> str:
+    value = name.strip()
+    if value[:3].lower() == "chr":
+        value = value[3:]
+    return value.upper()
+
+
+def _raw_cache_contigs(cache_root: str) -> list[str]:
+    """Return contig directories with raw cache files beneath ``cache_root``."""
+    root = Path(cache_root)
+    contigs = []
+    try:
+        for path in root.iterdir():
+            if path.is_dir() and any(path.glob("*.gz")):
+                contigs.append(path.name)
+    except OSError:
+        return []
+    return sorted(contigs)
+
+
+def _validate_raw_cache_inputs(
+    cache_root: str, *, cache_type: str, species: str, chroms: list[str] | None
+) -> None:
+    actual_type = _raw_cache_source_type(cache_root, species)
+    if actual_type is not None and actual_type != cache_type:
+        raise ValueError(
+            f"--cache_type {cache_type}, but the raw cache at {cache_root} is an "
+            f"{actual_type.title()} cache"
+        )
+
+    if not chroms:
+        return
+    available = _raw_cache_contigs(cache_root)
+    available_names = {_normalise_contig_name(name) for name in available}
+    missing = [
+        str(chrom)
+        for chrom in chroms
+        if _normalise_contig_name(str(chrom)) not in available_names
+    ]
+    if missing:
+        raise ValueError(
+            f"Requested contig(s) not present in raw cache at {cache_root}: "
+            f"{', '.join(missing)}. Available contigs: {', '.join(available) or '(none)'}"
+        )
+
+
 _DEFAULT_ASSEMBLY = "GRCh38"
 
 
@@ -774,6 +862,9 @@ def build_cache(
         local_cache=local_cache,
         download_retries=download_retries,
         show_progress=show_progress,
+    )
+    _validate_raw_cache_inputs(
+        cache_root, cache_type=cache_type, species=species, chroms=chroms
     )
 
     # Output layout (parquet): <version_dir>/<entity>.parquet/chr1.parquet
@@ -1018,16 +1109,28 @@ def build_plugin_cache(
         manifest_path,
         resolved_commit,
     ):
-        result, sources_json = _build_plugin_cache(
-            manifest_path,
-            source_path,
-            cache_dir,
+        source_version = f"{version}@{resolved_commit}"
+        requested_chroms = _plugin_chroms_to_build(
             plugin_cache_root,
+            plugin,
             chroms,
-            overwrite,
-            mode,
-            f"{version}@{resolved_commit}",
+            source_version=source_version,
+            overwrite=overwrite,
         )
+        if chroms and requested_chroms == []:
+            _warn_about_plugin_cache_leftovers(plugin_cache_root, plugin)
+            result, sources_json = [], "[]"
+        else:
+            result, sources_json = _build_plugin_cache(
+                manifest_path,
+                source_path,
+                cache_dir,
+                plugin_cache_root,
+                requested_chroms,
+                overwrite,
+                mode,
+                source_version,
+            )
     if mode == "warn":
         import json
 
@@ -1055,7 +1158,92 @@ def _warn_on_source_mismatch(plugin: str, sources: list[dict]) -> None:
             f"{found}, which differs from the manifest's {declared} "
             f"(verify_source='warn'); the cache manifest records the digest found"
         )
-        log.warning(message)
+        warnings.warn(message, RuntimeWarning, stacklevel=3)
+
+
+def _plugin_chroms_to_build(
+    plugin_cache_root: str,
+    plugin: str,
+    chroms: list[str] | None,
+    *,
+    source_version: str,
+    overwrite: bool,
+) -> list[str] | None:
+    """Keep existing filtered shards unless the caller explicitly overwrites."""
+    if overwrite or not chroms:
+        return chroms
+
+    import json
+
+    plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
+    manifest_path = plugin_dir / "manifest.json"
+    if not manifest_path.is_file():
+        return chroms
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"Could not read existing plugin cache manifest {manifest_path}: {exc}"
+        ) from exc
+
+    existing: dict[str, str] = {}
+    for entry in manifest.get("chroms", []):
+        if not isinstance(entry, dict) or not isinstance(entry.get("chrom"), str):
+            continue
+        filename = entry.get("file") or entry.get("dataset")
+        if not filename:
+            filename = f"{entry['chrom']}.parquet"
+        if (plugin_dir / filename).is_file():
+            existing[_normalise_contig_name(entry["chrom"])] = entry["chrom"]
+
+    if not existing:
+        return chroms
+
+    cached_version = manifest.get("cache_source_version")
+    if cached_version != source_version:
+        raise ValueError(
+            f"Plugin cache at {plugin_dir} contains existing shards from "
+            f"{cached_version or 'an unversioned manifest'}, but this build uses "
+            f"{source_version}; pass overwrite=True for a full rebuild"
+        )
+
+    missing = [
+        chrom for chrom in chroms if _normalise_contig_name(str(chrom)) not in existing
+    ]
+    return missing
+
+
+def _warn_about_plugin_cache_leftovers(plugin_cache_root: str, plugin: str) -> None:
+    """Keep reporting interrupted overwrite artifacts when a build is skipped."""
+    root = Path(plugin_cache_root)
+    prefixes = {
+        f".previous-{plugin}.": "a set-aside cache",
+        f".overwrite-{plugin}.": "a staging tree",
+    }
+    warnings_to_emit: list[str] = []
+    try:
+        candidates = list(root.iterdir())
+    except FileNotFoundError:
+        return
+    for path in candidates:
+        name = path.name
+        for prefix, description in prefixes.items():
+            suffix = name.removeprefix(prefix)
+            if (
+                suffix == name
+                or not suffix
+                or any(character not in "0123456789-" for character in suffix)
+            ):
+                continue
+            if (
+                description == "a set-aside cache"
+                and not (path / "manifest.json").is_file()
+            ):
+                continue
+            warnings_to_emit.append(
+                f"overwrite: {description} at {path} was left behind"
+            )
+    for message in warnings_to_emit:
         warnings.warn(message, RuntimeWarning, stacklevel=3)
 
 
@@ -1348,6 +1536,9 @@ def annotate(
     ... )
     """
     import json
+
+    if not os.path.isdir(cache_dir):
+        raise FileNotFoundError(f"Cache directory does not exist: {cache_dir}")
 
     if fields == "core":
         selected_fields = list(_CORE_CSQ_FIELDS)
