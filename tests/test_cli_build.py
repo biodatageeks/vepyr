@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
@@ -124,7 +125,8 @@ def test_build_cache_main_calls_the_api_and_prints_the_next_step(monkeypatch, ca
     out = capsys.readouterr().out
     assert "variation" in out and "15" in out
     assert "transcript" in out
-    assert "--dir_cache /c/116_GRCh38_merged" in out
+    # The CLI joins with os.path.join, so Windows prints /c\\116_GRCh38_merged.
+    assert f"--dir_cache {os.path.join('/c', '116_GRCh38_merged')}" in out
 
 
 @pytest.mark.parametrize("error", [ValueError, FileNotFoundError, RuntimeError])
@@ -307,7 +309,7 @@ def test_build_cache_reports_when_nothing_was_written(monkeypatch, capsys):
     assert main([*CACHE, "--assembly", "GRCh37"]) == 0
     out = capsys.readouterr().out
     assert "No files written" in out and "--overwrite" in out
-    assert "Cache ready: /c/116_GRCh37_merged" in out
+    assert f"Cache ready: {os.path.join('/c', '116_GRCh37_merged')}" in out
 
 
 def test_build_plugin_cache_bare_path_may_contain_equals():
