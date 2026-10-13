@@ -476,3 +476,42 @@ def test_the_refusal_names_both_repositories(hub, tmp_path):
     message = str(excinfo.value)
     assert "vepyr_116_GRCh38_plugin_clinvar" in message
     assert "vepyr_115_GRCh38_plugin_clinvar" in message
+
+
+def _populate(target, files, commit=None):
+    """Files as `hf download` (with commit) or build_cache (without) leaves them."""
+    for name in files:
+        path = target / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("x")
+        if commit is not None:
+            meta = target / ".cache" / "huggingface" / "download" / f"{name}.metadata"
+            meta.parent.mkdir(parents=True, exist_ok=True)
+            meta.write_text(f"{commit}\netag\n1791862013.1\n")
+
+
+def test_an_unrecorded_cache_from_another_source_is_refused(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    _populate(tmp_path / "116_GRCh38_merged", ["variation/chr1.parquet"])
+    with pytest.raises(ValueError, match="revision is unknown"):
+        vepyr.download_cache(116, str(tmp_path), cache_type="merged", chroms=["22"])
+    assert fake.snapshots == []
+
+
+def test_an_hf_download_at_another_commit_is_refused(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    _populate(tmp_path / "116_GRCh38_merged", ["variation/chr1.parquet"], "a" * 40)
+    with pytest.raises(ValueError, match="a" * 40):
+        vepyr.download_cache(116, str(tmp_path), cache_type="merged", chroms=["22"])
+    assert fake.snapshots == []
+
+
+def test_an_hf_download_at_the_same_commit_is_adopted(hub, tmp_path):
+    fake = hub(CORE_FILES)
+    target = tmp_path / "116_GRCh38_merged"
+    _populate(target, ["variation/chr1.parquet", "chr_synonyms.txt"], MERGED_PIN)
+    vepyr.download_cache(
+        116, str(tmp_path), cache_type="merged", chroms=["22"], show_progress=False
+    )
+    assert len(fake.snapshots) == 1
+    assert _download._recorded(str(target))["commit"] == MERGED_PIN

@@ -176,6 +176,29 @@ def _recorded(target: str) -> dict | None:
         ) from exc
 
 
+def _unrecorded_commits(target: str) -> set[str | None]:
+    """Commits of the files in an unrecorded ``target``; ``None`` if unknown.
+
+    ``hf download`` keeps each file's commit on the first line of
+    ``.cache/huggingface/download/<file>.metadata``; files written any other
+    way (``build_cache``, a copy) have none. Empty for an empty directory.
+    """
+    commits: set[str | None] = set()
+    if not os.path.isdir(target):
+        return commits
+    meta_root = os.path.join(target, ".cache", "huggingface", "download")
+    for root, dirs, files in os.walk(target):
+        dirs[:] = [d for d in dirs if not (root == target and d == ".cache")]
+        for name in files:
+            rel = os.path.relpath(os.path.join(root, name), target)
+            try:
+                with open(os.path.join(meta_root, rel + ".metadata")) as f:
+                    commits.add(f.readline().strip() or None)
+            except FileNotFoundError:
+                commits.add(None)
+    return commits
+
+
 def _first_missing(path: str) -> str | None:
     """The outermost directory of ``path`` that does not exist yet, if any."""
     missing = None
@@ -209,6 +232,19 @@ def _single_revision(target: str, repo_id: str, commit: str) -> Iterator[None]:
     """
     wanted = {"repo_id": repo_id, "commit": commit}
     held = _recorded(target)
+    if held is None:
+        found = _unrecorded_commits(target)
+        if found - {commit}:
+            known = sorted(c for c in found if c is not None and c != commit)
+            what = f"revision {', '.join(known)}" if known else ""
+            if None in found:
+                what += (" and " if what else "") + "files whose revision is unknown"
+            raise ValueError(
+                f"{target} already contains {what} (e.g. from build_cache() or "
+                f"hf download); downloading {repo_id} at revision {commit} into "
+                "it could mix revisions. Use an empty directory, or remove this "
+                "one first."
+            )
     if held is not None and held != wanted:
         raise ValueError(
             f"{target} already holds {held.get('repo_id')} at revision "
