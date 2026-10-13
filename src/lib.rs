@@ -567,6 +567,14 @@ fn recover_plugin_cache(
     recover_set_aside_cache(py, root, &plugin_dir, plugin_name, source_version, false)
 }
 
+/// Parse a plugin source manifest and return the output cache name it declares.
+#[pyfunction]
+fn plugin_manifest_name(manifest_path: &str) -> PyResult<String> {
+    let manifest = SourceManifest::load(Path::new(manifest_path))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("load manifest: {e}")))?;
+    Ok(manifest.plugin_name)
+}
+
 /// Whether `path` exists, reporting a stat error instead of reading it as
 /// absence — an unreadable cache must not look like a missing one.
 fn path_exists(path: &Path) -> PyResult<bool> {
@@ -891,6 +899,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_cache, m)?)?;
     m.add_function(wrap_pyfunction!(build_plugin_cache, m)?)?;
     m.add_function(wrap_pyfunction!(recover_plugin_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(plugin_manifest_name, m)?)?;
     m.add_function(wrap_pyfunction!(create_annotator, m)?)?;
     m.add_function(wrap_pyfunction!(annotation_header_lines, m)?)?;
     m.add_function(wrap_pyfunction!(vcf_contigs, m)?)?;

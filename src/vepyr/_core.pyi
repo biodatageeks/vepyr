@@ -58,6 +58,10 @@ def recover_plugin_cache(
     """Restore a plugin cache set aside by an interrupted overwrite."""
     ...
 
+def plugin_manifest_name(manifest_path: str) -> str:
+    """Parse a plugin source manifest and return its declared output name."""
+    ...
+
 def annotate_vcf(
     vcf_path: str,
     cache_dir: str,

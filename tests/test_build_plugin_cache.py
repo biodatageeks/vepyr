@@ -809,6 +809,54 @@ def test_filtered_build_wraps_plugin_directory_probe_permission_error(
         )
 
 
+def test_build_rejects_manifest_name_different_from_requested_plugin(
+    tmp_path, monkeypatch
+):
+    src, _actual = _write_source(tmp_path)
+    repo = _init_full_repo(tmp_path)
+    manifest_path = repo / "plugins" / "demo" / "demo.source.toml"
+    manifest_path.write_text(
+        manifest_path.read_text().replace(
+            'plugin_name = "demo"', 'plugin_name = "other"', 1
+        )
+    )
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "commit",
+            "-qm",
+            "mismatched-name",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(["git", "tag", "v0.2.0"], cwd=repo, check=True)
+    native_build = Mock()
+    monkeypatch.setattr(vepyr, "_build_plugin_cache", native_build)
+    pc = tmp_path / "pc"
+
+    with pytest.raises(
+        ValueError, match="declares plugin_name 'other'.*requested plugin is 'demo'"
+    ):
+        vepyr.build_plugin_cache(
+            "demo",
+            "v0.2.0",
+            source_path=str(src),
+            cache_dir=str(tmp_path / "cache"),
+            plugin_cache_root=str(pc),
+            plugins_repo=str(repo),
+            chroms=["1"],
+        )
+
+    native_build.assert_not_called()
+    assert not (pc / "plugin").exists()
+
+
 def test_filtered_overwrite_rebuilds_requested_shards_at_same_revision(tmp_path):
     import json
 

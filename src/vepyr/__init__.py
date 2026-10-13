@@ -22,6 +22,7 @@ from vepyr._core import build_cache as _build_cache
 from vepyr._core import build_plugin_cache as _build_plugin_cache
 from vepyr._core import cache_contig_identity_json as _cache_contig_identity_json
 from vepyr._core import create_annotator as _create_annotator
+from vepyr._core import plugin_manifest_name as _plugin_manifest_name
 from vepyr._core import recover_plugin_cache as _recover_plugin_cache
 from vepyr._core import supported_vep_targets_json as _supported_vep_targets_json
 from vepyr._core import vcf_contigs as _vcf_contigs
@@ -1150,6 +1151,12 @@ def build_plugin_cache(
         manifest_path,
         resolved_commit,
     ):
+        manifest_plugin = _plugin_manifest_name(manifest_path)
+        if manifest_plugin != plugin:
+            raise ValueError(
+                f"Plugin manifest at {manifest_path} declares plugin_name "
+                f"{manifest_plugin!r}, but the requested plugin is {plugin!r}"
+            )
         source_version = f"{version}@{resolved_commit}"
         with _plugin_cache_build_lock(plugin_cache_root, plugin):
             plugin_dir = Path(plugin_cache_root) / "plugin" / plugin
