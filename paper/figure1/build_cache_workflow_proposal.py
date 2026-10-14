@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the A1–A4 cache workflow proposal with the audited Performance panel.
+"""Build Figure 1 with cache, Performance and analytical-workflow panels.
 
 Native SVG / Drawio diagrams; PNG is an optional Chrome render. Lookup rows
 are illustrative. The page-count comparison is inherited from Marek's figure.
@@ -16,12 +16,14 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import build_figure as fig
+import build_analytical_workflow
 import build_performance
 import build_cache_simplified_proposal as previous
 
 
 HERE = Path(__file__).resolve().parent
 LOOKUP_WIDTH, LOOKUP_HEIGHT = 1450, 740
+FULL_HEIGHT = 2720
 INK, GREY, LIGHT = "#111111", "#555555", "#e6e6e6"
 
 
@@ -344,13 +346,31 @@ def full_figure(performance_uri: str) -> fig.Scene:
         820 * build_performance.HEIGHT / build_performance.WIDTH,
         performance_uri,
     )
+    s.edge(40, 2200, 2360, 2200, arrow=False, color=LIGHT, width=1)
+    s.elements.extend(
+        previous.translated(build_analytical_workflow.panel(), 40, 2230).elements
+    )
     return s
 
 
 def save(s: fig.Scene, path: Path, width: int, height: int, title: str) -> None:
-    fig.validate_scene(s)
+    # Each export has its own canvas; the legacy renderer assumes 2400 x 2200.
+    ids = {e.id for e in s.elements}
+    if len(ids) != len(s.elements):
+        raise ValueError("Duplicate diagram cell ID")
     for e in s.elements:
-        if not isinstance(e, fig.Edge):
+        if isinstance(e, fig.Edge):
+            for endpoint in (e.source, e.target):
+                if endpoint is not None and endpoint.id not in ids:
+                    raise ValueError(f"Dangling connector: {e.id}")
+            points = ((e.x1, e.y1), *e.via, (e.x2, e.y2))
+            if any(x < 0 or y < 0 or x > width or y > height for x, y in points):
+                raise ValueError(f"Connector exceeds export canvas: {e.id}")
+            if e.arrow and any(
+                a[0] != b[0] and a[1] != b[1] for a, b in zip(points, points[1:])
+            ):
+                raise ValueError(f"Dataflow arrow is not orthogonal: {e.id}")
+        else:
             if e.x < 0 or e.y < 0 or e.x + e.width > width or e.y + e.height > height:
                 raise ValueError(f"Element exceeds export canvas: {e.id}")
     root = ET.fromstring(fig.svg_preview(s, height=height))
@@ -365,7 +385,11 @@ def save(s: fig.Scene, path: Path, width: int, height: int, title: str) -> None:
         "Lookup example rows and payload values are illustrative. The anatomy chart "
         "reports 920 versus 220 position pages for one buffer from Marek's source. "
         "Warm and cold are on-disk frequency tiers. Panel C uses audited merged-cache "
-        "whole-genome timings from master for VEP and vepyr on Linux and macOS."
+        "whole-genome timings from master for VEP and vepyr on Linux and macOS. "
+        "Panel D combines annotation and filtering with a GIAB segmental-duplication "
+        "BED read directly by URL, interval overlap, and distinct variant counts per "
+        "gene: RIMBP3C 6 and PRODH 4. The counts are from Supplementary Data. "
+        "The BED URL is " + build_analytical_workflow.SEGDUP_URL
     )
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     path.with_suffix(".svg").write_text(ET.tostring(root, encoding="unicode") + "\n")
@@ -450,10 +474,17 @@ def main() -> None:
             "A4 — Cache lookup",
         ),
         (
+            "d-beyond-filter-vep-proposal",
+            build_analytical_workflow.panel(),
+            build_analytical_workflow.WIDTH,
+            build_analytical_workflow.HEIGHT,
+            "D — Beyond filter_vep",
+        ),
+        (
             "figure1-cache-workflow-proposal",
             full,
             2400,
-            2200,
+            FULL_HEIGHT,
             "Figure 1 — Cache workflow proposal",
         ),
     )
