@@ -1,0 +1,7 @@
+step	tier	variants
+All variants (GIAB v4.2.1, chr1-22)	input	4096123
+Coding or splice-site, MANE Select	tier 1	20725
+pLoF, MANE Select	tier 1	158
+not in last exon, reference allele not minor	tier 1	94
+SpliceAI-supported, not ClinVar benign	tier 2	68
+outside segdups / low mappability, 50-bp rule	tier 3	57

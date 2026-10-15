@@ -1,0 +1,29 @@
+\subsection*{Three tiers of annotation in a whole genome}
+% Suggested heading; numbers below are from the analysis outputs.
+
+To show how annotation that changes at different rates is combined in one
+analysis, we annotated the GIAB HG002 benchmark call set (\NVariants{}
+variants, chromosomes 1--22) with the Ensembl~116 core cache and four plugin
+caches (ClinVar, SpliceAI, AlphaMissense and CADD) in
+\AnnotateMin\,min on a laptop, and joined the resulting frame with
+\NRemoteSources{} sources that were read directly from their URLs by
+polars-bio and Polars: gnomAD gene constraint, ClinGen gene--disease
+validity, Ensembl gene models, GIAB genome stratifications and benchmark
+regions, and the benchmark VCFs of both parents (Figure~1D; Supplementary
+Section~X). Of \NPlof{} variants with a predicted loss-of-function (pLoF)
+consequence in a MANE Select transcript, filters drawn from the three
+tiers---escape from nonsense-mediated decay and near-fixed alleles (core
+cache), SpliceAI and ClinVar (plugins), and segmental duplications, low
+mappability and the 50-bp rule (ad hoc sources)---retained \NHc{}
+high-confidence pLoF variants in \NHcGenes{} genes. pLoF variants were
+depleted from LoF-intolerant genes (\LoeufAllPlofPct\% vs \LoeufSynPct\% of
+rare synonymous variants in the two lowest LOEUF deciles,
+$p=\LoeufAllPlofP$), the signature of purifying selection in a single
+genome. The only pathogenic ClinVar variant with review criteria was the
+Ashkenazi founder allele \textit{\PlpGene} \PlpHgvsp{}, heterozygous and
+inherited from the \PlpParent{}, with a frequency of \PlpAsj\% in Ashkenazi
+Jewish gnomAD samples. Interval coverage showed that \NClinGenLtNinety{} of
+\NClinGenGenes{} ClinGen genes have less than 90\% of their coding sequence
+within the benchmark regions, including \textit{CBS}, which lies in a
+falsely duplicated region of GRCh38. The ad hoc sources were read in
+\RemoteSec\,s, and the analysis after annotation took \AnalyzeMin\,min.

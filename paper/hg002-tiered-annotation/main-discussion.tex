@@ -1,0 +1,13 @@
+The HG002 example separates annotation by how often it changes rather than
+by where it comes from. Core annotation follows Ensembl releases and plugin
+data follow their providers; both are compiled once into indexed Parquet
+caches, so a weekly ClinVar release rebuilds a 0.1\,GiB plugin cache, not
+the core cache. Data that a particular question needs---gene constraint,
+curated gene--disease relationships, genome stratifications or the genotypes
+of relatives---need no cache at all: they are read from their URLs when the
+query runs and combined with the annotation through joins and interval
+operations. In a VEP-based workflow, each such source is configured as a
+custom annotation or plugin before annotation, or processed afterwards from
+an annotated VCF with separate tools. Keeping the third tier outside the
+annotation engine lets analyses change without changing, or re-running,
+the annotation.

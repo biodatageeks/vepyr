@@ -1,0 +1,71 @@
+category	decile	n	total	fraction
+Rare synonymous (reference)	0	38	288	0.13194444444444445
+Rare synonymous (reference)	1	33	288	0.11458333333333333
+Rare synonymous (reference)	2	39	288	0.13541666666666666
+Rare synonymous (reference)	3	31	288	0.1076388888888889
+Rare synonymous (reference)	4	32	288	0.1111111111111111
+Rare synonymous (reference)	5	26	288	0.09027777777777778
+Rare synonymous (reference)	6	28	288	0.09722222222222222
+Rare synonymous (reference)	7	17	288	0.059027777777777776
+Rare synonymous (reference)	8	25	288	0.08680555555555555
+Rare synonymous (reference)	9	19	288	0.06597222222222222
+Rare missense, AlphaMissense likely benign	0	32	351	0.09116809116809117
+Rare missense, AlphaMissense likely benign	1	23	351	0.06552706552706553
+Rare missense, AlphaMissense likely benign	2	38	351	0.10826210826210826
+Rare missense, AlphaMissense likely benign	3	39	351	0.1111111111111111
+Rare missense, AlphaMissense likely benign	4	41	351	0.1168091168091168
+Rare missense, AlphaMissense likely benign	5	41	351	0.1168091168091168
+Rare missense, AlphaMissense likely benign	6	38	351	0.10826210826210826
+Rare missense, AlphaMissense likely benign	7	24	351	0.06837606837606838
+Rare missense, AlphaMissense likely benign	8	43	351	0.1225071225071225
+Rare missense, AlphaMissense likely benign	9	32	351	0.09116809116809117
+Rare missense, AlphaMissense likely pathogenic	0	3	47	0.06382978723404255
+Rare missense, AlphaMissense likely pathogenic	1	6	47	0.1276595744680851
+Rare missense, AlphaMissense likely pathogenic	2	9	47	0.19148936170212766
+Rare missense, AlphaMissense likely pathogenic	3	3	47	0.06382978723404255
+Rare missense, AlphaMissense likely pathogenic	4	1	47	0.02127659574468085
+Rare missense, AlphaMissense likely pathogenic	5	7	47	0.14893617021276595
+Rare missense, AlphaMissense likely pathogenic	6	4	47	0.0851063829787234
+Rare missense, AlphaMissense likely pathogenic	7	3	47	0.06382978723404255
+Rare missense, AlphaMissense likely pathogenic	8	4	47	0.0851063829787234
+Rare missense, AlphaMissense likely pathogenic	9	7	47	0.14893617021276595
+All pLoF, MANE Select	0	8	126	0.06349206349206349
+All pLoF, MANE Select	1	4	126	0.031746031746031744
+All pLoF, MANE Select	2	5	126	0.03968253968253968
+All pLoF, MANE Select	3	9	126	0.07142857142857142
+All pLoF, MANE Select	4	13	126	0.10317460317460317
+All pLoF, MANE Select	5	10	126	0.07936507936507936
+All pLoF, MANE Select	6	17	126	0.1349206349206349
+All pLoF, MANE Select	7	18	126	0.14285714285714285
+All pLoF, MANE Select	8	18	126	0.14285714285714285
+All pLoF, MANE Select	9	24	126	0.19047619047619047
+Common HC pLoF (AF >= 1%)	0	4	36	0.1111111111111111
+Common HC pLoF (AF >= 1%)	1	1	36	0.027777777777777776
+Common HC pLoF (AF >= 1%)	2	3	36	0.08333333333333333
+Common HC pLoF (AF >= 1%)	3	1	36	0.027777777777777776
+Common HC pLoF (AF >= 1%)	4	5	36	0.1388888888888889
+Common HC pLoF (AF >= 1%)	5	3	36	0.08333333333333333
+Common HC pLoF (AF >= 1%)	6	4	36	0.1111111111111111
+Common HC pLoF (AF >= 1%)	7	6	36	0.16666666666666666
+Common HC pLoF (AF >= 1%)	8	6	36	0.16666666666666666
+Common HC pLoF (AF >= 1%)	9	3	36	0.08333333333333333
+Rare HC pLoF (AF < 1%)	0	0	9	0.0
+Rare HC pLoF (AF < 1%)	1	0	9	0.0
+Rare HC pLoF (AF < 1%)	2	0	9	0.0
+Rare HC pLoF (AF < 1%)	3	4	9	0.4444444444444444
+Rare HC pLoF (AF < 1%)	4	1	9	0.1111111111111111
+Rare HC pLoF (AF < 1%)	5	0	9	0.0
+Rare HC pLoF (AF < 1%)	6	1	9	0.1111111111111111
+Rare HC pLoF (AF < 1%)	7	2	9	0.2222222222222222
+Rare HC pLoF (AF < 1%)	8	0	9	0.0
+Rare HC pLoF (AF < 1%)	9	1	9	0.1111111111111111
+Flagged pLoF	0	4	80	0.05
+Flagged pLoF	1	3	80	0.0375
+Flagged pLoF	2	2	80	0.025
+Flagged pLoF	3	4	80	0.05
+Flagged pLoF	4	7	80	0.0875
+Flagged pLoF	5	7	80	0.0875
+Flagged pLoF	6	12	80	0.15
+Flagged pLoF	7	10	80	0.125
+Flagged pLoF	8	12	80	0.15
+Flagged pLoF	9	19	80	0.2375

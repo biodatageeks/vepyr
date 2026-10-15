@@ -1,0 +1,15 @@
+{
+  "variants": 4096123,
+  "seconds": 254.8,
+  "workers": 8,
+  "plugins": [
+    "clinvar",
+    "alphamissense",
+    "spliceai",
+    "cadd"
+  ],
+  "vepyr": "0.10.0",
+  "polars": "1.44.2",
+  "machine": "macOS-15.5-arm64-arm-64bit",
+  "cpu": "arm"
+}

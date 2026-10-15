@@ -1,0 +1,105 @@
+\paragraph{Why HG002.} HG002 (NA24385) is the son in the Ashkenazi Jewish
+trio of the Genome in a Bottle consortium, a Personal Genome Project
+participant with open consent and the most thoroughly characterised human
+genome~\cite{zook2016,wagner2022}. Three properties make it a good test bed
+for an annotation paper: a curated benchmark call set
+(\NVariants{} small variants on chromosomes 1--22 after decomposition) with
+explicit benchmark regions; matching benchmark VCFs for both parents
+(HG003, HG004), which allow inheritance to be checked; and a founder
+population, in which global allele frequencies can be misleading. The
+question we ask is the classic one of MacArthur et
+al.~\cite{macarthur2012}: \emph{how many genes does a healthy person knock
+out, which of these calls are real, and what does this genome carry that a
+clinician would care about?} Each step of the answer needs a different kind
+of annotation, which is the point of the vepyr design.
+
+\paragraph{1. A healthy genome carries tens of real LoF variants, and many
+more false ones.} The core annotation finds \NPlof{} variants with a pLoF
+consequence (stop-gained, frameshift, canonical splice site) in a MANE
+Select transcript~\cite{morales2022}. Filters in the spirit of
+LOFTEE~\cite{karczewski2020} reduce them to \NHc{} high-confidence pLoF
+variants in \NHcGenes{} genes, \NHcHom{} of them homozygous, in line with
+earlier estimates of about a hundred LoF variants and about twenty
+homozygous LoF genes per genome~\cite{macarthur2012}, given that our counts
+are restricted to MANE transcripts and benchmark regions. The removed calls
+form recognisable classes, and each class comes from a different tier:
+\begin{itemize}
+\item \emph{Tier 1 (core cache).} \FlagLastExon{} premature stops in the
+  last exon, which escape nonsense-mediated decay. \FlagRefMinor{} calls
+  where the ``LoF'' allele is near-fixed in gnomAD: pairs of nearby
+  frameshifts in \textit{SON} and \textit{SLAIN1} that restore the reading
+  frame (GRCh38 carries a rare sequence there), and \textit{FMO2}
+  p.Gln472Ter, the \textit{FMO2*2} allele that truncates FMO2 in most
+  humans~\cite{dolphin1998}---a real, but species-wide, loss.
+\item \emph{Tier 2 (plugins).} \FlagClinvarBenign{} variants classified
+  benign in ClinVar, including \textit{LPL} p.Ser474Ter (S447X), a stop-gain
+  associated with lower triglycerides~\cite{rip2006}, and the
+  \textit{CYP2D6*4} splice-acceptor allele, a genuine loss of function in a
+  pharmacogene that ClinVar classifies as a drug-response allele.
+  \FlagSpliceai{} canonical splice-site variants without SpliceAI
+  support~\cite{jaganathan2019}.
+\item \emph{Tier 3 (ad hoc).} \FlagSegdup{} calls in segmental duplications
+  (olfactory receptors, \textit{NBPF}, \textit{GOLGA8}, \textit{NPIPB},
+  \textit{CYP2D6}) and \FlagLowmap{} in low-mappability regions, from GIAB
+  stratifications~\cite{dwarshuis2024}; \FlagFiftybp{} premature stops within
+  50\,bp of the last exon junction, from Ensembl exon coordinates.
+\end{itemize}
+
+\paragraph{2. Purifying selection is visible in one genome.} Joining the
+frame with gnomAD v4.1 gene constraint (read from the gnomAD bucket by URL)
+shows that only \LoeufAllPlofPct\% of HG002 pLoF variants fall in the 20\%
+most LoF-intolerant genes, against \LoeufSynPct\% of rare synonymous variants
+($p=\LoeufAllPlofP$), and none of the rare high-confidence ones does. A
+healthy individual carries LoF variants, but in genes that tolerate them.
+The rare synonymous reference matters: constrained genes are longer, so a
+naive uniform expectation (20\%) would understate the depletion.
+
+\paragraph{3. One clinically classified variant: an Ashkenazi founder
+allele.} The only ClinVar pathogenic or likely pathogenic variant with
+review criteria is \textit{F11} \PlpHgvsp{}, the factor~XI ``type~II''
+allele (Glu117Ter in legacy numbering), one of the two founder mutations
+that account for most factor~XI deficiency in Ashkenazi
+Jews~\cite{asakai1991}. HG002 is heterozygous; the allele was transmitted
+by the \PlpParent{}; its gnomAD frequency is \PlpAf\% overall but \PlpAsj\%
+in Ashkenazi Jewish samples (\PlpFold-fold). The same founder effect shows
+across the rare pLoF variants: \NRareAsjCommon{} of the \NHcRare{} that are
+rare in gnomAD overall exceed 1\% in Ashkenazi Jewish samples, so
+``rare'' depends on the reference population. Population-specific
+frequencies come from the core cache; ClinVar from a plugin cache; the
+parental genotypes from the parents' VCFs streamed from S3.
+
+\paragraph{4. The trio resolves origins and exposes one false homozygous
+LoF.} Nine of the ten rare high-confidence pLoF variants have a resolved
+origin (\NRareMaternal{} maternal, \NRarePaternal{} paternal, one carried by
+both parents) and none is a candidate \emph{de novo} variant. The one
+homozygous rare pLoF, a 45-bp deletion of the canonical exon~2 donor of
+\textit{PEX5}, would imply Zellweger spectrum disorder if it were a loss of
+function. Both parents are homozygous for it, which already argues against
+rarity (ClinVar classifications of the deletion are conflicting), and the exon has an alternative donor 45\,bp downstream that keeps
+the reading frame. Absence from gnomAD here reflects the length of the
+deletion, not its frequency. The case is a useful reminder that
+transcript-level LoF calls need biological context; in this analysis the
+context comes from the ad hoc tier.
+
+\paragraph{5. What this genome cannot tell us.} Interval coverage of MANE
+coding sequence by the benchmark regions shows that \NClinGenLtNinety{}
+ClinGen disease genes~\cite{strande2017} are less than 90\% assessable in
+HG002 v4.2.1, \NClinGenLtFifty{} less than half. They include genes in
+segmental duplications and falsely duplicated regions of GRCh38
+(\ClinGenFalseDup{}; \textit{CBS}, classic homocystinuria, is a known
+example~\cite{aganezov2022}), \textit{FXN} (Friedreich ataxia) and GC-rich
+genes such as \textit{ETFB}, \textit{GNPTG} and \textit{FAM20C}. Finding no
+pathogenic variant in these genes is not evidence of absence.
+
+\paragraph{Why this belongs in the vepyr paper.} The analysis is a single
+Python session: \AnnotateMin\,min of annotation of the whole genome with
+VEP-identical core fields and four plugins, then \AnalyzeMin\,min for
+everything else, including \RemoteSec\,s to read \NRemoteSources{} remote
+sources (\RemoteRows{} million records) without downloading, indexing or
+converting them. Three kinds of annotation with three update rates---Ensembl
+releases, ClinVar weeks, per-question data---are handled by three
+mechanisms: a core cache, plugin caches and DataFrame operations on data read
+from URLs. The biology is not new, which is the point: a known result
+(depletion of LoF from constrained genes), a known founder allele and a
+known reference artefact are recovered quickly, reproducibly and in one
+place, which is what users need when the question, not the method, is new.

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2320" height="700" viewBox="0 0 2320 700" role="img">
+<defs>
+<marker id="arrow-ink" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#111111" /></marker>
+<marker id="arrow-muted" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 z" fill="#555555" /></marker>
+</defs>
+<rect width="100%" height="100%" fill="white" />
+<text x="4.0" y="47.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#111111"><tspan x="4.0" dy="0.0" font-weight="700">D</tspan></text>
+<text x="78.0" y="46.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#111111"><tspan x="78.0" dy="0.0" font-weight="700">Three tiers of annotation</tspan></text>
+<text x="2316.0" y="44.0" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#555555"><tspan x="2316.0" dy="0.0" font-weight="400">HG002 genome · 4,096,123 variants · Ensembl 116</tspan></text>
+<rect x="0" y="84" width="560" height="168" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="10.0" y="148.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="10.0" dy="0.0" font-weight="700">1  Core cache</tspan><tspan x="10.0" dy="27.9" font-weight="400">Ensembl release · consequences, HGVS, AF</tspan><tspan x="10.0" dy="27.9" font-weight="400">~2 releases/year · build_cache()</tspan></text>
+<rect x="0" y="280" width="560" height="168" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="10.0" y="344.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="10.0" dy="0.0" font-weight="700">2  Plugin caches</tspan><tspan x="10.0" dy="27.9" font-weight="400">ClinVar · SpliceAI · AlphaMissense · CADD</tspan><tspan x="10.0" dy="27.9" font-weight="400">weekly to yearly · build_plugin_cache()</tspan></text>
+<rect x="0" y="476" width="560" height="168" rx="0" fill="#f3f3f3" stroke="#111111" stroke-width="1.8" stroke-dasharray="8 6" />
+<text x="10.0" y="540.1" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#111111"><tspan x="10.0" dy="0.0" font-weight="700">3  Ad hoc sources by URL</tspan><tspan x="10.0" dy="27.9" font-weight="400">gnomAD constraint · ClinGen · Ensembl GFF3</tspan><tspan x="10.0" dy="27.9" font-weight="400">GIAB BED (HTTPS) · parental VCFs (S3)</tspan></text>
+<rect x="680" y="152" width="400" height="140" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="880.0" y="200.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#111111"><tspan x="880.0" dy="0.0" font-weight="700">vepyr.annotate()</tspan><tspan x="880.0" dy="30.5" font-weight="400">core + plugin fields</tspan><tspan x="880.0" dy="30.5" font-weight="400">Polars LazyFrame</tspan></text>
+<rect x="680" y="440" width="400" height="168" rx="0" fill="white" stroke="#111111" stroke-width="1.8" />
+<text x="880.0" y="502.3" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#111111"><tspan x="880.0" dy="0.0" font-weight="700">polars-bio · Polars</tspan><tspan x="880.0" dy="30.5" font-weight="400">overlap() · coverage()</tspan><tspan x="880.0" dy="30.5" font-weight="400">joins · group_by</tspan></text>
+<polyline points="560,168 680,168" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="560,364 620,364 620,270" fill="none" stroke="#111111" stroke-width="2" />
+<polyline points="620,270 680,270" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="560,560 680,560" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<polyline points="880,292 880,440" fill="none" stroke="#111111" stroke-width="2" marker-end="url(#arrow-ink)" />
+<text x="896.0" y="364.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#555555"><tspan x="896.0" dy="0.0" font-weight="400">Arrow</tspan><tspan x="896.0" dy="24.1" font-weight="400">batches</tspan></text>
+<text x="1164.0" y="95.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="700">Loss of function in MANE Select</tspan></text>
+<text x="1164.0" y="147.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="400">pLoF consequence</tspan></text>
+<text x="1164.0" y="172.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1164.0" dy="0.0" font-weight="400">tier 1</tspan></text>
+<rect x="1490" y="130" width="200.0" height="40" rx="0" fill="#bdbdbd" stroke="#111111" stroke-width="0" />
+<text x="1704.0" y="156.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="1704.0" dy="0.0" font-weight="700">158</tspan></text>
+<text x="1164.0" y="217.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="400">− last exon, AF ≥ 95%</tspan></text>
+<text x="1164.0" y="242.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1164.0" dy="0.0" font-weight="400">tier 1</tspan></text>
+<rect x="1490" y="200" width="118.9873417721519" height="40" rx="0" fill="#bdbdbd" stroke="#111111" stroke-width="0" />
+<text x="1623.0" y="226.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="1623.0" dy="0.0" font-weight="700">94</tspan></text>
+<text x="1164.0" y="287.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="400">− SpliceAI, ClinVar benign</tspan></text>
+<text x="1164.0" y="312.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1164.0" dy="0.0" font-weight="400">tier 2</tspan></text>
+<rect x="1490" y="270" width="86.07594936708861" height="40" rx="0" fill="#bdbdbd" stroke="#111111" stroke-width="0" />
+<text x="1590.1" y="296.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="1590.1" dy="0.0" font-weight="700">68</tspan></text>
+<text x="1164.0" y="357.9" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="400">− segdup, low-map, 50 bp</tspan></text>
+<text x="1164.0" y="382.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#555555"><tspan x="1164.0" dy="0.0" font-weight="400">tier 3</tspan></text>
+<rect x="1490" y="340" width="72.15189873417721" height="40" rx="0" fill="#111111" stroke="#111111" stroke-width="0" />
+<text x="1576.2" y="366.0" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111111"><tspan x="1576.2" dy="0.0" font-weight="700">57</tspan></text>
+<text x="1164.0" y="450.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="400">57 high-confidence pLoF in 52 genes</tspan><tspan x="1164.0" dy="25.4" font-weight="400">10 rare (AF &lt; 1%) · 12 homozygous</tspan></text>
+<text x="1164.0" y="554.2" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#111111"><tspan x="1164.0" dy="0.0" font-weight="400">ClinVar P/LP (≥1 star):</tspan><tspan x="1164.0" dy="25.4" font-weight="400">F11 p.Glu135Ter · het · paternal</tspan><tspan x="1164.0" dy="25.4" font-weight="400">gnomAD ASJ AF 1.8% (29× global)</tspan><tspan x="1164.0" dy="25.4" font-weight="400">83 of 2,302 ClinGen genes &lt; 90% callable</tspan></text>
+<text x="1814.0" y="95.8" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#111111"><tspan x="1814.0" dy="0.0" font-weight="700">Genes most intolerant to LoF</tspan></text>
+<text x="1814.0" y="125.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#555555"><tspan x="1814.0" dy="0.0" font-weight="400">% in LOEUF deciles 1–2 (gnomAD v4.1)</tspan></text>
+<text x="1814.0" y="171.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="1814.0" dy="0.0" font-weight="400">Rare synonymous (n=288)</tspan></text>
+<rect x="1810" y="186" width="103.54166666666667" height="22" rx="0" fill="#bdbdbd" stroke="#111111" stroke-width="0" />
+<text x="1933.5" y="203.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="1933.5" dy="0.0" font-weight="700">25%</tspan></text>
+<text x="1814.0" y="249.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="1814.0" dy="0.0" font-weight="400">Rare missense, AM pathogenic (n=47)</tspan></text>
+<rect x="1810" y="264" width="80.42553191489363" height="22" rx="0" fill="#555555" stroke="#111111" stroke-width="0" />
+<text x="1933.5" y="281.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="1933.5" dy="0.0" font-weight="700">19%</tspan></text>
+<polyline points="1913.5416666666667,260 1913.5416666666667,290" fill="none" stroke="#555555" stroke-width="1.5" />
+<text x="1814.0" y="327.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="1814.0" dy="0.0" font-weight="400">All pLoF (n=126)</tspan></text>
+<rect x="1810" y="342" width="40.0" height="22" rx="0" fill="#111111" stroke="#111111" stroke-width="0" />
+<text x="1933.5" y="359.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="1933.5" dy="0.0" font-weight="700">10%</tspan></text>
+<polyline points="1913.5416666666667,338 1913.5416666666667,368" fill="none" stroke="#555555" stroke-width="1.5" />
+<text x="1814.0" y="405.6" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#111111"><tspan x="1814.0" dy="0.0" font-weight="400">Rare HC pLoF (n=9)</tspan></text>
+<rect x="1810" y="420" width="3" height="22" rx="0" fill="#111111" stroke="#111111" stroke-width="0" />
+<text x="1933.5" y="437.3" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111111"><tspan x="1933.5" dy="0.0" font-weight="700">0%</tspan></text>
+<polyline points="1913.5416666666667,416 1913.5416666666667,446" fill="none" stroke="#555555" stroke-width="1.5" />
+<text x="1814.0" y="488.5" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#555555"><tspan x="1814.0" dy="0.0" font-weight="400">│ = rare synonymous reference</tspan></text>
+<text x="1814.0" y="630.4" text-anchor="start" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#555555"><tspan x="1814.0" dy="0.0" font-weight="400">annotation with 4 plugins: 4.2 min (8 workers)</tspan><tspan x="1814.0" dy="21.6" font-weight="400">12 ad hoc sources read by URL: 57 s</tspan></text>
+<title>D — Three tiers of annotation (HG002)</title><desc>Three tiers of annotation applied to the GIAB HG002 v4.2.1 genome: the vepyr core cache and plugin caches feed vepyr.annotate(); ad hoc sources are read directly from their URLs by polars-bio and Polars. The funnel counts variants with a predicted loss-of-function consequence in a MANE Select transcript that remain after the filters of each tier; the bars give the share of each variant class in the two most LoF-intolerant gnomAD v4.1 LOEUF deciles. Numbers are read from the Supplementary Data analysis results.</desc></svg>

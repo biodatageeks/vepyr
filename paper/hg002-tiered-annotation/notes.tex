@@ -1,0 +1,54 @@
+\begin{enumerate}
+\item \textbf{polars-bio and HTTP(S) sources.} With polars-bio~\PolarsBioVersion{},
+  \texttt{scan\_bed()} reads BED files over HTTPS, but \texttt{scan\_vcf()} and
+  \texttt{scan\_gff()} abort on an \texttt{https://} path with
+  ``\texttt{PanicException:} \texttt{not implemented:} \texttt{Unsupported storage type: HTTP}'' 
+  (\nolinkurl{bio-format-vcf/src/physical_exec.rs:2719},
+  \nolinkurl{bio-format-gff/src/physical_exec.rs:1244}); the VCF and GFF
+  dispatchers handle only local files and GCS/S3/Azure object stores. The
+  analysis therefore reads the parental VCFs from the GIAB mirror on S3
+  (\texttt{s3://giab/\ldots}, anonymous access) and the Ensembl GFF3 with
+  \texttt{polars.read\_csv()}. If the paper states that polars-bio reads
+  remote genomic files ``by URL'', HTTP(S) support for VCF and GFF in
+  datafusion-bio-formats should land first; the panic should in any case
+  become a Python exception.
+\item \textbf{Region pushdown on remote VCF.} A
+  \texttt{chrom}/\texttt{start} filter on the S3 VCF (indexed with
+  \texttt{.tbi}) took as long as a full scan (about 110\,s for 4.0 million
+  records from Warsaw to \texttt{us-east-1}), i.e.\ the index is not used for
+  remote files. The analysis streams each parental VCF once and joins it to
+  the candidate variants instead.
+\item \textbf{Live sources.} The ClinGen gene--disease validity file is
+  regenerated daily (the copy used here was read on \today); for the
+  published version, record its creation date and checksum, or pin a snapshot.
+  gnomAD v4.1, GIAB v3.6/v4.2.1 and Ensembl~116 are versioned releases.
+\item \textbf{Scope of the LoF filters.} The filters are modelled on LOFTEE
+  (last exon, 50-bp rule, splice-site support) but are not LOFTEE: ancestral
+  alleles, GERP, non-canonical splice motifs and the LOFTEE flags are not
+  reproduced, and the published SpliceAI cache holds masked SNV scores only,
+  so splice-site indels are not checked by SpliceAI. The wording in the paper
+  should remain ``LOFTEE-inspired'' or name the filters explicitly.
+\item \textbf{Benchmark regions.} The GIAB v4.2.1 benchmark covers chromosomes
+  1--22 and excludes many difficult regions, so all counts are restricted to
+  the benchmark and are lower bounds for the whole genome; the callability
+  analysis quantifies this per gene. The newer HG002 Q100/T2T-based
+  benchmark would extend coverage, but would need a GRCh38 liftover policy.
+\item \textbf{Reporting findings in a named genome.} HG002 (PGP participant,
+  open consent) is used in many publications; findings are reported here as
+  ClinVar assertions and population frequencies only, without clinical
+  interpretation. A sentence to that effect may be appropriate in the
+  supplement.
+\item \textbf{Environment.} The analysis used a clean environment with the
+  PyPI releases vepyr~\VepyrVersion{}, Polars~\PolarsVersion{} and
+  polars-bio~\PolarsBioVersion{}; the repository development
+  \texttt{.venv} on the authoring machine still has polars-bio~0.26.0 and a
+  stale native module (\texttt{import vepyr} fails there).
+\item \textbf{References.} The bibliography of this document was written
+  from memory for the draft; verify each entry (volume, pages, year) before
+  adding the keys to \texttt{references.bib}.
+\item \textbf{Haplotype-aware consequences.} The compensating frameshift
+  pairs in \textit{SON} and \textit{SLAIN1} are annotated as two
+  frameshifts because VEP (and vepyr) annotate each allele separately; the
+  frequency filter catches them here, but a haplotype-aware consequence mode
+  would be the principled fix.
+\end{enumerate}

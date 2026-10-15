@@ -1,0 +1,147 @@
+Annotation sources change at different rates. The Ensembl core annotation
+(transcript models, consequences, HGVS, known variants and population
+frequencies) changes with Ensembl releases, about twice a year; resources
+such as ClinVar change weekly, and prediction scores (SpliceAI,
+AlphaMissense, CADD) with new model releases; and many questions need data
+that are not annotation sources at all: gene-level constraint, curated
+gene--disease relationships, gene models, genome stratifications or the
+genotypes of relatives. vepyr maps the first two onto prebuilt Parquet caches
+(tiers~1 and~2 below) and leaves the third to the DataFrame ecosystem: such
+sources are read when a query needs them, directly from their URLs, without
+a build step (Table~\ref{tab:tiers}).
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{p{0.15\textwidth}p{0.29\textwidth}p{0.17\textwidth}p{0.3\textwidth}}
+\toprule
+Tier & Sources used here & Changes & Mechanism \\
+\midrule
+1 Core cache & Ensembl~116 \texttt{ensembl} cache: consequences, HGVS, MANE, gnomAD frequencies & with Ensembl releases (about twice a year) & \texttt{build\_cache()}; Parquet; read during annotation \\
+2 Plugin caches & ClinVar (2026-07-06), SpliceAI, AlphaMissense, CADD~v1.7 & weekly (ClinVar) to yearly & \texttt{build\_plugin\_cache()} from TOML manifests; Parquet; matched during annotation \\
+3 Ad hoc sources & gnomAD~v4.1 constraint, ClinGen gene validity, Ensembl~116 GFF3, GIAB v3.6 stratifications, GIAB v4.2.1 benchmark regions and parental VCFs & per analysis & read from the URL by polars-bio or Polars when the query runs; joins and interval operations \\
+\bottomrule
+\end{tabular}
+\caption{The three tiers of annotation used in this section.}
+\label{tab:tiers}
+\end{table}
+
+The example combines the three tiers in one analysis of the GIAB HG002
+genome: which predicted loss-of-function (pLoF) variants does a healthy
+individual carry, does purifying selection against them show in a single
+genome, which clinically classified variants does HG002 carry and from which
+parent, and in which clinically relevant genes would a negative result be
+uninformative because the gene lies outside the benchmark regions?
+
+\subsection{Data and software}
+The input is the NIST v4.2.1 GRCh38 benchmark call set of HG002
+(chromosomes 1--22), with multi-allelic records decomposed as in the quick
+start, which yields \NVariants{} records. The analysis used the
+\texttt{ensembl} core cache of release~116, the ClinVar, AlphaMissense,
+SpliceAI and CADD plugin caches (chromosomes 1--22 only: 30\,GiB and
+90\,GiB on disk), the Ensembl primary-assembly FASTA, vepyr~\VepyrVersion{},
+Polars~\PolarsVersion{} and polars-bio~\PolarsBioVersion{} on an Apple
+MacBook Pro (M3 Max, 64\,GiB). The ad hoc sources are listed in
+Table~\ref{tab:adhoc}; none is stored locally.
+
+\begin{lstlisting}[language=shell]
+python -m venv hg002 && . hg002/bin/activate
+pip install "vepyr[polars-bio]==0.10.0" scipy matplotlib
+CHR=$(for c in $(seq 1 22); do printf -- "--chrom %s " $c; done)
+vepyr download-cache --release 116 --cache_type ensembl --dir_cache vepyr_cache $CHR
+for p in clinvar alphamissense spliceai cadd; do
+  vepyr download-plugin-cache --plugin $p --release 116 \
+    --plugin_cache_root vepyr_plugin_cache $CHR
+done
+bcftools norm -m -both -Oz -o HG002_v4.2.1.split.vcf.gz \
+  HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+tabix -p vcf HG002_v4.2.1.split.vcf.gz      # 4096123 records
+\end{lstlisting}
+
+\subsection{Tiers 1 and 2: annotation}
+Core and plugin fields are produced by a single call. The annotated frame,
+restricted to the 33 columns used later (including the gnomAD Ashkenazi
+Jewish frequencies \texttt{gnomADe\_ASJ\_AF} and \texttt{gnomADg\_ASJ\_AF},
+since HG002 is of Ashkenazi Jewish ancestry), is written once to Parquet; the
+per-consequence fields remain aligned lists:
+\begin{lstlisting}[language=Python]
+import polars as pl
+import polars_bio as pb
+import vepyr
+
+lf = vepyr.annotate(
+    "HG002_v4.2.1.split.vcf.gz",
+    "vepyr_cache/116_GRCh38_ensembl",
+    reference_fasta="Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+    workers=8,
+    plugin_cache_root="vepyr_plugin_cache",
+    plugins=["clinvar", "alphamissense", "spliceai", "cadd"],
+)
+lf.select(*VARIANT_COLS, *CSQ_COLS).sink_parquet("HG002.annotated.parquet")
+\end{lstlisting}
+\noindent Annotation of the \NVariants{} records with the four plugins took
+\AnnotateSec{}\,s (\AnnotateMin{}\,min) with \Workers{} workers.
+
+\subsection{Tier 3: ad hoc sources read from their URLs}
+Twelve sources are read (Table~\ref{tab:adhoc}). Interval sources are read with polars-bio, which converts BED to 1-based
+closed coordinates, matching the vepyr frame; the parental VCFs are streamed
+from the GIAB mirror on Amazon S3. Tabular gene-level sources and the GFF3
+gene models are read with Polars:
+\begin{lstlisting}[language=Python]
+GIAB = "https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release"
+STRAT = f"{GIAB}/genome-stratifications/v3.6/GRCh38@all"
+segdups = pb.scan_bed(f"{STRAT}/SegmentalDuplications/GRCh38_segdups.bed.gz")
+benchmark = pb.scan_bed(f"{GIAB}/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/"
+                        "GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed")
+father = pb.scan_vcf("s3://giab/release/AshkenazimTrio/HG003_NA24149_father/"
+                     "NISTv4.2.1/GRCh38/HG003_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+                     info_fields=[], format_fields=["GT"])
+constraint = pl.scan_csv("https://storage.googleapis.com/gcp-public-data--gnomad/"
+                         "release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv",
+                         separator="\t", infer_schema=False)
+clingen = pl.read_csv("https://search.clinicalgenome.org/kb/gene-validity/download",
+                      skip_rows=4, infer_schema=False)
+\end{lstlisting}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{p{0.42\textwidth}p{0.29\textwidth}rr}
+\toprule
+Source & Reader & Records & Time (s) \\
+\midrule
+\tabinput{results/tex/tab_sources.tex}
+\bottomrule
+\end{tabular}
+\caption{Ad hoc (tier~3) sources, read from their URLs on every run of the
+analysis. Times are wall-clock times of a single read from Warsaw and
+include transfer; the full URLs are in \texttt{analysis.py}.}
+\label{tab:adhoc}
+\end{table}
+
+\subsection{Definition of loss-of-function variants}
+The frame is expanded to one row per variant and MANE Select transcript
+(\NManeRecords{} rows). A pLoF is a stop-gained, frameshift, splice-acceptor
+or splice-donor consequence, the four classes used by LOFTEE. Filters
+modelled on LOFTEE are then taken from each tier
+(Table~\ref{tab:lofflags}): from the core annotation, premature stops in the
+last exon, which escape nonsense-mediated decay, and alleles with a gnomAD
+frequency of at least 95\%, for which the reference genome carries the rare
+allele and the ``loss'' is shared by nearly all humans; from the plugins, canonical
+splice-site variants with all four SpliceAI delta scores below~0.2 and
+variants classified benign in ClinVar; and from the ad hoc sources, premature
+stops within the last 50\,bp of the penultimate exon (the 50-bp rule, using
+exon coordinates from the Ensembl GFF3) and variants in segmental
+duplications or low-mappability regions, found with \texttt{overlap()}:
+\begin{lstlisting}[language=Python]
+rec = (pl.scan_parquet("HG002.annotated.parquet").with_row_index("vid")
+         .explode(CSQ_LIST_COLS, empty_as_null=True)
+         .filter(pl.col("MANE_SELECT").is_not_null())
+         .collect())
+plof = rec.filter(pl.col("Consequence").str.contains(
+    "stop_gained|frameshift_variant|splice_acceptor_variant|splice_donor_variant"))
+in_segdup = pb.overlap(plof.select("chrom", "start", "end", "vid"),
+                       segdups, overlap_output="left", distinct_output=True)
+\end{lstlisting}
+\noindent A variant is a high-confidence (HC) pLoF if at least one of its
+MANE Select pLoF consequences passes all filters. Allele frequencies are the
+larger of the gnomAD exome and genome frequencies; ``rare'' denotes a
+frequency below 1\% (or absence from gnomAD).

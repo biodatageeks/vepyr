@@ -1,0 +1,47 @@
+{
+  "variants": 4096123,
+  "mane_records": 1787380,
+  "lof": {
+    "plof_variants": 158,
+    "hc_variants": 57,
+    "hc_rare": 10,
+    "hc_common": 47,
+    "hc_hom": 12,
+    "hc_rare_hom": 1,
+    "hc_genes": 52,
+    "flagged_variants": 100
+  },
+  "clinvar_plp_variants": 1,
+  "clinvar_plp_het": 1,
+  "clinvar_plp_hom": 0,
+  "clinvar_plp_ar_het": 0,
+  "biallelic_genes": 1,
+  "mane_genes": 18352,
+  "mane_genes_lt90": 1134,
+  "clingen_genes": 2302,
+  "clingen_genes_lt90": 83,
+  "clingen_genes_lt50": 19,
+  "clingen_lt90_segdup_gt50": 8,
+  "clingen_lt90_difficult_gt50": 37,
+  "clingen_falsedup": [
+    "CBS",
+    "PRODH",
+    "ICOSLG"
+  ],
+  "inheritance_counts": {
+    "maternal": 5,
+    "both": 1,
+    "paternal": 3,
+    "unresolved": 1
+  },
+  "seconds": {
+    "tier3_reads": 38.0,
+    "explode_mane": 18.0,
+    "total": 77.6
+  },
+  "versions": {
+    "vepyr": "0.10.0",
+    "polars": "1.44.2",
+    "polars_bio": "0.36.2"
+  }
+}
