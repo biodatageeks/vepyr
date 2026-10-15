@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the /parity-wgs job image on the runner host. Re-run after changing
-# the Dockerfile, and bump IMAGE (and parity-wgs.yml's WGS_IMAGE) together.
+# the Dockerfile, and bump IMAGE (and _tier-wgs-parity.yml's WGS_IMAGE) together.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tag="$(cat "$here/IMAGE")"

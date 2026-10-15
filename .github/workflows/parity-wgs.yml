@@ -29,9 +29,6 @@ on:
 
 permissions: {}
 
-env:
-  WGS_IMAGE: vepyr-wgs:1
-
 jobs:
   # Exact command check, separate from authorize so that a non-command comment
   # ends here with every later job skipped. Runs master's helper only: for
@@ -212,137 +209,16 @@ jobs:
           name: wheels-manylinux-x86_64
           path: dist
 
-  # The only job on the persistent self-hosted runner. It runs no checked-out
-  # (PR) code on the host: the wheel is found with a shell glob, the fallback
-  # result is written with printf, and the PR's run-profile.sh runs only
-  # inside a throwaway, unprivileged container.
-  # The host never follows a PR-controlled path: after checkout it neither
-  # reads nor writes the workspace (a PR can commit symlinks there), and it
-  # reads $SCRATCH (written by PR code in the container) only after purging
-  # every non-regular entry, copying size-capped regular files into $RES,
-  # a host-created directory outside the workspace that all uploads come from.
-  # Serialisation: one runner carries the vepyr-wgs label, so jobs queue FIFO
-  # there; max-parallel keeps a run's own profiles in sequence. No workflow
-  # concurrency group: GitHub keeps only one pending run per group, so any
-  # third request would evict a queued admin run.
+  # Runs on the self-hosted runner; see _tier-wgs-parity.yml. Its result is a
+  # fixed enum read by report, and its result files are data only.
   profile:
     needs: [authorize, build-wheel]
-    name: wgs (${{ matrix.profile }})
-    runs-on: [self-hosted, linux, x64, vepyr-wgs]
-    # Measured on gh-runner-bdg-1 (16 vCPU): merged 29, ensembl 23, refseq 21 min.
-    timeout-minutes: 60
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        profile: ${{ fromJSON(needs.authorize.outputs.profiles) }}
-    env:
-      PROFILE: ${{ matrix.profile }}
-      SCRATCH: /scratch/vepyr-wgs/${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}
-      CONTAINER: vepyr-wgs-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}
-    steps:
-      - name: Clean leftovers from earlier jobs
-        run: |
-          # A job container that outlived a cancelled or timed-out job.
-          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
-          find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
-          rm -rf "$SCRATCH" && mkdir -p "$SCRATCH"
-          res=$(mktemp -d "$RUNNER_TEMP/wgs-res.XXXXXX")
-          echo "RES=$res" >> "$GITHUB_ENV"
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.authorize.outputs.sha }}
-          lfs: false
-          persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: wheels-manylinux-x86_64
-          path: ${{ env.SCRATCH }}/dist
-      - id: run
-        name: Whole-genome parity in a fresh container
-        run: |
-          docker image inspect "$WGS_IMAGE" >/dev/null || { echo "::error::image $WGS_IMAGE missing on runner; run ci/wgs-runner/build-image.sh"; exit 3; }
-          # No checked-out (PR) code runs on the host: shell only here. The
-          # container has not run yet, so dist/ holds only the downloaded wheel.
-          shopt -s nullglob
-          wheels=("$SCRATCH"/dist/vepyr-*manylinux*x86_64*.whl)
-          [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one x86_64 wheel, got ${#wheels[@]}"; exit 3; }
-          wheel="${wheels[0]}"
-          docker run --rm --name "$CONTAINER" --label vepyr-wgs=1 --network bridge \
-            --cap-drop ALL --security-opt no-new-privileges --pids-limit 4096 \
-            --memory 56g --memory-swap 56g \
-            --user "$(id -u):$(id -g)" --read-only --tmpfs /tmp:rw,size=4g \
-            -e DATA_VEPYR_DIR=/data -e HOME=/work -e WORK=/work \
-            -v /data/vepyr:/data:ro -v "$SCRATCH":/work:rw -v "$GITHUB_WORKSPACE":/src:ro \
-            "$WGS_IMAGE" bash /src/ci/wgs-runner/run-profile.sh "$PROFILE" "/work/dist/$(basename "$wheel")"
-      - name: Collect results
-        if: always()
-        run: |
-          if [ -z "${RES:-}" ] || [ ! -d "$RES" ]; then echo "::error::no host results dir"; exit 1; fi
-          fail() {  # host-side error result; $SCRATCH is not read
-            printf '{"name":"wgs/%s","conclusion":"error","summary":"%s"}\n' "$PROFILE" "$1" > "$RES/result-wgs-$PROFILE.json"
-            echo "::error::$1"; exit 1
-          }
-          # On cancel or timeout the runner kills the docker CLI, not the
-          # container: make sure no PR code is still writing to $SCRATCH.
-          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-          left=$(docker ps -aq --filter "name=^${CONTAINER}\$") || fail "cannot list containers"
-          [ -z "$left" ] || fail "job container still present"
-          # $SCRATCH was written by PR code: drop symlinks and specials first
-          # (twice, around the chmod that undoes any unreadable directories).
-          find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
-          chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
-          find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
-          real_scratch=$(realpath -e -- "$SCRATCH") || fail "scratch missing"
-          take() {  # take SRC DEST MAXBYTES: copy a capped regular file into $RES
-            [ -f "$1" ] && [ ! -L "$1" ] || return 1
-            local real
-            # Defence in depth against a symlinked directory component.
-            real=$(realpath -e -- "$1") || return 1
-            case "$real" in "$real_scratch"/*) ;; *) return 1 ;; esac
-            mkdir -p "$(dirname "$2")" && head -c "$3" -- "$real" > "$2"
-          }
-          take "$SCRATCH/summary.txt" "$RES/summary.txt" 65536 || true
-          take "$SCRATCH/run.log" "$RES/reports/run.log" 5242880 || true
-          take "$SCRATCH/result.json" "$RES/result-wgs-$PROFILE.json" 16384 \
-            || printf '{"name":"wgs/%s","conclusion":"error","summary":"no result written"}\n' "$PROFILE" > "$RES/result-wgs-$PROFILE.json"
-          if [ -f "$RES/summary.txt" ]; then mkdir -p "$RES/reports" && cp -- "$RES/summary.txt" "$RES/reports/summary.txt"; fi
-          if [ -d "$SCRATCH/out/reports" ] && [ ! -L "$SCRATCH/out/reports" ]; then
-            # At most 200 files, 5 MiB each, 200 MiB in total.
-            n=0; budget=$((200 * 1024 * 1024))
-            while IFS= read -r -d '' f; do
-              n=$((n + 1))
-              if [ "$n" -gt 200 ] || [ "$budget" -le 0 ]; then break; fi
-              cap=$((budget < 5242880 ? budget : 5242880))
-              dest="$RES/reports/out/${f#"$SCRATCH/out/reports/"}"
-              take "$f" "$dest" "$cap" || continue
-              budget=$((budget - $(stat -c %s -- "$dest")))
-            done < <(find "$SCRATCH/out/reports" -type f -print0)
-          fi
-          { echo "### wgs ($PROFILE)"; cat "$RES/summary.txt" 2>/dev/null || echo "did not run"; } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: result-wgs-${{ matrix.profile }}
-          path: ${{ env.RES }}/result-wgs-${{ matrix.profile }}.json
-          # "Re-run failed jobs" uploads the same name again in this run.
-          overwrite: true
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: wgs-${{ matrix.profile }}-reports
-          path: ${{ env.RES }}/reports
-          overwrite: true
-          if-no-files-found: ignore
-      - name: Remove scratch, results and workspace
-        if: always()
-        run: |
-          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-          chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
-          rm -rf "$SCRATCH" ${RES:+"$RES"}
-          find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
+    uses: ./.github/workflows/_tier-wgs-parity.yml
+    with:
+      ref: ${{ needs.authorize.outputs.sha }}
+      profiles: ${{ needs.authorize.outputs.profiles }}
 
   report:
     needs: [authorize, profile]

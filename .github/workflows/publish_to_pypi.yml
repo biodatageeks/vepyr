@@ -34,6 +34,7 @@ jobs:
       contents: write
     outputs:
       ref: ${{ steps.ref.outputs.ref }}
+      wgs-profiles: ${{ steps.wgs.outputs.profiles }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,6 +73,14 @@ jobs:
           git tag -a "${VERSION}" -m "Release ${VERSION}"
           git push origin "refs/tags/${VERSION}"
           echo "Created and pushed tag ${VERSION}."
+      # The release commit's own manifest (this workflow runs from the default
+      # branch), so the gate covers every profile the release declares.
+      - id: wgs
+        name: Read the whole-genome profile list
+        run: |
+          profiles=$(python3 ci/ci_helpers.py profiles e2e-testing/golden/wgs-manifest.json)
+          echo "profiles=$profiles" >> "$GITHUB_OUTPUT"
+          echo "Whole-genome profiles: $profiles" >> "$GITHUB_STEP_SUMMARY"
       - id: ref
         env:
           DRY_RUN: ${{ inputs.dry_run }}
@@ -238,10 +247,21 @@ jobs:
     with:
       ref: ${{ needs.prepare.outputs.ref }}
 
+  # Whole-genome parity on the self-hosted runner (about 75 min for the three
+  # cache types, queued behind any /parity-wgs run already on the runner).
+  tier-wgs-parity:
+    needs: [prepare, linux]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_tier-wgs-parity.yml
+    with:
+      ref: ${{ needs.prepare.outputs.ref }}
+      profiles: ${{ needs.prepare.outputs.wgs-profiles }}
+
   publish:
     name: Publish to PyPI
     if: ${{ !inputs.dry_run }}
-    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
+    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-vep-parity, tier-integration, tier-nfcore, tier-wgs-parity]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
