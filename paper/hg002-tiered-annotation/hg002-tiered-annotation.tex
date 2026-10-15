@@ -74,8 +74,9 @@ Figure~1D and a Supplementary Data section}
 \textbf{How to read this document.} Each block is tagged with its intended
 destination:
 \textcolor{destmain}{\textbf{MAIN TEXT}} (Results, Discussion, Figure~1D),
-\textcolor{destsupp}{\textbf{SUPPLEMENTARY}} (a complete section that can be
-moved into \texttt{vepyr-supplementary.tex}) or
+\textcolor{destsupp}{\textbf{SUPPLEMENTARY}} (a condensed section for
+\texttt{vepyr-supplementary.tex}, with the full version in
+Appendix~\ref{app:extended}) or
 \textcolor{destnone}{\textbf{NOT FOR THE PAPER}} (the story for the authors
 and notes on the analysis). Draft on branch
 \texttt{paper/hg002-tiered-annotation}, not merged. Every number is generated
@@ -119,12 +120,13 @@ matches the ``recurrent vs.\ ad hoc analysis'' note there). About 120 words.}
 
 %% ===================================================================
 \clearpage
-\section{Supplementary section: three tiers of annotation in the HG002 genome}
+\section{Supplementary section (condensed, recommended)}
 \label{sec:supp}
 \destsupp{New section of \texttt{vepyr-supplementary.tex}, after
-``Beyond \texttt{filter\_vep}: interval operations''. Self-contained:
-methods, code, figures, tables.}
-\input{supp-section.tex}
+``Beyond \texttt{filter\_vep}: interval operations''. About two pages: the
+three tiers, one listing, one figure, the biological and performance results.
+Appendix~\ref{app:extended} is the full version from which it is condensed.}
+\input{supp-condensed.tex}
 
 %% ===================================================================
 \clearpage
@@ -133,6 +135,18 @@ methods, code, figures, tables.}
 \destnone{Observations made while preparing the analysis, including
 issues in polars-bio that affect claims about remote data.}
 \input{notes.tex}
+
+%% ===================================================================
+\clearpage
+\appendix
+\section{Extended supplementary section}
+\label{app:extended}
+\dest{destsupp}{$\rightarrow$ SUPPLEMENTARY (optional)}{Full version
+with all methods, listings, figures and tables. Use instead of
+Section~\ref{sec:supp} if space allows, or keep for reviewers; individual
+subsections (e.g.\ the rare pLoF table or the callability table) can also be
+added to the condensed section.}
+\input{supp-section.tex}
 
 \begin{thebibliography}{99}\small
 \bibitem{aganezov2022} Aganezov S, et al. A complete reference genome improves analysis of human genetic variation. \emph{Science} 376:eabl3533 (2022).

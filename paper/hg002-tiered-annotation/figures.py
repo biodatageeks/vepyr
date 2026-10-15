@@ -169,7 +169,74 @@ def callability() -> None:
     save(fig, "figS_callability")
 
 
+def summary() -> None:
+    """One three-panel figure for the condensed supplementary section."""
+    fun = pl.read_csv(RESULTS / "funnel.tsv", separator="\t")
+    dec = pl.read_csv(RESULTS / "loeuf_deciles.tsv", separator="\t")
+    summ = pl.read_csv(RESULTS / "loeuf_summary.tsv", separator="\t")
+    cal = pl.read_csv(RESULTS / "callability.tsv", separator="\t", infer_schema_length=50000)
+    fig, (a, b, c) = plt.subplots(1, 3, figsize=(7.2, 2.5), gridspec_kw={"width_ratios": [1.05, 1, 1.05]})
+
+    steps = fun.slice(2, 4)
+    names = ["pLoF, MANE Select", "+ tier 1 filters", "+ tier 2 filters", "+ tier 3 filters"]
+    y = list(range(steps.height))[::-1]
+    for yi, name, (_, tier, n) in zip(y, names, steps.iter_rows()):
+        a.barh(yi, n, height=0.6, color=TIER_FILL[tier], edgecolor="none")
+        a.text(n + 3, yi, f"{n}", va="center", fontsize=7, color=INK, fontweight="bold")
+    a.set_yticks(y)
+    a.set_yticklabels(names, fontsize=7)
+    a.tick_params(axis="y", length=0)
+    a.spines["left"].set_visible(False)
+    a.set_xlim(0, steps["variants"].max() * 1.2)
+    a.set_xlabel("variants")
+    a.xaxis.grid(True, color=GRID, linewidth=0.5)
+    a.set_axisbelow(True)
+    a.set_title("a  Loss of function by tier", fontsize=8, loc="left", fontweight="bold")
+
+    syn = summ.filter(pl.col("category").str.starts_with("Rare synonymous")).row(0, named=True)
+    plof = summ.filter(pl.col("category") == "All pLoF, MANE Select").row(0, named=True)
+    for name, color, label, row in (("Rare synonymous (reference)", LIGHT, "rare synonymous", syn),
+                                    ("All pLoF, MANE Select", INK, "pLoF", plof)):
+        d = dec.filter(pl.col("category") == name).sort("decile")
+        b.plot(d["decile"] + 1, d["fraction"] * 100, color=color, linewidth=1.6, marker="o",
+               markersize=3, label=f"{label} {100 * row['frac_constrained']:.1f}%")
+    b.set_xticks(range(1, 11))
+    b.tick_params(axis="x", labelsize=6.5)
+    b.set_xlabel("LOEUF decile (1 = most constrained)")
+    b.set_ylabel("% of variants")
+    b.yaxis.grid(True, color=GRID, linewidth=0.5)
+    b.set_axisbelow(True)
+    b.set_ylim(top=26)
+    b.legend(frameon=False, fontsize=6.5, loc="upper left", title="in deciles 1\u20132",
+             title_fontsize=6.5, alignment="left")
+    b.set_title(f"b  Selection in one genome (p = {plof['fisher_p']:.1g})", fontsize=8, loc="left",
+                fontweight="bold")
+
+    low = cal.filter(pl.col("ClinGen").is_not_null()).sort("callable_frac").head(12)
+    y = list(range(low.height))[::-1]
+    for yi, row in zip(y, low.iter_rows(named=True)):
+        c.plot([0, 100], [yi, yi], color=GRID, linewidth=0.5, zorder=0)
+        c.plot(row["difficult_frac"] * 100, yi, "o", markersize=4.5, markerfacecolor="white",
+               markeredgecolor=MID, markeredgewidth=1)
+        c.plot(row["callable_frac"] * 100, yi, "o", markersize=4, color=INK)
+    c.set_yticks(y)
+    c.set_yticklabels(low["SYMBOL"].to_list(), fontsize=6.5, style="italic")
+    c.tick_params(axis="y", length=0)
+    c.spines["left"].set_visible(False)
+    c.set_xlim(-4, 104)
+    c.set_xlabel("% of MANE CDS")
+    c.plot([], [], "o", color=INK, markersize=4, label="in benchmark")
+    c.plot([], [], "o", markerfacecolor="white", markeredgecolor=MID, label="in difficult regions")
+    c.legend(frameon=False, fontsize=6, loc="upper center", bbox_to_anchor=(0.45, -0.2), ncol=2,
+             handletextpad=0.2, columnspacing=0.8)
+    n_low = cal.filter(pl.col("ClinGen").is_not_null(), pl.col("callable_frac") < 0.9).height
+    c.set_title(f"c  ClinGen genes < 90% callable: {n_low}", fontsize=8, loc="left", fontweight="bold")
+    fig.tight_layout(w_pad=1.2)
+    save(fig, "figS_hg002_summary")
+
+
 if __name__ == "__main__":
+    summary()
     funnel()
     loeuf()
     callability()
