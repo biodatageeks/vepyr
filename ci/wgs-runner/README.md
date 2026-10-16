@@ -16,7 +16,9 @@ It writes `/work/result.json` and `/work/summary.txt`.
    runner service.
 2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, `gh-runner-bdg-1`).
 3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
-   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`
+   `biodatageeks/vepyr/.github/workflows/_tier-wgs-parity.yml@refs/heads/master`
+   (the reusable workflow holding the only self-hosted job, called by
+   `parity-wgs.yml` and by the release gate in `publish_to_pypi.yml`)
    where the plan allows it. **Currently not done** (see "Accepted residual
    risk"): the runner is in the shared default group `bdg-runners`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
@@ -108,7 +110,7 @@ A cancelled run posts nothing, so `parity/wgs` stays `pending` (never green).
 ## Rebuilding the image
 
 When `Dockerfile` changes, bump `IMAGE` (for example `vepyr-wgs:2`) and the
-workflow's `WGS_IMAGE` in the same commit, merge, then run `build-image.sh`
+`WGS_IMAGE` of `_tier-wgs-parity.yml` in the same commit, merge, then run `build-image.sh`
 from a checkout of `master` on the runner. Jobs never pull the image; a tag
 that was not built locally fails fast.
 

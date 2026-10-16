@@ -106,7 +106,7 @@ allow about 6 GB of disk space for the complete run and Docker image.
 
 ## Continuous integration
 
-Four tiers gate every change; tiers 2-4 test the wheel built from the code
+Five tiers gate every change; tiers 2-5 test the wheel built from the code
 under review.
 
 | Tier | What | Draft PR | PR | master | Release |
@@ -115,6 +115,7 @@ under review.
 | 2 Ensembl VEP parity | `porting-tests/` data suite (205 tests) | no | admin dispatch, required | no | yes |
 | 3 Integration | chr22 VEP 116 parity, one job per profile | no | admin dispatch, required | no | yes |
 | 4 nf-core | module + subworkflow nf-test on a PR-built image | no | required | yes | yes |
+| 5 Whole genome | HG002 chr1-22 VEP 116 parity, `ensembl`/`merged`/`refseq`, self-hosted runner | no | admin dispatch (`/parity-wgs`) | no | yes |
 
 Admins run tiers 2-3 for a PR by commenting exactly `/parity` on it, or with
 `gh workflow run parity-tests.yml -f pr=<n>` (or Actions -> Parity tests). They
@@ -139,7 +140,9 @@ An admin comment that is exactly `/parity-wgs` (or
 `gh workflow run parity-wgs.yml -f pr=<n>`) runs the HG002 GRCh38
 whole-genome md5 parity gate against the Ensembl VEP 116.0 golden VCFs for
 the `ensembl`, `merged` and `refseq` profiles on the self-hosted runner.
-It reports `parity/wgs` (and `parity/wgs/<profile>`) on the PR head. Runs
+It reports `parity/wgs` (and `parity/wgs/<profile>`) on the PR head. The same
+profiles also gate every release: `publish_to_pypi.yml` runs them on the
+release commit and uploads to PyPI only if all match. Runs
 run one at a time on the self-hosted runner, take about 1.5 hours (wheel build,
 then 20–30 minutes per profile), and are not
 a required check unless added to branch protection. On a fork PR, pin the head

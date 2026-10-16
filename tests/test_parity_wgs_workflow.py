@@ -1,10 +1,13 @@
-"""Static guarantees of parity-wgs.yml that review must not have to re-derive."""
+"""Static guarantees of parity-wgs.yml and _tier-wgs-parity.yml that review must not have to re-derive."""
 
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WF = (ROOT / ".github/workflows/parity-wgs.yml").read_text()
+# The self-hosted profile job, shared by parity-wgs.yml and publish_to_pypi.yml.
+TIER = (ROOT / ".github/workflows/_tier-wgs-parity.yml").read_text()
+PUBLISH = (ROOT / ".github/workflows/publish_to_pypi.yml").read_text()
 PARITY_TESTS = (ROOT / ".github/workflows/parity-tests.yml").read_text()
 PURGE = r'find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete'
 
@@ -45,12 +48,14 @@ def test_run_scripts_parser_sees_inline_and_block_runs():
 
 def test_image_tag_matches_runner_kit():
     tag = (ROOT / "ci/wgs-runner/IMAGE").read_text().strip()
-    assert f"WGS_IMAGE: {tag}" in WF
+    assert f"WGS_IMAGE: {tag}" in TIER
 
 
 def test_only_profile_job_uses_self_hosted():
-    assert WF.count("vepyr-wgs]") == 1
-    assert "self-hosted" in job_block("profile")
+    for wf in (WF, PUBLISH):
+        assert not re.search(r"runs-on:.*self-hosted", wf)
+    assert TIER.count("vepyr-wgs]") == 1
+    assert "self-hosted" in job_block("profile", TIER)
 
 
 def test_privileged_jobs_have_no_expressions_in_run_scripts():
@@ -62,8 +67,13 @@ def test_privileged_jobs_have_no_expressions_in_run_scripts():
 
 
 def test_write_scopes_only_on_authorize_and_report():
-    for job in ("command", "build-wheel", "profile"):
-        block = job_block(job)
+    for job, wf in (
+        ("command", WF),
+        ("build-wheel", WF),
+        ("profile", WF),
+        ("profile", TIER),
+    ):
+        block = job_block(job, wf)
         assert (
             "statuses: write" not in block
             and "issues: write" not in block
@@ -78,19 +88,20 @@ def test_top_level_permissions_empty_and_master_only():
 
 def test_no_concurrency_group_runner_serialises():
     # A group keeps one pending run, so a third request would evict a queued one.
-    assert not re.search(r"^\s*concurrency:", WF, re.M)
-    assert "cancel-in-progress" not in WF
-    assert "max-parallel: 1" in job_block("profile")
+    for wf in (WF, TIER):
+        assert not re.search(r"^\s*concurrency:", wf, re.M)
+        assert "cancel-in-progress" not in wf
+    assert "max-parallel: 1" in job_block("profile", TIER)
 
 
 def test_profile_job_runs_no_checked_out_code_on_host():
-    block = job_block("profile")
+    block = job_block("profile", TIER)
     assert "python3 ci/" not in block
     assert "python3 e2e-testing/" not in block
 
 
 def test_profile_job_purges_scratch_before_reading_it():
-    block = job_block("profile")
+    block = job_block("profile", TIER)
     after_run = block[block.index("docker run --rm") :]
     purge = after_run.index(PURGE)
     reads = [
@@ -103,7 +114,7 @@ def test_profile_job_purges_scratch_before_reading_it():
 
 
 def test_profile_job_writes_and_uploads_only_outside_workspace():
-    block = job_block("profile")
+    block = job_block("profile", TIER)
     for run in run_scripts(block):
         for target in re.findall(r"(?<![0-9&])>>?\s*(\S+)", run):
             assert target.startswith(('"$', "/dev/null", "&")), (target, run)
@@ -119,7 +130,7 @@ def test_profile_job_writes_and_uploads_only_outside_workspace():
 
 
 def test_profile_container_has_memory_cap():
-    assert "--memory 56g --memory-swap 56g" in job_block("profile")
+    assert "--memory 56g --memory-swap 56g" in job_block("profile", TIER)
 
 
 def test_parity_tests_ignores_parity_wgs_comments():
@@ -137,7 +148,7 @@ def _step(block: str, name: str) -> str:
 
 
 def test_collect_kills_container_before_touching_scratch():
-    collect = _step(job_block("profile"), "Collect results")
+    collect = _step(job_block("profile", TIER), "Collect results")
     kill = collect.index('docker rm -f "$CONTAINER"')
     verify = collect.index('docker ps -aq --filter "name=^${CONTAINER}')
     assert kill < verify < collect.index(PURGE)
@@ -145,7 +156,7 @@ def test_collect_kills_container_before_touching_scratch():
 
 
 def test_container_is_named_and_labelled_via_env():
-    block = job_block("profile")
+    block = job_block("profile", TIER)
     assert (
         "CONTAINER: vepyr-wgs-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}"
         in block
@@ -154,12 +165,12 @@ def test_container_is_named_and_labelled_via_env():
 
 
 def test_leftover_containers_removed_at_job_start():
-    clean = _step(job_block("profile"), "Clean leftovers from earlier jobs")
+    clean = _step(job_block("profile", TIER), "Clean leftovers from earlier jobs")
     assert "docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f" in clean
 
 
 def test_take_has_realpath_guard_and_total_cap():
-    collect = _step(job_block("profile"), "Collect results")
+    collect = _step(job_block("profile", TIER), "Collect results")
     assert 'real_scratch=$(realpath -e -- "$SCRATCH")' in collect
     assert 'real=$(realpath -e -- "$1")' in collect
     assert 'case "$real" in "$real_scratch"/*)' in collect
@@ -189,3 +200,34 @@ def test_fork_prs_must_pin_the_reviewed_sha():
     assert pr_step.index('echo "sha=$sha"') > pr_step.index("fork PR: pin")
     command = job_block("command")
     assert "parity-wgs-pin --env COMMENT_BODY" in command
+
+
+def test_tier_takes_ref_and_profiles_from_its_caller():
+    assert re.search(r"^permissions: \{\}$", TIER, re.M)
+    assert "workflow_call:" in TIER and "needs." not in TIER
+    block = job_block("profile", TIER)
+    assert "${{ fromJSON(inputs.profiles) }}" in block
+    assert "ref: ${{ inputs.ref }}" in block
+
+
+def test_parity_wgs_runs_the_tier_on_the_authorized_sha():
+    block = job_block("profile")
+    assert "uses: ./.github/workflows/_tier-wgs-parity.yml" in block
+    assert "needs: [authorize, build-wheel]" in block
+    assert "ref: ${{ needs.authorize.outputs.sha }}" in block
+    assert "profiles: ${{ needs.authorize.outputs.profiles }}" in block
+
+
+def test_release_is_gated_on_whole_genome_parity():
+    gate = job_block("tier-wgs-parity", PUBLISH)
+    assert "uses: ./.github/workflows/_tier-wgs-parity.yml" in gate
+    assert "ref: ${{ needs.prepare.outputs.ref }}" in gate
+    assert "profiles: ${{ needs.prepare.outputs.wgs-profiles }}" in gate
+    assert "write" not in gate
+    needs = re.search(r"needs: \[(.*?)\]", job_block("publish", PUBLISH)).group(1)
+    assert "tier-wgs-parity" in [n.strip() for n in needs.split(",")]
+    prepare = job_block("prepare", PUBLISH)
+    assert (
+        "python3 ci/ci_helpers.py profiles e2e-testing/golden/wgs-manifest.json"
+        in prepare
+    )
