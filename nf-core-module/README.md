@@ -158,12 +158,12 @@ cd nf-core-module
 
 # Module tests, test data from nf-core/test-datasets (Apple Silicon)
 VEPYR_DOCKER_PLATFORM=linux/arm64 \
-VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:10daaf4733f8235f \
 nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test --config dev/nf-test.config
 
 # Offline VEP parity test
 VEPYR_DOCKER_PLATFORM=linux/arm64 \
-VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9 \
+VEPYR_CONTAINER=community.wave.seqera.io/library/htslib_vepyr:10daaf4733f8235f \
 VEPYR_HG002_CHR22="$PWD/../tests/data/hg002_chr22" \
 nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 ```
@@ -171,7 +171,7 @@ nf-test test dev/tests/hg002_chr22.nf.test --config dev/nf-test.config
 | Variable | Read by | Value |
 |---|---|---|
 | `VEPYR_DOCKER_PLATFORM` | `dev/local.config` | `linux/arm64` (Apple Silicon, Linux aarch64) or `linux/amd64` (Linux x86_64) |
-| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:ebb29e9a21ff05c9` (arm64) or `…:408f2021357958aa` (amd64) |
+| `VEPYR_CONTAINER` | `dev/local.config` | required: the `containers.docker` image for that platform from `meta.yml` — `…:10daaf4733f8235f` (arm64) or `…:219c82c59dd69e35` (amd64) |
 | `VEPYR_NF_TESTDATA` | `dev/local.config` | base of the module test data, with a trailing slash. Unset: nf-core's `https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/`. The runner points it at `.testdata/data/`; the example above leaves it unset. |
 | `VEPYR_NF_TESTDATA=published` | `dev/nf-test-local.sh` | the runner skips staging and runs against nf-core's published test-datasets, as the committed snapshots were made |
 | `VEPYR_NF_TESTS` | `dev/nf-test-local.sh` | space-separated test files to run instead of the default four |

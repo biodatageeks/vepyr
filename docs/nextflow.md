@@ -88,7 +88,7 @@ profiles {
         docker.runOptions = '--platform=linux/arm64'
         process {
             withName: 'VEPYR_ANNOTATE' {
-                container = 'community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9'
+                container = 'community.wave.seqera.io/library/htslib_vepyr:10daaf4733f8235f'
             }
         }
     }
@@ -236,7 +236,7 @@ The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,
 `--plugin_cache_root`, `--fork` and `--no_progress` itself.
 
 **Annotation always runs `--everything`.** The module pins
-`bioconda::vepyr=0.9.0`, which always annotates as Ensembl VEP `--everything`
+`bioconda::vepyr=0.9.2`, which always annotates as Ensembl VEP `--everything`
 and accepts `--everything` and `--hgvsc` only as no-ops, so `ext.args` need not
 carry them. The reference FASTA is therefore required: the module stops before
 starting the task when channel 3 carries none.
@@ -291,8 +291,8 @@ is the directory that *contains* `plugin/`. See [Plugins](plugins.md).
 
 | Engine | linux/amd64 | linux/arm64 |
 |---|---|---|
-| Docker | `community.wave.seqera.io/library/htslib_vepyr:408f2021357958aa` | `community.wave.seqera.io/library/htslib_vepyr:ebb29e9a21ff05c9` |
-| Singularity / Apptainer | `oras://community.wave.seqera.io/library/htslib_vepyr:5f4d3201731219a4` | `oras://community.wave.seqera.io/library/htslib_vepyr:76a3378692bb013e` |
+| Docker | `community.wave.seqera.io/library/htslib_vepyr:219c82c59dd69e35` | `community.wave.seqera.io/library/htslib_vepyr:10daaf4733f8235f` |
+| Singularity / Apptainer | `oras://community.wave.seqera.io/library/htslib_vepyr:5ab606e4ce3cef4b` | `oras://community.wave.seqera.io/library/htslib_vepyr:5869429a196b32d4` |
 
 They are [Seqera Wave](https://seqera.io/containers/) builds of the module's
 `environment.yml`: `bioconda::vepyr` and `bioconda::htslib` (for `tabix`). The
@@ -316,7 +316,7 @@ a `container` override.
     ```groovy
     process {
         withName: 'VEPYR_ANNOTATE' {
-            container = 'oras://community.wave.seqera.io/library/htslib_vepyr:76a3378692bb013e'
+            container = 'oras://community.wave.seqera.io/library/htslib_vepyr:5869429a196b32d4'
         }
     }
     ```
