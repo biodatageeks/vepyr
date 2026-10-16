@@ -1,0 +1,98 @@
+{
+  "warmups": [
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "P2",
+        "--path",
+        "collect",
+        "--workers",
+        "1",
+        "--narrow",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/C/P2.collect.narrow.w1.rows.txt"
+      ],
+      "exit": 0,
+      "wall_s": 3.3377843745984137,
+      "user_s": 5.033503,
+      "sys_s": 0.584797,
+      "max_rss_bytes": 1713274880,
+      "load_1m_before": 3.24169921875
+    }
+  ],
+  "runs": [
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "P2",
+        "--path",
+        "collect",
+        "--workers",
+        "1",
+        "--narrow",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/C/P2.collect.narrow.w1.rows.txt"
+      ],
+      "exit": 0,
+      "wall_s": 3.309416166972369,
+      "user_s": 5.042717,
+      "sys_s": 0.574996,
+      "max_rss_bytes": 1684176896,
+      "load_1m_before": 3.14208984375
+    },
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "P2",
+        "--path",
+        "collect",
+        "--workers",
+        "1",
+        "--narrow",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/C/P2.collect.narrow.w1.rows.txt"
+      ],
+      "exit": 0,
+      "wall_s": 3.317457541823387,
+      "user_s": 5.028608,
+      "sys_s": 0.587695,
+      "max_rss_bytes": 1706541056,
+      "load_1m_before": 3.14208984375
+    },
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "P2",
+        "--path",
+        "collect",
+        "--workers",
+        "1",
+        "--narrow",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/C/P2.collect.narrow.w1.rows.txt"
+      ],
+      "exit": 0,
+      "wall_s": 3.3267825837247074,
+      "user_s": 5.045321,
+      "sys_s": 0.5766129999999999,
+      "max_rss_bytes": 1707294720,
+      "load_1m_before": 3.21044921875
+    }
+  ],
+  "median_wall_s": 3.317457541823387,
+  "min_wall_s": 3.309416166972369,
+  "max_wall_s": 3.3267825837247074,
+  "median_rss_bytes": 1706541056,
+  "query": "P2",
+  "path": "collect",
+  "variant": "narrow",
+  "workers": 1
+}

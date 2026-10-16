@@ -1,0 +1,7 @@
+{
+  "note": "Experiments C and B (and the parity gate) run on a local build with both plugin fixes; Experiment A does not use vepyr.",
+  "vepyr": "biodatageeks/vepyr#131 @ 9501251 (branch perf/plugin-csq-single-parse)",
+  "engine": "biodatageeks/datafusion-bio-functions#261 @ cd38a19 (branch perf/plugin-take-concurrent), via a local Cargo [patch]",
+  "build": "RUSTFLAGS='-C target-cpu=native' uv sync (release)",
+  "python": "/Users/mwiewior/research/git/_wt/vepyr-plugin-csq/.venv/bin/python"
+}
