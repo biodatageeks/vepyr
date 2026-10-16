@@ -1,0 +1,95 @@
+{
+  "warmups": [
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "Q5",
+        "--path",
+        "parquet",
+        "--workers",
+        "8",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q5.parquet.w8.parquet"
+      ],
+      "exit": 0,
+      "wall_s": 1.130986750125885,
+      "user_s": 4.351096,
+      "sys_s": 0.962432,
+      "max_rss_bytes": 2008776704,
+      "load_1m_before": 3.77734375
+    }
+  ],
+  "runs": [
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "Q5",
+        "--path",
+        "parquet",
+        "--workers",
+        "8",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q5.parquet.w8.parquet"
+      ],
+      "exit": 0,
+      "wall_s": 1.1155560836195946,
+      "user_s": 4.352797,
+      "sys_s": 0.9347559999999999,
+      "max_rss_bytes": 2027700224,
+      "load_1m_before": 3.794921875
+    },
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "Q5",
+        "--path",
+        "parquet",
+        "--workers",
+        "8",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q5.parquet.w8.parquet"
+      ],
+      "exit": 0,
+      "wall_s": 1.1385061661712825,
+      "user_s": 4.35577,
+      "sys_s": 0.9405939999999999,
+      "max_rss_bytes": 1985265664,
+      "load_1m_before": 3.794921875
+    },
+    {
+      "cmd": [
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/.venv/bin/python",
+        "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/vepyr_once.py",
+        "--query",
+        "Q5",
+        "--path",
+        "parquet",
+        "--workers",
+        "8",
+        "--out",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q5.parquet.w8.parquet"
+      ],
+      "exit": 0,
+      "wall_s": 1.1372865829616785,
+      "user_s": 4.350379,
+      "sys_s": 0.952815,
+      "max_rss_bytes": 2005532672,
+      "load_1m_before": 3.794921875
+    }
+  ],
+  "median_wall_s": 1.1372865829616785,
+  "min_wall_s": 1.1155560836195946,
+  "max_wall_s": 1.1385061661712825,
+  "median_rss_bytes": 2005532672,
+  "query": "Q5",
+  "tool": "vepyr",
+  "path": "parquet",
+  "workers": 8,
+  "processes": 8
+}
