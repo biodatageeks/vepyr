@@ -293,14 +293,26 @@ def perl_env(cfg: Config) -> dict:
     return env
 
 
+def converter_carries_matrices(cfg: Config) -> bool:
+    """True when the checkout's storable_to_json.pl writes the matrices itself."""
+    text = (cfg.src("vep-rs") / "scripts" / "data" / "storable_to_json.pl").read_text()
+    sub_at = text.find("sub extract_prediction_matrix")
+    end = text.find("\n}\n", sub_at)
+    return sub_at >= 0 and "$pm->{matrix}" in text[sub_at:end]
+
+
 def converter_with_matrices(cfg: Config) -> Path:
-    """storable_to_json.pl, patched to carry the SIFT/PolyPhen matrices.
+    """storable_to_json.pl, patched if needed to carry the SIFT/PolyPhen matrices.
 
     The Storable keeps each matrix gzip-compressed in the `matrix` field; vep-rs
-    reads the same bytes base64-encoded from `predictions_data`, which the
-    converter copies only when it already exists (it never does in a Storable).
+    reads the same bytes base64-encoded from `predictions_data`. Converters up to
+    vep-rs 0.4.0 copy `predictions_data` only when it already exists, which it
+    never does in a Storable, so they get a patched copy; a converter that reads
+    `matrix` itself is used as it is.
     """
     original = cfg.src("vep-rs") / "scripts" / "data" / "storable_to_json.pl"
+    if converter_carries_matrices(cfg):
+        return original
     patched = cfg.work / "caches" / "vep-rs" / "storable_to_json_with_matrices.pl"
     text = original.read_text()
     sub_at = text.find("sub extract_prediction_matrix")
@@ -309,24 +321,42 @@ def converter_with_matrices(cfg: Config) -> Path:
         sys.exit(
             "storable_to_json.pl changed shape: extract_prediction_matrix not found"
         )
-    if "predictions_data} = MIME::Base64" not in text:
-        insert = (
-            "    if (!defined $out{predictions_data} && defined $pm->{matrix} && length $pm->{matrix}) {\n"
-            "        require MIME::Base64;\n"
-            "        $out{predictions_data} = MIME::Base64::encode_base64($pm->{matrix}, '');\n"
-            "    }\n"
-        )
-        text = text[:ret_at] + insert + text[ret_at:]
+    insert = (
+        "    if (!defined $out{predictions_data} && defined $pm->{matrix} && length $pm->{matrix}) {\n"
+        "        require MIME::Base64;\n"
+        "        $out{predictions_data} = MIME::Base64::encode_base64($pm->{matrix}, '');\n"
+        "    }\n"
+    )
+    text = text[:ret_at] + insert + text[ret_at:]
     patched.parent.mkdir(parents=True, exist_ok=True)
     patched.write_text(text)
     return patched
 
 
-def gzip_tree(src: Path, dest: Path) -> None:
+def strip_matrices(node) -> None:
+    """Drop every prediction matrix from a converted transcript shard, in place."""
+    if isinstance(node, dict):
+        for m in (node.get("protein_function_predictions") or {}).values():
+            if isinstance(m, dict):
+                m.pop("predictions_data", None)
+        for v in node.values():
+            strip_matrices(v)
+    elif isinstance(node, list):
+        for v in node:
+            strip_matrices(v)
+
+
+def gzip_tree(src: Path, dest: Path, without_matrices: bool = False) -> None:
     for f in sorted(src.rglob("*.json")):
         out = dest / f.relative_to(src)
         out = out.with_name(out.name + ".gz")
         out.parent.mkdir(parents=True, exist_ok=True)
+        if without_matrices:
+            data = json.loads(f.read_bytes())
+            strip_matrices(data)
+            with gzip.open(out, "wt", compresslevel=6) as fo:
+                json.dump(data, fo, separators=(",", ":"))
+            continue
         with open(f, "rb") as fi, gzip.open(out, "wb", compresslevel=6) as fo:
             shutil.copyfileobj(fi, fo)
 
@@ -365,6 +395,9 @@ def all_vars_to_vep_rs_json(
 def build_vep_rs_caches(cfg: Config) -> dict:
     gz_variations = vep_rs_reads_gzipped_variations(cfg)
     env = perl_env(cfg)
+    # A converter that already carries the matrices serves both modes; the
+    # nosift cache then has them stripped from its shards.
+    carries = converter_carries_matrices(cfg)
     converters = {
         "nosift": cfg.src("vep-rs") / "scripts" / "data" / "storable_to_json.pl",
         "sift": converter_with_matrices(cfg),
@@ -395,11 +428,18 @@ def build_vep_rs_caches(cfg: Config) -> dict:
             raw = dest.parent / f"{mode}.raw"
             shutil.rmtree(raw, ignore_errors=True)
             run(["perl", converter, vep_cache, raw, cfg.chrom], env=env)
-            gzip_tree(raw / "transcripts", dest / "transcripts")
+            gzip_tree(
+                raw / "transcripts",
+                dest / "transcripts",
+                without_matrices=mode == "nosift" and carries,
+            )
             shutil.copy(raw / "info.json", dest / "info.json")
             shutil.rmtree(raw)
             (dest / "variations").symlink_to(var_root / "variations")
-    return {"gzipped_variation_shards": gz_variations}
+    return {
+        "gzipped_variation_shards": gz_variations,
+        "converter_carries_matrices": carries,
+    }
 
 
 # --------------------------------------------------------------------------

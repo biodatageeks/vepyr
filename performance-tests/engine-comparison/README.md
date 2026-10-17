@@ -83,6 +83,18 @@ Notes on the engines' caches:
   script checks the checkout's loader and writes gzipped shards only when it
   reads them. vep-rs has no `--merged`: on the merged cache it annotates every
   transcript of the merged conversion and writes no `SOURCE`.
+- **vep-rs with the fixes.** The
+  [`converted-cache-parity`](https://github.com/mwiewior/vep-rs/tree/converted-cache-parity)
+  branch of mwiewior/vep-rs puts into vep-rs itself the three things this
+  script otherwise does around it: the loader reads gzipped variation shards,
+  `storable_to_json.pl` writes the matrices, and
+  `scripts/data/all_vars_to_json.py` converts the co-located variants. Run it
+  with
+  `--vep-rs-repo https://github.com/mwiewior/vep-rs.git --vep-rs-ref converted-cache-parity`.
+  The script detects both fixes in the checkout: it writes gzipped variation
+  shards and uses the converter as it is, and the `nosift` cache then has the
+  matrices stripped from its shards, so the two modes mean the same thing on
+  either branch.
 - **fastVEP.** Transcripts always come from GFF3: the release's per-chromosome
   Ensembl GFF3, plus for the merged cache the RefSeq GFF the merged cache's
   `info.txt` names (`source_refseq`). `--cache-dir` needs `all_vars.gz` with a
