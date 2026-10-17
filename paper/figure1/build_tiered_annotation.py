@@ -48,7 +48,7 @@ def read_tsv(path: Path) -> list[dict[str, str]]:
     return [dict(zip(head, line.split("\t"))) for line in lines[1:]]
 
 
-def panel(results: Path = RESULTS) -> fig.Scene:
+def panel(results: Path = RESULTS, code: str = "D") -> fig.Scene:
     summary = json.loads((results / "summary.json").read_text())
     annotate = json.loads((results / "annotate.json").read_text())
     funnel = read_tsv(results / "funnel.tsv")
@@ -57,7 +57,7 @@ def panel(results: Path = RESULTS) -> fig.Scene:
 
     s = fig.Scene()
     s._counter = 60000
-    s.label(0, 14, 64, 44, "D", font_size=31, weight=700)
+    s.label(0, 14, 64, 44, code, font_size=31, weight=700)
     s.label(74, 15, 1500, 42, "Three tiers of annotation", font_size=29, weight=700)
     s.label(1610, 18, 710, 36, f"HG002 genome · {summary['variants']:,} variants · Ensembl 116",
             font_size=22, color=GREY, align="right")
@@ -154,6 +154,128 @@ def panel(results: Path = RESULTS) -> fig.Scene:
             f"{len(sources)} ad hoc sources read by URL: {sum(x['seconds'] for x in sources):.0f} s",
             font_size=17, color=GREY)
     return s
+
+
+B_WIDTH, B_HEIGHT = 2880, 430
+NBSP = " "
+
+
+def code_text(*lines: str) -> str:
+    """Keep the spacing of code, which SVG and draw.io would collapse."""
+    return "\n".join(line.replace(" ", NBSP) for line in lines)
+
+
+def tier_box(s: fig.Scene, x: float, y: float, w: float, h: float, title: str, text: str,
+             dashed: bool = False) -> fig.Box:
+    box = s.box(x, y, w, h, "", fill=SOFT if dashed else "white", dashed=dashed,
+                stroke_width=1.8)
+    s.label(x + 14, y + 8, w - 28, 32, title, font_size=23, weight=700)
+    s.label(x + 14, y + 40, w - 28, h - 46, text, font_size=21)
+    return box
+
+
+def panel_b(results: Path = RESULTS) -> fig.Scene:
+    """Panel B: question, data, vepyr and polars-bio steps, answer.
+
+    The question and the answer are given as keywords on the same rows;
+    the numbers behind them are in the caption.
+    """
+    summary = json.loads((results / "summary.json").read_text())
+    annotate = json.loads((results / "annotate.json").read_text())
+    loeuf = {r["category"]: r for r in read_tsv(results / "loeuf_summary.tsv")}
+    sources = json.loads((results / "sources.json").read_text())
+    lof = summary["lof"]
+
+    s = fig.Scene()
+    s._counter = 65000
+    s.label(0, 14, 64, 44, "B", font_size=31, weight=700)
+    s.label(74, 15, 1400, 42, "Interactive analysis with vepyr and polars-bio",
+            font_size=29, weight=700)
+    s.label(1300, 18, B_WIDTH - 1300, 36,
+            f"GIAB Ashkenazi trio: son HG002 annotated ({summary['variants'] / 1e6:.1f} million "
+            "variants), parents read from S3, one Python session",
+            font_size=21, color=GREY, align="right")
+
+    rows = [150 + k * 66 for k in range(4)]
+
+    # Question, as keywords.
+    q = s.box(0, 76, 400, 350, "", fill=SOFT, stroke=LIGHT, stroke_width=1.2)
+    s.label(16, 84, 370, 32, "Question", font_size=23, weight=700)
+    s.label(16, 112, 370, 30, "LoF in a healthy genome", font_size=20,
+            color=GREY)
+    for y, text in zip(rows, ("reliable LoF calls", "selection against LoF",
+                              "clinical findings", "coverage of disease genes")):
+        s.label(16, y - 4, 370, 36, text, font_size=25)
+
+    # Data: the three tiers.
+    x = 470
+    t1 = tier_box(s, x, 76, 620, 100, "1  Core cache",
+                  "Ensembl 116 consequences, HGVS,\npopulation frequencies")
+    t2 = tier_box(s, x, 186, 620, 100, "2  Plugin caches",
+                  "ClinVar, SpliceAI, AlphaMissense, CADD")
+    t3 = tier_box(s, x, 296, 620, 130, "3  Sources read from URLs",
+                  f"{len(sources)} files in {sum(v['seconds'] for v in sources):.0f} s: "
+                  "GIAB regions,\nfather and mother VCFs, gnomAD constraint,\nClinGen, Ensembl GFF3",
+                  dashed=True)
+    s.edge(400, 236, x, 236, source=q)
+
+    # Annotation with vepyr, queries with polars-bio, each with its run time.
+    x = 1170
+    ann = s.box(x, 76, 840, 140, "", stroke_width=1.8)
+    s.label(x + 16, 86, 640, 32, "Annotation using vepyr", font_size=23, weight=700)
+    s.label(x + 16, 116, 810, 96, code_text(
+        "lf = vepyr.annotate(son_vcf, cache,",
+        "        plugins=[\"clinvar\", \"spliceai\",",
+        "                 \"alphamissense\", \"cadd\"])",
+    ), font_size=20.5, mono=True)
+    query = s.box(x, 250, 840, 176, "", stroke_width=1.8)
+    s.label(x + 16, 256, 640, 32, "Query using polars-bio", font_size=23, weight=700)
+    s.label(x + 16, 288, 810, 134, code_text(
+        "plof = lf.filter(is_mane & is_plof)",
+        "pb.overlap(plof, pb.scan_bed(segdup_url))",
+        "pb.coverage(mane_cds, pb.scan_bed(bench_url))",
+        "plof.join(pb.scan_vcf(father_s3_url), on=pos)",
+        "plof.join(pb.scan_vcf(mother_s3_url), on=pos)",
+    ), font_size=20, mono=True)
+    for y, minutes in ((84, annotate["seconds"] / 60), (256, summary["seconds"]["total"] / 60)):
+        s.box(x + 840 - 136, y, 120, 34, f"{minutes:.1f} min", fill=INK, stroke=INK,
+              font_color="white", font_size=21, radius=2)
+    s.edge(1090, 126, x, 126, source=t1, target=ann)
+    s.edge(1090, 236, 1130, 190, via=((1130, 236),), arrow=False, source=t2)
+    s.edge(1130, 190, x, 190, target=ann)
+    s.edge(1090, 361, x, 361, source=t3, target=query)
+    s.edge(x + 420, 216, x + 420, 250, source=ann, target=query)
+    s.label(x + 434, 214, 320, 38, "Polars LazyFrame", font_size=18, color=GREY)
+
+    # Answer, as keywords on the rows of the question.
+    x = 2090
+    a = s.box(x, 76, B_WIDTH - x, 350, "", fill=SOFT, stroke=LIGHT, stroke_width=1.2)
+    s.edge(2010, 361, x, 361, source=query, target=a)
+    s.label(x + 16, 84, 600, 32, "Answer", font_size=23, weight=700)
+    syn = 100 * float(loeuf["Rare synonymous (reference)"]["frac_constrained"])
+    plof = 100 * float(loeuf["All pLoF, MANE Select"]["frac_constrained"])
+    plp = read_tsv(results / "clinvar_plp.tsv")
+    clinical = f"{summary['clinvar_plp_variants']} ClinVar pathogenic variants"
+    if len(plp) == 1 and plp[0]["SYMBOL"] == "F11":
+        parent = "father" if plp[0]["inheritance"] == "paternal" else "mother"
+        clinical = f"F11 Ashkenazi founder allele, from the {parent}"
+    answers = (
+        (f"{lof['hc_variants']} high-confidence LoF in {lof['hc_genes']} genes", "filtering with data from tiers 1–3"),
+        (f"depleted in intolerant genes ({plof:.0f}% vs {syn:.0f}%)", "join with gnomAD constraint"),
+        (clinical, "ClinVar plugin, joins with father and mother VCFs"),
+        (f"{summary['clingen_genes_lt90']} disease genes < 90% covered by the benchmark",
+         "coverage analysis of coding sequence with polars-bio"),
+    )
+    for y, (text, uses) in zip(rows, answers):
+        s.label(x + 16, y - 4, B_WIDTH - x - 32, 36, text, font_size=25)
+        s.label(x + 16, y + 30, B_WIDTH - x - 32, 26, uses, font_size=19, color=GREY)
+    return s
+
+
+def sci(p: float) -> str:
+    mantissa, exponent = f"{p:.0e}".split("e")
+    sup = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+    return f"{mantissa} × 10{str(int(exponent)).translate(sup)}"
 
 
 def full_figure(performance_uri: str, results: Path) -> tuple[fig.Scene, int]:

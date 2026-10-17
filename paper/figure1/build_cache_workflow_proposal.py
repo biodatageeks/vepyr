@@ -291,6 +291,83 @@ def lookup() -> fig.Scene:
     return s
 
 
+def lookup_column(code: str = "C4", width: float = 520) -> fig.Scene:
+    """The lookup of ``lookup()`` as a narrow column: the three steps stacked.
+
+    Same toy pages, rows and payload values as ``lookup()``; the summary
+    boxes under each step are left out, the highlighted rows carry them.
+    """
+    s = fig.Scene()
+    s._counter = 33000
+    s.label(0, 14, 68, 44, code, font_size=31, weight=700)
+    s.label(74, 15, width - 74, 42, "Cache lookup", font_size=29, weight=700)
+    s.label(0, 66, width, 56, "Probe positions chr22:16,050,075\nand chr22:16,050,213",
+            font_size=20)
+
+    def step(y: float, text: str) -> None:
+        s.box(0, y, width, 66, text, font_size=21, stroke_width=1.8)
+
+    def head(y: float, cols) -> None:
+        for x, w, label in cols:
+            s.label(x, y, w, 32, label, font_size=19, weight=700)
+        s.edge(0, y + 34, width, y + 34, arrow=False, width=1.5)
+
+    def down(y: float) -> None:
+        s.edge(width / 2, y, width / 2, y + 30)
+
+    step(132, "1  Page candidates\nPage-index metadata")
+    head(212, ((6, 70, "Page"), (90, 400, "Min–max position")))
+    for i, (page, limits, selected) in enumerate((
+        ("P0", "16,050,001–16,050,088", True),
+        ("P1", "16,051,000–16,051,999", False),
+        ("P2", "16,050,201–16,050,240", True),
+        ("P3", "16,053,000–16,053,999", False),
+    )):
+        y = 254 + i * 44
+        s.box(0, y, width, 38, "", fill="#f3f3f3" if selected else "white",
+              stroke=INK if selected else LIGHT, stroke_width=2 if selected else 0.8)
+        s.label(8, y + 3, 70, 32, page, font_size=19, weight=700 if selected else 400)
+        s.label(90, y + 3, 400, 32, limits, font_size=19)
+    s.label(0, 432, width, 30, "Warm and cold runs queried", font_size=18, color=GREY)
+    down(466)
+
+    step(500, "2  Locate row offsets\nRead position column")
+    head(580, ((6, 150, "File row"), (170, 300, "Position")))
+    for i, (row, pos, selected) in enumerate((
+        (1000, "16,050,001", False),
+        (1001, "16,050,075", True),
+        (1002, "16,050,075", True),
+        (8500, "16,050,201", False),
+        (8501, "16,050,213", True),
+        (8502, "16,050,240", False),
+    )):
+        y = 622 + i * 36
+        if selected:
+            s.box(0, y, width, 33, "", fill=LIGHT, stroke_width=0)
+        s.label(8, y + 1, 150, 30, str(row), font_size=19, weight=700 if selected else 400)
+        s.label(170, y + 1, 300, 30, pos, font_size=19, weight=700 if selected else 400)
+    down(846)
+
+    step(880, "3  Take\nOffsetIndex, selected rows")
+    cols = ((6, 100, "Row"), (130, 120, "Alleles"), (270, 90, "ID"), (380, 120, "AF"))
+    head(960, cols)
+    for i, values in enumerate((("1001", "A/G", "v1", "0.12"),
+                                ("1002", "A/T", "v2", "0.002"),
+                                ("8501", "C/T", "v3", "0.004"))):
+        y = 1002 + i * 36
+        s.box(0, y, width, 33, "", fill=LIGHT, stroke_width=0)
+        for (x, w, _), text in zip(cols, values):
+            s.label(x + 2, y + 1, w, 30, text, font_size=19)
+    s.label(0, 1112, width, 30, "One position can yield several alleles.",
+            font_size=18, color=GREY)
+    down(1146)
+    s.box(0, 1180, width, 66, "Allele matching in C1\nAttach to input variants",
+          font_size=21, stroke_width=1.8)
+    s.label(0, 1256, width, 30, "Illustrative pages, rows and values", font_size=17,
+            color=GREY)
+    return s
+
+
 def full_figure(performance_uri: str) -> fig.Scene:
     s = fig.build_scene(performance_uri)
     cut = next(i for i, e in enumerate(s.elements) if e.id == "shard-zoom-frame") + 1

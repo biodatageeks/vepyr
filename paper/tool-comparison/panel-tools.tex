@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{fontspec}
+\setmainfont{Arial}
+\setmonofont{Courier New}[Scale=0.9]
+\usepackage{array,booktabs}
+\usepackage[table]{xcolor}
+\definecolor{muted}{HTML}{57606A}
+\definecolor{hl}{HTML}{EAF2FB}
+\definecolor{todo}{HTML}{CF222E}
+\setlength{\tabcolsep}{0.8mm}
+\renewcommand{\arraystretch}{1.12}
+\aboverulesep=0.6ex \belowrulesep=0.6ex
+\heavyrulewidth=0.6pt \lightrulewidth=0.35pt
+\pagestyle{empty}
+\newsavebox\tablebox
+\newsavebox\panelbox
+\begin{document}
+\sbox\tablebox{\fontsize{7}{8.2}\selectfont
+\input{tab-panel-tools.tex}}
+\sbox\panelbox{\vbox{\copy\tablebox
+\vskip 3pt
+\hsize=\wd\tablebox \parindent=0pt
+{\fontsize{5.6}{6.8}\selectfont\color{muted}\raggedright
+\input{panel-notes.tex}\par}}}
+\pdfpagewidth=\dimexpr\wd\panelbox+2mm\relax
+\pdfpageheight=\dimexpr\ht\panelbox+\dp\panelbox+2mm\relax
+\hoffset=\dimexpr-1in+1mm\relax
+\voffset=\dimexpr-1in+1mm\relax
+\shipout\box\panelbox
+\end{document}

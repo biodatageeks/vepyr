@@ -1,0 +1,17 @@
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.45cm}>{\raggedright\arraybackslash}p{2.55cm}>{\raggedright\arraybackslash}p{2.55cm}>{\raggedright\arraybackslash}p{2.55cm}>{\columncolor{hl}\raggedright\arraybackslash}p{2.55cm}@{}}
+\toprule
+ & Ensembl VEP\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}116.0\enspace\texttt{57ea5c5}} & fastVEP\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.4.0+6\enspace\texttt{5d8004a}} & vep-rs\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.4.0\enspace\texttt{f642723}} & \textbf{vepyr}\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.10.0\enspace\texttt{3f21520}} \\
+\midrule
+\textcolor{muted}{Language} & Perl & Rust & Rust & Rust, Python \\
+\textcolor{muted}{Parallelism} & processes & threads & threads & threads \\
+\textcolor{muted}{Cache format} & Storable, gzip per 1-Mb region & bincode + zstd (transcripts), OSAv2 (annotations) & JSON, gzip optional & Parquet, ZSTD (core and plugins) \\
+\textcolor{muted}{Fields filled\textsuperscript{a}} & 80/80 & ≤37/80 & ≤71/80 (34/80)\textsuperscript{b} & \textbf{80/80} \\
+\textcolor{muted}{Transcript sets} & Ensembl, RefSeq, merged & Ensembl, RefSeq, merged\textsuperscript{c} & Ensembl, RefSeq, merged\textsuperscript{d} & Ensembl, RefSeq, merged \\
+\textcolor{muted}{Declared variant classes} & SNV, indel, SV & SNV, indel, SV\textsuperscript{e} & SNV, indel, SV\textsuperscript{e} & SNV, indel \\
+\textcolor{muted}{External annotation sources} & yes & yes & yes & yes \\
+\textcolor{muted}{Concordance (chr22, merged)} & reference & \textcolor{todo}{\textbf{TODO}} & \textcolor{todo}{\textbf{TODO}} & \textcolor{todo}{\textbf{TODO}} \\
+\textcolor{muted}{Interfaces} & CLI, web, REST & CLI, web, REST & CLI & Python API, SQL, CLI \\
+\textcolor{muted}{Evaluation} & streaming & streaming & streaming & \textbf{lazy, \mbox{pushdown}} \\
+\textcolor{muted}{Output} & VCF, tab, JSON & VCF, tab, JSON & VCF, tab, JSON, Parquet & Polars DataFrame/\allowbreak LazyFrame, VCF \\
+\bottomrule
+\end{tabular}

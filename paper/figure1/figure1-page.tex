@@ -1,0 +1,83 @@
+% One page with Figure 1 and its caption, on the page and text block of the
+% Bioinformatics template used in ../vepyr-overleaf (oup-authoring-template,
+% options contemporary,large): paper 209.80 x 275.84 mm, text block 488.5 pt x
+% 63 lines of 10.5 pt, caption in 6 bp on 9 pt with a bold "Fig. 1." label and
+% 13 pt above it. The class itself needs packages missing from this TeX
+% installation, so its dimensions are reproduced here. The figure is the
+% TikZ picture of build_tikz.py. The grey frame marks
+% the text block; the line below it reports the space left.
+%
+%   pdflatex figure1-page.tex
+\documentclass{article}
+\usepackage{fix-cm}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[paperwidth=209.80mm, paperheight=275.84mm, textwidth=488.5pt,
+  textheight=661.5pt, left=54.6pt, top=56.68pt, headheight=0pt, headsep=0pt,
+  footskip=16pt]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage{eso-pic}
+\pagestyle{empty}
+
+\makeatletter
+\AddToShipoutPictureBG{%
+  \AtTextLowerLeft{\color{black!25}\linethickness{0.3pt}%
+    \put(0,0){\framebox(\strip@pt\textwidth,\strip@pt\textheight){}}}}
+\makeatother
+
+\newsavebox\figbox
+\input{figure1-table.tex}
+\newcommand{\everything}{\texttt{-{}-everything}}
+
+\begin{document}
+\sbox\figbox{\parbox[t]{\textwidth}{%
+\noindent\input{figure1-tikz.tex}\par
+\vspace{13pt}
+{\fontsize{6bp}{9pt}\selectfont\noindent
+\textbf{Fig. 1.} \textbf{vepyr: VEP-compatible annotation as a query in the
+Python DataFrame ecosystem.}
+\textbf{(A)}~Ensembl VEP and three reimplementations. \emph{Fields filled}: of the 80 \texttt{CSQ} fields of VEP~116
+\everything{} (Ensembl cache), those each tool can fill. \emph{Concordance}: on
+chromosome~22 with the merged cache, same inputs for all tools [TODO].
+\textbf{(B)}~The GIAB Ashkenazi trio in one Python session: annotation of the
+son's genome (HG002, 4.1 million variants) with the core and plugin caches
+(tiers~1 and~2) took 4.2\,min with 8 workers, and queries with polars-bio,
+including 12 files read from their URLs (tier~3) among them the father's and
+mother's VCFs, 1.3\,min. Of 158 variants with a predicted
+loss-of-function (LoF) consequence in a MANE Select transcript, 57 in 52 genes
+pass filters from all three tiers; they are depleted from LoF-intolerant genes
+(10\% in gnomAD LOEUF deciles 1--2 against 25\% of rare synonymous variants,
+$p=3\times10^{-4}$). The only ClinVar pathogenic allele is \textit{F11}
+Glu117Ter, the Ashkenazi founder allele of factor~XI deficiency, inherited from
+the father; 83 of 2,302 ClinGen disease genes are less than 90\% covered by the
+benchmark regions.
+\textbf{(C1)}~Dataflow from the input VCF through the Rust/DataFusion engine to
+Arrow batches, an annotated VCF or a Polars LazyFrame.
+\textbf{(C2)}~Core and plugin caches are built as chromosome-partitioned Parquet
+with page indexes.
+\textbf{(C3)}~Warm and cold frequency tiers reduce the pages read for one HG002
+buffer by 76\%.
+\textbf{(C4)}~Lookup: page index, position column, payload of the matched rows.
+\textbf{(D)}~Query pushdown: a genomic predicate selects the VCF region through
+its index and the cache pages through the page index; the selected and filtered
+columns decide which annotation is computed; other predicates filter the
+annotated rows.
+\textbf{(E)}~Whole-genome wall time of VEP~116 and vepyr with 1--8 processes or
+workers (HG002, merged cache, \everything).\par}}}
+\noindent\usebox\figbox
+
+\vfill
+\noindent{\fontsize{6bp}{8pt}\selectfont\color{black!50}%
+Check: figure and caption take
+\fpeval{round((\ht\figbox+\dp\figbox)/2.845276,1)}\,mm of the
+\fpeval{round(\textheight/2.845276,1)}\,mm text block; space left
+\fpeval{round((\textheight-\ht\figbox-\dp\figbox)/2.845276,1)}\,mm.
+Figure width \fpeval{round(\textwidth/2.845276,1)}\,mm.\par}
+\typeout{FIGPAGE used=\the\dimexpr\ht\figbox+\dp\figbox\relax\space of \the\textheight}
+\end{document}
