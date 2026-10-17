@@ -2,6 +2,8 @@
 
 - [`vep/`](vep/README.md) — Ensembl VEP fork-scaling runner, plotter and outputs
 - [`vepyr/`](vepyr/README.md) — vepyr worker-scaling runner, plotter and outputs
+- [`engine-comparison/`](engine-comparison/README.md) — vepyr, vep-rs and fastVEP
+  built, timed and compared column by column against Ensembl VEP on one chromosome
 - [`scripts/plot_vep_vs_vepyr_macos.py`](scripts/plot_vep_vs_vepyr_macos.py) — the
   side-by-side figure below
 - [`figures/`](figures/) — cross-tool figures
