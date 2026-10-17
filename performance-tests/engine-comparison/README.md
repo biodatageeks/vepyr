@@ -22,7 +22,23 @@ The script uses only the Python standard library. It needs `git`, `cargo`,
 `tabix` on `PATH`, and network access for the clones, the GFF3 downloads and
 PyPI.
 
-Results from one run: [`outputs/116/macos_mwiewior_chr22_20261017`](outputs/116/macos_mwiewior_chr22_20261017/report.md).
+## Results on HG002 chr22, Ensembl VEP 116
+
+From [`outputs/116/macos_mwiewior_chr22_20261017`](outputs/116/macos_mwiewior_chr22_20261017/report.md):
+50,861 records, M3 Max, vep-rs `main` f642723 (0.4.0), fastVEP `master` 5d8004a,
+vepyr 0.10.0. Wall time is the median at 2 threads; sizes are chr22 only, with
+the SIFT/PolyPhen matrices where the engine has them.
+
+| | vepyr | vep-rs (`sift`) | fastVEP (`tabix`) | fastVEP (`osa2`) |
+|---|---|---|---|---|
+| CSQ columns with no mismatches, Ensembl cache (of 80) | **80** | 30 | 19 | not scored |
+| CSQ columns with no mismatches, merged cache (of 86) | **86** | 27 | 13 | not scored |
+| Wall time, Ensembl / merged | **2.1 s / 3.1 s** | 24.3 s / 25.9 s | 745 s / 742 s | 11.5 s / 14.2 s |
+| Peak RSS, Ensembl | **1.1 GiB** | 22.2 GiB | 0.3 GiB | 2.9 GiB |
+| Cache size, Ensembl / merged | 473 / 529 MB | 4,190 / 4,262 MB | 312 / 315 MB, no matrices | 456 / 459 MB, no matrices |
+
+vep-rs's cache is plain JSON because 0.4.0 cannot read gzipped variation shards;
+the vep-rs branch below can, and its cache is about 540 / 610 MB.
 
 ## Running it
 
