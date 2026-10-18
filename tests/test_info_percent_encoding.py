@@ -62,9 +62,9 @@ RESERVED = [
     ("GENEINFO=tab%09here;P=cr%0Dlf%0A", "0/1:t%09"),
 ]
 
-# Escapes the re-encoding writer cannot restore: an unreserved character
-# (`%20`, `%2B`, a `;` in a sample column) comes back decoded and a lower-case
-# escape upper-cased. Exact bytes need the raw input text carried through, the
+# Escapes the writer does not re-encode: an unreserved character (`%20`, `%2B`)
+# and a `;` in a sample column, where it separates nothing, come back decoded,
+# and a lower-case escape comes back upper-cased. Exact bytes need the raw input text carried through, the
 # follow-up to #207. One case each, so a partial follow-up shows up as an XPASS.
 UNRESTORABLE = {
     "space": ("GENEINFO=base_change%3Dins%20A;P=x", "0/1:x"),
