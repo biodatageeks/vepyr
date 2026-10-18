@@ -144,7 +144,7 @@ The remaining contigs are running.
    differ by the same swap: VEP writes the RefSeq transcript `ND4L` before
    `ND4`, vepyr writes `ND4` first (plain alphabetical order). The rest of the
    order agrees.
-2. **Mitochondrial codon table, 297 records.** vepyr translates MT transcripts
+2. **Mitochondrial codon table, 294 records.** vepyr translates MT transcripts
    with the standard genetic code instead of the vertebrate mitochondrial one.
    For example MT:3307 A>T in ENST00000361390 (ND1): ATA is Met in mitochondria,
    so VEP writes `M/L` and `p.Met1?`, vepyr `I/L` and `p.Ile1?`.
@@ -152,10 +152,13 @@ The remaining contigs are running.
    `stop_gained&start_lost` against vepyr `start_lost`), `IMPACT` (273), `SIFT`
    (239) and `PolyPhen` (249) follow from it. Most cases are in CYTB, ATP6, ND5
    and COX1.
-3. **HGVSc of a deletion covering whole transcripts.** For the 9,120 bp
-   deletion at MT:6467 VEP writes HGVSc such as `ATP6.1:c.1_681del` and
-   `COX1.1:c.565_1542del`; vepyr leaves the field empty (40 `HGVSc` and 8
-   `HGVS_OFFSET` entries).
+3. **HGVSc and HGVS_OFFSET of four indels, 4 records.** For the 9,120 bp
+   deletion at MT:6467 VEP writes a deletion of each transcript that lies
+   inside it, e.g. `ATP6.1:c.1_681del`; vepyr leaves `HGVSc` empty. For three
+   1 bp indels in MT-TT (MT:15933, 15939) vepyr places the variant 3 bases
+   further towards the 3' end than VEP (`n.50del` against `n.47del`).
 
 chrMT is outside the HG002 validation, which covers chromosomes 1-22, so these
-are new findings rather than regressions.
+are new findings rather than regressions. All differing records, and a small
+input/VEP/vepyr fixture for each class, are in
+[`mismatches/chrMT/`](mismatches/chrMT/README.md).
