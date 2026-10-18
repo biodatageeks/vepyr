@@ -225,6 +225,6 @@ serde_json = "1"
 # marks CSQ as joined text so it stays verbatim (functions branch of the same name,
 # 7f8d2dc, which merges master and so carries 4704ff9). Both are PR heads until
 # they merge and are released.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7f8d2dce9f336e5c3390b5e2ad29551da820e364", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c419b7b2f70d70cd131b9d87eeb22f0235ec5feb" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c419b7b2f70d70cd131b9d87eeb22f0235ec5feb" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "aefd93c3a5e11984c1383bb35603cb28b181cfd4", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "56d678d5624990d4bf2179ddb0db627d847f5e60" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "56d678d5624990d4bf2179ddb0db627d847f5e60" }
