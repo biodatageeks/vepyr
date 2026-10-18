@@ -214,14 +214,17 @@ serde_json = "1"
 # vepyr#156: preserve cached strand and normalize each ALT in known-variant lookup.
 # functions#269 also bounds multi-worker context loading.
 # Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
+# Projection pushdown: functions#272 (merge commit 483a499 on main, after
+# v0.23.1) skips the work no projected annotate_vep() column needs. Pinned by
+# rev until a release tag carries it.
 # vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
-# pick tie-break; RefSeq ND4L before ND4 on chrMT). Review pin: the head of the
-# functions PR on top of v0.23.1. formats stays at v1.14.0.
-# vepyr#200: translate MT transcripts with their codon table (NCBI table 2), and
-# read codon_table from _variation_effect_feature_cache in bio-formats.
-# Review pins: the functions PR head (stacked on #199's 585876d) and the formats
-# PR head on top of master 4b58ea6 (v1.14.0 + #260/#261); the engine pins the
-# same formats rev, so all three formats crates resolve to one source.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "5c10a904de4bc53c16e511a7847ae32e9a5eb43b", features = ["cache-builder"] }
+# pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
+# as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
+# vepyr#200: translate MT transcripts with their codon table and read
+# codon_table from _variation_effect_feature_cache.
+# Review pins: functions#274 head, rebased onto master after #273, and formats
+# #262 head. Both formats declarations and the engine resolve the same rev.
+# Re-pin after the upstream PRs merge and release tags are available.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "3f684d0d3a5b00f7ca5420fc34f68ab7f5c6ce41", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "397f15d9cb78745f07828e2110830af249c4c0e3" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "397f15d9cb78745f07828e2110830af249c4c0e3" }

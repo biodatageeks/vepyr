@@ -24,3 +24,9 @@ fixture of the ClinVar chrMT parity run
 - `reference.fa.gz`: MT only (16,569 bp), bgzip with `.fai` and `.gzi`.
 
 `prepare.py` regenerates everything from `$DATA_VEPYR_DIR`.
+
+Coverage note: the focused 12-record fixture tests the mitochondrial codon-table
+differences. It includes the MT:3308 `T>AC` frameshift path, whose alternate
+frameshift peptide follows VEP's table-1 behavior. It has no deletion or
+stop-loss HGVSp record, so this fixture alone does not pin those table-1
+exceptions. Keep the full chrMT parity gate as the check for those paths.

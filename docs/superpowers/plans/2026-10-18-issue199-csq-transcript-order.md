@@ -151,11 +151,17 @@ record, so the standard gates cannot see this defect.
 
 ## 7. Pin cascade
 
+Final pins after `datafusion-bio-functions#273` merged:
+
 | PR | pins |
 |---|---|
-| formats | none (no PR) |
-| functions | formats `v1.14.0` (unchanged) |
-| vepyr | functions PR head `rev` |
+| formats | no change; `v1.14.0` |
+| functions | #273 squash-merged on functions master as `4704ff9`, on top of #272 (`483a499`) |
+| vepyr #204 | functions merge commit `4704ff9a89c1190ca7c9d48f0da44bc5b98353c7` by `rev`; formats `v1.14.0` |
+
+The merge commit is reachable from functions master, so the vepyr review pin no
+longer points at a PR-only commit. Move it to a release tag when one carries
+this commit.
 
 ## 8. Expected gate movement
 
@@ -180,21 +186,23 @@ record, so the standard gates cannot see this defect.
    rely on the engine unit tests plus the manual fixture diff? Recommended: the
    engine tests plus the fixture diff as a step-8 gate; a vepyr fixture can come
    with the codon-table fix (#200), which needs chrMT data anyway.
-3. **Base branch vs open engine PR #272** (projection pushdown, open, touches
-   `annotate_provider.rs` around `TRANSCRIPT_CONTEXT_COLUMNS`). Recommended: base
-   on functions `master` (`b960112`) and rebase whichever lands second; the
-   overlap is one column-list line.
+3. **Base branch vs engine PR #272** (projection pushdown, touches
+   `annotate_provider.rs` around `TRANSCRIPT_CONTEXT_COLUMNS`). Resolved: #272
+   merged as `483a499`; #273 was merged on top of it.
 
 ## 10. Outcome
 
 - Engine: biodatageeks/datafusion-bio-functions `fix/csq-transcript-order-199`
-  (`2cd4e06`, review follow-up `585876d`). The two tests that exercise production code failed before the
+  (`2cd4e06`, review follow-up `585876d`), squash-merged as `4704ff9` on top of
+  #272 (`483a499`). The vepyr PR pins the full merge SHA. The two tests that exercise production code failed before the
   fix (`prepared_context_indexes_transcripts_in_vep_order`,
   `test_apply_pick_tie_breaks_by_vep_stable_id_db_id_key`) and pass after;
   1,175 unit tests plus the integration tests pass, clippy and fmt are clean.
 - chrMT `csq_order` fixture: empty diff against VEP 116.0 and 116.2.
 - Full ClinVar chrMT (3,134 records) against VEP 116.0 and 116.2: 2,837
   identical, 0 order-only, 297 content mismatches (was 807 / 2,030 / 297).
-- Baseline gates at master `3042507`: strict md5 22/22; 8 workers 74.1 s,
+- Baseline gates at vepyr master `3042507`: strict md5 22/22; 8 workers 74.1 s,
   9,101,872 KiB; 1 worker 290.0 s, 4,181,856 KiB. Final gates run on the final
-  pins after review.
+  pins after review. The branch now includes the latest vepyr master handoff
+  runbook update; record the final strict md5, performance comparison, and
+  `/parity-wgs` result here after they pass on the final head.
