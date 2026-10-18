@@ -101,6 +101,8 @@ def _annotate_vcf(tmp_path: Path, records: list[tuple[str, str]]) -> list[list[s
 
 
 def _input_info(record: list[str]) -> str:
+    # CSQ is appended after the input's own keys, so the input INFO is
+    # everything before the last `;CSQ=`.
     return record[7].rsplit(";CSQ=", 1)[0]
 
 
@@ -136,8 +138,8 @@ def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
 
 @pytest.mark.xfail(
     strict=True,
-    reason="vepyr#207 follow-up: escapes of unreserved characters and lower-case "
-    "escapes need the raw input text carried through",
+    reason="vepyr#207 follow-up: escapes the writer does not re-encode need the "
+    "raw input text carried through",
 )
 @pytest.mark.parametrize("case", sorted(UNRESTORABLE))
 def test_unrestorable_escapes_are_written_back_byte_for_byte(tmp_path, case):

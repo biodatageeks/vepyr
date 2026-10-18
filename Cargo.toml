@@ -218,10 +218,10 @@ serde_json = "1"
 # v0.23.1) skips the work no projected annotate_vep() column needs. Pinned by
 # rev until a release tag carries it.
 # vepyr#207: the VCF writer percent-encodes reserved characters in INFO/FORMAT
-# values again (formats fix/issue-207-info-percent-encoding f66918b) and the engine
+# values again (formats fix/issue-207-info-percent-encoding 2a1e622) and the engine
 # marks CSQ as joined text so it stays verbatim (functions branch of the same name,
-# 03b3424, a child of the projection-pushdown commit 483a499 above, so that work
-# is still included). Review pins: both are PR heads until they merge.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "03b34243e470736190165a97921a42659218a827", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "f66918b391ca7cc7ab5deead057195793089ac45" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "f66918b391ca7cc7ab5deead057195793089ac45" }
+# 9778f37, a descendant of the projection-pushdown commit 483a499 above, so that work
+# is still included). Both are PR heads until they merge and are released.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9778f370b50dcbc2d26520dc4b46f2e29aff63c9", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2a1e622df5d9e144856e02f0ae8d8ff7362d76ca" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2a1e622df5d9e144856e02f0ae8d8ff7362d76ca" }

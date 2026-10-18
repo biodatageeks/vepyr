@@ -294,8 +294,8 @@ key and its header line are dropped and the new `CSQ` is appended last.
 Percent-encoded values (VCF 4.3 §1.2; ClinVar writes a `;` inside a disease name
 as `%3B`) are decoded in the LazyFrame and encoded again in the VCF that
 `output_vcf` and the CLI write, so the reserved characters come back as they
-were: `%3B`, `%3D`, `%2C`, `%25` and the line controls in `INFO`, `%3A`, `%2C`,
-`%25` in the sample columns. An escape of a character that needs none, such as
+were: `%3B`, `%3D`, `%2C`, `%25` in `INFO`, `%3A`, `%2C`, `%25` in the sample
+columns, and the line controls (`%09`, `%0D`, `%0A`) in both. An escape of a character that needs none, such as
 `%20` or `%2B`, comes back decoded (a space, a `+`), and a lower-case escape
 comes back upper-cased; Ensembl VEP keeps those bytes as they were.
 `polars_bio.sink_vcf` still writes these values decoded until a polars-bio
