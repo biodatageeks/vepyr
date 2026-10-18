@@ -696,6 +696,8 @@ pub fn create_streaming_annotator(
                 pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to register VCF: {e}"))
             })?;
 
+        // With an explicit column list, CSQ is excluded simply by not being
+        // listed, so `skip_csq` only matters for the `SELECT *` forms.
         let select = match select_columns.as_deref() {
             Some(columns) if !columns.is_empty() => format!(
                 "SELECT {}",

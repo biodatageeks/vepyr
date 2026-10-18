@@ -2257,6 +2257,68 @@ class TestShadowedInputProjection:
         assert calls[-1]["select_columns"] == ["chrom", "CSQ"]
 
 
+class TestProjectionFallback:
+    """If a needed name has no engine column, the query must fall back to the
+    full output (no column list, no narrowed CSQ layout) and prune in Polars."""
+
+    def test_unknown_engine_name_falls_back_to_the_full_options(
+        self, tmp_path, monkeypatch
+    ):
+        import pyarrow as pa
+        import vepyr
+
+        root = Path(_fake_plugin_root(tmp_path, ["cadd"]))
+        (root / "plugin" / "cadd" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "plugin_name": "cadd",
+                    "field_order": "declared",
+                    "value_columns": [
+                        {"column": "phred", "csq_field": "CADD_PHRED", "type": "Utf8"}
+                    ],
+                }
+            )
+        )
+        schema = pa.schema(
+            [pa.field(n, pa.string()) for n in ["chrom", "CSQ", "SYMBOL"]]
+        )
+        calls = []
+
+        class FakeAnnotator:
+            def __init__(self):
+                self.schema = schema
+
+            def __iter__(self):
+                return iter(())
+
+        def fake(vcf, cache_dir, options_json, skip_csq, limit):
+            calls.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        # A broken shadow mapping: a frame column whose engine name is absent.
+        real_rename = vepyr._rename_shadowed_input_columns
+
+        def broken_rename(schema_dict, carried, plugin_fields):
+            renamed, mapping = real_rename(schema_dict, carried, plugin_fields)
+            renamed = {**renamed, "INFO_GHOST": pl.String}
+            return renamed, {**mapping, "GHOST": "INFO_GHOST"}
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake)
+        monkeypatch.setattr(vepyr, "_rename_shadowed_input_columns", broken_rename)
+        lf = vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=str(root),
+            plugins=["cadd"],
+        )
+        lf.select("chrom", "INFO_GHOST", "CADD_PHRED").collect()
+        opts = calls[-1]
+        assert "select_columns" not in opts
+        assert "fields" not in opts, "no narrowed CSQ layout on the fallback"
+        assert opts["everything"] is True
+
+
 class TestPluginMatchTemplates:
     """A per-feature plugin's match template can reference a flag-dependent
     field (``{HGVSc}`` say); a ``select()`` reading that plugin's column then

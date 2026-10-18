@@ -2291,17 +2291,24 @@ def annotate(
             }
             if csq_needed:
                 engine_names.add("CSQ")
-                if "CSQ" not in needed and "fields" not in _opts:
-                    template_fields = (required - {"Allele"}) & set(pa_schema.names)
-                    engine_opts["fields"] = ["Allele", *sorted(template_fields)]
-            if not engine_names & _RECORD_LAYOUT_COLUMNS:
-                engine_opts.pop("vcf_record_layout", None)
-            # A needed name the engine does not have would silently vanish
-            # from the batches; send no list then, and prune in Polars.
             if engine_names <= set(pa_schema.names):
+                # Engine output order follows the frame schema.
                 engine_opts["select_columns"] = [
                     n for n in pa_schema.names if n in engine_names
                 ]
+                if csq_needed and "CSQ" not in needed and "fields" not in _opts:
+                    template_fields = (required - {"Allele"}) & set(pa_schema.names)
+                    engine_opts["fields"] = ["Allele", *sorted(template_fields)]
+                if not engine_names & _RECORD_LAYOUT_COLUMNS:
+                    engine_opts.pop("vcf_record_layout", None)
+            else:
+                # A needed name the engine does not have would silently vanish
+                # from the batches: a bug, but the query can still be right.
+                # Send no column list and no cut CSQ layout; Polars prunes.
+                log.warning(
+                    "projection pushdown skipped: no engine column for %s",
+                    sorted(engine_names - set(pa_schema.names)),
+                )
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
