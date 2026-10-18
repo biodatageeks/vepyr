@@ -217,6 +217,6 @@ serde_json = "1"
 # Projection pushdown: v0.23.1 plus biodatageeks/datafusion-bio-functions#272,
 # which skips the work no projected annotate_vep() column needs. Review pin to
 # the PR head; re-pin to the merge commit or release tag once it merges.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1a7feae431852fe9bf0313ea7886e9bb7ebff414", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d68d1076dbf2bcf0b7e9bad76941627b11597882", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
