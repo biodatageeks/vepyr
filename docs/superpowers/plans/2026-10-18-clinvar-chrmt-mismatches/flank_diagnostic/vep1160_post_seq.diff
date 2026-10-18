@@ -1,0 +1,12 @@
+--- a/TranscriptVariationAllele.pm
++++ b/TranscriptVariationAllele.pm
+@@ -434,7 +434,8 @@
+   ## Gets flanking sequences around the variant to test if shifting is possible
+   my $seqs = $new_slice->seq;
+   my $pre_seq = substr($seqs, 0, $area_to_search); 
+-  my $post_seq = substr($seqs, 0 - $area_to_search);
++  my $post_offset = $var_end - $new_slice->start + 1;
++  my $post_seq = substr($seqs, $post_offset, $area_to_search);
+   
+   my $unshifted_allele_string = $self->allele_string;
+   my @allele_string = split('/', $unshifted_allele_string);

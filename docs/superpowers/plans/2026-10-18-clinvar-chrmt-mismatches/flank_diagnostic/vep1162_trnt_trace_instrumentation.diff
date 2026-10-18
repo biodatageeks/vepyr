@@ -1,0 +1,27 @@
+--- a/TranscriptVariationAllele.pm
++++ b/TranscriptVariationAllele.pm
+@@ -366,6 +366,10 @@
+ {
+   my ($self, $seq_to_check, $post_seq, $pre_seq, $var_start, $var_end, $hgvs_output_string, $type, $shift_length, $strand, $genomic) = @_;
+   my $vf = $self->variation_feature;
++  if ($vf->seq_region_start >= 15925 && $vf->seq_region_start <= 15950) {
++    my $tr = $self->transcript;
++    warn join("\t", "SHIFTDBG", ($tr ? $tr->stable_id : "?"), $vf->seq_region_start, $vf->seq_region_end, $vf->allele_string, $type, $shift_length, $seq_to_check, $var_start, $var_end, $strand, $genomic, substr($pre_seq, -8), substr($post_seq, 0, 12), $hgvs_output_string)."\n";
++  }
+   my $five_prime_flanking_seq = substr($pre_seq, -1 - $shift_length);
+   my $three_prime_flanking_seq = substr($post_seq, 0, $shift_length + 1);
+   
+@@ -433,8 +437,12 @@
+   
+   ## Gets flanking sequences around the variant to test if shifting is possible
+   my $seqs = $new_slice->seq;
++  if ($vf->seq_region_start >= 15925 && $vf->seq_region_start <= 15950) {
++    warn join("\t", "SLICEDBG", $vf->seq_region_start, $vf->seq_region_end, $vf->allele_string, $slice_to_shrink->start, $slice_to_shrink->end, $slice_to_shrink->strand, $new_slice->start, $new_slice->end, $new_slice->strand, $new_slice->seq_region_name, length($seqs), substr($seqs, 985, 50))."\n";
++  }
+   my $pre_seq = substr($seqs, 0, $area_to_search); 
+-  my $post_seq = substr($seqs, 0 - $area_to_search);
++  my $post_offset = $var_end - $new_slice->start + 1;
++  my $post_seq = substr($seqs, $post_offset, $area_to_search);
+   
+   my $unshifted_allele_string = $self->allele_string;
+   my @allele_string = split('/', $unshifted_allele_string);
