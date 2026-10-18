@@ -1589,8 +1589,9 @@ def test_annotate_nonempty_plugins_never_warn_about_csq(tmp_path, monkeypatch):
 
 class TestProjectionPruning:
     """Annotation always runs ``everything``; a ``select()`` on the LazyFrame
-    narrows it to the smallest flag set that still yields the selected columns,
-    so the engine skips HGVS and the co-located lookup when nothing reads them."""
+    hands the engine the columns it reads (``select_columns``), and the engine
+    narrows the flags and skips the stages no read column needs. The option
+    set itself travels unchanged."""
 
     BASE = ("chrom", "start", "ref", "alt", "SYMBOL", "Consequence", "IMPACT")
 
@@ -1637,9 +1638,7 @@ class TestProjectionPruning:
         assert len(seen) == 2
         return seen[1]
 
-    def test_everything_is_narrowed_when_only_base_columns_are_selected(
-        self, monkeypatch
-    ):
+    def test_selected_columns_are_sent_with_the_full_options(self, monkeypatch):
         import vepyr
 
         seen = self._capture(monkeypatch)
@@ -1647,55 +1646,21 @@ class TestProjectionPruning:
             list(self.BASE)
         ).collect()
         opts = self._engine_opts(seen)
-        for key in (
-            "everything",
-            "hgvs",
-            "check_existing",
-            "af",
-            "pubmed",
-            "reference_fasta_path",
-        ):
-            assert key not in opts, key
+        assert opts["select_columns"] == [
+            "chrom",
+            "start",
+            "ref",
+            "alt",
+            "SYMBOL",
+            "Consequence",
+            "IMPACT",
+        ]
+        assert opts["everything"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
         assert opts["cache_format"] == "parquet"
 
-    def test_hgvs_column_keeps_hgvs_only(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
-            ["chrom", "HGVSc"]
-        ).collect()
-        opts = self._engine_opts(seen)
-        assert opts["hgvs"] is True
-        assert opts["reference_fasta_path"] == REFERENCE_FASTA
-        assert "everything" not in opts
-        assert "check_existing" not in opts
-
-    def test_frequency_column_keeps_colocated_flags_only(self, monkeypatch):
-        import vepyr
-
-        seen = self._capture(monkeypatch)
-        vepyr.annotate(INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA).select(
-            ["chrom", "AF"]
-        ).collect()
-        opts = self._engine_opts(seen)
-        for key in (
-            "check_existing",
-            "af",
-            "af_1kg",
-            "af_gnomade",
-            "af_gnomadg",
-            "max_af",
-            "pubmed",
-        ):
-            assert opts[key] is True, key
-        assert "everything" not in opts
-        assert "hgvs" not in opts
-        assert "reference_fasta_path" not in opts
-
-    @pytest.mark.parametrize("column", ["MANE", "SIFT", "MOTIF_NAME"])
-    def test_everything_only_column_keeps_everything(self, monkeypatch, column):
-        # the motif fields exist only in the everything CSQ layout
+    @pytest.mark.parametrize("column", ["HGVSc", "AF", "MANE", "SIFT", "MOTIF_NAME"])
+    def test_any_column_is_sent_as_selected(self, monkeypatch, column):
         import vepyr
 
         seen = self._capture(monkeypatch)
@@ -1703,10 +1668,10 @@ class TestProjectionPruning:
             ["chrom", column]
         ).collect()
         opts = self._engine_opts(seen)
+        assert opts["select_columns"] == ["chrom", column]
         assert opts["everything"] is True
-        assert opts["reference_fasta_path"] == REFERENCE_FASTA
 
-    def test_csq_column_disables_pruning(self, monkeypatch):
+    def test_csq_column_is_sent_whole(self, monkeypatch):
         # select("CSQ") and collect().select("CSQ") must carry the same string
         import vepyr
 
@@ -1717,9 +1682,12 @@ class TestProjectionPruning:
             reference_fasta=REFERENCE_FASTA,
             skip_csq=False,
         ).select(["chrom", "CSQ"]).collect()
-        assert self._engine_opts(seen)["everything"] is True
+        opts = self._engine_opts(seen)
+        assert opts["select_columns"] == ["chrom", "CSQ"]
+        assert opts["everything"] is True
+        assert "fields" not in opts
 
-    def test_hgvs_formatting_options_follow_the_hgvs_group(self, monkeypatch):
+    def test_hgvs_formatting_options_travel_unchanged(self, monkeypatch):
         import vepyr
 
         seen = self._capture(monkeypatch)
@@ -1732,12 +1700,9 @@ class TestProjectionPruning:
         )
         lf.select(["chrom", "HGVSc"]).collect()
         lf.select(["chrom", "Consequence"]).collect()
-        kept, pruned = seen[1], seen[2]
-        assert kept["hgvs"] is True
-        assert kept["shift_hgvs"] is False
-        assert kept["no_escape"] is True
-        for key in ("hgvs", "shift_hgvs", "no_escape", "reference_fasta_path"):
-            assert key not in pruned, key
+        for opts in (seen[1], seen[2]):
+            assert opts["shift_hgvs"] is False
+            assert opts["no_escape"] is True
 
     def test_filter_column_counts_as_needed(self, monkeypatch):
         import vepyr
@@ -1749,9 +1714,9 @@ class TestProjectionPruning:
             .select(["chrom"])
             .collect()
         )
-        assert self._engine_opts(seen)["af"] is True
+        assert self._engine_opts(seen)["select_columns"] == ["chrom", "AF"]
 
-    def test_no_select_keeps_everything(self, monkeypatch):
+    def test_no_select_sends_no_columns(self, monkeypatch):
         import vepyr
 
         seen = self._capture(monkeypatch)
@@ -1761,8 +1726,21 @@ class TestProjectionPruning:
                 INPUT_VCF, CACHE_DIR, reference_fasta=REFERENCE_FASTA
             ).collect()
         opts = self._engine_opts(seen)
+        assert "select_columns" not in opts
         assert opts["everything"] is True
         assert opts["reference_fasta_path"] == REFERENCE_FASTA
+
+    def test_projection_pushdown_off_sends_no_columns(self, monkeypatch):
+        import vepyr
+
+        seen = self._capture(monkeypatch)
+        vepyr.annotate(
+            INPUT_VCF,
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            projection_pushdown=False,
+        ).select(list(self.BASE)).collect()
+        assert "select_columns" not in self._engine_opts(seen)
 
     def test_fields_and_select_together_is_an_error(self, monkeypatch):
         import vepyr
@@ -1792,7 +1770,9 @@ class TestProjectionPruning:
         lf.select(pl.all()).collect()
         lf.select(list(lf.collect_schema())).collect()
         assert all(
-            o["everything"] is True and o["fields"] == ["Consequence", "IMPACT"]
+            o["everything"] is True
+            and o["fields"] == ["Consequence", "IMPACT"]
+            and "select_columns" not in o
             for o in seen
         )
 
@@ -2025,7 +2005,9 @@ class TestPluginColumns:
         ).collect()
         assert "CSQ" in df.columns and df.columns[-2:] == ["CADD_PHRED", "CADD_RAW"]
 
-    def test_flags_are_still_inferred_with_plugins(self, tmp_path, monkeypatch):
+    def test_plugin_column_reads_a_minimal_csq(self, tmp_path, monkeypatch):
+        # CADD is keyed on the variant: no template, so the CSQ string is cut
+        # to one base field ahead of the plugin fields.
         import vepyr
 
         root, calls = self._fake_cadd(tmp_path, monkeypatch)
@@ -2036,8 +2018,11 @@ class TestPluginColumns:
             plugins=["cadd"],
             reference_fasta=REFERENCE_FASTA,
         ).select("chrom", "CADD_PHRED").collect()
-        assert "everything" not in calls[-1][0]
-        assert calls[-1][0]["plugin_cache_root"] == root
+        opts = calls[-1][0]
+        assert opts["fields"] == ["Allele"]
+        assert opts["select_columns"] == ["chrom", "CSQ"]
+        assert opts["everything"] is True
+        assert opts["plugin_cache_root"] == root
 
     def test_unknown_plugin_column_without_a_plugin_cache_fails_at_plan_time(
         self, metadata_cache_dir
@@ -2274,22 +2259,24 @@ class TestPluginMatchTemplates:
             **kwargs,
         )
 
-    def test_template_fields_keep_their_flags(self, tmp_path, monkeypatch):
+    def test_template_fields_join_the_csq_fields(self, tmp_path, monkeypatch):
+        # The engine narrows the flags from these fields, so HGVS stays on.
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
         self._annotate(root).select("chrom", "BYHGVS_score").collect()
         opts = calls[-1]
-        assert opts["hgvs"] is True and opts["reference_fasta_path"] == REFERENCE_FASTA
-        assert "everything" not in opts
-        assert "check_existing" not in opts
+        assert opts["fields"] == ["Allele", "HGVSc"]
+        assert opts["select_columns"] == ["chrom", "CSQ"]
+        assert opts["everything"] is True
+        assert opts["reference_fasta_path"] == REFERENCE_FASTA
 
-    def test_template_fields_join_the_groups_a_select_reads(
+    def test_template_fields_join_the_columns_a_select_reads(
         self, tmp_path, monkeypatch
     ):
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
         self._annotate(root).select("chrom", "AF", "BYHGVS_score").collect()
         opts = calls[-1]
-        assert opts["hgvs"] is True and opts["af"] is True
-        assert "everything" not in opts
+        assert opts["fields"] == ["Allele", "HGVSc"]
+        assert opts["select_columns"] == ["chrom", "CSQ", "AF"]
 
     def test_plain_collect_keeps_everything(self, tmp_path, monkeypatch):
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
@@ -2303,6 +2290,7 @@ class TestPluginMatchTemplates:
         root, calls = self._hgvs_plugin(tmp_path, monkeypatch)
         self._annotate(root, skip_csq=False).select("chrom", "CSQ").collect()
         assert calls[-1]["everything"] is True
+        assert "fields" not in calls[-1]
 
 
 class TestLazyFrameProgress:

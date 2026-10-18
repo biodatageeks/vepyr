@@ -1273,7 +1273,7 @@ dependencies = [
 [[package]]
 name = "datafusion-bio-function-vep"
 version = "0.21.1"
-source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.23.1#b960112c43a68eef564d117fe49711eb99c089a6"
+source = "git+https://github.com/biodatageeks/datafusion-bio-functions.git?rev=6bb55a21087eb0b3bb005c130b27b01a2cb9d6f0#6bb55a21087eb0b3bb005c130b27b01a2cb9d6f0"
 dependencies = [
  "async-trait",
  "bytes",
@@ -5479,7 +5479,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vepyr"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "arrow",
  "datafusion",

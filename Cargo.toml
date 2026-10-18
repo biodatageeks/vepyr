@@ -214,6 +214,9 @@ serde_json = "1"
 # vepyr#156: preserve cached strand and normalize each ALT in known-variant lookup.
 # functions#269 also bounds multi-worker context loading.
 # Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.23.1", features = ["cache-builder"] }
+# Projection pushdown: v0.23.1 plus biodatageeks/datafusion-bio-functions#272,
+# which skips the work no projected annotate_vep() column needs. Review pin to
+# the PR head; re-pin to the merge commit or release tag once it merges.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "6bb55a21087eb0b3bb005c130b27b01a2cb9d6f0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }

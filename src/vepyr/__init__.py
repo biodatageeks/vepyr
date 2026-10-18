@@ -52,97 +52,9 @@ __version__ = importlib.metadata.version("vepyr")
 
 log = logging.getLogger(__name__)
 
-# Projection pushdown: which annotation flags each DataFrame column depends on.
-# Every other column has the same value whatever flags are set, so a
-# ``select()`` decides which groups of ``everything`` the engine runs: unused
-# groups are dropped. Verified column by column on HG002 chr22 against the
-# release-116 Ensembl cache; ``tests/test_annotate.py::TestProjectionPruning``
-# guards the value identity on the fixture cache.
-_HGVS_COLUMNS = frozenset({"HGVSc", "HGVSp"})
-_HGVS_OPTIONS = (
-    "hgvs",
-    "hgvsc",
-    "hgvsp",
-    "shift_hgvs",
-    "no_escape",
-    "remove_hgvsp_version",
-    "hgvsp_use_prediction",
-)
-_COLOCATED_COLUMNS = frozenset(
-    {
-        "Existing_variation",
-        "AF",
-        "AFR_AF",
-        "AMR_AF",
-        "EAS_AF",
-        "EUR_AF",
-        "SAS_AF",
-        "gnomADe_AF",
-        "gnomADg_AF",
-        "MAX_AF",
-        "MAX_AF_POPS",
-        "CLIN_SIG",
-        "SOMATIC",
-        "PHENO",
-        "PUBMED",
-        # cache-only columns: kept conservative, they come from the same lookup
-        "clin_sig_allele",
-        "clinical_impact",
-        "minor_allele",
-        "minor_allele_freq",
-        "clinvar_ids",
-        "cosmic_ids",
-        "dbsnp_ids",
-    }
-)
-_COLOCATED_OPTIONS = (
-    "check_existing",
-    "af",
-    "af_1kg",
-    "af_gnomade",
-    "af_gnomadg",
-    "max_af",
-    "pubmed",
-)
-# Columns only ``everything`` fills; selecting one keeps it whole. The
-# motif columns are among them because the five motif fields exist only in
-# the ``everything`` CSQ layout (the engine leaves them null otherwise).
-_EVERYTHING_ONLY_COLUMNS = frozenset(
-    {
-        "MOTIF_NAME",
-        "MOTIF_POS",
-        "HIGH_INF_POS",
-        "MOTIF_SCORE_CHANGE",
-        "TRANSCRIPTION_FACTORS",
-        "MANE",
-        "APPRIS",
-        "SIFT",
-        "PolyPhen",
-        "DOMAINS",
-        "miRNA",
-        "HGVS_OFFSET",
-        "gnomADe_AFR_AF",
-        "gnomADe_AMR_AF",
-        "gnomADe_ASJ_AF",
-        "gnomADe_EAS_AF",
-        "gnomADe_FIN_AF",
-        "gnomADe_MID_AF",
-        "gnomADe_NFE_AF",
-        "gnomADe_REMAINING_AF",
-        "gnomADe_SAS_AF",
-        "gnomADg_AFR_AF",
-        "gnomADg_AMI_AF",
-        "gnomADg_AMR_AF",
-        "gnomADg_ASJ_AF",
-        "gnomADg_EAS_AF",
-        "gnomADg_FIN_AF",
-        "gnomADg_MID_AF",
-        "gnomADg_NFE_AF",
-        "gnomADg_REMAINING_AF",
-        "gnomADg_SAS_AF",
-    }
-)
-
+# Record-layout columns (``preserve_record_layout``); the engine only carries
+# them when a query reads one.
+_RECORD_LAYOUT_COLUMNS = frozenset({"_vcf_info_keys", "_vcf_format_keys"})
 
 # Plugin cache manifest value types (engine ``ValueType``) to Polars dtypes.
 _PLUGIN_VALUE_TYPES = {"Utf8": "String", "Float32": "Float32", "Int32": "Int32"}
@@ -218,46 +130,6 @@ def _plugin_column(values, dtype, per_variant: bool):
     if per_variant:
         return values.list.drop_nulls().list.first().cast(dtype)
     return values.cast(pl.List(dtype))
-
-
-def _flags_for_projection(
-    opts: dict,
-    needed: set[str] | None,
-    required: frozenset[str] | set[str] = frozenset(),
-) -> dict:
-    """Narrow ``everything`` to the flag groups a query's columns read.
-
-    ``opts`` always carries ``everything``. ``needed`` is the query's
-    projection plus any filter columns. With no projection (``None``), when
-    the raw ``CSQ`` string is read, or when a column only ``everything``
-    fills is read, ``everything`` stays. Otherwise it is expanded into the
-    two groups that change column values (see the constants above), and a
-    group no column reads is left out so the engine skips it. Each group alone
-    yields the same values as ``everything`` does. ``USED_REF`` retains the
-    FASTA path independently of the HGVS group.
-
-    ``required`` names fields that must be computed whatever the projection,
-    the fields a plugin's match templates read. Returns a new dict.
-    """
-    out = dict(opts)
-    if needed is None or "CSQ" in needed:
-        return out
-    needed = needed | set(required)
-    if needed & _EVERYTHING_ONLY_COLUMNS:
-        return out
-
-    out.pop("everything", None)
-    if needed & _HGVS_COLUMNS:
-        out["hgvs"] = True
-    else:
-        for key in _HGVS_OPTIONS:
-            out.pop(key, None)
-        if "USED_REF" not in needed:
-            out.pop("reference_fasta_path", None)
-    if needed & _COLOCATED_COLUMNS:
-        for key in _COLOCATED_OPTIONS:
-            out[key] = True
-    return out
 
 
 _CORE_CSQ_FIELDS = (
@@ -1597,6 +1469,7 @@ def annotate(
     show_progress: bool = True,
     compression: str | None = None,
     on_batch_written: Callable[[int, int, int], None] | None = None,
+    projection_pushdown: bool = True,
 ) -> pl.LazyFrame | str:
     """Annotate variants from a VCF file with VEP consequences.
 
@@ -1768,6 +1641,13 @@ def annotate(
         ``total_input`` is the total number of input variants when known.
         Useful for driving tqdm progress bars in notebooks. Only used when
         ``output_vcf`` is set.
+    projection_pushdown : bool
+        Hand the engine the columns a ``LazyFrame`` query reads (default:
+        True), so it skips every lookup, prediction and cache read that no
+        selected or filtered column needs. Selected values are unchanged.
+        ``False`` runs the full ``--everything`` annotation on every
+        ``collect()`` and prunes the columns in Polars, which is useful for
+        checking that the two agree. Only used on the ``LazyFrame`` path.
 
     Notes
     -----
@@ -1785,10 +1665,11 @@ def annotate(
         When ``output_vcf`` is ``None``: annotated variants as a polars
         ``LazyFrame`` with typed annotation columns plus original VCF fields.
         Every column holds its ``--everything`` value. A ``select()`` only
-        decides how much work that takes: the engine skips the HGVS lookup,
-        the co-located lookup and the ``everything``-only extras (SIFT,
-        PolyPhen, motifs, ...) when no selected column needs them, which
-        leaves the selected values unchanged. ``fields`` cannot be combined with a
+        decides how much work that takes (see ``projection_pushdown``): the
+        engine skips the HGVS computation, the variation lookup, SIFT/PolyPhen,
+        protein domains, plugin lookups and, for a query reading only
+        per-variant columns, the transcript engine and its context, whenever no
+        selected column needs them. ``fields`` cannot be combined with a
         narrowing ``select()``.
         When ``output_vcf`` is set: the output VCF file path.
 
@@ -2247,12 +2128,13 @@ def annotate(
 
     # Each collect() creates a fresh streaming annotator so the LazyFrame
     # is re-runnable (not single-use). Captures vcf/cache_dir/options by value.
-    _vcf, _cache_dir, _opts, _engine_skip, _show_progress = (
+    _vcf, _cache_dir, _opts, _engine_skip, _show_progress, _pushdown = (
         vcf,
         cache_dir,
         dict(opts),
         engine_skip_csq,
         show_progress,
+        projection_pushdown,
     )
     plugin_columns = set(plugin_field_names)
 
@@ -2301,13 +2183,21 @@ def annotate(
         else []
     )
     _frame_columns = set(polars_schema) - set(_stale_csq)
+    # Frame name -> engine column name, for input columns renamed to make way
+    # for a plugin column of the same name.
+    _shadowed_engine_name = {new: old for old, new in _shadowed.items()}
 
     def _batch_source(with_columns, predicate, n_rows, batch_size):
         # Projection pushdown: the columns Polars asks for, plus the ones the
-        # pushed-down filter reads, decide which annotation flags the engine
-        # needs. n_rows becomes a LIMIT in the DataFusion query.
+        # pushed-down filter reads, are the engine columns the query selects;
+        # the engine decides from them which work to skip. n_rows becomes a
+        # LIMIT in the DataFusion query.
         needed = None
-        if with_columns is not None and set(with_columns) != _frame_columns:
+        if (
+            _pushdown
+            and with_columns is not None
+            and set(with_columns) != _frame_columns
+        ):
             if "fields" in _opts:
                 raise ValueError(
                     "annotate(fields=...) already fixes the annotation layout; "
@@ -2325,7 +2215,7 @@ def annotate(
         else:
             read_plugins = needed & plugin_columns
         required = set().union(*(plugin_column_inputs[c] for c in read_plugins))
-        engine_opts = _flags_for_projection(_opts, needed, required)
+        engine_opts = dict(_opts)
         # Input columns the query does not read are not parsed at all.
         read_info, read_format = fields_for_query(
             _carried,
@@ -2385,6 +2275,25 @@ def annotate(
             )
         elif needed is not None:
             parse_columns = needed & plugin_columns
+        if needed is not None:
+            # The engine columns the query reads. A plugin column comes out of
+            # the CSQ string; read for plugins alone, the string is cut to one
+            # base field plus the CSQ fields the plugins' match templates read
+            # (``{HGVSc}``; derived names such as ``{ref_aa}`` are not fields),
+            # with the plugin fields trailing as always, so the engine narrows
+            # the flags to those.
+            engine_names = {_shadowed_engine_name.get(n, n) for n in needed}
+            engine_names -= plugin_columns
+            if csq_needed:
+                engine_names.add("CSQ")
+                if "CSQ" not in needed and "fields" not in _opts:
+                    template_fields = (required - {"Allele"}) & set(pa_schema.names)
+                    engine_opts["fields"] = ["Allele", *sorted(template_fields)]
+            if not engine_names & _RECORD_LAYOUT_COLUMNS:
+                engine_opts.pop("vcf_record_layout", None)
+            select_columns = [n for n in pa_schema.names if n in engine_names]
+            if select_columns:
+                engine_opts["select_columns"] = select_columns
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
