@@ -34,14 +34,14 @@ output header.
 
 ## Summary
 
-| # | Class | Records | Root cause | Status | 116.0 vs 116.2 | Repos |
-|---|---|---:|---|---|---|---|
-| 1 | `csq_order` | 2,030 | VEP sorts on `stable_id_dbID`; the engine sorts on `stable_id` | **confirmed** | same fix | functions |
-| 2 | `codon_table` | 294 | the reader drops `codon_table` (wrong key path); the engine only knows table 1 | **confirmed** | same fix | formats, functions, caches |
-| 3 | `hgvs_shift` (a) | 1 | VEP's MT-end flank truncation suppresses a valid 2-base genomic shift before partial-overlap HGVS formatting | **confirmed** (VEP bug) | same fix | functions, only if emulating VEP |
-| 3 | `hgvs_shift` (b) | 3 | The same MT-end flank truncation makes VEP shift TRNT indels by 0/1/1 instead of 3/5/4 | **confirmed** (VEP bug) | same fix | functions, only if emulating VEP |
-| — | CYTB `start_lost` | 1 (MT:6467) | vepyr `start_lost&5_prime_UTR_variant`, VEP `coding_sequence_variant&5_prime_UTR_variant`; not caused by the flank bug | **open** | same in both | functions |
-| 4 | stop-codon frameshift HGVSp | 1 (MT:9204) | Ensembl variation PR #1217: 116.1/116.2 write `extTer` (count − 1) where 116.0 wrote `fsTer` | **confirmed** | **116.2 only** | functions, runner |
+| # | Class | Records | Root cause | Status | 116.0 vs 116.2 | Repos | Issue |
+|---|---|---:|---|---|---|---|---|
+| 1 | `csq_order` | 2,030 | VEP sorts on `stable_id_dbID`; the engine sorts on `stable_id` | **confirmed** | same fix | functions | #199 |
+| 2 | `codon_table` | 294 | the reader drops `codon_table` (wrong key path); the engine only knows table 1 | **confirmed** | same fix | formats, functions, caches | #200 |
+| 3 | `hgvs_shift` (a) | 1 | VEP's MT-end flank truncation suppresses a valid 2-base genomic shift before partial-overlap HGVS formatting | **confirmed** (VEP bug) | same fix | functions, only if emulating VEP | #201 |
+| 3 | `hgvs_shift` (b) | 3 | The same MT-end flank truncation makes VEP shift TRNT indels by 0/1/1 instead of 3/5/4 | **confirmed** (VEP bug) | same fix | functions, only if emulating VEP | #201 |
+| — | CYTB `start_lost` | 1 (MT:6467) | vepyr `start_lost&5_prime_UTR_variant`, VEP `coding_sequence_variant&5_prime_UTR_variant`; not caused by the flank bug | **open** | same in both | functions | #202 |
+| 4 | stop-codon frameshift HGVSp | 1 (MT:9204) | Ensembl variation PR #1217: 116.1/116.2 write `extTer` (count − 1) where 116.0 wrote `fsTer` | **confirmed** | **116.2 only** | functions, runner | #203 (#50, #51) |
 
 Causes 1–3 and the CYTB item behave identically in VEP 116.0 and 116.2, so
 their fixes are shared. Cause 4 exists only from 116.1 on. MT:9204 is already
