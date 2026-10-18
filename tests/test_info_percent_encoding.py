@@ -58,15 +58,20 @@ RESERVED = [
         "0/1:x%3Ay",
     ),
     ("CLNDN=a%2Cb,c;CLNVI=t(12%3B21)(p13%3Bq22);GENEINFO=X%3DY;P=100%25", "0/1:a%2Cb"),
+    # Line controls are escaped too: a decoded tab would split the record.
+    ("GENEINFO=tab%09here;P=cr%0Dlf%0A", "0/1:t%09"),
 ]
 
 # Escapes the re-encoding writer cannot restore: an unreserved character
-# (`%20`, `%2B`) comes back decoded and a lower-case escape upper-cased. Exact
-# bytes need the raw input text carried through, the follow-up to #207.
-UNRESTORABLE = [
-    ("GENEINFO=base_change%3Dins%20A;P=a%2Bb", "0/1:x"),
-    ("GENEINFO=a%3bb;P=x", "0/1:x"),
-]
+# (`%20`, `%2B`, a `;` in a sample column) comes back decoded and a lower-case
+# escape upper-cased. Exact bytes need the raw input text carried through, the
+# follow-up to #207. One case each, so a partial follow-up shows up as an XPASS.
+UNRESTORABLE = {
+    "space": ("GENEINFO=base_change%3Dins%20A;P=x", "0/1:x"),
+    "plus": ("GENEINFO=a%2Bb;P=x", "0/1:x"),
+    "lower_case": ("GENEINFO=a%3bb;P=x", "0/1:x"),
+    "format_semicolon": ("GENEINFO=x;P=x", "0/1:p%3Bq"),
+}
 
 
 def _vcf(records: list[tuple[str, str]]) -> str:
@@ -108,12 +113,13 @@ def test_reserved_escapes_are_written_back_byte_for_byte(tmp_path):
 def test_csq_is_not_encoded_a_second_time(tmp_path):
     records = _annotate_vcf(tmp_path, RESERVED)
 
-    csq = records[0][7].rsplit(";CSQ=", 1)[1]
-    assert "p.Ala125%3D" in csq
-    assert "%25" not in csq
-    blocks = csq.split(",")
-    assert len(blocks) > 1
-    assert not any("%2C" in block for block in blocks)
+    for record in records:
+        csq = record[7].rsplit(";CSQ=", 1)[1]
+        assert "p.Ala125%3D" in csq
+        assert "%25" not in csq
+        blocks = csq.split(",")
+        assert len(blocks) > 1
+        assert not any("%2C" in block for block in blocks)
 
 
 def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
@@ -123,17 +129,19 @@ def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
         str(src), str(CACHE), reference_fasta=str(FASTA), show_progress=False
     ).collect()
 
-    assert df["CLNDN"].to_list() == [["Lung_disease;|not_provided"], ["a,b", "c"]]
-    assert df["GENEINFO"].to_list() == ["G;1:23", "X=Y"]
-    assert df["P"].to_list() == ["50%", "100%"]
+    assert df["CLNDN"].to_list()[:2] == [["Lung_disease;|not_provided"], ["a,b", "c"]]
+    assert df["GENEINFO"].to_list() == ["G;1:23", "X=Y", "tab\there"]
+    assert df["P"].to_list() == ["50%", "100%", "cr\rlf\n"]
 
 
 @pytest.mark.xfail(
     strict=True,
-    reason="vepyr#207 follow-up: unreserved and lower-case escapes need the raw "
-    "input INFO text carried through",
+    reason="vepyr#207 follow-up: escapes of unreserved characters and lower-case "
+    "escapes need the raw input text carried through",
 )
-def test_unreserved_and_lower_case_escapes_are_written_back_byte_for_byte(tmp_path):
-    records = _annotate_vcf(tmp_path, UNRESTORABLE)
+@pytest.mark.parametrize("case", sorted(UNRESTORABLE))
+def test_unrestorable_escapes_are_written_back_byte_for_byte(tmp_path, case):
+    record = UNRESTORABLE[case]
+    (written,) = _annotate_vcf(tmp_path, [record])
 
-    assert [(_input_info(r), r[9]) for r in records] == UNRESTORABLE
+    assert (_input_info(written), written[9]) == record

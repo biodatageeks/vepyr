@@ -4,10 +4,9 @@ Status: **plan, awaiting go-ahead** (vepyr-fix step 1). No file in any repo has
 been edited.
 
 Issue: [biodatageeks/vepyr#207](https://github.com/biodatageeks/vepyr/issues/207)
-(tracked in #240). The three per-repo analyses this plan comes from are next to it:
-[`analysis_formats.md`](2026-10-18-issue207-info-percent-encoding/analysis_formats.md),
-[`analysis_functions.md`](2026-10-18-issue207-info-percent-encoding/analysis_functions.md),
-[`analysis_vepyr.md`](2026-10-18-issue207-info-percent-encoding/analysis_vepyr.md).
+(tracked in #240). The three per-repo analyses (formats, functions, vepyr) this plan
+comes from are summarised in §3–§6; the full reports stay with the vepyr-fix evidence,
+not in the repo.
 
 Sources read: formats at the pinned tag `v1.14.0` = `72efe67` (the human checkout is
 on `feat/cooler` `dbc62fb`, branched from v1.11.0, where `serializer.rs` line numbers

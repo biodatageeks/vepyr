@@ -220,7 +220,8 @@ serde_json = "1"
 # vepyr#207: the VCF writer percent-encodes reserved characters in INFO/FORMAT
 # values again (formats fix/issue-207-info-percent-encoding f66918b) and the engine
 # marks CSQ as joined text so it stays verbatim (functions branch of the same name,
-# 03b3424, on 483a499). Review pins: both are PR heads until they merge.
+# 03b3424, a child of the projection-pushdown commit 483a499 above, so that work
+# is still included). Review pins: both are PR heads until they merge.
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "03b34243e470736190165a97921a42659218a827", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "f66918b391ca7cc7ab5deead057195793089ac45" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "f66918b391ca7cc7ab5deead057195793089ac45" }
