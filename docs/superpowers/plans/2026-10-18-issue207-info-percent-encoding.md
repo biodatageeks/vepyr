@@ -122,6 +122,7 @@ column that already holds VCF text (`annotate_provider.rs:3950`) and can contain
 (recommended, see Q2): a scalar `Utf8` column whose field metadata declares
 `bio.vcf.field.number` other than `1` is written verbatim. The reader never produces
 that shape (a Number≠1 field is read as a `List`), so input fields are unaffected.
+As delivered, only `Number=.` qualifies (tightened after review, §10).
 
 ### 4.2 functions (carrier)
 
@@ -207,14 +208,29 @@ four rows need the raw input text carried through (option b, §9 Q1).
 
 ## 9. Decisions (2026-10-18, answered by the maintainer)
 
-1. Option (a), re-encode on write, now; raw passthrough (b) is filed as a follow-up.
-2. CSQ is exempted by the metadata rule (scalar `Utf8` + `number≠1` written verbatim;
+1. Option (a), re-encode on write, now; raw passthrough (b) is filed as a follow-up
+   (biodatageeks/vepyr#252).
+2. CSQ is exempted by the metadata rule (scalar `Utf8` + `number="."` written verbatim;
    the engine sets `number="."` on CSQ), with a test on the `sink_vcf` path.
 3. The `"true"`/`"false"` flag bug and the `Type=Character` abort are filed as separate
-   issues, out of this fix.
-4. polars-bio is a follow-up re-pin and release after the formats release.
+   issues, out of this fix (biodatageeks/datafusion-bio-formats#265 and #263).
+4. polars-bio is a follow-up re-pin and release after the formats release
+   (biodatageeks/polars-bio#493).
 
 Go-ahead: 2026-10-18 ("proceed with #207").
+
+## 10. Changes during execution
+
+- **Exemption tightened to `Number=.`** (formats `2a1e622`, after a codex P2): a
+  scalar declared `A`, `R`, `G` or a count is an ordinary value and is encoded.
+- **Performance, not neutral as §8 expected.** The interleaved sweep against vepyr
+  master `0b24319` measured `vcf_format` +9.0% (8 workers, median of 3 pairs) for one
+  scan per value. A 256-entry lookup table (formats `c419b7b`) left it at +8.8%: the
+  HG002 INFO lists hold ~29 values of ~16 bytes per record, so the cost is per call,
+  not per byte. Formats `56d678d` scans each INFO column's value bytes once per batch,
+  with a branch-free fold over 32-byte chunks the compiler vectorizes (~0.05 ns/byte),
+  and writes a column with no reserved character exactly as before. FORMAT values keep
+  the per-value scan: GT is their only string on HG002.
 
 ## 9a. Execution layout
 

@@ -62,15 +62,19 @@ RESERVED = [
     ("GENEINFO=tab%09here;P=cr%0Dlf%0A", "0/1:t%09"),
 ]
 
-# Escapes the writer does not re-encode: an unreserved character (`%20`, `%2B`)
-# and a `;` in a sample column, where it separates nothing, come back decoded,
-# and a lower-case escape comes back upper-cased. Exact bytes need the raw input text carried through, the
-# follow-up to #207. One case each, so a partial follow-up shows up as an XPASS.
+# Input bytes the writer cannot restore, because the reader already decoded
+# them: an escape of a character that needs none (`%20`, `%2B`, and `%3B` in a
+# sample column, where `;` separates nothing) comes back decoded, a lower-case
+# escape comes back upper-cased, and a literal `%` that starts no escape (valid
+# before VCF 4.3) comes back as `%25`. Exact bytes need the raw input text
+# carried through, the #207 follow-up (#252). One case each, so a partial
+# follow-up shows up as an XPASS.
 UNRESTORABLE = {
     "space": ("GENEINFO=base_change%3Dins%20A;P=x", "0/1:x"),
     "plus": ("GENEINFO=a%2Bb;P=x", "0/1:x"),
     "lower_case": ("GENEINFO=a%3bb;P=x", "0/1:x"),
     "format_semicolon": ("GENEINFO=x;P=x", "0/1:p%3Bq"),
+    "literal_percent": ("GENEINFO=x;P=50%", "0/1:x"),
 }
 
 
@@ -138,8 +142,8 @@ def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
 
 @pytest.mark.xfail(
     strict=True,
-    reason="vepyr#207 follow-up: escapes the writer does not re-encode need the "
-    "raw input text carried through",
+    reason="vepyr#252: escapes the writer does not re-encode need the raw input "
+    "text carried through",
 )
 @pytest.mark.parametrize("case", sorted(UNRESTORABLE))
 def test_unrestorable_escapes_are_written_back_byte_for_byte(tmp_path, case):

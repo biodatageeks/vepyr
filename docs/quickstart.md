@@ -298,8 +298,10 @@ were: `%3B`, `%3D`, `%2C`, `%25` in `INFO`, `%3A`, `%2C`, `%25` in the sample
 columns, and the line controls (`%09`, `%0D`, `%0A`) in both. An escape of a
 character that needs none comes back decoded: `%20` as a space, `%2B` as a `+`,
 and a `%3B` in a sample column, where `;` separates nothing, as a `;`. A
-lower-case escape comes back upper-cased. Ensembl VEP keeps those bytes as they
-were. `polars_bio.sink_vcf` still writes these values decoded until a polars-bio
+lower-case escape comes back upper-cased, and a literal `%` that starts no escape
+(valid before VCF 4.3) comes back as `%25`, because the reader gives `50%` and
+`50%25` the same value. Ensembl VEP keeps those bytes as they were
+([#252](https://github.com/biodatageeks/vepyr/issues/252)). `polars_bio.sink_vcf` still writes these values decoded until a polars-bio
 release carries the same VCF writer
 ([#207](https://github.com/biodatageeks/vepyr/issues/207)).
 
