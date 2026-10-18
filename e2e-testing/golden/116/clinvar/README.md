@@ -298,6 +298,17 @@ Further facts from these records:
   vepyr agrees with VEP. These two records are therefore in `records.tsv` but
   not in the fixtures; see [`mismatches/chr20/`](mismatches/chr20/README.md)
   and [`mismatches/chr7/`](mismatches/chr7/README.md).
+- One differing record comes from VEP itself. 22:26666332 G>A (ClinVar
+  2691795, class `hgvs` in [`mismatches/chr22/`](mismatches/chr22/README.md))
+  differs only in `CLIN_SIG`, which joins two values,
+  `risk_factor%3Brisk_factor` and `benign`. VEP writes them in either order,
+  and the choice changes from one CSQ entry to the next and from one run to
+  the next. Three VEP runs of chr22 (this reference on the desktop, and the
+  whole contig and the contig in 12 parts on a cloud VM) put
+  `risk_factor%3Brisk_factor` first in 39, 33 and 39 of the 67 entries, not in
+  the same entries, and agree on every other chr22 record. vepyr puts it first
+  in all 67. No other differing record of the release has a `CLIN_SIG`
+  difference.
 
 ### chrMT
 
