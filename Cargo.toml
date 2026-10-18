@@ -217,6 +217,11 @@ serde_json = "1"
 # vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
 # pick tie-break; RefSeq ND4L before ND4 on chrMT). Review pin: the head of the
 # functions PR on top of v0.23.1. formats stays at v1.14.0.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "585876d4a9a511d5a48897478d6d169048ebba18", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
+# vepyr#200: translate MT transcripts with their codon table (NCBI table 2), and
+# read codon_table from _variation_effect_feature_cache in bio-formats.
+# Review pins: the functions PR head (stacked on #199's 585876d) and the formats
+# PR head on top of master 4b58ea6 (v1.14.0 + #260/#261); the engine pins the
+# same formats rev, so all three formats crates resolve to one source.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "b2f4b511c5fabdd91d3613d9a51ede6b05589f38", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "3fe9f8b85f1e5de4d2d352d5ed58c7a2c1edc049" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "3fe9f8b85f1e5de4d2d352d5ed58c7a2c1edc049" }
