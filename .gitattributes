@@ -18,3 +18,4 @@ e2e-testing/**/*.fai -text
 # Porting data tests (porting-tests/): VCF bodies are compared by md5, so keep LF.
 porting-tests/tests/data/** -text
 porting-tests/tests/INDEX.csv linguist-generated=true
+e2e-testing/golden/116/clinvar/mismatches/*/large_deletion/*.vcf filter=lfs diff=lfs merge=lfs -text
