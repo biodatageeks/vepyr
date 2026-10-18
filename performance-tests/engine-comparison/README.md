@@ -40,6 +40,19 @@ the SIFT/PolyPhen matrices where the engine has them.
 vep-rs's cache is plain JSON because 0.4.0 cannot read gzipped variation shards;
 the vep-rs branch below can, and its cache is about 540 / 610 MB.
 
+The fastVEP branch below, run in
+[`outputs/116/macos_mwiewior_chr22_20261018_fastvep-fixes`](outputs/116/macos_mwiewior_chr22_20261018_fastvep-fixes/report.md),
+changes only fastVEP's figures:
+
+| fastVEP | master 5d8004a | with fixes 78d58fc |
+|---|---|---|
+| CSQ columns with no mismatches, Ensembl / merged | 19 / 13 | 21 / 15 |
+| `--cache-dir` wall time at 2 threads, Ensembl / merged | 745 s / 742 s | 8.3 s / 9.0 s |
+| `--cache-dir` cache with SIFT/PolyPhen, Ensembl / merged | none possible | 386 / 395 MB |
+
+SIFT and PolyPhen are the only columns that changed; both match Ensembl on every
+row, on both caches.
+
 ## Running it
 
 ```bash
@@ -111,6 +124,17 @@ Notes on the engines' caches:
   shards and uses the converter as it is, and the `nosift` cache then has the
   matrices stripped from its shards, so the two modes mean the same thing on
   either branch.
+- **fastVEP with the fixes.** The
+  [`cache-dir-fixes`](https://github.com/mwiewior/fastVEP/tree/cache-dir-fixes)
+  branch of mwiewior/fastVEP keeps each chromosome's tabix index and the lines
+  it has read between `--cache-dir` queries, names RefSeq transcripts by
+  accession rather than `rna-` GFF3 ID, and reads the Ensembl cache's own
+  SIFT/PolyPhen matrices with `annotate --protein-predictions`, exported by its
+  `scripts/vep_cache_protein_predictions.pl`. Run it with
+  `--fastvep-repo https://github.com/mwiewior/fastVEP.git --fastvep-ref cache-dir-fixes`.
+  The script detects both changes in the checkout: it exports the matrices in
+  the `caches` step and passes them to both modes, and times `--cache-dir` like
+  every other mode instead of once without a warm-up.
 - **fastVEP.** Transcripts always come from GFF3: the release's per-chromosome
   Ensembl GFF3, plus for the merged cache the RefSeq GFF the merged cache's
   `info.txt` names (`source_refseq`). `--cache-dir` needs `all_vars.gz` with a
@@ -125,10 +149,10 @@ Notes on the engines' caches:
 ## How it measures
 
 **Timing.** Each configuration gets one discarded warm-up run, then
-`--repeats` timed runs, and the report gives the median. fastVEP's `tabix`
-mode re-reads the tabix index for every variant and takes minutes per run on
-a chromosome, so it runs `--fastvep-tabix-repeats` times (default 1) with no
-warm-up. Wall time, user and system CPU time and peak RSS come from `wait4`
+`--repeats` timed runs, and the report gives the median. On fastVEP master the
+`tabix` mode re-reads the tabix index for every variant and takes minutes per
+run on a chromosome, so it runs `--fastvep-tabix-repeats` times (default 1)
+with no warm-up; the fixed branch is timed like everything else. Wall time, user and system CPU time and peak RSS come from `wait4`
 on the engine process. vep-rs needs `RAYON_NUM_THREADS` as well as `--fork`:
 `--fork` sizes only its annotation pool, while loading the variation cache runs
 on rayon's global pool, which otherwise takes every core.
@@ -156,9 +180,9 @@ A column's status:
 **Cache sizes** cover the chromosome only. For the Storable cache the matrices
 are measured inside its transcript files, counting each shared matrix object
 once; for vepyr they are the `translation_sift` table; for vep-rs they are the
-difference between the `sift` and `nosift` conversions. fastVEP has nowhere to
+difference between the `sift` and `nosift` conversions. fastVEP master has nowhere to
 keep them: its CSQ `SIFT` and `PolyPhen` are always empty, so it has no "with"
-figure.
+figure. On the fixed branch they are the exported `.fvpp` file.
 
 ## Limits
 

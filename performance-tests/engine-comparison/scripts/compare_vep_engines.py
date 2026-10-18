@@ -207,6 +207,9 @@ class Config:
     def fastvep_osa2_dir(self, cache):
         return self.work / "caches" / "fastvep" / f"osa2-{cache}"
 
+    def fastvep_predictions(self, cache):
+        return self.work / "caches" / "fastvep" / f"{cache}.fvpp"
+
     def run_dir(self, tool, cache, mode):
         return self.work / "runs" / f"{tool}-{cache}-{mode}"
 
@@ -446,6 +449,31 @@ def build_vep_rs_caches(cfg: Config) -> dict:
 # caches: fastVEP
 
 
+def fastvep_exports_matrices(cfg: Config) -> bool:
+    """True when the checkout can fill SIFT/PolyPhen from the cache's matrices.
+
+    fastVEP master up to 5d8004a writes both columns empty; a checkout with
+    scripts/vep_cache_protein_predictions.pl exports the matrices and reads
+    them with `annotate --protein-predictions`.
+    """
+    return (
+        cfg.src("fastVEP") / "scripts" / "vep_cache_protein_predictions.pl"
+    ).exists()
+
+
+def fastvep_cache_dir_is_fast(cfg: Config) -> bool:
+    """True when `--cache-dir` keeps each chromosome's index and lines open.
+
+    Up to master 5d8004a it re-read the tabix index and re-parsed the query's
+    whole chunk for every variant, minutes a chromosome, so the run step times
+    it once with no warm-up unless this holds.
+    """
+    src = (
+        cfg.src("fastVEP") / "crates" / "fastvep-cache" / "src" / "variation.rs"
+    ).read_text()
+    return "struct ChunkLines" in src
+
+
 def refseq_gff_url(cfg: Config) -> str:
     if cfg.refseq_gff_url:
         return cfg.refseq_gff_url
@@ -679,7 +707,23 @@ def build_fastvep_caches(cfg: Config) -> dict:
                 ]
             )
             norm_vcf.unlink()
-    return {"ensembl_gff3": str(ens_gz), "refseq_gff": refseq_url}
+        matrices = cfg.fastvep_predictions(cache)
+        if fastvep_exports_matrices(cfg) and (cfg.force or not matrices.exists()):
+            run(
+                [
+                    "perl",
+                    cfg.src("fastVEP") / "scripts" / "vep_cache_protein_predictions.pl",
+                    cfg.vep_cache[cache],
+                    matrices,
+                    cfg.chrom,
+                ]
+            )
+    return {
+        "ensembl_gff3": str(ens_gz),
+        "refseq_gff": refseq_url,
+        "protein_predictions": fastvep_exports_matrices(cfg),
+        "fast_cache_dir": fastvep_cache_dir_is_fast(cfg),
+    }
 
 
 def step_caches(cfg: Config) -> None:
@@ -765,6 +809,8 @@ def engine_command(
             if mode == "osa2"
             else ["--cache-dir", cfg.fastvep_vardir(cache)]
         )
+        if cfg.fastvep_predictions(cache).exists():
+            cmd += ["--protein-predictions", cfg.fastvep_predictions(cache)]
     return [str(c) for c in cmd], env
 
 
@@ -796,14 +842,12 @@ def step_run(cfg: Config) -> None:
         if timings_path.exists() and not cfg.force
         else {}
     )
+    slow_tabix = "fastvep" in cfg.tools and not fastvep_cache_dir_is_fast(cfg)
     for threads in cfg.threads:
         for tool, cache, mode in configs:
             key = f"{tool}|{cache}|{mode}|{threads}"
-            repeats = (
-                cfg.tabix_repeats
-                if (tool, mode) == ("fastvep", "tabix")
-                else cfg.repeats
-            )
+            slow = slow_tabix and (tool, mode) == ("fastvep", "tabix")
+            repeats = cfg.tabix_repeats if slow else cfg.repeats
             if len(timings.get(key, [])) >= repeats:
                 continue
             rd = cfg.run_dir(tool, cache, mode)
@@ -811,8 +855,8 @@ def step_run(cfg: Config) -> None:
             out = cfg.output_vcf(tool, cache, mode, threads)
             cmd, env = engine_command(cfg, tool, cache, mode, threads, out)
             # One discarded warm-up per configuration puts the caches in the page
-            # cache, except for fastVEP's tabix mode, which takes minutes a run.
-            if cfg.warmup and (tool, mode) != ("fastvep", "tabix"):
+            # cache, except for a fastVEP --cache-dir that takes minutes a run.
+            if cfg.warmup and not slow:
                 log(f"warm-up {key}")
                 timed(cmd, env, rd / f"t{threads}-warmup.log")
             runs = []
@@ -1116,18 +1160,16 @@ def cache_sizes(cfg: Config) -> dict:
                 chrom_dir / "all_vars.gz.tbi"
             ).stat().st_size
             osa2 = dir_size(cfg.fastvep_osa2_dir(cache))
-            sizes["fastvep_tabix"] = {
-                "with": None,
-                "without": tbin + tabix,
-                "transcripts": tbin,
-                "variation": tabix,
-            }
-            sizes["fastvep_osa2"] = {
-                "with": None,
-                "without": tbin + osa2,
-                "transcripts": tbin,
-                "variation": osa2,
-            }
+            fvpp = cfg.fastvep_predictions(cache)
+            matrices = fvpp.stat().st_size if fvpp.exists() else None
+            for key, variation in (("fastvep_tabix", tabix), ("fastvep_osa2", osa2)):
+                sizes[key] = {
+                    "with": None if matrices is None else tbin + variation + matrices,
+                    "without": tbin + variation,
+                    "transcripts": tbin,
+                    "variation": variation,
+                    "matrices": matrices,
+                }
         out[cache] = sizes
     return out
 
@@ -1370,8 +1412,13 @@ def render_markdown(cfg: Config, res: dict) -> str:
         "",
         "## Run time and memory",
         "",
-        "Median of the timed runs after one warm-up (fastVEP `--cache-dir`: no warm-up). CPU-seconds are user "
-        "plus system time.",
+        "Median of the timed runs after one warm-up"
+        + (
+            " (fastVEP `--cache-dir`: one run, no warm-up)"
+            if "fastvep" in cfg.tools and not fastvep_cache_dir_is_fast(cfg)
+            else ""
+        )
+        + ". CPU-seconds are user plus system time.",
         "",
         "| Engine | Mode | Cache | "
         + " | ".join(
@@ -1531,7 +1578,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--fastvep-tabix-repeats",
         type=int,
         default=1,
-        help="timed runs for fastVEP --cache-dir, which takes minutes a run (default: 1)",
+        help="timed runs for a fastVEP --cache-dir that takes minutes a run (master up to 5d8004a; default: 1)",
     )
     p.add_argument(
         "--no-warmup", action="store_true", help="skip the discarded warm-up run"

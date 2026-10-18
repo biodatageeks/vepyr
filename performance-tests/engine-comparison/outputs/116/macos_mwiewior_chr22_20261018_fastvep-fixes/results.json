@@ -1,0 +1,4839 @@
+{
+ "host": {
+  "platform": "macOS-15.7.9-arm64-arm-64bit",
+  "machine": "arm64",
+  "python": "3.12.8",
+  "cpu": "Apple M3 Max",
+  "memory_bytes": 68719476736,
+  "logical_cpus": 16
+ },
+ "chromosome": "22",
+ "input": {
+  "path": "~/workspace/data_vepyr/polars_integration/chr22/input/HG002_chr22.vcf.gz",
+  "sha256": "cdde8185d793ed0e3c9c800e83574f944f6ef2260cd7420a3758832b0e59b5e5",
+  "records": 50861
+ },
+ "reference_vep": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-28 04:41:51\" cache=\"/opt/vep/.vep/homo_sapiens/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" regbuild=\"1.0\" sift=\"6.2.1\"",
+ "versions": {
+  "vepyr": "vepyr 0.10.0",
+  "vep-rs": null,
+  "fastvep": "78d58fcb156e59f0646def42a791f61f5f3e834f"
+ },
+ "cache_meta": {
+  "fastvep": {
+   "ensembl_gff3": "$SCRATCH/ecwork-fvfork/downloads/ensembl-116-chr22.gff3.gz",
+   "refseq_gff": "https://ftp.ncbi.nlm.nih.gov/genomes/all/annotation_releases/9606/GCF_000001405.40-RS_2025_08/GCF_000001405.40_GRCh38.p14_genomic.gff.gz",
+   "protein_predictions": true,
+   "fast_cache_dir": true
+  }
+ },
+ "threads": [
+  1,
+  2
+ ],
+ "timings": {
+  "vepyr|ensembl|default|1": {
+   "runs": 3,
+   "wall_s": 9.75,
+   "cpu_s": 5.84,
+   "max_rss_gib": 0.95
+  },
+  "vepyr|merged|default|1": {
+   "runs": 3,
+   "wall_s": 12.85,
+   "cpu_s": 7.27,
+   "max_rss_gib": 1.15
+  },
+  "fastvep|ensembl|osa2|1": {
+   "runs": 3,
+   "wall_s": 17.21,
+   "cpu_s": 14.73,
+   "max_rss_gib": 2.84
+  },
+  "fastvep|ensembl|tabix|1": {
+   "runs": 3,
+   "wall_s": 9.55,
+   "cpu_s": 9.32,
+   "max_rss_gib": 0.41
+  },
+  "fastvep|merged|osa2|1": {
+   "runs": 3,
+   "wall_s": 16.09,
+   "cpu_s": 16.04,
+   "max_rss_gib": 1.99
+  },
+  "fastvep|merged|tabix|1": {
+   "runs": 3,
+   "wall_s": 10.0,
+   "cpu_s": 9.77,
+   "max_rss_gib": 0.44
+  },
+  "vepyr|ensembl|default|2": {
+   "runs": 3,
+   "wall_s": 2.18,
+   "cpu_s": 4.67,
+   "max_rss_gib": 1.12
+  },
+  "vepyr|merged|default|2": {
+   "runs": 3,
+   "wall_s": 3.04,
+   "cpu_s": 5.79,
+   "max_rss_gib": 1.27
+  },
+  "fastvep|ensembl|osa2|2": {
+   "runs": 3,
+   "wall_s": 12.54,
+   "cpu_s": 14.12,
+   "max_rss_gib": 3.03
+  },
+  "fastvep|ensembl|tabix|2": {
+   "runs": 3,
+   "wall_s": 8.27,
+   "cpu_s": 9.08,
+   "max_rss_gib": 0.36
+  },
+  "fastvep|merged|osa2|2": {
+   "runs": 3,
+   "wall_s": 15.5,
+   "cpu_s": 17.0,
+   "max_rss_gib": 2.79
+  },
+  "fastvep|merged|tabix|2": {
+   "runs": 3,
+   "wall_s": 9.01,
+   "cpu_s": 9.96,
+   "max_rss_gib": 0.43
+  }
+ },
+ "timings_raw": {
+  "vepyr|ensembl|default|1": [
+   {
+    "wall_s": 11.45,
+    "user_s": 5.215,
+    "sys_s": 0.856,
+    "max_rss_bytes": 943980544
+   },
+   {
+    "wall_s": 9.749,
+    "user_s": 5.05,
+    "sys_s": 0.795,
+    "max_rss_bytes": 1062715392
+   },
+   {
+    "wall_s": 9.054,
+    "user_s": 5.033,
+    "sys_s": 0.782,
+    "max_rss_bytes": 1021018112
+   }
+  ],
+  "vepyr|merged|default|1": [
+   {
+    "wall_s": 15.121,
+    "user_s": 6.336,
+    "sys_s": 1.037,
+    "max_rss_bytes": 1217904640
+   },
+   {
+    "wall_s": 12.847,
+    "user_s": 6.296,
+    "sys_s": 0.974,
+    "max_rss_bytes": 1233682432
+   },
+   {
+    "wall_s": 10.08,
+    "user_s": 6.203,
+    "sys_s": 0.943,
+    "max_rss_bytes": 1438810112
+   }
+  ],
+  "fastvep|ensembl|osa2|1": [
+   {
+    "wall_s": 18.971,
+    "user_s": 13.178,
+    "sys_s": 1.453,
+    "max_rss_bytes": 5366513664
+   },
+   {
+    "wall_s": 17.212,
+    "user_s": 12.721,
+    "sys_s": 2.008,
+    "max_rss_bytes": 2187100160
+   },
+   {
+    "wall_s": 17.082,
+    "user_s": 13.136,
+    "sys_s": 1.966,
+    "max_rss_bytes": 3052093440
+   }
+  ],
+  "fastvep|ensembl|tabix|1": [
+   {
+    "wall_s": 9.555,
+    "user_s": 8.797,
+    "sys_s": 0.537,
+    "max_rss_bytes": 423133184
+   },
+   {
+    "wall_s": 9.537,
+    "user_s": 8.808,
+    "sys_s": 0.514,
+    "max_rss_bytes": 457605120
+   },
+   {
+    "wall_s": 9.651,
+    "user_s": 8.714,
+    "sys_s": 0.535,
+    "max_rss_bytes": 438190080
+   }
+  ],
+  "fastvep|merged|osa2|1": [
+   {
+    "wall_s": 16.119,
+    "user_s": 14.15,
+    "sys_s": 1.894,
+    "max_rss_bytes": 3247390720
+   },
+   {
+    "wall_s": 15.986,
+    "user_s": 13.965,
+    "sys_s": 1.934,
+    "max_rss_bytes": 2139750400
+   },
+   {
+    "wall_s": 16.088,
+    "user_s": 14.122,
+    "sys_s": 1.939,
+    "max_rss_bytes": 2042445824
+   }
+  ],
+  "fastvep|merged|tabix|1": [
+   {
+    "wall_s": 9.863,
+    "user_s": 9.226,
+    "sys_s": 0.54,
+    "max_rss_bytes": 490143744
+   },
+   {
+    "wall_s": 10.207,
+    "user_s": 9.236,
+    "sys_s": 0.532,
+    "max_rss_bytes": 470466560
+   },
+   {
+    "wall_s": 10.004,
+    "user_s": 9.265,
+    "sys_s": 0.562,
+    "max_rss_bytes": 459292672
+   }
+  ],
+  "vepyr|ensembl|default|2": [
+   {
+    "wall_s": 2.325,
+    "user_s": 4.101,
+    "sys_s": 0.581,
+    "max_rss_bytes": 1189036032
+   },
+   {
+    "wall_s": 2.106,
+    "user_s": 4.101,
+    "sys_s": 0.571,
+    "max_rss_bytes": 1207599104
+   },
+   {
+    "wall_s": 2.179,
+    "user_s": 4.069,
+    "sys_s": 0.56,
+    "max_rss_bytes": 1232945152
+   }
+  ],
+  "vepyr|merged|default|2": [
+   {
+    "wall_s": 3.327,
+    "user_s": 5.156,
+    "sys_s": 0.715,
+    "max_rss_bytes": 1398407168
+   },
+   {
+    "wall_s": 3.044,
+    "user_s": 5.115,
+    "sys_s": 0.669,
+    "max_rss_bytes": 1347518464
+   },
+   {
+    "wall_s": 2.965,
+    "user_s": 5.127,
+    "sys_s": 0.664,
+    "max_rss_bytes": 1366589440
+   }
+  ],
+  "fastvep|ensembl|osa2|2": [
+   {
+    "wall_s": 12.649,
+    "user_s": 12.194,
+    "sys_s": 1.989,
+    "max_rss_bytes": 3252158464
+   },
+   {
+    "wall_s": 12.54,
+    "user_s": 12.149,
+    "sys_s": 1.969,
+    "max_rss_bytes": 2626469888
+   },
+   {
+    "wall_s": 12.427,
+    "user_s": 12.099,
+    "sys_s": 1.871,
+    "max_rss_bytes": 3258384384
+   }
+  ],
+  "fastvep|ensembl|tabix|2": [
+   {
+    "wall_s": 8.25,
+    "user_s": 8.633,
+    "sys_s": 0.436,
+    "max_rss_bytes": 382861312
+   },
+   {
+    "wall_s": 8.267,
+    "user_s": 8.621,
+    "sys_s": 0.457,
+    "max_rss_bytes": 404094976
+   },
+   {
+    "wall_s": 8.458,
+    "user_s": 8.726,
+    "sys_s": 0.516,
+    "max_rss_bytes": 378208256
+   }
+  ],
+  "fastvep|merged|osa2|2": [
+   {
+    "wall_s": 15.498,
+    "user_s": 14.905,
+    "sys_s": 2.132,
+    "max_rss_bytes": 2717581312
+   },
+   {
+    "wall_s": 15.351,
+    "user_s": 14.87,
+    "sys_s": 2.133,
+    "max_rss_bytes": 3480469504
+   },
+   {
+    "wall_s": 15.627,
+    "user_s": 14.868,
+    "sys_s": 2.131,
+    "max_rss_bytes": 2999123968
+   }
+  ],
+  "fastvep|merged|tabix|2": [
+   {
+    "wall_s": 8.965,
+    "user_s": 9.406,
+    "sys_s": 0.57,
+    "max_rss_bytes": 457277440
+   },
+   {
+    "wall_s": 9.07,
+    "user_s": 9.397,
+    "sys_s": 0.561,
+    "max_rss_bytes": 466518016
+   },
+   {
+    "wall_s": 9.014,
+    "user_s": 9.388,
+    "sys_s": 0.566,
+    "max_rss_bytes": 477691904
+   }
+  ]
+ },
+ "cache_sizes": {
+  "ensembl": {
+   "perl_storable": {
+    "with": 399575149,
+    "without": 339767203,
+    "transcripts": 78376010,
+    "matrices": 59807946,
+    "variation": 318741496
+   },
+   "vepyr": {
+    "with": 495793868,
+    "without": 398665366,
+    "parts": {
+     "motif": 562444,
+     "variation": 389598858,
+     "exon": 1066075,
+     "translation_sift": 97128502,
+     "transcript": 3530420,
+     "regulatory": 157735,
+     "translation_core": 3749834
+    }
+   },
+   "fastvep_tabix": {
+    "with": 386101772,
+    "without": 326825088,
+    "transcripts": 8075868,
+    "variation": 318749220,
+    "matrices": 59276684
+   },
+   "fastvep_osa2": {
+    "with": 537295907,
+    "without": 478019223,
+    "transcripts": 8075868,
+    "variation": 469943355,
+    "matrices": 59276684
+   }
+  },
+  "merged": {
+   "perl_storable": {
+    "with": 447069695,
+    "without": 347760385,
+    "transcripts": 125870556,
+    "matrices": 99309310,
+    "variation": 318741496
+   },
+   "vepyr": {
+    "with": 554845955,
+    "without": 401566874,
+    "parts": {
+     "motif": 563058,
+     "variation": 389598858,
+     "exon": 1456634,
+     "translation_sift": 153279081,
+     "transcript": 4360710,
+     "regulatory": 158345,
+     "translation_core": 5429269
+    }
+   },
+   "fastvep_tabix": {
+    "with": 394840058,
+    "without": 330041830,
+    "transcripts": 11292610,
+    "variation": 318749220,
+    "matrices": 64798228
+   },
+   "fastvep_osa2": {
+    "with": 546034193,
+    "without": 481235965,
+    "transcripts": 11292610,
+    "variation": 469943355,
+    "matrices": 64798228
+   }
+  }
+ },
+ "comparison": {
+  "vepyr|ensembl|default": {
+   "thread_outputs_identical": true,
+   "fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS"
+   ],
+   "engine_fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS"
+   ],
+   "extra_fields": [],
+   "columns": {
+    "Allele": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 943901,
+     "eng_nonempty": 943901,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Consequence": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 943901,
+     "eng_nonempty": 943901,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "IMPACT": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 943901,
+     "eng_nonempty": 943901,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SYMBOL": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 878968,
+     "eng_nonempty": 878968,
+     "ref_all_nonempty": 878968,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Gene": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932826,
+     "eng_nonempty": 932826,
+     "ref_all_nonempty": 932826,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature_type": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 937057,
+     "eng_nonempty": 937057,
+     "ref_all_nonempty": 937057,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 937057,
+     "eng_nonempty": 937057,
+     "ref_all_nonempty": 937057,
+     "emitted": true,
+     "status": "exact"
+    },
+    "BIOTYPE": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 936741,
+     "eng_nonempty": 936741,
+     "ref_all_nonempty": 936741,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EXON": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 34807,
+     "eng_nonempty": 34807,
+     "ref_all_nonempty": 34807,
+     "emitted": true,
+     "status": "exact"
+    },
+    "INTRON": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 682233,
+     "eng_nonempty": 682233,
+     "ref_all_nonempty": 682233,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVSc": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 717033,
+     "eng_nonempty": 717033,
+     "ref_all_nonempty": 717033,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVSp": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 6901,
+     "eng_nonempty": 6901,
+     "ref_all_nonempty": 6901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "cDNA_position": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 34808,
+     "eng_nonempty": 34808,
+     "ref_all_nonempty": 34808,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CDS_position": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Protein_position": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Amino_acids": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Codons": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Existing_variation": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 936004,
+     "eng_nonempty": 936004,
+     "ref_all_nonempty": 936004,
+     "emitted": true,
+     "status": "exact"
+    },
+    "DISTANCE": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 215785,
+     "eng_nonempty": 215785,
+     "ref_all_nonempty": 215785,
+     "emitted": true,
+     "status": "exact"
+    },
+    "STRAND": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 933142,
+     "eng_nonempty": 933142,
+     "ref_all_nonempty": 933142,
+     "emitted": true,
+     "status": "exact"
+    },
+    "FLAGS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 27181,
+     "eng_nonempty": 27181,
+     "ref_all_nonempty": 27181,
+     "emitted": true,
+     "status": "exact"
+    },
+    "VARIANT_CLASS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 943901,
+     "eng_nonempty": 943901,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SYMBOL_SOURCE": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 878968,
+     "eng_nonempty": 878968,
+     "ref_all_nonempty": 878968,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGNC_ID": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 878499,
+     "eng_nonempty": 878499,
+     "ref_all_nonempty": 878499,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CANONICAL": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 62277,
+     "eng_nonempty": 62277,
+     "ref_all_nonempty": 62277,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 29986,
+     "eng_nonempty": 29986,
+     "ref_all_nonempty": 29986,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE_SELECT": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 29986,
+     "eng_nonempty": 29986,
+     "ref_all_nonempty": 29986,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE_PLUS_CLINICAL": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": true,
+     "status": "empty"
+    },
+    "TSL": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 188913,
+     "eng_nonempty": 188913,
+     "ref_all_nonempty": 188913,
+     "emitted": true,
+     "status": "exact"
+    },
+    "APPRIS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 236269,
+     "eng_nonempty": 236269,
+     "ref_all_nonempty": 236269,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CCDS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 221519,
+     "eng_nonempty": 221519,
+     "ref_all_nonempty": 221519,
+     "emitted": true,
+     "status": "exact"
+    },
+    "ENSP": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 649503,
+     "eng_nonempty": 649503,
+     "ref_all_nonempty": 649503,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SWISSPROT": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 80870,
+     "eng_nonempty": 80870,
+     "ref_all_nonempty": 80870,
+     "emitted": true,
+     "status": "exact"
+    },
+    "TREMBL": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 133581,
+     "eng_nonempty": 133581,
+     "ref_all_nonempty": 133581,
+     "emitted": true,
+     "status": "exact"
+    },
+    "UNIPARC": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 378543,
+     "eng_nonempty": 378543,
+     "ref_all_nonempty": 378543,
+     "emitted": true,
+     "status": "exact"
+    },
+    "UNIPROT_ISOFORM": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 68198,
+     "eng_nonempty": 68198,
+     "ref_all_nonempty": 68198,
+     "emitted": true,
+     "status": "exact"
+    },
+    "GENE_PHENO": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 327242,
+     "eng_nonempty": 327242,
+     "ref_all_nonempty": 327242,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SIFT": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 3257,
+     "eng_nonempty": 3257,
+     "ref_all_nonempty": 3257,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PolyPhen": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 1495,
+     "eng_nonempty": 1495,
+     "ref_all_nonempty": 1495,
+     "emitted": true,
+     "status": "exact"
+    },
+    "DOMAINS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 5933,
+     "eng_nonempty": 5933,
+     "ref_all_nonempty": 5933,
+     "emitted": true,
+     "status": "exact"
+    },
+    "miRNA": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 4,
+     "eng_nonempty": 4,
+     "ref_all_nonempty": 4,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVS_OFFSET": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 61086,
+     "eng_nonempty": 61086,
+     "ref_all_nonempty": 61086,
+     "emitted": true,
+     "status": "exact"
+    },
+    "AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 858558,
+     "eng_nonempty": 858558,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "exact"
+    },
+    "AFR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 858558,
+     "eng_nonempty": 858558,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "exact"
+    },
+    "AMR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 858558,
+     "eng_nonempty": 858558,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EAS_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 858558,
+     "eng_nonempty": 858558,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EUR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 858558,
+     "eng_nonempty": 858558,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SAS_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 858558,
+     "eng_nonempty": 858558,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 180199,
+     "eng_nonempty": 180199,
+     "ref_all_nonempty": 180199,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_AFR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 148559,
+     "eng_nonempty": 148559,
+     "ref_all_nonempty": 148559,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_AMR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 136763,
+     "eng_nonempty": 136763,
+     "ref_all_nonempty": 136763,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_ASJ_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 137704,
+     "eng_nonempty": 137704,
+     "ref_all_nonempty": 137704,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_EAS_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 145458,
+     "eng_nonempty": 145458,
+     "ref_all_nonempty": 145458,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_FIN_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 160520,
+     "eng_nonempty": 160520,
+     "ref_all_nonempty": 160520,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_MID_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 134459,
+     "eng_nonempty": 134459,
+     "ref_all_nonempty": 134459,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_NFE_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 177389,
+     "eng_nonempty": 177389,
+     "ref_all_nonempty": 177389,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_REMAINING_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 163690,
+     "eng_nonempty": 163690,
+     "ref_all_nonempty": 163690,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_SAS_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 143394,
+     "eng_nonempty": 143394,
+     "ref_all_nonempty": 143394,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932629,
+     "eng_nonempty": 932629,
+     "ref_all_nonempty": 932629,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AFR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932537,
+     "eng_nonempty": 932537,
+     "ref_all_nonempty": 932537,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AMI_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932368,
+     "eng_nonempty": 932368,
+     "ref_all_nonempty": 932368,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AMR_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932627,
+     "eng_nonempty": 932627,
+     "ref_all_nonempty": 932627,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_ASJ_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932488,
+     "eng_nonempty": 932488,
+     "ref_all_nonempty": 932488,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_EAS_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932554,
+     "eng_nonempty": 932554,
+     "ref_all_nonempty": 932554,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_FIN_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932585,
+     "eng_nonempty": 932585,
+     "ref_all_nonempty": 932585,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_MID_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932189,
+     "eng_nonempty": 932189,
+     "ref_all_nonempty": 932189,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_NFE_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932595,
+     "eng_nonempty": 932595,
+     "ref_all_nonempty": 932595,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_REMAINING_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932529,
+     "eng_nonempty": 932529,
+     "ref_all_nonempty": 932529,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_SAS_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 932576,
+     "eng_nonempty": 932576,
+     "ref_all_nonempty": 932576,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MAX_AF": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 934647,
+     "eng_nonempty": 934647,
+     "ref_all_nonempty": 934647,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MAX_AF_POPS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 934647,
+     "eng_nonempty": 934647,
+     "ref_all_nonempty": 934647,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CLIN_SIG": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 33258,
+     "eng_nonempty": 33258,
+     "ref_all_nonempty": 33258,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SOMATIC": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 64629,
+     "eng_nonempty": 64629,
+     "ref_all_nonempty": 64629,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PHENO": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 138567,
+     "eng_nonempty": 138567,
+     "ref_all_nonempty": 138567,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PUBMED": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 125660,
+     "eng_nonempty": 125660,
+     "ref_all_nonempty": 125660,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MOTIF_NAME": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 316,
+     "eng_nonempty": 316,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MOTIF_POS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 312,
+     "eng_nonempty": 312,
+     "ref_all_nonempty": 312,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HIGH_INF_POS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 316,
+     "eng_nonempty": 316,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MOTIF_SCORE_CHANGE": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 270,
+     "eng_nonempty": 270,
+     "ref_all_nonempty": 270,
+     "emitted": true,
+     "status": "exact"
+    },
+    "TRANSCRIPTION_FACTORS": {
+     "eq": 943901,
+     "mismatch": 0,
+     "ref_nonempty": 316,
+     "eng_nonempty": 316,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "exact"
+    }
+   },
+   "examples": {},
+   "rows": {
+    "matched": 943901,
+    "only_ref": 0,
+    "only_engine": 0,
+    "identical": 943901,
+    "records": 50861,
+    "records_missing": 0
+   },
+   "only_ref_by_type": {}
+  },
+  "fastvep|ensembl|osa2": {
+   "thread_outputs_identical": true,
+   "colocated": {
+    "ensembl_records_with_ids": 50431,
+    "found": 50421,
+    "same_id_set": 48040,
+    "engine_only": 48
+   }
+  },
+  "fastvep|ensembl|tabix": {
+   "thread_outputs_identical": true,
+   "fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS"
+   ],
+   "engine_fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "REF_ALLELE",
+    "UPLOADED_ALLELE",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "CANONICAL",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SOURCE",
+    "HGVS_OFFSET",
+    "SIFT",
+    "PolyPhen",
+    "AF",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS",
+    "ACMG",
+    "ACMG_CRITERIA"
+   ],
+   "extra_fields": [
+    "REF_ALLELE",
+    "UPLOADED_ALLELE",
+    "SOURCE",
+    "ACMG",
+    "ACMG_CRITERIA"
+   ],
+   "columns": {
+    "Allele": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 932153,
+     "eng_nonempty": 932153,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Consequence": {
+     "eq": 932147,
+     "mismatch": 6,
+     "ref_nonempty": 932153,
+     "eng_nonempty": 932153,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "near"
+    },
+    "IMPACT": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 932153,
+     "eng_nonempty": 932153,
+     "ref_all_nonempty": 943901,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SYMBOL": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 871930,
+     "eng_nonempty": 871930,
+     "ref_all_nonempty": 878968,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Gene": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 925354,
+     "eng_nonempty": 925354,
+     "ref_all_nonempty": 932826,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature_type": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 925354,
+     "eng_nonempty": 925354,
+     "ref_all_nonempty": 937057,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 925354,
+     "eng_nonempty": 925354,
+     "ref_all_nonempty": 937057,
+     "emitted": true,
+     "status": "exact"
+    },
+    "BIOTYPE": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 925354,
+     "eng_nonempty": 925354,
+     "ref_all_nonempty": 936741,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EXON": {
+     "eq": 932152,
+     "mismatch": 1,
+     "ref_nonempty": 34689,
+     "eng_nonempty": 34690,
+     "ref_all_nonempty": 34807,
+     "emitted": true,
+     "status": "near"
+    },
+    "INTRON": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 676713,
+     "eng_nonempty": 676713,
+     "ref_all_nonempty": 682233,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVSc": {
+     "eq": 931916,
+     "mismatch": 237,
+     "ref_nonempty": 711397,
+     "eng_nonempty": 711419,
+     "ref_all_nonempty": 717033,
+     "emitted": true,
+     "status": "near"
+    },
+    "HGVSp": {
+     "eq": 931370,
+     "mismatch": 783,
+     "ref_nonempty": 6901,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6901,
+     "emitted": true,
+     "status": "near"
+    },
+    "cDNA_position": {
+     "eq": 932148,
+     "mismatch": 5,
+     "ref_nonempty": 34690,
+     "eng_nonempty": 34690,
+     "ref_all_nonempty": 34808,
+     "emitted": true,
+     "status": "near"
+    },
+    "CDS_position": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Protein_position": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Amino_acids": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Codons": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 6905,
+     "eng_nonempty": 6905,
+     "ref_all_nonempty": 6905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Existing_variation": {
+     "eq": 729204,
+     "mismatch": 202949,
+     "ref_nonempty": 931632,
+     "eng_nonempty": 792384,
+     "ref_all_nonempty": 936004,
+     "emitted": true,
+     "status": "off"
+    },
+    "DISTANCE": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 213951,
+     "eng_nonempty": 213951,
+     "ref_all_nonempty": 215785,
+     "emitted": true,
+     "status": "exact"
+    },
+    "STRAND": {
+     "eq": 925354,
+     "mismatch": 6799,
+     "ref_nonempty": 925354,
+     "eng_nonempty": 932153,
+     "ref_all_nonempty": 933142,
+     "emitted": true,
+     "status": "near"
+    },
+    "FLAGS": {
+     "eq": 905168,
+     "mismatch": 26985,
+     "ref_nonempty": 26985,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 27181,
+     "emitted": true,
+     "status": "off"
+    },
+    "VARIANT_CLASS": {
+     "eq": 0,
+     "mismatch": 932153,
+     "ref_nonempty": 932153,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 943901,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SYMBOL_SOURCE": {
+     "eq": 60223,
+     "mismatch": 871930,
+     "ref_nonempty": 871930,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 878968,
+     "emitted": true,
+     "status": "off"
+    },
+    "HGNC_ID": {
+     "eq": 60690,
+     "mismatch": 871463,
+     "ref_nonempty": 871463,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 878499,
+     "emitted": true,
+     "status": "off"
+    },
+    "CANONICAL": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 61793,
+     "eng_nonempty": 61793,
+     "ref_all_nonempty": 62277,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 29746,
+     "eng_nonempty": 29746,
+     "ref_all_nonempty": 29986,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE_SELECT": {
+     "eq": 902407,
+     "mismatch": 29746,
+     "ref_nonempty": 29746,
+     "eng_nonempty": 29746,
+     "ref_all_nonempty": 29986,
+     "emitted": true,
+     "status": "off"
+    },
+    "MANE_PLUS_CLINICAL": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": true,
+     "status": "empty"
+    },
+    "TSL": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 187370,
+     "eng_nonempty": 187370,
+     "ref_all_nonempty": 188913,
+     "emitted": true,
+     "status": "exact"
+    },
+    "APPRIS": {
+     "eq": 697541,
+     "mismatch": 234612,
+     "ref_nonempty": 234612,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 236269,
+     "emitted": true,
+     "status": "off"
+    },
+    "CCDS": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 219864,
+     "eng_nonempty": 219864,
+     "ref_all_nonempty": 221519,
+     "emitted": true,
+     "status": "exact"
+    },
+    "ENSP": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 644257,
+     "eng_nonempty": 644257,
+     "ref_all_nonempty": 649503,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SWISSPROT": {
+     "eq": 851954,
+     "mismatch": 80199,
+     "ref_nonempty": 80199,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 80870,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "TREMBL": {
+     "eq": 799559,
+     "mismatch": 132594,
+     "ref_nonempty": 132594,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 133581,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "UNIPARC": {
+     "eq": 556708,
+     "mismatch": 375445,
+     "ref_nonempty": 375445,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 378543,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "UNIPROT_ISOFORM": {
+     "eq": 864525,
+     "mismatch": 67628,
+     "ref_nonempty": 67628,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 68198,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "GENE_PHENO": {
+     "eq": 607694,
+     "mismatch": 324459,
+     "ref_nonempty": 324459,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 327242,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SIFT": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 3257,
+     "eng_nonempty": 3257,
+     "ref_all_nonempty": 3257,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PolyPhen": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 1495,
+     "eng_nonempty": 1495,
+     "ref_all_nonempty": 1495,
+     "emitted": true,
+     "status": "exact"
+    },
+    "DOMAINS": {
+     "eq": 926220,
+     "mismatch": 5933,
+     "ref_nonempty": 5933,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 5933,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "miRNA": {
+     "eq": 932149,
+     "mismatch": 4,
+     "ref_nonempty": 4,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 4,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "HGVS_OFFSET": {
+     "eq": 876661,
+     "mismatch": 55492,
+     "ref_nonempty": 55492,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 61086,
+     "emitted": true,
+     "status": "off"
+    },
+    "AF": {
+     "eq": 71419,
+     "mismatch": 860734,
+     "ref_nonempty": 854641,
+     "eng_nonempty": 158819,
+     "ref_all_nonempty": 858558,
+     "emitted": true,
+     "status": "off"
+    },
+    "AFR_AF": {
+     "eq": 77512,
+     "mismatch": 854641,
+     "ref_nonempty": 854641,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 858558,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "AMR_AF": {
+     "eq": 77512,
+     "mismatch": 854641,
+     "ref_nonempty": 854641,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 858558,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "EAS_AF": {
+     "eq": 77512,
+     "mismatch": 854641,
+     "ref_nonempty": 854641,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 858558,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "EUR_AF": {
+     "eq": 77512,
+     "mismatch": 854641,
+     "ref_nonempty": 854641,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 858558,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SAS_AF": {
+     "eq": 77512,
+     "mismatch": 854641,
+     "ref_nonempty": 854641,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 858558,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_AF": {
+     "eq": 752933,
+     "mismatch": 179220,
+     "ref_nonempty": 179220,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 180199,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_AFR_AF": {
+     "eq": 784358,
+     "mismatch": 147795,
+     "ref_nonempty": 147795,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 148559,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_AMR_AF": {
+     "eq": 796058,
+     "mismatch": 136095,
+     "ref_nonempty": 136095,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 136763,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_ASJ_AF": {
+     "eq": 795150,
+     "mismatch": 137003,
+     "ref_nonempty": 137003,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 137704,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_EAS_AF": {
+     "eq": 787444,
+     "mismatch": 144709,
+     "ref_nonempty": 144709,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 145458,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_FIN_AF": {
+     "eq": 772479,
+     "mismatch": 159674,
+     "ref_nonempty": 159674,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 160520,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_MID_AF": {
+     "eq": 798361,
+     "mismatch": 133792,
+     "ref_nonempty": 133792,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 134459,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_NFE_AF": {
+     "eq": 755726,
+     "mismatch": 176427,
+     "ref_nonempty": 176427,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 177389,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_REMAINING_AF": {
+     "eq": 769355,
+     "mismatch": 162798,
+     "ref_nonempty": 162798,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 163690,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_SAS_AF": {
+     "eq": 789512,
+     "mismatch": 142641,
+     "ref_nonempty": 142641,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 143394,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AF": {
+     "eq": 3772,
+     "mismatch": 928381,
+     "ref_nonempty": 928381,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932629,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AFR_AF": {
+     "eq": 3864,
+     "mismatch": 928289,
+     "ref_nonempty": 928289,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932537,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AMI_AF": {
+     "eq": 4032,
+     "mismatch": 928121,
+     "ref_nonempty": 928121,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932368,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AMR_AF": {
+     "eq": 3774,
+     "mismatch": 928379,
+     "ref_nonempty": 928379,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932627,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_ASJ_AF": {
+     "eq": 3912,
+     "mismatch": 928241,
+     "ref_nonempty": 928241,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932488,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_EAS_AF": {
+     "eq": 3846,
+     "mismatch": 928307,
+     "ref_nonempty": 928307,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932554,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_FIN_AF": {
+     "eq": 3815,
+     "mismatch": 928338,
+     "ref_nonempty": 928338,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932585,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_MID_AF": {
+     "eq": 4211,
+     "mismatch": 927942,
+     "ref_nonempty": 927942,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932189,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_NFE_AF": {
+     "eq": 3806,
+     "mismatch": 928347,
+     "ref_nonempty": 928347,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932595,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_REMAINING_AF": {
+     "eq": 3871,
+     "mismatch": 928282,
+     "ref_nonempty": 928282,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932529,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_SAS_AF": {
+     "eq": 3825,
+     "mismatch": 928328,
+     "ref_nonempty": 928328,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 932576,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "MAX_AF": {
+     "eq": 1755,
+     "mismatch": 930398,
+     "ref_nonempty": 930398,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 934647,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "MAX_AF_POPS": {
+     "eq": 1755,
+     "mismatch": 930398,
+     "ref_nonempty": 930398,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 934647,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "CLIN_SIG": {
+     "eq": 928221,
+     "mismatch": 3932,
+     "ref_nonempty": 33145,
+     "eng_nonempty": 31135,
+     "ref_all_nonempty": 33258,
+     "emitted": true,
+     "status": "near"
+    },
+    "SOMATIC": {
+     "eq": 867859,
+     "mismatch": 64294,
+     "ref_nonempty": 64294,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 64629,
+     "emitted": true,
+     "status": "off"
+    },
+    "PHENO": {
+     "eq": 860498,
+     "mismatch": 71655,
+     "ref_nonempty": 137810,
+     "eng_nonempty": 86849,
+     "ref_all_nonempty": 138567,
+     "emitted": true,
+     "status": "off"
+    },
+    "PUBMED": {
+     "eq": 926479,
+     "mismatch": 5674,
+     "ref_nonempty": 124942,
+     "eng_nonempty": 119425,
+     "ref_all_nonempty": 125660,
+     "emitted": true,
+     "status": "near"
+    },
+    "MOTIF_NAME": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "MOTIF_POS": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 312,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "HIGH_INF_POS": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "MOTIF_SCORE_CHANGE": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 270,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "TRANSCRIPTION_FACTORS": {
+     "eq": 932153,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "never_filled"
+    }
+   },
+   "examples": {
+    "STRAND": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "",
+     "engine": "1"
+    },
+    "VARIANT_CLASS": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "deletion",
+     "engine": ""
+    },
+    "gnomADg_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.09477",
+     "engine": ""
+    },
+    "gnomADg_AFR_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.225",
+     "engine": ""
+    },
+    "gnomADg_AMR_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.1212",
+     "engine": ""
+    },
+    "gnomADg_ASJ_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADg_EAS_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADg_MID_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.25",
+     "engine": ""
+    },
+    "gnomADg_NFE_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.09",
+     "engine": ""
+    },
+    "gnomADg_REMAINING_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADg_SAS_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.05",
+     "engine": ""
+    },
+    "MAX_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.25",
+     "engine": ""
+    },
+    "MAX_AF_POPS": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "gnomADg_MID",
+     "engine": ""
+    },
+    "Existing_variation": {
+     "variant": "22:15236447:AAG:A",
+     "feature": "",
+     "ensembl": "rs1402048068",
+     "engine": ""
+    },
+    "gnomADg_AMI_AF": {
+     "variant": "22:15236447:AAG:A",
+     "feature": "",
+     "ensembl": "0.4909",
+     "engine": ""
+    },
+    "gnomADg_FIN_AF": {
+     "variant": "22:15236447:AAG:A",
+     "feature": "",
+     "ensembl": "0.4441",
+     "engine": ""
+    },
+    "SYMBOL_SOURCE": {
+     "variant": "22:15269605:G:A",
+     "feature": "ENST00000613107",
+     "ensembl": "RFAM",
+     "engine": ""
+    },
+    "AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0.0034",
+     "engine": "0"
+    },
+    "AFR_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0.0129",
+     "engine": ""
+    },
+    "AMR_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "EAS_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "EUR_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "SAS_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_NFE_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "HGVS_OFFSET": {
+     "variant": "22:15518304:CTATA:C",
+     "feature": "ENST00000775238",
+     "ensembl": "15",
+     "engine": ""
+    },
+    "HGNC_ID": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "HGNC:32187",
+     "engine": ""
+    },
+    "gnomADe_AFR_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0.0001604",
+     "engine": ""
+    },
+    "gnomADe_AMR_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_ASJ_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_EAS_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_FIN_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_MID_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_REMAINING_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_SAS_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "MANE_SELECT": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "NM_014406.5",
+     "engine": "ENST00000359963.4"
+    },
+    "APPRIS": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "P1",
+     "engine": ""
+    },
+    "SWISSPROT": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "Q96SF2.148",
+     "engine": ""
+    },
+    "UNIPARC": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "UPI000006CF87",
+     "engine": ""
+    },
+    "HGVSp": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "ENSP00000353048.3:p.Trp320Arg",
+     "engine": "ENSP00000353048.1:p.Trp320Arg"
+    },
+    "DOMAINS": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "PANTHER:PTHR11353&Superfamily:SSF52029&Superfamily:SSF54849&Superfamily:SSF48592&Gene3D:3.30.260.10&Gene3D:1.10.560.10&P",
+     "engine": ""
+    },
+    "SOMATIC": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "0&1",
+     "engine": ""
+    },
+    "PHENO": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "0&1",
+     "engine": ""
+    },
+    "FLAGS": {
+     "variant": "22:16958150:T:C",
+     "feature": "ENST00000465611",
+     "ensembl": "cds_start_NF",
+     "engine": ""
+    },
+    "TREMBL": {
+     "variant": "22:16958150:T:C",
+     "feature": "ENST00000465611",
+     "ensembl": "H0YB31.72",
+     "engine": ""
+    },
+    "UNIPROT_ISOFORM": {
+     "variant": "22:17080623:A:T",
+     "feature": "ENST00000319363",
+     "ensembl": "Q96F46-1",
+     "engine": ""
+    },
+    "GENE_PHENO": {
+     "variant": "22:17080623:A:T",
+     "feature": "ENST00000319363",
+     "ensembl": "1",
+     "engine": ""
+    },
+    "PUBMED": {
+     "variant": "22:17105825:ATCAC:A",
+     "feature": "ENST00000319363",
+     "ensembl": "29875488",
+     "engine": ""
+    },
+    "CLIN_SIG": {
+     "variant": "22:17108319:C:T",
+     "feature": "ENST00000319363",
+     "ensembl": "benign",
+     "engine": "uncertain_significance&benign"
+    },
+    "HGVSc": {
+     "variant": "22:19330184:A:AG",
+     "feature": "ENST00001067676",
+     "ensembl": "",
+     "engine": "ENST00001067676.1:c.*4436dup"
+    },
+    "cDNA_position": {
+     "variant": "22:20890758:CAAAAAAAA:C",
+     "feature": "ENST00001129240",
+     "ensembl": "3859-?",
+     "engine": "3859"
+    },
+    "Consequence": {
+     "variant": "22:23393638:C:CAG",
+     "feature": "ENST00000512987",
+     "ensembl": "splice_region_variant&non_coding_transcript_variant",
+     "engine": "splice_region_variant&non_coding_transcript_exon_variant"
+    },
+    "EXON": {
+     "variant": "22:23393638:C:CAG",
+     "feature": "ENST00000512987",
+     "ensembl": "",
+     "engine": "4/9"
+    },
+    "miRNA": {
+     "variant": "22:27920603:T:TG",
+     "feature": "ENST00000582434",
+     "ensembl": "miRNA_stem",
+     "engine": ""
+    }
+   },
+   "rows": {
+    "matched": 932153,
+    "only_ref": 11748,
+    "only_engine": 14364,
+    "identical": 0,
+    "records": 50861,
+    "records_missing": 0
+   },
+   "only_ref_by_type": {
+    "": 45,
+    "RegulatoryFeature": 3915,
+    "Transcript": 7472,
+    "MotifFeature": 316
+   }
+  },
+  "vepyr|merged|default": {
+   "thread_outputs_identical": true,
+   "fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "REFSEQ_MATCH",
+    "SOURCE",
+    "REFSEQ_OFFSET",
+    "GIVEN_REF",
+    "USED_REF",
+    "BAM_EDIT",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS"
+   ],
+   "engine_fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "REFSEQ_MATCH",
+    "SOURCE",
+    "REFSEQ_OFFSET",
+    "GIVEN_REF",
+    "USED_REF",
+    "BAM_EDIT",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS"
+   ],
+   "extra_fields": [],
+   "columns": {
+    "Allele": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1242828,
+     "eng_nonempty": 1242828,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Consequence": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1242828,
+     "eng_nonempty": 1242828,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "exact"
+    },
+    "IMPACT": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1242828,
+     "eng_nonempty": 1242828,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SYMBOL": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1178248,
+     "eng_nonempty": 1178248,
+     "ref_all_nonempty": 1178248,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Gene": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1232106,
+     "eng_nonempty": 1232106,
+     "ref_all_nonempty": 1232106,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature_type": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1236337,
+     "eng_nonempty": 1236337,
+     "ref_all_nonempty": 1236337,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1236337,
+     "eng_nonempty": 1236337,
+     "ref_all_nonempty": 1236337,
+     "emitted": true,
+     "status": "exact"
+    },
+    "BIOTYPE": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1236021,
+     "eng_nonempty": 1236021,
+     "ref_all_nonempty": 1236021,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EXON": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 47147,
+     "eng_nonempty": 47147,
+     "ref_all_nonempty": 47147,
+     "emitted": true,
+     "status": "exact"
+    },
+    "INTRON": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 918384,
+     "eng_nonempty": 918384,
+     "ref_all_nonempty": 918384,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVSc": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 965522,
+     "eng_nonempty": 965522,
+     "ref_all_nonempty": 965522,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVSp": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 9891,
+     "eng_nonempty": 9891,
+     "ref_all_nonempty": 9891,
+     "emitted": true,
+     "status": "exact"
+    },
+    "cDNA_position": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 47148,
+     "eng_nonempty": 47148,
+     "ref_all_nonempty": 47148,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CDS_position": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 9895,
+     "eng_nonempty": 9895,
+     "ref_all_nonempty": 9895,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Protein_position": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 9895,
+     "eng_nonempty": 9895,
+     "ref_all_nonempty": 9895,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Amino_acids": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 9894,
+     "eng_nonempty": 9894,
+     "ref_all_nonempty": 9894,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Codons": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 9894,
+     "eng_nonempty": 9894,
+     "ref_all_nonempty": 9894,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Existing_variation": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1232065,
+     "eng_nonempty": 1232065,
+     "ref_all_nonempty": 1232065,
+     "emitted": true,
+     "status": "exact"
+    },
+    "DISTANCE": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 266576,
+     "eng_nonempty": 266576,
+     "ref_all_nonempty": 266576,
+     "emitted": true,
+     "status": "exact"
+    },
+    "STRAND": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1232422,
+     "eng_nonempty": 1232422,
+     "ref_all_nonempty": 1232422,
+     "emitted": true,
+     "status": "exact"
+    },
+    "FLAGS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 27181,
+     "eng_nonempty": 27181,
+     "ref_all_nonempty": 27181,
+     "emitted": true,
+     "status": "exact"
+    },
+    "VARIANT_CLASS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1242828,
+     "eng_nonempty": 1242828,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SYMBOL_SOURCE": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1178248,
+     "eng_nonempty": 1178248,
+     "ref_all_nonempty": 1178248,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGNC_ID": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1166950,
+     "eng_nonempty": 1166950,
+     "ref_all_nonempty": 1166950,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CANONICAL": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 107164,
+     "eng_nonempty": 107164,
+     "ref_all_nonempty": 107164,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 60071,
+     "eng_nonempty": 60071,
+     "ref_all_nonempty": 60071,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE_SELECT": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 60071,
+     "eng_nonempty": 60071,
+     "ref_all_nonempty": 60071,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MANE_PLUS_CLINICAL": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": true,
+     "status": "empty"
+    },
+    "TSL": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 188913,
+     "eng_nonempty": 188913,
+     "ref_all_nonempty": 188913,
+     "emitted": true,
+     "status": "exact"
+    },
+    "APPRIS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 236269,
+     "eng_nonempty": 236269,
+     "ref_all_nonempty": 236269,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CCDS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 221519,
+     "eng_nonempty": 221519,
+     "ref_all_nonempty": 221519,
+     "emitted": true,
+     "status": "exact"
+    },
+    "ENSP": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 903187,
+     "eng_nonempty": 903187,
+     "ref_all_nonempty": 903187,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SWISSPROT": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 80870,
+     "eng_nonempty": 80870,
+     "ref_all_nonempty": 80870,
+     "emitted": true,
+     "status": "exact"
+    },
+    "TREMBL": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 133581,
+     "eng_nonempty": 133581,
+     "ref_all_nonempty": 133581,
+     "emitted": true,
+     "status": "exact"
+    },
+    "UNIPARC": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 378543,
+     "eng_nonempty": 378543,
+     "ref_all_nonempty": 378543,
+     "emitted": true,
+     "status": "exact"
+    },
+    "UNIPROT_ISOFORM": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 68198,
+     "eng_nonempty": 68198,
+     "ref_all_nonempty": 68198,
+     "emitted": true,
+     "status": "exact"
+    },
+    "REFSEQ_MATCH": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": true,
+     "status": "empty"
+    },
+    "SOURCE": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1232106,
+     "eng_nonempty": 1232106,
+     "ref_all_nonempty": 1232106,
+     "emitted": true,
+     "status": "exact"
+    },
+    "REFSEQ_OFFSET": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": true,
+     "status": "empty"
+    },
+    "GIVEN_REF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1133895,
+     "eng_nonempty": 1133895,
+     "ref_all_nonempty": 1133895,
+     "emitted": true,
+     "status": "exact"
+    },
+    "USED_REF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1133895,
+     "eng_nonempty": 1133895,
+     "ref_all_nonempty": 1133895,
+     "emitted": true,
+     "status": "exact"
+    },
+    "BAM_EDIT": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 6762,
+     "eng_nonempty": 6762,
+     "ref_all_nonempty": 6762,
+     "emitted": true,
+     "status": "exact"
+    },
+    "GENE_PHENO": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 327242,
+     "eng_nonempty": 327242,
+     "ref_all_nonempty": 327242,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SIFT": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 4181,
+     "eng_nonempty": 4181,
+     "ref_all_nonempty": 4181,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PolyPhen": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 2253,
+     "eng_nonempty": 2253,
+     "ref_all_nonempty": 2253,
+     "emitted": true,
+     "status": "exact"
+    },
+    "DOMAINS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 5933,
+     "eng_nonempty": 5933,
+     "ref_all_nonempty": 5933,
+     "emitted": true,
+     "status": "exact"
+    },
+    "miRNA": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 4,
+     "eng_nonempty": 4,
+     "ref_all_nonempty": 4,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HGVS_OFFSET": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 82350,
+     "eng_nonempty": 82350,
+     "ref_all_nonempty": 82350,
+     "emitted": true,
+     "status": "exact"
+    },
+    "AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1128967,
+     "eng_nonempty": 1128967,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "exact"
+    },
+    "AFR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1128967,
+     "eng_nonempty": 1128967,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "exact"
+    },
+    "AMR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1128967,
+     "eng_nonempty": 1128967,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EAS_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1128967,
+     "eng_nonempty": 1128967,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "exact"
+    },
+    "EUR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1128967,
+     "eng_nonempty": 1128967,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SAS_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1128967,
+     "eng_nonempty": 1128967,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 228714,
+     "eng_nonempty": 228714,
+     "ref_all_nonempty": 228714,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_AFR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 188869,
+     "eng_nonempty": 188869,
+     "ref_all_nonempty": 188869,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_AMR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 174341,
+     "eng_nonempty": 174341,
+     "ref_all_nonempty": 174341,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_ASJ_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 175174,
+     "eng_nonempty": 175174,
+     "ref_all_nonempty": 175174,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_EAS_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 184919,
+     "eng_nonempty": 184919,
+     "ref_all_nonempty": 184919,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_FIN_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 204356,
+     "eng_nonempty": 204356,
+     "ref_all_nonempty": 204356,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_MID_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 171441,
+     "eng_nonempty": 171441,
+     "ref_all_nonempty": 171441,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_NFE_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 225030,
+     "eng_nonempty": 225030,
+     "ref_all_nonempty": 225030,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_REMAINING_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 207793,
+     "eng_nonempty": 207793,
+     "ref_all_nonempty": 207793,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADe_SAS_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 182199,
+     "eng_nonempty": 182199,
+     "ref_all_nonempty": 182199,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228194,
+     "eng_nonempty": 1228194,
+     "ref_all_nonempty": 1228194,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AFR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228096,
+     "eng_nonempty": 1228096,
+     "ref_all_nonempty": 1228096,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AMI_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1227905,
+     "eng_nonempty": 1227905,
+     "ref_all_nonempty": 1227905,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_AMR_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228192,
+     "eng_nonempty": 1228192,
+     "ref_all_nonempty": 1228192,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_ASJ_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228042,
+     "eng_nonempty": 1228042,
+     "ref_all_nonempty": 1228042,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_EAS_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228112,
+     "eng_nonempty": 1228112,
+     "ref_all_nonempty": 1228112,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_FIN_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228148,
+     "eng_nonempty": 1228148,
+     "ref_all_nonempty": 1228148,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_MID_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1227641,
+     "eng_nonempty": 1227641,
+     "ref_all_nonempty": 1227641,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_NFE_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228157,
+     "eng_nonempty": 1228157,
+     "ref_all_nonempty": 1228157,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_REMAINING_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228085,
+     "eng_nonempty": 1228085,
+     "ref_all_nonempty": 1228085,
+     "emitted": true,
+     "status": "exact"
+    },
+    "gnomADg_SAS_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1228135,
+     "eng_nonempty": 1228135,
+     "ref_all_nonempty": 1228135,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MAX_AF": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1230398,
+     "eng_nonempty": 1230398,
+     "ref_all_nonempty": 1230398,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MAX_AF_POPS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 1230398,
+     "eng_nonempty": 1230398,
+     "ref_all_nonempty": 1230398,
+     "emitted": true,
+     "status": "exact"
+    },
+    "CLIN_SIG": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 43593,
+     "eng_nonempty": 43593,
+     "ref_all_nonempty": 43593,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SOMATIC": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 86141,
+     "eng_nonempty": 86141,
+     "ref_all_nonempty": 86141,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PHENO": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 182566,
+     "eng_nonempty": 182566,
+     "ref_all_nonempty": 182566,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PUBMED": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 163048,
+     "eng_nonempty": 163048,
+     "ref_all_nonempty": 163048,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MOTIF_NAME": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 316,
+     "eng_nonempty": 316,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MOTIF_POS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 312,
+     "eng_nonempty": 312,
+     "ref_all_nonempty": 312,
+     "emitted": true,
+     "status": "exact"
+    },
+    "HIGH_INF_POS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 316,
+     "eng_nonempty": 316,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "exact"
+    },
+    "MOTIF_SCORE_CHANGE": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 270,
+     "eng_nonempty": 270,
+     "ref_all_nonempty": 270,
+     "emitted": true,
+     "status": "exact"
+    },
+    "TRANSCRIPTION_FACTORS": {
+     "eq": 1242828,
+     "mismatch": 0,
+     "ref_nonempty": 316,
+     "eng_nonempty": 316,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "exact"
+    }
+   },
+   "examples": {},
+   "rows": {
+    "matched": 1242828,
+    "only_ref": 0,
+    "only_engine": 0,
+    "identical": 1242828,
+    "records": 50861,
+    "records_missing": 0
+   },
+   "only_ref_by_type": {}
+  },
+  "fastvep|merged|osa2": {
+   "thread_outputs_identical": true,
+   "colocated": {
+    "ensembl_records_with_ids": 50431,
+    "found": 50421,
+    "same_id_set": 48040,
+    "engine_only": 48
+   }
+  },
+  "fastvep|merged|tabix": {
+   "thread_outputs_identical": true,
+   "fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "VARIANT_CLASS",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "CANONICAL",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SWISSPROT",
+    "TREMBL",
+    "UNIPARC",
+    "UNIPROT_ISOFORM",
+    "REFSEQ_MATCH",
+    "SOURCE",
+    "REFSEQ_OFFSET",
+    "GIVEN_REF",
+    "USED_REF",
+    "BAM_EDIT",
+    "GENE_PHENO",
+    "SIFT",
+    "PolyPhen",
+    "DOMAINS",
+    "miRNA",
+    "HGVS_OFFSET",
+    "AF",
+    "AFR_AF",
+    "AMR_AF",
+    "EAS_AF",
+    "EUR_AF",
+    "SAS_AF",
+    "gnomADe_AF",
+    "gnomADe_AFR_AF",
+    "gnomADe_AMR_AF",
+    "gnomADe_ASJ_AF",
+    "gnomADe_EAS_AF",
+    "gnomADe_FIN_AF",
+    "gnomADe_MID_AF",
+    "gnomADe_NFE_AF",
+    "gnomADe_REMAINING_AF",
+    "gnomADe_SAS_AF",
+    "gnomADg_AF",
+    "gnomADg_AFR_AF",
+    "gnomADg_AMI_AF",
+    "gnomADg_AMR_AF",
+    "gnomADg_ASJ_AF",
+    "gnomADg_EAS_AF",
+    "gnomADg_FIN_AF",
+    "gnomADg_MID_AF",
+    "gnomADg_NFE_AF",
+    "gnomADg_REMAINING_AF",
+    "gnomADg_SAS_AF",
+    "MAX_AF",
+    "MAX_AF_POPS",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS"
+   ],
+   "engine_fields": [
+    "Allele",
+    "Consequence",
+    "IMPACT",
+    "SYMBOL",
+    "Gene",
+    "Feature_type",
+    "Feature",
+    "BIOTYPE",
+    "EXON",
+    "INTRON",
+    "HGVSc",
+    "HGVSp",
+    "cDNA_position",
+    "CDS_position",
+    "Protein_position",
+    "Amino_acids",
+    "Codons",
+    "Existing_variation",
+    "REF_ALLELE",
+    "UPLOADED_ALLELE",
+    "DISTANCE",
+    "STRAND",
+    "FLAGS",
+    "CANONICAL",
+    "SYMBOL_SOURCE",
+    "HGNC_ID",
+    "MANE",
+    "MANE_SELECT",
+    "MANE_PLUS_CLINICAL",
+    "TSL",
+    "APPRIS",
+    "CCDS",
+    "ENSP",
+    "SOURCE",
+    "HGVS_OFFSET",
+    "SIFT",
+    "PolyPhen",
+    "AF",
+    "CLIN_SIG",
+    "SOMATIC",
+    "PHENO",
+    "PUBMED",
+    "MOTIF_NAME",
+    "MOTIF_POS",
+    "HIGH_INF_POS",
+    "MOTIF_SCORE_CHANGE",
+    "TRANSCRIPTION_FACTORS",
+    "ACMG",
+    "ACMG_CRITERIA"
+   ],
+   "extra_fields": [
+    "REF_ALLELE",
+    "UPLOADED_ALLELE",
+    "ACMG",
+    "ACMG_CRITERIA"
+   ],
+   "columns": {
+    "Allele": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 1228297,
+     "eng_nonempty": 1228297,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Consequence": {
+     "eq": 1228289,
+     "mismatch": 8,
+     "ref_nonempty": 1228297,
+     "eng_nonempty": 1228297,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "near"
+    },
+    "IMPACT": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 1228297,
+     "eng_nonempty": 1228297,
+     "ref_all_nonempty": 1242828,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SYMBOL": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 1168415,
+     "eng_nonempty": 1168415,
+     "ref_all_nonempty": 1178248,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Gene": {
+     "eq": 931812,
+     "mismatch": 296485,
+     "ref_nonempty": 1221839,
+     "eng_nonempty": 1221839,
+     "ref_all_nonempty": 1232106,
+     "emitted": true,
+     "status": "off"
+    },
+    "Feature_type": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 1221839,
+     "eng_nonempty": 1221839,
+     "ref_all_nonempty": 1236337,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Feature": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 1221839,
+     "eng_nonempty": 1221839,
+     "ref_all_nonempty": 1236337,
+     "emitted": true,
+     "status": "exact"
+    },
+    "BIOTYPE": {
+     "eq": 932086,
+     "mismatch": 296211,
+     "ref_nonempty": 1221839,
+     "eng_nonempty": 1221839,
+     "ref_all_nonempty": 1236021,
+     "emitted": true,
+     "status": "off"
+    },
+    "EXON": {
+     "eq": 1228296,
+     "mismatch": 1,
+     "ref_nonempty": 46978,
+     "eng_nonempty": 46979,
+     "ref_all_nonempty": 47147,
+     "emitted": true,
+     "status": "near"
+    },
+    "INTRON": {
+     "eq": 1228295,
+     "mismatch": 2,
+     "ref_nonempty": 910474,
+     "eng_nonempty": 910472,
+     "ref_all_nonempty": 918384,
+     "emitted": true,
+     "status": "near"
+    },
+    "HGVSc": {
+     "eq": 1227984,
+     "mismatch": 313,
+     "ref_nonempty": 957445,
+     "eng_nonempty": 957467,
+     "ref_all_nonempty": 965522,
+     "emitted": true,
+     "status": "near"
+    },
+    "HGVSp": {
+     "eq": 1227157,
+     "mismatch": 1140,
+     "ref_nonempty": 9891,
+     "eng_nonempty": 9894,
+     "ref_all_nonempty": 9891,
+     "emitted": true,
+     "status": "near"
+    },
+    "cDNA_position": {
+     "eq": 1228290,
+     "mismatch": 7,
+     "ref_nonempty": 46979,
+     "eng_nonempty": 46979,
+     "ref_all_nonempty": 47148,
+     "emitted": true,
+     "status": "near"
+    },
+    "CDS_position": {
+     "eq": 1228296,
+     "mismatch": 1,
+     "ref_nonempty": 9895,
+     "eng_nonempty": 9895,
+     "ref_all_nonempty": 9895,
+     "emitted": true,
+     "status": "near"
+    },
+    "Protein_position": {
+     "eq": 1228296,
+     "mismatch": 1,
+     "ref_nonempty": 9895,
+     "eng_nonempty": 9895,
+     "ref_all_nonempty": 9895,
+     "emitted": true,
+     "status": "near"
+    },
+    "Amino_acids": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 9894,
+     "eng_nonempty": 9894,
+     "ref_all_nonempty": 9894,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Codons": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 9894,
+     "eng_nonempty": 9894,
+     "ref_all_nonempty": 9894,
+     "emitted": true,
+     "status": "exact"
+    },
+    "Existing_variation": {
+     "eq": 956730,
+     "mismatch": 271567,
+     "ref_nonempty": 1227670,
+     "eng_nonempty": 1040948,
+     "ref_all_nonempty": 1232065,
+     "emitted": true,
+     "status": "off"
+    },
+    "DISTANCE": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 264388,
+     "eng_nonempty": 264388,
+     "ref_all_nonempty": 266576,
+     "emitted": true,
+     "status": "exact"
+    },
+    "STRAND": {
+     "eq": 1221839,
+     "mismatch": 6458,
+     "ref_nonempty": 1221839,
+     "eng_nonempty": 1228297,
+     "ref_all_nonempty": 1232422,
+     "emitted": true,
+     "status": "near"
+    },
+    "FLAGS": {
+     "eq": 1201312,
+     "mismatch": 26985,
+     "ref_nonempty": 26985,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 27181,
+     "emitted": true,
+     "status": "off"
+    },
+    "VARIANT_CLASS": {
+     "eq": 0,
+     "mismatch": 1228297,
+     "ref_nonempty": 1228297,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1242828,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SYMBOL_SOURCE": {
+     "eq": 59882,
+     "mismatch": 1168415,
+     "ref_nonempty": 1168415,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1178248,
+     "emitted": true,
+     "status": "off"
+    },
+    "HGNC_ID": {
+     "eq": 71095,
+     "mismatch": 1157202,
+     "ref_nonempty": 1157202,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1166950,
+     "emitted": true,
+     "status": "off"
+    },
+    "CANONICAL": {
+     "eq": 1183768,
+     "mismatch": 44529,
+     "ref_nonempty": 106322,
+     "eng_nonempty": 61793,
+     "ref_all_nonempty": 107164,
+     "emitted": true,
+     "status": "off"
+    },
+    "MANE": {
+     "eq": 1198453,
+     "mismatch": 29844,
+     "ref_nonempty": 59590,
+     "eng_nonempty": 29746,
+     "ref_all_nonempty": 60071,
+     "emitted": true,
+     "status": "off"
+    },
+    "MANE_SELECT": {
+     "eq": 1168707,
+     "mismatch": 59590,
+     "ref_nonempty": 59590,
+     "eng_nonempty": 29746,
+     "ref_all_nonempty": 60071,
+     "emitted": true,
+     "status": "off"
+    },
+    "MANE_PLUS_CLINICAL": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": true,
+     "status": "empty"
+    },
+    "TSL": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 187370,
+     "eng_nonempty": 187370,
+     "ref_all_nonempty": 188913,
+     "emitted": true,
+     "status": "exact"
+    },
+    "APPRIS": {
+     "eq": 993685,
+     "mismatch": 234612,
+     "ref_nonempty": 234612,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 236269,
+     "emitted": true,
+     "status": "off"
+    },
+    "CCDS": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 219864,
+     "eng_nonempty": 219864,
+     "ref_all_nonempty": 221519,
+     "emitted": true,
+     "status": "exact"
+    },
+    "ENSP": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 895567,
+     "eng_nonempty": 895567,
+     "ref_all_nonempty": 903187,
+     "emitted": true,
+     "status": "exact"
+    },
+    "SWISSPROT": {
+     "eq": 1148098,
+     "mismatch": 80199,
+     "ref_nonempty": 80199,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 80870,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "TREMBL": {
+     "eq": 1095703,
+     "mismatch": 132594,
+     "ref_nonempty": 132594,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 133581,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "UNIPARC": {
+     "eq": 852852,
+     "mismatch": 375445,
+     "ref_nonempty": 375445,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 378543,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "UNIPROT_ISOFORM": {
+     "eq": 1160669,
+     "mismatch": 67628,
+     "ref_nonempty": 67628,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 68198,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "REFSEQ_MATCH": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SOURCE": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 1221839,
+     "eng_nonempty": 1221839,
+     "ref_all_nonempty": 1232106,
+     "emitted": true,
+     "status": "exact"
+    },
+    "REFSEQ_OFFSET": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 0,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "GIVEN_REF": {
+     "eq": 99190,
+     "mismatch": 1129107,
+     "ref_nonempty": 1129107,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1133895,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "USED_REF": {
+     "eq": 99190,
+     "mismatch": 1129107,
+     "ref_nonempty": 1129107,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1133895,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "BAM_EDIT": {
+     "eq": 1221573,
+     "mismatch": 6724,
+     "ref_nonempty": 6724,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 6762,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "GENE_PHENO": {
+     "eq": 903838,
+     "mismatch": 324459,
+     "ref_nonempty": 324459,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 327242,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SIFT": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 4181,
+     "eng_nonempty": 4181,
+     "ref_all_nonempty": 4181,
+     "emitted": true,
+     "status": "exact"
+    },
+    "PolyPhen": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 2253,
+     "eng_nonempty": 2253,
+     "ref_all_nonempty": 2253,
+     "emitted": true,
+     "status": "exact"
+    },
+    "DOMAINS": {
+     "eq": 1222364,
+     "mismatch": 5933,
+     "ref_nonempty": 5933,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 5933,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "miRNA": {
+     "eq": 1228293,
+     "mismatch": 4,
+     "ref_nonempty": 4,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 4,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "HGVS_OFFSET": {
+     "eq": 1153957,
+     "mismatch": 74340,
+     "ref_nonempty": 74340,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 82350,
+     "emitted": true,
+     "status": "off"
+    },
+    "AF": {
+     "eq": 95785,
+     "mismatch": 1132512,
+     "ref_nonempty": 1125056,
+     "eng_nonempty": 201614,
+     "ref_all_nonempty": 1128967,
+     "emitted": true,
+     "status": "off"
+    },
+    "AFR_AF": {
+     "eq": 103241,
+     "mismatch": 1125056,
+     "ref_nonempty": 1125056,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1128967,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "AMR_AF": {
+     "eq": 103241,
+     "mismatch": 1125056,
+     "ref_nonempty": 1125056,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1128967,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "EAS_AF": {
+     "eq": 103241,
+     "mismatch": 1125056,
+     "ref_nonempty": 1125056,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1128967,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "EUR_AF": {
+     "eq": 103241,
+     "mismatch": 1125056,
+     "ref_nonempty": 1125056,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1128967,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "SAS_AF": {
+     "eq": 103241,
+     "mismatch": 1125056,
+     "ref_nonempty": 1125056,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1128967,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_AF": {
+     "eq": 1000564,
+     "mismatch": 227733,
+     "ref_nonempty": 227733,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 228714,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_AFR_AF": {
+     "eq": 1040194,
+     "mismatch": 188103,
+     "ref_nonempty": 188103,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 188869,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_AMR_AF": {
+     "eq": 1054626,
+     "mismatch": 173671,
+     "ref_nonempty": 173671,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 174341,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_ASJ_AF": {
+     "eq": 1053826,
+     "mismatch": 174471,
+     "ref_nonempty": 174471,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 175174,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_EAS_AF": {
+     "eq": 1044129,
+     "mismatch": 184168,
+     "ref_nonempty": 184168,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 184919,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_FIN_AF": {
+     "eq": 1024789,
+     "mismatch": 203508,
+     "ref_nonempty": 203508,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 204356,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_MID_AF": {
+     "eq": 1057525,
+     "mismatch": 170772,
+     "ref_nonempty": 170772,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 171441,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_NFE_AF": {
+     "eq": 1004231,
+     "mismatch": 224066,
+     "ref_nonempty": 224066,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 225030,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_REMAINING_AF": {
+     "eq": 1021398,
+     "mismatch": 206899,
+     "ref_nonempty": 206899,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 207793,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADe_SAS_AF": {
+     "eq": 1046853,
+     "mismatch": 181444,
+     "ref_nonempty": 181444,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 182199,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AF": {
+     "eq": 4370,
+     "mismatch": 1223927,
+     "ref_nonempty": 1223927,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228194,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AFR_AF": {
+     "eq": 4468,
+     "mismatch": 1223829,
+     "ref_nonempty": 1223829,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228096,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AMI_AF": {
+     "eq": 4658,
+     "mismatch": 1223639,
+     "ref_nonempty": 1223639,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1227905,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_AMR_AF": {
+     "eq": 4372,
+     "mismatch": 1223925,
+     "ref_nonempty": 1223925,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228192,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_ASJ_AF": {
+     "eq": 4521,
+     "mismatch": 1223776,
+     "ref_nonempty": 1223776,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228042,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_EAS_AF": {
+     "eq": 4451,
+     "mismatch": 1223846,
+     "ref_nonempty": 1223846,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228112,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_FIN_AF": {
+     "eq": 4415,
+     "mismatch": 1223882,
+     "ref_nonempty": 1223882,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228148,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_MID_AF": {
+     "eq": 4922,
+     "mismatch": 1223375,
+     "ref_nonempty": 1223375,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1227641,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_NFE_AF": {
+     "eq": 4407,
+     "mismatch": 1223890,
+     "ref_nonempty": 1223890,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228157,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_REMAINING_AF": {
+     "eq": 4478,
+     "mismatch": 1223819,
+     "ref_nonempty": 1223819,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228085,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "gnomADg_SAS_AF": {
+     "eq": 4429,
+     "mismatch": 1223868,
+     "ref_nonempty": 1223868,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1228135,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "MAX_AF": {
+     "eq": 2167,
+     "mismatch": 1226130,
+     "ref_nonempty": 1226130,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1230398,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "MAX_AF_POPS": {
+     "eq": 2167,
+     "mismatch": 1226130,
+     "ref_nonempty": 1226130,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 1230398,
+     "emitted": false,
+     "status": "not_emitted"
+    },
+    "CLIN_SIG": {
+     "eq": 1223336,
+     "mismatch": 4961,
+     "ref_nonempty": 43480,
+     "eng_nonempty": 40846,
+     "ref_all_nonempty": 43593,
+     "emitted": true,
+     "status": "near"
+    },
+    "SOMATIC": {
+     "eq": 1142495,
+     "mismatch": 85802,
+     "ref_nonempty": 85802,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 86141,
+     "emitted": true,
+     "status": "off"
+    },
+    "PHENO": {
+     "eq": 1133037,
+     "mismatch": 95260,
+     "ref_nonempty": 181805,
+     "eng_nonempty": 113696,
+     "ref_all_nonempty": 182566,
+     "emitted": true,
+     "status": "off"
+    },
+    "PUBMED": {
+     "eq": 1221216,
+     "mismatch": 7081,
+     "ref_nonempty": 162330,
+     "eng_nonempty": 155412,
+     "ref_all_nonempty": 163048,
+     "emitted": true,
+     "status": "near"
+    },
+    "MOTIF_NAME": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "MOTIF_POS": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 312,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "HIGH_INF_POS": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "MOTIF_SCORE_CHANGE": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 270,
+     "emitted": true,
+     "status": "never_filled"
+    },
+    "TRANSCRIPTION_FACTORS": {
+     "eq": 1228297,
+     "mismatch": 0,
+     "ref_nonempty": 0,
+     "eng_nonempty": 0,
+     "ref_all_nonempty": 316,
+     "emitted": true,
+     "status": "never_filled"
+    }
+   },
+   "examples": {
+    "STRAND": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "",
+     "engine": "1"
+    },
+    "VARIANT_CLASS": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "deletion",
+     "engine": ""
+    },
+    "gnomADg_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.09477",
+     "engine": ""
+    },
+    "gnomADg_AFR_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.225",
+     "engine": ""
+    },
+    "gnomADg_AMR_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.1212",
+     "engine": ""
+    },
+    "gnomADg_ASJ_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADg_EAS_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADg_MID_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.25",
+     "engine": ""
+    },
+    "gnomADg_NFE_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.09",
+     "engine": ""
+    },
+    "gnomADg_REMAINING_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADg_SAS_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.05",
+     "engine": ""
+    },
+    "MAX_AF": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "0.25",
+     "engine": ""
+    },
+    "MAX_AF_POPS": {
+     "variant": "22:15221405:TC:T",
+     "feature": "",
+     "ensembl": "gnomADg_MID",
+     "engine": ""
+    },
+    "Existing_variation": {
+     "variant": "22:15236447:AAG:A",
+     "feature": "",
+     "ensembl": "rs1402048068",
+     "engine": ""
+    },
+    "gnomADg_AMI_AF": {
+     "variant": "22:15236447:AAG:A",
+     "feature": "",
+     "ensembl": "0.4909",
+     "engine": ""
+    },
+    "gnomADg_FIN_AF": {
+     "variant": "22:15236447:AAG:A",
+     "feature": "",
+     "ensembl": "0.4441",
+     "engine": ""
+    },
+    "SYMBOL_SOURCE": {
+     "variant": "22:15269605:G:A",
+     "feature": "ENST00000613107",
+     "ensembl": "RFAM",
+     "engine": ""
+    },
+    "GIVEN_REF": {
+     "variant": "22:15269605:G:A",
+     "feature": "ENST00000613107",
+     "ensembl": "G",
+     "engine": ""
+    },
+    "USED_REF": {
+     "variant": "22:15269605:G:A",
+     "feature": "ENST00000613107",
+     "ensembl": "G",
+     "engine": ""
+    },
+    "Gene": {
+     "variant": "22:15269605:G:A",
+     "feature": "XR_007068167.1",
+     "ensembl": "124905168",
+     "engine": "gene-LOC124905168"
+    },
+    "CANONICAL": {
+     "variant": "22:15269605:G:A",
+     "feature": "XR_007068167.1",
+     "ensembl": "YES",
+     "engine": ""
+    },
+    "AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0.0034",
+     "engine": "0"
+    },
+    "AFR_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0.0129",
+     "engine": ""
+    },
+    "AMR_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "EAS_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "EUR_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "SAS_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_NFE_AF": {
+     "variant": "22:15285849:G:T",
+     "feature": "ENST00000448473",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "HGVS_OFFSET": {
+     "variant": "22:15518304:CTATA:C",
+     "feature": "ENST00000775238",
+     "ensembl": "15",
+     "engine": ""
+    },
+    "HGNC_ID": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "HGNC:32187",
+     "engine": ""
+    },
+    "gnomADe_AFR_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0.0001604",
+     "engine": ""
+    },
+    "gnomADe_AMR_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_ASJ_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_EAS_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_FIN_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_MID_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_REMAINING_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "gnomADe_SAS_AF": {
+     "variant": "22:15820392:A:C",
+     "feature": "ENST00000383038",
+     "ensembl": "0",
+     "engine": ""
+    },
+    "BIOTYPE": {
+     "variant": "22:15820392:A:C",
+     "feature": "NR_122113.1",
+     "ensembl": "transcribed_pseudogene",
+     "engine": "transcript"
+    },
+    "MANE_SELECT": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "NM_014406.5",
+     "engine": "ENST00000359963.4"
+    },
+    "APPRIS": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "P1",
+     "engine": ""
+    },
+    "SWISSPROT": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "Q96SF2.148",
+     "engine": ""
+    },
+    "UNIPARC": {
+     "variant": "22:16585810:T:C",
+     "feature": "ENST00000359963",
+     "ensembl": "UPI000006CF87",
+     "engine": ""
+    },
+    "MANE": {
+     "variant": "22:16585810:T:C",
+     "feature": "NM_014406.5",
+     "ensembl": "MANE_Select",
+     "engine": ""
+    },
+    "HGVSp": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "ENSP00000353048.3:p.Trp320Arg",
+     "engine": "ENSP00000353048.1:p.Trp320Arg"
+    },
+    "DOMAINS": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "PANTHER:PTHR11353&Superfamily:SSF52029&Superfamily:SSF54849&Superfamily:SSF48592&Gene3D:3.30.260.10&Gene3D:1.10.560.10&P",
+     "engine": ""
+    },
+    "SOMATIC": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "0&1",
+     "engine": ""
+    },
+    "PHENO": {
+     "variant": "22:16591593:A:G",
+     "feature": "ENST00000359963",
+     "ensembl": "0&1",
+     "engine": ""
+    },
+    "BAM_EDIT": {
+     "variant": "22:16597059:G:A",
+     "feature": "NR_001591.1",
+     "ensembl": "OK",
+     "engine": ""
+    },
+    "HGVSc": {
+     "variant": "22:16603970:G:GCGCACA",
+     "feature": "NR_001591.1",
+     "ensembl": "NR_001591.1:n.305+1756_305+1757insCGCACA",
+     "engine": "NR_001591.1:n.305+1756_305+1757insGCACAC"
+    },
+    "FLAGS": {
+     "variant": "22:16958150:T:C",
+     "feature": "ENST00000465611",
+     "ensembl": "cds_start_NF",
+     "engine": ""
+    },
+    "TREMBL": {
+     "variant": "22:16958150:T:C",
+     "feature": "ENST00000465611",
+     "ensembl": "H0YB31.72",
+     "engine": ""
+    },
+    "UNIPROT_ISOFORM": {
+     "variant": "22:17080623:A:T",
+     "feature": "ENST00000319363",
+     "ensembl": "Q96F46-1",
+     "engine": ""
+    },
+    "GENE_PHENO": {
+     "variant": "22:17080623:A:T",
+     "feature": "ENST00000319363",
+     "ensembl": "1",
+     "engine": ""
+    },
+    "PUBMED": {
+     "variant": "22:17105825:ATCAC:A",
+     "feature": "ENST00000319363",
+     "ensembl": "29875488",
+     "engine": ""
+    },
+    "CLIN_SIG": {
+     "variant": "22:17108319:C:T",
+     "feature": "ENST00000319363",
+     "ensembl": "benign",
+     "engine": "uncertain_significance&benign"
+    },
+    "Consequence": {
+     "variant": "22:19029764:GC:G",
+     "feature": "NM_001396027.1",
+     "ensembl": "coding_sequence_variant",
+     "engine": "coding_transcript_variant"
+    },
+    "cDNA_position": {
+     "variant": "22:20890758:CAAAAAAAA:C",
+     "feature": "ENST00001129240",
+     "ensembl": "3859-?",
+     "engine": "3859"
+    },
+    "EXON": {
+     "variant": "22:23393638:C:CAG",
+     "feature": "ENST00000512987",
+     "ensembl": "",
+     "engine": "4/9"
+    },
+    "INTRON": {
+     "variant": "22:25761379:AGGT:A",
+     "feature": "XM_011530465.3",
+     "ensembl": "1/43",
+     "engine": ""
+    },
+    "miRNA": {
+     "variant": "22:27920603:T:TG",
+     "feature": "ENST00000582434",
+     "ensembl": "miRNA_stem",
+     "engine": ""
+    },
+    "CDS_position": {
+     "variant": "22:38086345:GTGCGGGAGCGGGACTGGCCATCCCAGTACTCCGAGGGTGCTA:G",
+     "feature": "XM_011530379.4",
+     "ensembl": "?-1321",
+     "engine": "1321"
+    },
+    "Protein_position": {
+     "variant": "22:38086345:GTGCGGGAGCGGGACTGGCCATCCCAGTACTCCGAGGGTGCTA:G",
+     "feature": "XM_011530379.4",
+     "ensembl": "?-441",
+     "engine": "441"
+    }
+   },
+   "rows": {
+    "matched": 1228297,
+    "only_ref": 14531,
+    "only_engine": 18106,
+    "identical": 0,
+    "records": 50861,
+    "records_missing": 0
+   },
+   "only_ref_by_type": {
+    "": 33,
+    "RegulatoryFeature": 3915,
+    "Transcript": 10267,
+    "MotifFeature": 316
+   }
+  }
+ }
+}
