@@ -621,6 +621,9 @@ pub fn create_streaming_annotator(
     };
     let info_fields = take_fields("vcf_info_fields")?;
     let format_fields = take_fields("vcf_format_fields")?;
+    // The output columns a LazyFrame query reads (projection pushdown), so the
+    // engine skips the work no projected column needs. Absent means all.
+    let select_columns = take_fields("select_columns")?;
     // Carry each record's own INFO/FORMAT key layout on the frame, so that
     // polars-bio's sink_vcf can reproduce the source line. vepyr-only key.
     // `true` is the caller asking for it, and fails when the input cannot carry
@@ -693,10 +696,19 @@ pub fn create_streaming_annotator(
                 pyo3::exceptions::PyRuntimeError::new_err(format!("Failed to register VCF: {e}"))
             })?;
 
-        let select = if skip_csq {
-            "SELECT * EXCLUDE (\"CSQ\")"
-        } else {
-            "SELECT *"
+        // With an explicit column list, CSQ is excluded simply by not being
+        // listed, so `skip_csq` only matters for the `SELECT *` forms.
+        let select = match select_columns.as_deref() {
+            Some(columns) if !columns.is_empty() => format!(
+                "SELECT {}",
+                columns
+                    .iter()
+                    .map(|name| format!("\"{}\"", name.replace('"', "\"\"")))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            _ if skip_csq => "SELECT * EXCLUDE (\"CSQ\")".to_string(),
+            _ => "SELECT *".to_string(),
         };
 
         let limit_clause = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();

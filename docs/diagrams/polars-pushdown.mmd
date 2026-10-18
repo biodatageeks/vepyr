@@ -4,7 +4,7 @@ flowchart TB
     subgraph PLAN["vepyr io source: once per collect"]
         direction LR
         N["needed columns<br/>projection + predicate roots"]
-        F["annotation flags<br/>--everything, or only the<br/>HGVS / co-located groups<br/>the needed columns and<br/>plugin templates use"]
+        F["engine columns<br/>the needed columns; CSQ for<br/>plugin columns, cut to the<br/>fields their templates read"]
         I["input fields<br/>only the INFO / FORMAT<br/>fields the query reads"]
         S["CSQ and plugins<br/>CSQ only if CSQ or a plugin<br/>column is read; only the<br/>plugins that own one"]
         G["regions<br/>chrom / start / end conjuncts;<br/>no region &rarr; no scan"]
@@ -16,9 +16,10 @@ flowchart TB
     subgraph ENG["Rust engine"]
         direction LR
         C["create_annotator(vcf, cache,<br/>options JSON, skip_csq, limit)"]
-        D["DataFusion<br/>annotate_vep(...) LIMIT n"]
+        D["DataFusion<br/>SELECT columns FROM<br/>annotate_vep(...) LIMIT n"]
+        K["projection-driven skips<br/>flag groups, variation lookup,<br/>SIFT, domains, HGVS shift,<br/>plugins, transcript context"]
         B["Arrow RecordBatches"]
-        C --> D --> B
+        C --> D --> K --> B
     end
 
     subgraph BATCH["vepyr io source: per batch"]
@@ -31,6 +32,6 @@ flowchart TB
     end
 
     Q -->|"projection, predicate, n_rows"| PLAN
-    PLAN -->|"options JSON, skip_csq, limit"| ENG
+    PLAN -->|"options JSON + select_columns, skip_csq, limit"| ENG
     ENG -->|"each batch"| BATCH
     BATCH --> DF[DataFrame]

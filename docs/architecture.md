@@ -97,13 +97,21 @@ starts. Each one narrows the work the engine is asked to do:
 
 - **Column pruning decides the work, not the values.** Annotation always runs
   `--everything`, and every column holds its `--everything` value. The
-  projection, the columns the predicate reads, and the fields a selected
-  plugin's match templates need form one set of needed columns; when none of
-  them needs HGVS or the co-located lookup (`Existing_variation`, frequencies,
-  `PUBMED`, …), or any column only `--everything` fills (`SIFT`, `MANE`,
-  motifs, …), the engine skips that work, leaving the selected values
-  unchanged. Passing `fields=` already fixes the layout, so combining
-  it with a `select()` raises rather than letting one silently win.
+  projection and the columns the predicate reads form one set of needed
+  columns, which reaches the engine as the column list of the
+  `annotate_vep()` query (`SELECT "chrom", "SYMBOL", …` rather than
+  `SELECT *`). The engine derives everything else from that projection: it
+  narrows `--everything` to the flag groups the columns read (HGVS, the
+  co-located lookup and its frequency groups), and skips each stage no
+  projected column needs — the variation lookup, SIFT/PolyPhen, protein
+  domains, the HGVS shift, the plugin lookups, and for a query of per-variant
+  columns alone the transcript engine with its context. The selected values
+  are unchanged. Plugin columns come out of `CSQ`; read for plugins alone,
+  the string is cut to one field plus the fields the plugins' match templates
+  read (`fields`), so the engine keeps exactly the groups those need.
+  Passing `fields=` already fixes the layout, so combining it with a
+  `select()` raises rather than letting one silently win.
+  `projection_pushdown=False` sends no column list and prunes in Polars.
 - **The CSQ string is built on demand.** A query that reads neither `CSQ` nor a
   plugin column gets neither the string nor the plugin lookup, since plugin
   values only ever reach the frame through it. A query that reads plugin
@@ -119,8 +127,9 @@ starts. Each one narrows the work the engine is asked to do:
 - **A row limit becomes a SQL `LIMIT`.**
 
 The row limit and the CSQ decision reach the engine as arguments of
-`create_annotator()`, next to the options JSON, and the limit becomes a SQL
-`LIMIT` on the `annotate_vep()` query. The io source then re-applies the full
+`create_annotator()`, next to the options JSON; the column list travels in
+the options JSON as the vepyr-only `select_columns` key. The limit becomes a
+SQL `LIMIT` on the `annotate_vep()` query. The io source then re-applies the full
 predicate, the projection and the row limit to every batch the engine returns,
 after parsing any plugin columns out of `CSQ`, so pushdown can only narrow what
 the engine reads — never change the result.

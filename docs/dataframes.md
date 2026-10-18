@@ -204,14 +204,28 @@ travel from the query to the annotator:
 - **A `filter()` on `chrom`, `start` or `end`** restricts the input before
   annotation; see [Region filters](#region-filters) below.
 - **A narrowing `select()`**, together with the columns a pushed-down
-  `filter()` reads, decides how much of the work runs. The engine skips the
-  HGVS lookup when neither `HGVSc` nor `HGVSp` is needed, and the co-located
-  lookup when none of its columns (`Existing_variation`, `CLIN_SIG`,
-  `SOMATIC`, `PHENO`, `PUBMED`, the `AF` family and the cache-only columns)
-  is needed. Everything else `--everything` adds (`SIFT`, `PolyPhen`, `MANE`,
-  `DOMAINS`, the motif columns, the per-population gnomAD columns, …) runs
-  only when one of those columns is needed. The selected columns are
-  value-identical to a plain `collect()`.
+  `filter()` reads, is handed to the engine as the columns the query selects,
+  and the engine runs only the work those columns need:
+  - the HGVS computation (and its reads of the reference FASTA) only for
+    `HGVSc`, `HGVSp`, `HGVS_OFFSET` or the reference-allele columns;
+  - the variation lookup only for the co-located columns
+    (`Existing_variation`, `CLIN_SIG`, `SOMATIC`, `PHENO`, `PUBMED`, the `AF`
+    family) and the cache-only columns, reading only the frequency groups
+    (1000 Genomes, gnomAD exomes, gnomAD genomes) a selected column needs;
+  - SIFT/PolyPhen only for `SIFT` or `PolyPhen`, protein domains only for
+    `DOMAINS`, and the rest of what `--everything` adds (`MANE`, the motif
+    columns, the per-population gnomAD columns, …) only when one of those
+    columns is selected;
+  - the transcript engine and its context (transcripts, exons, translations,
+    regulatory and motif features) only when a per-transcript column, the
+    most severe consequence or `CSQ` is selected. A query over per-variant
+    columns alone — `Allele`, `VARIANT_CLASS`, `Existing_variation`, the
+    frequencies, `CLIN_SIG`, the cache-only columns, or a count — skips it.
+
+  The selected columns are value-identical to a plain `collect()`. Pass
+  `projection_pushdown=False` to `annotate()` to run the full annotation on
+  every `collect()` and prune the columns in Polars instead, for example to
+  check that the two agree.
 - **The input columns a query names** are the only ones parsed:
   `select("chrom", "SYMBOL")` reads no `INFO` and no samples.
 - **The plugin columns a query names** decide which plugins run. Only the
@@ -235,10 +249,11 @@ high = (
       .collect()
 )                                            # runs without HGVS or the co-located lookup
 
-lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # neither HGVS nor co-located
-lf.select("chrom", "start", "HGVSc").collect()                    # HGVS, no co-located lookup
-lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # co-located lookup, no HGVS
-lf.select("chrom", "start", "SIFT").collect()                     # neither HGVS nor co-located
+lf.select("chrom", "start", "SYMBOL", "Consequence").collect()   # neither HGVS nor the variation lookup
+lf.select("chrom", "start", "HGVSc").collect()                    # HGVS, no variation lookup
+lf.select("chrom", "start", "AF", "CLIN_SIG").collect()           # variation lookup only: no transcript engine
+lf.select("chrom", "start", "SIFT").collect()                     # SIFT, no HGVS, no variation lookup
+lf.select(pl.len()).collect()                                     # a count: no lookup, no transcript engine
 lf.collect()                                                      # no projection: all of --everything
 ```
 
