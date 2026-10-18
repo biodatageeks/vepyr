@@ -217,6 +217,10 @@ serde_json = "1"
 # Projection pushdown: functions#272 (merge commit 483a499 on main, after
 # v0.23.1) skips the work no projected annotate_vep() column needs. Pinned by
 # rev until a release tag carries it.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "483a49982a490fe9a256b68e724f66bcb210485f", features = ["cache-builder"] }
+# vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
+# pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
+# as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
+# formats stays at v1.14.0.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4704ff9a89c1190ca7c9d48f0da44bc5b98353c7", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
