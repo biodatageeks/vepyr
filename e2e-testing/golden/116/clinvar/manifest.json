@@ -1,0 +1,94 @@
+{
+  "release": "116",
+  "vep_version": "116.0",
+  "profile": "merged",
+  "clinvar_release": "20261011",
+  "source": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/",
+    "vcf": {
+      "name": "clinvar_20261011.vcf.gz",
+      "size": 200437060,
+      "md5": "0f3a1a5e84252386033d5fcab1bf1f6a",
+      "sha256": "05d9481dd7217cc4df15803362d4a4c9eae5875b27b1750867d6bfd2643b3d10"
+    },
+    "tbi": {
+      "name": "clinvar_20261011.vcf.gz.tbi",
+      "size": 612038,
+      "sha256": "1a8e2b66684b4b3f4ca441274777c254f0405e10e304d0e5c08aabeaad8f0dd2"
+    }
+  },
+  "preprocessing": {
+    "tools": "bcftools 1.23.1, htslib 1.24",
+    "commands": [
+      "bcftools view -e 'ALT=\".\"' -t 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X,Y,MT clinvar_20261011.vcf.gz -Ou",
+      "bcftools norm -m -both -Oz -o clinvar_20261011.norm.vcf.gz",
+      "tabix -p vcf clinvar_20261011.norm.vcf.gz"
+    ],
+    "records_in": 4594764,
+    "removed_alt_missing": 1341,
+    "removed_scaffold_contigs": 51,
+    "split_multiallelic": 0,
+    "records_out": 4593372,
+    "records_out_body_md5": "547285cb0e2b3f97c7222156a748c371"
+  },
+  "fasta": "Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+  "vep_cache": {
+    "archive": "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz",
+    "bsd_sum": "26554 29618744"
+  },
+  "vepyr_cache": {
+    "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+    "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+  },
+  "vep_image": "ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11",
+  "vep_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-10-18 10:14:16\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+  },
+  "contigs": {
+    "chrMT": {
+      "golden": "e2e-testing/golden/116/clinvar/merged_chrMT.vcf.gz",
+      "size": 3154470,
+      "sha256": "0f9686a3ecd11c3952075655018fa5f466a8412ad21933b242477d48a81e509d",
+      "records": 3134,
+      "strict_body_md5": "148b2439b649d7c8cbedf4c5c22e56fc",
+      "canonical_body_md5": "d5217492c35d9a921e633dec54b3f7f8",
+      "vep_seconds": 26,
+      "vepyr": {
+        "version": "0.10.0",
+        "seconds": 4.7,
+        "workers": 2,
+        "strict_match": false,
+        "canonical_match": false,
+        "strict_body_md5": "c50250977ffd4a597fac7f26d1f7b88c",
+        "canonical_body_md5": "4495590e95702c0403ca9d126aee49ba"
+      }
+    },
+    "chrY": {
+      "golden": "e2e-testing/golden/116/clinvar/merged_chrY.vcf.gz",
+      "size": 800139,
+      "sha256": "32eed6ee0fd8e7e00798d91a919f32d99531c2eb738670ef85df0e3cb6bcb4c0",
+      "records": 697,
+      "strict_body_md5": "a45836ecf992614f5471b866254ae2af",
+      "canonical_body_md5": "1ccf0d810679d36ba12cc8180a138976",
+      "vep_seconds": 13,
+      "vepyr": {
+        "version": "0.10.0",
+        "seconds": 8.5,
+        "workers": 2,
+        "strict_match": true,
+        "canonical_match": true,
+        "strict_body_md5": "a45836ecf992614f5471b866254ae2af",
+        "canonical_body_md5": "1ccf0d810679d36ba12cc8180a138976"
+      }
+    }
+  }
+}
