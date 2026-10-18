@@ -188,7 +188,7 @@ record, so the standard gates cannot see this defect.
 ## 10. Outcome
 
 - Engine: biodatageeks/datafusion-bio-functions `fix/csq-transcript-order-199`
-  (`2cd4e06`). The two tests that exercise production code failed before the
+  (`2cd4e06`, review follow-up `585876d`). The two tests that exercise production code failed before the
   fix (`prepared_context_indexes_transcripts_in_vep_order`,
   `test_apply_pick_tie_breaks_by_vep_stable_id_db_id_key`) and pass after;
   1,175 unit tests plus the integration tests pass, clippy and fmt are clean.
