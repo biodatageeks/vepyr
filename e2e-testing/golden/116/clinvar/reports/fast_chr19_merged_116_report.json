@@ -1,0 +1,100 @@
+{
+  "chrom": "chr19",
+  "profile": "merged",
+  "release": "116",
+  "cache": "merged",
+  "cache_path": "/home/tgambin/workspace/vep_data/cache/116_GRCh38_merged",
+  "cache_identity": {
+    "vepyr_version": "0.10.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr19"
+  },
+  "supported_target": {
+    "vepyr_version": "0.10.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+  },
+  "build": {
+    "branch": "e2e/clinvar-parity",
+    "vepyr_rev": "a67855732401",
+    "vepyr_dirty": false,
+    "bio_functions_rev": "unknown",
+    "dependencies": {},
+    "cargo_lock_sha256": "3773a5a3d27291ce44569e017fdcd7b5c528eef878527bfaa15e3a69b5b04b96"
+  },
+  "benchmark_artifacts": {
+    "input_vcf": {
+      "path": "/home/tgambin/workspace/vep_data/input/clinvar/clinvar_20261011.norm.vcf.gz",
+      "size": 200635285,
+      "mtime": 1792321422.1010299,
+      "mtime_ns": 1792321422101029786
+    },
+    "reference_fasta": {
+      "path": "/home/tgambin/workspace/vep_data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+      "size": 3151425851,
+      "mtime": 1774300836.0,
+      "mtime_ns": 1774300836000000000
+    },
+    "vep_reference_vcf": {
+      "path": "/home/tgambin/workspace/vep_data/output/116/clinvar/clinvar_20261011_vep116_merged.vcf.gz",
+      "size": 5885304891,
+      "mtime": 1792347638.914038,
+      "mtime_ns": 1792347638914037876
+    }
+  },
+  "input_variants": 261537,
+  "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 72.2,
+    "output_variants": 261537
+  },
+  "comparison": null,
+  "comparison_mode": "md5",
+  "md5": {
+    "strict": {
+      "body_match": false,
+      "header_match": true,
+      "count_match": true,
+      "vep_body_md5": "b364774e9673c9d9836373b2a321e03f",
+      "vepyr_body_md5": "229f24ad3bb121af2c1a53497389db74",
+      "vep_records": 261537,
+      "vepyr_records": 261537,
+      "notes": [],
+      "csq_order_ignored": false
+    },
+    "canonical": {
+      "body_match": false,
+      "header_match": true,
+      "count_match": true,
+      "vep_body_md5": "daf2a98a529737182e6fe0f5ce81f86f",
+      "vepyr_body_md5": "b8e4bbff66e7e32ac3667a4ed3f1b267",
+      "vep_records": 261537,
+      "vepyr_records": 261537,
+      "notes": [],
+      "csq_order_ignored": false
+    }
+  },
+  "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-10-18 11:03:48\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+  }
+}

@@ -134,16 +134,170 @@ python e2e-testing/scripts/run_comparison.py \
 
 vepyr 0.10.0 from PyPI, whose engine is the one on `master` (no engine change
 since the 0.10.0 tag), against the cache revision pinned by that release
-(`biodatageeks/vepyr_116_GRCh38_merged@5b83dd8`). The VEP references of the
-contigs below are stored here (`merged_chr<contig>.vcf.gz`, Git LFS), with the
-runner's reports in `reports/` and all checksums in `manifest.json`.
+(`biodatageeks/vepyr_116_GRCh38_merged@5b83dd8`).
 
-| Contig | Records | md5 strict | md5 canonical | VEP (1 process) | vepyr (2 workers) |
-|---|---:|---|---|---:|---:|
-| chrY | 697 | match | match | 13 s | 8.5 s |
-| chrMT | 3,134 | **differs** | **differs** | 26 s | 4.7 s |
+**chrY matches VEP byte for byte. The other 24 contigs differ: 9,249 of the
+4,593,372 records (0.20%) are not the same in the two outputs**, 6,922 of them
+on chromosomes 1-22 and X and 2,327 on chrMT. Each contig with differences has
+a directory under `mismatches/` with all its differing records and a fixture
+per class (see [Mismatch classes](#mismatch-classes)).
 
-The remaining contigs are running.
+| Contig | Records | Differing | md5 strict | md5 canonical | VEP (1 process) | vepyr (32 workers) | Analysis |
+|---|---:|---:|---|---|---:|---:|---|
+| chr1 | 414,715 | 383 | **differs** | **differs** | 15,028 s | 104.5 s | [`chr1/`](mismatches/chr1/README.md) |
+| chr2 | 401,230 | 1,057 | **differs** | **differs** | 20,027 s | 592.6 s | [`chr2/`](mismatches/chr2/README.md) |
+| chr3 | 251,389 | 198 | **differs** | **differs** | 10,486 s | 74.3 s | [`chr3/`](mismatches/chr3/README.md) |
+| chr4 | 163,605 | 118 | **differs** | **differs** | 5,886 s | 88.8 s | [`chr4/`](mismatches/chr4/README.md) |
+| chr5 | 222,343 | 177 | **differs** | **differs** | 8,597 s | 107.9 s | [`chr5/`](mismatches/chr5/README.md) |
+| chr6 | 206,599 | 134 | **differs** | **differs** | 7,287 s | 92.4 s | [`chr6/`](mismatches/chr6/README.md) |
+| chr7 | 223,219 | 233 | **differs** | **differs** | 8,068 s | 66.5 s | [`chr7/`](mismatches/chr7/README.md) |
+| chr8 | 155,536 | 112 | **differs** | **differs** | 5,744 s | 74.7 s | [`chr8/`](mismatches/chr8/README.md) |
+| chr9 | 203,226 | 155 | **differs** | **differs** | 8,928 s | 73.4 s | [`chr9/`](mismatches/chr9/README.md) |
+| chr10 | 171,717 | 517 | **differs** | **differs** | 6,991 s | 66.1 s | [`chr10/`](mismatches/chr10/README.md) |
+| chr11 | 267,817 | 293 | **differs** | **differs** | 10,753 s | 74.0 s | [`chr11/`](mismatches/chr11/README.md) |
+| chr12 | 211,578 | 161 | **differs** | **differs** | 7,541 s | 64.2 s | [`chr12/`](mismatches/chr12/README.md) |
+| chr13 | 90,238 | 875 | **differs** | **differs** | 2,882 s | 30.4 s | [`chr13/`](mismatches/chr13/README.md) |
+| chr14 | 145,471 | 75 | **differs** | **differs** | 5,409 s | 53.8 s | [`chr14/`](mismatches/chr14/README.md) |
+| chr15 | 159,327 | 199 | **differs** | **differs** | 5,271 s | 49.3 s | [`chr15/`](mismatches/chr15/README.md) |
+| chr16 | 237,223 | 356 | **differs** | **differs** | 9,341 s | 93.2 s | [`chr16/`](mismatches/chr16/README.md) |
+| chr17 | 277,114 | 1,167 | **differs** | **differs** | 13,349 s | 254.4 s | [`chr17/`](mismatches/chr17/README.md) |
+| chr18 | 76,630 | 51 | **differs** | **differs** | 2,627 s | 28.6 s | [`chr18/`](mismatches/chr18/README.md) |
+| chr19 | 261,537 | 209 | **differs** | **differs** | 8,666 s | 72.2 s | [`chr19/`](mismatches/chr19/README.md) |
+| chr20 | 99,377 | 54 | **differs** | **differs** | 3,503 s | 23.9 s | [`chr20/`](mismatches/chr20/README.md) |
+| chr21 | 51,667 | 50 | **differs** | **differs** | 1,567 s | 14.9 s | [`chr21/`](mismatches/chr21/README.md) |
+| chr22 | 99,409 | 100 | **differs** | **differs** | 3,894 s | 30.8 s | [`chr22/`](mismatches/chr22/README.md) |
+| chrX | 198,574 | 248 | **differs** | **differs** | 6,420 s | 52.3 s | [`chrX/`](mismatches/chrX/README.md) |
+| chrY | 697 | 0 | match | match | 20 s | 3.0 s |  |
+| chrMT | 3,134 | 2,327 | **differs** | **differs** | 38 s | 1.4 s | [`chrMT/`](mismatches/chrMT/README.md) |
+| **all** | **4,593,372** | **9,249** | 1 of 25 match | 1 of 25 match | 178,323 s | 2,187.6 s | |
+
+The VEP time of a contig is that of the run that wrote its output (see
+[The run](#the-run)). The vepyr time is the annotation time the runner reports
+(`annotation.time_s` in `reports/`).
+
+### The run
+
+All 25 contigs were run on one Linux desktop: AMD Ryzen 9 5950X (16 cores, 32
+threads), 62.7 GiB RAM and 2 GiB swap, NVMe SSD, Ubuntu 22.04.3, Docker 24.0.7.
+Docker on Linux runs without a VM, so the VEP containers share the host
+memory. The preprocessing of section 2, repeated there with bcftools 1.13
+(htslib 1.19.1), gave the same record md5, `547285cb0e2b3f97c7222156a748c371`.
+
+**VEP.** `generate_vep_clinvar_reference.sh` started at 13:03 with
+`VEP_REFERENCE_JOBS=17`: 32 logical CPUs less two, capped by 62.7 GiB at
+3.5 GiB per job. The last contig, chr17, finished at 20:18. The reference took
+7 h 15 min of wall time and 178,323 s (49.5 h) of VEP process time, 25.8
+records per second per process. The 3.5 GiB per process seen on the MacBook did
+not hold for ClinVar:
+
+- Most VEP processes stayed at 2.5-4.5 GiB; those of chr3 and chr4 reached 6.2
+  and 7.4 GiB.
+- The first chr17 process grew to 13.7 GiB and was killed by the kernel OOM
+  killer at 14:50. The second one reached 22.4 GiB around BRCA1, where single
+  output lines carry 0.1-0.4 MB of CSQ.
+
+To keep the machine out of swap, the number of parallel jobs was lowered in
+steps from 17 to 6 by 14:25 (GNU xargs takes `SIGUSR2` as one job fewer), and
+six running contigs (chr3, chr4, chr7, chr14, chr16, chr19) were stopped
+between 13:24 and 14:24. Every stopped or killed contig was run again from the
+start, never resumed, with the same script and the contigs as arguments
+(`19 3`, `16 7` and `4 14` between 14:50 and 15:06, `17` at 16:35). chrY and chrMT were run
+on Linux as well, for the comparison with the MacBook below. The run without
+arguments then found all 25 outputs and joined them. Between 6 and 17 VEP
+processes shared the 16 cores, so the times per contig are not those of an
+idle machine.
+
+**vepyr.** After VEP had finished, one run of the unchanged runner on the
+joined reference:
+
+```bash
+python e2e-testing/scripts/run_comparison.py \
+  --release 116 --profile merged --chroms all \
+  --vcf "$DATA_VEPYR_DIR/input/clinvar/clinvar_20261011.norm.vcf.gz" \
+  --vep "$DATA_VEPYR_DIR/output/116/clinvar/clinvar_20261011_vep116_merged.vcf.gz" \
+  --fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
+  --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" \
+  --output-dir "$DATA_VEPYR_DIR/clinvar_e2e" \
+  --comparison-mode md5 --md5-mode both --bgzf --no-normalize --workers 32
+```
+
+The annotation of the 25 contigs took 2,187.6 s (36.5 min). The whole run,
+with the extraction of the inputs and both md5 checks, took 1 h 8 min 42 s,
+with a peak RSS of 17.3 GiB.
+
+Before that, while VEP was still running, each contig had been annotated on its
+own as soon as its VEP output was written (`--chroms <contig> --workers 2`,
+against the contig output). Both runs give the same vepyr body md5, strict and
+canonical, on all 25 contigs, and the joined reference gives the same VEP body
+md5 per contig as the contig outputs. The vepyr output did not change with 32
+workers instead of 2, and the analyses in `mismatches/`, made from the earlier
+runs, hold for this run.
+
+### Where the reference is kept
+
+Like the HG002 whole-genome goldens (`../../wgs-manifest.json`), the VEP
+reference is not in Git. `manifest.json` records it under `vep_reference`: its
+path under `$DATA_VEPYR_DIR`, the sha256 and size of the VCF and of its index,
+and the number of records. The same file is kept, unchanged, next to the HG002
+references, under the name `clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz`
+(`published_as`) with its `.tbi`. Only the MacBook references of chrMT and chrY
+are in this directory (`merged_chrMT.vcf.gz`, `merged_chrY.vcf.gz`, Git LFS).
+The runner's reports of the Linux run are in `reports/`, those of the two
+MacBook runs in `reports/macbook/`.
+
+### chrMT and chrY on the MacBook and on Linux
+
+The Linux run annotated chrMT and chrY again, with the same image, cache and
+flags as the MacBook. The records are identical: both runs give the same body
+md5, strict and canonical (strict: chrMT `148b2439b649d7c8cbedf4c5c22e56fc`,
+chrY `a45836ecf992614f5471b866254ae2af`). The headers differ only in the
+bcftools lines and the `time` of the `##VEP` line. vepyr also writes the same
+records on both machines. `manifest.json` keeps the MacBook values for these
+two contigs and adds the Linux ones under `linux_check`; `vepyr` holds the
+Linux run and `vepyr_macbook` the MacBook one.
+
+### Mismatch classes
+
+Each directory under `mismatches/` lists every differing record of its contig
+in `records.tsv`, with a small input, VEP and vepyr fixture per class; `vepyr
+annotate` on each fixture input writes its `vepyr.vcf` byte for byte. The rules
+are described in [`mismatches/chr15/`](mismatches/chr15/README.md), in the
+order below, and the first rule that matches decides the class. On chromosomes
+1-22 and X:
+
+| Class | Rule | Records |
+|---|---|---:|
+| `info_percent_encoding` | an input INFO value differs (vepyr decodes `%3B` and `%3D`) | 1,966 |
+| `allele_with_n` | REF or ALT contains `N` | 667 |
+| `used_ref` | `USED_REF` differs | 8 |
+| `large_deletion` | REF of 500 bp or more | 281 |
+| `splice` | only splice terms differ | 269 |
+| `cds_utr_boundary` | a UTR term is present and a start, stop or coding term differs | 714 |
+| `start_codon` | `start_lost` or `start_retained_variant` differs | 140 |
+| `stop_codon` | `stop_lost` or `stop_retained_variant` differs | 148 |
+| `incomplete_terminal_codon` | `incomplete_terminal_codon_variant` is present | 92 |
+| `inframe_indel` | any other `Consequence` difference | 996 |
+| `hgvs` | `Consequence` is the same; `HGVSc`, `HGVSp` or positions differ | 1,641 |
+| **all** | | **6,922** |
+
+Further facts from these records:
+
+- No record on these contigs differs in the order of its CSQ entries; that
+  happens on chrMT only.
+- 1,198 of the 6,922 have an allele of 50 bp or more. These contigs have 6,775
+  such records, so 17.7% of them differ, against 0.12% of the other 4,582,766.
+  They are sequence alleles, not symbolic structural variants, and stay in the
+  comparison (section 2).
+- Some classes sit in a few places. 770 of the 875 differing chr13 records and
+  848 of the 1,167 on chr17 are `info_percent_encoding`. 371 of the 395 `hgvs`
+  records on chr10 differ only on NM_001304718.2 (PTEN), and 690 of the 730 on
+  chr2 only on NM_015120.4 (ALMS1).
+- For two records vepyr writes a different `HGNC_ID` on a RefSeq `NR_`
+  transcript when the record is annotated on its own than in the full run:
+  20:63674046 on NR_037882.1 and 7:117544096 on NR_149084.1. In the full run
+  vepyr agrees with VEP. These two records are therefore in `records.tsv` but
+  not in the fixtures; see [`mismatches/chr20/`](mismatches/chr20/README.md)
+  and [`mismatches/chr7/`](mismatches/chr7/README.md).
 
 ### chrMT
 
@@ -168,6 +322,7 @@ The remaining contigs are running.
    further towards the 3' end than VEP (`n.50del` against `n.47del`).
 
 chrMT is outside the HG002 validation, which covers chromosomes 1-22, so these
-are new findings rather than regressions. All differing records, and a small
-input/VEP/vepyr fixture for each class, are in
+are new findings rather than regressions. The Linux run writes the same VEP
+and vepyr records as the MacBook, so the same 2,327 records differ. All
+differing records, and a small input/VEP/vepyr fixture for each class, are in
 [`mismatches/chrMT/`](mismatches/chrMT/README.md).
