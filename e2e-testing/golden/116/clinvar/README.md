@@ -77,9 +77,13 @@ header, so the file checksum changes between runs; the md5 of the records
 VEP_REFERENCE_JOBS=8 e2e-testing/scripts/generate_vep_clinvar_reference.sh
 ```
 
-The script downloads the release if it is missing, preprocesses it as above
-and runs `ensemblorg/ensembl-vep:release_116.0` with the flags of the HG002
-golden runs ([`vep-docker.md`](../../../vep-docker.md)):
+The script first checks the free disk space, then fetches whatever is missing
+under `$DATA_VEPYR_DIR`: the Ensembl 116 primary-assembly FASTA (indexed with
+`samtools faidx`), the raw VEP merged cache (checked against the BSD `sum`
+Ensembl publishes in `CHECKSUMS`, `26554 29618744`, then extracted), the Docker
+image and the ClinVar release. It preprocesses the release as above and runs
+`ensemblorg/ensembl-vep:release_116.0` with the flags of the HG002 golden runs
+([`vep-docker.md`](../../../vep-docker.md)):
 
 ```
 vep --dir /opt/vep/.vep --cache --offline --assembly GRCh38 --merged \
@@ -89,27 +93,32 @@ vep --dir /opt/vep/.vep --cache --offline --assembly GRCh38 --merged \
 
 VEP runs without `--fork`. Each contig is a separate VEP process on its own
 slice of the preprocessed input, and `VEP_REFERENCE_JOBS` contigs run at the
-same time. The script warns when a contig output holds fewer records than its
-input. The contig outputs are then joined in input order by copying their records as text:
-`bcftools concat` would reprint ClinVar's floating-point INFO values and change
-the bytes the md5 check compares.
+same time. A contig is skipped when its output already exists, so an
+interrupted run is resumed by starting the script again. The script warns when
+a contig output holds fewer records than its input. The contig outputs are then
+joined in input order by copying their records as text: `bcftools concat` would
+reprint ClinVar's floating-point INFO values and change the bytes the md5 check
+compares.
 
-The raw VEP cache must be extracted first. The archive holds
-`homo_sapiens_merged/116_GRCh38/`, and Ensembl publishes its BSD `sum` in
-`CHECKSUMS` (`26554 29618744`):
+Two limits seen on a MacBook Air (M2, 8 cores, 24 GB):
 
-```bash
-curl -O https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz
-sum homo_sapiens_merged_vep_116_GRCh38.tar.gz   # 26554 29618744
-tar -xzf homo_sapiens_merged_vep_116_GRCh38.tar.gz -C "$DATA_VEPYR_DIR"
-```
+- **Memory.** Each VEP process grows to 2-3.5 GiB with the merged cache and
+  `--everything`. Eight jobs ran out of memory in a 15 GiB Docker VM; allow
+  about 3.5 GiB of Docker memory per job.
+- **Time.** ClinVar variants are almost all in genes, which makes them much
+  slower for VEP than the HG002 calls: seven jobs together annotated about 75
+  variants per second, which would take 15-17 hours for the whole release. The
+  full run was therefore moved to a larger Linux machine. chrMT and chrY were
+  annotated on the MacBook.
 
 ## 4. vepyr and the md5 comparison
 
-The vepyr side is the existing runner, unchanged. `--no-normalize` because the
-input is already preprocessed:
+The vepyr side is the existing runner, unchanged, run with vepyr 0.10.0 and
+the cache revision that release pins. `--no-normalize` because the input is
+already preprocessed:
 
 ```bash
+pip install "vepyr==0.10.0"
 vepyr download-cache --release 116 --cache_type merged --dir_cache "$DATA_VEPYR_DIR/cache"
 
 python e2e-testing/scripts/run_comparison.py \

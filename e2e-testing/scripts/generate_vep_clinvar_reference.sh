@@ -11,8 +11,10 @@
 #   ./generate_vep_clinvar_reference.sh            # all 25 contigs
 #   ./generate_vep_clinvar_reference.sh 21 22      # selected contigs only
 #
-# Requires: docker, curl, bcftools, bgzip, tabix, and the raw VEP 116 merged
-# cache extracted under $DATA_VEPYR_DIR/homo_sapiens_merged/116_GRCh38.
+# Requires: docker, curl, bcftools, bgzip, tabix and samtools. Whatever is
+# missing under $DATA_VEPYR_DIR is fetched first: the Ensembl 116 FASTA, the
+# raw VEP 116 merged cache, the Docker image and the ClinVar release. Each VEP
+# process grows to 2-3.5 GiB, so allow about 3.5 GiB of Docker memory per job.
 
 set -euo pipefail
 
@@ -25,6 +27,7 @@ IN_DIR="$DATA/input/clinvar"
 OUT_DIR="$DATA/output/116/clinvar"
 NAME="clinvar_${CLINVAR_RELEASE}"
 URL="https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38"
+ENSEMBL="https://ftp.ensembl.org/pub/release-116"
 # Largest first, so the longest jobs do not start last.
 ALL_CONTIGS=(1 2 17 11 19 3 16 7 5 10 12 6 9 15 X 4 8 14 20 22 13 18 21 MT Y)
 
@@ -32,12 +35,45 @@ FASTA="${FASTA:-$DATA/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa}"
 if [[ ! -f "$FASTA" && -f "$DATA/$(basename "$FASTA")" ]]; then
   FASTA="$DATA/$(basename "$FASTA")"   # legacy layout, as in profiles.py
 fi
-[[ -f "$FASTA" && -f "$FASTA.fai" ]] || { echo "ERROR: missing $FASTA(.fai)" >&2; exit 1; }
+mkdir -p "$DATA" "$IN_DIR" "$OUT_DIR/contigs" "$OUT_DIR/logs"
+
+# 0. Check the disk before anything is downloaded. Counted in GiB, only for
+#    what is missing; the VEP outputs include the plain VCFs of running jobs.
+need=40
+[[ -s "$CACHE/info.txt" ]] || need=$((need + 60))   # archive plus extracted cache
+[[ -f "$FASTA" ]] || need=$((need + 4))
+free=$(df -Pk "$DATA" | awk 'NR == 2 {print int($4 / 1048576)}')
+if (( free < need )); then
+  echo "ERROR: $free GiB free under $DATA, this run needs about $need GiB" >&2
+  exit 1
+fi
+echo "Disk: $free GiB free under $DATA, about $need GiB needed"
+
+# Fetch the FASTA, the raw VEP cache and the image when they are missing.
+if [[ ! -f "$FASTA" ]]; then
+  curl -sSfL "$ENSEMBL/fasta/homo_sapiens/dna/$(basename "$FASTA").gz" | gzip -dc > "$FASTA.tmp"
+  mv -f "$FASTA.tmp" "$FASTA"
+fi
+[[ -f "$FASTA.fai" ]] || samtools faidx "$FASTA"
+if [[ ! -s "$CACHE/info.txt" ]]; then
+  tarball="$DATA/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
+  url="$ENSEMBL/variation/indexed_vep_cache/$(basename "$tarball")"
+  # Ensembl serves each connection at about 5 MB/s; aria2c opens several.
+  if command -v aria2c > /dev/null; then
+    aria2c -q -c -x 8 -s 8 -d "$DATA" -o "$(basename "$tarball")" "$url"
+  else
+    curl -sSfL -C - -o "$tarball" "$url"
+  fi
+  # The BSD sum published in the release's CHECKSUMS file.
+  [[ "$(sum "$tarball" | awk '{print $1, $2}')" == "26554 29618744" ]] \
+    || { echo "ERROR: checksum mismatch for $tarball" >&2; exit 1; }
+  tar -xzf "$tarball" -C "$DATA"
+  rm -f "$tarball"
+fi
 # Docker creates a missing -v source as an empty directory, and VEP then skips
 # every variant instead of failing (see vep-docker.md).
 [[ -s "$CACHE/info.txt" ]] || { echo "ERROR: no VEP cache at $CACHE" >&2; exit 1; }
-
-mkdir -p "$IN_DIR" "$OUT_DIR/contigs" "$OUT_DIR/logs"
+docker image inspect "$IMAGE" > /dev/null 2>&1 || docker pull "$IMAGE"
 
 # 1. Download and verify the ClinVar release.
 RAW="$IN_DIR/$NAME.vcf.gz"
