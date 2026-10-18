@@ -2198,6 +2198,65 @@ class TestPluginColumnCost:
         assert set(df.columns) == set(lf.collect_schema())
 
 
+class TestShadowedInputProjection:
+    """An input INFO field named like a plugin column is carried as
+    ``INFO_<id>``; projecting it must send the engine the input column, not
+    drop it as a plugin name."""
+
+    def test_shadowed_input_column_reaches_the_engine(self, tmp_path, monkeypatch):
+        import pyarrow as pa
+        import vepyr
+
+        root = Path(_fake_plugin_root(tmp_path, ["cadd"]))
+        (root / "plugin" / "cadd" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "plugin_name": "cadd",
+                    "field_order": "declared",
+                    "value_columns": [
+                        {"column": "phred", "csq_field": "CADD_PHRED", "type": "Utf8"}
+                    ],
+                }
+            )
+        )
+        info = {b"bio.vcf.field.field_type": b"INFO"}
+        schema = pa.schema(
+            [
+                pa.field("chrom", pa.string()),
+                pa.field("CADD_PHRED", pa.string(), metadata=info),
+                pa.field("CSQ", pa.string()),
+                pa.field("SYMBOL", pa.string()),
+            ]
+        )
+        calls = []
+
+        class FakeAnnotator:
+            def __init__(self):
+                self.schema = schema
+
+            def __iter__(self):
+                return iter(())
+
+        def fake(vcf, cache_dir, options_json, skip_csq, limit):
+            calls.append(json.loads(options_json))
+            return FakeAnnotator()
+
+        monkeypatch.setattr(vepyr, "_create_annotator", fake)
+        lf = vepyr.annotate(
+            "in.vcf",
+            CACHE_DIR,
+            reference_fasta=REFERENCE_FASTA,
+            plugin_cache_root=str(root),
+            plugins=["cadd"],
+        )
+        assert "INFO_CADD_PHRED" in lf.collect_schema()
+        lf.select("chrom", "INFO_CADD_PHRED").collect()
+        assert calls[-1]["select_columns"] == ["chrom", "CADD_PHRED"]
+        # The plugin column of the same name still comes out of CSQ.
+        lf.select("chrom", "CADD_PHRED").collect()
+        assert calls[-1]["select_columns"] == ["chrom", "CSQ"]
+
+
 class TestPluginMatchTemplates:
     """A per-feature plugin's match template can reference a flag-dependent
     field (``{HGVSc}`` say); a ``select()`` reading that plugin's column then

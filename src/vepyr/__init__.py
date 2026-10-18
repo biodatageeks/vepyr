@@ -1647,7 +1647,8 @@ def annotate(
         selected or filtered column needs. Selected values are unchanged.
         ``False`` runs the full ``--everything`` annotation on every
         ``collect()`` and prunes the columns in Polars, which is useful for
-        checking that the two agree. Only used on the ``LazyFrame`` path.
+        checking that the two agree; ``fields`` may then be combined with a
+        narrowing ``select()``. Only used on the ``LazyFrame`` path.
 
     Notes
     -----
@@ -2282,8 +2283,12 @@ def annotate(
             # (``{HGVSc}``; derived names such as ``{ref_aa}`` are not fields),
             # with the plugin fields trailing as always, so the engine narrows
             # the flags to those.
-            engine_names = {_shadowed_engine_name.get(n, n) for n in needed}
-            engine_names -= plugin_columns
+            # Plugin columns go first: an input field a plugin shadows keeps
+            # the plugin's name in the engine, so mapping the frame's
+            # ``INFO_<id>`` back to it must not then drop it as a plugin.
+            engine_names = {
+                _shadowed_engine_name.get(n, n) for n in needed - plugin_columns
+            }
             if csq_needed:
                 engine_names.add("CSQ")
                 if "CSQ" not in needed and "fields" not in _opts:
@@ -2291,9 +2296,12 @@ def annotate(
                     engine_opts["fields"] = ["Allele", *sorted(template_fields)]
             if not engine_names & _RECORD_LAYOUT_COLUMNS:
                 engine_opts.pop("vcf_record_layout", None)
-            select_columns = [n for n in pa_schema.names if n in engine_names]
-            if select_columns:
-                engine_opts["select_columns"] = select_columns
+            # A needed name the engine does not have would silently vanish
+            # from the batches; send no list then, and prune in Polars.
+            if engine_names <= set(pa_schema.names):
+                engine_opts["select_columns"] = [
+                    n for n in pa_schema.names if n in engine_names
+                ]
         annotator = _create_annotator(
             _vcf,
             _cache_dir,
