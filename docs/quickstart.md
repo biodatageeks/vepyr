@@ -291,6 +291,14 @@ when a key shares a name with a VEP field: an input `AF=` from gnomAD or
 input that already carries `CSQ` has it replaced, as Ensembl VEP does: the old
 key and its header line are dropped and the new `CSQ` is appended last.
 
+Percent-encoded values (VCF 4.3 §1.2; ClinVar writes a `;` inside a disease
+name as `%3B`) are decoded in the LazyFrame and encoded again in the VCF, so
+the reserved characters come back as they were: `%3B`, `%3D`, `%2C`, `%25`
+and the line controls in `INFO`, `%3A`, `%2C`, `%25` in the sample columns.
+An escape of a character that needs none, such as `%20` or `%2B`, comes back
+decoded (a space, a `+`), and a lower-case escape comes back upper-cased; Ensembl
+VEP keeps those bytes as they were.
+
 ### Annotating to a Polars LazyFrame
 
 Omit `output_vcf` and `annotate()` returns a Polars LazyFrame instead:
