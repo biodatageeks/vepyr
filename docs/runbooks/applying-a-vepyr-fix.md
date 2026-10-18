@@ -23,7 +23,7 @@ annotation behaviour or the VCF reader — the shape of the issues filed as
 `biodatageeks/vepyr#92`–`#99`.
 
 **Out of scope:** merging. This skill takes the work to the point where a human
-can review and merge it, and stops there — see step 9. Also out of scope:
+can review and merge it, and stops there — see steps 9 and 10. Also out of scope:
 adding a plugin (use the `vep-add-plugin` skill), rebuilding or republishing
 caches, and cutting a release. Those have their own gates and their own
 runbooks.
@@ -799,15 +799,90 @@ the md5 mode used, the commit each pin points at, and every bot finding with
 how it was addressed. Then say in the conversation that the PRs are ready and
 name what is left for a person to do:
 
-- merge in dependency order, formats then functions then vepyr;
-- after each merge, rewrite the downstream pin from the PR head to the **merge
-  commit**, so no merged tree points at a commit that only ever existed on a
-  branch.
+- merge the upstream PRs in dependency order, formats then functions;
+- review and merge the vepyr PR once step 10 has brought it to its final state.
 
-Leave both to them. Do not merge, do not enable auto-merge, and do not push the
-post-merge re-pin ahead of the merge it depends on. If the reviewer asks you to
-merge, that is a fresh instruction for that specific merge and does not
-generalise to the rest of the stack.
+Do not merge, do not enable auto-merge, and do not push a post-merge re-pin
+ahead of the merge it depends on. If the reviewer asks you to merge, that is a
+fresh instruction for that specific merge and does not generalise to the rest of
+the stack.
+
+### 10. After the upstream merges: re-pin to master and close out with `/parity-wgs`
+
+The upstream PRs merging is not the end of the vepyr PR. It still pins commits
+that only ever existed on PR branches. If an upstream PR was squash-merged, those
+commits can disappear from the repository and the vepyr PR stops building.
+Every gate so far also measured the PR-branch pins, not what will land. This
+step moves the vepyr PR onto the merged upstreams and proves the final tree
+end to end.
+
+**Start only when** every upstream PR of the stack has been merged by a human.
+Check this rather than assume it:
+
+```bash
+gh pr view <n> --repo biodatageeks/datafusion-bio-functions --json state,mergeCommit \
+  --jq '"\(.state) \(.mergeCommit.oid)"'
+gh pr view <n> --repo biodatageeks/datafusion-bio-formats --json state,mergeCommit \
+  --jq '"\(.state) \(.mergeCommit.oid)"'
+```
+
+1. **Re-pin to master in both upstreams.**
+   - Point the vepyr PR's `datafusion-bio-function-vep` pin at the functions
+     merge commit on `master`, or at the release tag cut from it.
+   - Point both formats crates at the formats merge commit or tag. It must be
+     the same formats source the merged functions `master` pins, or the build
+     resolves two copies of `-core`/`-vcf` and fails (`Cargo.toml` comment
+     block).
+   - Update the pin comment to say "merge commit `<sha>` of #<n>", and run
+     `cargo update -p` for the changed crates.
+   - If vepyr `master` moved meanwhile, bring the PR branch up to date first.
+     Ask before merging `master` into the PR branch or rebasing it: it rewrites
+     what the reviewer is reading.
+2. **Re-run every gate on that head.** The PR-branch results do not carry over.
+   - **Reviewers:** re-request `@codex review` and `@claude review` (step 6)
+     and wait for both on the new head. A clean pass is a review on this head
+     with no unanswered finding; the reviews endpoint shows the commit (step 7).
+   - **CI/CD:** every check on the head has concluded green, none pending.
+   - **md5:** strict md5 over all contigs (step 2's command) is green.
+   - **Performance:** `compare_runs.py` against a baseline built from vepyr
+     `master` gives a PASS verdict. On a shared host, pair it with a
+     same-session interleaved run (baseline and fix binaries alternating, with
+     the warm-up discarded) before calling a FAIL a regression, and report both.
+3. **Run `/parity-wgs` last, once 2 is all green.** Comment exactly
+   `/parity-wgs` on the vepyr PR (`/parity-wgs <head sha>` for a fork PR).
+   - It is admin-only and always runs master's copy of
+     `.github/workflows/parity-wgs.yml`.
+   - It runs the whole-genome md5 parity for every profile in
+     `e2e-testing/golden/wgs-manifest.json` (merged, ensembl, refseq) on the
+     self-hosted runner, about 20–30 minutes per profile.
+   - It reports the `parity/wgs` commit status on the head.
+   - A push after the comment leaves the new head without the status, so
+     `/parity-wgs` must be the last thing that touches the PR.
+4. **Record the final state in the PR body** as a checklist with provenance.
+   Edit through the API and read the body back (step 5). Every item names the
+   evidence, so a reviewer can check it without rerunning anything:
+
+```markdown
+## Final state (head `<sha>`)
+
+- [x] Pins on master: functions `<merge sha>` (#<n>, merged <date>), formats `<merge sha or tag>` (#<n>)
+- [x] Reviewers green on `<sha>`: codex review <id>, claude review <id>; findings answered: <links>
+- [x] CI/CD green on `<sha>`: <checks run URL>
+- [x] md5 strict green: <n>/<n> contigs, <records> records (<report path or comment link>)
+- [x] Performance green: `compare_runs.py` PASS vs master `<sha>` (<table or comment link>)
+- [x] `/parity-wgs` green: `parity/wgs` status on `<sha>`, <run URL> (profiles: merged, ensembl, refseq)
+```
+
+**Gate (the final state):** all of the following hold at once on the same head:
+
+- both reviewers green;
+- every CI/CD check green;
+- strict md5 green;
+- performance green;
+- `parity/wgs` green;
+- the checklist in the PR body records each item with its provenance.
+
+Then tell the human the PR is ready to merge, and stop. Merging it is theirs.
 
 ## Measurement traps
 
