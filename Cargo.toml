@@ -222,6 +222,6 @@ serde_json = "1"
 # Review pins: the functions PR head (stacked on #199's 585876d) and the formats
 # PR head on top of master 4b58ea6 (v1.14.0 + #260/#261); the engine pins the
 # same formats rev, so all three formats crates resolve to one source.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "c684d8ed7532d65bf28ee0d21aab61563ad26d20", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "5c10a904de4bc53c16e511a7847ae32e9a5eb43b", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "397f15d9cb78745f07828e2110830af249c4c0e3" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "397f15d9cb78745f07828e2110830af249c4c0e3" }
