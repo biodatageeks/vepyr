@@ -221,10 +221,10 @@ serde_json = "1"
 # pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
 # as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
 # vepyr#207: the VCF writer percent-encodes reserved characters in INFO/FORMAT
-# values again (formats fix/issue-207-info-percent-encoding 2a1e622) and the engine
+# values again (formats fix/issue-207-info-percent-encoding c419b7b) and the engine
 # marks CSQ as joined text so it stays verbatim (functions branch of the same name,
-# 79d4f59, which merges master and so carries 4704ff9). Both are PR heads until
+# 7f8d2dc, which merges master and so carries 4704ff9). Both are PR heads until
 # they merge and are released.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "79d4f594822579e9c801e99be539374ae1a938fa", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2a1e622df5d9e144856e02f0ae8d8ff7362d76ca" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2a1e622df5d9e144856e02f0ae8d8ff7362d76ca" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7f8d2dce9f336e5c3390b5e2ad29551da820e364", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c419b7b2f70d70cd131b9d87eeb22f0235ec5feb" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "c419b7b2f70d70cd131b9d87eeb22f0235ec5feb" }
