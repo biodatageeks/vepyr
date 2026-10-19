@@ -593,12 +593,27 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
     return state
 
 
-def input_identity(panel: Path, mode: str, clinvar: Path, golden: Path) -> dict:
+def _file_ends(path) -> dict:
+    """Size plus the first and last MiB: survives a copy or a touch, catches a
+    regenerated file (header timestamp, bgzf blocks)."""
+    size = os.stat(path).st_size
+    ends = hashlib.sha256()
+    with open(path, "rb") as fh:
+        ends.update(fh.read(1 << 20))
+        fh.seek(max(0, size - (1 << 20)))
+        ends.update(fh.read(1 << 20))
+    return {"size": size, "ends_sha256": ends.hexdigest()}
+
+
+def input_identity(
+    panel: Path, mode: str, clinvar: Path, golden: Path, fasta: Path | None = None
+) -> dict:
     """What a run compared against, so reused outputs and --prev can be checked.
 
     Panel mode: sha256 over ledger.tsv, in/ and vep116_0/ (about 400 MB, ~1 s).
     Full-contig mode: the ledger digest plus size and a first/last-MiB digest
-    of the ClinVar release and the golden (5.9 GB, not hashed whole).
+    of the ClinVar release and the golden (5.9 GB, not hashed whole). Both
+    modes add the same for the reference FASTA when it exists.
     """
     digest = hashlib.sha256()
     files = [panel / "ledger.tsv"]
@@ -612,17 +627,12 @@ def input_identity(panel: Path, mode: str, clinvar: Path, golden: Path) -> dict:
             for block in iter(lambda: fh.read(1 << 20), b""):
                 digest.update(block)
     identity = {"mode": mode, "panel_sha256": digest.hexdigest()}
+    if fasta is not None and os.path.exists(fasta):
+        # The reference changes annotation as much as the inputs do.
+        identity["fasta"] = _file_ends(fasta)
     if mode == "full-contig":
-        # Size plus the first and last MiB: survives a copy or a touch, catches
-        # a regenerated file (header timestamp, bgzf blocks).
         for name, path in (("clinvar", clinvar), ("golden", golden)):
-            size = os.stat(path).st_size
-            ends = hashlib.sha256()
-            with open(path, "rb") as fh:
-                ends.update(fh.read(1 << 20))
-                fh.seek(max(0, size - (1 << 20)))
-                ends.update(fh.read(1 << 20))
-            identity[name] = {"size": size, "ends_sha256": ends.hexdigest()}
+            identity[name] = _file_ends(path)
     return identity
 
 
@@ -1179,7 +1189,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(set(args.contigs)) != len(args.contigs):
         p.error("--contigs repeats a contig")
     mode = "full-contig" if args.full_contig else "panel"
-    identity = input_identity(args.panel, mode, args.clinvar, args.golden)
+    identity = input_identity(args.panel, mode, args.clinvar, args.golden, args.fasta)
     t0 = time.perf_counter()
     out = args.out or args.panel / "progress"
     vepyr_dir = out / f"vepyr_{args.label}"

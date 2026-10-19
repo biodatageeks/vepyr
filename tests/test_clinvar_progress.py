@@ -177,7 +177,7 @@ def provenance(
 ) -> None:
     """annotation.json as a real run writes it; the panel is <tmp>/panel."""
     panel = directory.parent.parent / "panel"
-    identity = cp.input_identity(panel, mode, clinvar, golden)
+    identity = cp.input_identity(panel, mode, clinvar, golden, cp.DEFAULT_FASTA)
     (directory / "annotation.json").write_text(
         json.dumps(
             {
@@ -936,3 +936,12 @@ def test_duplicate_matching_leaves_the_worst_vep_entry_unmatched():
     vepyr = "1\t1\tx\tG\tA\t.\t.\tCSQ=A|T1|a|a|a"
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"T1": ["ONLY_IN_VEP", "HGVSp"]}
+
+
+def test_identity_covers_the_reference_fasta(tmp_path):
+    panel = make_panel(tmp_path)
+    fa = tmp_path / "ref.fa"
+    fa.write_text(">1\nACGT\n")
+    one = cp.input_identity(panel, "panel", None, None, fa)
+    fa.write_text(">1\nACGA\n")
+    assert cp.input_identity(panel, "panel", None, None, fa) != one
