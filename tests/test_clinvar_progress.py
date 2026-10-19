@@ -765,3 +765,11 @@ def test_changed_and_reordered_duplicates_pair_by_similarity():
     vepyr = rec("1", 1, "x", "A|stop_gained|T1|p.Z|,A|missense|T1|p.W|").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"T1": ["HGVSp"], "ORDER": ["CSQ_ORDER"]}
+
+
+def test_csq_moved_within_info_is_an_info_difference():
+    fmt = FORMAT.split("|")
+    vep = "1\t1\tx\tG\tA\t.\t.\tCLNSIG=B;CSQ=A|m|T1||;DP=1"
+    vepyr = "1\t1\tx\tG\tA\t.\t.\tCLNSIG=B;DP=1;CSQ=A|m|T1||"
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"INFO": ["INFO"]}

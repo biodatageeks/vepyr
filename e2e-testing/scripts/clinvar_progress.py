@@ -154,6 +154,7 @@ def split_record(line: str, fmt: list[str]):
     for kv in cols[7].split(";"):
         if kv.startswith("CSQ="):
             csq = kv[4:].split(",")
+            rest.append("CSQ")  # keeps CSQ's position in the INFO comparison
         else:
             rest.append(kv)
     fi, ai = fmt.index("Feature"), fmt.index("Allele")
