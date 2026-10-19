@@ -681,6 +681,13 @@ def _compare_vcfs(
                 f"{field_format_mismatches[field]:>10,} format-only"
             )
         print("  This is not byte parity; the parity gate rejects both counts.")
+    elif n_clin_sig_order_records:
+        # Not the plain all-match banner: CLIN_SIG values differ byte-wise, and
+        # match only with VEP's random %3B order sorted out (vepyr#238).
+        print(
+            f"\n  ALL {len(shared_fields)} shared CSQ fields match, CLIN_SIG "
+            "only after sorting VEP's random %3B order (VEP-nondeterministic):"
+        )
     else:
         print(f"\n  ALL {len(shared_fields)} shared CSQ fields match at 100%!")
     for field in shared_fields:

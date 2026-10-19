@@ -383,3 +383,12 @@ def test_real_clinvar_record_22_26666332(tmp_path):
     assert dict(mc.explain(pair.vep, pair.vepyr, 0)) == {
         "CLIN_SIG order (VEP-nondeterministic, vepyr#238)": 1
     }
+
+
+def test_explain_names_csq_order_plus_clin_sig_order():
+    other = "A|intron|ENST02||"
+    vep = clin_sig_record(other, CLIN_SIG_VEP).rstrip("\n")
+    vepyr = clin_sig_record(CLIN_SIG_VEPYR, other).rstrip("\n")
+    assert mc.classify_difference(vep, vepyr, (3, 3)) == [
+        "CSQ order + CLIN_SIG order (VEP-nondeterministic, vepyr#238)"
+    ]

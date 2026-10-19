@@ -64,6 +64,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from comparison import vcfio  # noqa: E402
+from comparison.compare import CLIN_SIG_FIELD, CLIN_SIG_SEPARATOR  # noqa: E402
 
 # Each tool appends its own provenance to the input header: wall-clock time,
 # absolute cache paths, tool and per-module versions. None of it can match byte
@@ -78,10 +79,8 @@ VOLATILE_HEADER_PREFIXES = (
 
 MISSING = (".", "")
 
-# vepyr#238: the CSQ sub-field VEP fills from a Perl hash's keys, and the
-# separator it joins them with (``;``, percent-encoded inside CSQ).
-CLIN_SIG_FIELD = "CLIN_SIG"
-CLIN_SIG_SEPARATOR = "%3B"
+# vepyr#238: CLIN_SIG_FIELD / CLIN_SIG_SEPARATOR are shared with the field
+# comparison (comparison.compare), so the two cannot drift apart.
 _CSQ_FORMAT_RE = re.compile(r"Format: ([^\"]+)")
 
 # Default per-chromosome layout under e2e-testing/results/<release>/:
@@ -321,6 +320,25 @@ def _csq_value(line: str) -> str | None:
     return None
 
 
+def _clin_sig_only_difference(
+    vep_line: str, vepyr_line: str, clin_sig_index: tuple[int | None, int | None]
+) -> str | None:
+    """Name a CSQ difference that sorting CLIN_SIG's %3B groups removes.
+
+    Also covers a record whose CSQ entry order differs too (the
+    --ignore-csq-order case), which gets a combined label.
+    """
+    a = _csq_value(sort_clin_sig(vep_line, clin_sig_index[0]))
+    b = _csq_value(sort_clin_sig(vepyr_line, clin_sig_index[1]))
+    if a is None or b is None:
+        return None
+    if a == b:
+        return "CLIN_SIG order (VEP-nondeterministic, vepyr#238)"
+    if sorted(a.split(",")) == sorted(b.split(",")):
+        return "CSQ order + CLIN_SIG order (VEP-nondeterministic, vepyr#238)"
+    return None
+
+
 def classify_difference(
     vep_line: str,
     vepyr_line: str,
@@ -358,10 +376,14 @@ def classify_difference(
                 ax["CSQ"][4:].split(",")
             ) == sorted(by["CSQ"][4:].split(",")):
                 out.append("CSQ order")
-            elif [k for k in ax if ax[k] != by[k]] == ["CSQ"] and _csq_value(
-                sort_clin_sig(vep_line, clin_sig_index[0])
-            ) == _csq_value(sort_clin_sig(vepyr_line, clin_sig_index[1])):
-                out.append("CLIN_SIG order (VEP-nondeterministic, vepyr#238)")
+            elif [k for k in ax if ax[k] != by[k]] == ["CSQ"] and (
+                clin_sig := _clin_sig_only_difference(
+                    vep_line, vepyr_line, clin_sig_index
+                )
+            ):
+                # A diagnosis, not an absorption: plain strict still fails the
+                # record. It names why the record would pass the canonical mode.
+                out.append(clin_sig)
             elif any(ax[k] != by[k] for k in ax):
                 out.append("INFO VALUES")
             else:

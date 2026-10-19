@@ -485,3 +485,4 @@ def test_clin_sig_nondeterminism_is_printed(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "CLIN_SIG order only:      1" in out
     assert "VEP-nondeterministic" in out
+    assert "match at 100%!" not in out
