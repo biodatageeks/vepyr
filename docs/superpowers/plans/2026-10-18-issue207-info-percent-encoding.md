@@ -1,10 +1,11 @@
 # Issue #207: re-encode reserved characters when writing INFO/FORMAT strings
 
-Status: **implemented, gated, handed off for human review** (vepyr-fix step 9).
-Approved 2026-10-18 (§9). The stack is biodatageeks/datafusion-bio-formats#264,
-biodatageeks/datafusion-bio-functions#275 and biodatageeks/vepyr#251, none merged.
-The gate results are in the vepyr#251 description. §10 records what changed
-during execution. The sections up to §9 are the plan as approved, kept unchanged.
+Status: **implemented; targeted VEP 116.2 round trip passes; strict md5 and
+performance re-verification are pending**. Not handed off. Approved 2026-10-18
+(§9). The current stack is formats#264 → formats#266 → functions#275 → vepyr#251;
+none merged. The earlier gate results in the PR description are historical and
+do not validate the updated pins. §§10–11 record execution and current gates.
+The sections up to §9 are the plan as approved, kept unchanged.
 
 Issue: [biodatageeks/vepyr#207](https://github.com/biodatageeks/vepyr/issues/207)
 (tracked in #240). The three per-repo analyses (formats, functions, vepyr) this plan
@@ -282,3 +283,22 @@ shared; the step-2 baseline sweep is kept as well.
 4. **polars-bio:** re-pin and release it as a separate follow-up after the formats
    release (it is outside this three-repo stack)? Until then `sink_vcf` keeps the bug
    while `output_vcf` is fixed. Recommendation: yes, follow-up.
+
+## 11. Current stack and re-verification (2026-10-19)
+
+- Formats#266 (`cfc7094`) is stacked on formats#264 and contains the Character INFO
+  reader fix. Functions#275 (`c69a55c`) pins that combined formats head; vepyr#251
+  (`0f89398`) pins both `cfc7094` and `c69a55c`. The duplicate downstream pin PRs
+  functions#276 and vepyr#253 were closed as superseded. Nothing was merged.
+- The native release build was installed with
+  `RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr` from the
+  current vepyr stack. On the same one-record fixture, Ensembl VEP 116.2 and vepyr
+  both emitted `XCHR=%3B` and `XCHARS=A,B`.
+- The strict md5 comparison against the checked-in VEP 116.0 merged reference is
+  running at
+  `e2e-testing/results/fix-20261019-0526/post-edit/md5.out` in the
+  `vepyr-fix-251-update` worktree. Its result is not yet known.
+- The native worker-scaling comparison has not run. Wait for a quiet host, run both
+  worker counts against the captured baseline with `compare_runs.py`, and update
+  this status with the comparator verdict. Do not mark the PR stack ready while
+  the comparison is pending or red.

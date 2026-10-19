@@ -220,12 +220,9 @@ serde_json = "1"
 # vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
 # pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
 # as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
-# vepyr#207: the VCF writer percent-encodes reserved characters in INFO/FORMAT
-# values again, and a space in INFO under a header before VCF 4.3 (formats
-# fix/issue-207-info-percent-encoding e52af5c); the engine marks CSQ as joined text
-# so it stays verbatim and writes records under the header's version (functions
-# branch of the same name, 7dcef7a, which merges master and so carries 4704ff9).
-# Both are PR heads until they merge and are released.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7dcef7a86b3c5f6204219ecb32041c33da8161b7", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e52af5c88714b9b79dd02fcc8c1427659da4a9dc" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e52af5c88714b9b79dd02fcc8c1427659da4a9dc" }
+# vepyr#207/#263: formats#266 (stacked on formats#264) carries both the writer's
+# INFO/FORMAT percent-encoding and the Character INFO reader fix. Functions#275
+# keeps CSQ verbatim. These PR heads remain pinned until released.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "c69a55c5b456ebb0bd03a8c348e9171a5dc0576e", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "cfc709483215f53f0b30d79c2d5aa236568a4624" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "cfc709483215f53f0b30d79c2d5aa236568a4624" }
