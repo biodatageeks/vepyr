@@ -289,11 +289,16 @@ def annotate_full_contig(
         ["bcftools", "view", "-e", 'ALT="."', "-r", contig, clinvar, "-Ou"],
         stdout=subprocess.PIPE,
     )
-    norm = subprocess.run(
-        ["bcftools", "norm", "-m", "-both", "-Oz", "-o", str(sliced)],
-        stdin=view.stdout,
-    )
-    view.stdout.close()
+    try:
+        norm = subprocess.run(
+            ["bcftools", "norm", "-m", "-both", "-Oz", "-o", str(sliced)],
+            stdin=view.stdout,
+        )
+    except BaseException:
+        view.kill()
+        raise
+    finally:
+        view.stdout.close()
     if view.wait() != 0 or norm.returncode != 0:
         sliced.unlink(missing_ok=True)
         raise SystemExit(f"slicing chr{contig} from {clinvar} failed")

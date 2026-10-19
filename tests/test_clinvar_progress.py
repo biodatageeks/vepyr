@@ -449,3 +449,41 @@ def test_a_bad_prev_is_rejected_before_annotation(tmp_path, monkeypatch):
             ]
         )
     assert called == []
+
+
+@pytest.mark.skipif(
+    shutil.which("bcftools") is None or shutil.which("tabix") is None,
+    reason="bcftools/tabix not on PATH",
+)
+def test_full_contig_slice_drops_alt_dot_and_splits_multiallelics(tmp_path):
+    """The slice gets the golden input's preprocessing: ALT="." removed and
+    bcftools norm -m -both (codex review on #255)."""
+    src = tmp_path / "clinvar.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.1\n##contig=<ID=1>\n##contig=<ID=2>\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "1\t100\ta\tG\tA\t.\t.\t.\n"
+        "1\t200\tb\tG\t.\t.\t.\t.\n"
+        "1\t300\tc\tG\tA,T\t.\t.\t.\n"
+        "2\t100\td\tG\tA\t.\t.\t.\n"
+    )
+    subprocess.run(["bgzip", "-f", str(src)], check=True)
+    subprocess.run(["tabix", "-p", "vcf", str(src) + ".gz"], check=True)
+    # Stand-in interpreter: "python -c CODE in cache fasta out workers" copies in to out.
+    fake = tmp_path / "fake_python"
+    fake.write_text('#!/bin/sh\ncp "$3" "$6"\n')
+    fake.chmod(0o755)
+    out = tmp_path / "chr1.vcf.gz"
+    cp.annotate_full_contig(str(fake), str(src) + ".gz", "/c", "/f", out, "1", 4)
+    body = subprocess.run(
+        ["bcftools", "view", "-H", str(out)], capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+    assert [ln.split("\t")[1:5] for ln in body] == [
+        ["100", "a", "G", "A"],
+        ["300", "c", "G", "A"],
+        ["300", "c", "G", "T"],
+    ]
+    # the slice and its index are gone
+    assert (
+        sorted(p.name for p in tmp_path.iterdir() if p.name.startswith("chr1.in")) == []
+    )
