@@ -738,3 +738,22 @@ def test_another_csq_field_order_is_a_difference():
     vepyr = rec("1", 1, "x", "A|m|T1||p.X").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, swapped)
     assert diffs == {"CSQ_FIELD_ORDER": ["CSQ_FIELD_ORDER"]}
+
+
+def test_repeated_contigs_are_rejected(tmp_path):
+    with pytest.raises(SystemExit):
+        cp.main(
+            [
+                "--python",
+                sys.executable,
+                "--cache",
+                "/c",
+                "--panel",
+                str(tmp_path),
+                "--label",
+                "D",
+                "--contigs",
+                "1",
+                "1",
+            ]
+        )

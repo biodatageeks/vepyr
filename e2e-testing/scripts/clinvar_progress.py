@@ -1026,6 +1026,8 @@ def main(argv: list[str] | None = None) -> int:
     unknown = sorted(set(args.contigs) - set(CONTIGS))
     if unknown:
         p.error(f"unknown contigs {unknown}")
+    if len(set(args.contigs)) != len(args.contigs):
+        p.error("--contigs repeats a contig")
     mode = "full-contig" if args.full_contig else "panel"
     t0 = time.perf_counter()
     out = args.out or args.panel / "progress"
@@ -1102,6 +1104,12 @@ def main(argv: list[str] | None = None) -> int:
         for c in args.contigs:
             vy = vepyr_dir / f"chr{c}.vcf.gz"
             contig_state, counts = evaluate_full(c, str(args.golden), vy, keep)
+            if not counts.get("records"):
+                # A contig name the golden and the release do not use (e.g.
+                # "chr22" for "22") yields an empty, vacuous comparison.
+                raise SystemExit(
+                    f"chr{c}: no records in the golden or the vepyr output"
+                )
             state.update(contig_state)
             full_counts[c] = dict(counts)
         excluded: set = set()
