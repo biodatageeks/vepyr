@@ -719,3 +719,22 @@ def test_a_missing_csq_column_is_a_difference_even_when_vep_is_empty():
     vepyr = rec("1", 1, "x", "A|m|T1|p.X").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, short)
     assert diffs == {"CSQ_FORMAT": ["CLIN_SIG"]}
+
+
+def test_reordered_duplicate_entries_pair_by_payload():
+    """Two entries share (Allele, Feature) and only swap places: an ORDER
+    difference, not two field changes (codex review on #255)."""
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|m|T1|p.X|,A|n|T1|p.Y|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|n|T1|p.Y|,A|m|T1|p.X|").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"ORDER": ["CSQ_ORDER"]}
+
+
+def test_another_csq_field_order_is_a_difference():
+    fmt = FORMAT.split("|")
+    swapped = ["Allele", "Consequence", "Feature", "CLIN_SIG", "HGVSp"]
+    vep = rec("1", 1, "x", "A|m|T1|p.X|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|m|T1||p.X").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, swapped)
+    assert diffs == {"CSQ_FIELD_ORDER": ["CSQ_FIELD_ORDER"]}

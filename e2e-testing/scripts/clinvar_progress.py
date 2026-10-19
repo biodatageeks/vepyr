@@ -144,10 +144,10 @@ def sort_clin_sig(value: str) -> str:
 
 
 def split_record(line: str, fmt: list[str]):
-    """(non-CSQ columns, {(allele, feature): {field: value}}) of one record.
+    """(non-CSQ columns, [((allele, feature), {field: value})]) of one record.
 
-    Entries are keyed by Allele and Feature; a repeated key gets a ``#n``
-    suffix so a duplicated entry stays visible.
+    Entries keep their CSQ order. Several entries can share an (Allele,
+    Feature) key; `entry_diffs` pairs those by payload.
     """
     cols = line.split("\t")
     rest, csq = [], []
@@ -156,20 +156,38 @@ def split_record(line: str, fmt: list[str]):
             csq = kv[4:].split(",")
         else:
             rest.append(kv)
-    entries: dict[tuple[str, str], dict[str, str]] = {}
     fi, ai = fmt.index("Feature"), fmt.index("Allele")
+    entries = []
     for raw in csq:
         values = raw.split("|")
-        base = (values[ai], values[fi])
-        # A repeated (Allele, Feature) becomes "Feature#2": the ledger names
-        # only the first, so a duplicate that differs surfaces as a new entry.
-        key, n = base, 1
-        while key in entries:
-            n += 1
-            key = (base[0], f"{base[1]}#{n}")
-        entries[key] = dict(zip(fmt, values))
+        entries.append(((values[ai], values[fi]), dict(zip(fmt, values))))
     non_csq = "\t".join(cols[:7] + [";".join(rest)] + cols[8:])
     return non_csq, entries
+
+
+def _pair_group(left, right, fields):
+    """Pair two lists of (index, entry) sharing one key.
+
+    Equal payloads (CLIN_SIG compared canonically) pair first, so a
+    reordering of duplicates is not read as field changes; the rest pair in
+    order. Returns (pairs, left-only, right-only).
+    """
+
+    def payload(entry):
+        return tuple(_pairing_value(n, entry.get(n, "")) for n in fields)
+
+    remaining = list(right)
+    pairs, left_rest = [], []
+    for item in left:
+        match = next((r for r in remaining if payload(r[1]) == payload(item[1])), None)
+        if match is None:
+            left_rest.append(item)
+        else:
+            remaining.remove(match)
+            pairs.append((item, match))
+    n = min(len(left_rest), len(remaining))
+    pairs += list(zip(left_rest[:n], remaining[:n]))
+    return pairs, left_rest[n:], remaining[n:]
 
 
 def entry_diffs(
@@ -178,47 +196,65 @@ def entry_diffs(
     """Differing entries of one record, as {feature: [fields]}, and whether a
     CLIN_SIG value matched only after sorting (VEP-nondeterministic).
 
-    Pseudo features: ``INFO`` for the non-CSQ columns, ``ORDER`` when the
-    entries are equal but in another order.
+    Pseudo features: ``INFO`` for the non-CSQ columns, ``ORDER`` when shared
+    entries come in another order, ``CSQ_FORMAT`` / ``CSQ_FIELD_ORDER`` when
+    the two CSQ headers declare other fields or another field order.
     """
-    rest_a, ea = split_record(vep_line, vep_fmt)
-    rest_b, eb = split_record(vepyr_line, vepyr_fmt)
+    rest_a, la = split_record(vep_line, vep_fmt)
+    rest_b, lb = split_record(vepyr_line, vepyr_fmt)
     out: dict[str, list[str]] = {}
     nondeterministic = False
+
+    def add(feature, fields):
+        out.setdefault(feature, [])
+        out[feature] += [f for f in fields if f not in out[feature]]
+
     if rest_a != rest_b:
-        out["INFO"] = ["INFO"]
+        add("INFO", ["INFO"])
     # A field one header declares and the other does not is a difference on
-    # every record, even where VEP's value is empty.
+    # every record, even where VEP's value is empty; so is another field order.
     schema = sorted(set(vep_fmt) ^ set(vepyr_fmt))
     if schema:
-        out["CSQ_FORMAT"] = schema
-    for key in list(ea) + [k for k in eb if k not in ea]:
+        add("CSQ_FORMAT", schema)
+    elif vep_fmt != vepyr_fmt:
+        add("CSQ_FIELD_ORDER", ["CSQ_FIELD_ORDER"])
+    groups_a: dict = collections.defaultdict(list)
+    groups_b: dict = collections.defaultdict(list)
+    for n, (key, entry) in enumerate(la):
+        groups_a[key].append((n, entry))
+    for n, (key, entry) in enumerate(lb):
+        groups_b[key].append((n, entry))
+    matched = []
+    for key in list(groups_a) + [k for k in groups_b if k not in groups_a]:
         feature = key[1]
-        if key not in eb:
-            out.setdefault(feature, []).append("ONLY_IN_VEP")
-            continue
-        if key not in ea:
-            out.setdefault(feature, []).append("ONLY_IN_VEPYR")
-            continue
-        fields = []
-        for name in vep_fmt:
-            a, b = ea[key].get(name, ""), eb[key].get(name, "")
-            if a == b:
-                continue
-            if _clin_sig_order_equivalent(name, b, a):
-                nondeterministic = True
-                continue
-            fields.append(name)
-        for name in vepyr_fmt:
-            if name not in vep_fmt and eb[key].get(name, ""):
+        pairs, only_a, only_b = _pair_group(
+            groups_a.get(key, []), groups_b.get(key, []), vep_fmt
+        )
+        if only_a:
+            add(feature, ["ONLY_IN_VEP"])
+        if only_b:
+            add(feature, ["ONLY_IN_VEPYR"])
+        for (ia, a_entry), (ib, b_entry) in pairs:
+            matched.append((ia, ib))
+            fields = []
+            for name in vep_fmt:
+                a, b = a_entry.get(name, ""), b_entry.get(name, "")
+                if a == b:
+                    continue
+                if _clin_sig_order_equivalent(name, b, a):
+                    nondeterministic = True
+                    continue
                 fields.append(name)
-        if fields:
-            # Aggregate: two entries can share a feature (another Allele).
-            out.setdefault(feature, [])
-            out[feature] += [f for f in fields if f not in out[feature]]
+            # Per-entry detail for a vepyr-only field (CSQ_FORMAT names it per record).
+            for name in vepyr_fmt:
+                if name not in vep_fmt and b_entry.get(name, ""):
+                    fields.append(name)
+            if fields:
+                add(feature, fields)
     # Independent of field differences: a reordering is a difference too.
-    if [k for k in ea if k in eb] != [k for k in eb if k in ea]:
-        out["ORDER"] = ["CSQ_ORDER"]
+    order = [ib for _, ib in sorted(matched)]
+    if order != sorted(order):
+        add("ORDER", ["CSQ_ORDER"])
     return out, nondeterministic
 
 
