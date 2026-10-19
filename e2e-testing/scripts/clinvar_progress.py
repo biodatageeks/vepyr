@@ -84,6 +84,13 @@ CONTIGS = [str(n) for n in range(1, 23)] + ["X", "MT"]
 EXCLUDED = {("20", "63674046"), ("7", "117544096")}
 # Issue whose fix is deferred because the difference is a confirmed VEP bug.
 DEFERRED = {"vepyr#201": "known VEP bug (deferred)"}
+# Ledger pseudo-issues: differences the panel itself causes, not vepyr. VEP
+# fills HGNC_ID on some merged RefSeq transcripts differently when a record is
+# annotated alone than in the full run that made the golden.
+NOTES = {
+    **DEFERRED,
+    "panel-context:HGNC_ID": "panel artifact: HGNC_ID depends on the input context",
+}
 
 # vepyr#238: the CSQ sub-field VEP fills from a Perl hash's keys, and the
 # separator it joins them with (`;`, percent-encoded inside CSQ).
@@ -591,7 +598,7 @@ def build_progress(
                 "delta_vs_prev": ""
                 if issue not in prev_identical
                 else f"{now - prev_identical[issue]:+d}",
-                "status": DEFERRED.get(issue, ""),
+                "status": NOTES.get(issue, ""),
             }
         )
     return table, entries_out, regressions
