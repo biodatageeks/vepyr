@@ -166,6 +166,13 @@ def test_entry_diffs_names_info_order_and_one_sided_entries():
     assert cp.entry_diffs(a, other_info, fmt, fmt)[0] == {"INFO": ["INFO"]}
 
 
+def provenance(directory: Path, version: str = "0.10.1") -> None:
+    (directory / "annotation.json").write_text(
+        f'{{"vepyr_version": "{version}", "python": "py", "cache": "/recorded", '
+        '"contigs": ["1", "20"]}'
+    )
+
+
 def test_main_writes_outputs_and_reads_prev(tmp_path):
     panel = make_panel(tmp_path)
     out = tmp_path / "out"
@@ -174,6 +181,7 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
         (out / "vepyr_R0" / f"chr{c}.vcf").write_text(
             (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
         )
+    provenance(out / "vepyr_R0")
     args = [
         "--python",
         sys.executable,
@@ -197,6 +205,8 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
     summary = (out / "summary_R0.md").read_text()
     assert "| #211 | engine | 1 / 3 |" in summary
     assert "Excluded" in summary and "VEP-nondeterministic" in summary
+    # --skip-annotate reports the recorded provenance, not the command line's
+    assert "vepyr `0.10.1`, cache `/recorded`" in summary
 
     # Round 1 fixes chr1:400 and breaks chr1:100.
     (out / "vepyr_R1").mkdir()
@@ -212,6 +222,7 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
     (out / "vepyr_R1" / "chr20.vcf").write_text(
         (out / "vepyr_R0" / "chr20.vcf").read_text()
     )
+    provenance(out / "vepyr_R1", version="0.11.0")
     assert (
         cp.main([*args, "--label", "R1", "--prev", str(out / "progress_R0.tsv")]) == 0
     )
@@ -236,6 +247,7 @@ def test_prev_with_another_contig_scope_is_rejected(tmp_path):
         (out / "vepyr_R0" / f"chr{c}.vcf").write_text(
             (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
         )
+    provenance(out / "vepyr_R0")
     base = [
         "--python",
         sys.executable,

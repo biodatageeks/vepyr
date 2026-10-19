@@ -583,6 +583,34 @@ def main(argv: list[str] | None = None) -> int:
                     flush=True,
                 )
         annotate_seconds = time.perf_counter() - start
+        provenance = {
+            "vepyr_version": vepyr_version(args.python),
+            "python": args.python,
+            "cache": args.cache,
+            "fasta": args.fasta,
+            "contigs": args.contigs,
+            "annotate_seconds": round(annotate_seconds, 1),
+            "annotate_seconds_per_contig": timings,
+        }
+        (vepyr_dir / "annotation.json").write_text(
+            json.dumps(provenance, indent=1) + "\n"
+        )
+    else:
+        # The outputs carry their own provenance: report the build and cache
+        # that produced them, not the ones named on this command line.
+        recorded = vepyr_dir / "annotation.json"
+        if not recorded.exists():
+            raise SystemExit(
+                f"--skip-annotate: {recorded} is missing, so the reused outputs have no provenance"
+            )
+        provenance = json.loads(recorded.read_text())
+        missing = sorted(set(args.contigs) - set(provenance.get("contigs") or []))
+        if missing:
+            raise SystemExit(
+                f"--skip-annotate: {vepyr_dir} was not annotated for contigs {missing}"
+            )
+        timings = provenance.get("annotate_seconds_per_contig", {})
+        annotate_seconds = provenance.get("annotate_seconds", 0.0)
 
     ledger = [
         r for r in load_ledger(args.panel / "ledger.tsv") if r["contig"] in args.contigs
@@ -644,9 +672,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     meta = {
         "label": args.label,
-        "vepyr_version": vepyr_version(args.python),
-        "python": args.python,
-        "cache": args.cache,
+        "vepyr_version": provenance["vepyr_version"],
+        "python": provenance["python"],
+        "cache": provenance["cache"],
+        "annotation_reused": bool(args.skip_annotate),
         "panel": str(args.panel),
         "prev": str(args.prev) if args.prev else None,
         "contigs": args.contigs,
