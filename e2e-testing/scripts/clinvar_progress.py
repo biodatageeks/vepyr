@@ -1075,7 +1075,15 @@ def main(argv: list[str] | None = None) -> int:
     if not args.full_contig:
         # The panel holds only ledger records, so anything else in the state
         # is a record vepyr wrote that the panel input does not hold.
+        # They are kept in entries_<label>.tsv, so a --prev run that already
+        # had the same extra record does not report it again.
         for key in sorted(k for k in state if k not in ledger_keys):
+            entries.append((key, "RECORD", "differs", "ONLY_IN_VEPYR", ""))
+            if (
+                prev_entries is not None
+                and prev_entries.get((*key, "RECORD")) == "differs"
+            ):
+                continue
             regressions.append(
                 (key, "RECORD", "record only in the vepyr output", "ONLY_IN_VEPYR", "")
             )

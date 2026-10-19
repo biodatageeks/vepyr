@@ -635,3 +635,40 @@ def test_prev_is_the_baseline_for_entries_outside_the_ledger(tmp_path):
     assert [r[2] for r in new if r[0][1] == "400" and r[1] == "T2"] == [
         "differs now, identical in --prev"
     ]
+
+
+def test_a_persistent_output_only_record_is_not_reported_again(tmp_path):
+    panel = make_panel(tmp_path)
+    path = tmp_path / "vepyr" / "chr1.vcf"
+    path.write_text(path.read_text() + rec("1", 900, "z", "A|missense|T1||"))
+    out = tmp_path / "out"
+    for label in ("A", "B"):
+        (out / f"vepyr_{label}").mkdir(parents=True)
+        for c in ("1", "20"):
+            (out / f"vepyr_{label}" / f"chr{c}.vcf").write_text(
+                (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+            )
+        provenance(out / f"vepyr_{label}")
+    base = [
+        "--python",
+        sys.executable,
+        "--cache",
+        "/c",
+        "--panel",
+        str(panel),
+        "--out",
+        str(out),
+        "--skip-annotate",
+        "--contigs",
+        "1",
+        "20",
+    ]
+    assert cp.main([*base, "--label", "A"]) == 0
+    assert cp.main([*base, "--label", "B", "--prev", str(out / "progress_A.tsv")]) == 0
+
+    def kinds(label):
+        rows = csv.DictReader(open(out / f"regressions_{label}.tsv"), delimiter="\t")
+        return [r["kind"] for r in rows if r["pos"] == "900"]
+
+    assert kinds("A") == ["record only in the vepyr output"]
+    assert kinds("B") == []
