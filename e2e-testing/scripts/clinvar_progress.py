@@ -409,11 +409,15 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
                         counts["vep_nondeterministic"] += int(nondeterministic)
                     if diffs or nondeterministic or key in keep:
                         state[key] = (not diffs, nondeterministic and not diffs, diffs)
-    finally:
-        if tabix.poll() is None:
-            tabix.stdout.close()
-            tabix.terminate()
-        code = tabix.wait()
+    except BaseException:
+        # Only a failed comparison stops tabix early; on success it has
+        # already reached EOF and is waited on below.
+        tabix.stdout.close()
+        tabix.terminate()
+        tabix.wait()
+        raise
+    tabix.stdout.close()
+    code = tabix.wait()
     if code != 0:
         stderr.seek(0)
         raise SystemExit(
@@ -866,7 +870,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--skip-annotate",
         action="store_true",
-        help="Reuse <out>/vepyr_<label>/ outputs.",
+        help="Reuse <out>/vepyr_<label>/ outputs. With --full-contig they exist "
+        "only if that run used --keep-outputs.",
     )
     args = p.parse_args(argv)
 
@@ -886,12 +891,17 @@ def main(argv: list[str] | None = None) -> int:
     vepyr_dir = out / f"vepyr_{args.label}"
     vepyr_dir.mkdir(parents=True, exist_ok=True)
 
+    prev_rows = None
+    prev_entries = None
+    prev_records = None
     if args.prev:
-        # Validate before annotating: a bad --prev must not cost a run.
+        # Validate and read before annotating: a bad --prev must not cost a run.
         check_prev_scope(args.prev, args.contigs, mode)
-        read_prev_entries(args.prev)
+        with open(args.prev) as fh:
+            prev_rows = list(csv.DictReader(fh, delimiter="\t"))
+        prev_entries = read_prev_entries(args.prev)
         if args.full_contig:
-            read_prev_records(args.prev)
+            prev_records = read_prev_records(args.prev)
     if args.skip_annotate and args.full_contig:
         absent = [
             c for c in args.contigs if not (vepyr_dir / f"chr{c}.vcf.gz").exists()
@@ -954,16 +964,6 @@ def main(argv: list[str] | None = None) -> int:
     else:
         state = evaluate(args.panel, vepyr_dir, args.contigs)
         excluded = EXCLUDED
-    prev_rows = None
-    prev_entries = None
-    prev_records = None
-    if args.prev:
-        check_prev_scope(args.prev, args.contigs, mode)
-        with open(args.prev) as fh:
-            prev_rows = list(csv.DictReader(fh, delimiter="\t"))
-        prev_entries = read_prev_entries(args.prev)
-        if args.full_contig:
-            prev_records = read_prev_records(args.prev)
     table, entries, regressions = build_progress(
         ledger, state, prev_rows, prev_entries, excluded
     )
