@@ -652,7 +652,7 @@ def summary_markdown(
         "| Issue | Repo | Records fixed / attributed | Entries fixed / attributed | Δ records vs prev | Note |",
         "|---|---|---:|---:|---:|---|",
     ]
-    for row in table:
+    for row in [r for r in table if r["issue"] not in NOTES]:
         lines.append(
             f"| {row['issue'].replace('vepyr', '')} | {row['repo']} | "
             f"{row['records_now_identical']:,} / {row['records_attributed']:,} | "
@@ -660,6 +660,17 @@ def summary_markdown(
             f"{row['delta_vs_prev'] or '–'} | {row['status']} |"
         )
     lines += ["", "Counts overlap: a record can carry several causes."]
+    not_targets = [r for r in table if r["issue"] in NOTES]
+    if not_targets:
+        lines += [
+            "",
+            "Not targets (kept out of the table above; rows stay in the TSV):",
+        ]
+        for row in not_targets:
+            lines.append(
+                f"- {row['issue'].replace('vepyr', '')}: {row['status']}; "
+                f"{row['records_now_identical']} / {row['records_attributed']} records identical"
+            )
     if deferred:
         lines += [
             "",

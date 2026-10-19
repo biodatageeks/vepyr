@@ -369,3 +369,38 @@ def test_full_contig_mode_against_a_golden(tmp_path):
     }
     # the output was deleted after the comparison
     assert not (vdir / "chr1.vcf.gz").exists()
+
+
+def test_deferred_issues_are_listed_apart_from_the_targets():
+    table = [
+        {
+            "issue": "vepyr#211",
+            "repo": "engine",
+            "records_attributed": 3,
+            "records_now_identical": 1,
+            "entries_attributed": 3,
+            "entries_now_identical": 1,
+            "delta_vs_prev": "",
+            "status": "",
+        },
+        {
+            "issue": "vepyr#201",
+            "repo": "engine",
+            "records_attributed": 4,
+            "records_now_identical": 0,
+            "entries_attributed": 4,
+            "entries_now_identical": 0,
+            "delta_vs_prev": "",
+            "status": cp.NOTES["vepyr#201"],
+        },
+    ]
+    meta = {
+        "vepyr_version": "x",
+        "cache": "c",
+        "records": 0,
+        "annotate_seconds": 0,
+        "total_seconds": 0,
+    }
+    md = cp.summary_markdown("L", table, {}, [], [], meta)
+    assert "| #211 |" in md and "| #201 |" not in md
+    assert "- #201: known VEP bug (deferred); 0 / 4 records identical" in md
