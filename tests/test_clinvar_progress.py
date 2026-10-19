@@ -16,6 +16,15 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import clinvar_progress as cp  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _small_reference(tmp_path, monkeypatch):
+    """main() fingerprints --fasta; keep the tests off the real 3 GB FASTA."""
+    fasta = tmp_path / "ref.fa"
+    fasta.write_text(">1\nACGT\n")
+    monkeypatch.setattr(cp, "DEFAULT_FASTA", fasta)
+
+
 FORMAT = "Allele|Consequence|Feature|HGVSp|CLIN_SIG"
 HEADER = (
     "##fileformat=VCFv4.1\n"
@@ -953,3 +962,15 @@ def test_surplus_csq_values_are_a_difference():
     vepyr = rec("1", 1, "x", "A|m|T1|p.X||extra").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"T1": ["CSQ_ARITY"]}
+
+
+def test_file_digest_sees_a_change_anywhere_and_caches(tmp_path):
+    big = tmp_path / "golden.vcf.gz"
+    big.write_bytes(b"a" * 3_000_000)
+    cache = tmp_path / "cache.json"
+    first = cp._file_digest(big, cache)
+    assert cp._file_digest(big, cache) == first  # served from the cache
+    data = bytearray(big.read_bytes())
+    data[1_500_000] = ord("b")  # same size, middle byte
+    big.write_bytes(bytes(data))
+    assert cp._file_digest(big, cache) != first

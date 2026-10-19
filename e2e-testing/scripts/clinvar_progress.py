@@ -603,16 +603,33 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
     return state
 
 
-def _file_ends(path) -> dict:
-    """Size plus the first and last MiB: survives a copy or a touch, catches a
-    regenerated file (header timestamp, bgzf blocks)."""
-    size = os.stat(path).st_size
-    ends = hashlib.sha256()
-    with open(path, "rb") as fh:
-        ends.update(fh.read(1 << 20))
-        fh.seek(max(0, size - (1 << 20)))
-        ends.update(fh.read(1 << 20))
-    return {"size": size, "ends_sha256": ends.hexdigest()}
+def _file_digest(path, cache_file: Path | None = None) -> dict:
+    """Size and full sha256 of a large input (the golden is 5.9 GB).
+
+    The digest is cached by (real path, size, mtime_ns) in `cache_file`, so it
+    is computed once per file version: rewriting the file changes its mtime
+    and forces a new hash, and a copy elsewhere hashes to the same value.
+    """
+    st = os.stat(path)
+    key = f"{os.path.realpath(path)}:{st.st_size}:{st.st_mtime_ns}"
+    cache = {}
+    if cache_file is not None and cache_file.exists():
+        try:
+            cache = json.loads(cache_file.read_text())
+        except ValueError:
+            cache = {}
+    if key not in cache:
+        digest = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for block in iter(lambda: fh.read(1 << 24), b""):
+                digest.update(block)
+        cache[key] = digest.hexdigest()
+        if cache_file is not None:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp = cache_file.with_suffix(".tmp")
+            tmp.write_text(json.dumps(cache, indent=1) + "\n")
+            tmp.replace(cache_file)
+    return {"size": st.st_size, "sha256": cache[key]}
 
 
 def input_identity(
@@ -621,9 +638,9 @@ def input_identity(
     """What a run compared against, so reused outputs and --prev can be checked.
 
     Panel mode: sha256 over ledger.tsv, in/ and vep116_0/ (about 400 MB, ~1 s).
-    Full-contig mode: the ledger digest plus size and a first/last-MiB digest
-    of the ClinVar release and the golden (5.9 GB, not hashed whole). Both
-    modes add the same for the reference FASTA when it exists.
+    Full-contig mode: the ledger digest plus the full sha256 of the ClinVar
+    release and the golden. Both modes add the reference FASTA when it
+    exists. Large-file digests are cached (see `_file_digest`).
     """
     digest = hashlib.sha256()
     files = [panel / "ledger.tsv"]
@@ -637,12 +654,13 @@ def input_identity(
             for block in iter(lambda: fh.read(1 << 20), b""):
                 digest.update(block)
     identity = {"mode": mode, "panel_sha256": digest.hexdigest()}
+    cache_file = panel / "build" / "digest_cache.json"
     if fasta is not None and os.path.exists(fasta):
         # The reference changes annotation as much as the inputs do.
-        identity["fasta"] = _file_ends(fasta)
+        identity["fasta"] = _file_digest(fasta, cache_file)
     if mode == "full-contig":
         for name, path in (("clinvar", clinvar), ("golden", golden)):
-            identity[name] = _file_ends(path)
+            identity[name] = _file_digest(path, cache_file)
     return identity
 
 
