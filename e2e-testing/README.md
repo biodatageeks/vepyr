@@ -410,6 +410,43 @@ uv run python verify_parity_gate.py \
     --release 116 --profile refseq --chroms 1-22
 ```
 
+### `clinvar_progress.py` -- ClinVar records fixed per issue
+
+Measures a merge round of the ClinVar parity programme
+([#240](https://github.com/biodatageeks/vepyr/issues/240)). The panel lives in
+`$DATA_VEPYR_DIR/clinvar_panel/` (local only; its `README.md` says how every
+file was derived). It holds the 9,249 ClinVar 20261011 records on which vepyr
+0.10.0 differed from Ensembl VEP 116.0 (6,922 nuclear, 2,327 chrMT), VEP
+116.0's output for them, and `ledger.tsv`, which maps each differing CSQ entry
+to its issue(s).
+
+```bash
+uv run python clinvar_progress.py --python ../../.venv/bin/python \
+    --cache ~/workspace/data_vepyr/cache/116_GRCh38_merged --label R0-baseline
+# next round, against an overlay cache, with deltas and regressions vs R0
+uv run python clinvar_progress.py --python ../../.venv/bin/python \
+    --cache <overlay> --label R1 \
+    --prev ~/workspace/data_vepyr/clinvar_panel/progress/progress_R0-baseline.tsv
+```
+
+It annotates each panel contig with `output_vcf=` and `workers=1`, then
+compares every record strictly and every CSQ entry field by field.
+
+- **Outputs.** `progress_<label>.tsv` gives per issue the records and entries
+  attributed and now identical, plus the delta vs `--prev`.
+  `regressions_<label>.tsv` lists entries that differ now but did not before,
+  and attributed entries that now differ in fields outside their attributed
+  ones. `summary_<label>.md` is a block to paste into #240.
+- **`CLIN_SIG`.** Its `%3B` order is VEP-nondeterministic
+  ([#238](https://github.com/biodatageeks/vepyr/issues/238)). It is compared
+  sorted, and such records are listed separately.
+- **Excluded records.** 20:63674046 and 7:117544096 are left out. Annotated on
+  their own, they get a different `HGNC_ID` than in the full run.
+- **#201.** Its records are listed as a known VEP bug, deferred.
+
+The panel cannot see regressions on the 4.58 M ClinVar records that already
+match. The HG002 strict md5 gate and the periodic full ClinVar run cover those.
+
 ### `rebuild_release_cache.py` -- authoritative complete-cache rebuild
 
 This is the only full-cache rebuild command. It is a dry run by default. A real
