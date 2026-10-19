@@ -200,7 +200,11 @@ def _pair_group(left, right, fields):
         best = max(
             remaining,
             key=lambda r: (
-                sum(item[1].get(n, "") == r[1].get(n, "") for n in fields),
+                sum(
+                    _pairing_value(n, item[1].get(n, ""))
+                    == _pairing_value(n, r[1].get(n, ""))
+                    for n in fields
+                ),
                 -r[0],
             ),
         )
@@ -283,8 +287,20 @@ def entry_diffs(
 
 
 def load_ledger(path: Path) -> list[dict[str, str]]:
+    """The ledger rows. Progress is tracked per (record, feature): the ledger
+    has one row per differing feature, and a record never carries two CSQ
+    entries for one feature (one ALT per ClinVar record, one VEP entry per
+    feature and allele). A ledger that breaks this is refused rather than
+    miscounted."""
     with open(path) as fh:
-        return list(csv.DictReader(fh, delimiter="\t"))
+        rows = list(csv.DictReader(fh, delimiter="\t"))
+    seen = set()
+    for r in rows:
+        key = (r["contig"], r["pos"], r["ref"], r["alt"], r["clinvar_id"], r["feature"])
+        if key in seen and r["feature"] not in ("-", "INFO", "ORDER", "RECORD"):
+            raise SystemExit(f"{path}: two ledger rows for one entry {key}")
+        seen.add(key)
+    return rows
 
 
 def record_key(row: dict[str, str]) -> RecordKey:

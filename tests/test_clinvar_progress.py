@@ -878,3 +878,23 @@ def test_prev_from_another_panel_is_refused(tmp_path):
     run.write_text(json.dumps(data))
     with pytest.raises(SystemExit, match="another panel or golden"):
         cp.main([*base, "--label", "A", "--prev", str(out / "progress_A.tsv")])
+
+
+def test_similarity_pairing_reads_clin_sig_canonically():
+    """Two changed duplicates: the true partner differs only in CLIN_SIG's
+    random order plus HGVSp, so it must outscore the other one."""
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|m|T1|p.X|b%3Ba,A|m|T1|p.Q|c").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|m|T1|p.R|c,A|m|T1|p.Y|a%3Bb").rstrip("\n")
+    diffs, nondet = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["HGVSp"], "ORDER": ["CSQ_ORDER"]} and nondet
+
+
+def test_a_ledger_with_two_rows_for_one_entry_is_refused(tmp_path):
+    panel = make_panel(tmp_path)
+    with open(panel / "ledger.tsv", "a") as fh:
+        fh.write(
+            "\t".join(ledger_row("1", "100", "a", "T1", "vepyr#212", "HGVSp")) + "\n"
+        )
+    with pytest.raises(SystemExit, match="two ledger rows for one entry"):
+        cp.load_ledger(panel / "ledger.tsv")
