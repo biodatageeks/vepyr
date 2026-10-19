@@ -59,12 +59,14 @@ import argparse
 import collections
 import concurrent.futures
 import csv
+import gzip
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 DATA = Path(os.environ.get("DATA_VEPYR_DIR", Path.home() / "workspace" / "data_vepyr"))
@@ -115,7 +117,10 @@ def read_vcf(path: Path) -> tuple[list[str], dict[tuple[str, str, str, str], str
                 header.append(line)
                 continue
             cols = line.split("\t", 5)
-            body.setdefault((cols[1], cols[2], cols[3], cols[4]), line.rstrip("\n"))
+            key = (cols[1], cols[2], cols[3], cols[4])
+            if key in body:
+                raise SystemExit(f"{path}: duplicate record {key}")
+            body[key] = line.rstrip("\n")
     return header, body
 
 
@@ -153,6 +158,8 @@ def split_record(line: str, fmt: list[str]):
     for raw in csq:
         values = raw.split("|")
         base = (values[ai], values[fi])
+        # A repeated (Allele, Feature) becomes "Feature#2": the ledger names
+        # only the first, so a duplicate that differs surfaces as a new entry.
         key, n = base, 1
         while key in entries:
             n += 1
@@ -291,6 +298,8 @@ def annotate_full_contig(
         ],
         check=True,
     )
+    # annotate(workers > 1) needs a tabix-indexed input.
+    subprocess.run(["tabix", "-f", "-p", "vcf", str(sliced)], check=True)
     try:
         subprocess.run(
             [
@@ -307,6 +316,7 @@ def annotate_full_contig(
         )
     finally:
         sliced.unlink(missing_ok=True)
+        Path(str(sliced) + ".tbi").unlink(missing_ok=True)
     return time.perf_counter() - start
 
 
@@ -326,7 +336,10 @@ def _position_groups(lines):
             yield current, group
             group = {}
         current = pos
-        group.setdefault((cols[1], cols[2], cols[3], cols[4]), line)
+        key = (cols[1], cols[2], cols[3], cols[4])
+        if key in group:
+            raise SystemExit(f"duplicate record {key}")
+        group[key] = line
     if current is not None:
         yield current, group
 
@@ -337,8 +350,6 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
     Returns (state for differing records and for every key in `keep`,
     counts). State has the same shape as `evaluate`.
     """
-    import gzip
-
     header = subprocess.run(
         ["bcftools", "view", "-h", golden], capture_output=True, text=True, check=True
     ).stdout.splitlines()
@@ -350,55 +361,65 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
                 break
             vy_header.append(line)
     vy_fmt = csq_format(vy_header)
+    stderr = tempfile.TemporaryFile(mode="w+")
     tabix = subprocess.Popen(
-        ["tabix", golden, contig],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
+        ["tabix", golden, contig], stdout=subprocess.PIPE, stderr=stderr, text=True
     )
     state: dict[RecordKey, tuple[bool, bool, dict[str, list[str]]]] = {}
     counts = collections.Counter()
-    with gzip.open(vepyr_vcf, "rt") as vy_fh:
-        gold_groups = _position_groups(tabix.stdout)
-        vy_groups = _position_groups(vy_fh)
-        g = next(gold_groups, None)
-        v = next(vy_groups, None)
-        while g is not None or v is not None:
-            if v is None or (g is not None and g[0] < v[0]):
-                gold, vy = g[1], {}
-                g = next(gold_groups, None)
-            elif g is None or v[0] < g[0]:
-                gold, vy = {}, v[1]
-                v = next(vy_groups, None)
-            else:
-                gold, vy = g[1], v[1]
-                g, v = next(gold_groups, None), next(vy_groups, None)
-            for k in list(gold) + [k for k in vy if k not in gold]:
-                key = (contig, k[0], k[2], k[3], k[1])
-                counts["records"] += 1
-                if k not in vy:
-                    counts["only_in_golden"] += 1
-                    state[key] = (False, False, {"RECORD": ["ONLY_IN_VEP"]})
-                    continue
-                if k not in gold:
-                    counts["only_in_vepyr"] += 1
-                    state[key] = (False, False, {"RECORD": ["ONLY_IN_VEPYR"]})
-                    continue
-                if gold[k] == vy[k] and gold_fmt == vy_fmt:
-                    counts["identical"] += 1
-                    if key in keep:
-                        state[key] = (True, False, {})
-                    continue
-                diffs, nondeterministic = entry_diffs(gold[k], vy[k], gold_fmt, vy_fmt)
-                if diffs:
-                    counts["differ"] += 1
+    try:
+        with gzip.open(vepyr_vcf, "rt") as vy_fh:
+            gold_groups = _position_groups(tabix.stdout)
+            vy_groups = _position_groups(vy_fh)
+            g = next(gold_groups, None)
+            v = next(vy_groups, None)
+            while g is not None or v is not None:
+                if v is None or (g is not None and g[0] < v[0]):
+                    gold, vy = g[1], {}
+                    g = next(gold_groups, None)
+                elif g is None or v[0] < g[0]:
+                    gold, vy = {}, v[1]
+                    v = next(vy_groups, None)
                 else:
-                    counts["identical"] += 1
-                    counts["vep_nondeterministic"] += int(nondeterministic)
-                if diffs or nondeterministic or key in keep:
-                    state[key] = (not diffs, nondeterministic and not diffs, diffs)
-    if tabix.wait() != 0:
-        raise SystemExit(f"tabix {golden} {contig} failed")
+                    gold, vy = g[1], v[1]
+                    g, v = next(gold_groups, None), next(vy_groups, None)
+                for k in list(gold) + [k for k in vy if k not in gold]:
+                    key = (contig, k[0], k[2], k[3], k[1])
+                    counts["records"] += 1
+                    if k not in vy:
+                        counts["only_in_golden"] += 1
+                        state[key] = (False, False, {"RECORD": ["ONLY_IN_VEP"]})
+                        continue
+                    if k not in gold:
+                        counts["only_in_vepyr"] += 1
+                        state[key] = (False, False, {"RECORD": ["ONLY_IN_VEPYR"]})
+                        continue
+                    if gold[k] == vy[k] and gold_fmt == vy_fmt:
+                        counts["identical"] += 1
+                        if key in keep:
+                            state[key] = (True, False, {})
+                        continue
+                    diffs, nondeterministic = entry_diffs(
+                        gold[k], vy[k], gold_fmt, vy_fmt
+                    )
+                    if diffs:
+                        counts["differ"] += 1
+                    else:
+                        counts["identical"] += 1
+                        counts["vep_nondeterministic"] += int(nondeterministic)
+                    if diffs or nondeterministic or key in keep:
+                        state[key] = (not diffs, nondeterministic and not diffs, diffs)
+    finally:
+        if tabix.poll() is None:
+            tabix.stdout.close()
+            tabix.terminate()
+        code = tabix.wait()
+    if code != 0:
+        stderr.seek(0)
+        raise SystemExit(
+            f"tabix {golden} {contig} failed ({code}): {stderr.read().strip()}"
+        )
+    stderr.close()
     return state, counts
 
 
@@ -428,6 +449,11 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
         for pos, cid, ref, alt in records:
             key = (contig, pos, ref, alt, cid)
             k = (pos, cid, ref, alt)
+            if k not in vep:
+                raise SystemExit(
+                    f"{panel / 'vep116_0' / f'chr{contig}.vcf'} has no line for "
+                    f"chr{contig}:{pos} {cid}; rebuild the panel"
+                )
             if k not in vy:
                 state[key] = (False, False, {"RECORD": ["ONLY_IN_VEP"]})
                 continue
@@ -553,6 +579,16 @@ def build_progress(
                     )
         if is_excluded:
             continue
+        if "RECORD" in diffs:
+            regressions.append(
+                (
+                    key,
+                    "RECORD",
+                    "record missing from one side",
+                    ",".join(diffs["RECORD"]),
+                    "",
+                )
+            )
         # entries that differ now but were not differing in the triage baseline.
         # A "-" row is a record-level placeholder, not a claim that every
         # feature differed, so it covers no feature here.
@@ -625,7 +661,8 @@ def summary_markdown(
         f"### ClinVar progress {'(full contigs vs the VEP 116.0 golden)' if full else 'panel'}: `{label}`",
         "",
         f"vepyr `{meta['vepyr_version']}`, cache `{meta['cache']}`, "
-        f"{meta['records']:,} panel records ({len(judged):,} judged, {len(keys) - len(judged)} excluded). "
+        f"{meta['records']:,} {'ledger records of these contigs' if full else 'panel records'} "
+        f"({len(judged):,} judged, {len(keys) - len(judged)} excluded). "
         f"Annotation {meta['annotate_seconds']:.0f} s, total {meta['total_seconds']:.0f} s.",
         "",
         f"**{len(identical):,} / {len(judged):,} records now identical to VEP 116.0**"
@@ -849,6 +886,21 @@ def main(argv: list[str] | None = None) -> int:
     vepyr_dir = out / f"vepyr_{args.label}"
     vepyr_dir.mkdir(parents=True, exist_ok=True)
 
+    if args.prev:
+        # Validate before annotating: a bad --prev must not cost a run.
+        check_prev_scope(args.prev, args.contigs, mode)
+        read_prev_entries(args.prev)
+        if args.full_contig:
+            read_prev_records(args.prev)
+    if args.skip_annotate and args.full_contig:
+        absent = [
+            c for c in args.contigs if not (vepyr_dir / f"chr{c}.vcf.gz").exists()
+        ]
+        if absent:
+            raise SystemExit(
+                f"--skip-annotate: no vepyr output for contigs {absent} in {vepyr_dir} "
+                "(full-contig outputs are kept only with --keep-outputs)"
+            )
     if not args.skip_annotate:
         timings, annotate_seconds = _annotate_all(args, vepyr_dir)
         provenance = {
@@ -898,8 +950,6 @@ def main(argv: list[str] | None = None) -> int:
             contig_state, counts = evaluate_full(c, str(args.golden), vy, keep)
             state.update(contig_state)
             full_counts[c] = dict(counts)
-            if not args.keep_outputs:
-                vy.unlink()
         excluded: set = set()
     else:
         state = evaluate(args.panel, vepyr_dir, args.contigs)
@@ -1036,6 +1086,10 @@ def main(argv: list[str] | None = None) -> int:
         summary_markdown(args.label, table, state, ledger, regressions, meta, excluded)
     )
     (out / f"run_{args.label}.json").write_text(json.dumps(meta, indent=1) + "\n")
+    if args.full_contig and not args.skip_annotate and not args.keep_outputs:
+        # Only after every report is written, and only files this run made.
+        for c in args.contigs:
+            (vepyr_dir / f"chr{c}.vcf.gz").unlink(missing_ok=True)
     print((out / f"summary_{args.label}.md").read_text())
     return 0
 

@@ -367,8 +367,8 @@ def test_full_contig_mode_against_a_golden(tmp_path):
         "400",
         "500",
     }
-    # the output was deleted after the comparison
-    assert not (vdir / "chr1.vcf.gz").exists()
+    # reused outputs are never deleted; only a run's own outputs are
+    assert (vdir / "chr1.vcf.gz").exists()
 
 
 def test_deferred_issues_are_listed_apart_from_the_targets():
@@ -404,3 +404,48 @@ def test_deferred_issues_are_listed_apart_from_the_targets():
     md = cp.summary_markdown("L", table, {}, [], [], meta)
     assert "| #211 |" in md and "| #201 |" not in md
     assert "- #201: known VEP bug (deferred); 0 / 4 records identical" in md
+
+
+def test_a_record_missing_from_vepyr_is_a_regression(tmp_path):
+    panel = make_panel(tmp_path)
+    path = tmp_path / "vepyr" / "chr1.vcf"
+    path.write_text(
+        "".join(ln for ln in path.read_text().splitlines(True) if "\t200\t" not in ln)
+    )
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    _, _, regressions = cp.build_progress(cp.load_ledger(panel / "ledger.tsv"), state)
+    assert any(k[1] == "200" and f == "RECORD" for k, f, *_ in regressions)
+
+
+def test_a_panel_without_a_vep_line_fails_readably(tmp_path):
+    panel = make_panel(tmp_path)
+    vep = panel / "vep116_0" / "chr1.vcf"
+    vep.write_text(
+        "".join(ln for ln in vep.read_text().splitlines(True) if "\t100\t" not in ln)
+    )
+    with pytest.raises(SystemExit, match="has no line for chr1:100"):
+        cp.evaluate(panel, tmp_path / "vepyr", ["1"])
+
+
+def test_a_bad_prev_is_rejected_before_annotation(tmp_path, monkeypatch):
+    panel = make_panel(tmp_path)
+    called = []
+    monkeypatch.setattr(cp, "_annotate_all", lambda *a: called.append(1))
+    with pytest.raises(SystemExit, match="is missing"):
+        cp.main(
+            [
+                "--python",
+                sys.executable,
+                "--cache",
+                "/c",
+                "--panel",
+                str(panel),
+                "--out",
+                str(tmp_path / "o"),
+                "--label",
+                "R1",
+                "--prev",
+                str(tmp_path / "progress_R0.tsv"),
+            ]
+        )
+    assert called == []

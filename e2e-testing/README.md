@@ -444,8 +444,24 @@ compares every record strictly and every CSQ entry field by field.
   their own, they get a different `HGNC_ID` than in the full run.
 - **#201.** Its records are listed as a known VEP bug, deferred.
 
-The panel cannot see regressions on the 4.58 M ClinVar records that already
-match. The HG002 strict md5 gate and the periodic full ClinVar run cover those.
+`--full-contig --contigs 22 [--workers 4]` checks against the full Ensembl VEP
+116.0 ClinVar golden
+(`output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz`)
+instead of the panel:
+
+- It annotates every ClinVar record of the named contigs (ALT="." dropped, as
+  the golden's input was) and compares each one with the golden. Nothing is
+  excluded.
+- The regression list also reports every record that differs now but was
+  identical in `--prev`. Use a full-contig run of the vepyr master build as
+  that baseline.
+- The input slice and the vepyr output are deleted once the reports are
+  written, unless you pass `--keep-outputs`.
+- The panel mode always annotates with `workers=1`; `--workers` applies to
+  this mode only.
+
+The panel alone cannot see regressions on the 4.58 M ClinVar records that
+already match. The HG002 strict md5 gate and the periodic full ClinVar run cover those.
 
 ### `rebuild_release_cache.py` -- authoritative complete-cache rebuild
 
