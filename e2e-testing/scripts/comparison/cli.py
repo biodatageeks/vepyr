@@ -320,6 +320,16 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
             "  CSQ entry order ignored: VEP's order for this profile is not "
             "reproducible between runs (vepyr#138)"
         )
+    for mode in modes:
+        nondeterministic = sum(
+            (payload.get(mode) or {}).get("clin_sig_order_only") or 0
+            for _, payload in rows
+        )
+        if nondeterministic:
+            print(
+                f"  {mode}: {nondeterministic:,} record(s) VEP-nondeterministic, "
+                "concord only after sorting CLIN_SIG (vepyr#238)"
+            )
     if missing:
         print(f"  no md5 evidence for: {', '.join(missing)}")
     if incomplete:
@@ -365,6 +375,11 @@ def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested, ignore_csq_order=Fals
             "vepyr_records": outcome.vepyr.records,
             "notes": list(outcome.notes),
             "csq_order_ignored": ignore_csq_order,
+            # vepyr#238: records that concord only after sorting CLIN_SIG's
+            # %3B groups. Zero in plain strict mode, which never sorts.
+            "clin_sig_order_only": (
+                outcome.clin_sig_order_only if outcome.body_match else 0
+            ),
         }
         verdict = "MATCH" if outcome.body_match else "DIFFER"
         counts = (
@@ -374,6 +389,12 @@ def md5_for_contig(chrom, vep_slice, vepyr_vcf, requested, ignore_csq_order=Fals
         )
         label = f"{mode}, CSQ order ignored" if ignore_csq_order else mode
         print(f"  md5 {label}: body {verdict} ({counts} records)")
+        if out[mode]["clin_sig_order_only"]:
+            print(
+                f"    - {out[mode]['clin_sig_order_only']:,} record(s) "
+                "VEP-nondeterministic: concord only after sorting CLIN_SIG "
+                "(vepyr#238)"
+            )
         if not outcome.body_match:
             for note in outcome.notes:
                 print(f"    - {note}")
