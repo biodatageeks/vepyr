@@ -604,3 +604,18 @@ def test_a_regressed_entry_is_reported_once_with_prev(tmp_path):
     prev_entries = {("1", "400", "G", "A", "d", "T2"): "identical"}
     _, _, regressions = cp.build_progress(ledger, state, [], prev_entries)
     assert [(k[1], f) for k, f, *_ in regressions].count(("400", "T2")) == 1
+
+
+def test_a_missing_record_is_one_regression_even_with_prev(tmp_path):
+    panel = make_panel(tmp_path)
+    path = tmp_path / "vepyr" / "chr1.vcf"
+    path.write_text(
+        "".join(ln for ln in path.read_text().splitlines(True) if "\t200\t" not in ln)
+    )
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    prev = {("1", "200", "G", "A", "b", f): "identical" for f in ("T1", "T2")}
+    _, _, regressions = cp.build_progress(ledger, state, [], prev)
+    assert [(k[1], f) for k, f, *_ in regressions if k[1] == "200"] == [
+        ("200", "RECORD")
+    ]

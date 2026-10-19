@@ -643,9 +643,12 @@ def build_progress(
         # One row per regressed entry: an entry already reported against the
         # triage baseline is not reported again against --prev.
         reported = {(r[0], r[1]) for r in regressions}
+        # A record missing from one side already has its record-level row.
+        one_sided = {k for k, (_, _, d) in state.items() if "RECORD" in d}
         for key, feature, state_now, fields, issues_ in entries_out:
             if (
                 state_now == "differs"
+                and key not in one_sided
                 and prev_entries.get((*key, feature)) == "identical"
                 and (key, feature) not in reported
             ):
