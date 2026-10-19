@@ -257,6 +257,16 @@ the records ([#138](https://github.com/biodatageeks/vepyr/issues/138)).
 Entries are sorted, not deduplicated, so a missing, extra or changed entry
 still fails. Every other profile keeps the exact byte comparison.
 
+`CLIN_SIG` has the same defect inside a CSQ entry: VEP joins a co-located
+variant's allele-specific clinical significances from a Perl hash's keys, so a
+value with two or more `%3B`-separated groups changes order between runs and
+between the entries of one record
+([#238](https://github.com/biodatageeks/vepyr/issues/238)). The canonical
+digest, `--ignore-csq-order` and the field comparison sort those groups on both
+sides; plain strict never does. Records that concord only because of the sort
+are counted separately and printed as **VEP-nondeterministic**, not as plain
+matches.
+
 **Defaults:** `--profile merged`, always regenerate annotation output, reuse
 only source-identified normalized/input/reference slices (`--force` to recreate
 slices), plain output (`--bgzf` for block-gzipped), `--workers 1`,
@@ -353,6 +363,11 @@ Two modes over the same digest pipeline:
   how they were written out.
 - `strict` hashes the record bytes as-is. This is the parity target: it passes
   only once vepyr reproduces VEP's serialization exactly.
+
+The canonical mode, and `--ignore-csq-order` in either mode, also sort the
+`%3B` groups of `CLIN_SIG` inside every CSQ entry, whose VEP order is random
+([#238](https://github.com/biodatageeks/vepyr/issues/238)). A pass that needed
+the sort reports how many records were VEP-nondeterministic.
 
 ```bash
 # One pair, with a breakdown of what differs

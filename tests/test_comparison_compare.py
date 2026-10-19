@@ -396,3 +396,92 @@ def test_multiset_equivalence_still_rejects_real_differences():
     # Non-numeric tokens still compare by identity only.
     assert not compare._values_equivalent("foo&bar", "foo&baz")
     assert compare._values_equivalent("bar&foo", "foo&bar") is True
+
+
+CLIN_SIG_HEADER = (
+    "##fileformat=VCFv4.2\n"
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations. '
+    'Format: Allele|Consequence|Feature|CLIN_SIG|SOMATIC">\n'
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+)
+
+
+def _clin_sig_vcf(*values, other="1"):
+    return CLIN_SIG_HEADER + "".join(
+        f"chr22\t{100 * (n + 1)}\t.\tG\tA\t.\t.\tCSQ=A|missense|ENST01|{value}|{other}\n"
+        for n, value in enumerate(values)
+    )
+
+
+def test_clin_sig_group_order_is_vep_nondeterministic_not_a_mismatch(tmp_path):
+    """vepyr#238: VEP joins multi-valued CLIN_SIG in Perl hash order. The %3B
+    groups compare sorted, and the absorbed values get their own counter, kept
+    apart from the plain matches and from the order/format counts the parity
+    gate rejects."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        _clin_sig_vcf("risk_factor%3Brisk_factor&benign", "benign"),
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        _clin_sig_vcf("risk_factor&benign%3Brisk_factor", "benign"),
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "clin_sig")
+
+    assert result["field_mismatch_counts"] == {}
+    assert result["field_order_mismatch_counts"] == {}
+    assert result["field_format_mismatch_counts"] == {}
+    assert result["field_vep_nondeterministic_counts"] == {"CLIN_SIG": 1}
+    assert result["clin_sig_order_records"] == 1
+    assert result["vep_nondeterministic_reason"] == (
+        compare.VEP_NONDETERMINISTIC_CLIN_SIG_REASON
+    )
+    example = result["field_vep_nondeterministic_examples"]["CLIN_SIG"][0]
+    assert example["vep"] == "risk_factor&benign%3Brisk_factor"
+
+
+def test_clin_sig_sort_does_not_absorb_real_differences(tmp_path):
+    """The '&' order inside a group, a missing group and a %3B in any other
+    field are still differences."""
+    a = _write(
+        tmp_path,
+        "vepyr.vcf",
+        _clin_sig_vcf(
+            "risk_factor%3Bbenign&risk_factor",
+            "risk_factor&benign",
+            "x",
+        ).replace("|x|1\n", "|x|a%3Bb\n"),
+        False,
+    )
+    b = _write(
+        tmp_path,
+        "vep.vcf",
+        _clin_sig_vcf(
+            "risk_factor&benign%3Brisk_factor",
+            "risk_factor&benign%3Brisk_factor",
+            "x",
+        ).replace("|x|1\n", "|x|b%3Ba\n"),
+        False,
+    )
+    result = compare.compare_vcfs(a, b, "clin_sig_real")
+
+    assert result.get("field_vep_nondeterministic_counts", {}) == {}
+    assert result["clin_sig_order_records"] == 0
+    assert result["field_mismatch_counts"] == {"CLIN_SIG": 2, "SOMATIC": 1}
+
+
+def test_clin_sig_nondeterminism_is_printed(tmp_path, capsys):
+    a = _write(
+        tmp_path, "vepyr.vcf", _clin_sig_vcf("risk_factor%3Brisk_factor&benign"), False
+    )
+    b = _write(
+        tmp_path, "vep.vcf", _clin_sig_vcf("risk_factor&benign%3Brisk_factor"), False
+    )
+    compare.compare_vcfs(a, b, "printed")
+    out = capsys.readouterr().out
+    assert "CLIN_SIG order only:      1" in out
+    assert "VEP-nondeterministic" in out

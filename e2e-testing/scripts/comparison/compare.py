@@ -11,6 +11,13 @@ representation-only differences such as decimal padding or VEP's "." missing
 marker (``field_format_mismatch_counts``). Both keep the parity gate honest --
 it fails on either total being non-zero -- while keeping a plugin comparison
 readable instead of drowned in formatting noise.
+
+A third kind is not a vepyr difference at all: Ensembl VEP writes a multi-valued
+``CLIN_SIG`` (``%3B``-joined) in Perl hash-key order, which changes from run to
+run (vepyr#238). Those values are compared with their ``%3B`` groups sorted on
+both sides, and counted in ``field_vep_nondeterministic_counts`` -- not as
+plain matches, and not as order or format differences the gate rejects, since
+no vepyr output could ever reproduce a random order.
 """
 
 import hashlib
@@ -31,6 +38,20 @@ VEP_HASH_ORDER_PICK_IGNORE_REASON = (
     "transcript-priority, genomic, MANE, or canonical ranking. The meaningful "
     "checks are the selected CSQ entries, entry counts, and field values."
 )
+
+VEP_NONDETERMINISTIC_CLIN_SIG_REASON = (
+    "Ensembl VEP 116.0 joins a co-located variant's allele-specific clinical "
+    "significances as `join(';', keys(%clin_sigs))` (OutputFactory.pm, "
+    "add_colocated_variant_info) without sorting, so a CLIN_SIG holding two or "
+    "more %3B-separated values changes order between runs and even between CSQ "
+    "entries of one record (vepyr#238). The %3B groups are compared as a sorted "
+    "list; the '&' order inside each group is still compared as written."
+)
+
+# vepyr#238: the CSQ sub-field VEP fills from a Perl hash's keys, and the
+# separator it joins them with (`;`, percent-encoded inside CSQ).
+CLIN_SIG_FIELD = "CLIN_SIG"
+CLIN_SIG_SEPARATOR = "%3B"
 
 _CSQ_RE = re.compile(r"(?:^|;)CSQ=([^;\t]+)")
 # A token we will treat as a number rather than as an opaque string. Narrower
@@ -258,6 +279,22 @@ def _tokens_equivalent(vepyr_token, vep_token):
         return False
 
 
+def _clin_sig_order_equivalent(field, vepyr_value, vep_value):
+    """True when two unequal CLIN_SIG values differ only in VEP's hash order.
+
+    Only the ``%3B`` groups are sorted; the ``&`` order inside a group comes
+    from the cache and stays significant. Any other field, or a value without
+    a ``%3B`` on either side, is never absorbed here.
+    """
+    if field != CLIN_SIG_FIELD:
+        return False
+    if CLIN_SIG_SEPARATOR not in vepyr_value and CLIN_SIG_SEPARATOR not in vep_value:
+        return False
+    return sorted(vepyr_value.split(CLIN_SIG_SEPARATOR)) == sorted(
+        vep_value.split(CLIN_SIG_SEPARATOR)
+    )
+
+
 def _values_equivalent(vepyr_value, vep_value):
     """True when two byte-unequal CSQ values carry the same data.
 
@@ -377,6 +414,9 @@ def _compare_vcfs(
     field_order_mismatch_examples = {field: [] for field in shared_fields}
     field_format_mismatches = {field: 0 for field in shared_fields}
     field_format_mismatch_examples = {field: [] for field in shared_fields}
+    field_vep_nondeterministic = {field: 0 for field in shared_fields}
+    field_vep_nondeterministic_examples = {field: [] for field in shared_fields}
+    n_clin_sig_order_records = 0
     field_equality_counts = {
         field: {bucket: 0 for bucket in _EQUALITY_BUCKETS} for field in shared_fields
     }
@@ -467,6 +507,7 @@ def _compare_vcfs(
                 }
             )
 
+        record_clin_sig_order = False
         for identity, ordinal, vepyr_values, vep_values in pairs:
             identity_fields = _identity_json(identity, ordinal)
             for field in shared_fields:
@@ -478,6 +519,21 @@ def _compare_vcfs(
 
                 if vepyr_value == vep_value:
                     field_matches[field] += 1
+                    continue
+
+                if _clin_sig_order_equivalent(field, vepyr_value, vep_value):
+                    field_matches[field] += 1
+                    field_vep_nondeterministic[field] += 1
+                    record_clin_sig_order = True
+                    if len(field_vep_nondeterministic_examples[field]) < 10:
+                        field_vep_nondeterministic_examples[field].append(
+                            {
+                                "variant": key_str,
+                                "vepyr": vepyr_value,
+                                "vep": vep_value,
+                                **identity_fields,
+                            }
+                        )
                     continue
 
                 if "&" in vepyr_value or "&" in vep_value:
@@ -532,6 +588,8 @@ def _compare_vcfs(
                         }
                     )
 
+        if record_clin_sig_order:
+            n_clin_sig_order_records += 1
         i += 1
         j += 1
 
@@ -551,6 +609,11 @@ def _compare_vcfs(
         print(
             f"    CSQ order ignored:        {n_csq_order_ignored:,}  "
             "(VEP hash-order only)"
+        )
+    if n_clin_sig_order_records:
+        print(
+            f"    CLIN_SIG order only:      {n_clin_sig_order_records:,}  "
+            "(VEP-nondeterministic %3B order, vepyr#238)"
         )
     if ledger_info["path"] is not None:
         print(
@@ -579,6 +642,8 @@ def _compare_vcfs(
             flag = " (order)"
         elif format_only > 0:
             flag = " (format)"
+        elif field_vep_nondeterministic[field] > 0:
+            flag = " (VEP-nondeterministic)"
         else:
             flag = ""
         print(
@@ -618,6 +683,13 @@ def _compare_vcfs(
         print("  This is not byte parity; the parity gate rejects both counts.")
     else:
         print(f"\n  ALL {len(shared_fields)} shared CSQ fields match at 100%!")
+    for field in shared_fields:
+        if field_vep_nondeterministic[field]:
+            print(
+                f"  {field}: {field_vep_nondeterministic[field]:,} value(s) differ "
+                "only in VEP's random %3B order; VEP-nondeterministic, not a "
+                "plain match (vepyr#238)"
+            )
 
     return {
         "variants_compared": n_compared,
@@ -671,6 +743,20 @@ def _compare_vcfs(
             for field in shared_fields
             if field_format_mismatch_examples[field]
         },
+        "field_vep_nondeterministic_counts": {
+            field: field_vep_nondeterministic[field]
+            for field in shared_fields
+            if field_vep_nondeterministic[field] > 0
+        },
+        "field_vep_nondeterministic_examples": {
+            field: field_vep_nondeterministic_examples[field]
+            for field in shared_fields
+            if field_vep_nondeterministic_examples[field]
+        },
+        "clin_sig_order_records": n_clin_sig_order_records,
+        "vep_nondeterministic_reason": (
+            VEP_NONDETERMINISTIC_CLIN_SIG_REASON if n_clin_sig_order_records else None
+        ),
         "field_equality_counts": field_equality_counts,
         "equality_bucket_counts": {
             bucket: sum(counts[bucket] for counts in field_equality_counts.values())

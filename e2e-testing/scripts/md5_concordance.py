@@ -20,6 +20,15 @@ Ensembl VEP emits the selected entries by iterating Perl hashes, so their order
 changes between two VEP runs on the same input (vepyr#138). Entries are sorted,
 not deduplicated, so a missing or extra entry still differs.
 
+CLIN_SIG order (vepyr#238). Ensembl VEP joins a co-located variant's
+allele-specific clinical significances with ``;`` (``%3B`` inside CSQ) by
+iterating a Perl hash, so a CLIN_SIG holding two or more values comes out in a
+different order between runs, and even between CSQ entries of one record. The
+canonical mode and ``--ignore-csq-order`` sort those ``%3B`` groups inside every
+CSQ entry on both sides. Plain strict mode never does: it is the byte-parity
+claim. Records that concord only because of this sort are counted separately
+and reported as VEP-nondeterministic rather than as plain matches.
+
 Headers are hashed separately from the body in both modes, because VEP appends
 run-specific provenance (``##VEP=`` carries a timestamp) that never matches and
 is not meant to.
@@ -68,6 +77,12 @@ VOLATILE_HEADER_PREFIXES = (
 )
 
 MISSING = (".", "")
+
+# vepyr#238: the CSQ sub-field VEP fills from a Perl hash's keys, and the
+# separator it joins them with (``;``, percent-encoded inside CSQ).
+CLIN_SIG_FIELD = "CLIN_SIG"
+CLIN_SIG_SEPARATOR = "%3B"
+_CSQ_FORMAT_RE = re.compile(r"Format: ([^\"]+)")
 
 # Default per-chromosome layout under e2e-testing/results/<release>/:
 #   fast_chr21/vep_chr21_merged.vcf
@@ -122,13 +137,76 @@ def sort_csq_entries(line: str) -> str:
     return "\t".join(cols) + ending
 
 
-def canonical_record(line: str) -> str:
+def csq_field_index(header_line: str, name: str = CLIN_SIG_FIELD) -> int | None:
+    """Return the position of `name` in a ``##INFO=<ID=CSQ`` header's Format.
+
+    None when the line is not the CSQ declaration or does not carry `name`.
+    """
+    if not header_line.startswith("##INFO=<ID=CSQ,"):
+        return None
+    match = _CSQ_FORMAT_RE.search(header_line)
+    if not match:
+        return None
+    fields = match.group(1).split("|")
+    return fields.index(name) if name in fields else None
+
+
+def sort_clin_sig(line: str, clin_sig_index: int | None) -> str:
+    """Sort the ``%3B``-separated CLIN_SIG groups inside every CSQ entry.
+
+    VEP 116.0 builds this list from ``keys(%clin_sigs)`` and joins it unsorted
+    (``OutputFactory.pm`` ``add_colocated_variant_info``), so its order is
+    random per process and per CSQ entry (vepyr#238). Only the order of the
+    groups changes: the ``&`` order inside a group, every other sub-field and
+    everything outside CSQ are left byte for byte. A line without a CSQ value,
+    or a VCF whose CSQ declares no CLIN_SIG (`clin_sig_index` None), is
+    returned unchanged.
+    """
+    if clin_sig_index is None or CLIN_SIG_SEPARATOR not in line:
+        return line
+    body = line.rstrip("\n")
+    ending = line[len(body) :]
+    cols = body.split("\t")
+    if len(cols) < 8:
+        return line
+    info = cols[7].split(";")
+    for i, kv in enumerate(info):
+        if not kv.startswith("CSQ="):
+            continue
+        entries = kv[4:].split(",")
+        changed = False
+        for n, entry in enumerate(entries):
+            subfields = entry.split("|")
+            if len(subfields) <= clin_sig_index:
+                continue
+            value = subfields[clin_sig_index]
+            if CLIN_SIG_SEPARATOR not in value:
+                continue
+            ordered = CLIN_SIG_SEPARATOR.join(sorted(value.split(CLIN_SIG_SEPARATOR)))
+            if ordered != value:
+                subfields[clin_sig_index] = ordered
+                entries[n] = "|".join(subfields)
+                changed = True
+        if not changed:
+            return line
+        info[i] = "CSQ=" + ",".join(entries)
+        break
+    else:
+        return line
+    cols[7] = ";".join(info)
+    return "\t".join(cols) + ending
+
+
+def canonical_record(line: str, clin_sig_index: int | None = None) -> str:
     """Canonicalize one VCF data line.
 
     Sorts INFO and FORMAT keys, normalizes QUAL, and drops FORMAT keys whose
     value is missing in every sample. Leaves every value untouched — this
-    reorders and reformats, it never rewrites content.
+    reorders and reformats, it never rewrites content. With `clin_sig_index`
+    (the CLIN_SIG position in the CSQ Format), also sorts the ``%3B`` groups of
+    that sub-field, whose VEP order is random (vepyr#238).
     """
+    line = sort_clin_sig(line, clin_sig_index)
     cols = line.split("\t")
     if len(cols) < 8:
         return line
@@ -165,36 +243,66 @@ class Digest:
     body: str
     records: int
     header_lines: int
+    # vepyr#238: record ordinal -> md5 of that record as it would have been
+    # hashed WITHOUT the CLIN_SIG sort, for each record the sort changed. Lets
+    # `compare` count the records that concord only because of the sort
+    # without a second pass over either file.
+    clin_sig_reordered: dict[int, str] = field(default_factory=dict)
+
+
+def normalizes_clin_sig(mode: str, ignore_csq_order: bool) -> bool:
+    """Whether `mode` sorts CLIN_SIG groups. Plain strict never does."""
+    return mode == "canonical" or ignore_csq_order
+
+
+def _body_line(line: str, mode: str, ignore_csq_order: bool) -> str:
+    if ignore_csq_order:
+        line = sort_csq_entries(line)
+    if mode == "strict":
+        return line
+    return canonical_record(line.rstrip("\n")) + "\n"
 
 
 def digest_vcf(path: str, mode: str, ignore_csq_order: bool = False) -> Digest:
     """Hash a VCF's header and body separately under `mode`.
 
     With `ignore_csq_order`, CSQ entries are sorted within each record before
-    hashing, in either mode.
+    hashing, in either mode. The canonical mode and `ignore_csq_order` also
+    sort the CLIN_SIG groups inside each CSQ entry (vepyr#238); plain strict
+    hashes the record bytes untouched.
     """
     header = hashlib.md5()
     body = hashlib.md5()
     records = 0
     header_lines = 0
+    clin_sig_index = None
+    clin_sig_reordered: dict[int, str] = {}
+    normalize = normalizes_clin_sig(mode, ignore_csq_order)
 
     with vcfio.open_text(path) as handle:
         for line in handle:
             if line.startswith("#"):
+                if normalize and clin_sig_index is None:
+                    clin_sig_index = csq_field_index(line)
                 if line.startswith(VOLATILE_HEADER_PREFIXES):
                     continue
                 header_lines += 1
                 header.update(line.encode())
                 continue
             records += 1
-            if ignore_csq_order:
-                line = sort_csq_entries(line)
-            if mode == "strict":
-                body.update(line.encode())
-            else:
-                body.update((canonical_record(line.rstrip("\n")) + "\n").encode())
+            hashed = _body_line(line, mode, ignore_csq_order)
+            if normalize:
+                ordered = sort_clin_sig(line, clin_sig_index)
+                if ordered != line:
+                    clin_sig_reordered[records] = hashlib.md5(
+                        hashed.encode()
+                    ).hexdigest()
+                    hashed = _body_line(ordered, mode, ignore_csq_order)
+            body.update(hashed.encode())
 
-    return Digest(header.hexdigest(), body.hexdigest(), records, header_lines)
+    return Digest(
+        header.hexdigest(), body.hexdigest(), records, header_lines, clin_sig_reordered
+    )
 
 
 # --------------------------------------------------------------------------
@@ -202,8 +310,29 @@ def digest_vcf(path: str, mode: str, ignore_csq_order: bool = False) -> Digest:
 # --------------------------------------------------------------------------
 
 
-def classify_difference(vep_line: str, vepyr_line: str) -> list[str]:
-    """Name the ways two records differ, ignoring nothing."""
+def _csq_value(line: str) -> str | None:
+    """The raw CSQ value of one VCF data line, or None when it has none."""
+    cols = line.rstrip("\n").split("\t")
+    if len(cols) < 8:
+        return None
+    for kv in cols[7].split(";"):
+        if kv.startswith("CSQ="):
+            return kv[4:]
+    return None
+
+
+def classify_difference(
+    vep_line: str,
+    vepyr_line: str,
+    clin_sig_index: tuple[int | None, int | None] = (None, None),
+) -> list[str]:
+    """Name the ways two records differ, ignoring nothing.
+
+    `clin_sig_index` is (VEP, vepyr) CLIN_SIG position in each side's CSQ
+    Format. When given, a CSQ that differs only in the order of CLIN_SIG's
+    ``%3B`` groups is named as such (vepyr#238), not as an INFO value
+    difference.
+    """
     names = ["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"]
     a, b = vep_line.split("\t"), vepyr_line.split("\t")
     if len(a) != len(b):
@@ -229,6 +358,10 @@ def classify_difference(vep_line: str, vepyr_line: str) -> list[str]:
                 ax["CSQ"][4:].split(",")
             ) == sorted(by["CSQ"][4:].split(",")):
                 out.append("CSQ order")
+            elif [k for k in ax if ax[k] != by[k]] == ["CSQ"] and _csq_value(
+                sort_clin_sig(vep_line, clin_sig_index[0])
+            ) == _csq_value(sort_clin_sig(vepyr_line, clin_sig_index[1])):
+                out.append("CLIN_SIG order (VEP-nondeterministic, vepyr#238)")
             elif any(ax[k] != by[k] for k in ax):
                 out.append("INFO VALUES")
             else:
@@ -256,9 +389,22 @@ def classify_difference(vep_line: str, vepyr_line: str) -> list[str]:
     return out
 
 
+def clin_sig_index_of(path: str) -> int | None:
+    """CLIN_SIG's position in `path`'s CSQ Format, read from its header."""
+    with vcfio.open_text(path) as handle:
+        for line in handle:
+            if not line.startswith("#"):
+                break
+            index = csq_field_index(line)
+            if index is not None:
+                return index
+    return None
+
+
 def explain(vep: str, vepyr: str, limit: int) -> Counter:
     """Classify every differing record. Returns a histogram of difference kinds."""
     kinds: Counter = Counter()
+    indices = (clin_sig_index_of(vep), clin_sig_index_of(vepyr))
     with vcfio.open_text(vep) as fa, vcfio.open_text(vepyr) as fb:
         rows_a = (ln.rstrip("\n") for ln in fa if not ln.startswith("#"))
         rows_b = (ln.rstrip("\n") for ln in fb if not ln.startswith("#"))
@@ -266,7 +412,7 @@ def explain(vep: str, vepyr: str, limit: int) -> Counter:
             if x == y:
                 kinds["identical"] += 1
                 continue
-            for kind in classify_difference(x, y):
+            for kind in classify_difference(x, y, indices):
                 kinds[kind] += 1
             if limit and n >= limit:
                 break
@@ -324,6 +470,18 @@ class Result:
     def count_match(self) -> bool:
         return self.vep.records == self.vepyr.records
 
+    @property
+    def clin_sig_order_only(self) -> int:
+        """Records that concord only because CLIN_SIG groups were sorted.
+
+        Meaningful when the bodies match: each such record then has the same
+        normalized bytes on both sides, so it differs before the sort exactly
+        when its pre-sort digests differ, or when only one side was reordered.
+        These are VEP-nondeterministic (vepyr#238), not plain matches.
+        """
+        a, b = self.vep.clin_sig_reordered, self.vepyr.clin_sig_reordered
+        return sum(1 for n in a.keys() | b.keys() if a.get(n) != b.get(n))
+
 
 def label_for(path: Path) -> str:
     """Derive a short label from a path, preferring an embedded contig name."""
@@ -379,6 +537,11 @@ def compare(pair: Pair, mode: str, ignore_csq_order: bool = False) -> Result:
     if not result.count_match:
         result.notes.append(
             f"record count {result.vep.records} vs {result.vepyr.records}"
+        )
+    if result.body_match and result.clin_sig_order_only:
+        result.notes.append(
+            f"{result.clin_sig_order_only} record(s) concord only after sorting "
+            "CLIN_SIG; VEP-nondeterministic, not a plain match (vepyr#238)"
         )
     if not result.header_match:
         result.notes.append(
@@ -499,6 +662,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"    {count:>12,}  {kind}")
 
     total = sum(r.vep.records for r in results)
+    nondeterministic = sum(r.clin_sig_order_only for r in results if r.body_match)
+    if nondeterministic:
+        print(
+            f"\n  VEP-nondeterministic: {nondeterministic:,} record(s) concord only "
+            "after sorting CLIN_SIG's %3B groups (vepyr#238)"
+        )
     if mismatched:
         print(
             f"\n  FAIL: {len(mismatched)}/{len(results)} pair(s) differ "
