@@ -486,3 +486,20 @@ def test_clin_sig_nondeterminism_is_printed(tmp_path, capsys):
     assert "CLIN_SIG order only:      1" in out
     assert "VEP-nondeterministic" in out
     assert "match at 100%!" not in out
+
+
+def test_clin_sig_order_does_not_cross_pair_duplicate_entries(tmp_path):
+    """Two entries share Allele+Feature. Their CLIN_SIG sets {a,z} and {b,c}
+    come in VEP's random order on one side; pairing must still match each set
+    to its own counterpart (codex review on #254)."""
+    header = CLIN_SIG_HEADER
+    row = (
+        "chr22\t100\t.\tG\tA\t.\t.\tCSQ=A|missense|ENST01|{}|1,A|missense|ENST01|{}|1\n"
+    )
+    a = _write(tmp_path, "vepyr.vcf", header + row.format("a%3Bz", "b%3Bc"), False)
+    b = _write(tmp_path, "vep.vcf", header + row.format("z%3Ba", "c%3Bb"), False)
+    result = compare.compare_vcfs(a, b, "duplicates")
+
+    assert result["field_mismatch_counts"] == {}
+    assert result["field_vep_nondeterministic_counts"] == {"CLIN_SIG": 2}
+    assert result["clin_sig_order_records"] == 1

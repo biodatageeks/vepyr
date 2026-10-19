@@ -645,7 +645,8 @@ def generate_markdown(
     total_nondeterministic = sum(nondeterministic.values())
     if total_nondeterministic:
         lines.append(
-            f"- **{total_nondeterministic:,} CLIN_SIG values** differ only in "
+            f"- **{total_nondeterministic:,} CLIN_SIG values** (counted per CSQ "
+            "entry, not per record) differ only in "
             "VEP's random `%3B` order (vepyr#238) — VEP-nondeterministic, "
             "compared with the groups sorted, and not counted as plain matches"
         )

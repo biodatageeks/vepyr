@@ -158,8 +158,21 @@ def _entry_order_signature(entry):
     return (*_entry_identity(entry), entry.get("Consequence", ""))
 
 
+def _pairing_value(field, value):
+    """A field value as entry pairing sees it.
+
+    CLIN_SIG's %3B groups are sorted (vepyr#238): otherwise two duplicate-
+    identity entries whose CLIN_SIG differs only in VEP's random order would
+    sort apart and cross-pair, turning VEP nondeterminism into two mismatches.
+    The field comparison itself still sees the raw values.
+    """
+    if field == CLIN_SIG_FIELD and CLIN_SIG_SEPARATOR in value:
+        return CLIN_SIG_SEPARATOR.join(sorted(value.split(CLIN_SIG_SEPARATOR)))
+    return value
+
+
 def _entry_payload(entry, fields):
-    return tuple(entry.get(field, "") for field in fields)
+    return tuple(_pairing_value(field, entry.get(field, "")) for field in fields)
 
 
 def _pair_entry_groups(vepyr_entries, vep_entries, shared_fields):

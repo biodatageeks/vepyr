@@ -326,7 +326,9 @@ def _clin_sig_only_difference(
     """Name a CSQ difference that sorting CLIN_SIG's %3B groups removes.
 
     Also covers a record whose CSQ entry order differs too (the
-    --ignore-csq-order case), which gets a combined label.
+    --ignore-csq-order case), which gets a combined label. A record that
+    differs by entry order alone never gets here: the caller names it
+    ``CSQ order`` first.
     """
     a = _csq_value(sort_clin_sig(vep_line, clin_sig_index[0]))
     b = _csq_value(sort_clin_sig(vepyr_line, clin_sig_index[1]))
