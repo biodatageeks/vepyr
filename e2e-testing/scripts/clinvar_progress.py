@@ -627,18 +627,18 @@ def build_progress(
         # entries that differ now but were not differing in the triage baseline.
         # A "-" row is a record-level placeholder, not a claim that every
         # feature differed, so it covers no feature here.
+        # With --prev the baseline is the previous run: an entry that already
+        # differed there is persistent, not new, and is left to that report.
         for feature, fields in diffs.items():
             if feature not in attributed_features and feature != "RECORD":
-                regressions.append(
-                    (
-                        key,
-                        feature,
-                        "differs now, identical in the triage baseline",
-                        ",".join(fields),
-                        "",
-                    )
-                )
                 entries_out.append((key, feature, "differs", ",".join(fields), ""))
+                if prev_entries is None:
+                    kind = "differs now, identical in the triage baseline"
+                elif prev_entries.get((*key, feature)) == "differs":
+                    continue
+                else:
+                    kind = "differs now, identical in --prev"
+                regressions.append((key, feature, kind, ",".join(fields), ""))
     if prev_entries is not None:
         # One row per regressed entry: an entry already reported against the
         # triage baseline is not reported again against --prev.

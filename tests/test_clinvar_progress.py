@@ -619,3 +619,19 @@ def test_a_missing_record_is_one_regression_even_with_prev(tmp_path):
     assert [(k[1], f) for k, f, *_ in regressions if k[1] == "200"] == [
         ("200", "RECORD")
     ]
+
+
+def test_prev_is_the_baseline_for_entries_outside_the_ledger(tmp_path):
+    """chr1:400/T2 differs now and is not in the ledger. Against a --prev in
+    which it already differed it is persistent (no row); against one in which
+    it was identical it is a --prev regression, not a triage one."""
+    panel = make_panel(tmp_path)
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    key = ("1", "400", "G", "A", "d", "T2")
+    _, _, persistent = cp.build_progress(ledger, state, [], {key: "differs"})
+    assert not [r for r in persistent if r[0][1] == "400" and r[1] == "T2"]
+    _, _, new = cp.build_progress(ledger, state, [], {key: "identical"})
+    assert [r[2] for r in new if r[0][1] == "400" and r[1] == "T2"] == [
+        "differs now, identical in --prev"
+    ]
