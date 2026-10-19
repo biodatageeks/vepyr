@@ -257,12 +257,28 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
             if k not in vy:
                 state[key] = (False, False, {"RECORD": ["ONLY_IN_VEP"]})
                 continue
-            if vep[k] == vy[k]:
+            if vep[k] == vy[k] and vep_fmt == vy_fmt:
+                # Byte-identical lines mean the same values only when both
+                # headers declare the same CSQ field order.
                 state[key] = (True, False, {})
                 continue
             diffs, nondeterministic = entry_diffs(vep[k], vy[k], vep_fmt, vy_fmt)
             state[key] = (not diffs, nondeterministic and not diffs, diffs)
     return state
+
+
+def check_prev_scope(prev_progress: Path, contigs: list[str]) -> None:
+    """Deltas only mean something over the same panel contigs."""
+    label = prev_progress.name[len("progress_") : -len(".tsv")]
+    run = prev_progress.with_name(f"run_{label}.json")
+    if not run.exists():
+        raise SystemExit(f"--prev: {run} is missing, so its contig scope is unknown")
+    prev_contigs = json.loads(run.read_text()).get("contigs") or []
+    if sorted(prev_contigs) != sorted(contigs):
+        raise SystemExit(
+            f"--prev covers contigs {prev_contigs}, this run {contigs}; "
+            "deltas need the same --contigs"
+        )
 
 
 def read_prev_entries(prev_progress: Path) -> dict[tuple, str] | None:
@@ -354,20 +370,21 @@ def build_progress(ledger, state, prev_progress_rows=None, prev_entries=None):
                     )
         if excluded:
             continue
-        # entries that differ now but were not differing in the triage baseline
-        if "-" not in attributed_features:
-            for feature, fields in diffs.items():
-                if feature not in attributed_features and feature != "RECORD":
-                    regressions.append(
-                        (
-                            key,
-                            feature,
-                            "differs now, identical in the triage baseline",
-                            ",".join(fields),
-                            "",
-                        )
+        # entries that differ now but were not differing in the triage baseline.
+        # A "-" row is a record-level placeholder, not a claim that every
+        # feature differed, so it covers no feature here.
+        for feature, fields in diffs.items():
+            if feature not in attributed_features and feature != "RECORD":
+                regressions.append(
+                    (
+                        key,
+                        feature,
+                        "differs now, identical in the triage baseline",
+                        ",".join(fields),
+                        "",
                     )
-                    entries_out.append((key, feature, "differs", ",".join(fields), ""))
+                )
+                entries_out.append((key, feature, "differs", ",".join(fields), ""))
     if prev_entries is not None:
         for key, feature, state_now, fields, issues_ in entries_out:
             if (
@@ -574,6 +591,7 @@ def main(argv: list[str] | None = None) -> int:
     prev_rows = None
     prev_entries = None
     if args.prev:
+        check_prev_scope(args.prev, args.contigs)
         with open(args.prev) as fh:
             prev_rows = list(csv.DictReader(fh, delimiter="\t"))
         prev_entries = read_prev_entries(args.prev)

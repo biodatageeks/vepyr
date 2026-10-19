@@ -6,6 +6,8 @@ import csv
 from pathlib import Path
 import sys
 
+import pytest
+
 SCRIPTS_DIR = Path(__file__).parents[1] / "e2e-testing" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -224,3 +226,62 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
         r["pos"] == "100" and r["kind"] == "differs now, identical in --prev"
         for r in regressions
     )
+
+
+def test_prev_with_another_contig_scope_is_rejected(tmp_path):
+    panel = make_panel(tmp_path)
+    out = tmp_path / "out"
+    (out / "vepyr_R0").mkdir(parents=True)
+    for c in ("1", "20"):
+        (out / "vepyr_R0" / f"chr{c}.vcf").write_text(
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+        )
+    base = [
+        "--python",
+        sys.executable,
+        "--cache",
+        "/c",
+        "--panel",
+        str(panel),
+        "--out",
+        str(out),
+        "--skip-annotate",
+    ]
+    assert cp.main([*base, "--label", "R0", "--contigs", "1", "20"]) == 0
+    with pytest.raises(SystemExit, match="same --contigs"):
+        cp.main(
+            [
+                *base,
+                "--label",
+                "R0",
+                "--contigs",
+                "1",
+                "--prev",
+                str(out / "progress_R0.tsv"),
+            ]
+        )
+
+
+def test_identical_bytes_under_different_csq_formats_are_compared_by_field(tmp_path):
+    panel = make_panel(tmp_path)
+    swapped = HEADER.replace(
+        "Allele|Consequence|Feature|HGVSp|CLIN_SIG",
+        "Allele|Consequence|Feature|CLIN_SIG|HGVSp",
+    )
+    path = tmp_path / "vepyr" / "chr1.vcf"
+    vep_body = (panel / "vep116_0" / "chr1.vcf").read_text().split(HEADER)[1]
+    path.write_text(swapped + vep_body)
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1"])
+    # chr1:100 carries HGVSp p.X and an empty CLIN_SIG: the swap makes both differ
+    assert state[("1", "100", "G", "A", "a")][0] is False
+
+
+def test_new_differences_are_reported_next_to_a_record_level_row(tmp_path):
+    panel = make_panel(tmp_path)
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    for row in ledger:
+        if row["pos"] == "400":
+            row["feature"] = "-"
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    _, _, regressions = cp.build_progress(ledger, state)
+    assert any(k[1] == "400" and f == "T2" for k, f, *_ in regressions)
