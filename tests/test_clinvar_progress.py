@@ -686,3 +686,19 @@ def test_entries_sharing_a_feature_keep_every_differing_field():
     vepyr = rec("1", 1, "x", "A|n|T1|p.X|,C|m|T1|p.Z|").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"T1": ["Consequence", "HGVSp"]}
+
+
+def test_a_persistently_missing_record_is_not_reported_again(tmp_path):
+    panel = make_panel(tmp_path)
+    path = tmp_path / "vepyr" / "chr1.vcf"
+    path.write_text(
+        "".join(ln for ln in path.read_text().splitlines(True) if "\t200\t" not in ln)
+    )
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    _, entries, first = cp.build_progress(ledger, state)
+    assert [(k[1], f) for k, f, *_ in first if k[1] == "200"] == [("200", "RECORD")]
+    prev = {(*k, f): st for k, f, st, *_ in entries}
+    assert prev[("1", "200", "G", "A", "b", "RECORD")] == "differs"
+    _, _, again = cp.build_progress(ledger, state, [], prev)
+    assert [r for r in again if r[0][1] == "200"] == []

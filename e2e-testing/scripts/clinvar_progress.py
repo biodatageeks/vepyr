@@ -620,6 +620,14 @@ def build_progress(
         if is_excluded:
             continue
         if "RECORD" in diffs:
+            # Kept as an entry row, so the next --prev run can tell a record
+            # that was already missing from one that just went missing.
+            entries_out.append(
+                (key, "RECORD", "differs", ",".join(diffs["RECORD"]), "")
+            )
+        if "RECORD" in diffs and (
+            prev_entries is None or prev_entries.get((*key, "RECORD")) != "differs"
+        ):
             regressions.append(
                 (
                     key,
