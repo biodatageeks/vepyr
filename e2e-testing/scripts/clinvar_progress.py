@@ -94,10 +94,15 @@ NOTES = {
     "panel-context:HGNC_ID": "panel artifact: HGNC_ID depends on the input context",
 }
 
-# vepyr#238: the CSQ sub-field VEP fills from a Perl hash's keys, and the
-# separator it joins them with (`;`, percent-encoded inside CSQ).
-CLIN_SIG_FIELD = "CLIN_SIG"
-CLIN_SIG_SEPARATOR = "%3B"
+# vepyr#238 (merged as f4ab545): the CLIN_SIG rule is shared with the field
+# comparison in comparison.compare, so the panel and the HG002 gates cannot
+# disagree on what counts as VEP's random %3B order.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from comparison.compare import (  # noqa: E402
+    CLIN_SIG_FIELD,
+    _clin_sig_order_equivalent,
+    _pairing_value,
+)
 
 RecordKey = tuple[str, str, str, str, str]  # contig, pos, ref, alt, clinvar_id
 
@@ -135,9 +140,7 @@ def csq_format(header: list[str]) -> list[str]:
 
 def sort_clin_sig(value: str) -> str:
     """CLIN_SIG with its %3B groups sorted; the '&' order inside a group stays."""
-    if CLIN_SIG_SEPARATOR not in value:
-        return value
-    return CLIN_SIG_SEPARATOR.join(sorted(value.split(CLIN_SIG_SEPARATOR)))
+    return _pairing_value(CLIN_SIG_FIELD, value)
 
 
 def split_record(line: str, fmt: list[str]):
@@ -197,7 +200,7 @@ def entry_diffs(
             a, b = ea[key].get(name, ""), eb[key].get(name, "")
             if a == b:
                 continue
-            if name == CLIN_SIG_FIELD and sort_clin_sig(a) == sort_clin_sig(b):
+            if _clin_sig_order_equivalent(name, b, a):
                 nondeterministic = True
                 continue
             fields.append(name)
