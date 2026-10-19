@@ -695,7 +695,12 @@ def summary_markdown(
     identical = [k for k in judged if state.get(k, (False,))[0]]
     nondeterministic = sorted(k for k in judged if state.get(k, (False, False))[1])
     deferred = sorted(
-        {record_key(r) for r in ledger for i in DEFERRED if i in r["issues"].split(",")}
+        {
+            record_key(r)
+            for r in ledger
+            for i in DEFERRED
+            if i in r["issues"].split(",") and (not selected or i in selected)
+        }
     )
     full = meta.get("mode") == "full-contig"
     lines = [
@@ -932,6 +937,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.full_contig and args.workers != 1:
         p.error("the panel runs with workers=1; --workers is for --full-contig")
     wanted_issues = None
+    ledger_all = None
     if args.issues:
         wanted_issues = {normalize_issue(i) for i in args.issues}
         ledger_all = load_ledger(args.panel / "ledger.tsv")
@@ -1018,7 +1024,8 @@ def main(argv: list[str] | None = None) -> int:
         timings = provenance.get("annotate_seconds_per_contig", {})
         annotate_seconds = provenance.get("annotate_seconds", 0.0)
 
-    ledger_all = ledger_all if args.issues else load_ledger(args.panel / "ledger.tsv")
+    if ledger_all is None:
+        ledger_all = load_ledger(args.panel / "ledger.tsv")
     ledger = [r for r in ledger_all if r["contig"] in args.contigs]
     full_counts: dict[str, dict] = {}
     if args.full_contig:
@@ -1033,21 +1040,17 @@ def main(argv: list[str] | None = None) -> int:
     else:
         state = evaluate(args.panel, vepyr_dir, args.contigs)
         excluded = EXCLUDED
-    table, entries, regressions = build_progress(
-        ledger, state, prev_rows, prev_entries, excluded
-    )
-    if prev_rows is not None:
-        ledger_contigs = collections.defaultdict(set)
-        for r in ledger_all:
-            for i in r["issues"].split(","):
-                ledger_contigs[i].add(r["contig"])
-        for row in table:
-            if not ledger_contigs[row["issue"]] <= set(args.contigs):
-                row["delta_vs_prev"] = ""  # this run sees only part of the issue
     ledger_contigs_all = collections.defaultdict(set)
     for r in ledger_all:
         for i in r["issues"].split(","):
             ledger_contigs_all[i].add(r["contig"])
+    table, entries, regressions = build_progress(
+        ledger, state, prev_rows, prev_entries, excluded
+    )
+    if prev_rows is not None:
+        for row in table:
+            if not ledger_contigs_all[row["issue"]] <= set(args.contigs):
+                row["delta_vs_prev"] = ""  # this run sees only part of the issue
     partial_issues = sorted(
         (
             i
@@ -1180,7 +1183,14 @@ def main(argv: list[str] | None = None) -> int:
         "partial_issues": [
             i for i in partial_issues if not wanted_issues or i in wanted_issues
         ],
-        "records": len({record_key(r) for r in ledger}),
+        # with --issues: the records of those issues; otherwise every ledger record run
+        "records": len(
+            {
+                record_key(r)
+                for r in ledger
+                if not wanted_issues or wanted_issues & set(r["issues"].split(","))
+            }
+        ),
         "full_contig_counts": full_counts,
         "annotate_seconds": round(annotate_seconds, 1),
         "annotate_seconds_per_contig": timings,
