@@ -945,3 +945,11 @@ def test_identity_covers_the_reference_fasta(tmp_path):
     one = cp.input_identity(panel, "panel", None, None, fa)
     fa.write_text(">1\nACGA\n")
     assert cp.input_identity(panel, "panel", None, None, fa) != one
+
+
+def test_surplus_csq_values_are_a_difference():
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|m|T1|p.X|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|m|T1|p.X||extra").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["CSQ_ARITY"]}

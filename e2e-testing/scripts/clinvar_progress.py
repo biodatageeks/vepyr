@@ -107,6 +107,10 @@ from comparison.compare import (  # noqa: E402
     _pairing_value,
 )
 
+# Per-entry key: values beyond (or short of) the header's Format, as
+# "<offset>|<surplus values>", so a malformed entry cannot pass as identical.
+ARITY = "\0arity"
+
 # Pseudo features that make every entry of a record differ.
 RECORD_WIDE = {"RECORD", "CSQ_FORMAT", "CSQ_FIELD_ORDER"}
 
@@ -162,7 +166,10 @@ def split_record(line: str, fmt: list[str]):
     entries = []
     for raw in csq:
         values = raw.split("|")
-        entries.append(((values[ai], values[fi]), dict(zip(fmt, values))))
+        entry = dict(zip(fmt, values))
+        # zip drops surplus values; keep the count so a malformed entry differs.
+        entry[ARITY] = f"{len(values) - len(fmt)}|" + "|".join(values[len(fmt) :])
+        entries.append(((values[ai], values[fi]), entry))
     non_csq = "\t".join(cols[:7] + [";".join(rest)] + cols[8:])
     return non_csq, entries
 
@@ -287,6 +294,9 @@ def entry_diffs(
                     nondeterministic = True
                     continue
                 fields.append(name)
+            # Surplus or missing values relative to each side's own header.
+            if a_entry.get(ARITY) != b_entry.get(ARITY):
+                fields.append("CSQ_ARITY")
             # Per-entry detail for a vepyr-only field (CSQ_FORMAT names it per record).
             for name in vepyr_fmt:
                 if name not in vep_fmt and b_entry.get(name, ""):
