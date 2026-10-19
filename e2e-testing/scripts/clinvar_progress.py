@@ -199,24 +199,36 @@ def _pair_group(left, right, fields):
         )
 
     k = min(len(left_rest), len(remaining))
-    if k and len(remaining) <= 6:
-        best = max(
-            itertools.permutations(range(len(remaining)), k),
-            key=lambda perm: (
-                sum(score(left_rest[i], remaining[p]) for i, p in enumerate(perm)),
-                [-p for p in perm],
-            ),
-        )
-        chosen = [remaining[p] for p in best]
-    else:
-        chosen, pool = [], list(remaining)
+    chosen_pairs = []
+    if k and max(len(left_rest), len(remaining)) <= 6:
+        # Permute the larger side, so either side may keep its unmatched ones.
+        if len(left_rest) <= len(remaining):
+            best = max(
+                itertools.permutations(range(len(remaining)), k),
+                key=lambda perm: (
+                    sum(score(left_rest[i], remaining[p]) for i, p in enumerate(perm)),
+                    [-p for p in perm],
+                ),
+            )
+            chosen_pairs = [(left_rest[i], remaining[p]) for i, p in enumerate(best)]
+        else:
+            best = max(
+                itertools.permutations(range(len(left_rest)), k),
+                key=lambda perm: (
+                    sum(score(left_rest[p], remaining[i]) for i, p in enumerate(perm)),
+                    [-p for p in perm],
+                ),
+            )
+            chosen_pairs = [(left_rest[p], remaining[i]) for i, p in enumerate(best)]
+    elif k:
+        pool = list(remaining)
         for item in left_rest[:k]:
             pick = max(pool, key=lambda r: (score(item, r), -r[0]))
             pool.remove(pick)
-            chosen.append(pick)
-    pairs += list(zip(left_rest[:k], chosen))
-    unpaired = left_rest[k:]
-    remaining = [r for r in remaining if r not in chosen]
+            chosen_pairs.append((item, pick))
+    pairs += chosen_pairs
+    unpaired = [a for a in left_rest if all(a is not x for x, _ in chosen_pairs)]
+    remaining = [b for b in remaining if all(b is not y for _, y in chosen_pairs)]
     return pairs, unpaired, remaining
 
 

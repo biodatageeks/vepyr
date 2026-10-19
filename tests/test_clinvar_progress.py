@@ -926,3 +926,13 @@ def test_persistent_extra_fields_are_not_reported_again_under_prev(tmp_path):
         ledger, state, [], prev_entries, cp.EXCLUDED, prev_fields
     )
     assert not [r for r in again if r[2] == "new fields on an attributed entry"]
+
+
+def test_duplicate_matching_leaves_the_worst_vep_entry_unmatched():
+    """VEP has three duplicates, vepyr one: the vepyr entry pairs with its
+    closest VEP entry, not the first (codex review on #255)."""
+    fmt = ["Allele", "Feature", "Consequence", "IMPACT", "HGVSp"]
+    vep = "1\t1\tx\tG\tA\t.\t.\tCSQ=A|T1|x|x|x,A|T1|y|y|y,A|T1|a|a|b"
+    vepyr = "1\t1\tx\tG\tA\t.\t.\tCSQ=A|T1|a|a|a"
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["ONLY_IN_VEP", "HGVSp"]}
