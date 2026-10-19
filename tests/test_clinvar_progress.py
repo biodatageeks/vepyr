@@ -807,7 +807,7 @@ def test_reused_outputs_from_another_panel_are_refused(tmp_path):
         fh.write(
             "\t".join(ledger_row("1", "100", "a", "T9", "vepyr#211", "HGVSp")) + "\n"
         )
-    with pytest.raises(SystemExit, match="another panel"):
+    with pytest.raises(SystemExit, match="another panel or golden"):
         cp.main(
             [
                 "--python",
@@ -826,3 +826,55 @@ def test_reused_outputs_from_another_panel_are_refused(tmp_path):
                 "20",
             ]
         )
+
+
+def test_a_schema_mismatch_leaves_no_entry_fixed(tmp_path):
+    panel = make_panel(tmp_path)
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    key = ("1", "100", "G", "A", "a")
+    state[key] = (False, False, {"CSQ_FORMAT": ["CLIN_SIG"]})
+    table, entries, _ = cp.build_progress(ledger, state)
+    rows = {r["issue"]: r for r in table}
+    assert rows["vepyr#211"]["entries_now_identical"] == 1  # only 400/T1 now
+    # the attributed T1 entry is not fixed, and the schema row itself differs
+    assert sorted((e[1], e[2]) for e in entries if e[0] == key) == [
+        ("CSQ_FORMAT", "differs"),
+        ("T1", "differs"),
+    ]
+
+
+def test_prev_from_another_panel_is_refused(tmp_path):
+    panel = make_panel(tmp_path)
+    out = tmp_path / "out"
+    (out / "vepyr_A").mkdir(parents=True)
+    for c in ("1", "20"):
+        (out / "vepyr_A" / f"chr{c}.vcf").write_text(
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+        )
+    provenance(out / "vepyr_A")
+    base = [
+        "--python",
+        sys.executable,
+        "--cache",
+        "/c",
+        "--panel",
+        str(panel),
+        "--out",
+        str(out),
+        "--skip-annotate",
+        "--contigs",
+        "1",
+        "20",
+    ]
+    assert cp.main([*base, "--label", "A"]) == 0
+    run = out / "run_A.json"
+    data = json.loads(run.read_text())
+    data["input_identity"] = None  # a run from before identities existed
+    run.write_text(json.dumps(data))
+    with pytest.raises(SystemExit, match="no input_identity recorded"):
+        cp.main([*base, "--label", "A", "--prev", str(out / "progress_A.tsv")])
+    data["input_identity"] = {"mode": "panel", "panel_sha256": "0"}
+    run.write_text(json.dumps(data))
+    with pytest.raises(SystemExit, match="another panel or golden"):
+        cp.main([*base, "--label", "A", "--prev", str(out / "progress_A.tsv")])

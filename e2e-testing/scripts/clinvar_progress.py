@@ -105,6 +105,9 @@ from comparison.compare import (  # noqa: E402
     _pairing_value,
 )
 
+# Pseudo features that make every entry of a record differ.
+RECORD_WIDE = {"RECORD", "CSQ_FORMAT", "CSQ_FIELD_ORDER"}
+
 RecordKey = tuple[str, str, str, str, str]  # contig, pos, ref, alt, clinvar_id
 
 
@@ -559,8 +562,8 @@ def input_identity(panel: Path, mode: str, clinvar: Path, golden: Path) -> dict:
     """What a run compared against, so reused outputs and --prev can be checked.
 
     Panel mode: sha256 over ledger.tsv, in/ and vep116_0/ (about 400 MB, ~1 s).
-    Full-contig mode: the ledger digest plus path, size and mtime of the
-    ClinVar release and the golden (5.9 GB, not hashed).
+    Full-contig mode: the ledger digest plus size and a first/last-MiB digest
+    of the ClinVar release and the golden (5.9 GB, not hashed whole).
     """
     digest = hashlib.sha256()
     files = [panel / "ledger.tsv"]
@@ -575,14 +578,27 @@ def input_identity(panel: Path, mode: str, clinvar: Path, golden: Path) -> dict:
                 digest.update(block)
     identity = {"mode": mode, "panel_sha256": digest.hexdigest()}
     if mode == "full-contig":
+        # Size plus the first and last MiB: survives a copy or a touch, catches
+        # a regenerated file (header timestamp, bgzf blocks).
         for name, path in (("clinvar", clinvar), ("golden", golden)):
-            st = os.stat(path)
-            identity[name] = {
-                "path": str(path),
-                "size": st.st_size,
-                "mtime": int(st.st_mtime),
-            }
+            size = os.stat(path).st_size
+            ends = hashlib.sha256()
+            with open(path, "rb") as fh:
+                ends.update(fh.read(1 << 20))
+                fh.seek(max(0, size - (1 << 20)))
+                ends.update(fh.read(1 << 20))
+            identity[name] = {"size": size, "ends_sha256": ends.hexdigest()}
     return identity
+
+
+def _identity_mismatch(recorded, identity, what: str) -> str | None:
+    if recorded is None:
+        return (
+            f"{what} has no input_identity recorded (made before it existed); re-run it"
+        )
+    if recorded != identity:
+        return f"{what} compared against another panel or golden; deltas would be meaningless"
+    return None
 
 
 def check_prev_scope(
@@ -601,11 +617,10 @@ def check_prev_scope(
         raise SystemExit(
             f"--prev is a {prev_run.get('mode', 'panel')} run, this run is {mode}"
         )
-    if identity is not None and prev_run.get("input_identity") != identity:
-        raise SystemExit(
-            "--prev compared against another panel or golden "
-            f"({prev_run.get('input_identity')} vs {identity}); deltas would be meaningless"
-        )
+    if identity is not None:
+        problem = _identity_mismatch(prev_run.get("input_identity"), identity, "--prev")
+        if problem:
+            raise SystemExit(problem)
     prev_contigs = prev_run.get("contigs") or []
     # A wider --prev is fine (a targeted run against the full R0): deltas are
     # then printed only for issues whose records all lie in this run.
@@ -662,7 +677,11 @@ def build_progress(
                 entry_identical = identical
                 fields_now = sorted({f for fs in diffs.values() for f in fs})
             else:
-                entry_identical = feature not in diffs and "RECORD" not in diffs
+                # A record-wide difference (missing record, other CSQ schema or
+                # field order) leaves no entry of the record identical.
+                entry_identical = feature not in diffs and not (
+                    RECORD_WIDE & set(diffs)
+                )
                 fields_now = diffs.get(feature, [])
             state_now = (
                 "excluded"
@@ -1147,11 +1166,11 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(
                 f"--skip-annotate: {vepyr_dir} holds a {provenance.get('mode', 'panel')} run"
             )
-        if provenance.get("input_identity") != identity:
-            raise SystemExit(
-                f"--skip-annotate: {vepyr_dir} was annotated from another panel or "
-                "input; re-run without --skip-annotate"
-            )
+        problem = _identity_mismatch(
+            provenance.get("input_identity"), identity, f"--skip-annotate: {vepyr_dir}"
+        )
+        if problem:
+            raise SystemExit(problem + " (or drop --skip-annotate)")
         timings = provenance.get("annotate_seconds_per_contig", {})
         annotate_seconds = provenance.get("annotate_seconds", 0.0)
 
