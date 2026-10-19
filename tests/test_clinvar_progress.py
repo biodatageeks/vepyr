@@ -974,3 +974,16 @@ def test_file_digest_sees_a_change_anywhere_and_caches(tmp_path):
     data[1_500_000] = ord("b")  # same size, middle byte
     big.write_bytes(bytes(data))
     assert cp._file_digest(big, cache) != first
+
+
+def test_a_schema_change_is_one_regression_per_record_under_prev(tmp_path):
+    panel = make_panel(tmp_path)
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    key = ("1", "200", "G", "A", "b")
+    prev = {(*key, f): "identical" for f in ("T1", "T2")}
+    state[key] = (False, False, {"CSQ_FORMAT": ["CLIN_SIG"]})
+    _, _, regressions = cp.build_progress(ledger, state, [], prev)
+    assert [(r[1], r[2]) for r in regressions if r[0] == key] == [
+        ("CSQ_FORMAT", "differs now, identical in --prev")
+    ]

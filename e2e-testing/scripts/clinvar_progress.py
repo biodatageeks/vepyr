@@ -609,6 +609,10 @@ def _file_digest(path, cache_file: Path | None = None) -> dict:
     The digest is cached by (real path, size, mtime_ns) in `cache_file`, so it
     is computed once per file version: rewriting the file changes its mtime
     and forces a new hash, and a copy elsewhere hashes to the same value.
+    The cache trusts size and mtime: a same-size rewrite that restores the
+    mtime (cp -p, rsync -t, touch -r) would keep the old digest. It is never
+    pruned, and concurrent runs that both miss may drop each other's new
+    entry, which only costs a rehash later.
     """
     st = os.stat(path)
     key = f"{os.path.realpath(path)}:{st.st_size}:{st.st_mtime_ns}"
@@ -619,6 +623,11 @@ def _file_digest(path, cache_file: Path | None = None) -> dict:
         except ValueError:
             cache = {}
     if key not in cache:
+        print(
+            f"  hashing {path} ({st.st_size / 1e9:.1f} GB, once per file version)",
+            file=sys.stderr,
+            flush=True,
+        )
         digest = hashlib.sha256()
         with open(path, "rb") as fh:
             for block in iter(lambda: fh.read(1 << 24), b""):
@@ -626,7 +635,7 @@ def _file_digest(path, cache_file: Path | None = None) -> dict:
         cache[key] = digest.hexdigest()
         if cache_file is not None:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
-            tmp = cache_file.with_suffix(".tmp")
+            tmp = cache_file.with_suffix(f".{os.getpid()}.tmp")
             tmp.write_text(json.dumps(cache, indent=1) + "\n")
             tmp.replace(cache_file)
     return {"size": st.st_size, "sha256": cache[key]}
@@ -873,8 +882,9 @@ def build_progress(
         # One row per regressed entry: an entry already reported against the
         # triage baseline is not reported again against --prev.
         reported = {(r[0], r[1]) for r in regressions}
-        # A record missing from one side already has its record-level row.
-        one_sided = {k for k, (_, _, d) in state.items() if "RECORD" in d}
+        # A record-wide difference (missing record, CSQ schema or field order)
+        # already has its own row; its entries are not reported one by one.
+        one_sided = {k for k, (_, _, d) in state.items() if RECORD_WIDE & set(d)}
         for key, feature, state_now, fields, issues_ in entries_out:
             if (
                 state_now == "differs"
