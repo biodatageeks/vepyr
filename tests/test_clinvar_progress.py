@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 
 import pytest
@@ -297,3 +300,72 @@ def test_new_differences_are_reported_next_to_a_record_level_row(tmp_path):
     state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
     _, _, regressions = cp.build_progress(ledger, state)
     assert any(k[1] == "400" and f == "T2" for k, f, *_ in regressions)
+
+
+@pytest.mark.skipif(
+    shutil.which("bgzip") is None or shutil.which("tabix") is None,
+    reason="htslib bgzip/tabix not on PATH",
+)
+def test_full_contig_mode_against_a_golden(tmp_path):
+    """--full-contig compares every record of the contig with the golden:
+    ledger records are judged in full-contig context (nothing excluded), and a
+    record outside the ledger that now differs is a regression."""
+    panel = make_panel(tmp_path)
+    golden_body = (panel / "vep116_0" / "chr1.vcf").read_text().split(HEADER)[1]
+    golden_body += rec("1", 500, "f", "A|intron|T3||")  # identical in the triage
+    golden = tmp_path / "golden.vcf"
+    golden.write_text(HEADER + golden_body)
+    subprocess.run(["bgzip", "-f", str(golden)], check=True)
+    subprocess.run(["tabix", "-p", "vcf", str(golden) + ".gz"], check=True)
+
+    out = tmp_path / "out"
+    vdir = out / "vepyr_F0"
+    vdir.mkdir(parents=True)
+    now = (tmp_path / "vepyr" / "chr1.vcf").read_text()
+    now += rec("1", 500, "f", "A|intron|T3|p.R|")  # new difference
+    plain = vdir / "chr1.vcf"
+    plain.write_text(now)
+    subprocess.run(["bgzip", "-f", str(plain)], check=True)
+    (vdir / "annotation.json").write_text(
+        '{"vepyr_version": "master", "python": "py", "cache": "/c", '
+        '"mode": "full-contig", "contigs": ["1"]}'
+    )
+    args = [
+        "--python",
+        sys.executable,
+        "--cache",
+        "/c",
+        "--panel",
+        str(panel),
+        "--out",
+        str(out),
+        "--contigs",
+        "1",
+        "--full-contig",
+        "--golden",
+        str(golden) + ".gz",
+        "--skip-annotate",
+        "--label",
+        "F0",
+    ]
+    assert cp.main(args) == 0
+    run = json.loads((out / "run_F0.json").read_text())
+    assert run["full_contig_counts"]["1"] == {
+        "records": 5,
+        "identical": 2,
+        "differ": 3,
+        "vep_nondeterministic": 1,  # chr1:300, CLIN_SIG order only
+    }
+    regressions = list(csv.DictReader(open(out / "regressions_F0.tsv"), delimiter="\t"))
+    assert any(
+        r["pos"] == "500" and "identical in the triage" in r["kind"]
+        for r in regressions
+    )
+    records = list(csv.DictReader(open(out / "records_F0.tsv"), delimiter="\t"))
+    assert {r["pos"] for r in records if r["state"] == "differs"} == {
+        "200",
+        "400",
+        "500",
+    }
+    # the output was deleted after the comparison
+    assert not (vdir / "chr1.vcf.gz").exists()

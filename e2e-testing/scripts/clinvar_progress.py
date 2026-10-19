@@ -34,6 +34,17 @@ Two rules shape every count:
 vepyr#201 (MT-end HGVS flank) is a confirmed VEP bug whose fix is deferred; its
 records are reported as "known VEP bug (deferred)", never as a target.
 
+``--full-contig`` validates against the full Ensembl VEP 116.0 ClinVar golden
+instead of the panel: every ClinVar record of the ``--contigs`` (ALT="."
+records dropped, as the golden's input did) is annotated and compared with
+the golden record for record. The issue table covers the panel's records of
+those contigs, judged in full-contig context, so nothing is excluded. The
+regression list also covers every record that was identical before: in the
+``--prev`` run (use a full-contig run of the vepyr master build as the
+baseline), or else in the triage (any differing record not in the ledger).
+Only differing records are kept (``records_<label>.tsv``); the input slice and
+the vepyr output are deleted after the comparison unless ``--keep-outputs``.
+
 Example::
 
     clinvar_progress.py --python .venv/bin/python \\
@@ -59,6 +70,13 @@ import time
 DATA = Path(os.environ.get("DATA_VEPYR_DIR", Path.home() / "workspace" / "data_vepyr"))
 DEFAULT_PANEL = DATA / "clinvar_panel"
 DEFAULT_FASTA = DATA / "input" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+DEFAULT_CLINVAR = DATA / "input" / "clinvar" / "clinvar_20261011.vcf.gz"
+DEFAULT_GOLDEN = (
+    DATA
+    / "output"
+    / "116"
+    / "clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
+)
 CONTIGS = [str(n) for n in range(1, 23)] + ["X", "MT"]
 
 # (contig, pos): per-record annotation gives a different HGNC_ID than the full
@@ -228,6 +246,155 @@ def annotate_contig(
     return time.perf_counter() - start
 
 
+ANNOTATE_FULL = (
+    "import sys, vepyr; vepyr.annotate(sys.argv[1], sys.argv[2], "
+    "reference_fasta=sys.argv[3], output_vcf=sys.argv[4], workers=int(sys.argv[5]), "
+    "compression='bgzf', show_progress=False)"
+)
+
+
+def annotate_full_contig(
+    python: str,
+    clinvar: str,
+    cache: str,
+    fasta: str,
+    out: Path,
+    contig: str,
+    workers: int,
+) -> float:
+    """Annotate every ClinVar record of `contig`, as the golden's input held it.
+
+    The golden was made from the release with ALT="." records removed
+    (e2e/clinvar-parity README, section 2); nothing else differs per record.
+    """
+    start = time.perf_counter()
+    sliced = out.with_name(f"chr{contig}.in.vcf.gz")
+    subprocess.run(
+        [
+            "bcftools",
+            "view",
+            "-e",
+            'ALT="."',
+            "-r",
+            contig,
+            clinvar,
+            "-Oz",
+            "-o",
+            str(sliced),
+        ],
+        check=True,
+    )
+    try:
+        subprocess.run(
+            [
+                python,
+                "-c",
+                ANNOTATE_FULL,
+                str(sliced),
+                cache,
+                fasta,
+                str(out),
+                str(workers),
+            ],
+            check=True,
+        )
+    finally:
+        sliced.unlink(missing_ok=True)
+    return time.perf_counter() - start
+
+
+def _position_groups(lines):
+    """Yield (pos, {(pos, id, ref, alt): line}) per position of a sorted VCF body."""
+    group: dict[tuple[str, str, str, str], str] = {}
+    current = None
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        line = line.rstrip("\n")
+        cols = line.split("\t", 5)
+        pos = int(cols[1])
+        if current is not None and pos != current:
+            if pos < current:
+                raise SystemExit(f"VCF body is not sorted at position {pos}")
+            yield current, group
+            group = {}
+        current = pos
+        group.setdefault((cols[1], cols[2], cols[3], cols[4]), line)
+    if current is not None:
+        yield current, group
+
+
+def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
+    """Compare every record of one contig with the golden, streaming both.
+
+    Returns (state for differing records and for every key in `keep`,
+    counts). State has the same shape as `evaluate`.
+    """
+    import gzip
+
+    header = subprocess.run(
+        ["bcftools", "view", "-h", golden], capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+    gold_fmt = csq_format(header)
+    vy_header = []
+    with gzip.open(vepyr_vcf, "rt") as fh:
+        for line in fh:
+            if not line.startswith("#"):
+                break
+            vy_header.append(line)
+    vy_fmt = csq_format(vy_header)
+    tabix = subprocess.Popen(
+        ["tabix", golden, contig],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    state: dict[RecordKey, tuple[bool, bool, dict[str, list[str]]]] = {}
+    counts = collections.Counter()
+    with gzip.open(vepyr_vcf, "rt") as vy_fh:
+        gold_groups = _position_groups(tabix.stdout)
+        vy_groups = _position_groups(vy_fh)
+        g = next(gold_groups, None)
+        v = next(vy_groups, None)
+        while g is not None or v is not None:
+            if v is None or (g is not None and g[0] < v[0]):
+                gold, vy = g[1], {}
+                g = next(gold_groups, None)
+            elif g is None or v[0] < g[0]:
+                gold, vy = {}, v[1]
+                v = next(vy_groups, None)
+            else:
+                gold, vy = g[1], v[1]
+                g, v = next(gold_groups, None), next(vy_groups, None)
+            for k in list(gold) + [k for k in vy if k not in gold]:
+                key = (contig, k[0], k[2], k[3], k[1])
+                counts["records"] += 1
+                if k not in vy:
+                    counts["only_in_golden"] += 1
+                    state[key] = (False, False, {"RECORD": ["ONLY_IN_VEP"]})
+                    continue
+                if k not in gold:
+                    counts["only_in_vepyr"] += 1
+                    state[key] = (False, False, {"RECORD": ["ONLY_IN_VEPYR"]})
+                    continue
+                if gold[k] == vy[k] and gold_fmt == vy_fmt:
+                    counts["identical"] += 1
+                    if key in keep:
+                        state[key] = (True, False, {})
+                    continue
+                diffs, nondeterministic = entry_diffs(gold[k], vy[k], gold_fmt, vy_fmt)
+                if diffs:
+                    counts["differ"] += 1
+                else:
+                    counts["identical"] += 1
+                    counts["vep_nondeterministic"] += int(nondeterministic)
+                if diffs or nondeterministic or key in keep:
+                    state[key] = (not diffs, nondeterministic and not diffs, diffs)
+    if tabix.wait() != 0:
+        raise SystemExit(f"tabix {golden} {contig} failed")
+    return state, counts
+
+
 def vepyr_version(python: str) -> str:
     done = subprocess.run(
         [python, "-c", "import importlib.metadata as m; print(m.version('vepyr'))"],
@@ -267,13 +434,20 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
     return state
 
 
-def check_prev_scope(prev_progress: Path, contigs: list[str]) -> None:
-    """Deltas only mean something over the same panel contigs."""
+def check_prev_scope(
+    prev_progress: Path, contigs: list[str], mode: str = "panel"
+) -> None:
+    """Deltas only mean something over the same contigs and the same mode."""
     label = prev_progress.name[len("progress_") : -len(".tsv")]
     run = prev_progress.with_name(f"run_{label}.json")
     if not run.exists():
         raise SystemExit(f"--prev: {run} is missing, so its contig scope is unknown")
-    prev_contigs = json.loads(run.read_text()).get("contigs") or []
+    prev_run = json.loads(run.read_text())
+    if prev_run.get("mode", "panel") != mode:
+        raise SystemExit(
+            f"--prev is a {prev_run.get('mode', 'panel')} run, this run is {mode}"
+        )
+    prev_contigs = prev_run.get("contigs") or []
     if sorted(prev_contigs) != sorted(contigs):
         raise SystemExit(
             f"--prev covers contigs {prev_contigs}, this run {contigs}; "
@@ -303,7 +477,9 @@ def read_prev_entries(prev_progress: Path) -> dict[tuple, str] | None:
         }
 
 
-def build_progress(ledger, state, prev_progress_rows=None, prev_entries=None):
+def build_progress(
+    ledger, state, prev_progress_rows=None, prev_entries=None, excluded=EXCLUDED
+):
     """Aggregate per issue and collect the regression list."""
     by_record: dict[RecordKey, list[dict[str, str]]] = collections.defaultdict(list)
     for row in ledger:
@@ -313,7 +489,7 @@ def build_progress(ledger, state, prev_progress_rows=None, prev_entries=None):
     entries_out = []
     regressions = []
     for key, rows in by_record.items():
-        excluded = key[:2] in EXCLUDED
+        is_excluded = key[:2] in excluded
         identical, nondeterministic, diffs = state.get(
             key, (False, False, {"RECORD": ["NOT_RUN"]})
         )
@@ -329,13 +505,13 @@ def build_progress(ledger, state, prev_progress_rows=None, prev_entries=None):
                 fields_now = diffs.get(feature, [])
             state_now = (
                 "excluded"
-                if excluded
+                if is_excluded
                 else ("identical" if entry_identical else "differs")
             )
             entries_out.append(
                 (key, feature, state_now, ",".join(fields_now), row["issues"])
             )
-            if excluded:
+            if is_excluded:
                 continue
             for issue in [i for i in row["issues"].split(",") if i]:
                 agg = issues.setdefault(
@@ -368,7 +544,7 @@ def build_progress(ledger, state, prev_progress_rows=None, prev_entries=None):
                             row["issues"],
                         )
                     )
-        if excluded:
+        if is_excluded:
             continue
         # entries that differ now but were not differing in the triage baseline.
         # A "-" row is a record-level placeholder, not a claim that every
@@ -427,16 +603,19 @@ def fmt_key(key: RecordKey) -> str:
     return f"{contig}:{pos} {short(ref)}>{short(alt)} (ClinVar {cid})"
 
 
-def summary_markdown(label, table, state, ledger, regressions, meta) -> str:
+def summary_markdown(
+    label, table, state, ledger, regressions, meta, excluded=EXCLUDED
+) -> str:
     keys = {record_key(r) for r in ledger}
-    judged = [k for k in keys if k[:2] not in EXCLUDED]
+    judged = [k for k in keys if k[:2] not in excluded]
     identical = [k for k in judged if state.get(k, (False,))[0]]
     nondeterministic = sorted(k for k in judged if state.get(k, (False, False))[1])
     deferred = sorted(
         {record_key(r) for r in ledger for i in DEFERRED if i in r["issues"].split(",")}
     )
+    full = meta.get("mode") == "full-contig"
     lines = [
-        f"### ClinVar progress panel: `{label}`",
+        f"### ClinVar progress {'(full contigs vs the VEP 116.0 golden)' if full else 'panel'}: `{label}`",
         "",
         f"vepyr `{meta['vepyr_version']}`, cache `{meta['cache']}`, "
         f"{meta['records']:,} panel records ({len(judged):,} judged, {len(keys) - len(judged)} excluded). "
@@ -450,6 +629,19 @@ def summary_markdown(label, table, state, ledger, regressions, meta) -> str:
         )
         + f"; regressions: **{len(regressions)}**.",
         "",
+    ]
+    if full:
+        lines += [
+            "| Contig | ClinVar records | Identical to golden | Differ | Only in golden / vepyr |",
+            "|---|---:|---:|---:|---:|",
+        ]
+        for contig, c in meta["full_contig_counts"].items():
+            lines.append(
+                f"| chr{contig} | {c.get('records', 0):,} | {c.get('identical', 0):,} | "
+                f"{c.get('differ', 0):,} | {c.get('only_in_golden', 0)} / {c.get('only_in_vepyr', 0)} |"
+            )
+        lines += [""]
+    lines += [
         "| Issue | Repo | Records fixed / attributed | Entries fixed / attributed | Δ records vs prev | Note |",
         "|---|---|---:|---:|---:|---|",
     ]
@@ -475,12 +667,12 @@ def summary_markdown(label, table, state, ledger, regressions, meta) -> str:
             + "; ".join(fmt_key(k) for k in nondeterministic)
             + ".",
         ]
-    excluded = sorted(k for k in keys if k[:2] in EXCLUDED)
-    if excluded:
+    left_out = sorted(k for k in keys if k[:2] in excluded)
+    if left_out:
         lines += [
             "",
             "Excluded (per-record HGNC_ID differs from the full run): "
-            + "; ".join(fmt_key(k) for k in excluded)
+            + "; ".join(fmt_key(k) for k in left_out)
             + ".",
         ]
     if regressions:
@@ -504,6 +696,58 @@ def write_tsv(path: Path, header: list[str], rows) -> None:
         w = csv.writer(fh, delimiter="\t", lineterminator="\n")
         w.writerow(header)
         w.writerows(rows)
+
+
+def _annotate_all(args, vepyr_dir: Path) -> tuple[dict[str, float], float]:
+    timings: dict[str, float] = {}
+    start = time.perf_counter()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        if args.full_contig:
+            futures = {
+                pool.submit(
+                    annotate_full_contig,
+                    args.python,
+                    str(args.clinvar),
+                    args.cache,
+                    args.fasta,
+                    vepyr_dir / f"chr{c}.vcf.gz",
+                    c,
+                    args.workers,
+                ): c
+                for c in args.contigs
+            }
+        else:
+            futures = {
+                pool.submit(
+                    annotate_contig,
+                    args.python,
+                    args.panel,
+                    args.cache,
+                    args.fasta,
+                    vepyr_dir / f"chr{c}.vcf",
+                    c,
+                ): c
+                for c in args.contigs
+            }
+        for future in concurrent.futures.as_completed(futures):
+            name = f"chr{futures[future]}"
+            timings[name] = round(future.result(), 2)
+            print(f"  annotated {name} in {timings[name]:.1f} s", flush=True)
+    return timings, time.perf_counter() - start
+
+
+def read_prev_records(prev_progress: Path) -> set[RecordKey]:
+    """Differing records of a previous full-contig run (records_<label>.tsv)."""
+    label = prev_progress.name[len("progress_") : -len(".tsv")]
+    path = prev_progress.with_name(f"records_{label}.tsv")
+    if not path.exists():
+        raise SystemExit(f"--prev: {path} is missing (not a --full-contig run?)")
+    with open(path) as fh:
+        return {
+            (r["contig"], r["pos"], r["ref"], r["alt"], r["clinvar_id"])
+            for r in csv.DictReader(fh, delimiter="\t")
+            if r["state"] == "differs"
+        }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -536,14 +780,33 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--contigs",
         nargs="+",
-        default=CONTIGS,
-        help="Subset of panel contigs (1..22, X, MT).",
+        help="Contigs to run (1..22, X, MT). Default: the whole panel; "
+        "required with --full-contig.",
+    )
+    p.add_argument(
+        "--full-contig",
+        action="store_true",
+        help="Annotate every ClinVar record of --contigs and compare with the "
+        "full VEP 116.0 golden instead of the panel.",
+    )
+    p.add_argument("--clinvar", type=Path, default=DEFAULT_CLINVAR)
+    p.add_argument("--golden", type=Path, default=DEFAULT_GOLDEN)
+    p.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="vepyr workers per contig in --full-contig mode (the panel always uses 1).",
+    )
+    p.add_argument(
+        "--keep-outputs",
+        action="store_true",
+        help="--full-contig: keep the vepyr output (deleted after the comparison by default).",
     )
     p.add_argument(
         "--jobs",
         type=int,
         default=1,
-        help="Contigs annotated at once (each with workers=1).",
+        help="Contigs annotated at once.",
     )
     p.add_argument(
         "--skip-annotate",
@@ -554,40 +817,29 @@ def main(argv: list[str] | None = None) -> int:
 
     if not re.fullmatch(r"[A-Za-z0-9._-]+", args.label):
         p.error("--label may only hold letters, digits, '.', '_' and '-'")
+    if args.full_contig and not args.contigs:
+        p.error("--full-contig needs an explicit --contigs list")
+    if not args.full_contig and args.workers != 1:
+        p.error("the panel runs with workers=1; --workers is for --full-contig")
+    args.contigs = args.contigs or CONTIGS
+    unknown = sorted(set(args.contigs) - set(CONTIGS))
+    if unknown:
+        p.error(f"unknown contigs {unknown}")
+    mode = "full-contig" if args.full_contig else "panel"
     t0 = time.perf_counter()
     out = args.out or args.panel / "progress"
     vepyr_dir = out / f"vepyr_{args.label}"
     vepyr_dir.mkdir(parents=True, exist_ok=True)
 
-    timings: dict[str, float] = {}
-    annotate_seconds = 0.0
     if not args.skip_annotate:
-        start = time.perf_counter()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            futures = {
-                pool.submit(
-                    annotate_contig,
-                    args.python,
-                    args.panel,
-                    args.cache,
-                    args.fasta,
-                    vepyr_dir / f"chr{c}.vcf",
-                    c,
-                ): c
-                for c in args.contigs
-            }
-            for future in concurrent.futures.as_completed(futures):
-                timings[f"chr{futures[future]}"] = round(future.result(), 2)
-                print(
-                    f"  annotated chr{futures[future]} in {timings[f'chr{futures[future]}']:.1f} s",
-                    flush=True,
-                )
-        annotate_seconds = time.perf_counter() - start
+        timings, annotate_seconds = _annotate_all(args, vepyr_dir)
         provenance = {
             "vepyr_version": vepyr_version(args.python),
             "python": args.python,
             "cache": args.cache,
             "fasta": args.fasta,
+            "mode": mode,
+            "workers": args.workers,
             "contigs": args.contigs,
             "annotate_seconds": round(annotate_seconds, 1),
             "annotate_seconds_per_contig": timings,
@@ -609,21 +861,96 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(
                 f"--skip-annotate: {vepyr_dir} was not annotated for contigs {missing}"
             )
+        if provenance.get("mode", "panel") != mode:
+            raise SystemExit(
+                f"--skip-annotate: {vepyr_dir} holds a {provenance.get('mode', 'panel')} run"
+            )
         timings = provenance.get("annotate_seconds_per_contig", {})
         annotate_seconds = provenance.get("annotate_seconds", 0.0)
 
     ledger = [
         r for r in load_ledger(args.panel / "ledger.tsv") if r["contig"] in args.contigs
     ]
-    state = evaluate(args.panel, vepyr_dir, args.contigs)
+    full_counts: dict[str, dict] = {}
+    if args.full_contig:
+        keep = {record_key(r) for r in ledger}
+        state = {}
+        for c in args.contigs:
+            vy = vepyr_dir / f"chr{c}.vcf.gz"
+            contig_state, counts = evaluate_full(c, str(args.golden), vy, keep)
+            state.update(contig_state)
+            full_counts[c] = dict(counts)
+            if not args.keep_outputs:
+                vy.unlink()
+        excluded: set = set()
+    else:
+        state = evaluate(args.panel, vepyr_dir, args.contigs)
+        excluded = EXCLUDED
     prev_rows = None
     prev_entries = None
+    prev_records = None
     if args.prev:
-        check_prev_scope(args.prev, args.contigs)
+        check_prev_scope(args.prev, args.contigs, mode)
         with open(args.prev) as fh:
             prev_rows = list(csv.DictReader(fh, delimiter="\t"))
         prev_entries = read_prev_entries(args.prev)
-    table, entries, regressions = build_progress(ledger, state, prev_rows, prev_entries)
+        if args.full_contig:
+            prev_records = read_prev_records(args.prev)
+    table, entries, regressions = build_progress(
+        ledger, state, prev_rows, prev_entries, excluded
+    )
+    if args.full_contig:
+        # Records outside the ledger were identical in the triage; with --prev,
+        # every record outside its differing set was identical there.
+        ledger_keys = {record_key(r) for r in ledger}
+        for key, (identical, _, diffs) in sorted(state.items()):
+            if identical or key in ledger_keys:
+                continue
+            fields = ",".join(sorted({f for fs in diffs.values() for f in fs}))
+            features = ",".join(diffs)
+            if prev_records is not None:
+                if key not in prev_records:
+                    regressions.append(
+                        (
+                            key,
+                            features,
+                            "record differs now, identical in --prev",
+                            fields,
+                            "",
+                        )
+                    )
+            else:
+                regressions.append(
+                    (
+                        key,
+                        features,
+                        "record differs now, identical in the triage",
+                        fields,
+                        "",
+                    )
+                )
+        write_tsv(
+            out / f"records_{args.label}.tsv",
+            [
+                "contig",
+                "pos",
+                "ref",
+                "alt",
+                "clinvar_id",
+                "state",
+                "features",
+                "fields",
+            ],
+            (
+                [
+                    *k,
+                    "identical" if ident else "differs",
+                    ",".join(d),
+                    ",".join(sorted({f for fs in d.values() for f in fs})),
+                ]
+                for k, (ident, _, d) in sorted(state.items())
+            ),
+        )
 
     columns = [
         "issue",
@@ -672,20 +999,23 @@ def main(argv: list[str] | None = None) -> int:
     )
     meta = {
         "label": args.label,
+        "mode": mode,
         "vepyr_version": provenance["vepyr_version"],
         "python": provenance["python"],
         "cache": provenance["cache"],
         "annotation_reused": bool(args.skip_annotate),
         "panel": str(args.panel),
+        "golden": str(args.golden) if args.full_contig else None,
         "prev": str(args.prev) if args.prev else None,
         "contigs": args.contigs,
         "records": len({record_key(r) for r in ledger}),
+        "full_contig_counts": full_counts,
         "annotate_seconds": round(annotate_seconds, 1),
         "annotate_seconds_per_contig": timings,
         "total_seconds": round(time.perf_counter() - t0, 1),
     }
     (out / f"summary_{args.label}.md").write_text(
-        summary_markdown(args.label, table, state, ledger, regressions, meta)
+        summary_markdown(args.label, table, state, ledger, regressions, meta, excluded)
     )
     (out / f"run_{args.label}.json").write_text(json.dumps(meta, indent=1) + "\n")
     print((out / f"summary_{args.label}.md").read_text())
