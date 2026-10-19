@@ -295,9 +295,12 @@ Percent-encoded values (VCF 4.3 §1.2; ClinVar writes a `;` inside a disease nam
 as `%3B`) are decoded in the LazyFrame and encoded again in the VCF that
 `output_vcf` and the CLI write, so the reserved characters come back as they
 were: `%3B`, `%3D`, `%2C`, `%25` in `INFO`, `%3A`, `%2C`, `%25` in the sample
-columns, and the line controls (`%09`, `%0D`, `%0A`) in both. An escape of a
-character that needs none comes back decoded: `%20` as a space, `%2B` as a `+`,
-and a `%3B` in a sample column, where `;` separates nothing, as a `;`. A
+columns, and the line controls (`%09`, `%0D`, `%0A`) in both. Under a header
+older than VCF 4.3, which allows no whitespace in `INFO` (ClinVar declares
+`VCFv4.1`), a space in `INFO` comes back as `%20` too. An escape of a character
+that needs none comes back decoded: `%2B` as a `+`, `%20` as a space from VCF 4.3
+on, which allows spaces, and a `%3B` in a sample column, where `;` separates
+nothing, as a `;`. A
 lower-case escape comes back upper-cased, and a literal `%` that starts no escape
 (valid before VCF 4.3) comes back as `%25`, because the reader gives `50%` and
 `50%25` the same value. Ensembl VEP keeps those bytes as they were

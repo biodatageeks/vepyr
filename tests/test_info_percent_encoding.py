@@ -10,6 +10,10 @@ written back raw, a `;` ends the INFO field early and a `,` adds a list element.
 CSQ is the engine's own, already escaped by the VEP rules (`p.Ala125%3D`), so
 it must not be encoded a second time.
 
+Before VCF 4.3 an INFO value may hold no whitespace, so under a 4.1 or 4.2
+header (ClinVar declares 4.1) a space decoded from `%20` is encoded again. VCF
+4.3 allows spaces, and there they stay literal.
+
 The input is the committed HG002 chr22 fixture's cache and FASTA, with
 chr22:16592176 A>G: a synonymous change, so its CSQ carries `%3D` itself.
 """
@@ -38,8 +42,7 @@ pytestmark = pytest.mark.skipif(
     bool(_MISSING), reason=f"hg002_chr22 fixture not fetched from LFS: {_MISSING}"
 )
 
-HEADER = """##fileformat=VCFv4.2
-##contig=<ID=chr22>
+HEADER = """##contig=<ID=chr22>
 ##INFO=<ID=CLNDN,Number=.,Type=String,Description="Disease names">
 ##INFO=<ID=CLNVI,Number=.,Type=String,Description="Variant identifiers">
 ##INFO=<ID=GENEINFO,Number=1,Type=String,Description="Gene">
@@ -62,33 +65,40 @@ RESERVED = [
     ("GENEINFO=tab%09here;P=cr%0Dlf%0A", "0/1:t%09"),
 ]
 
+# An escaped space, in a scalar and in a list element (ClinVar 51220,
+# `CLNVI=...base_change%3Dins%20A`).
+ESCAPED_SPACE = ("GENEINFO=base_change%3Dins%20A;CLNVI=a%20b,c;P=x", "0/1:x")
+
 # Input bytes the writer cannot restore, because the reader already decoded
-# them: an escape of a character that needs none (`%20`, `%2B`, and `%3B` in a
-# sample column, where `;` separates nothing) comes back decoded, a lower-case
-# escape comes back upper-cased, and a literal `%` that starts no escape (valid
-# before VCF 4.3) comes back as `%25`. Exact bytes need the raw input text
-# carried through, the #207 follow-up (#252). One case each, so a partial
-# follow-up shows up as an XPASS.
+# them: an escape of a character that needs none (`%2B`, `%20` under a VCF 4.3
+# header, which allows a space, and `%3B` in a sample column, where `;`
+# separates nothing) comes back decoded, a lower-case escape comes back
+# upper-cased, and a literal `%` that starts no escape (valid before VCF 4.3)
+# comes back as `%25`. Exact bytes need the raw input text carried through, the
+# #207 follow-up (#252). One case each, as (fileformat, INFO, sample), so a
+# partial follow-up shows up as an XPASS.
 UNRESTORABLE = {
-    "space": ("GENEINFO=base_change%3Dins%20A;P=x", "0/1:x"),
-    "plus": ("GENEINFO=a%2Bb;P=x", "0/1:x"),
-    "lower_case": ("GENEINFO=a%3bb;P=x", "0/1:x"),
-    "format_semicolon": ("GENEINFO=x;P=x", "0/1:p%3Bq"),
-    "literal_percent": ("GENEINFO=x;P=50%", "0/1:x"),
+    "space_from_vcf_4_3": ("VCFv4.3", "GENEINFO=base_change%3Dins%20A;P=x", "0/1:x"),
+    "plus": ("VCFv4.2", "GENEINFO=a%2Bb;P=x", "0/1:x"),
+    "lower_case": ("VCFv4.2", "GENEINFO=a%3bb;P=x", "0/1:x"),
+    "format_semicolon": ("VCFv4.2", "GENEINFO=x;P=x", "0/1:p%3Bq"),
+    "literal_percent": ("VCFv4.2", "GENEINFO=x;P=50%", "0/1:x"),
 }
 
 
-def _vcf(records: list[tuple[str, str]]) -> str:
+def _vcf(records: list[tuple[str, str]], file_format: str) -> str:
     lines = [
         f"chr22\t16592176\tp{i}\tA\tG\t.\t.\t{info}\tGT:FS\t{sample}\n"
         for i, (info, sample) in enumerate(records, 1)
     ]
-    return HEADER + "".join(lines)
+    return f"##fileformat={file_format}\n" + HEADER + "".join(lines)
 
 
-def _annotate_vcf(tmp_path: Path, records: list[tuple[str, str]]) -> list[list[str]]:
+def _annotate_vcf(
+    tmp_path: Path, records: list[tuple[str, str]], file_format: str = "VCFv4.2"
+) -> list[list[str]]:
     src = tmp_path / "input.vcf"
-    src.write_text(_vcf(records))
+    src.write_text(_vcf(records, file_format))
     out = tmp_path / "output.vcf"
     vepyr.annotate(
         str(src),
@@ -130,7 +140,7 @@ def test_csq_is_not_encoded_a_second_time(tmp_path):
 
 def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
     src = tmp_path / "input.vcf"
-    src.write_text(_vcf(RESERVED))
+    src.write_text(_vcf(RESERVED, "VCFv4.2"))
     df = vepyr.annotate(
         str(src), str(CACHE), reference_fasta=str(FASTA), show_progress=False
     ).collect()
@@ -140,6 +150,20 @@ def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
     assert df["P"].to_list() == ["50%", "100%", "cr\rlf\n"]
 
 
+@pytest.mark.parametrize("file_format", ["VCFv4.1", "VCFv4.2"])
+def test_an_escaped_space_is_written_back_before_vcf_4_3(tmp_path, file_format):
+    (written,) = _annotate_vcf(tmp_path, [ESCAPED_SPACE], file_format)
+
+    assert (_input_info(written), written[9]) == ESCAPED_SPACE
+
+
+def test_a_literal_space_stays_literal_from_vcf_4_3(tmp_path):
+    record = ("GENEINFO=base_change%3Dins A;CLNVI=a b,c;P=x", "0/1:x")
+    (written,) = _annotate_vcf(tmp_path, [record], "VCFv4.3")
+
+    assert (_input_info(written), written[9]) == record
+
+
 @pytest.mark.xfail(
     strict=True,
     reason="vepyr#252: escapes the writer does not re-encode need the raw input "
@@ -147,7 +171,7 @@ def test_the_lazyframe_keeps_the_decoded_values(tmp_path):
 )
 @pytest.mark.parametrize("case", sorted(UNRESTORABLE))
 def test_unrestorable_escapes_are_written_back_byte_for_byte(tmp_path, case):
-    record = UNRESTORABLE[case]
-    (written,) = _annotate_vcf(tmp_path, [record])
+    file_format, *record = UNRESTORABLE[case]
+    (written,) = _annotate_vcf(tmp_path, [tuple(record)], file_format)
 
-    assert (_input_info(written), written[9]) == record
+    assert (_input_info(written), written[9]) == tuple(record)

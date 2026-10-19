@@ -234,6 +234,16 @@ Go-ahead: 2026-10-18 ("proceed with #207").
   with a branch-free fold over 32-byte chunks the compiler vectorizes (~0.05 ns/byte),
   and writes a column with no reserved character exactly as before. FORMAT values keep
   the per-value scan: GT is their only string on HG002.
+- **A space in INFO under a header before VCF 4.3** (formats `e52af5c`, functions
+  `7dcef7a`; asked for by the maintainer on 2026-10-19 after the hand-off). VCF 4.1 and
+  4.2 allow no whitespace in an INFO value, and 4.3 allows spaces. Writing a space
+  decoded from `%20` back as a plain space made ClinVar 51220 differ from VEP and broke
+  the 4.1 its header declares. The serializer now takes the version the header writes
+  (`header_file_format`, resolved exactly as the header writer resolves it) and, before
+  4.3, escapes the space too. FORMAT is unchanged: 4.1 and 4.2 give sample values no
+  whitespace rule. ClinVar 20261011 has no literal space in INFO and HG002 none at all,
+  so neither gate input can lose a byte this way. Left for #252: ClinVar 125781 and
+  125779 (chr17), whose CLNVI holds both `%2B` and a literal `+`.
 
 ## 9a. Execution layout
 
