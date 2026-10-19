@@ -211,7 +211,8 @@ def entry_diffs(
             # Aggregate: two entries can share a feature (another Allele).
             out.setdefault(feature, [])
             out[feature] += [f for f in fields if f not in out[feature]]
-    if not out and [k for k in ea if k in eb] != [k for k in eb if k in ea]:
+    # Independent of field differences: a reordering is a difference too.
+    if [k for k in ea if k in eb] != [k for k in eb if k in ea]:
         out["ORDER"] = ["CSQ_ORDER"]
     return out, nondeterministic
 

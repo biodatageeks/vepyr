@@ -702,3 +702,11 @@ def test_a_persistently_missing_record_is_not_reported_again(tmp_path):
     assert prev[("1", "200", "G", "A", "b", "RECORD")] == "differs"
     _, _, again = cp.build_progress(ledger, state, [], prev)
     assert [r for r in again if r[0][1] == "200"] == []
+
+
+def test_csq_order_is_reported_next_to_field_differences():
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|m|T1|p.X|,A|i|T2||").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|i|T2||,A|n|T1|p.X|").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["Consequence"], "ORDER": ["CSQ_ORDER"]}
