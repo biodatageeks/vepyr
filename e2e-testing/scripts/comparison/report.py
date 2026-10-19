@@ -227,6 +227,7 @@ def aggregate_mismatches(reports):
     field_mm = defaultdict(int)
     field_order = defaultdict(int)
     field_format = defaultdict(int)
+    field_vep_nondeterministic = defaultdict(int)
     field_examples = defaultdict(list)
 
     total_compared = 0
@@ -266,6 +267,8 @@ def aggregate_mismatches(reports):
             field_order[f] += c
         for f, c in comp.get("field_format_mismatch_counts", {}).items():
             field_format[f] += c
+        for f, c in comp.get("field_vep_nondeterministic_counts", {}).items():
+            field_vep_nondeterministic[f] += c
         for f, exs in comp.get("field_mismatch_examples", {}).items():
             for ex in exs:
                 ex["source_chrom"] = r["chrom"]
@@ -276,6 +279,7 @@ def aggregate_mismatches(reports):
         "field_mm": field_mm,
         "field_order": field_order,
         "field_format": field_format,
+        "field_vep_nondeterministic": field_vep_nondeterministic,
         "field_examples": field_examples,
         "total_compared": total_compared,
         "total_csq_match": total_csq_match,
@@ -636,6 +640,15 @@ def generate_markdown(
             f"- **{n_order} fields** with order-only differences, "
             f"**{total_order:,} total** — absorbed into the match rates above, "
             f"so the output is **not** byte-identical"
+        )
+    nondeterministic = agg.get("field_vep_nondeterministic", {})
+    total_nondeterministic = sum(nondeterministic.values())
+    if total_nondeterministic:
+        lines.append(
+            f"- **{total_nondeterministic:,} CLIN_SIG values** (counted per CSQ "
+            "entry, not per record) differ only in "
+            "VEP's random `%3B` order (vepyr#238) — VEP-nondeterministic, "
+            "compared with the groups sorted, and not counted as plain matches"
         )
     if old_mm is not None:
         old_total = sum(old_mm.values())

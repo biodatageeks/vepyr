@@ -23,6 +23,9 @@ EQUALITY_BUCKETS = (
     "vep_empty_only",
     "both_nonempty_unequal",
 )
+# vepyr#238: the only CSQ field whose VEP value is written in random order.
+VEP_NONDETERMINISTIC_FIELDS = frozenset({"CLIN_SIG"})
+
 ZERO_KEYS = (
     "variants_only_in_vepyr",
     "variants_only_in_vep",
@@ -204,6 +207,18 @@ def _validate_equality_counts(
     mismatch_counts = comparison.get("field_mismatch_counts", {})
     order_counts = comparison.get("field_order_mismatch_counts", {})
     format_counts = comparison.get("field_format_mismatch_counts", {})
+    # vepyr#238: CLIN_SIG values that differ only in VEP's random %3B order are
+    # unequal bytes but no vepyr difference. They have their own counter, which
+    # only CLIN_SIG may carry.
+    nondeterministic_counts = comparison.get("field_vep_nondeterministic_counts", {})
+    if not isinstance(nondeterministic_counts, dict):
+        raise GateError(f"{contig}: malformed field_vep_nondeterministic_counts")
+    unexpected = set(nondeterministic_counts) - VEP_NONDETERMINISTIC_FIELDS
+    if unexpected:
+        raise GateError(
+            f"{contig}: VEP-nondeterministic counts for fields other than "
+            f"{sorted(VEP_NONDETERMINISTIC_FIELDS)}: {sorted(unexpected)}"
+        )
     for field, counts in per_field.items():
         if not isinstance(counts, dict) or set(counts) != set(EQUALITY_BUCKETS):
             raise GateError(f"{contig}/{field}: incomplete equality buckets")
@@ -229,12 +244,16 @@ def _validate_equality_counts(
         format_only = _require_nonnegative_int(
             format_counts.get(field, 0), f"{contig}/{field}/format-only"
         )
-        accounted = mismatches + order_only + format_only
+        nondeterministic = _require_nonnegative_int(
+            nondeterministic_counts.get(field, 0),
+            f"{contig}/{field}/vep-nondeterministic",
+        )
+        accounted = mismatches + order_only + format_only + nondeterministic
         if accounted != strict_unequal:
             raise GateError(
                 f"{contig}/{field}: equality buckets imply {strict_unequal} unequal "
-                f"values but mismatch + order-only + format-only counts are "
-                f"{accounted}"
+                f"values but mismatch + order-only + format-only + "
+                f"VEP-nondeterministic counts are {accounted}"
             )
 
     for bucket in EQUALITY_BUCKETS:
@@ -515,6 +534,15 @@ def validate_reports(
     if nonzero:
         detail = ", ".join(f"{key}={count}" for key, count in nonzero.items())
         raise GateError(f"parity gate failed: {detail}")
+    # Reported, never failing: VEP's own output varies here between runs, so no
+    # vepyr output could remove these (vepyr#238). Validated per field above.
+    totals["field_vep_nondeterministic_total"] = sum(
+        count
+        for value in reports
+        for count in value["comparison"]
+        .get("field_vep_nondeterministic_counts", {})
+        .values()
+    )
     return totals
 
 
