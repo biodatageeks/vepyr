@@ -187,6 +187,11 @@ def entry_diffs(
     nondeterministic = False
     if rest_a != rest_b:
         out["INFO"] = ["INFO"]
+    # A field one header declares and the other does not is a difference on
+    # every record, even where VEP's value is empty.
+    schema = sorted(set(vep_fmt) ^ set(vepyr_fmt))
+    if schema:
+        out["CSQ_FORMAT"] = schema
     for key in list(ea) + [k for k in eb if k not in ea]:
         feature = key[1]
         if key not in eb:

@@ -710,3 +710,12 @@ def test_csq_order_is_reported_next_to_field_differences():
     vepyr = rec("1", 1, "x", "A|i|T2||,A|n|T1|p.X|").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"T1": ["Consequence"], "ORDER": ["CSQ_ORDER"]}
+
+
+def test_a_missing_csq_column_is_a_difference_even_when_vep_is_empty():
+    fmt = FORMAT.split("|")
+    short = [f for f in fmt if f != "CLIN_SIG"]
+    vep = rec("1", 1, "x", "A|m|T1|p.X|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|m|T1|p.X").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, short)
+    assert diffs == {"CSQ_FORMAT": ["CLIN_SIG"]}
