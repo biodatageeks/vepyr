@@ -278,26 +278,25 @@ def annotate_full_contig(
 ) -> float:
     """Annotate every ClinVar record of `contig`, as the golden's input held it.
 
-    The golden was made from the release with ALT="." records removed
-    (e2e/clinvar-parity README, section 2); nothing else differs per record.
+    Same preprocessing as the golden's input (e2e/clinvar-parity README,
+    section 2): ALT="." records removed, then `bcftools norm -m -both` with no
+    left-alignment. ClinVar 20261011 has no multiallelic record, so the split
+    is a no-op there, but it keeps the two inputs on one procedure.
     """
     start = time.perf_counter()
     sliced = out.with_name(f"chr{contig}.in.vcf.gz")
-    subprocess.run(
-        [
-            "bcftools",
-            "view",
-            "-e",
-            'ALT="."',
-            "-r",
-            contig,
-            clinvar,
-            "-Oz",
-            "-o",
-            str(sliced),
-        ],
-        check=True,
+    view = subprocess.Popen(
+        ["bcftools", "view", "-e", 'ALT="."', "-r", contig, clinvar, "-Ou"],
+        stdout=subprocess.PIPE,
     )
+    norm = subprocess.run(
+        ["bcftools", "norm", "-m", "-both", "-Oz", "-o", str(sliced)],
+        stdin=view.stdout,
+    )
+    view.stdout.close()
+    if view.wait() != 0 or norm.returncode != 0:
+        sliced.unlink(missing_ok=True)
+        raise SystemExit(f"slicing chr{contig} from {clinvar} failed")
     # annotate(workers > 1) needs a tabix-indexed input.
     subprocess.run(["tabix", "-f", "-p", "vcf", str(sliced)], check=True)
     try:
@@ -415,6 +414,7 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
         tabix.stdout.close()
         tabix.terminate()
         tabix.wait()
+        stderr.close()
         raise
     tabix.stdout.close()
     code = tabix.wait()
@@ -912,6 +912,9 @@ def main(argv: list[str] | None = None) -> int:
                 "(full-contig outputs are kept only with --keep-outputs)"
             )
     if not args.skip_annotate:
+        # A run that fails partway must not leave an older run's provenance
+        # next to its partial outputs.
+        (vepyr_dir / "annotation.json").unlink(missing_ok=True)
         timings, annotate_seconds = _annotate_all(args, vepyr_dir)
         provenance = {
             "vepyr_version": vepyr_version(args.python),
