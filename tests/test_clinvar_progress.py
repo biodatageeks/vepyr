@@ -262,7 +262,7 @@ def test_prev_with_another_contig_scope_is_rejected(tmp_path):
         str(out),
         "--skip-annotate",
     ]
-    assert cp.main([*base, "--label", "R0", "--contigs", "1", "20"]) == 0
+    assert cp.main([*base, "--label", "R0", "--contigs", "1"]) == 0
     with pytest.raises(SystemExit, match="same --contigs"):
         cp.main(
             [
@@ -271,6 +271,7 @@ def test_prev_with_another_contig_scope_is_rejected(tmp_path):
                 "R0",
                 "--contigs",
                 "1",
+                "20",
                 "--prev",
                 str(out / "progress_R0.tsv"),
             ]
@@ -487,3 +488,41 @@ def test_full_contig_slice_drops_alt_dot_and_splits_multiallelics(tmp_path):
     assert (
         sorted(p.name for p in tmp_path.iterdir() if p.name.startswith("chr1.in")) == []
     )
+
+
+def test_issues_narrows_contigs_and_table(tmp_path):
+    panel = make_panel(tmp_path)
+    out = tmp_path / "out"
+    (out / "vepyr_T").mkdir(parents=True)
+    (out / "vepyr_T" / "chr1.vcf").write_text(
+        (tmp_path / "vepyr" / "chr1.vcf").read_text()
+    )
+    (out / "vepyr_T" / "annotation.json").write_text(
+        '{"vepyr_version": "x", "python": "py", "cache": "/c", "contigs": ["1"]}'
+    )
+    args = [
+        "--python",
+        sys.executable,
+        "--cache",
+        "/c",
+        "--panel",
+        str(panel),
+        "--out",
+        str(out),
+        "--skip-annotate",
+        "--label",
+        "T",
+        "--issues",
+        "211",
+        "#212",
+    ]
+    assert cp.main(args) == 0
+    run = json.loads((out / "run_T.json").read_text())
+    assert run["contigs"] == ["1"]  # chr20 holds only #202
+    assert run["issues"] == ["vepyr#211", "vepyr#212"]
+    issues = [
+        r["issue"] for r in csv.DictReader(open(out / "progress_T.tsv"), delimiter="\t")
+    ]
+    assert issues == ["vepyr#211", "vepyr#212"]
+    with pytest.raises(SystemExit):
+        cp.main([*args[:-2], "999"])

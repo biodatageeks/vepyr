@@ -225,6 +225,14 @@ def record_key(row: dict[str, str]) -> RecordKey:
     return (row["contig"], row["pos"], row["ref"], row["alt"], row["clinvar_id"])
 
 
+def normalize_issue(issue: str) -> str:
+    """'211', '#211' and 'vepyr#211' name the same issue; other repos keep their prefix."""
+    issue = issue.strip()
+    if re.fullmatch(r"#?\d+", issue):
+        return f"vepyr#{issue.lstrip('#')}"
+    return issue
+
+
 def issue_order(issue: str) -> tuple[int, str]:
     number = re.search(r"(\d+)$", issue)
     return (int(number.group(1)) if number else 0, issue)
@@ -490,10 +498,12 @@ def check_prev_scope(
             f"--prev is a {prev_run.get('mode', 'panel')} run, this run is {mode}"
         )
     prev_contigs = prev_run.get("contigs") or []
-    if sorted(prev_contigs) != sorted(contigs):
+    # A wider --prev is fine (a targeted run against the full R0): deltas are
+    # then printed only for issues whose records all lie in this run.
+    if not set(contigs) <= set(prev_contigs):
         raise SystemExit(
             f"--prev covers contigs {prev_contigs}, this run {contigs}; "
-            "deltas need the same --contigs"
+            "deltas need --prev to cover every contig of this run (same --contigs)"
         )
 
 
@@ -555,7 +565,9 @@ def build_progress(
             )
             if is_excluded:
                 continue
-            for issue in [i for i in row["issues"].split(",") if i]:
+            row_issues = [i for i in row["issues"].split(",") if i]
+            row_repos = row["repos"].split(",")
+            for n, issue in enumerate(row_issues):
                 agg = issues.setdefault(
                     issue,
                     {
@@ -566,7 +578,11 @@ def build_progress(
                         "entries_identical": 0,
                     },
                 )
-                agg["repos"] |= {r for r in row["repos"].split(",") if r}
+                # repos is aligned with issues; one issue's repos joined by "+"
+                repo = (
+                    row_repos[n] if len(row_repos) == len(row_issues) else row["repos"]
+                )
+                agg["repos"] |= {r for r in re.split(r"[+,]", repo) if r and r != "-"}
                 agg["records"].add(key)
                 if identical:
                     agg["records_identical"].add(key)
@@ -848,6 +864,12 @@ def main(argv: list[str] | None = None) -> int:
         "required with --full-contig.",
     )
     p.add_argument(
+        "--issues",
+        nargs="+",
+        help="Report only these issues (211, vepyr#211, functions#143). Without "
+        "--contigs, runs only the contigs that hold their records.",
+    )
+    p.add_argument(
         "--full-contig",
         action="store_true",
         help="Annotate every ClinVar record of --contigs and compare with the "
@@ -886,6 +908,23 @@ def main(argv: list[str] | None = None) -> int:
         p.error("--full-contig needs an explicit --contigs list")
     if not args.full_contig and args.workers != 1:
         p.error("the panel runs with workers=1; --workers is for --full-contig")
+    wanted_issues = None
+    if args.issues:
+        wanted_issues = {normalize_issue(i) for i in args.issues}
+        ledger_all = load_ledger(args.panel / "ledger.tsv")
+        carrying = {
+            r["contig"]
+            for r in ledger_all
+            if wanted_issues & set(r["issues"].split(","))
+        }
+        unknown_issues = sorted(
+            wanted_issues - {i for r in ledger_all for i in r["issues"].split(",")}
+        )
+        if unknown_issues:
+            p.error(f"no ledger rows for issues {unknown_issues}")
+        if not args.contigs:
+            # Only the contigs that hold a record of these issues.
+            args.contigs = [c for c in CONTIGS if c in carrying]
     args.contigs = args.contigs or CONTIGS
     unknown = sorted(set(args.contigs) - set(CONTIGS))
     if unknown:
@@ -975,6 +1014,18 @@ def main(argv: list[str] | None = None) -> int:
     table, entries, regressions = build_progress(
         ledger, state, prev_rows, prev_entries, excluded
     )
+    if prev_rows is not None:
+        ledger_contigs = collections.defaultdict(set)
+        for r in load_ledger(args.panel / "ledger.tsv"):
+            for i in r["issues"].split(","):
+                ledger_contigs[i].add(r["contig"])
+        for row in table:
+            if not ledger_contigs[row["issue"]] <= set(args.contigs):
+                row["delta_vs_prev"] = ""  # this run sees only part of the issue
+    if wanted_issues:
+        # The table narrows to the issues asked for. Regressions stay complete:
+        # a fix for one issue can break a record of another.
+        table = [r for r in table if r["issue"] in wanted_issues]
     if args.full_contig:
         # Records outside the ledger were identical in the triage; with --prev,
         # every record outside its differing set was identical there.
@@ -1084,6 +1135,7 @@ def main(argv: list[str] | None = None) -> int:
         "golden": str(args.golden) if args.full_contig else None,
         "prev": str(args.prev) if args.prev else None,
         "contigs": args.contigs,
+        "issues": sorted(wanted_issues) if wanted_issues else None,
         "records": len({record_key(r) for r in ledger}),
         "full_contig_counts": full_counts,
         "annotate_seconds": round(annotate_seconds, 1),
