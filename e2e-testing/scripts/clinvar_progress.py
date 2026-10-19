@@ -14,7 +14,9 @@ compares each record with VEP strictly and each CSQ entry field by field, joins
 the result with the ledger and writes, under ``--out``:
 
   progress_<label>.tsv     per issue: records/entries attributed and now identical
-  entries_<label>.tsv      per (record, entry): its state now, read back by --prev
+  entries_<label>.tsv      per (record, feature): its state and differing fields
+                           now, for ledger features, unledgered ones and RECORD
+                           rows; read back by --prev
   regressions_<label>.tsv  entries that differ now but did not before, and
                            attributed entries that now differ in other fields
   summary_<label>.md       a block ready to paste into the tracking issue (#240)
@@ -61,6 +63,7 @@ import concurrent.futures
 import csv
 import gzip
 import hashlib
+import itertools
 import json
 import os
 from pathlib import Path
@@ -100,7 +103,6 @@ NOTES = {
 # disagree on what counts as VEP's random %3B order.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from comparison.compare import (  # noqa: E402
-    CLIN_SIG_FIELD,
     _clin_sig_order_equivalent,
     _pairing_value,
 )
@@ -140,11 +142,6 @@ def csq_format(header: list[str]) -> list[str]:
             if match:
                 return match.group(1).split("|")
     raise ValueError("no ##INFO=<ID=CSQ ... Format: ...> header line")
-
-
-def sort_clin_sig(value: str) -> str:
-    """CLIN_SIG with its %3B groups sorted; the '&' order inside a group stays."""
-    return _pairing_value(CLIN_SIG_FIELD, value)
 
 
 def split_record(line: str, fmt: list[str]):
@@ -190,26 +187,36 @@ def _pair_group(left, right, fields):
         else:
             remaining.remove(match)
             pairs.append((item, match))
-    # The rest pair by similarity (most equal fields; ties keep CSQ order),
-    # so changed duplicates that also moved are not cross-paired.
-    unpaired = []
-    for item in left_rest:
-        if not remaining:
-            unpaired.append(item)
-            continue
+
+    # The rest pair by similarity: the assignment with the most equal fields
+    # over the whole group (ties keep CSQ order), so changed duplicates that
+    # also moved are not cross-paired. Groups are tiny; larger ones fall back
+    # to a greedy pass.
+    def score(a, b):
+        return sum(
+            _pairing_value(n, a[1].get(n, "")) == _pairing_value(n, b[1].get(n, ""))
+            for n in fields
+        )
+
+    k = min(len(left_rest), len(remaining))
+    if k and len(remaining) <= 6:
         best = max(
-            remaining,
-            key=lambda r: (
-                sum(
-                    _pairing_value(n, item[1].get(n, ""))
-                    == _pairing_value(n, r[1].get(n, ""))
-                    for n in fields
-                ),
-                -r[0],
+            itertools.permutations(range(len(remaining)), k),
+            key=lambda perm: (
+                sum(score(left_rest[i], remaining[p]) for i, p in enumerate(perm)),
+                [-p for p in perm],
             ),
         )
-        remaining.remove(best)
-        pairs.append((item, best))
+        chosen = [remaining[p] for p in best]
+    else:
+        chosen, pool = [], list(remaining)
+        for item in left_rest[:k]:
+            pick = max(pool, key=lambda r: (score(item, r), -r[0]))
+            pool.remove(pick)
+            chosen.append(pick)
+    pairs += list(zip(left_rest[:k], chosen))
+    unpaired = left_rest[k:]
+    remaining = [r for r in remaining if r not in chosen]
     return pairs, unpaired, remaining
 
 
@@ -669,8 +676,30 @@ def read_prev_entries(prev_progress: Path) -> dict[tuple, str] | None:
         }
 
 
+def read_prev_fields(prev_progress: Path) -> dict[tuple, set]:
+    """Differing fields per entry of the previous run (entries_<label>.tsv)."""
+    path = prev_progress.with_name("entries_" + prev_progress.name[len("progress_") :])
+    with open(path) as fh:
+        return {
+            (
+                r["contig"],
+                r["pos"],
+                r["ref"],
+                r["alt"],
+                r["clinvar_id"],
+                r["feature"],
+            ): {f for f in r["fields_now"].split(",") if f}
+            for r in csv.DictReader(fh, delimiter="\t")
+        }
+
+
 def build_progress(
-    ledger, state, prev_progress_rows=None, prev_entries=None, excluded=EXCLUDED
+    ledger,
+    state,
+    prev_progress_rows=None,
+    prev_entries=None,
+    excluded=EXCLUDED,
+    prev_fields=None,
 ):
     """Aggregate per issue and collect the regression list."""
     by_record: dict[RecordKey, list[dict[str, str]]] = collections.defaultdict(list)
@@ -738,6 +767,13 @@ def build_progress(
             attributed_fields = {f for f in row["diff_fields"].split(",") if f}
             if not entry_identical and attributed_fields and feature != "-":
                 extra = [f for f in fields_now if f not in attributed_fields]
+                # Under --prev, only fields that did not already differ there.
+                if prev_fields is not None:
+                    extra = [
+                        f
+                        for f in extra
+                        if f not in prev_fields.get((*key, feature), set())
+                    ]
                 if extra:
                     regressions.append(
                         (
@@ -1140,12 +1176,14 @@ def main(argv: list[str] | None = None) -> int:
     prev_rows = None
     prev_entries = None
     prev_records = None
+    prev_fields = None
     if args.prev:
         # Validate and read before annotating: a bad --prev must not cost a run.
         check_prev_scope(args.prev, args.contigs, mode, identity)
         with open(args.prev) as fh:
             prev_rows = list(csv.DictReader(fh, delimiter="\t"))
         prev_entries = read_prev_entries(args.prev)
+        prev_fields = read_prev_fields(args.prev)
         if args.full_contig:
             prev_records = read_prev_records(args.prev)
     if args.skip_annotate and args.full_contig:
@@ -1230,7 +1268,7 @@ def main(argv: list[str] | None = None) -> int:
         for i in r["issues"].split(","):
             ledger_contigs_all[i].add(r["contig"])
     table, entries, regressions = build_progress(
-        ledger, state, prev_rows, prev_entries, excluded
+        ledger, state, prev_rows, prev_entries, excluded, prev_fields
     )
     if prev_rows is not None:
         for row in table:

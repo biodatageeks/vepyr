@@ -142,8 +142,6 @@ def test_progress_counts_fixed_records_entries_and_regressions(tmp_path):
 
 
 def test_clin_sig_sort_keeps_real_differences():
-    assert cp.sort_clin_sig("b%3Ba&c") == "a&c%3Bb"
-    assert cp.sort_clin_sig("a&b") == "a&b"
     fmt = FORMAT.split("|")
     diffs, nondet = cp.entry_diffs(
         rec("1", 1, "x", "A|m|T1||risk_factor%3Bbenign&risk_factor").rstrip("\n"),
@@ -898,3 +896,33 @@ def test_a_ledger_with_two_rows_for_one_entry_is_refused(tmp_path):
         )
     with pytest.raises(SystemExit, match="two ledger rows for one entry"):
         cp.load_ledger(panel / "ledger.tsv")
+
+
+def test_duplicate_pairing_maximises_similarity_over_the_group():
+    """Payloads aaa, abb vs aab, baa: a greedy pass pairs aaa-aab and leaves
+    abb-baa (three fields off); the group-wide optimum pairs aaa-baa and
+    abb-aab, one field each, and exposes the reorder (codex review on #255)."""
+    fmt = ["Allele", "Feature", "Consequence", "IMPACT", "HGVSp"]
+    head = HEADER.replace("Allele|Consequence|Feature|HGVSp|CLIN_SIG", "|".join(fmt))
+    assert head != HEADER
+    vep = "1\t1\tx\tG\tA\t.\t.\tCSQ=A|T1|a|a|a,A|T1|a|b|b"
+    vepyr = "1\t1\tx\tG\tA\t.\t.\tCSQ=A|T1|a|a|b,A|T1|b|a|a"
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs["ORDER"] == ["CSQ_ORDER"]
+    assert sorted(diffs["T1"]) == ["Consequence", "IMPACT"]
+
+
+def test_persistent_extra_fields_are_not_reported_again_under_prev(tmp_path):
+    panel = make_panel(tmp_path)
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    _, entries, first = cp.build_progress(ledger, state)
+    assert ("200", "T1", "new fields on an attributed entry") in {
+        (k[1], f, kind) for k, f, kind, *_ in first
+    }
+    prev_entries = {(*k, f): st for k, f, st, *_ in entries}
+    prev_fields = {(*k, f): set(fl.split(",")) - {""} for k, f, _, fl, _ in entries}
+    _, _, again = cp.build_progress(
+        ledger, state, [], prev_entries, cp.EXCLUDED, prev_fields
+    )
+    assert not [r for r in again if r[2] == "new fields on an attributed entry"]
