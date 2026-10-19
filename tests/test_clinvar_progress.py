@@ -593,3 +593,14 @@ def test_issues_scope_the_headline_and_flag_partial_coverage(tmp_path):
     # #202's only record is on chr20: an explicit chr1 run covers none of it
     assert cp.main([*base, "--issues", "211", "202", "--contigs", "1"]) == 0
     assert "**Partial:**" in (out / "summary_Y.md").read_text()
+
+
+def test_a_regressed_entry_is_reported_once_with_prev(tmp_path):
+    """chr1:400/T2 is outside the ledger, identical in R0's predecessor and
+    differs now: one row, not one per baseline (codex review on #255)."""
+    panel = make_panel(tmp_path)
+    ledger = cp.load_ledger(panel / "ledger.tsv")
+    state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
+    prev_entries = {("1", "400", "G", "A", "d", "T2"): "identical"}
+    _, _, regressions = cp.build_progress(ledger, state, [], prev_entries)
+    assert [(k[1], f) for k, f, *_ in regressions].count(("400", "T2")) == 1

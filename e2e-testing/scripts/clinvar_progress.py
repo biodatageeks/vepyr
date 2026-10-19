@@ -640,14 +640,19 @@ def build_progress(
                 )
                 entries_out.append((key, feature, "differs", ",".join(fields), ""))
     if prev_entries is not None:
+        # One row per regressed entry: an entry already reported against the
+        # triage baseline is not reported again against --prev.
+        reported = {(r[0], r[1]) for r in regressions}
         for key, feature, state_now, fields, issues_ in entries_out:
             if (
                 state_now == "differs"
                 and prev_entries.get((*key, feature)) == "identical"
+                and (key, feature) not in reported
             ):
                 regressions.append(
                     (key, feature, "differs now, identical in --prev", fields, issues_)
                 )
+                reported.add((key, feature))
 
     prev_identical = {}
     for r in prev_progress_rows or []:
@@ -707,7 +712,7 @@ def summary_markdown(
         f"### ClinVar progress {'(full contigs vs the VEP 116.0 golden)' if full else 'panel'}: `{label}`",
         "",
         f"vepyr `{meta['vepyr_version']}`, cache `{meta['cache']}`, "
-        f"{meta['records']:,} {'ledger records of these contigs' if full else 'panel records'} "
+        f"{meta['records']:,} {'selected records' if selected else 'ledger records of these contigs' if full else 'panel records'} "
         f"({len(judged):,} judged, {len(keys) - len(judged)} excluded). "
         f"Annotation {meta['annotate_seconds']:.0f} s, total {meta['total_seconds']:.0f} s.",
         "",
