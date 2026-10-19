@@ -852,7 +852,12 @@ def summary_markdown(
         f"vepyr `{meta['vepyr_version']}`, cache `{meta['cache']}`, "
         f"{meta['records']:,} {'selected records' if selected else 'ledger records of these contigs' if full else 'panel records'} "
         f"({len(judged):,} judged, {len(keys) - len(judged)} excluded). "
-        f"Annotation {meta['annotate_seconds']:.0f} s, total {meta['total_seconds']:.0f} s.",
+        + (
+            f"Annotation {meta['annotate_seconds']:.0f} s (reused from the earlier run), "
+            f"this comparison {meta['total_seconds']:.0f} s."
+            if meta.get("annotation_reused")
+            else f"Annotation {meta['annotate_seconds']:.0f} s, total {meta['total_seconds']:.0f} s."
+        ),
         "",
         f"**{len(identical):,} / {len(judged):,} records now identical to VEP 116.0**"
         + (
