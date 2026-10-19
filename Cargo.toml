@@ -222,10 +222,11 @@ serde_json = "1"
 # as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
 # vepyr#200: translate MT transcripts with their codon table and read
 # codon_table from _variation_effect_feature_cache.
-# Review pins: functions#274 head (91d6679, on top of #273's 4704ff9) and the
-# formats#262 merge commit (abac8df). Both formats declarations use the same
-# full-rev spelling as functions#274, so cargo resolves one formats source.
-# Re-pin functions to #274's merge commit once it merges, then to release tags.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "91d667963c282040d6e89b3af439c9d7c2a43309", features = ["cache-builder"] }
+# functions: merge commit `9936c6e` of biodatageeks/datafusion-bio-functions#274
+# (tree identical to its PR head 91d6679). formats: merge commit `abac8df` of
+# biodatageeks/datafusion-bio-formats#262, the same full-rev spelling the merged
+# functions master pins, so cargo resolves one formats source. Pinned by rev
+# until release tags carry these commits.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9936c6e8a0c82eeffd8b05edb2e10b213f0e455d", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "abac8df6e93dc5234d60a728d67e2800a91271d1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "abac8df6e93dc5234d60a728d67e2800a91271d1" }
