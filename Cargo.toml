@@ -220,9 +220,11 @@ serde_json = "1"
 # vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
 # pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
 # as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
-# vepyr#207/#263: formats#266 (stacked on formats#264) carries both the writer's
-# INFO/FORMAT percent-encoding and the Character INFO reader fix. Functions#275
-# keeps CSQ verbatim. These PR heads remain pinned until released.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "c69a55c5b456ebb0bd03a8c348e9171a5dc0576e", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "cfc709483215f53f0b30d79c2d5aa236568a4624" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "cfc709483215f53f0b30d79c2d5aa236568a4624" }
+# vepyr#207/#263: formats#266 head 64c4001 (stacked on formats#264 b61279e)
+# carries the writer's INFO/FORMAT percent-encoding, the pre-4.3 space escape and
+# the Character INFO reader fix. functions#275 head 57106aa keeps CSQ verbatim,
+# writes records under the header's version and merges functions master (#274, MT
+# codon table). Both are PR heads until merged; re-pin to the merge commits then.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "57106aa3c7e94566ed064aed97e9ed2c3a1e60ae", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "64c4001452fecfe9d87d52006ef39fa9cfd7cf9b" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "64c4001452fecfe9d87d52006ef39fa9cfd7cf9b" }

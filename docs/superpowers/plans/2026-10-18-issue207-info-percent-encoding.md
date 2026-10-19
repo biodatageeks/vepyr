@@ -1,10 +1,9 @@
 # Issue #207: re-encode reserved characters when writing INFO/FORMAT strings
 
-Status: **implemented; targeted VEP 116.2 round trip passes; strict md5 and
-performance re-verification are pending**. Not handed off. Approved 2026-10-18
-(§9). The current stack is formats#264 → formats#266 → functions#275 → vepyr#251;
-none merged. The earlier gate results in the PR description are historical and
-do not validate the updated pins. §§10–11 record execution and current gates.
+Status: **implemented on the combined stack** (formats#264 → formats#266 →
+functions#275 → vepyr#251, none merged). Approved 2026-10-18 (§9). The gates
+for the current pins, and their verdicts, are recorded in the vepyr#251
+description. §§10–11 record execution and the current stack.
 The sections up to §9 are the plan as approved, kept unchanged.
 
 Issue: [biodatageeks/vepyr#207](https://github.com/biodatageeks/vepyr/issues/207)
@@ -286,19 +285,16 @@ shared; the step-2 baseline sweep is kept as well.
 
 ## 11. Current stack and re-verification (2026-10-19)
 
-- Formats#266 (`cfc7094`) is stacked on formats#264 and contains the Character INFO
-  reader fix. Functions#275 (`c69a55c`) pins that combined formats head; vepyr#251
-  (`0f89398`) pins both `cfc7094` and `c69a55c`. The duplicate downstream pin PRs
-  functions#276 and vepyr#253 were closed as superseded. Nothing was merged.
-- The native release build was installed with
-  `RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr` from the
-  current vepyr stack. On the same one-record fixture, Ensembl VEP 116.2 and vepyr
-  both emitted `XCHR=%3B` and `XCHARS=A,B`.
-- The strict md5 comparison against the checked-in VEP 116.0 merged reference is
-  running at
-  `e2e-testing/results/fix-20261019-0526/post-edit/md5.out` in the
-  `vepyr-fix-251-update` worktree. Its result is not yet known.
-- The native worker-scaling comparison has not run. Wait for a quiet host, run both
-  worker counts against the captured baseline with `compare_runs.py`, and update
-  this status with the comparator verdict. Do not mark the PR stack ready while
-  the comparison is pending or red.
+- The stack is formats#264 (`b61279e`) → formats#266 (`64c4001`, the Character INFO
+  reader fix for datafusion-bio-formats#263, based on the #264 branch) →
+  functions#275 (`57106aa`, pins `64c4001`, merges functions master and so carries
+  #274's MT codon table) → vepyr#251 (pins `64c4001` and `57106aa`). The separate
+  #263 pin PRs functions#276 and vepyr#253 were closed as superseded; the maintainer
+  chose to keep the combined stack. Nothing is merged.
+- An earlier pin, formats `cfc7094`, also carried two unrelated formats master
+  commits (#260, #261); `64c4001` drops them.
+- On a one-record fixture, Ensembl VEP 116.2 and vepyr both emit `XCHR=%3B` and
+  `XCHARS=A,B`.
+- Whole-genome strict md5, the ClinVar gate and the interleaved performance gate are
+  re-run on this exact stack and recorded in the vepyr#251 description, which
+  supersedes the gate numbers recorded for earlier pins.
