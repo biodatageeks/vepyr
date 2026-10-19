@@ -481,6 +481,14 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
                 continue
             diffs, nondeterministic = entry_diffs(vep[k], vy[k], vep_fmt, vy_fmt)
             state[key] = (not diffs, nondeterministic and not diffs, diffs)
+        # A record vepyr wrote that the panel input does not hold.
+        for pos, cid, ref, alt in vy:
+            if (pos, cid, ref, alt) not in records:
+                state[(contig, pos, ref, alt, cid)] = (
+                    False,
+                    False,
+                    {"RECORD": ["ONLY_IN_VEPYR"]},
+                )
     return state
 
 
@@ -578,7 +586,9 @@ def build_progress(
                         "entries_identical": 0,
                     },
                 )
-                # repos is aligned with issues; one issue's repos joined by "+"
+                # repos is aligned with issues; one issue's repos joined by "+".
+                # A ledger built before the columns were aligned has one union
+                # per row, and every issue on such a row then gets that union.
                 repo = (
                     row_repos[n] if len(row_repos) == len(row_issues) else row["repos"]
                 )
@@ -674,7 +684,13 @@ def fmt_key(key: RecordKey) -> str:
 def summary_markdown(
     label, table, state, ledger, regressions, meta, excluded=EXCLUDED
 ) -> str:
-    keys = {record_key(r) for r in ledger}
+    selected = set(meta.get("issues") or [])
+    # With --issues the headline counts only those issues' records.
+    keys = {
+        record_key(r)
+        for r in ledger
+        if not selected or selected & set(r["issues"].split(","))
+    }
     judged = [k for k in keys if k[:2] not in excluded]
     identical = [k for k in judged if state.get(k, (False,))[0]]
     nondeterministic = sorted(k for k in judged if state.get(k, (False, False))[1])
@@ -722,6 +738,13 @@ def summary_markdown(
             f"{row['delta_vs_prev'] or '–'} | {row['status']} |"
         )
     lines += ["", "Counts overlap: a record can carry several causes."]
+    if meta.get("partial_issues"):
+        lines += [
+            "",
+            "**Partial:** this run covers only some contigs of "
+            + ", ".join(i.replace("vepyr", "") for i in meta["partial_issues"])
+            + "; their counts are not the whole issue.",
+        ]
     not_targets = [r for r in table if r["issue"] in NOTES]
     if not_targets:
         lines += [
@@ -995,9 +1018,8 @@ def main(argv: list[str] | None = None) -> int:
         timings = provenance.get("annotate_seconds_per_contig", {})
         annotate_seconds = provenance.get("annotate_seconds", 0.0)
 
-    ledger = [
-        r for r in load_ledger(args.panel / "ledger.tsv") if r["contig"] in args.contigs
-    ]
+    ledger_all = ledger_all if args.issues else load_ledger(args.panel / "ledger.tsv")
+    ledger = [r for r in ledger_all if r["contig"] in args.contigs]
     full_counts: dict[str, dict] = {}
     if args.full_contig:
         keep = {record_key(r) for r in ledger}
@@ -1016,20 +1038,39 @@ def main(argv: list[str] | None = None) -> int:
     )
     if prev_rows is not None:
         ledger_contigs = collections.defaultdict(set)
-        for r in load_ledger(args.panel / "ledger.tsv"):
+        for r in ledger_all:
             for i in r["issues"].split(","):
                 ledger_contigs[i].add(r["contig"])
         for row in table:
             if not ledger_contigs[row["issue"]] <= set(args.contigs):
                 row["delta_vs_prev"] = ""  # this run sees only part of the issue
+    ledger_contigs_all = collections.defaultdict(set)
+    for r in ledger_all:
+        for i in r["issues"].split(","):
+            ledger_contigs_all[i].add(r["contig"])
+    partial_issues = sorted(
+        (
+            i
+            for i in {r["issue"] for r in table} | (wanted_issues or set())
+            if not ledger_contigs_all[i] <= set(args.contigs)
+        ),
+        key=issue_order,
+    )
     if wanted_issues:
         # The table narrows to the issues asked for. Regressions stay complete:
         # a fix for one issue can break a record of another.
         table = [r for r in table if r["issue"] in wanted_issues]
+    ledger_keys = {record_key(r) for r in ledger}
+    if not args.full_contig:
+        # The panel holds only ledger records, so anything else in the state
+        # is a record vepyr wrote that the panel input does not hold.
+        for key in sorted(k for k in state if k not in ledger_keys):
+            regressions.append(
+                (key, "RECORD", "record only in the vepyr output", "ONLY_IN_VEPYR", "")
+            )
     if args.full_contig:
         # Records outside the ledger were identical in the triage; with --prev,
         # every record outside its differing set was identical there.
-        ledger_keys = {record_key(r) for r in ledger}
         for key, (identical, _, diffs) in sorted(state.items()):
             if identical or key in ledger_keys:
                 continue
@@ -1136,6 +1177,9 @@ def main(argv: list[str] | None = None) -> int:
         "prev": str(args.prev) if args.prev else None,
         "contigs": args.contigs,
         "issues": sorted(wanted_issues) if wanted_issues else None,
+        "partial_issues": [
+            i for i in partial_issues if not wanted_issues or i in wanted_issues
+        ],
         "records": len({record_key(r) for r in ledger}),
         "full_contig_counts": full_counts,
         "annotate_seconds": round(annotate_seconds, 1),

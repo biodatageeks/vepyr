@@ -526,3 +526,70 @@ def test_issues_narrows_contigs_and_table(tmp_path):
     assert issues == ["vepyr#211", "vepyr#212"]
     with pytest.raises(SystemExit):
         cp.main([*args[:-2], "999"])
+
+
+def test_a_record_only_in_the_vepyr_output_is_a_regression(tmp_path):
+    panel = make_panel(tmp_path)
+    path = tmp_path / "vepyr" / "chr1.vcf"
+    path.write_text(path.read_text() + rec("1", 900, "z", "A|missense|T1||"))
+    out = tmp_path / "out"
+    (out / "vepyr_X").mkdir(parents=True)
+    for c in ("1", "20"):
+        (out / "vepyr_X" / f"chr{c}.vcf").write_text(
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+        )
+    provenance(out / "vepyr_X")
+    assert (
+        cp.main(
+            [
+                "--python",
+                sys.executable,
+                "--cache",
+                "/c",
+                "--panel",
+                str(panel),
+                "--out",
+                str(out),
+                "--skip-annotate",
+                "--label",
+                "X",
+                "--contigs",
+                "1",
+                "20",
+            ]
+        )
+        == 0
+    )
+    regressions = list(csv.DictReader(open(out / "regressions_X.tsv"), delimiter="\t"))
+    assert any(
+        r["pos"] == "900" and r["kind"] == "record only in the vepyr output"
+        for r in regressions
+    )
+
+
+def test_issues_scope_the_headline_and_flag_partial_coverage(tmp_path):
+    panel = make_panel(tmp_path)
+    out = tmp_path / "out"
+    (out / "vepyr_Y").mkdir(parents=True)
+    (out / "vepyr_Y" / "chr1.vcf").write_text(
+        (tmp_path / "vepyr" / "chr1.vcf").read_text()
+    )
+    provenance(out / "vepyr_Y")
+    base = [
+        "--python",
+        sys.executable,
+        "--cache",
+        "/c",
+        "--panel",
+        str(panel),
+        "--out",
+        str(out),
+        "--skip-annotate",
+        "--label",
+        "Y",
+    ]
+    assert cp.main([*base, "--issues", "238"]) == 0
+    assert "**1 / 1 records now identical" in (out / "summary_Y.md").read_text()
+    # #202's only record is on chr20: an explicit chr1 run covers none of it
+    assert cp.main([*base, "--issues", "211", "202", "--contigs", "1"]) == 0
+    assert "**Partial:**" in (out / "summary_Y.md").read_text()
