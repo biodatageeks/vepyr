@@ -220,7 +220,13 @@ serde_json = "1"
 # vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
 # pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
 # as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
-# formats stays at v1.14.0.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4704ff9a89c1190ca7c9d48f0da44bc5b98353c7", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.14.0" }
+# vepyr#200: translate MT transcripts with their codon table and read
+# codon_table from _variation_effect_feature_cache.
+# functions: merge commit `9936c6e` of biodatageeks/datafusion-bio-functions#274
+# (tree identical to its PR head 91d6679). formats: merge commit `abac8df` of
+# biodatageeks/datafusion-bio-formats#262, the same full-rev spelling the merged
+# functions master pins, so cargo resolves one formats source. Pinned by rev
+# until release tags carry these commits.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9936c6e8a0c82eeffd8b05edb2e10b213f0e455d", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "abac8df6e93dc5234d60a728d67e2800a91271d1" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "abac8df6e93dc5234d60a728d67e2800a91271d1" }
