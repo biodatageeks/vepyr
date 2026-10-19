@@ -1,7 +1,10 @@
 # Issue #207: re-encode reserved characters when writing INFO/FORMAT strings
 
-Status: **plan, awaiting go-ahead** (vepyr-fix step 1). No file in any repo has
-been edited.
+Status: **implemented, gated, handed off for human review** (vepyr-fix step 9).
+Approved 2026-10-18 (§9). The stack is biodatageeks/datafusion-bio-formats#264,
+biodatageeks/datafusion-bio-functions#275 and biodatageeks/vepyr#251, none merged.
+The gate results are in the vepyr#251 description. §10 records what changed
+during execution. The sections up to §9 are the plan as approved, kept unchanged.
 
 Issue: [biodatageeks/vepyr#207](https://github.com/biodatageeks/vepyr/issues/207)
 (tracked in #240). The three per-repo analyses (formats, functions, vepyr) this plan
