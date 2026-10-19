@@ -60,6 +60,7 @@ import collections
 import concurrent.futures
 import csv
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -554,8 +555,41 @@ def evaluate(panel: Path, vepyr_dir: Path, contigs: list[str]):
     return state
 
 
+def input_identity(panel: Path, mode: str, clinvar: Path, golden: Path) -> dict:
+    """What a run compared against, so reused outputs and --prev can be checked.
+
+    Panel mode: sha256 over ledger.tsv, in/ and vep116_0/ (about 400 MB, ~1 s).
+    Full-contig mode: the ledger digest plus path, size and mtime of the
+    ClinVar release and the golden (5.9 GB, not hashed).
+    """
+    digest = hashlib.sha256()
+    files = [panel / "ledger.tsv"]
+    if mode == "panel":
+        files += sorted((panel / "in").glob("*.vcf")) + sorted(
+            (panel / "vep116_0").glob("*.vcf")
+        )
+    for path in files:
+        digest.update(path.name.encode())
+        with open(path, "rb") as fh:
+            for block in iter(lambda: fh.read(1 << 20), b""):
+                digest.update(block)
+    identity = {"mode": mode, "panel_sha256": digest.hexdigest()}
+    if mode == "full-contig":
+        for name, path in (("clinvar", clinvar), ("golden", golden)):
+            st = os.stat(path)
+            identity[name] = {
+                "path": str(path),
+                "size": st.st_size,
+                "mtime": int(st.st_mtime),
+            }
+    return identity
+
+
 def check_prev_scope(
-    prev_progress: Path, contigs: list[str], mode: str = "panel"
+    prev_progress: Path,
+    contigs: list[str],
+    mode: str = "panel",
+    identity: dict | None = None,
 ) -> None:
     """Deltas only mean something over the same contigs and the same mode."""
     label = prev_progress.name[len("progress_") : -len(".tsv")]
@@ -566,6 +600,11 @@ def check_prev_scope(
     if prev_run.get("mode", "panel") != mode:
         raise SystemExit(
             f"--prev is a {prev_run.get('mode', 'panel')} run, this run is {mode}"
+        )
+    if identity is not None and prev_run.get("input_identity") != identity:
+        raise SystemExit(
+            "--prev compared against another panel or golden "
+            f"({prev_run.get('input_identity')} vs {identity}); deltas would be meaningless"
         )
     prev_contigs = prev_run.get("contigs") or []
     # A wider --prev is fine (a targeted run against the full R0): deltas are
@@ -1044,6 +1083,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(set(args.contigs)) != len(args.contigs):
         p.error("--contigs repeats a contig")
     mode = "full-contig" if args.full_contig else "panel"
+    identity = input_identity(args.panel, mode, args.clinvar, args.golden)
     t0 = time.perf_counter()
     out = args.out or args.panel / "progress"
     vepyr_dir = out / f"vepyr_{args.label}"
@@ -1054,7 +1094,7 @@ def main(argv: list[str] | None = None) -> int:
     prev_records = None
     if args.prev:
         # Validate and read before annotating: a bad --prev must not cost a run.
-        check_prev_scope(args.prev, args.contigs, mode)
+        check_prev_scope(args.prev, args.contigs, mode, identity)
         with open(args.prev) as fh:
             prev_rows = list(csv.DictReader(fh, delimiter="\t"))
         prev_entries = read_prev_entries(args.prev)
@@ -1082,6 +1122,7 @@ def main(argv: list[str] | None = None) -> int:
             "mode": mode,
             "workers": args.workers,
             "contigs": args.contigs,
+            "input_identity": identity,
             "annotate_seconds": round(annotate_seconds, 1),
             "annotate_seconds_per_contig": timings,
         }
@@ -1105,6 +1146,11 @@ def main(argv: list[str] | None = None) -> int:
         if provenance.get("mode", "panel") != mode:
             raise SystemExit(
                 f"--skip-annotate: {vepyr_dir} holds a {provenance.get('mode', 'panel')} run"
+            )
+        if provenance.get("input_identity") != identity:
+            raise SystemExit(
+                f"--skip-annotate: {vepyr_dir} was annotated from another panel or "
+                "input; re-run without --skip-annotate"
             )
         timings = provenance.get("annotate_seconds_per_contig", {})
         annotate_seconds = provenance.get("annotate_seconds", 0.0)
@@ -1271,6 +1317,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     meta = {
         "label": args.label,
+        "input_identity": identity,
         "mode": mode,
         "vepyr_version": provenance["vepyr_version"],
         "python": provenance["python"],

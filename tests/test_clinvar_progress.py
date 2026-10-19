@@ -169,10 +169,28 @@ def test_entry_diffs_names_info_order_and_one_sided_entries():
     assert cp.entry_diffs(a, other_info, fmt, fmt)[0] == {"INFO": ["INFO"]}
 
 
-def provenance(directory: Path, version: str = "0.10.1") -> None:
+def provenance(
+    directory: Path,
+    version: str = "0.10.1",
+    contigs=("1", "20"),
+    mode: str = "panel",
+    clinvar: Path | None = None,
+    golden: Path | None = None,
+) -> None:
+    """annotation.json as a real run writes it; the panel is <tmp>/panel."""
+    panel = directory.parent.parent / "panel"
+    identity = cp.input_identity(panel, mode, clinvar, golden)
     (directory / "annotation.json").write_text(
-        f'{{"vepyr_version": "{version}", "python": "py", "cache": "/recorded", '
-        '"contigs": ["1", "20"]}'
+        json.dumps(
+            {
+                "vepyr_version": version,
+                "python": "py",
+                "cache": "/recorded",
+                "mode": mode,
+                "contigs": list(contigs),
+                "input_identity": identity,
+            }
+        )
     )
 
 
@@ -327,9 +345,10 @@ def test_full_contig_mode_against_a_golden(tmp_path):
     plain = vdir / "chr1.vcf"
     plain.write_text(now)
     subprocess.run(["bgzip", "-f", str(plain)], check=True)
-    (vdir / "annotation.json").write_text(
-        '{"vepyr_version": "master", "python": "py", "cache": "/c", '
-        '"mode": "full-contig", "contigs": ["1"]}'
+    clinvar = tmp_path / "clinvar.vcf.gz"
+    clinvar.write_bytes(b"")
+    provenance(
+        vdir, "master", ("1",), "full-contig", clinvar, Path(str(golden) + ".gz")
     )
     args = [
         "--python",
@@ -345,6 +364,8 @@ def test_full_contig_mode_against_a_golden(tmp_path):
         "--full-contig",
         "--golden",
         str(golden) + ".gz",
+        "--clinvar",
+        str(clinvar),
         "--skip-annotate",
         "--label",
         "F0",
@@ -503,9 +524,7 @@ def test_issues_narrows_contigs_and_table(tmp_path):
     (out / "vepyr_T" / "chr1.vcf").write_text(
         (tmp_path / "vepyr" / "chr1.vcf").read_text()
     )
-    (out / "vepyr_T" / "annotation.json").write_text(
-        '{"vepyr_version": "x", "python": "py", "cache": "/c", "contigs": ["1"]}'
-    )
+    provenance(out / "vepyr_T", "x", ("1",))
     args = [
         "--python",
         sys.executable,
@@ -773,3 +792,37 @@ def test_csq_moved_within_info_is_an_info_difference():
     vepyr = "1\t1\tx\tG\tA\t.\t.\tCLNSIG=B;DP=1;CSQ=A|m|T1||"
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"INFO": ["INFO"]}
+
+
+def test_reused_outputs_from_another_panel_are_refused(tmp_path):
+    panel = make_panel(tmp_path)
+    out = tmp_path / "out"
+    (out / "vepyr_P").mkdir(parents=True)
+    for c in ("1", "20"):
+        (out / "vepyr_P" / f"chr{c}.vcf").write_text(
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+        )
+    provenance(out / "vepyr_P")
+    with open(panel / "ledger.tsv", "a") as fh:  # the panel changes afterwards
+        fh.write(
+            "\t".join(ledger_row("1", "100", "a", "T9", "vepyr#211", "HGVSp")) + "\n"
+        )
+    with pytest.raises(SystemExit, match="another panel"):
+        cp.main(
+            [
+                "--python",
+                sys.executable,
+                "--cache",
+                "/c",
+                "--panel",
+                str(panel),
+                "--out",
+                str(out),
+                "--skip-annotate",
+                "--label",
+                "P",
+                "--contigs",
+                "1",
+                "20",
+            ]
+        )
