@@ -187,10 +187,10 @@ def entry_diffs(
     for key in list(ea) + [k for k in eb if k not in ea]:
         feature = key[1]
         if key not in eb:
-            out[feature] = ["ONLY_IN_VEP"]
+            out.setdefault(feature, []).append("ONLY_IN_VEP")
             continue
         if key not in ea:
-            out[feature] = ["ONLY_IN_VEPYR"]
+            out.setdefault(feature, []).append("ONLY_IN_VEPYR")
             continue
         fields = []
         for name in vep_fmt:
@@ -205,7 +205,9 @@ def entry_diffs(
             if name not in vep_fmt and eb[key].get(name, ""):
                 fields.append(name)
         if fields:
-            out[feature] = fields
+            # Aggregate: two entries can share a feature (another Allele).
+            out.setdefault(feature, [])
+            out[feature] += [f for f in fields if f not in out[feature]]
     if not out and [k for k in ea if k in eb] != [k for k in eb if k in ea]:
         out["ORDER"] = ["CSQ_ORDER"]
     return out, nondeterministic
@@ -702,6 +704,11 @@ def summary_markdown(
     judged = [k for k in keys if k[:2] not in excluded]
     identical = [k for k in judged if state.get(k, (False,))[0]]
     nondeterministic = sorted(k for k in judged if state.get(k, (False, False))[1])
+    if meta.get("mode") == "full-contig":
+        # Every CLIN_SIG-only match of the contigs, in the ledger or not.
+        nondeterministic = sorted(
+            {*nondeterministic, *(k for k, v in state.items() if v[1])}
+        )
     deferred = sorted(
         {
             record_key(r)
@@ -1131,11 +1138,13 @@ def main(argv: list[str] | None = None) -> int:
             (
                 [
                     *k,
-                    "identical" if ident else "differs",
+                    ("identical-vep-nondeterministic" if nd else "identical")
+                    if ident
+                    else "differs",
                     ",".join(d),
                     ",".join(sorted({f for fs in d.values() for f in fs})),
                 ]
-                for k, (ident, _, d) in sorted(state.items())
+                for k, (ident, nd, d) in sorted(state.items())
             ),
         )
 

@@ -368,6 +368,12 @@ def test_full_contig_mode_against_a_golden(tmp_path):
         "400",
         "500",
     }
+    states = {r["pos"]: r["state"] for r in records}
+    assert states["300"] == "identical-vep-nondeterministic"
+    assert (
+        "VEP-nondeterministic `CLIN_SIG` order (#238): 1:300"
+        in (out / "summary_F0.md").read_text()
+    )
     # reused outputs are never deleted; only a run's own outputs are
     assert (vdir / "chr1.vcf.gz").exists()
 
@@ -672,3 +678,11 @@ def test_a_persistent_output_only_record_is_not_reported_again(tmp_path):
 
     assert kinds("A") == ["record only in the vepyr output"]
     assert kinds("B") == []
+
+
+def test_entries_sharing_a_feature_keep_every_differing_field():
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|m|T1|p.X|,C|m|T1|p.Y|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|n|T1|p.X|,C|m|T1|p.Z|").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["Consequence", "HGVSp"]}
