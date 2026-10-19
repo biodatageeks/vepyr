@@ -830,11 +830,13 @@ def summary_markdown(
     judged = [k for k in keys if k[:2] not in excluded]
     identical = [k for k in judged if state.get(k, (False,))[0]]
     nondeterministic = sorted(k for k in judged if state.get(k, (False, False))[1])
-    if meta.get("mode") == "full-contig":
-        # Every CLIN_SIG-only match of the contigs, in the ledger or not.
-        nondeterministic = sorted(
-            {*nondeterministic, *(k for k, v in state.items() if v[1])}
-        )
+    # The headline counts only judged records; full-contig mode also lists
+    # every CLIN_SIG-only match of the contigs, in the ledger or not.
+    contig_wide = (
+        sorted(k for k, v in state.items() if v[1])
+        if meta.get("mode") == "full-contig"
+        else nondeterministic
+    )
     deferred = sorted(
         {
             record_key(r)
@@ -909,11 +911,17 @@ def summary_markdown(
             + "; ".join(fmt_key(k) for k in deferred)
             + ".",
         ]
-    if nondeterministic:
+    if contig_wide:
         lines += [
             "",
-            "VEP-nondeterministic `CLIN_SIG` order (#238): "
-            + "; ".join(fmt_key(k) for k in nondeterministic)
+            "VEP-nondeterministic `CLIN_SIG` order (#238)"
+            + (
+                f", all {len(contig_wide)} on these contigs"
+                if contig_wide != nondeterministic
+                else ""
+            )
+            + ": "
+            + "; ".join(fmt_key(k) for k in contig_wide)
             + ".",
         ]
     left_out = sorted(k for k in keys if k[:2] in excluded)
