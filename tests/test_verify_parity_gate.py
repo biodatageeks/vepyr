@@ -381,3 +381,52 @@ def test_gate_refuses_the_plugin_base_profile_too():
     """
     with pytest.raises(gate.GateError, match="five-plugin reference"):
         gate.expected_csq_fields("merged_plugins_base")
+
+
+def _with_clin_sig_nondeterminism(value: dict, count: int = 1) -> dict:
+    comparison = value["comparison"]
+    comparison["field_vep_nondeterministic_counts"] = {"CLIN_SIG": count}
+    comparison["field_equality_counts"]["CLIN_SIG"]["both_nonempty_equal"] -= count
+    comparison["field_equality_counts"]["CLIN_SIG"]["both_nonempty_unequal"] += count
+    comparison["equality_bucket_counts"]["both_nonempty_equal"] -= count
+    comparison["equality_bucket_counts"]["both_nonempty_unequal"] += count
+    return value
+
+
+def test_gate_accounts_for_vep_nondeterministic_clin_sig(tmp_path):
+    """vepyr#238: a CLIN_SIG that differs only in VEP's random %3B order is an
+    unequal value with its own counter. The gate reconciles it with the
+    equality buckets and reports it without failing."""
+    value = _with_clin_sig_nondeterminism(_write_report(tmp_path), 2)
+
+    totals = _validate(value, tmp_path)
+
+    assert totals.pop("field_vep_nondeterministic_total") == 2
+    assert set(totals.values()) == {0}
+
+
+def test_gate_rejects_vep_nondeterministic_counts_outside_clin_sig(tmp_path):
+    value = _write_report(tmp_path)
+    comparison = value["comparison"]
+    comparison["field_vep_nondeterministic_counts"] = {"Consequence": 1}
+    comparison["field_equality_counts"]["Consequence"]["both_nonempty_equal"] = 7
+    comparison["field_equality_counts"]["Consequence"]["both_nonempty_unequal"] = 1
+    comparison["equality_bucket_counts"]["both_nonempty_equal"] -= 1
+    comparison["equality_bucket_counts"]["both_nonempty_unequal"] += 1
+
+    with pytest.raises(gate.GateError, match="fields other than"):
+        _validate(value, tmp_path)
+
+
+def test_gate_accepts_a_real_compare_result_for_the_clin_sig_fixture():
+    """End to end on the 22:26666332 fixture: compare_vcfs' own counters must
+    reconcile with its equality buckets under the gate's accounting."""
+    from comparison import compare
+
+    data = Path(__file__).parent / "data" / "clin_sig_order"
+    result = compare.compare_vcfs(
+        str(data / "vepyr.vcf"), str(data / "vep.vcf"), "clin_sig"
+    )
+    assert result["field_vep_nondeterministic_counts"] == {"CLIN_SIG": 2}
+    fields = frozenset(result["field_equality_counts"])
+    gate._validate_equality_counts(result, "chr22", fields)
