@@ -757,3 +757,11 @@ def test_repeated_contigs_are_rejected(tmp_path):
                 "1",
             ]
         )
+
+
+def test_changed_and_reordered_duplicates_pair_by_similarity():
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|missense|T1|p.X|,A|stop_gained|T1|p.Y|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|stop_gained|T1|p.Z|,A|missense|T1|p.W|").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["HGVSp"], "ORDER": ["CSQ_ORDER"]}

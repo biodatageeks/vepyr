@@ -169,8 +169,8 @@ def _pair_group(left, right, fields):
     """Pair two lists of (index, entry) sharing one key.
 
     Equal payloads (CLIN_SIG compared canonically) pair first, so a
-    reordering of duplicates is not read as field changes; the rest pair in
-    order. Returns (pairs, left-only, right-only).
+    reordering of duplicates is not read as field changes; the rest pair by
+    similarity. Returns (pairs, left-only, right-only).
     """
 
     def payload(entry):
@@ -185,9 +185,23 @@ def _pair_group(left, right, fields):
         else:
             remaining.remove(match)
             pairs.append((item, match))
-    n = min(len(left_rest), len(remaining))
-    pairs += list(zip(left_rest[:n], remaining[:n]))
-    return pairs, left_rest[n:], remaining[n:]
+    # The rest pair by similarity (most equal fields; ties keep CSQ order),
+    # so changed duplicates that also moved are not cross-paired.
+    unpaired = []
+    for item in left_rest:
+        if not remaining:
+            unpaired.append(item)
+            continue
+        best = max(
+            remaining,
+            key=lambda r: (
+                sum(item[1].get(n, "") == r[1].get(n, "") for n in fields),
+                -r[0],
+            ),
+        )
+        remaining.remove(best)
+        pairs.append((item, best))
+    return pairs, unpaired, remaining
 
 
 def entry_diffs(
