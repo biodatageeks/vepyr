@@ -1,7 +1,7 @@
 # Issue #207: re-encode reserved characters when writing INFO/FORMAT strings
 
-Status: **implemented on the combined stack** (formats#264 → formats#266 →
-functions#275 → vepyr#251, none merged). Approved 2026-10-18 (§9). The gates
+Status: **upstream merged; vepyr#251 re-pinned to the merge commits** (formats#264
+`051a953`, formats#266 `2d94421`, functions#275 `606ba1f`). Approved 2026-10-18 (§9). The gates
 for the current pins, and their verdicts, are recorded in the vepyr#251
 description. §§10–11 record execution and the current stack.
 The sections up to §9 are the plan as approved, kept unchanged.
@@ -298,3 +298,8 @@ shared; the step-2 baseline sweep is kept as well.
 - Whole-genome strict md5, the ClinVar gate and the interleaved performance gate are
   re-run on this exact stack and recorded in the vepyr#251 description, which
   supersedes the gate numbers recorded for earlier pins.
+- **Step 10 (2026-10-20).** formats#264 merged as `051a953`, formats#266 as `2d94421`,
+  functions#275 as `606ba1f`. That last one was re-pinned to formats `2d94421` before
+  it merged. vepyr#251 merges vepyr master `a619296` (#206) with a normal merge commit
+  and pins functions `606ba1f` and formats `2d94421`. The gates on that head are in
+  the vepyr#251 description's Final-state checklist.

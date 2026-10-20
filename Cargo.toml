@@ -220,11 +220,18 @@ serde_json = "1"
 # vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
 # pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
 # as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
-# vepyr#207/#263: formats#266 head 64c4001 (stacked on formats#264 b61279e)
-# carries the writer's INFO/FORMAT percent-encoding, the pre-4.3 space escape and
-# the Character INFO reader fix. functions#275 head 57106aa keeps CSQ verbatim,
-# writes records under the header's version and merges functions master (#274, MT
-# codon table). Both are PR heads until merged; re-pin to the merge commits then.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "57106aa3c7e94566ed064aed97e9ed2c3a1e60ae", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "64c4001452fecfe9d87d52006ef39fa9cfd7cf9b" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "64c4001452fecfe9d87d52006ef39fa9cfd7cf9b" }
+# vepyr#200: translate MT transcripts with their codon table and read
+# codon_table from _variation_effect_feature_cache (functions#274, merge commit
+# `9936c6e`; formats#262, merge commit `abac8df`). Both are ancestors of the pins
+# below.
+# vepyr#207/#263: the VCF writer percent-encodes reserved characters in INFO/FORMAT
+# values (plus a space under a header before VCF 4.3), and the reader materializes
+# Type=Character INFO values. formats: merge commit `2d94421` of
+# biodatageeks/datafusion-bio-formats#266 (on top of #264's merge commit `051a953`).
+# functions: merge commit `606ba1f` of biodatageeks/datafusion-bio-functions#275,
+# which keeps CSQ verbatim and pins the same formats rev in the same full-rev
+# spelling, so cargo resolves one formats source. Pinned by rev until release
+# tags carry these commits.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "606ba1fcba84c1499bacb19a6b59ddb8980e043c", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2d94421b760603fb3149ac5dad7448f77a9b96ae" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2d94421b760603fb3149ac5dad7448f77a9b96ae" }
