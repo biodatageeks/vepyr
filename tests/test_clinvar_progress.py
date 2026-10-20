@@ -396,6 +396,8 @@ def test_full_contig_mode_against_a_golden(tmp_path):
     run = json.loads((out / "run_F0.json").read_text(encoding="utf-8"))
     assert run["full_contig_counts"]["1"] == {
         "records": 5,
+        "golden_records": 5,
+        "vepyr_records": 5,
         "identical": 2,
         "differ": 3,
         "vep_nondeterministic": 1,  # chr1:300, CLIN_SIG order only
@@ -1106,7 +1108,8 @@ def test_a_header_without_feature_is_a_schema_difference():
     vep = rec("1", 1, "x", "A|m|T1|p.X|").rstrip("\n")
     vepyr = rec("1", 1, "x", "A|m|p.X|").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, no_feature)
-    assert diffs["CSQ_FORMAT"] == ["Feature"]
+    # one schema row, not one ONLY_IN_* per entry
+    assert diffs == {"CSQ_FORMAT": ["Feature"]}
 
 
 def test_assignment_is_optimal_against_brute_force():
@@ -1170,3 +1173,49 @@ def test_a_failed_slice_index_leaves_no_slice(tmp_path, monkeypatch):
             "python", str(src) + ".gz", "/c", "/f", tmp_path / "chr1.vcf.gz", "1", 1
         )
     assert not [p for p in tmp_path.iterdir() if p.name.startswith("chr1.in")]
+
+
+@pytest.mark.skipif(
+    shutil.which("bgzip") is None or shutil.which("tabix") is None,
+    reason="htslib bgzip/tabix not on PATH",
+)
+def test_full_contig_refuses_a_golden_without_the_contig(tmp_path):
+    panel = make_panel(tmp_path)
+    golden = tmp_path / "golden.vcf"
+    golden.write_text(HEADER + rec("2", 100, "q", "A|m|T1||"), encoding="utf-8")
+    subprocess.run(["bgzip", "-f", str(golden)], check=True)
+    subprocess.run(["tabix", "-p", "vcf", str(golden) + ".gz"], check=True)
+    clinvar = tmp_path / "clinvar.vcf.gz"
+    clinvar.write_bytes(b"")
+    out = tmp_path / "out"
+    vdir = out / "vepyr_E"
+    vdir.mkdir(parents=True)
+    plain = vdir / "chr1.vcf"
+    plain.write_text(HEADER + rec("1", 100, "a", "A|m|T1||"), encoding="utf-8")
+    subprocess.run(["bgzip", "-f", str(plain)], check=True)
+    provenance(
+        vdir, "master", ("1",), "full-contig", clinvar, Path(str(golden) + ".gz")
+    )
+    with pytest.raises(SystemExit, match="0 golden and 1 vepyr records"):
+        cp.main(
+            [
+                "--python",
+                sys.executable,
+                "--cache",
+                "/c",
+                "--panel",
+                str(panel),
+                "--out",
+                str(out),
+                "--contigs",
+                "1",
+                "--full-contig",
+                "--golden",
+                str(golden) + ".gz",
+                "--clinvar",
+                str(clinvar),
+                "--skip-annotate",
+                "--label",
+                "E",
+            ]
+        )

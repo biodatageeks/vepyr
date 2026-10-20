@@ -292,6 +292,10 @@ def entry_diffs(
     schema = sorted(set(vep_fmt) ^ set(vepyr_fmt))
     if schema:
         add("CSQ_FORMAT", schema)
+        if not {"Allele", "Feature"} <= set(vep_fmt) & set(vepyr_fmt):
+            # Without both identity columns entries cannot be paired; the
+            # schema row is the whole difference, not one per entry.
+            return out, nondeterministic
     elif vep_fmt != vepyr_fmt:
         add("CSQ_FIELD_ORDER", ["CSQ_FIELD_ORDER"])
     groups_a: dict = collections.defaultdict(list)
@@ -534,6 +538,8 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
                 else:
                     gold, vy = g[1], v[1]
                     g, v = next(gold_groups, None), next(vy_groups, None)
+                counts["golden_records"] += len(gold)
+                counts["vepyr_records"] += len(vy)
                 for k in list(gold) + [k for k in vy if k not in gold]:
                     key = (contig, k[0], k[2], k[3], k[1])
                     counts["records"] += 1
@@ -1341,11 +1347,13 @@ def main(argv: list[str] | None = None) -> int:
         for c in args.contigs:
             vy = vepyr_dir / f"chr{c}.vcf.gz"
             contig_state, counts = evaluate_full(c, str(args.golden), vy, keep)
-            if not counts.get("records"):
+            if not counts.get("golden_records") or not counts.get("vepyr_records"):
                 # A contig name the golden and the release do not use (e.g.
                 # "chr22" for "22") yields an empty, vacuous comparison.
                 raise SystemExit(
-                    f"chr{c}: no records in the golden or the vepyr output"
+                    f"chr{c}: {counts.get('golden_records', 0)} golden and "
+                    f"{counts.get('vepyr_records', 0)} vepyr records; one side "
+                    "is empty (a contig name the golden does not use?)"
                 )
             state.update(contig_state)
             full_counts[c] = dict(counts)
