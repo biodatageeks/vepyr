@@ -227,6 +227,6 @@ serde_json = "1"
 # biodatageeks/datafusion-bio-formats#262, the same full-rev spelling the merged
 # functions master pins, so cargo resolves one formats source. Pinned by rev
 # until release tags carry these commits.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "9936c6e8a0c82eeffd8b05edb2e10b213f0e455d", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "d9c93a77f5d2b02f3cf8941fcac043ca81f2e444", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "abac8df6e93dc5234d60a728d67e2800a91271d1" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "abac8df6e93dc5234d60a728d67e2800a91271d1" }
