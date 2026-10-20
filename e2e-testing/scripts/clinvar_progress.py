@@ -126,7 +126,7 @@ def read_vcf(path: Path) -> tuple[list[str], dict[tuple[str, str, str, str], str
     """Header lines and {(pos, id, ref, alt): line} of a plain-text VCF."""
     header: list[str] = []
     body: dict[tuple[str, str, str, str], str] = {}
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         for line in fh:
             if line.startswith("#"):
                 header.append(line)
@@ -167,9 +167,12 @@ def split_record(line: str, fmt: list[str]):
     for raw in csq:
         values = raw.split("|")
         entry = dict(zip(fmt, values))
+        # A malformed entry may end before Allele or Feature: key it with
+        # empty values rather than fail, and let CSQ_ARITY report it.
+        ident = values + [""] * (max(fi, ai) + 1 - len(values))
         # zip drops surplus values; keep the count so a malformed entry differs.
         entry[ARITY] = f"{len(values) - len(fmt)}|" + "|".join(values[len(fmt) :])
-        entries.append(((values[ai], values[fi]), entry))
+        entries.append(((ident[ai], ident[fi]), entry))
     non_csq = "\t".join(cols[:7] + [";".join(rest)] + cols[8:])
     return non_csq, entries
 
@@ -321,7 +324,7 @@ def load_ledger(path: Path) -> list[dict[str, str]]:
     entries for one feature (one ALT per ClinVar record, one VEP entry per
     feature and allele). A ledger that breaks this is refused rather than
     miscounted."""
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh, delimiter="\t"))
     seen = set()
     for r in rows:
@@ -478,7 +481,7 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
     ).stdout.splitlines()
     gold_fmt = csq_format(header)
     vy_header = []
-    with gzip.open(vepyr_vcf, "rt") as fh:
+    with gzip.open(vepyr_vcf, "rt", encoding="utf-8") as fh:
         for line in fh:
             if not line.startswith("#"):
                 break
@@ -491,7 +494,7 @@ def evaluate_full(contig: str, golden: str, vepyr_vcf: Path, keep: set):
     state: dict[RecordKey, tuple[bool, bool, dict[str, list[str]]]] = {}
     counts = collections.Counter()
     try:
-        with gzip.open(vepyr_vcf, "rt") as vy_fh:
+        with gzip.open(vepyr_vcf, "rt", encoding="utf-8") as vy_fh:
             gold_groups = _position_groups(tabix.stdout)
             vy_groups = _position_groups(vy_fh)
             g = next(gold_groups, None)
@@ -619,7 +622,7 @@ def _file_digest(path, cache_file: Path | None = None) -> dict:
     cache = {}
     if cache_file is not None and cache_file.exists():
         try:
-            cache = json.loads(cache_file.read_text())
+            cache = json.loads(cache_file.read_text(encoding="utf-8"))
         except ValueError:
             cache = {}
     if key not in cache:
@@ -636,7 +639,7 @@ def _file_digest(path, cache_file: Path | None = None) -> dict:
         if cache_file is not None:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
             tmp = cache_file.with_suffix(f".{os.getpid()}.tmp")
-            tmp.write_text(json.dumps(cache, indent=1) + "\n")
+            tmp.write_text(json.dumps(cache, indent=1) + "\n", encoding="utf-8")
             tmp.replace(cache_file)
     return {"size": st.st_size, "sha256": cache[key]}
 
@@ -694,7 +697,7 @@ def check_prev_scope(
     run = prev_progress.with_name(f"run_{label}.json")
     if not run.exists():
         raise SystemExit(f"--prev: {run} is missing, so its contig scope is unknown")
-    prev_run = json.loads(run.read_text())
+    prev_run = json.loads(run.read_text(encoding="utf-8"))
     if prev_run.get("mode", "panel") != mode:
         raise SystemExit(
             f"--prev is a {prev_run.get('mode', 'panel')} run, this run is {mode}"
@@ -721,7 +724,7 @@ def read_prev_entries(prev_progress: Path) -> dict[tuple, str] | None:
     path = prev_progress.with_name("entries_" + name[len("progress_") :])
     if not path.exists():
         raise SystemExit(f"--prev: {path} is missing")
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         return {
             (
                 r["contig"],
@@ -738,7 +741,7 @@ def read_prev_entries(prev_progress: Path) -> dict[tuple, str] | None:
 def read_prev_fields(prev_progress: Path) -> dict[tuple, set]:
     """Differing fields per entry of the previous run (entries_<label>.tsv)."""
     path = prev_progress.with_name("entries_" + prev_progress.name[len("progress_") :])
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         return {
             (
                 r["contig"],
@@ -992,7 +995,7 @@ def summary_markdown(
             )
         lines += [""]
     lines += [
-        "| Issue | Repo | Records fixed / attributed | Entries fixed / attributed | Δ records vs prev | Note |",
+        "| Issue | Repo | Records fixed / attributed | Entries fixed / attributed | Records vs prev | Note |",
         "|---|---|---:|---:|---:|---|",
     ]
     for row in [r for r in table if r["issue"] not in NOTES]:
@@ -1000,7 +1003,7 @@ def summary_markdown(
             f"| {row['issue'].replace('vepyr', '')} | {row['repo']} | "
             f"{row['records_now_identical']:,} / {row['records_attributed']:,} | "
             f"{row['entries_now_identical']:,} / {row['entries_attributed']:,} | "
-            f"{row['delta_vs_prev'] or '–'} | {row['status']} |"
+            f"{row['delta_vs_prev'] or '-'} | {row['status']} |"
         )
     lines += ["", "Counts overlap: a record can carry several causes."]
     if meta.get("partial_issues"):
@@ -1066,7 +1069,7 @@ def summary_markdown(
 
 
 def write_tsv(path: Path, header: list[str], rows) -> None:
-    with open(path, "w", newline="") as fh:
+    with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, delimiter="\t", lineterminator="\n")
         w.writerow(header)
         w.writerows(rows)
@@ -1116,7 +1119,7 @@ def read_prev_records(prev_progress: Path) -> set[RecordKey]:
     path = prev_progress.with_name(f"records_{label}.tsv")
     if not path.exists():
         raise SystemExit(f"--prev: {path} is missing (not a --full-contig run?)")
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         return {
             (r["contig"], r["pos"], r["ref"], r["alt"], r["clinvar_id"])
             for r in csv.DictReader(fh, delimiter="\t")
@@ -1136,7 +1139,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--cache",
         required=True,
-        help="Parquet cache directory or overlay (…/116_GRCh38_merged).",
+        help="Parquet cache directory or overlay (.../116_GRCh38_merged).",
     )
     p.add_argument(
         "--label",
@@ -1240,7 +1243,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.prev:
         # Validate and read before annotating: a bad --prev must not cost a run.
         check_prev_scope(args.prev, args.contigs, mode, identity)
-        with open(args.prev) as fh:
+        with open(args.prev, encoding="utf-8") as fh:
             prev_rows = list(csv.DictReader(fh, delimiter="\t"))
         prev_entries = read_prev_entries(args.prev)
         prev_fields = read_prev_fields(args.prev)
@@ -1273,7 +1276,7 @@ def main(argv: list[str] | None = None) -> int:
             "annotate_seconds_per_contig": timings,
         }
         (vepyr_dir / "annotation.json").write_text(
-            json.dumps(provenance, indent=1) + "\n"
+            json.dumps(provenance, indent=1) + "\n", encoding="utf-8"
         )
     else:
         # The outputs carry their own provenance: report the build and cache
@@ -1283,7 +1286,7 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(
                 f"--skip-annotate: {recorded} is missing, so the reused outputs have no provenance"
             )
-        provenance = json.loads(recorded.read_text())
+        provenance = json.loads(recorded.read_text(encoding="utf-8"))
         missing = sorted(set(args.contigs) - set(provenance.get("contigs") or []))
         if missing:
             raise SystemExit(
@@ -1491,14 +1494,17 @@ def main(argv: list[str] | None = None) -> int:
         "total_seconds": round(time.perf_counter() - t0, 1),
     }
     (out / f"summary_{args.label}.md").write_text(
-        summary_markdown(args.label, table, state, ledger, regressions, meta, excluded)
+        summary_markdown(args.label, table, state, ledger, regressions, meta, excluded),
+        encoding="utf-8",
     )
-    (out / f"run_{args.label}.json").write_text(json.dumps(meta, indent=1) + "\n")
+    (out / f"run_{args.label}.json").write_text(
+        json.dumps(meta, indent=1) + "\n", encoding="utf-8"
+    )
     if args.full_contig and not args.skip_annotate and not args.keep_outputs:
         # Only after every report is written, and only files this run made.
         for c in args.contigs:
             (vepyr_dir / f"chr{c}.vcf.gz").unlink(missing_ok=True)
-    print((out / f"summary_{args.label}.md").read_text())
+    print((out / f"summary_{args.label}.md").read_text(encoding="utf-8"))
     return 0
 
 

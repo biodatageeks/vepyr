@@ -987,3 +987,11 @@ def test_a_schema_change_is_one_regression_per_record_under_prev(tmp_path):
     assert [(r[1], r[2]) for r in regressions if r[0] == key] == [
         ("CSQ_FORMAT", "differs now, identical in --prev")
     ]
+
+
+def test_a_csq_entry_truncated_before_feature_is_a_difference():
+    fmt = FORMAT.split("|")
+    vep = rec("1", 1, "x", "A|m|T1|p.X|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|m").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs == {"T1": ["ONLY_IN_VEP"], "": ["ONLY_IN_VEPYR"]}
