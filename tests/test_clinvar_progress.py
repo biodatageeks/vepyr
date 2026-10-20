@@ -21,7 +21,7 @@ import clinvar_progress as cp  # noqa: E402
 def _small_reference(tmp_path, monkeypatch):
     """main() fingerprints --fasta; keep the tests off the real 3 GB FASTA."""
     fasta = tmp_path / "ref.fa"
-    fasta.write_text(">1\nACGT\n")
+    fasta.write_text(">1\nACGT\n", encoding="utf-8")
     monkeypatch.setattr(cp, "DEFAULT_FASTA", fasta)
 
 
@@ -39,7 +39,7 @@ def rec(contig, pos, cid, csq, info="CLNSIG=Benign"):
 
 def write(path: Path, *records: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(HEADER + "".join(records))
+    path.write_text(HEADER + "".join(records), encoding="utf-8")
 
 
 LEDGER_COLUMNS = [
@@ -112,7 +112,7 @@ def make_panel(tmp_path: Path) -> Path:
     write(
         tmp_path / "vepyr" / "chr20.vcf", rec("20", 63674046, "e", "A|missense|T9|p.Y|")
     )
-    with open(panel / "ledger.tsv", "w", newline="") as fh:
+    with open(panel / "ledger.tsv", "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, delimiter="\t", lineterminator="\n")
         w.writerow(LEDGER_COLUMNS)
         w.writerow(ledger_row("1", "100", "a", "T1", "vepyr#211", "Consequence"))
@@ -197,7 +197,8 @@ def provenance(
                 "contigs": list(contigs),
                 "input_identity": identity,
             }
-        )
+        ),
+        encoding="utf-8",
     )
 
 
@@ -207,7 +208,8 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
     (out / "vepyr_R0").mkdir(parents=True)
     for c in ("1", "20"):
         (out / "vepyr_R0" / f"chr{c}.vcf").write_text(
-            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
     provenance(out / "vepyr_R0")
     args = [
@@ -227,10 +229,12 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
     assert cp.main([*args, "--label", "R0"]) == 0
     progress = {
         r["issue"]: r
-        for r in csv.DictReader(open(out / "progress_R0.tsv"), delimiter="\t")
+        for r in csv.DictReader(
+            open(out / "progress_R0.tsv", encoding="utf-8"), delimiter="\t"
+        )
     }
     assert progress["vepyr#211"]["records_now_identical"] == "1"
-    summary = (out / "summary_R0.md").read_text()
+    summary = (out / "summary_R0.md").read_text(encoding="utf-8")
     assert "| #211 | engine | 1 / 3 |" in summary
     assert "Excluded" in summary and "VEP-nondeterministic" in summary
     # --skip-annotate reports the recorded provenance, not the command line's
@@ -238,7 +242,7 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
 
     # Round 1 fixes chr1:400 and breaks chr1:100.
     (out / "vepyr_R1").mkdir()
-    r1 = (out / "vepyr_R0" / "chr1.vcf").read_text()
+    r1 = (out / "vepyr_R0" / "chr1.vcf").read_text(encoding="utf-8")
     r1 = r1.replace(
         "A|missense|T1|p.X|,A|intron|T2|p.Q|", "A|missense|T1|p.X|,A|intron|T2||"
     )
@@ -246,9 +250,9 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
         "1\t100\ta\tG\tA\t.\t.\tCLNSIG=Benign;CSQ=A|missense|",
         "1\t100\ta\tG\tA\t.\t.\tCLNSIG=Benign;CSQ=A|stop_gained|",
     )
-    (out / "vepyr_R1" / "chr1.vcf").write_text(r1)
+    (out / "vepyr_R1" / "chr1.vcf").write_text(r1, encoding="utf-8")
     (out / "vepyr_R1" / "chr20.vcf").write_text(
-        (out / "vepyr_R0" / "chr20.vcf").read_text()
+        (out / "vepyr_R0" / "chr20.vcf").read_text(encoding="utf-8"), encoding="utf-8"
     )
     provenance(out / "vepyr_R1", version="0.11.0")
     assert (
@@ -256,11 +260,17 @@ def test_main_writes_outputs_and_reads_prev(tmp_path):
     )
     progress = {
         r["issue"]: r
-        for r in csv.DictReader(open(out / "progress_R1.tsv"), delimiter="\t")
+        for r in csv.DictReader(
+            open(out / "progress_R1.tsv", encoding="utf-8"), delimiter="\t"
+        )
     }
     assert progress["vepyr#211"]["records_now_identical"] == "1"
     assert progress["vepyr#211"]["delta_vs_prev"] == "+0"
-    regressions = list(csv.DictReader(open(out / "regressions_R1.tsv"), delimiter="\t"))
+    regressions = list(
+        csv.DictReader(
+            open(out / "regressions_R1.tsv", encoding="utf-8"), delimiter="\t"
+        )
+    )
     assert any(
         r["pos"] == "100" and r["kind"] == "differs now, identical in --prev"
         for r in regressions
@@ -273,7 +283,8 @@ def test_prev_with_another_contig_scope_is_rejected(tmp_path):
     (out / "vepyr_R0").mkdir(parents=True)
     for c in ("1", "20"):
         (out / "vepyr_R0" / f"chr{c}.vcf").write_text(
-            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
     provenance(out / "vepyr_R0")
     base = [
@@ -310,8 +321,10 @@ def test_identical_bytes_under_different_csq_formats_are_compared_by_field(tmp_p
         "Allele|Consequence|Feature|CLIN_SIG|HGVSp",
     )
     path = tmp_path / "vepyr" / "chr1.vcf"
-    vep_body = (panel / "vep116_0" / "chr1.vcf").read_text().split(HEADER)[1]
-    path.write_text(swapped + vep_body)
+    vep_body = (
+        (panel / "vep116_0" / "chr1.vcf").read_text(encoding="utf-8").split(HEADER)[1]
+    )
+    path.write_text(swapped + vep_body, encoding="utf-8")
     state = cp.evaluate(panel, tmp_path / "vepyr", ["1"])
     # chr1:100 carries HGVSp p.X and an empty CLIN_SIG: the swap makes both differ
     assert state[("1", "100", "G", "A", "a")][0] is False
@@ -337,20 +350,22 @@ def test_full_contig_mode_against_a_golden(tmp_path):
     ledger records are judged in full-contig context (nothing excluded), and a
     record outside the ledger that now differs is a regression."""
     panel = make_panel(tmp_path)
-    golden_body = (panel / "vep116_0" / "chr1.vcf").read_text().split(HEADER)[1]
+    golden_body = (
+        (panel / "vep116_0" / "chr1.vcf").read_text(encoding="utf-8").split(HEADER)[1]
+    )
     golden_body += rec("1", 500, "f", "A|intron|T3||")  # identical in the triage
     golden = tmp_path / "golden.vcf"
-    golden.write_text(HEADER + golden_body)
+    golden.write_text(HEADER + golden_body, encoding="utf-8")
     subprocess.run(["bgzip", "-f", str(golden)], check=True)
     subprocess.run(["tabix", "-p", "vcf", str(golden) + ".gz"], check=True)
 
     out = tmp_path / "out"
     vdir = out / "vepyr_F0"
     vdir.mkdir(parents=True)
-    now = (tmp_path / "vepyr" / "chr1.vcf").read_text()
+    now = (tmp_path / "vepyr" / "chr1.vcf").read_text(encoding="utf-8")
     now += rec("1", 500, "f", "A|intron|T3|p.R|")  # new difference
     plain = vdir / "chr1.vcf"
-    plain.write_text(now)
+    plain.write_text(now, encoding="utf-8")
     subprocess.run(["bgzip", "-f", str(plain)], check=True)
     clinvar = tmp_path / "clinvar.vcf.gz"
     clinvar.write_bytes(b"")
@@ -378,19 +393,25 @@ def test_full_contig_mode_against_a_golden(tmp_path):
         "F0",
     ]
     assert cp.main(args) == 0
-    run = json.loads((out / "run_F0.json").read_text())
+    run = json.loads((out / "run_F0.json").read_text(encoding="utf-8"))
     assert run["full_contig_counts"]["1"] == {
         "records": 5,
         "identical": 2,
         "differ": 3,
         "vep_nondeterministic": 1,  # chr1:300, CLIN_SIG order only
     }
-    regressions = list(csv.DictReader(open(out / "regressions_F0.tsv"), delimiter="\t"))
+    regressions = list(
+        csv.DictReader(
+            open(out / "regressions_F0.tsv", encoding="utf-8"), delimiter="\t"
+        )
+    )
     assert any(
         r["pos"] == "500" and "identical in the triage" in r["kind"]
         for r in regressions
     )
-    records = list(csv.DictReader(open(out / "records_F0.tsv"), delimiter="\t"))
+    records = list(
+        csv.DictReader(open(out / "records_F0.tsv", encoding="utf-8"), delimiter="\t")
+    )
     assert {r["pos"] for r in records if r["state"] == "differs"} == {
         "200",
         "400",
@@ -398,10 +419,9 @@ def test_full_contig_mode_against_a_golden(tmp_path):
     }
     states = {r["pos"]: r["state"] for r in records}
     assert states["300"] == "identical-vep-nondeterministic"
-    assert (
-        "VEP-nondeterministic `CLIN_SIG` order (#238): 1:300"
-        in (out / "summary_F0.md").read_text()
-    )
+    assert "VEP-nondeterministic `CLIN_SIG` order (#238): 1:300" in (
+        out / "summary_F0.md"
+    ).read_text(encoding="utf-8")
     # reused outputs are never deleted; only a run's own outputs are
     assert (vdir / "chr1.vcf.gz").exists()
 
@@ -445,7 +465,12 @@ def test_a_record_missing_from_vepyr_is_a_regression(tmp_path):
     panel = make_panel(tmp_path)
     path = tmp_path / "vepyr" / "chr1.vcf"
     path.write_text(
-        "".join(ln for ln in path.read_text().splitlines(True) if "\t200\t" not in ln)
+        "".join(
+            ln
+            for ln in path.read_text(encoding="utf-8").splitlines(True)
+            if "\t200\t" not in ln
+        ),
+        encoding="utf-8",
     )
     state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
     _, _, regressions = cp.build_progress(cp.load_ledger(panel / "ledger.tsv"), state)
@@ -456,7 +481,12 @@ def test_a_panel_without_a_vep_line_fails_readably(tmp_path):
     panel = make_panel(tmp_path)
     vep = panel / "vep116_0" / "chr1.vcf"
     vep.write_text(
-        "".join(ln for ln in vep.read_text().splitlines(True) if "\t100\t" not in ln)
+        "".join(
+            ln
+            for ln in vep.read_text(encoding="utf-8").splitlines(True)
+            if "\t100\t" not in ln
+        ),
+        encoding="utf-8",
     )
     with pytest.raises(SystemExit, match="has no line for chr1:100"):
         cp.evaluate(panel, tmp_path / "vepyr", ["1"])
@@ -500,13 +530,14 @@ def test_full_contig_slice_drops_alt_dot_and_splits_multiallelics(tmp_path):
         "1\t100\ta\tG\tA\t.\t.\t.\n"
         "1\t200\tb\tG\t.\t.\t.\t.\n"
         "1\t300\tc\tG\tA,T\t.\t.\t.\n"
-        "2\t100\td\tG\tA\t.\t.\t.\n"
+        "2\t100\td\tG\tA\t.\t.\t.\n",
+        encoding="utf-8",
     )
     subprocess.run(["bgzip", "-f", str(src)], check=True)
     subprocess.run(["tabix", "-p", "vcf", str(src) + ".gz"], check=True)
     # Stand-in interpreter: "python -c CODE in cache fasta out workers" copies in to out.
     fake = tmp_path / "fake_python"
-    fake.write_text('#!/bin/sh\ncp "$3" "$6"\n')
+    fake.write_text('#!/bin/sh\ncp "$3" "$6"\n', encoding="utf-8")
     fake.chmod(0o755)
     out = tmp_path / "chr1.vcf.gz"
     cp.annotate_full_contig(str(fake), str(src) + ".gz", "/c", "/f", out, "1", 4)
@@ -529,7 +560,7 @@ def test_issues_narrows_contigs_and_table(tmp_path):
     out = tmp_path / "out"
     (out / "vepyr_T").mkdir(parents=True)
     (out / "vepyr_T" / "chr1.vcf").write_text(
-        (tmp_path / "vepyr" / "chr1.vcf").read_text()
+        (tmp_path / "vepyr" / "chr1.vcf").read_text(encoding="utf-8"), encoding="utf-8"
     )
     provenance(out / "vepyr_T", "x", ("1",))
     args = [
@@ -549,11 +580,14 @@ def test_issues_narrows_contigs_and_table(tmp_path):
         "#212",
     ]
     assert cp.main(args) == 0
-    run = json.loads((out / "run_T.json").read_text())
+    run = json.loads((out / "run_T.json").read_text(encoding="utf-8"))
     assert run["contigs"] == ["1"]  # chr20 holds only #202
     assert run["issues"] == ["vepyr#211", "vepyr#212"]
     issues = [
-        r["issue"] for r in csv.DictReader(open(out / "progress_T.tsv"), delimiter="\t")
+        r["issue"]
+        for r in csv.DictReader(
+            open(out / "progress_T.tsv", encoding="utf-8"), delimiter="\t"
+        )
     ]
     assert issues == ["vepyr#211", "vepyr#212"]
     with pytest.raises(SystemExit):
@@ -563,12 +597,16 @@ def test_issues_narrows_contigs_and_table(tmp_path):
 def test_a_record_only_in_the_vepyr_output_is_a_regression(tmp_path):
     panel = make_panel(tmp_path)
     path = tmp_path / "vepyr" / "chr1.vcf"
-    path.write_text(path.read_text() + rec("1", 900, "z", "A|missense|T1||"))
+    path.write_text(
+        path.read_text(encoding="utf-8") + rec("1", 900, "z", "A|missense|T1||"),
+        encoding="utf-8",
+    )
     out = tmp_path / "out"
     (out / "vepyr_X").mkdir(parents=True)
     for c in ("1", "20"):
         (out / "vepyr_X" / f"chr{c}.vcf").write_text(
-            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
     provenance(out / "vepyr_X")
     assert (
@@ -592,7 +630,11 @@ def test_a_record_only_in_the_vepyr_output_is_a_regression(tmp_path):
         )
         == 0
     )
-    regressions = list(csv.DictReader(open(out / "regressions_X.tsv"), delimiter="\t"))
+    regressions = list(
+        csv.DictReader(
+            open(out / "regressions_X.tsv", encoding="utf-8"), delimiter="\t"
+        )
+    )
     assert any(
         r["pos"] == "900" and r["kind"] == "record only in the vepyr output"
         for r in regressions
@@ -604,7 +646,7 @@ def test_issues_scope_the_headline_and_flag_partial_coverage(tmp_path):
     out = tmp_path / "out"
     (out / "vepyr_Y").mkdir(parents=True)
     (out / "vepyr_Y" / "chr1.vcf").write_text(
-        (tmp_path / "vepyr" / "chr1.vcf").read_text()
+        (tmp_path / "vepyr" / "chr1.vcf").read_text(encoding="utf-8"), encoding="utf-8"
     )
     provenance(out / "vepyr_Y")
     base = [
@@ -621,10 +663,12 @@ def test_issues_scope_the_headline_and_flag_partial_coverage(tmp_path):
         "Y",
     ]
     assert cp.main([*base, "--issues", "238"]) == 0
-    assert "**1 / 1 records now identical" in (out / "summary_Y.md").read_text()
+    assert "**1 / 1 records now identical" in (out / "summary_Y.md").read_text(
+        encoding="utf-8"
+    )
     # #202's only record is on chr20: an explicit chr1 run covers none of it
     assert cp.main([*base, "--issues", "211", "202", "--contigs", "1"]) == 0
-    assert "**Partial:**" in (out / "summary_Y.md").read_text()
+    assert "**Partial:**" in (out / "summary_Y.md").read_text(encoding="utf-8")
 
 
 def test_a_regressed_entry_is_reported_once_with_prev(tmp_path):
@@ -642,7 +686,12 @@ def test_a_missing_record_is_one_regression_even_with_prev(tmp_path):
     panel = make_panel(tmp_path)
     path = tmp_path / "vepyr" / "chr1.vcf"
     path.write_text(
-        "".join(ln for ln in path.read_text().splitlines(True) if "\t200\t" not in ln)
+        "".join(
+            ln
+            for ln in path.read_text(encoding="utf-8").splitlines(True)
+            if "\t200\t" not in ln
+        ),
+        encoding="utf-8",
     )
     ledger = cp.load_ledger(panel / "ledger.tsv")
     state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
@@ -672,13 +721,17 @@ def test_prev_is_the_baseline_for_entries_outside_the_ledger(tmp_path):
 def test_a_persistent_output_only_record_is_not_reported_again(tmp_path):
     panel = make_panel(tmp_path)
     path = tmp_path / "vepyr" / "chr1.vcf"
-    path.write_text(path.read_text() + rec("1", 900, "z", "A|missense|T1||"))
+    path.write_text(
+        path.read_text(encoding="utf-8") + rec("1", 900, "z", "A|missense|T1||"),
+        encoding="utf-8",
+    )
     out = tmp_path / "out"
     for label in ("A", "B"):
         (out / f"vepyr_{label}").mkdir(parents=True)
         for c in ("1", "20"):
             (out / f"vepyr_{label}" / f"chr{c}.vcf").write_text(
-                (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+                (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+                encoding="utf-8",
             )
         provenance(out / f"vepyr_{label}")
     base = [
@@ -699,7 +752,9 @@ def test_a_persistent_output_only_record_is_not_reported_again(tmp_path):
     assert cp.main([*base, "--label", "B", "--prev", str(out / "progress_A.tsv")]) == 0
 
     def kinds(label):
-        rows = csv.DictReader(open(out / f"regressions_{label}.tsv"), delimiter="\t")
+        rows = csv.DictReader(
+            open(out / f"regressions_{label}.tsv", encoding="utf-8"), delimiter="\t"
+        )
         return [r["kind"] for r in rows if r["pos"] == "900"]
 
     assert kinds("A") == ["record only in the vepyr output"]
@@ -718,7 +773,12 @@ def test_a_persistently_missing_record_is_not_reported_again(tmp_path):
     panel = make_panel(tmp_path)
     path = tmp_path / "vepyr" / "chr1.vcf"
     path.write_text(
-        "".join(ln for ln in path.read_text().splitlines(True) if "\t200\t" not in ln)
+        "".join(
+            ln
+            for ln in path.read_text(encoding="utf-8").splitlines(True)
+            if "\t200\t" not in ln
+        ),
+        encoding="utf-8",
     )
     ledger = cp.load_ledger(panel / "ledger.tsv")
     state = cp.evaluate(panel, tmp_path / "vepyr", ["1", "20"])
@@ -807,10 +867,13 @@ def test_reused_outputs_from_another_panel_are_refused(tmp_path):
     (out / "vepyr_P").mkdir(parents=True)
     for c in ("1", "20"):
         (out / "vepyr_P" / f"chr{c}.vcf").write_text(
-            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
     provenance(out / "vepyr_P")
-    with open(panel / "ledger.tsv", "a") as fh:  # the panel changes afterwards
+    with open(
+        panel / "ledger.tsv", "a", encoding="utf-8"
+    ) as fh:  # the panel changes afterwards
         fh.write(
             "\t".join(ledger_row("1", "100", "a", "T9", "vepyr#211", "HGVSp")) + "\n"
         )
@@ -857,7 +920,8 @@ def test_prev_from_another_panel_is_refused(tmp_path):
     (out / "vepyr_A").mkdir(parents=True)
     for c in ("1", "20"):
         (out / "vepyr_A" / f"chr{c}.vcf").write_text(
-            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text()
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+            encoding="utf-8",
         )
     provenance(out / "vepyr_A")
     base = [
@@ -876,13 +940,13 @@ def test_prev_from_another_panel_is_refused(tmp_path):
     ]
     assert cp.main([*base, "--label", "A"]) == 0
     run = out / "run_A.json"
-    data = json.loads(run.read_text())
+    data = json.loads(run.read_text(encoding="utf-8"))
     data["input_identity"] = None  # a run from before identities existed
-    run.write_text(json.dumps(data))
+    run.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(SystemExit, match="no input_identity recorded"):
         cp.main([*base, "--label", "A", "--prev", str(out / "progress_A.tsv")])
     data["input_identity"] = {"mode": "panel", "panel_sha256": "0"}
-    run.write_text(json.dumps(data))
+    run.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(SystemExit, match="another panel or golden"):
         cp.main([*base, "--label", "A", "--prev", str(out / "progress_A.tsv")])
 
@@ -899,7 +963,7 @@ def test_similarity_pairing_reads_clin_sig_canonically():
 
 def test_a_ledger_with_two_rows_for_one_entry_is_refused(tmp_path):
     panel = make_panel(tmp_path)
-    with open(panel / "ledger.tsv", "a") as fh:
+    with open(panel / "ledger.tsv", "a", encoding="utf-8") as fh:
         fh.write(
             "\t".join(ledger_row("1", "100", "a", "T1", "vepyr#212", "HGVSp")) + "\n"
         )
@@ -950,9 +1014,9 @@ def test_duplicate_matching_leaves_the_worst_vep_entry_unmatched():
 def test_identity_covers_the_reference_fasta(tmp_path):
     panel = make_panel(tmp_path)
     fa = tmp_path / "ref.fa"
-    fa.write_text(">1\nACGT\n")
+    fa.write_text(">1\nACGT\n", encoding="utf-8")
     one = cp.input_identity(panel, "panel", None, None, fa)
-    fa.write_text(">1\nACGA\n")
+    fa.write_text(">1\nACGA\n", encoding="utf-8")
     assert cp.input_identity(panel, "panel", None, None, fa) != one
 
 
@@ -995,3 +1059,42 @@ def test_a_csq_entry_truncated_before_feature_is_a_difference():
     vepyr = rec("1", 1, "x", "A|m").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs == {"T1": ["ONLY_IN_VEP"], "": ["ONLY_IN_VEPYR"]}
+
+
+def test_the_summary_round_trips_non_ascii_text(tmp_path, monkeypatch):
+    """Windows' default cp1252 cannot encode every character a note or record
+    can carry; the summary is written and read as UTF-8 (windows CI on #255)."""
+    panel = make_panel(tmp_path)
+    out = tmp_path / "out"
+    (out / "vepyr_U").mkdir(parents=True)
+    for c in ("1", "20"):
+        (out / "vepyr_U" / f"chr{c}.vcf").write_text(
+            (tmp_path / "vepyr" / f"chr{c}.vcf").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    provenance(out / "vepyr_U")
+    monkeypatch.setitem(cp.NOTES, "vepyr#212", "Δ known, ünicode → kept")
+    assert (
+        cp.main(
+            [
+                "--python",
+                sys.executable,
+                "--cache",
+                "/c",
+                "--panel",
+                str(panel),
+                "--out",
+                str(out),
+                "--skip-annotate",
+                "--label",
+                "U",
+                "--contigs",
+                "1",
+                "20",
+            ]
+        )
+        == 0
+    )
+    summary = (out / "summary_U.md").read_bytes().decode("utf-8")
+    assert "Δ known, ünicode → kept" in summary
+    assert b"\r\n" not in (out / "summary_U.md").read_bytes()

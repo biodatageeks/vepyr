@@ -639,7 +639,9 @@ def _file_digest(path, cache_file: Path | None = None) -> dict:
         if cache_file is not None:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
             tmp = cache_file.with_suffix(f".{os.getpid()}.tmp")
-            tmp.write_text(json.dumps(cache, indent=1) + "\n", encoding="utf-8")
+            tmp.write_text(
+                json.dumps(cache, indent=1) + "\n", encoding="utf-8", newline="\n"
+            )
             tmp.replace(cache_file)
     return {"size": st.st_size, "sha256": cache[key]}
 
@@ -1276,7 +1278,7 @@ def main(argv: list[str] | None = None) -> int:
             "annotate_seconds_per_contig": timings,
         }
         (vepyr_dir / "annotation.json").write_text(
-            json.dumps(provenance, indent=1) + "\n", encoding="utf-8"
+            json.dumps(provenance, indent=1) + "\n", encoding="utf-8", newline="\n"
         )
     else:
         # The outputs carry their own provenance: report the build and cache
@@ -1496,15 +1498,20 @@ def main(argv: list[str] | None = None) -> int:
     (out / f"summary_{args.label}.md").write_text(
         summary_markdown(args.label, table, state, ledger, regressions, meta, excluded),
         encoding="utf-8",
+        newline="\n",
     )
     (out / f"run_{args.label}.json").write_text(
-        json.dumps(meta, indent=1) + "\n", encoding="utf-8"
+        json.dumps(meta, indent=1) + "\n", encoding="utf-8", newline="\n"
     )
     if args.full_contig and not args.skip_annotate and not args.keep_outputs:
         # Only after every report is written, and only files this run made.
         for c in args.contigs:
             (vepyr_dir / f"chr{c}.vcf.gz").unlink(missing_ok=True)
-    print((out / f"summary_{args.label}.md").read_text(encoding="utf-8"))
+    text = (out / f"summary_{args.label}.md").read_text(encoding="utf-8")
+    # A console that cannot encode a character (cp1252 on Windows) gets a
+    # replacement; the file above keeps the exact UTF-8 text.
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    print(text.encode(encoding, errors="replace").decode(encoding))
     return 0
 
 
