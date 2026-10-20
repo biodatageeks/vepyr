@@ -815,7 +815,9 @@ class TestBuildCacheIntegration:
 
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
-        assert tables["transcript"].num_columns == 76
+        # 77 since datafusion-bio-formats#269 (vepyr#241, #205) exports the
+        # translation SeqEdits as `translation_seq_edits`.
+        assert tables["transcript"].num_columns == 77
 
     def test_transcript_omits_unpersisted_columns(self, built_cache):
         # The cache build stops at the columns something reads. The raw
