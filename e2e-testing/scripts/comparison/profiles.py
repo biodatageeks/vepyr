@@ -278,17 +278,83 @@ def _sha256(path):
 
 def _vcf_body_md5(path):
     """Hash VCF records without the date-bearing, regenerated header."""
+    return _vcf_body_identity(path)[0]
+
+
+def _vcf_body_identity(path):
+    """Return the body digest, record count and VCF contig order."""
     digest = hashlib.md5()
+    contigs = []
+    seen_contigs = set()
+    record_count = 0
     try:
         with gzip.open(path, "rb") as handle:
             for line in handle:
                 if not line.startswith(b"#"):
                     digest.update(line)
+                    chrom = line.split(b"\t", 1)[0].decode("utf-8")
+                    if chrom not in seen_contigs:
+                        contigs.append(chrom)
+                        seen_contigs.add(chrom)
+                    record_count += 1
     except (OSError, EOFError) as exc:
         raise ProfileUnavailable(
             f"cannot read ClinVar input VCF {path}: {exc}"
         ) from exc
-    return digest.hexdigest()
+    return digest.hexdigest(), record_count, contigs
+
+
+def _validate_tabix_index(path, index_path, contigs, expected_count, expected_md5):
+    """Verify indexed contig queries reproduce the complete VCF record body."""
+    try:
+        indexed = subprocess.run(
+            ["tabix", "-l", path], capture_output=True, check=False
+        )
+    except OSError as exc:
+        raise ProfileUnavailable(f"cannot inspect ClinVar tabix index: {exc}") from exc
+    if indexed.returncode != 0:
+        raise ProfileUnavailable(f"cannot read ClinVar tabix index at {index_path}")
+    indexed_contigs = {
+        line.decode("utf-8", errors="replace")
+        for line in indexed.stdout.splitlines()
+        if line
+    }
+    if indexed_contigs != set(contigs):
+        raise ProfileUnavailable(
+            f"ClinVar tabix contigs mismatch: got {sorted(indexed_contigs)}, "
+            f"want {sorted(contigs)}"
+        )
+
+    digest = hashlib.md5()
+    record_count = 0
+    for chrom in contigs:
+        try:
+            process = subprocess.Popen(
+                ["tabix", path, chrom],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError as exc:
+            raise ProfileUnavailable(
+                f"cannot query ClinVar tabix index at {index_path} for {chrom}: {exc}"
+            ) from exc
+        with process:
+            for line in process.stdout:
+                digest.update(line)
+                record_count += 1
+            returncode = process.wait()
+        if returncode != 0:
+            raise ProfileUnavailable(
+                f"cannot query ClinVar tabix index at {index_path} for {chrom}"
+            )
+
+    actual_md5 = digest.hexdigest()
+    if record_count != expected_count or actual_md5 != expected_md5:
+        raise ProfileUnavailable(
+            f"ClinVar tabix index does not return the input body: got "
+            f"{record_count} records / {actual_md5}, want "
+            f"{expected_count} / {expected_md5}"
+        )
 
 
 def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, path):
@@ -325,7 +391,7 @@ def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, pa
 
 
 def validate_input_vcf(profile_name, path):
-    """Validate ClinVar records and build a fresh index for the pinned input."""
+    """Validate ClinVar records and the index used to slice them."""
     profile = PROFILES[profile_name]
     if not profile.manifest_section or not profile.input_path:
         return
@@ -348,7 +414,13 @@ def validate_input_vcf(profile_name, path):
     if not os.path.isfile(path):
         raise ProfileUnavailable(f"missing manifest input at {path}")
     expected_body_md5 = input_record.get("body_md5")
-    actual_body_md5 = _vcf_body_md5(path)
+    actual_body_md5, actual_count, contigs = _vcf_body_identity(path)
+    expected_count = input_record.get("records")
+    if actual_count != expected_count:
+        raise ProfileUnavailable(
+            f"input record count mismatch for {path}: got {actual_count}, "
+            f"want {expected_count}"
+        )
     if actual_body_md5 != expected_body_md5:
         raise ProfileUnavailable(
             f"input record-body MD5 mismatch for {path}: got {actual_body_md5}, "
@@ -363,20 +435,9 @@ def validate_input_vcf(profile_name, path):
         raise ProfileUnavailable(
             f"profile {profile_name!r} has no manifest index for input {path}"
         )
-    try:
-        rebuilt = subprocess.run(
-            ["tabix", "-f", "-p", "vcf", path],
-            capture_output=True,
-            check=False,
-        )
-    except OSError as exc:
-        raise ProfileUnavailable(f"cannot rebuild ClinVar tabix index: {exc}") from exc
-    if rebuilt.returncode != 0:
-        error = rebuilt.stderr.decode("utf-8", errors="replace").strip()
-        raise ProfileUnavailable(
-            f"cannot rebuild ClinVar tabix index at {index_path}"
-            + (f": {error}" if error else "")
-        )
+    if not os.path.isfile(index_path):
+        raise ProfileUnavailable(f"missing manifest input_index at {index_path}")
+    _validate_tabix_index(path, index_path, contigs, expected_count, expected_body_md5)
 
 
 def _validate_manifest_reference(profile_name, manifest_section, path):

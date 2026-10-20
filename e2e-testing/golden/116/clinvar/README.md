@@ -82,8 +82,9 @@ e2e-testing/scripts/generate_vep_clinvar_reference.sh
 The script first checks the free disk space, then fetches whatever is missing
 under `$DATA_VEPYR_DIR`: the Ensembl 116 primary-assembly FASTA (indexed with
 `samtools faidx`), the raw VEP merged cache (checked against the BSD `sum`
-Ensembl publishes in `CHECKSUMS`, `26554 29618744`, then extracted), the Docker
-image and the ClinVar release. This script supports release 2026-10-11 only;
+Ensembl publishes in `CHECKSUMS`, `26554 29618744`, then extracted into a
+temporary directory and published only after extraction completes), the
+Docker image and the ClinVar release. This script supports release 2026-10-11 only;
 it replaces an existing raw VCF whose checksum is wrong and does not reuse
 partial download files. `VEP_REFERENCE_JOBS` must be a positive integer and
 defaults to one. It preprocesses the release as above and runs
@@ -132,11 +133,11 @@ filename, `$DATA_VEPYR_DIR/output/116/clinvar_20261011_annotated_wgs_everything_
 the runner resolves that path from `clinvar_profiles` in
 `e2e-testing/golden/wgs-manifest.json` and checks its size and SHA-256 before
 comparison. It verifies the record-body MD5
-`547285cb0e2b3f97c7222156a748c371` and rebuilds the input tabix index before
-annotation, so a missing, stale or damaged index cannot change the records
-sliced for comparison. The data directory must be writable for the index
-sidecar. The input's compressed SHA-256 and size
-identify the recorded copy; the body MD5 is used as the input identity because
+`547285cb0e2b3f97c7222156a748c371` and record count, then queries every
+indexed contig and checks that the combined records have the same MD5 and
+count as the input. This verifies the existing tabix index without rewriting
+the input or sidecar. The manifest records the compressed SHA-256 and size
+for provenance, while the body MD5 is the stable input identity because
 bcftools embeds the preprocessing date in the header, changing the compressed
 bytes on regeneration. The local ClinVar metadata is separate from the
 `profiles` map consumed by `/parity-wgs`, so this profile does not expand that

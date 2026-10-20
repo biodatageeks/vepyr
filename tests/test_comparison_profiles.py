@@ -1,5 +1,6 @@
 import gzip
 import hashlib
+import io
 import json
 import subprocess
 from pathlib import Path
@@ -367,6 +368,7 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
                             ).hexdigest(),
                             "size": input_path.stat().st_size,
                             "body_md5": hashlib.md5(input_records).hexdigest(),
+                            "records": 1,
                         },
                         "input_index": {
                             "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
@@ -391,13 +393,27 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
     return input_path, golden_path, manifest_path
 
 
-def _mock_tabix_rebuild(monkeypatch, input_path):
+def _mock_tabix_index_queries(monkeypatch, input_path, query_records):
     def run(command, **_kwargs):
-        assert command == ["tabix", "-f", "-p", "vcf", str(input_path)]
-        Path(str(input_path) + ".tbi").write_bytes(b"rebuilt-index")
-        return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+        assert command == ["tabix", "-l", str(input_path)]
+        return subprocess.CompletedProcess(command, 0, stdout=b"1\n", stderr=b"")
+
+    class QueryProcess:
+        def __init__(self, command, **_kwargs):
+            assert command == ["tabix", str(input_path), "1"]
+            self.stdout = io.BytesIO(query_records)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.stdout.close()
+
+        def wait(self):
+            return 0
 
     monkeypatch.setattr(profiles.subprocess, "run", run)
+    monkeypatch.setattr(profiles.subprocess, "Popen", QueryProcess)
 
 
 def test_clinvar_profile_resolves_canonical_paths_and_manifest_checksum(
@@ -429,13 +445,14 @@ def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
 ):
     input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
     records = b"1\t1\t.\tA\tC\t.\tPASS\t.\n"
-    _mock_tabix_rebuild(monkeypatch, input_path)
+    _mock_tabix_index_queries(monkeypatch, input_path, records)
     # A regenerated bcftools header changes the compressed size and SHA-256.
     input_path.write_bytes(
         gzip.compress(b"##fileDate=20261021\n#CHROM\tPOS\tID\tREF\tALT\n" + records)
     )
 
     profiles.validate_input_vcf("clinvar_merged", str(input_path))
+    assert Path(str(input_path) + ".tbi").read_bytes() == b"normalized-input-index"
 
     input_path.write_bytes(
         gzip.compress(
@@ -450,21 +467,27 @@ def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
         profiles.validate_input_vcf("clinvar_merged", str(input_path))
 
 
-@pytest.mark.parametrize("index_state", ["missing", "stale"])
-def test_clinvar_profile_rebuilds_input_index_before_annotation(
-    tmp_path, monkeypatch, index_state
-):
+def test_clinvar_profile_rejects_a_missing_input_index(tmp_path, monkeypatch):
     input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
     index_path = Path(str(input_path) + ".tbi")
-    if index_state == "missing":
-        index_path.unlink()
-    else:
-        index_path.write_bytes(b"stale-index")
-    _mock_tabix_rebuild(monkeypatch, input_path)
+    index_path.unlink()
 
-    profiles.validate_input_vcf("clinvar_merged", str(input_path))
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="missing manifest input_index"
+    ):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
 
-    assert index_path.read_bytes() == b"rebuilt-index"
+
+def test_clinvar_profile_rejects_an_index_that_returns_different_records(
+    tmp_path, monkeypatch
+):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    _mock_tabix_index_queries(monkeypatch, input_path, b"1\t2\t.\tA\tC\t.\tPASS\t.\n")
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="tabix index does not return the input body"
+    ):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
 
 
 def test_clinvar_profile_rejects_a_golden_index_with_a_wrong_sha256(

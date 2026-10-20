@@ -33,6 +33,7 @@ fi
 # Keep the image immutable and aligned with vep_image in the ClinVar manifest.
 IMAGE="ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11"
 CACHE="$DATA/homo_sapiens_merged/116_GRCh38"
+CACHE_COMPLETE="$CACHE/.clinvar-profile-cache-complete"
 IN_DIR="$DATA/input/clinvar"
 OUT_DIR="$DATA/output/116/clinvar"
 NAME="clinvar_${CLINVAR_RELEASE}"
@@ -47,6 +48,14 @@ if [[ ! -f "$FASTA" && -f "$DATA/$(basename "$FASTA")" ]]; then
 fi
 mkdir -p "$DATA" "$IN_DIR" "$OUT_DIR/contigs" "$OUT_DIR/logs"
 
+CACHE_STAGE=""
+cleanup_cache_stage() {
+  if [[ -n "$CACHE_STAGE" ]]; then
+    rm -rf "$CACHE_STAGE"
+  fi
+}
+trap cleanup_cache_stage EXIT
+
 # Remove abandoned VEP work directories from prior runs. A contig process is
 # never expected to need a full day; recent directories may belong to a live run.
 find "$OUT_DIR/contigs" -mindepth 1 -maxdepth 1 -type d -name '.chr*' \
@@ -55,7 +64,7 @@ find "$OUT_DIR/contigs" -mindepth 1 -maxdepth 1 -type d -name '.chr*' \
 # 0. Check the disk before anything is downloaded. Counted in GiB, only for
 #    what is missing; the VEP outputs include the plain VCFs of running jobs.
 need=40
-[[ -s "$CACHE/info.txt" ]] || need=$((need + 60))   # archive plus extracted cache
+[[ -s "$CACHE/info.txt" && -f "$CACHE_COMPLETE" ]] || need=$((need + 60))
 [[ -f "$FASTA" ]] || need=$((need + 4))
 free=$(df -Pk "$DATA" | awk 'NR == 2 {print int($4 / 1048576)}')
 if (( free < need )); then
@@ -70,7 +79,7 @@ if [[ ! -f "$FASTA" ]]; then
   mv -f "$FASTA.tmp" "$FASTA"
 fi
 [[ -f "$FASTA.fai" ]] || samtools faidx "$FASTA"
-if [[ ! -s "$CACHE/info.txt" ]]; then
+if [[ ! -s "$CACHE/info.txt" || ! -f "$CACHE_COMPLETE" ]]; then
   tarball="$DATA/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
   url="$ENSEMBL/variation/indexed_vep_cache/$(basename "$tarball")"
   # Ensembl serves each connection at about 5 MB/s; aria2c opens several.
@@ -82,12 +91,23 @@ if [[ ! -s "$CACHE/info.txt" ]]; then
   # The BSD sum published in the release's CHECKSUMS file.
   [[ "$(sum "$tarball" | awk '{print $1, $2}')" == "26554 29618744" ]] \
     || { echo "ERROR: checksum mismatch for $tarball" >&2; exit 1; }
-  tar -xzf "$tarball" -C "$DATA"
+  CACHE_STAGE=$(mktemp -d "$DATA/.clinvar-cache-stage.XXXXXX")
+  tar -xzf "$tarball" -C "$CACHE_STAGE"
+  staged_cache="$CACHE_STAGE/homo_sapiens_merged/116_GRCh38"
+  [[ -s "$staged_cache/info.txt" ]] \
+    || { echo "ERROR: archive did not contain a complete VEP cache at $staged_cache" >&2; exit 1; }
+  touch "$staged_cache/.clinvar-profile-cache-complete"
+  rm -rf "$CACHE"
+  mkdir -p "$(dirname "$CACHE")"
+  mv "$staged_cache" "$CACHE"
+  cleanup_cache_stage
+  CACHE_STAGE=""
   rm -f "$tarball"
 fi
 # Docker creates a missing -v source as an empty directory, and VEP then skips
 # every variant instead of failing (see vep-docker.md).
-[[ -s "$CACHE/info.txt" ]] || { echo "ERROR: no VEP cache at $CACHE" >&2; exit 1; }
+[[ -s "$CACHE/info.txt" && -f "$CACHE_COMPLETE" ]] \
+  || { echo "ERROR: no complete VEP cache at $CACHE" >&2; exit 1; }
 docker image inspect "$IMAGE" > /dev/null 2>&1 || docker pull "$IMAGE"
 
 # 1. Download and verify the ClinVar release.
