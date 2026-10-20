@@ -221,21 +221,23 @@ jobs:
   # reads $SCRATCH (written by PR code in the container) only after purging
   # every non-regular entry, copying size-capped regular files into $RES,
   # a host-created directory outside the workspace that all uploads come from.
-  # Serialisation: one runner carries the vepyr-wgs label, so jobs queue FIFO
-  # there; max-parallel keeps a run's own profiles in sequence. No workflow
-  # concurrency group: GitHub keeps only one pending run per group, so any
-  # third request would evict a queued admin run.
+  # Parallelism: four hosts (gh-runner-bdg-1..4, one runner each) carry the
+  # vepyr-wgs label, each with its own /data/vepyr, scratch disk and memory,
+  # and a runner takes one job at a time. max-parallel: 3 runs a request's
+  # three profiles on three hosts at once; further jobs queue FIFO for a free
+  # host. No workflow concurrency group: GitHub keeps only one pending run per
+  # group, so any third request would evict a queued admin run.
   profile:
     needs: [authorize, build-wheel]
     name: wgs (${{ matrix.profile }})
     runs-on: [self-hosted, linux, x64, vepyr-wgs]
-    # Measured on gh-runner-bdg-1 (16 vCPU): merged 29, ensembl 23, refseq 21 min.
+    # Measured 2026-10-11 on a 16 vCPU host: merged 29, ensembl 23, refseq 21 min.
     timeout-minutes: 60
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 3
       matrix:
         profile: ${{ fromJSON(needs.authorize.outputs.profiles) }}
     env:
