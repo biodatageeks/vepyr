@@ -116,11 +116,20 @@ def parse_args(argv=None):
         "failure with a canonical pass isolates serialization drift from a "
         "content change, which one digest alone cannot tell you.",
     )
-    p.add_argument(
+    normalization = p.add_mutually_exclusive_group()
+    normalization.add_argument(
         "--no-normalize",
+        dest="no_normalize",
         action="store_true",
-        help="Skip bcftools norm (normalization is on by default)",
+        help="Skip bcftools norm (the profile may also default to this)",
     )
+    normalization.add_argument(
+        "--normalize",
+        dest="no_normalize",
+        action="store_false",
+        help="Run bcftools norm, overriding the profile default",
+    )
+    p.set_defaults(no_normalize=None)
     p.add_argument("--vcf", default=None, help="Input VCF (default: $DATA/input/...)")
     p.add_argument(
         "--output-dir",
@@ -161,8 +170,10 @@ def parse_args(argv=None):
                     "--chroms must not contain duplicate contigs after "
                     "chr-prefix normalization"
                 )
+    if args.no_normalize is None:
+        args.no_normalize = profiles.PROFILES[args.profile].no_normalize
     if args.vcf is None:
-        args.vcf = profiles.default_input(profiles.DEFAULT_VCF_NAME)
+        args.vcf = profiles.input_vcf_for(args.profile)
     if args.fasta is None:
         args.fasta = profiles.default_input(profiles.DEFAULT_FASTA_NAME)
     return args
@@ -557,6 +568,11 @@ def _run_contig_isolated(chrom, args):
         cmd += ["--md5-mode", args.md5_mode]
     if args.no_normalize:
         cmd.append("--no-normalize")
+    else:
+        # The child resolves profile defaults independently, so an explicit
+        # --normalize must be forwarded to override profiles that default to
+        # skipping normalization.
+        cmd.append("--normalize")
     if args.vep:
         cmd += ["--vep", args.vep]
     if args.cache_dir:

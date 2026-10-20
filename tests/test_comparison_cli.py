@@ -442,3 +442,20 @@ def test_isolated_comparison_forwards_output_dir(monkeypatch, tmp_path):
     )
     assert cli._run_contig_isolated("chr22", args)
     assert seen[0][seen[0].index("--output-dir") + 1] == str(tmp_path)
+
+
+def test_isolated_comparison_forwards_normalize_override(monkeypatch, tmp_path):
+    args = cli.parse_args(
+        ["--release", "116", "--profile", "clinvar_merged", "--normalize"]
+    )
+    args.comparison_mode = "md5"
+    seen = []
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+    )
+
+    assert cli._run_contig_isolated("chr22", args)
+    assert "--normalize" in seen[0]
+    assert "--no-normalize" not in seen[0]

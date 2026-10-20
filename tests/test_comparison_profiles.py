@@ -1,7 +1,10 @@
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
 from comparison import profiles
+from comparison.cli import parse_args
 
 
 def test_suffixes_have_no_leading_underscore():
@@ -326,3 +329,119 @@ def test_plugin_profile_without_a_contig_uses_a_whole_genome_reference(
     wgs.write_bytes(b"")
     resolved = profiles.resolve("merged_plugins", "116", require_cache=False)
     assert resolved.vep_vcf == str(wgs)
+
+
+def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    input_path = tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"
+    input_path.parent.mkdir(parents=True)
+    input_path.write_bytes(b"normalized-input")
+    golden_rel = (
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
+    )
+    golden_path = tmp_path / golden_rel
+    golden_path.parent.mkdir(parents=True)
+    golden_path.write_bytes(golden_bytes)
+    manifest_path = tmp_path / "wgs-manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "clinvar_profiles": {
+                    "clinvar_merged": {
+                        "input": {
+                            "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
+                            "sha256": hashlib.sha256(b"normalized-input").hexdigest(),
+                            "size": len(b"normalized-input"),
+                        },
+                        "golden": {
+                            "path": golden_rel,
+                            "sha256": hashlib.sha256(golden_bytes).hexdigest(),
+                            "size": len(golden_bytes),
+                        },
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(profiles, "WGS_MANIFEST_PATH", manifest_path)
+    return input_path, golden_path, manifest_path
+
+
+def test_clinvar_profile_resolves_canonical_paths_and_manifest_checksum(
+    tmp_path, monkeypatch
+):
+    input_path, golden_path, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+
+    resolved = profiles.resolve("clinvar_merged", "116")
+
+    assert profiles.input_vcf_for("clinvar_merged") == str(input_path)
+    assert resolved.vep_vcf == str(golden_path)
+    assert resolved.cache_dir == str(tmp_path / "cache/116_GRCh38_merged")
+    assert profiles.PROFILES["clinvar_merged"].no_normalize is True
+
+
+def test_clinvar_profile_rejects_a_golden_with_a_wrong_sha256(tmp_path, monkeypatch):
+    _, golden_path, _ = _write_clinvar_manifest(
+        tmp_path, monkeypatch, golden_bytes=b"golden-vcf"
+    )
+    # Keep the byte count unchanged so this specifically exercises SHA checking.
+    golden_path.write_bytes(b"broken-vcf")
+
+    with pytest.raises(profiles.ProfileUnavailable, match="SHA-256 mismatch"):
+        profiles.resolve("clinvar_merged", "116")
+
+
+def test_clinvar_profile_sets_input_and_normalization_defaults(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+
+    args = parse_args(
+        ["--release", "116", "--profile", "clinvar_merged", "--chroms", "all"]
+    )
+    explicit_normalize = parse_args(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--normalize",
+        ]
+    )
+    explicit_no_normalize = parse_args(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--no-normalize",
+        ]
+    )
+
+    assert args.vcf == str(tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz")
+    assert args.no_normalize is True
+    assert explicit_normalize.no_normalize is False
+    assert explicit_no_normalize.no_normalize is True
+
+
+def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
+    manifest_path = (
+        Path(__file__).resolve().parents[1]
+        / "e2e-testing"
+        / "golden"
+        / "wgs-manifest.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert set(manifest["profiles"]) == {"ensembl", "merged", "refseq"}
+    profile = manifest["clinvar_profiles"]["clinvar_merged"]
+    assert profile["input"]["path"] == ("input/clinvar/clinvar_20261011.norm.vcf.gz")
+    assert profile["golden"]["path"] == (
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
+    )
+    assert profile["golden"]["sha256"] == (
+        "ef4206e1a5168add794fb3defea9c061613fb608af986b3967a25349b9273564"
+    )
+    assert profile["golden"]["size"] == 5885304891
+    assert profile["no_normalize"] is True
+    assert profile["cache"]["revision"].startswith("5b83dd8")

@@ -54,7 +54,7 @@
     "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-10-18 10:14:16\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
   },
   "vep_reference": {
-    "golden": "output/116/clinvar/clinvar_20261011_vep116_merged.vcf.gz",
+    "golden": "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz",
     "published_as": "clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz",
     "vcf": {
       "sha256": "ef4206e1a5168add794fb3defea9c061613fb608af986b3967a25349b9273564",

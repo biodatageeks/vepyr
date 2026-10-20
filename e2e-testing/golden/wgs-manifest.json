@@ -53,6 +53,37 @@
       "size": 738758167
     }
   },
+  "clinvar_profiles": {
+    "clinvar_merged": {
+      "input": {
+        "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
+        "sha256": "34d0dec69bbb12a89f5d30194a2886d66bb5b12963b1014c385869c9fdcec17d",
+        "size": 200635283
+      },
+      "input_index": {
+        "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
+        "sha256": "b8af55402ea7863b6fc6d9843a51347b16b807ca6a6f5a738d9a174c7dfec2ff",
+        "size": 611454
+      },
+      "golden": {
+        "path": "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz",
+        "sha256": "ef4206e1a5168add794fb3defea9c061613fb608af986b3967a25349b9273564",
+        "size": 5885304891
+      },
+      "golden_index": {
+        "path": "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz.tbi",
+        "sha256": "a62d2af0bc1f9c2eb8f55b2db577bab918279944cd605dfc923d33009c75e2a5",
+        "size": 794651
+      },
+      "records": 4593372,
+      "no_normalize": true,
+      "cache": {
+        "flavour": "merged",
+        "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+        "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+      }
+    }
+  },
   "release": "116",
   "schema_version": 1
 }

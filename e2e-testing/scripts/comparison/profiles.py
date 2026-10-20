@@ -6,9 +6,12 @@ Both paths are derived rather than hardcoded, so adding a release means adding
 one RELEASE_DIRS entry.
 """
 
+import hashlib
+import json
 import os
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
 BACKEND = "parquet"
@@ -24,6 +27,7 @@ DEFAULT_VCF_NAME = "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
 DEFAULT_FASTA_NAME = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 
 SPEC_DOC = "docs/superpowers/specs/2026-07-28-merge-comparison-runners-design.md"
+WGS_MANIFEST_PATH = Path(__file__).resolve().parents[2] / "golden" / "wgs-manifest.json"
 
 
 class ProfileUnavailable(RuntimeError):
@@ -56,6 +60,13 @@ class Profile:
     # as the profile's identity for reports and summaries.
     vep_per_contig: str = ""
     vep_subdir: str = ""
+    # Optional profile-specific input relative to DATA. Otherwise HG002 is used.
+    input_path: str = ""
+    # Profiles can mark already-preprocessed input as their default.
+    no_normalize: bool = False
+    # A manifest-backed profile resolves and verifies its reference via this
+    # section in wgs-manifest.json.
+    manifest_section: str = ""
 
 
 _PICK = {"pick_order": VEP_PICK_ORDER}
@@ -90,6 +101,16 @@ PROFILES = {
         flavour="merged",
         vep_basename="HG002_annotated_wgs_everything_hgvs_merged",
         suffix="merged",
+    ),
+    # The ClinVar record lives outside `profiles` in wgs-manifest.json so the
+    # HG002-only /parity-wgs route continues to use its existing profile set.
+    "clinvar_merged": Profile(
+        flavour="merged",
+        vep_basename="clinvar_20261011_annotated_wgs_everything_hgvs_merged",
+        suffix="clinvar_merged",
+        input_path="input/clinvar/clinvar_20261011.norm.vcf.gz",
+        no_normalize=True,
+        manifest_section="clinvar_profiles",
     ),
     "refseq": Profile(
         flavour="refseq",
@@ -226,6 +247,65 @@ def default_input(name):
     return _resolve_with_legacy_fallback("input", name, os.path.exists)
 
 
+def input_vcf_for(profile_name):
+    """Resolve a profile-specific input or use the standard HG002 input."""
+    profile = PROFILES[profile_name]
+    if profile.input_path:
+        return os.path.join(data_dir(), profile.input_path)
+    return default_input(DEFAULT_VCF_NAME)
+
+
+def _manifest_profile(profile_name, manifest_section):
+    """Return a profile record from the checked-in data manifest, if present."""
+    try:
+        manifest = json.loads(WGS_MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ProfileUnavailable(
+            f"cannot read profile manifest {WGS_MANIFEST_PATH}: {exc}"
+        ) from exc
+    return manifest.get(manifest_section, {}).get(profile_name)
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while chunk := handle.read(8 * 1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _validate_manifest_reference(profile_name, manifest_section, path):
+    """Fail closed when a manifest-backed reference is truncated or replaced."""
+    record = _manifest_profile(profile_name, manifest_section)
+    if record is None:
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
+        )
+    golden = record.get("golden") or {}
+    relative = golden.get("path")
+    expected_path = os.path.join(data_dir(), relative) if relative else None
+    if not expected_path or os.path.realpath(path) != os.path.realpath(expected_path):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} resolved {path}, but its manifest golden "
+            f"is {relative!r}"
+        )
+    if not os.path.isfile(path):
+        raise ProfileUnavailable(f"missing manifest golden at {path}")
+    actual_size = os.path.getsize(path)
+    expected_size = golden.get("size")
+    if actual_size != expected_size:
+        raise ProfileUnavailable(
+            f"golden size mismatch for {path}: got {actual_size}, want {expected_size}"
+        )
+    actual_sha256 = _sha256(path)
+    expected_sha256 = golden.get("sha256")
+    if actual_sha256 != expected_sha256:
+        raise ProfileUnavailable(
+            f"golden SHA-256 mismatch for {path}: got {actual_sha256}, "
+            f"want {expected_sha256}"
+        )
+
+
 def cache_dir_for(profile_name, release, warn=True):
     """Resolve a Parquet cache, preferring $DATA/cache/ over the legacy root.
 
@@ -306,6 +386,16 @@ def vep_vcf_for(profile_name, release, chrom=None):
     report the first contig that exists so availability still answers truthfully.
     """
     profile = PROFILES[profile_name]
+    if profile.manifest_section:
+        if release != "116":
+            return None
+        record = _manifest_profile(profile_name, profile.manifest_section)
+        golden = (record or {}).get("golden") or {}
+        relative = golden.get("path")
+        if relative:
+            path = os.path.join(data_dir(), relative)
+            return path if os.path.isfile(path) else None
+        return None
     if profile.vep_per_contig:
         # Prefer the per-contig file; fall back to a whole-genome reference of
         # the same basename (a full VEP run with the plugins), which the
@@ -379,7 +469,8 @@ def resolve(
 
     profile = PROFILES[profile_name]
     resolved_cache = cache_dir or cache_dir_for(profile_name, release)
-    if vep_vcf:
+    explicit_reference = bool(vep_vcf)
+    if explicit_reference:
         resolved_ref = vep_vcf
     elif profile.vep_per_contig and chrom is None:
         # Each contig is a separate file, so there is nothing to slice a
@@ -434,6 +525,18 @@ def resolve(
             + "; ".join(problems)
             + "\n\nAvailable combinations:\n"
             + availability_table()
+        )
+
+    if (
+        require_reference
+        and resolved_ref is not None
+        and not explicit_reference
+        and profile.manifest_section
+    ):
+        _validate_manifest_reference(
+            profile_name,
+            profile.manifest_section,
+            resolved_ref,
         )
 
     annotate_kwargs = dict(profile.annotate_kwargs)

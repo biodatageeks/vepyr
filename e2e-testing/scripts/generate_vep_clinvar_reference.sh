@@ -148,7 +148,8 @@ printf '%s\n' "${contigs[@]}" | xargs -P "$JOBS" -I{} bash -c 'run_one {}'
 # 4. Join the contigs in input order. The records are copied as text: bcftools
 #    concat would reprint ClinVar's floating-point INFO values.
 [[ "$#" -gt 0 ]] && exit 0
-JOINED="$OUT_DIR/${NAME}_vep116_merged.vcf.gz"
+JOINED="$DATA/output/116/${NAME}_annotated_wgs_everything_hgvs_merged.vcf.gz"
+mkdir -p "$(dirname "$JOINED")"
 order=$(tabix -l "$NORM")
 first=$(head -n1 <<< "$order")
 {

@@ -13,7 +13,7 @@ stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`)
 |------|----------|
 | ClinVar release, index, md5 | `input/clinvar/clinvar_20261011.vcf.gz{,.tbi,.md5}` |
 | Preprocessed input | `input/clinvar/clinvar_20261011.norm.vcf.gz{,.tbi}` |
-| VEP reference (all contigs) | `output/116/clinvar/clinvar_20261011_vep116_merged.vcf.gz{,.tbi}` |
+| VEP reference (all contigs) | `output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz{,.tbi}` |
 | VEP reference per contig, logs, timings | `output/116/clinvar/{contigs,logs,timings.tsv}` |
 | vepyr outputs and reports | `clinvar_e2e/{results,reports}/` |
 
@@ -113,21 +113,20 @@ Two limits seen on a MacBook Air (M2, 8 cores, 24 GB):
 
 ## 4. vepyr and the md5 comparison
 
-The vepyr side is the existing runner, unchanged, run with vepyr 0.10.0 and
-the cache revision that release pins. `--no-normalize` because the input is
-already preprocessed:
+The `clinvar_merged` profile uses the preprocessed input at
+`$DATA_VEPYR_DIR/input/clinvar/clinvar_20261011.norm.vcf.gz` and the merged
+cache revision used by this run (`5b83dd8`). The reference keeps its canonical
+filename, `$DATA_VEPYR_DIR/output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz`;
+the runner resolves that path from `clinvar_profiles` in
+`e2e-testing/golden/wgs-manifest.json` and checks its size and SHA-256 before
+comparison. The local ClinVar metadata is separate from the `profiles` map
+consumed by `/parity-wgs`, so this profile does not expand that workflow's
+HG002 profile matrix.
+
+The input is already preprocessed, so the profile defaults to `--no-normalize`:
 
 ```bash
-pip install "vepyr==0.10.0"
-vepyr download-cache --release 116 --cache_type merged --dir_cache "$DATA_VEPYR_DIR/cache"
-
-python e2e-testing/scripts/run_comparison.py \
-  --release 116 --profile merged --chroms all \
-  --vcf "$DATA_VEPYR_DIR/input/clinvar/clinvar_20261011.norm.vcf.gz" \
-  --vep "$DATA_VEPYR_DIR/output/116/clinvar/clinvar_20261011_vep116_merged.vcf.gz" \
-  --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" \
-  --output-dir "$DATA_VEPYR_DIR/clinvar_e2e" \
-  --comparison-mode md5 --md5-mode both --bgzf --no-normalize --workers 8
+python e2e-testing/scripts/run_comparison.py --release 116 --profile clinvar_merged --chroms all --comparison-mode md5 --md5-mode both --bgzf --workers 8
 ```
 
 ## 5. Results
@@ -214,7 +213,7 @@ joined reference:
 python e2e-testing/scripts/run_comparison.py \
   --release 116 --profile merged --chroms all \
   --vcf "$DATA_VEPYR_DIR/input/clinvar/clinvar_20261011.norm.vcf.gz" \
-  --vep "$DATA_VEPYR_DIR/output/116/clinvar/clinvar_20261011_vep116_merged.vcf.gz" \
+  --vep "$DATA_VEPYR_DIR/output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz" \
   --fasta "$DATA_VEPYR_DIR/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa" \
   --cache-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged" \
   --output-dir "$DATA_VEPYR_DIR/clinvar_e2e" \
