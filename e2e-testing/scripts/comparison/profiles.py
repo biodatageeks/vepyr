@@ -274,35 +274,69 @@ def _sha256(path):
     return digest.hexdigest()
 
 
-def _validate_manifest_reference(profile_name, manifest_section, path):
-    """Fail closed when a manifest-backed reference is truncated or replaced."""
+def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, path):
+    """Fail closed when a manifest-backed file is missing or has changed."""
     record = _manifest_profile(profile_name, manifest_section)
     if record is None:
         raise ProfileUnavailable(
             f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
         )
-    golden = record.get("golden") or {}
-    relative = golden.get("path")
+    artifact = record.get(artifact_key) or {}
+    relative = artifact.get("path")
     expected_path = os.path.join(data_dir(), relative) if relative else None
     if not expected_path or os.path.realpath(path) != os.path.realpath(expected_path):
         raise ProfileUnavailable(
-            f"profile {profile_name!r} resolved {path}, but its manifest golden "
-            f"is {relative!r}"
+            f"profile {profile_name!r} resolved {path}, but its manifest "
+            f"{artifact_key} is {relative!r}"
         )
     if not os.path.isfile(path):
-        raise ProfileUnavailable(f"missing manifest golden at {path}")
+        raise ProfileUnavailable(f"missing manifest {artifact_key} at {path}")
     actual_size = os.path.getsize(path)
-    expected_size = golden.get("size")
+    expected_size = artifact.get("size")
     if actual_size != expected_size:
         raise ProfileUnavailable(
-            f"golden size mismatch for {path}: got {actual_size}, want {expected_size}"
+            f"{artifact_key} size mismatch for {path}: got {actual_size}, "
+            f"want {expected_size}"
         )
     actual_sha256 = _sha256(path)
-    expected_sha256 = golden.get("sha256")
+    expected_sha256 = artifact.get("sha256")
     if actual_sha256 != expected_sha256:
         raise ProfileUnavailable(
-            f"golden SHA-256 mismatch for {path}: got {actual_sha256}, "
+            f"{artifact_key} SHA-256 mismatch for {path}: got {actual_sha256}, "
             f"want {expected_sha256}"
+        )
+
+
+def validate_input_vcf(profile_name, path):
+    """Validate the default input when annotation will read it."""
+    profile = PROFILES[profile_name]
+    if not profile.manifest_section or not profile.input_path:
+        return
+    expected_path = os.path.join(data_dir(), profile.input_path)
+    if os.path.realpath(path) != os.path.realpath(expected_path):
+        return
+
+    _validate_manifest_artifact(profile_name, profile.manifest_section, "input", path)
+    record = _manifest_profile(profile_name, profile.manifest_section)
+    if record.get("input_index"):
+        _validate_manifest_artifact(
+            profile_name,
+            profile.manifest_section,
+            "input_index",
+            path + ".tbi",
+        )
+
+
+def _validate_manifest_reference(profile_name, manifest_section, path):
+    """Validate a manifest-backed VEP reference and the index used to slice it."""
+    _validate_manifest_artifact(profile_name, manifest_section, "golden", path)
+    record = _manifest_profile(profile_name, manifest_section)
+    if record.get("golden_index"):
+        _validate_manifest_artifact(
+            profile_name,
+            manifest_section,
+            "golden_index",
+            path + ".tbi",
         )
 
 
@@ -496,6 +530,10 @@ def resolve(
             )
         else:
             resolved_ref = None
+    elif profile.manifest_section and not require_reference:
+        # Report-only and annotation-only modes do not read the manifest-backed
+        # reference, so they must remain usable without the ClinVar manifest.
+        resolved_ref = None
     else:
         resolved_ref = vep_vcf_for(profile_name, release, chrom)
     resolved_plugin_cache = None

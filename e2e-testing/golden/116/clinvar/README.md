@@ -82,7 +82,9 @@ under `$DATA_VEPYR_DIR`: the Ensembl 116 primary-assembly FASTA (indexed with
 `samtools faidx`), the raw VEP merged cache (checked against the BSD `sum`
 Ensembl publishes in `CHECKSUMS`, `26554 29618744`, then extracted), the Docker
 image and the ClinVar release. It preprocesses the release as above and runs
-`ensemblorg/ensembl-vep:release_116.0` with the flags of the HG002 golden runs
+the manifest-pinned image
+`ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11`
+with the flags of the HG002 golden runs
 ([`vep-docker.md`](../../../vep-docker.md)):
 
 ```

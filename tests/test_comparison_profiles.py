@@ -337,12 +337,16 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
     input_path = tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"
     input_path.parent.mkdir(parents=True)
     input_path.write_bytes(b"normalized-input")
+    input_index_bytes = b"normalized-input-index"
+    (input_path.parent / (input_path.name + ".tbi")).write_bytes(input_index_bytes)
     golden_rel = (
         "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
     )
     golden_path = tmp_path / golden_rel
     golden_path.parent.mkdir(parents=True)
     golden_path.write_bytes(golden_bytes)
+    golden_index_bytes = b"golden-index"
+    (golden_path.parent / (golden_path.name + ".tbi")).write_bytes(golden_index_bytes)
     manifest_path = tmp_path / "wgs-manifest.json"
     manifest_path.write_text(
         json.dumps(
@@ -354,10 +358,20 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
                             "sha256": hashlib.sha256(b"normalized-input").hexdigest(),
                             "size": len(b"normalized-input"),
                         },
+                        "input_index": {
+                            "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
+                            "sha256": hashlib.sha256(input_index_bytes).hexdigest(),
+                            "size": len(input_index_bytes),
+                        },
                         "golden": {
                             "path": golden_rel,
                             "sha256": hashlib.sha256(golden_bytes).hexdigest(),
                             "size": len(golden_bytes),
+                        },
+                        "golden_index": {
+                            "path": golden_rel + ".tbi",
+                            "sha256": hashlib.sha256(golden_index_bytes).hexdigest(),
+                            "size": len(golden_index_bytes),
                         },
                     }
                 }
@@ -393,8 +407,29 @@ def test_clinvar_profile_rejects_a_golden_with_a_wrong_sha256(tmp_path, monkeypa
         profiles.resolve("clinvar_merged", "116")
 
 
+def test_clinvar_profile_rejects_input_with_a_wrong_sha256(tmp_path, monkeypatch):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    input_path.write_bytes(b"x" * len(b"normalized-input"))
+
+    with pytest.raises(profiles.ProfileUnavailable, match="input SHA-256 mismatch"):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+
+def test_clinvar_profile_rejects_a_golden_index_with_a_wrong_sha256(
+    tmp_path, monkeypatch
+):
+    _, golden_path, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    golden_index = Path(str(golden_path) + ".tbi")
+    golden_index.write_bytes(b"x" * len(b"golden-index"))
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="golden_index SHA-256 mismatch"
+    ):
+        profiles.resolve("clinvar_merged", "116")
+
+
 def test_clinvar_profile_sets_input_and_normalization_defaults(tmp_path, monkeypatch):
-    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
 
     args = parse_args(
         ["--release", "116", "--profile", "clinvar_merged", "--chroms", "all"]
@@ -418,7 +453,7 @@ def test_clinvar_profile_sets_input_and_normalization_defaults(tmp_path, monkeyp
         ]
     )
 
-    assert args.vcf == str(tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz")
+    assert args.vcf == str(input_path)
     assert args.no_normalize is True
     assert explicit_normalize.no_normalize is False
     assert explicit_no_normalize.no_normalize is True

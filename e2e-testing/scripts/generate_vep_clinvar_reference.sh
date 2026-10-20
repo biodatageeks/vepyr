@@ -21,7 +21,8 @@ set -euo pipefail
 DATA="${DATA_VEPYR_DIR:-$HOME/workspace/data_vepyr}"
 CLINVAR_RELEASE="${CLINVAR_RELEASE:-20261011}"
 JOBS="${VEP_REFERENCE_JOBS:-6}"
-IMAGE="ensemblorg/ensembl-vep:release_116.0"
+# Keep the image immutable and aligned with vep_image in the ClinVar manifest.
+IMAGE="ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11"
 CACHE="$DATA/homo_sapiens_merged/116_GRCh38"
 IN_DIR="$DATA/input/clinvar"
 OUT_DIR="$DATA/output/116/clinvar"
@@ -143,7 +144,8 @@ export -f run_one
 export OUT_DIR NAME NORM CACHE FASTA IMAGE
 
 if [[ "$#" -gt 0 ]]; then contigs=("$@"); else contigs=("${ALL_CONTIGS[@]}"); fi
-printf '%s\n' "${contigs[@]}" | xargs -P "$JOBS" -I{} bash -c 'run_one {}'
+printf '%s\n' "${contigs[@]}" \
+  | xargs -P "$JOBS" -I{} bash -euo pipefail -c 'run_one "$@"' _ {}
 
 # 4. Join the contigs in input order. The records are copied as text: bcftools
 #    concat would reprint ClinVar's floating-point INFO values.

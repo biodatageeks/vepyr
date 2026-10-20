@@ -132,6 +132,11 @@ def parse_args(argv=None):
     p.set_defaults(no_normalize=None)
     p.add_argument("--vcf", default=None, help="Input VCF (default: $DATA/input/...)")
     p.add_argument(
+        "--_profile-input-validated",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    p.add_argument(
         "--output-dir",
         default=None,
         help="Write results/<release>/ and reports/ under this directory",
@@ -532,7 +537,7 @@ def run_contig(
     return result
 
 
-def _run_contig_isolated(chrom, args):
+def _run_contig_isolated(chrom, args, resolved=None):
     """Re-invoke this script for one contig so a SIGSEGV loses only that contig."""
     entry = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -554,6 +559,8 @@ def _run_contig_isolated(chrom, args):
         "--fasta",
         args.fasta,
     ]
+    # The parent validated this input before launching isolated workers.
+    cmd.append("--_profile-input-validated")
     if args.force:
         cmd.append("--force")
     if args.bgzf:
@@ -575,6 +582,11 @@ def _run_contig_isolated(chrom, args):
         cmd.append("--normalize")
     if args.vep:
         cmd += ["--vep", args.vep]
+    elif resolved is not None and resolved.vep_vcf:
+        # The parent already resolved and validated the manifest-backed file.
+        # Forward it as an explicit path so isolated children do not rehash the
+        # multi-gigabyte VEP reference and index for every contig.
+        cmd += ["--vep", resolved.vep_vcf]
     if args.cache_dir:
         cmd += ["--cache-dir", args.cache_dir]
     if args.plugin_cache:
@@ -610,6 +622,8 @@ def main(argv=None):
             if args.chroms is not None and len(args.chroms) == 1
             else None
         )
+        if not args.skip_annotate and not args._profile_input_validated:
+            profiles.validate_input_vcf(args.profile, args.vcf)
         resolved = profiles.resolve(
             args.profile,
             args.release,
@@ -709,7 +723,7 @@ def main(argv=None):
                     resolved.release,
                 )
                 if args.isolate:
-                    if not _run_contig_isolated(chrom, args):
+                    if not _run_contig_isolated(chrom, args, resolved):
                         report.quarantine_contig_evidence(
                             report_dir,
                             chrom,
