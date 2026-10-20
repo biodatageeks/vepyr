@@ -11,7 +11,7 @@ stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`)
 
 | File | Location |
 |------|----------|
-| ClinVar release, index, md5 | `input/clinvar/clinvar_20261011.vcf.gz{,.tbi,.md5}` |
+| ClinVar release and local index | `input/clinvar/clinvar_20261011.vcf.gz{,.tbi}` |
 | Preprocessed input | `input/clinvar/clinvar_20261011.norm.vcf.gz{,.tbi}` |
 | VEP reference (all contigs) | `output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz{,.tbi}` |
 | VEP reference per contig, logs, timings | `output/116/clinvar/{contigs,logs,timings.tsv}` |
@@ -21,7 +21,9 @@ stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`)
 
 Source: <https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/>, files
 `clinvar_20261011.vcf.gz` (md5 `0f3a1a5e84252386033d5fcab1bf1f6a`, as published
-in `clinvar_20261011.vcf.gz.md5`) and its tabix index.
+in `clinvar_20261011.vcf.gz.md5`) and its tabix index. The reference generator
+downloads to a temporary file, checks that published MD5, and builds the local
+tabix index so an interrupted partial index cannot be reused.
 
 What the release contains:
 
@@ -81,7 +83,10 @@ The script first checks the free disk space, then fetches whatever is missing
 under `$DATA_VEPYR_DIR`: the Ensembl 116 primary-assembly FASTA (indexed with
 `samtools faidx`), the raw VEP merged cache (checked against the BSD `sum`
 Ensembl publishes in `CHECKSUMS`, `26554 29618744`, then extracted), the Docker
-image and the ClinVar release. It preprocesses the release as above and runs
+image and the ClinVar release. This script supports release 2026-10-11 only;
+it replaces an existing raw VCF whose checksum is wrong and does not reuse
+partial download files. `VEP_REFERENCE_JOBS` must be a positive integer and
+defaults to one. It preprocesses the release as above and runs
 the manifest-pinned image
 `ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11`
 with the flags of the HG002 golden runs

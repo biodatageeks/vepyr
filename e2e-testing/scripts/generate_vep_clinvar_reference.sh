@@ -22,6 +22,14 @@ set -euo pipefail
 DATA="${DATA_VEPYR_DIR:-$HOME/workspace/data_vepyr}"
 CLINVAR_RELEASE="${CLINVAR_RELEASE:-20261011}"
 JOBS="${VEP_REFERENCE_JOBS:-1}"
+if [[ "$CLINVAR_RELEASE" != "20261011" ]]; then
+  echo "ERROR: this reference profile supports CLINVAR_RELEASE=20261011 only" >&2
+  exit 1
+fi
+if [[ ! "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: VEP_REFERENCE_JOBS must be a positive integer (got '$JOBS')" >&2
+  exit 1
+fi
 # Keep the image immutable and aligned with vep_image in the ClinVar manifest.
 IMAGE="ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11"
 CACHE="$DATA/homo_sapiens_merged/116_GRCh38"
@@ -79,14 +87,26 @@ docker image inspect "$IMAGE" > /dev/null 2>&1 || docker pull "$IMAGE"
 
 # 1. Download and verify the ClinVar release.
 RAW="$IN_DIR/$NAME.vcf.gz"
-for f in "$NAME.vcf.gz" "$NAME.vcf.gz.tbi" "$NAME.vcf.gz.md5"; do
-  if [[ ! -s "$IN_DIR/$f" ]]; then
-    curl -sSfL -C - -o "$IN_DIR/$f" "$URL/$f"
-  fi
-done
-if command -v md5sum > /dev/null; then got=$(md5sum < "$RAW" | cut -d' ' -f1); else got=$(md5 -q "$RAW"); fi
-[[ "$(cut -d' ' -f1 "$RAW.md5")" == "$got" ]] \
+EXPECTED_RAW_MD5="0f3a1a5e84252386033d5fcab1bf1f6a"
+raw_md5() {
+  if command -v md5sum > /dev/null; then md5sum < "$1" | cut -d' ' -f1; else md5 -q "$1"; fi
+}
+if [[ -s "$RAW" && "$(raw_md5 "$RAW")" != "$EXPECTED_RAW_MD5" ]]; then
+  echo "Existing ClinVar download is incomplete or changed; replacing it" >&2
+  rm -f "$RAW" "$RAW.tbi"
+fi
+if [[ ! -s "$RAW" ]]; then
+  rm -f "$RAW.tmp"
+  curl -sSfL -o "$RAW.tmp" "$URL/$NAME.vcf.gz"
+  [[ "$(raw_md5 "$RAW.tmp")" == "$EXPECTED_RAW_MD5" ]] \
+    || { echo "ERROR: md5 mismatch for downloaded ClinVar VCF" >&2; rm -f "$RAW.tmp"; exit 1; }
+  mv -f "$RAW.tmp" "$RAW"
+fi
+[[ "$(raw_md5 "$RAW")" == "$EXPECTED_RAW_MD5" ]] \
   || { echo "ERROR: md5 mismatch for $RAW" >&2; rm -f "$RAW.tbi"; exit 1; }
+# Build the source index locally. This also replaces any partial or stale index
+# left behind by an interrupted earlier run.
+tabix -f -p vcf "$RAW"
 
 # 2. Preprocess: drop ALT="." sites and records outside 1-22, X, Y, MT, then
 #    split multiallelic records exactly as the HG002 input was split.
