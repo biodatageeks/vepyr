@@ -299,7 +299,7 @@ def _vcf_body_identity(path):
                         contigs.append(chrom)
                         seen_contigs.add(chrom)
                     record_count += 1
-    except (OSError, EOFError) as exc:
+    except (OSError, EOFError, UnicodeError) as exc:
         raise ProfileUnavailable(
             f"cannot read ClinVar input VCF {path}: {exc}"
         ) from exc
@@ -366,9 +366,12 @@ def _validate_tabix_index(path, index_path, contigs, expected_count, expected_md
         )
 
 
-def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, path):
+def _validate_manifest_artifact(
+    profile_name, manifest_section, artifact_key, path, record=None
+):
     """Fail closed when a manifest-backed file is missing or has changed."""
-    record = _manifest_profile(profile_name, manifest_section)
+    if record is None:
+        record = _manifest_profile(profile_name, manifest_section)
     if record is None:
         raise ProfileUnavailable(
             f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
@@ -456,14 +459,17 @@ def validate_input_vcf(profile_name, path):
 
 def _validate_manifest_reference(profile_name, manifest_section, path):
     """Validate a manifest-backed VEP reference and the index used to slice it."""
-    _validate_manifest_artifact(profile_name, manifest_section, "golden", path)
     record = _manifest_profile(profile_name, manifest_section)
+    _validate_manifest_artifact(
+        profile_name, manifest_section, "golden", path, record=record
+    )
     if record.get("golden_index"):
         _validate_manifest_artifact(
             profile_name,
             manifest_section,
             "golden_index",
             path + ".tbi",
+            record=record,
         )
 
 
@@ -664,6 +670,9 @@ def resolve(
     resolved_cache = cache_dir or cache_dir_for(profile_name, release)
     explicit_reference = bool(vep_vcf)
     if explicit_reference:
+        # Isolated children receive the parent's already-validated manifest
+        # reference through --vep; hashing it again would scan several GiB per
+        # contig. User-provided overrides also remain explicit here.
         resolved_ref = vep_vcf
     elif profile.vep_per_contig and chrom is None:
         # Each contig is a separate file, so there is nothing to slice a

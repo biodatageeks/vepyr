@@ -570,6 +570,20 @@ def test_clinvar_reference_rejects_duplicate_contigs():
         clinvar_reference_state.validate_unique_contigs(["chr1", "chr2", "chr1"])
 
 
+def test_clinvar_generator_keeps_bcf_region_list_separate_from_requested_contigs():
+    generator = (
+        Path(__file__).resolve().parents[1]
+        / "e2e-testing"
+        / "scripts"
+        / "generate_vep_clinvar_reference.sh"
+    ).read_text(encoding="utf-8")
+
+    assert 'contigs=("$@")' in generator
+    assert 'region_list=$(IFS=,; echo "${ALL_CONTIGS[*]}")' in generator
+    assert ' -t "$region_list" "$RAW"' in generator
+    assert "contigs=$(IFS=,;" not in generator
+
+
 def test_clinvar_reference_removes_partial_contig_publication(tmp_path):
     vcf = tmp_path / "chr1.vcf.gz"
     index = tmp_path / "chr1.vcf.gz.tbi"
@@ -678,6 +692,18 @@ def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
     with pytest.raises(
         profiles.ProfileUnavailable, match="input record-body MD5 mismatch"
     ):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+
+def test_clinvar_profile_reports_non_utf8_contig_as_input_error(tmp_path, monkeypatch):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    input_path.write_bytes(
+        gzip.compress(
+            b"##fileDate=20261020\n#CHROM\tPOS\tID\tREF\tALT\n\xff\t1\t.\tA\tC\n"
+        )
+    )
+
+    with pytest.raises(profiles.ProfileUnavailable, match="cannot read ClinVar input"):
         profiles.validate_input_vcf("clinvar_merged", str(input_path))
 
 

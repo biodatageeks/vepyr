@@ -171,8 +171,8 @@ elif [[ "$(vcf_body_md5 "$NORM")" != "$EXPECTED_BODY_MD5" ]]; then
 fi
 if [[ "$rebuild_norm" == true ]]; then
   rm -f "$NORM" "$NORM.tbi" "$NORM.tmp" "$NORM.tmp.tbi"
-  contigs=$(IFS=,; echo "${ALL_CONTIGS[*]}")
-  bcftools view -e 'ALT="."' -t "$contigs" "$RAW" -Ou \
+  region_list=$(IFS=,; echo "${ALL_CONTIGS[*]}")
+  bcftools view -e 'ALT="."' -t "$region_list" "$RAW" -Ou \
     | bcftools norm -m -both -Oz -o "$NORM.tmp"
   tabix -f -p vcf "$NORM.tmp"
   mv -f "$NORM.tmp.tbi" "$NORM.tbi"
