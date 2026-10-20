@@ -619,11 +619,6 @@ def main(argv=None):
             if args.chroms is not None and len(args.chroms) == 1
             else None
         )
-        if (
-            not args.skip_annotate
-            and os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATED") != "1"
-        ):
-            profiles.validate_input_vcf(args.profile, args.vcf)
         resolved = profiles.resolve(
             args.profile,
             args.release,
@@ -634,6 +629,11 @@ def main(argv=None):
             require_reference=not args.skip_compare and not args.skip_annotate,
             chrom=sole_chrom,
         )
+        if (
+            not args.skip_annotate
+            and os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATED") != "1"
+        ):
+            profiles.validate_input_vcf(args.profile, args.vcf)
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2

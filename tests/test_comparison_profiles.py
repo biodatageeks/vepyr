@@ -440,6 +440,24 @@ def test_clinvar_profile_rejects_a_golden_with_a_wrong_sha256(tmp_path, monkeypa
         profiles.resolve("clinvar_merged", "116")
 
 
+def test_clinvar_profile_can_skip_missing_reference_when_no_reference_is_needed(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles, "WGS_MANIFEST_PATH", tmp_path / "missing-wgs-manifest.json"
+    )
+
+    resolved = profiles.resolve(
+        "clinvar_merged",
+        "116",
+        require_cache=False,
+        require_reference=False,
+    )
+
+    assert resolved.vep_vcf is None
+
+
 def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
     tmp_path, monkeypatch
 ):

@@ -90,6 +90,7 @@ def test_manifest_input_error_is_reported_without_a_traceback(
         encoding="utf-8",
     )
     monkeypatch.setattr(profiles, "WGS_MANIFEST_PATH", manifest_path)
+    (tmp_path / "cache/116_GRCh38_merged").mkdir(parents=True)
 
     args = [
         "--release",
@@ -114,6 +115,34 @@ def test_manifest_input_error_is_reported_without_a_traceback(
     captured = capsys.readouterr()
     assert "Error: missing manifest input" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_profile_cache_resolution_fails_before_clinvar_input_validation(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles,
+        "validate_input_vcf",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("input scanning must wait until profile resolution")
+        ),
+    )
+
+    rc = cli.main(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--chroms",
+            "chr1",
+            "--skip-compare",
+        ]
+    )
+
+    assert rc == 2
+    assert "no Parquet cache" in capsys.readouterr().err
 
 
 def test_release_must_be_known():
