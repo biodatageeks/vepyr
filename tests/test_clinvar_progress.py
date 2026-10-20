@@ -1219,3 +1219,24 @@ def test_full_contig_refuses_a_golden_without_the_contig(tmp_path):
                 "E",
             ]
         )
+
+
+def test_default_inputs_follow_the_legacy_layout(tmp_path, monkeypatch):
+    """$DATA/<name> is used when $DATA/input/<name> is absent, like the other
+    e2e runners (codex review on #255)."""
+    import importlib
+
+    (tmp_path / "Homo_sapiens.GRCh38.dna.primary_assembly.fa").write_text(
+        ">1\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    reloaded = importlib.reload(cp)
+    try:
+        assert (
+            reloaded.DEFAULT_FASTA
+            == tmp_path / "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+        )
+        assert reloaded.DEFAULT_PANEL == tmp_path / "clinvar_panel"
+    finally:
+        monkeypatch.undo()
+        importlib.reload(cp)

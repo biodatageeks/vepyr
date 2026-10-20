@@ -72,10 +72,25 @@ import sys
 import tempfile
 import time
 
-DATA = Path(os.environ.get("DATA_VEPYR_DIR", Path.home() / "workspace" / "data_vepyr"))
+# vepyr#238 (merged as f4ab545): the CLIN_SIG rule is shared with the field
+# comparison in comparison.compare, so the panel and the HG002 gates cannot
+# disagree on what counts as VEP's random %3B order.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from comparison.compare import (  # noqa: E402
+    _clin_sig_order_equivalent,
+    _pairing_value,
+)
+
+from comparison import profiles  # noqa: E402
+
+# Inputs resolve like the other e2e runners: $DATA/input/<name>, else the
+# legacy $DATA/<name> layout (e2e-testing/README.md, directory layout).
+DATA = Path(profiles.data_dir())
 DEFAULT_PANEL = DATA / "clinvar_panel"
-DEFAULT_FASTA = DATA / "input" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
-DEFAULT_CLINVAR = DATA / "input" / "clinvar" / "clinvar_20261011.vcf.gz"
+DEFAULT_FASTA = Path(
+    profiles.default_input("Homo_sapiens.GRCh38.dna.primary_assembly.fa")
+)
+DEFAULT_CLINVAR = Path(profiles.default_input("clinvar/clinvar_20261011.vcf.gz"))
 DEFAULT_GOLDEN = (
     DATA
     / "output"
@@ -96,15 +111,6 @@ NOTES = {
     **DEFERRED,
     "panel-context:HGNC_ID": "panel artifact: HGNC_ID depends on the input context",
 }
-
-# vepyr#238 (merged as f4ab545): the CLIN_SIG rule is shared with the field
-# comparison in comparison.compare, so the panel and the HG002 gates cannot
-# disagree on what counts as VEP's random %3B order.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from comparison.compare import (  # noqa: E402
-    _clin_sig_order_equivalent,
-    _pairing_value,
-)
 
 # Per-entry key: values beyond (or short of) the header's Format, as
 # "<offset>|<surplus values>", so a malformed entry cannot pass as identical.
