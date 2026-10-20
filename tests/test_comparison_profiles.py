@@ -1,6 +1,7 @@
 import gzip
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -392,6 +393,15 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
     return input_path, golden_path, manifest_path
 
 
+def _mock_tabix_rebuild(monkeypatch, input_path):
+    def run(command, **_kwargs):
+        assert command == ["tabix", "-f", "-p", "vcf", str(input_path)]
+        Path(str(input_path) + ".tbi").write_bytes(b"rebuilt-index")
+        return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(profiles.subprocess, "run", run)
+
+
 def test_clinvar_profile_resolves_canonical_paths_and_manifest_checksum(
     tmp_path, monkeypatch
 ):
@@ -421,6 +431,7 @@ def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
 ):
     input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
     records = b"1\t1\t.\tA\tC\t.\tPASS\t.\n"
+    _mock_tabix_rebuild(monkeypatch, input_path)
     # A regenerated bcftools header changes the compressed size and SHA-256.
     input_path.write_bytes(
         gzip.compress(b"##fileDate=20261021\n#CHROM\tPOS\tID\tREF\tALT\n" + records)
@@ -439,6 +450,17 @@ def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
         profiles.ProfileUnavailable, match="input record-body MD5 mismatch"
     ):
         profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+
+def test_clinvar_profile_rebuilds_input_index_before_annotation(tmp_path, monkeypatch):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    index_path = Path(str(input_path) + ".tbi")
+    index_path.write_bytes(b"stale-index")
+    _mock_tabix_rebuild(monkeypatch, input_path)
+
+    profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+    assert index_path.read_bytes() == b"rebuilt-index"
 
 
 def test_clinvar_profile_rejects_a_golden_index_with_a_wrong_sha256(

@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import json
 import os
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -364,6 +365,20 @@ def validate_input_vcf(profile_name, path):
         )
     if not os.path.isfile(index_path):
         raise ProfileUnavailable(f"missing manifest input_index at {index_path}")
+    try:
+        rebuilt = subprocess.run(
+            ["tabix", "-f", "-p", "vcf", path],
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ProfileUnavailable(f"cannot rebuild ClinVar tabix index: {exc}") from exc
+    if rebuilt.returncode != 0:
+        error = rebuilt.stderr.decode("utf-8", errors="replace").strip()
+        raise ProfileUnavailable(
+            f"cannot rebuild ClinVar tabix index at {index_path}"
+            + (f": {error}" if error else "")
+        )
 
 
 def _validate_manifest_reference(profile_name, manifest_section, path):

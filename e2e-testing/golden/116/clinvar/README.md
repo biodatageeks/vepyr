@@ -124,12 +124,14 @@ filename, `$DATA_VEPYR_DIR/output/116/clinvar_20261011_annotated_wgs_everything_
 the runner resolves that path from `clinvar_profiles` in
 `e2e-testing/golden/wgs-manifest.json` and checks its size and SHA-256 before
 comparison. It checks the input's tabix index is present and verifies the
-record-body MD5 `547285cb0e2b3f97c7222156a748c371`. The input's compressed
-SHA-256 and size in the manifest identify the recorded copy; they are not used
-as the identity check because bcftools embeds the preprocessing date in the
-header, changing the compressed bytes on regeneration. The local ClinVar
-metadata is separate from the `profiles` map consumed by `/parity-wgs`, so this
-profile does not expand that workflow's HG002 profile matrix.
+record-body MD5 `547285cb0e2b3f97c7222156a748c371`. Before annotation, the
+runner rebuilds the input tabix index so a stale or damaged index cannot change
+the records sliced for comparison. The input's compressed SHA-256 and size
+identify the recorded copy; the body MD5 is used as the input identity because
+bcftools embeds the preprocessing date in the header, changing the compressed
+bytes on regeneration. The local ClinVar metadata is separate from the
+`profiles` map consumed by `/parity-wgs`, so this profile does not expand that
+workflow's HG002 profile matrix.
 
 The input is already preprocessed, so the profile defaults to `--no-normalize`:
 
