@@ -5,7 +5,9 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
 from . import annotate, compare, profiles, report, vcfio
 
@@ -116,11 +118,20 @@ def parse_args(argv=None):
         "failure with a canonical pass isolates serialization drift from a "
         "content change, which one digest alone cannot tell you.",
     )
-    p.add_argument(
+    normalization = p.add_mutually_exclusive_group()
+    normalization.add_argument(
         "--no-normalize",
+        dest="no_normalize",
         action="store_true",
-        help="Skip bcftools norm (normalization is on by default)",
+        help="Skip bcftools norm (the profile may also default to this)",
     )
+    normalization.add_argument(
+        "--normalize",
+        dest="no_normalize",
+        action="store_false",
+        help="Run bcftools norm, overriding the profile default",
+    )
+    p.set_defaults(no_normalize=None)
     p.add_argument("--vcf", default=None, help="Input VCF (default: $DATA/input/...)")
     p.add_argument(
         "--output-dir",
@@ -161,8 +172,10 @@ def parse_args(argv=None):
                     "--chroms must not contain duplicate contigs after "
                     "chr-prefix normalization"
                 )
+    if args.no_normalize is None:
+        args.no_normalize = profiles.PROFILES[args.profile].no_normalize
     if args.vcf is None:
-        args.vcf = profiles.default_input(profiles.DEFAULT_VCF_NAME)
+        args.vcf = profiles.input_vcf_for(args.profile)
     if args.fasta is None:
         args.fasta = profiles.default_input(profiles.DEFAULT_FASTA_NAME)
     return args
@@ -267,7 +280,7 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
     for chrom in chroms:
         path = report.report_json_path(report_dir, chrom, suffix, release)
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 payload = json.load(f).get("md5")
         except (OSError, ValueError):
             payload = None
@@ -515,13 +528,13 @@ def run_contig(
         result["plugin_cache_path"] = resolved.plugin_cache_root
 
     path = report.report_json_path(report_dir, chrom, resolved.suffix, resolved.release)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(f"  Report: {path}")
     return result
 
 
-def _run_contig_isolated(chrom, args):
+def _run_contig_isolated(chrom, args, resolved=None):
     """Re-invoke this script for one contig so a SIGSEGV loses only that contig."""
     entry = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -557,15 +570,62 @@ def _run_contig_isolated(chrom, args):
         cmd += ["--md5-mode", args.md5_mode]
     if args.no_normalize:
         cmd.append("--no-normalize")
+    else:
+        # The child resolves profile defaults independently, so an explicit
+        # --normalize must be forwarded to override profiles that default to
+        # skipping normalization.
+        cmd.append("--normalize")
     if args.vep:
         cmd += ["--vep", args.vep]
+    elif resolved is not None and resolved.vep_vcf:
+        # The parent already resolved and validated the manifest-backed file.
+        # Forward it as an explicit path so isolated children do not rehash the
+        # multi-gigabyte VEP reference and index for every contig.
+        cmd += ["--vep", resolved.vep_vcf]
     if args.cache_dir:
         cmd += ["--cache-dir", args.cache_dir]
     if args.plugin_cache:
         cmd += ["--plugin-cache", args.plugin_cache]
     if args.output_dir:
         cmd += ["--output-dir", args.output_dir]
-    return subprocess.run(cmd).returncode == 0
+    # The parent validated this input before launching isolated workers. Give
+    # the child a short-lived ticket instead of trusting a caller-set variable.
+    ticket_file = tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="vepyr-profile-validation-",
+        delete=False,
+    )
+    ticket = {
+        "parent_pid": os.getpid(),
+        "profile": args.profile,
+        "input_path": os.path.realpath(args.vcf),
+    }
+    with ticket_file:
+        json.dump(ticket, ticket_file, sort_keys=True)
+        ticket_file.write("\n")
+    child_env = os.environ.copy()
+    child_env["_VEPYR_PROFILE_INPUT_VALIDATION_TICKET"] = ticket_file.name
+    try:
+        return subprocess.run(cmd, env=child_env).returncode == 0
+    finally:
+        Path(ticket_file.name).unlink(missing_ok=True)
+
+
+def _has_current_input_validation_ticket(args):
+    """Trust only the per-child ticket issued by its validating parent process."""
+    ticket_path = os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATION_TICKET")
+    if not ticket_path:
+        return False
+    try:
+        ticket = json.loads(Path(ticket_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return ticket == {
+        "parent_pid": os.getppid(),
+        "profile": args.profile,
+        "input_path": os.path.realpath(args.vcf),
+    }
 
 
 def main(argv=None):
@@ -604,6 +664,8 @@ def main(argv=None):
             require_reference=not args.skip_compare and not args.skip_annotate,
             chrom=sole_chrom,
         )
+        if not args.skip_annotate and not _has_current_input_validation_ticket(args):
+            profiles.validate_input_vcf(args.profile, args.vcf)
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
@@ -693,7 +755,7 @@ def main(argv=None):
                     resolved.release,
                 )
                 if args.isolate:
-                    if not _run_contig_isolated(chrom, args):
+                    if not _run_contig_isolated(chrom, args, resolved):
                         report.quarantine_contig_evidence(
                             report_dir,
                             chrom,
@@ -766,7 +828,7 @@ def main(argv=None):
         if not os.path.isfile(path):
             continue
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 payload = json.load(f)
         except (OSError, ValueError):
             continue
@@ -855,7 +917,7 @@ def main(argv=None):
         report_dir,
         f"fast_{span}_{resolved.suffix}_{resolved.release}_summary_{timestamp}.md",
     )
-    with open(summary_path, "w") as f:
+    with open(summary_path, "w", encoding="utf-8") as f:
         f.write(md)
 
     n_perfect = len([f for f in agg["all_fields"] if agg["field_mm"].get(f, 0) == 0])
