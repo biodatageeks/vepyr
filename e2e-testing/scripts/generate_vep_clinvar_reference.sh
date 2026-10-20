@@ -165,8 +165,11 @@ run_one() {
         --fasta "/ref/$(basename "$FASTA")" --merged > "$log" 2>&1; then
     bgzip -@ 2 -c "$work/output.vcf" > "$out.gz.tmp"
     tabix -f -p vcf "$out.gz.tmp"
-    mv -f "$out.gz.tmp.tbi" "$out.gz.tbi"
+    # Remove the old pair before publishing. If interrupted during either move,
+    # the next run sees one member missing and regenerates this contig.
+    rm -f "$out.gz" "$out.gz.tbi"
     mv -f "$out.gz.tmp" "$out.gz"
+    mv -f "$out.gz.tmp.tbi" "$out.gz.tbi"
     rm -rf "$work"
     local n_out
     n_out=$(tabix "$out.gz" "$chrom" | wc -l | tr -d ' ')
@@ -200,6 +203,7 @@ first=$(head -n1 <<< "$order")
   done
 } | bgzip -@ 4 -c > "$JOINED.tmp"
 tabix -f -p vcf "$JOINED.tmp"
-mv -f "$JOINED.tmp.tbi" "$JOINED.tbi"
+rm -f "$JOINED" "$JOINED.tbi"
 mv -f "$JOINED.tmp" "$JOINED"
+mv -f "$JOINED.tmp.tbi" "$JOINED.tbi"
 echo "Reference: $JOINED ($(bcftools index -n "$JOINED") records)"
