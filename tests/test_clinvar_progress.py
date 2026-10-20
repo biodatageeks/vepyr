@@ -1145,3 +1145,28 @@ def test_a_large_duplicate_group_is_matched_globally():
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
     assert diffs["ORDER"] == ["CSQ_ORDER"]
     assert sorted(diffs["T1"]) == ["Consequence", "IMPACT"]
+
+
+@pytest.mark.skipif(shutil.which("bcftools") is None, reason="bcftools not on PATH")
+def test_a_failed_slice_index_leaves_no_slice(tmp_path, monkeypatch):
+    src = tmp_path / "clinvar.vcf"
+    src.write_text(
+        "##fileformat=VCFv4.1\n##contig=<ID=1>\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "1\t100\ta\tG\tA\t.\t.\t.\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["bgzip", "-f", str(src)], check=True)
+    subprocess.run(["tabix", "-p", "vcf", str(src) + ".gz"], check=True)
+    real_run = subprocess.run
+
+    def failing_tabix(cmd, *a, **kw):
+        if cmd[0] == "tabix" and "-f" in cmd:
+            raise subprocess.CalledProcessError(1, cmd)
+        return real_run(cmd, *a, **kw)
+
+    monkeypatch.setattr(cp.subprocess, "run", failing_tabix)
+    with pytest.raises(subprocess.CalledProcessError):
+        cp.annotate_full_contig(
+            "python", str(src) + ".gz", "/c", "/f", tmp_path / "chr1.vcf.gz", "1", 1
+        )
+    assert not [p for p in tmp_path.iterdir() if p.name.startswith("chr1.in")]

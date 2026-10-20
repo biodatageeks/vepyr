@@ -250,8 +250,12 @@ def _pair_group(left, right, fields):
     if left_rest and remaining:
         # Maximise equal fields over the whole group (Hungarian assignment);
         # among equal totals prefer pairs close in CSQ order.
+        # The weight exceeds any total of order penalties, so similarity
+        # always wins and order only breaks ties.
+        span = max(len(left_rest), len(remaining))
+        weight = span * span + 1
         cost = [
-            [-score(a, b) * 1000 + abs(ia - ib) for ib, b in enumerate(remaining)]
+            [-score(a, b) * weight + abs(ia - ib) for ib, b in enumerate(remaining)]
             for ia, a in enumerate(left_rest)
         ]
         for ia, ib in _min_cost_assignment(cost):
@@ -427,26 +431,27 @@ def annotate_full_contig(
     """
     start = time.perf_counter()
     sliced = out.with_name(f"chr{contig}.in.vcf.gz")
-    view = subprocess.Popen(
-        ["bcftools", "view", "-e", 'ALT="."', "-r", contig, clinvar, "-Ou"],
-        stdout=subprocess.PIPE,
-    )
+    # One cleanup scope from the first byte of the slice to the end of the
+    # annotation: a failure anywhere leaves no slice or index behind.
     try:
-        norm = subprocess.run(
-            ["bcftools", "norm", "-m", "-both", "-Oz", "-o", str(sliced)],
-            stdin=view.stdout,
+        view = subprocess.Popen(
+            ["bcftools", "view", "-e", 'ALT="."', "-r", contig, clinvar, "-Ou"],
+            stdout=subprocess.PIPE,
         )
-    except BaseException:
-        view.kill()
-        raise
-    finally:
-        view.stdout.close()
-    if view.wait() != 0 or norm.returncode != 0:
-        sliced.unlink(missing_ok=True)
-        raise SystemExit(f"slicing chr{contig} from {clinvar} failed")
-    # annotate(workers > 1) needs a tabix-indexed input.
-    subprocess.run(["tabix", "-f", "-p", "vcf", str(sliced)], check=True)
-    try:
+        try:
+            norm = subprocess.run(
+                ["bcftools", "norm", "-m", "-both", "-Oz", "-o", str(sliced)],
+                stdin=view.stdout,
+            )
+        except BaseException:
+            view.kill()
+            raise
+        finally:
+            view.stdout.close()
+        if view.wait() != 0 or norm.returncode != 0:
+            raise SystemExit(f"slicing chr{contig} from {clinvar} failed")
+        # annotate(workers > 1) needs a tabix-indexed input.
+        subprocess.run(["tabix", "-f", "-p", "vcf", str(sliced)], check=True)
         subprocess.run(
             [
                 python,
