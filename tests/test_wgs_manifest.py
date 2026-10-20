@@ -162,3 +162,15 @@ def test_prepare_preserves_clinvar_profiles_in_existing_manifest(
 
     prepared = json.loads(out.read_text(encoding="utf-8"))
     assert prepared["clinvar_profiles"] == clinvar_profiles
+
+
+def test_clinvar_profiles_do_not_invalidate_existing_wgs_staging(
+    tmp_path, chr22_manifest
+):
+    data = tmp_path / "data"
+    make_layout(data)
+    manifest = wgs_manifest.build_manifest(data, chr22_manifest, PROFILES)
+    staged = wgs_manifest.record_staged(data, manifest)
+    with_clinvar = {**manifest, "clinvar_profiles": {"clinvar_merged": {}}}
+
+    assert wgs_manifest.check_staged(data, with_clinvar, staged) == []

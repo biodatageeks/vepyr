@@ -43,7 +43,10 @@ def _canonical(manifest: dict) -> str:
 
 
 def _manifest_sha(manifest: dict) -> str:
-    return hashlib.sha256(_canonical(manifest).encode()).hexdigest()
+    staged_manifest = {
+        key: value for key, value in manifest.items() if key != "clinvar_profiles"
+    }
+    return hashlib.sha256(_canonical(staged_manifest).encode("utf-8")).hexdigest()
 
 
 def build_manifest(data: Path, chr22_manifest: Path, profiles: dict[str, str]) -> dict:

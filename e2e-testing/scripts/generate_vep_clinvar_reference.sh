@@ -19,9 +19,18 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PINS="$SCRIPT_DIR/../../porting-tests/PINS.toml"
+export SCRIPT_DIR
+reference_state() {
+  PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 -m comparison.clinvar_reference_state "$@"
+}
+
 DATA="${DATA_VEPYR_DIR:-$HOME/workspace/data_vepyr}"
 CLINVAR_RELEASE="${CLINVAR_RELEASE:-20261011}"
 JOBS="${VEP_REFERENCE_JOBS:-1}"
+FORCE_REFERENCE="${FORCE_REFERENCE:-0}"
 if [[ "$CLINVAR_RELEASE" != "20261011" ]]; then
   echo "ERROR: this reference profile supports CLINVAR_RELEASE=20261011 only" >&2
   exit 1
@@ -34,6 +43,7 @@ fi
 IMAGE="ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11"
 CACHE="$DATA/homo_sapiens_merged/116_GRCh38"
 CACHE_COMPLETE="$CACHE/.clinvar-profile-cache-complete"
+EXPECTED_CACHE_SUM="26554 29618744"
 IN_DIR="$DATA/input/clinvar"
 OUT_DIR="$DATA/output/116/clinvar"
 NAME="clinvar_${CLINVAR_RELEASE}"
@@ -41,12 +51,19 @@ URL="https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38"
 ENSEMBL="https://ftp.ensembl.org/pub/release-116"
 # Largest first, so the longest jobs do not start last.
 ALL_CONTIGS=(1 2 17 11 19 3 16 7 5 10 12 6 9 15 X 4 8 14 20 22 13 18 21 MT Y)
+if [[ "$#" -gt 0 ]]; then contigs=("$@"); else contigs=("${ALL_CONTIGS[@]}"); fi
+reference_state validate-contigs "${contigs[@]}"
 
 FASTA="${FASTA:-$DATA/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa}"
 if [[ ! -f "$FASTA" && -f "$DATA/$(basename "$FASTA")" ]]; then
   FASTA="$DATA/$(basename "$FASTA")"   # legacy layout, as in profiles.py
 fi
 mkdir -p "$DATA" "$IN_DIR" "$OUT_DIR/contigs" "$OUT_DIR/logs"
+
+cache_complete() {
+  [[ -s "$CACHE/info.txt" && -f "$CACHE_COMPLETE" ]] \
+    && [[ "$(cat "$CACHE_COMPLETE")" == "$EXPECTED_CACHE_SUM" ]]
+}
 
 CACHE_STAGE=""
 cleanup_cache_stage() {
@@ -64,7 +81,7 @@ find "$OUT_DIR/contigs" -mindepth 1 -maxdepth 1 -type d -name '.chr*' \
 # 0. Check the disk before anything is downloaded. Counted in GiB, only for
 #    what is missing; the VEP outputs include the plain VCFs of running jobs.
 need=40
-[[ -s "$CACHE/info.txt" && -f "$CACHE_COMPLETE" ]] || need=$((need + 60))
+cache_complete || need=$((need + 60))
 [[ -f "$FASTA" ]] || need=$((need + 4))
 free=$(df -Pk "$DATA" | awk 'NR == 2 {print int($4 / 1048576)}')
 if (( free < need )); then
@@ -78,8 +95,8 @@ if [[ ! -f "$FASTA" ]]; then
   curl -sSfL "$ENSEMBL/fasta/homo_sapiens/dna/$(basename "$FASTA").gz" | gzip -dc > "$FASTA.tmp"
   mv -f "$FASTA.tmp" "$FASTA"
 fi
-[[ -f "$FASTA.fai" ]] || samtools faidx "$FASTA"
-if [[ ! -s "$CACHE/info.txt" || ! -f "$CACHE_COMPLETE" ]]; then
+FASTA_SHA256="$(reference_state validate-fasta "$FASTA" "$PINS")"
+if ! cache_complete; then
   tarball="$DATA/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
   url="$ENSEMBL/variation/indexed_vep_cache/$(basename "$tarball")"
   # Ensembl serves each connection at about 5 MB/s; aria2c opens several.
@@ -89,14 +106,13 @@ if [[ ! -s "$CACHE/info.txt" || ! -f "$CACHE_COMPLETE" ]]; then
     curl -sSfL -C - -o "$tarball" "$url"
   fi
   # The BSD sum published in the release's CHECKSUMS file.
-  [[ "$(sum "$tarball" | awk '{print $1, $2}')" == "26554 29618744" ]] \
-    || { echo "ERROR: checksum mismatch for $tarball" >&2; exit 1; }
+  reference_state validate-cache-archive "$tarball" "$EXPECTED_CACHE_SUM"
   CACHE_STAGE=$(mktemp -d "$DATA/.clinvar-cache-stage.XXXXXX")
   tar -xzf "$tarball" -C "$CACHE_STAGE"
   staged_cache="$CACHE_STAGE/homo_sapiens_merged/116_GRCh38"
   [[ -s "$staged_cache/info.txt" ]] \
     || { echo "ERROR: archive did not contain a complete VEP cache at $staged_cache" >&2; exit 1; }
-  touch "$staged_cache/.clinvar-profile-cache-complete"
+  printf '%s\n' "$EXPECTED_CACHE_SUM" > "$staged_cache/.clinvar-profile-cache-complete"
   rm -rf "$CACHE"
   mkdir -p "$(dirname "$CACHE")"
   mv "$staged_cache" "$CACHE"
@@ -106,8 +122,10 @@ if [[ ! -s "$CACHE/info.txt" || ! -f "$CACHE_COMPLETE" ]]; then
 fi
 # Docker creates a missing -v source as an empty directory, and VEP then skips
 # every variant instead of failing (see vep-docker.md).
-[[ -s "$CACHE/info.txt" && -f "$CACHE_COMPLETE" ]] \
+cache_complete \
   || { echo "ERROR: no complete VEP cache at $CACHE" >&2; exit 1; }
+CACHE_INFO_SHA256="$(reference_state sha256 "$CACHE/info.txt")"
+CACHE_IDENTITY="$EXPECTED_CACHE_SUM:$CACHE_INFO_SHA256"
 docker image inspect "$IMAGE" > /dev/null 2>&1 || docker pull "$IMAGE"
 
 # 1. Download and verify the ClinVar release.
@@ -162,20 +180,61 @@ if [[ "$rebuild_norm" == true ]]; then
 fi
 [[ "$(vcf_body_md5 "$NORM")" == "$EXPECTED_BODY_MD5" ]] \
   || { echo "ERROR: preprocessed ClinVar body MD5 mismatch for $NORM" >&2; rm -f "$NORM" "$NORM.tbi"; exit 1; }
+reference_state index-vcf "$NORM"
+INPUT_BODY_MD5="$(vcf_body_md5 "$NORM")"
+
+VEP_ARGS=(
+  vep
+  --dir /opt/vep/.vep
+  --cache
+  --offline
+  --assembly GRCh38
+  --input_file /work/input.vcf.gz
+  --output_file /work/output.vcf
+  --vcf
+  --force_overwrite
+  --no_stats
+  --everything
+  --hgvs
+  --fasta "/ref/$(basename "$FASTA")"
+  --merged
+)
+VEP_ARG_LINES="$(printf '%s\n' "${VEP_ARGS[@]}")"
+PROVENANCE_ARGS=()
+for arg in "${VEP_ARGS[@]}"; do PROVENANCE_ARGS+=("--vep-arg=$arg"); done
+EXPECTED_PROVENANCE="$(reference_state provenance \
+  "$FASTA_SHA256" "$CACHE_IDENTITY" "$IMAGE" "$INPUT_BODY_MD5" \
+  "${PROVENANCE_ARGS[@]}")"
 
 # 3. One VEP process per contig.
 run_one() {
   local chrom="$1"
   local out="$OUT_DIR/contigs/${NAME}_chr${chrom}_vep116_merged.vcf"
   local log="$OUT_DIR/logs/chr${chrom}.log"
-  if [[ -s "$out.gz" && -s "$out.gz.tbi" ]]; then
-    echo "SKIP chr${chrom}: complete"
+  local stamp="$out.gz.provenance"
+  if reference_state contig-current \
+    "$out.gz" "$out.gz.tbi" "$stamp" "$EXPECTED_PROVENANCE"; then
+    echo "SKIP chr${chrom}: provenance matches"
     return
+  fi
+  if reference_state remove-incomplete-contig "$out.gz" "$out.gz.tbi" "$stamp"; then
+    echo "REBUILD chr${chrom}: removed interrupted VCF/index publication"
+  fi
+  if [[ -e "$out.gz" || -e "$out.gz.tbi" || -e "$stamp" ]]; then
+    if [[ "$FORCE_REFERENCE" == "1" ]]; then
+      rm -f "$out.gz" "$out.gz.tbi" "$stamp" "$stamp.tmp"
+    else
+      echo "ERROR chr${chrom}: existing output has missing or stale provenance; "\
+        "remove the contig files or rerun with FORCE_REFERENCE=1" >&2
+      return 1
+    fi
   fi
   local n_in
   n_in=$(tabix "$NORM" "$chrom" | wc -l | tr -d ' ')
   local work
   work=$(mktemp -d "$OUT_DIR/contigs/.chr${chrom}.XXXXXX")
+  local -a vep_args=()
+  while IFS= read -r arg; do vep_args+=("$arg"); done <<< "$VEP_ARG_LINES"
   { tabix -H "$NORM"; tabix "$NORM" "$chrom"; } | bgzip -c > "$work/input.vcf.gz"
   echo "START chr${chrom}: $n_in records"
   local t0=$SECONDS
@@ -184,10 +243,7 @@ run_one() {
       -v "$(dirname "$FASTA"):/ref:ro" \
       -v "$work:/work" \
       "$IMAGE" \
-      vep --dir /opt/vep/.vep --cache --offline --assembly GRCh38 \
-        --input_file /work/input.vcf.gz --output_file /work/output.vcf \
-        --vcf --force_overwrite --no_stats --everything --hgvs \
-        --fasta "/ref/$(basename "$FASTA")" --merged > "$log" 2>&1; then
+      "${vep_args[@]}" > "$log" 2>&1; then
     bgzip -@ 2 -c "$work/output.vcf" > "$out.gz.tmp"
     tabix -f -p vcf "$out.gz.tmp"
     # Remove the old pair before publishing. If interrupted during either move,
@@ -198,19 +254,23 @@ run_one() {
     rm -rf "$work"
     local n_out
     n_out=$(tabix "$out.gz" "$chrom" | wc -l | tr -d ' ')
+    if [[ "$n_out" != "$n_in" ]]; then
+      rm -f "$out.gz" "$out.gz.tbi"
+      echo "ERROR chr${chrom}: VEP wrote $n_out of $n_in records; output discarded" >&2
+      return 1
+    fi
+    printf '%s\n' "$EXPECTED_PROVENANCE" > "$stamp.tmp"
+    mv -f "$stamp.tmp" "$stamp"
     printf '%s\t%s\t%s\t%s\n' "$chrom" "$n_in" "$n_out" "$((SECONDS - t0))" >> "$OUT_DIR/timings.tsv"
     echo "DONE chr${chrom}: $n_out/$n_in records in $((SECONDS - t0)) s"
-    # VEP skips lines it cannot parse; the md5 check then reports the contig.
-    [[ "$n_out" == "$n_in" ]] || echo "WARN chr${chrom}: VEP wrote $n_out of $n_in records" >&2
   else
     echo "ERROR chr${chrom}: see $log (work kept at $work)" >&2
     return 1
   fi
 }
-export -f run_one
-export OUT_DIR NAME NORM CACHE FASTA IMAGE
+export -f run_one reference_state
+export OUT_DIR NAME NORM CACHE FASTA IMAGE FORCE_REFERENCE VEP_ARG_LINES EXPECTED_PROVENANCE
 
-if [[ "$#" -gt 0 ]]; then contigs=("$@"); else contigs=("${ALL_CONTIGS[@]}"); fi
 printf '%s\n' "${contigs[@]}" \
   | xargs -P "$JOBS" -I{} bash -euo pipefail -c 'run_one "$@"' _ {}
 

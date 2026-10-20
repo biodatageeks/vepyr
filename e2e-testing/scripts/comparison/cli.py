@@ -5,7 +5,9 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
 from . import annotate, compare, profiles, report, vcfio
 
@@ -278,7 +280,7 @@ def md5_summary(report_dir, chroms, suffix, release, requested):
     for chrom in chroms:
         path = report.report_json_path(report_dir, chrom, suffix, release)
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 payload = json.load(f).get("md5")
         except (OSError, ValueError):
             payload = None
@@ -526,7 +528,7 @@ def run_contig(
         result["plugin_cache_path"] = resolved.plugin_cache_root
 
     path = report.report_json_path(report_dir, chrom, resolved.suffix, resolved.release)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(f"  Report: {path}")
     return result
@@ -586,11 +588,44 @@ def _run_contig_isolated(chrom, args, resolved=None):
         cmd += ["--plugin-cache", args.plugin_cache]
     if args.output_dir:
         cmd += ["--output-dir", args.output_dir]
-    # The parent validated this input before launching isolated workers. Use
-    # an internal child environment marker instead of exposing a CLI bypass.
+    # The parent validated this input before launching isolated workers. Give
+    # the child a short-lived ticket instead of trusting a caller-set variable.
+    ticket_file = tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="vepyr-profile-validation-",
+        delete=False,
+    )
+    ticket = {
+        "parent_pid": os.getpid(),
+        "profile": args.profile,
+        "input_path": os.path.realpath(args.vcf),
+    }
+    with ticket_file:
+        json.dump(ticket, ticket_file, sort_keys=True)
+        ticket_file.write("\n")
     child_env = os.environ.copy()
-    child_env["_VEPYR_PROFILE_INPUT_VALIDATED"] = "1"
-    return subprocess.run(cmd, env=child_env).returncode == 0
+    child_env["_VEPYR_PROFILE_INPUT_VALIDATION_TICKET"] = ticket_file.name
+    try:
+        return subprocess.run(cmd, env=child_env).returncode == 0
+    finally:
+        Path(ticket_file.name).unlink(missing_ok=True)
+
+
+def _has_current_input_validation_ticket(args):
+    """Trust only the per-child ticket issued by its validating parent process."""
+    ticket_path = os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATION_TICKET")
+    if not ticket_path:
+        return False
+    try:
+        ticket = json.loads(Path(ticket_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return ticket == {
+        "parent_pid": os.getppid(),
+        "profile": args.profile,
+        "input_path": os.path.realpath(args.vcf),
+    }
 
 
 def main(argv=None):
@@ -629,10 +664,7 @@ def main(argv=None):
             require_reference=not args.skip_compare and not args.skip_annotate,
             chrom=sole_chrom,
         )
-        if (
-            not args.skip_annotate
-            and os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATED") != "1"
-        ):
+        if not args.skip_annotate and not _has_current_input_validation_ticket(args):
             profiles.validate_input_vcf(args.profile, args.vcf)
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -796,7 +828,7 @@ def main(argv=None):
         if not os.path.isfile(path):
             continue
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 payload = json.load(f)
         except (OSError, ValueError):
             continue
@@ -885,7 +917,7 @@ def main(argv=None):
         report_dir,
         f"fast_{span}_{resolved.suffix}_{resolved.release}_summary_{timestamp}.md",
     )
-    with open(summary_path, "w") as f:
+    with open(summary_path, "w", encoding="utf-8") as f:
         f.write(md)
 
     n_perfect = len([f for f in agg["all_fields"] if agg["field_mm"].get(f, 0) == 0])

@@ -283,11 +283,6 @@ def _sha256(path):
     return digest.hexdigest()
 
 
-def _vcf_body_md5(path):
-    """Hash VCF records without the date-bearing, regenerated header."""
-    return _vcf_body_identity(path)[0]
-
-
 def _vcf_body_identity(path):
     """Return the body digest, record count and VCF contig order."""
     digest = hashlib.md5()
@@ -320,7 +315,11 @@ def _validate_tabix_index(path, index_path, contigs, expected_count, expected_md
     except OSError as exc:
         raise ProfileUnavailable(f"cannot inspect ClinVar tabix index: {exc}") from exc
     if indexed.returncode != 0:
-        raise ProfileUnavailable(f"cannot read ClinVar tabix index at {index_path}")
+        detail = indexed.stderr.decode("utf-8", errors="replace").strip().splitlines()
+        reason = f": {detail[0]}" if detail else ""
+        raise ProfileUnavailable(
+            f"cannot read ClinVar tabix index at {index_path}{reason}"
+        )
     indexed_contigs = {
         line.decode("utf-8", errors="replace")
         for line in indexed.stdout.splitlines()
@@ -339,7 +338,7 @@ def _validate_tabix_index(path, index_path, contigs, expected_count, expected_md
             process = subprocess.Popen(
                 ["tabix", path, chrom],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
             )
         except OSError as exc:
             raise ProfileUnavailable(
@@ -349,10 +348,13 @@ def _validate_tabix_index(path, index_path, contigs, expected_count, expected_md
             for line in process.stdout:
                 digest.update(line)
                 record_count += 1
+            stderr = process.stderr.read()
             returncode = process.wait()
         if returncode != 0:
+            detail = stderr.decode("utf-8", errors="replace").strip().splitlines()
+            reason = f": {detail[0]}" if detail else ""
             raise ProfileUnavailable(
-                f"cannot query ClinVar tabix index at {index_path} for {chrom}"
+                f"cannot query ClinVar tabix index at {index_path} for {chrom}{reason}"
             )
 
     actual_md5 = digest.hexdigest()
@@ -404,6 +406,11 @@ def validate_input_vcf(profile_name, path):
         return
     expected_path = _data_path(profile.input_path)
     if os.path.realpath(path) != os.path.realpath(expected_path):
+        print(
+            f"Note: custom input VCF {path} is not validated against the "
+            f"{profile_name} manifest",
+            file=sys.stderr,
+        )
         return
 
     record = _manifest_profile(profile_name, profile.manifest_section)
@@ -457,6 +464,38 @@ def _validate_manifest_reference(profile_name, manifest_section, path):
             manifest_section,
             "golden_index",
             path + ".tbi",
+        )
+
+
+def _validate_cache_revision(profile_name, manifest_section, cache_dir):
+    """Require local provenance matching the cache revision pinned by a profile."""
+    record = _manifest_profile(profile_name, manifest_section)
+    cache = (record or {}).get("cache") or {}
+    expected = {"repo_id": cache.get("repo_id"), "revision": cache.get("revision")}
+    if not all(expected.values()):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no complete cache identity in "
+            f"{WGS_MANIFEST_PATH}"
+        )
+
+    revision_path = Path(cache_dir) / ".revision"
+    try:
+        actual = json.loads(revision_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ProfileUnavailable(
+            f"cannot establish cache revision for {cache_dir}: expected "
+            f"{expected['repo_id']}@{expected['revision']} in {revision_path}"
+        ) from exc
+    if not isinstance(actual, dict) or actual != expected:
+        actual_identity = (
+            f"{actual.get('repo_id')}@{actual.get('revision')}"
+            if isinstance(actual, dict)
+            else repr(actual)
+        )
+        raise ProfileUnavailable(
+            f"cache identity mismatch for {cache_dir}: got "
+            f"{actual_identity}, want "
+            f"{expected['repo_id']}@{expected['revision']}"
         )
 
 
@@ -684,6 +723,9 @@ def resolve(
             + "\n\nAvailable combinations:\n"
             + availability_table()
         )
+
+    if require_cache and profile.manifest_section and release == "116":
+        _validate_cache_revision(profile_name, profile.manifest_section, resolved_cache)
 
     if (
         require_reference

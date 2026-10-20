@@ -2,7 +2,7 @@
 
 The `clinvar_merged` comparison profile annotates every GRCh38 record of the ClinVar release of 2026-10-11 with vepyr and the merged cache. It compares the result per contig by body md5 against Ensembl VEP 116.0, the same check the HG002 golden suite runs.
 
-The VCFs are too large for Git and stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`). Their checksums are pinned in `clinvar_profiles` of [`../../wgs-manifest.json`](../../wgs-manifest.json), and the runner checks them before comparing.
+The VCFs are too large for Git and stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`). The golden VCF and index sizes and SHA-256 values are pinned in `clinvar_profiles` of [`../../wgs-manifest.json`](../../wgs-manifest.json), and the runner checks those bytes before comparing. The input's size and SHA-256 are provenance fields: the runner allows a regenerated BGZF header and instead checks record count, record-body MD5, and that indexed queries return the same records.
 
 | File | Location |
 |------|----------|
@@ -58,11 +58,13 @@ e2e-testing/scripts/generate_vep_clinvar_reference.sh
 ```
 
 The script first checks the free disk space, then fetches whatever is missing
-under `$DATA_VEPYR_DIR`: the Ensembl 116 primary-assembly FASTA (indexed with
+under `$DATA_VEPYR_DIR`: the Ensembl 116 primary-assembly FASTA (validated
+against its SHA-256 in `porting-tests/PINS.toml`, then indexed with
 `samtools faidx`), the raw VEP merged cache (checked against the BSD `sum`
 Ensembl publishes in `CHECKSUMS`, `26554 29618744`, then extracted into a
 temporary directory and published only after extraction completes), the
-Docker image and the ClinVar release. This script supports release 2026-10-11 only;
+Docker image and the ClinVar release. A reused `.fai` is regenerated after the
+FASTA passes its checksum. This script supports release 2026-10-11 only;
 it replaces an existing raw VCF whose checksum is wrong and does not reuse
 partial download files. `VEP_REFERENCE_JOBS` must be a positive integer and
 defaults to one. It preprocesses the release as above and runs
@@ -79,10 +81,14 @@ vep --dir /opt/vep/.vep --cache --offline --assembly GRCh38 --merged \
 
 VEP runs without `--fork`. Each contig is a separate VEP process on its own
 slice of the preprocessed input, and `VEP_REFERENCE_JOBS` contigs run at the
-same time. A contig is skipped only when its VCF and index are both present.
-The script removes an old pair before publishing the new VCF and index, so an
-interruption between moves leaves a missing file and the contig is rerun. It
-warns when a contig output holds fewer records than its input. Contig outputs
+same time. A contig is reused only when its VCF, index, and provenance stamp
+match the FASTA, raw-cache identity, image, normalized-input body, and VEP
+arguments for the current run. A stale or unstamped result stops the run;
+remove that contig's three files or set `FORCE_REFERENCE=1` to regenerate it.
+The normalized input tabix index is rebuilt after its record-body check before
+the generator slices any contigs.
+The script removes an old VCF/index pair before publishing the replacement and
+writes the stamp only after the VEP record count matches the input. Contig outputs
 are joined in input order by copying their records as text: `bcftools concat`
 would reprint ClinVar's floating-point INFO values and change the bytes the md5
 check compares. Abandoned per-contig work directories older than 24 hours are
@@ -93,6 +99,20 @@ possibly active VEP process.
 
 The profile uses the preprocessed input and defaults to `--no-normalize`:
 
+Before an annotated comparison, the Parquet cache root must contain a `.revision`
+JSON file with the manifest's exact `repo_id` and full `revision`. Download the
+cache at that revision first, then record the source identity, for example:
+
+```bash
+hf download biodatageeks/vepyr_116_GRCh38_merged --repo-type dataset \
+  --revision 5b83dd8d249106c6cc3f1c04c522b4bec716cc97 \
+  --local-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged"
+python3 -c 'import json, os; from pathlib import Path; p=Path(os.environ["DATA_VEPYR_DIR"])/"cache/116_GRCh38_merged/.revision"; p.write_text(json.dumps({"repo_id":"biodatageeks/vepyr_116_GRCh38_merged","revision":"5b83dd8d249106c6cc3f1c04c522b4bec716cc97"}, sort_keys=True)+"\n", encoding="utf-8")'
+```
+
+The profile rejects a missing or mismatched identity marker. Report-only modes
+that do not annotate do not require the cache.
+
 ```bash
 python e2e-testing/scripts/run_comparison.py --release 116 --profile clinvar_merged \
   --chroms all --comparison-mode md5 --md5-mode both --bgzf --workers 8
@@ -102,4 +122,7 @@ python e2e-testing/scripts/run_comparison.py --release 116 --profile clinvar_mer
 - A full run takes about an hour on a laptop. ClinVar is about 20× slower per record than HG002 (biodatageeks/vepyr#258).
 - It needs about 30 GB of temporary slices.
 
-At vepyr master `99dd788` (2026-10-20), chrY matches byte for byte, and the other 24 contigs still differ on 4,983 of the 4,593,372 records.
+Before annotation, the runner scans the 4,593,372 input records and checks the
+indexed queries. It also hashes the 5.9 GB golden before comparison. At vepyr
+master `99dd788` (2026-10-20), chrY matches byte for byte, and the other 24
+contigs still differ on 4,983 of the 4,593,372 records.
