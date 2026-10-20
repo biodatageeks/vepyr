@@ -1196,7 +1196,7 @@ def test_full_contig_refuses_a_golden_without_the_contig(tmp_path):
     provenance(
         vdir, "master", ("1",), "full-contig", clinvar, Path(str(golden) + ".gz")
     )
-    with pytest.raises(SystemExit, match="0 golden and 1 vepyr records"):
+    with pytest.raises(SystemExit, match="golden has no records for this contig"):
         cp.main(
             [
                 "--python",

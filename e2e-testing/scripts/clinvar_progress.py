@@ -1347,13 +1347,15 @@ def main(argv: list[str] | None = None) -> int:
         for c in args.contigs:
             vy = vepyr_dir / f"chr{c}.vcf.gz"
             contig_state, counts = evaluate_full(c, str(args.golden), vy, keep)
-            if not counts.get("golden_records") or not counts.get("vepyr_records"):
-                # A contig name the golden and the release do not use (e.g.
-                # "chr22" for "22") yields an empty, vacuous comparison.
+            if not counts.get("golden_records"):
+                # A contig the golden does not hold (or names otherwise, e.g.
+                # "chr22" for "22") makes the comparison vacuous. An empty
+                # vepyr output is a result: every golden record is reported
+                # missing.
                 raise SystemExit(
-                    f"chr{c}: {counts.get('golden_records', 0)} golden and "
-                    f"{counts.get('vepyr_records', 0)} vepyr records; one side "
-                    "is empty (a contig name the golden does not use?)"
+                    f"chr{c}: the golden has no records for this contig "
+                    f"({counts.get('vepyr_records', 0)} vepyr records); "
+                    "a contig name the golden does not use?"
                 )
             state.update(contig_state)
             full_counts[c] = dict(counts)
