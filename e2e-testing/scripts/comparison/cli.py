@@ -116,11 +116,20 @@ def parse_args(argv=None):
         "failure with a canonical pass isolates serialization drift from a "
         "content change, which one digest alone cannot tell you.",
     )
-    p.add_argument(
+    normalization = p.add_mutually_exclusive_group()
+    normalization.add_argument(
         "--no-normalize",
+        dest="no_normalize",
         action="store_true",
-        help="Skip bcftools norm (normalization is on by default)",
+        help="Skip bcftools norm (the profile may also default to this)",
     )
+    normalization.add_argument(
+        "--normalize",
+        dest="no_normalize",
+        action="store_false",
+        help="Run bcftools norm, overriding the profile default",
+    )
+    p.set_defaults(no_normalize=None)
     p.add_argument("--vcf", default=None, help="Input VCF (default: $DATA/input/...)")
     p.add_argument(
         "--output-dir",
@@ -161,8 +170,10 @@ def parse_args(argv=None):
                     "--chroms must not contain duplicate contigs after "
                     "chr-prefix normalization"
                 )
+    if args.no_normalize is None:
+        args.no_normalize = profiles.PROFILES[args.profile].no_normalize
     if args.vcf is None:
-        args.vcf = profiles.default_input(profiles.DEFAULT_VCF_NAME)
+        args.vcf = profiles.input_vcf_for(args.profile)
     if args.fasta is None:
         args.fasta = profiles.default_input(profiles.DEFAULT_FASTA_NAME)
     return args
@@ -521,7 +532,7 @@ def run_contig(
     return result
 
 
-def _run_contig_isolated(chrom, args):
+def _run_contig_isolated(chrom, args, resolved=None):
     """Re-invoke this script for one contig so a SIGSEGV loses only that contig."""
     entry = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -557,15 +568,29 @@ def _run_contig_isolated(chrom, args):
         cmd += ["--md5-mode", args.md5_mode]
     if args.no_normalize:
         cmd.append("--no-normalize")
+    else:
+        # The child resolves profile defaults independently, so an explicit
+        # --normalize must be forwarded to override profiles that default to
+        # skipping normalization.
+        cmd.append("--normalize")
     if args.vep:
         cmd += ["--vep", args.vep]
+    elif resolved is not None and resolved.vep_vcf:
+        # The parent already resolved and validated the manifest-backed file.
+        # Forward it as an explicit path so isolated children do not rehash the
+        # multi-gigabyte VEP reference and index for every contig.
+        cmd += ["--vep", resolved.vep_vcf]
     if args.cache_dir:
         cmd += ["--cache-dir", args.cache_dir]
     if args.plugin_cache:
         cmd += ["--plugin-cache", args.plugin_cache]
     if args.output_dir:
         cmd += ["--output-dir", args.output_dir]
-    return subprocess.run(cmd).returncode == 0
+    # The parent validated this input before launching isolated workers. Use
+    # an internal child environment marker instead of exposing a CLI bypass.
+    child_env = os.environ.copy()
+    child_env["_VEPYR_PROFILE_INPUT_VALIDATED"] = "1"
+    return subprocess.run(cmd, env=child_env).returncode == 0
 
 
 def main(argv=None):
@@ -604,6 +629,11 @@ def main(argv=None):
             require_reference=not args.skip_compare and not args.skip_annotate,
             chrom=sole_chrom,
         )
+        if (
+            not args.skip_annotate
+            and os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATED") != "1"
+        ):
+            profiles.validate_input_vcf(args.profile, args.vcf)
     except profiles.ProfileUnavailable as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
@@ -693,7 +723,7 @@ def main(argv=None):
                     resolved.release,
                 )
                 if args.isolate:
-                    if not _run_contig_isolated(chrom, args):
+                    if not _run_contig_isolated(chrom, args, resolved):
                         report.quarantine_contig_evidence(
                             report_dir,
                             chrom,

@@ -39,7 +39,8 @@ def chr22_manifest(tmp_path):
                     for f in ("ensembl", "merged", "refseq")
                 }
             }
-        )
+        ),
+        encoding="utf-8",
     )
     return m
 
@@ -133,3 +134,31 @@ def test_cli_check_exit_codes(tmp_path, chr22_manifest, capsys):
         wgs_manifest.main(["check", "--data", str(data), "--manifest", str(mpath)]) == 3
     )
     assert "stage-data.sh" in capsys.readouterr().err
+
+
+def test_prepare_preserves_clinvar_profiles_in_existing_manifest(
+    tmp_path, chr22_manifest
+):
+    data = tmp_path / "data"
+    make_layout(data)
+    out = tmp_path / "wgs.json"
+    clinvar_profiles = {"clinvar_merged": {"cache": {"revision": "5b83dd8"}}}
+    out.write_text(json.dumps({"clinvar_profiles": clinvar_profiles}), encoding="utf-8")
+
+    assert (
+        wgs_manifest.main(
+            [
+                "prepare",
+                "--data",
+                str(data),
+                "--chr22-manifest",
+                str(chr22_manifest),
+                "--out",
+                str(out),
+            ]
+        )
+        == 0
+    )
+
+    prepared = json.loads(out.read_text(encoding="utf-8"))
+    assert prepared["clinvar_profiles"] == clinvar_profiles

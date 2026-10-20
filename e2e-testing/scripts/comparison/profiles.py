@@ -6,9 +6,14 @@ Both paths are derived rather than hardcoded, so adding a release means adding
 one RELEASE_DIRS entry.
 """
 
+import gzip
+import hashlib
+import json
 import os
+import subprocess
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 VEP_PICK_ORDER = "biotype,rank,mane_select,tsl,canonical,appris,ccds,length"
 BACKEND = "parquet"
@@ -24,6 +29,7 @@ DEFAULT_VCF_NAME = "HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz"
 DEFAULT_FASTA_NAME = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
 
 SPEC_DOC = "docs/superpowers/specs/2026-07-28-merge-comparison-runners-design.md"
+WGS_MANIFEST_PATH = Path(__file__).resolve().parents[2] / "golden" / "wgs-manifest.json"
 
 
 class ProfileUnavailable(RuntimeError):
@@ -56,6 +62,13 @@ class Profile:
     # as the profile's identity for reports and summaries.
     vep_per_contig: str = ""
     vep_subdir: str = ""
+    # Optional profile-specific input relative to DATA. Otherwise HG002 is used.
+    input_path: str = ""
+    # Profiles can mark already-preprocessed input as their default.
+    no_normalize: bool = False
+    # A manifest-backed profile resolves and verifies its reference via this
+    # section in wgs-manifest.json.
+    manifest_section: str = ""
 
 
 _PICK = {"pick_order": VEP_PICK_ORDER}
@@ -90,6 +103,16 @@ PROFILES = {
         flavour="merged",
         vep_basename="HG002_annotated_wgs_everything_hgvs_merged",
         suffix="merged",
+    ),
+    # The ClinVar record lives outside `profiles` in wgs-manifest.json so the
+    # HG002-only /parity-wgs route continues to use its existing profile set.
+    "clinvar_merged": Profile(
+        flavour="merged",
+        vep_basename="clinvar_20261011_annotated_wgs_everything_hgvs_merged",
+        suffix="clinvar_merged",
+        input_path="input/clinvar/clinvar_20261011.norm.vcf.gz",
+        no_normalize=True,
+        manifest_section="clinvar_profiles",
     ),
     "refseq": Profile(
         flavour="refseq",
@@ -226,6 +249,210 @@ def default_input(name):
     return _resolve_with_legacy_fallback("input", name, os.path.exists)
 
 
+def input_vcf_for(profile_name):
+    """Resolve a profile-specific input or use the standard HG002 input."""
+    profile = PROFILES[profile_name]
+    if profile.input_path:
+        return os.path.join(data_dir(), profile.input_path)
+    return default_input(DEFAULT_VCF_NAME)
+
+
+def _manifest_profile(profile_name, manifest_section):
+    """Return a profile record from the checked-in data manifest, if present."""
+    try:
+        manifest = json.loads(WGS_MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ProfileUnavailable(
+            f"cannot read profile manifest {WGS_MANIFEST_PATH}: {exc}"
+        ) from exc
+    return manifest.get(manifest_section, {}).get(profile_name)
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while chunk := handle.read(8 * 1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _vcf_body_md5(path):
+    """Hash VCF records without the date-bearing, regenerated header."""
+    return _vcf_body_identity(path)[0]
+
+
+def _vcf_body_identity(path):
+    """Return the body digest, record count and VCF contig order."""
+    digest = hashlib.md5()
+    contigs = []
+    seen_contigs = set()
+    record_count = 0
+    try:
+        with gzip.open(path, "rb") as handle:
+            for line in handle:
+                if not line.startswith(b"#"):
+                    digest.update(line)
+                    chrom = line.split(b"\t", 1)[0].decode("utf-8")
+                    if chrom not in seen_contigs:
+                        contigs.append(chrom)
+                        seen_contigs.add(chrom)
+                    record_count += 1
+    except (OSError, EOFError) as exc:
+        raise ProfileUnavailable(
+            f"cannot read ClinVar input VCF {path}: {exc}"
+        ) from exc
+    return digest.hexdigest(), record_count, contigs
+
+
+def _validate_tabix_index(path, index_path, contigs, expected_count, expected_md5):
+    """Verify indexed contig queries reproduce the complete VCF record body."""
+    try:
+        indexed = subprocess.run(
+            ["tabix", "-l", path], capture_output=True, check=False
+        )
+    except OSError as exc:
+        raise ProfileUnavailable(f"cannot inspect ClinVar tabix index: {exc}") from exc
+    if indexed.returncode != 0:
+        raise ProfileUnavailable(f"cannot read ClinVar tabix index at {index_path}")
+    indexed_contigs = {
+        line.decode("utf-8", errors="replace")
+        for line in indexed.stdout.splitlines()
+        if line
+    }
+    if indexed_contigs != set(contigs):
+        raise ProfileUnavailable(
+            f"ClinVar tabix contigs mismatch: got {sorted(indexed_contigs)}, "
+            f"want {sorted(contigs)}"
+        )
+
+    digest = hashlib.md5()
+    record_count = 0
+    for chrom in contigs:
+        try:
+            process = subprocess.Popen(
+                ["tabix", path, chrom],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError as exc:
+            raise ProfileUnavailable(
+                f"cannot query ClinVar tabix index at {index_path} for {chrom}: {exc}"
+            ) from exc
+        with process:
+            for line in process.stdout:
+                digest.update(line)
+                record_count += 1
+            returncode = process.wait()
+        if returncode != 0:
+            raise ProfileUnavailable(
+                f"cannot query ClinVar tabix index at {index_path} for {chrom}"
+            )
+
+    actual_md5 = digest.hexdigest()
+    if record_count != expected_count or actual_md5 != expected_md5:
+        raise ProfileUnavailable(
+            f"ClinVar tabix index does not return the input body: got "
+            f"{record_count} records / {actual_md5}, want "
+            f"{expected_count} / {expected_md5}"
+        )
+
+
+def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, path):
+    """Fail closed when a manifest-backed file is missing or has changed."""
+    record = _manifest_profile(profile_name, manifest_section)
+    if record is None:
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
+        )
+    artifact = record.get(artifact_key) or {}
+    relative = artifact.get("path")
+    expected_path = os.path.join(data_dir(), relative) if relative else None
+    if not expected_path or os.path.realpath(path) != os.path.realpath(expected_path):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} resolved {path}, but its manifest "
+            f"{artifact_key} is {relative!r}"
+        )
+    if not os.path.isfile(path):
+        raise ProfileUnavailable(f"missing manifest {artifact_key} at {path}")
+    actual_size = os.path.getsize(path)
+    expected_size = artifact.get("size")
+    if actual_size != expected_size:
+        raise ProfileUnavailable(
+            f"{artifact_key} size mismatch for {path}: got {actual_size}, "
+            f"want {expected_size}"
+        )
+    actual_sha256 = _sha256(path)
+    expected_sha256 = artifact.get("sha256")
+    if actual_sha256 != expected_sha256:
+        raise ProfileUnavailable(
+            f"{artifact_key} SHA-256 mismatch for {path}: got {actual_sha256}, "
+            f"want {expected_sha256}"
+        )
+
+
+def validate_input_vcf(profile_name, path):
+    """Validate ClinVar records and the index used to slice them."""
+    profile = PROFILES[profile_name]
+    if not profile.manifest_section or not profile.input_path:
+        return
+    expected_path = os.path.join(data_dir(), profile.input_path)
+    if os.path.realpath(path) != os.path.realpath(expected_path):
+        return
+
+    record = _manifest_profile(profile_name, profile.manifest_section)
+    if record is None:
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
+        )
+    input_record = record.get("input") or {}
+    expected_path = os.path.join(data_dir(), input_record.get("path", ""))
+    if os.path.realpath(path) != os.path.realpath(expected_path):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} resolved {path}, but its manifest input "
+            f"is {input_record.get('path')!r}"
+        )
+    if not os.path.isfile(path):
+        raise ProfileUnavailable(f"missing manifest input at {path}")
+    expected_body_md5 = input_record.get("body_md5")
+    actual_body_md5, actual_count, contigs = _vcf_body_identity(path)
+    expected_count = input_record.get("records")
+    if actual_count != expected_count:
+        raise ProfileUnavailable(
+            f"input record count mismatch for {path}: got {actual_count}, "
+            f"want {expected_count}"
+        )
+    if actual_body_md5 != expected_body_md5:
+        raise ProfileUnavailable(
+            f"input record-body MD5 mismatch for {path}: got {actual_body_md5}, "
+            f"want {expected_body_md5}"
+        )
+    index_record = record.get("input_index") or {}
+    index_path = path + ".tbi"
+    expected_index_path = os.path.join(data_dir(), index_record.get("path", ""))
+    if not index_record.get("path") or os.path.realpath(index_path) != os.path.realpath(
+        expected_index_path
+    ):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no manifest index for input {path}"
+        )
+    if not os.path.isfile(index_path):
+        raise ProfileUnavailable(f"missing manifest input_index at {index_path}")
+    _validate_tabix_index(path, index_path, contigs, expected_count, expected_body_md5)
+
+
+def _validate_manifest_reference(profile_name, manifest_section, path):
+    """Validate a manifest-backed VEP reference and the index used to slice it."""
+    _validate_manifest_artifact(profile_name, manifest_section, "golden", path)
+    record = _manifest_profile(profile_name, manifest_section)
+    if record.get("golden_index"):
+        _validate_manifest_artifact(
+            profile_name,
+            manifest_section,
+            "golden_index",
+            path + ".tbi",
+        )
+
+
 def cache_dir_for(profile_name, release, warn=True):
     """Resolve a Parquet cache, preferring $DATA/cache/ over the legacy root.
 
@@ -306,6 +533,16 @@ def vep_vcf_for(profile_name, release, chrom=None):
     report the first contig that exists so availability still answers truthfully.
     """
     profile = PROFILES[profile_name]
+    if profile.manifest_section:
+        if release != "116":
+            return None
+        record = _manifest_profile(profile_name, profile.manifest_section)
+        golden = (record or {}).get("golden") or {}
+        relative = golden.get("path")
+        if relative:
+            path = os.path.join(data_dir(), relative)
+            return path if os.path.isfile(path) else None
+        return None
     if profile.vep_per_contig:
         # Prefer the per-contig file; fall back to a whole-genome reference of
         # the same basename (a full VEP run with the plugins), which the
@@ -379,7 +616,8 @@ def resolve(
 
     profile = PROFILES[profile_name]
     resolved_cache = cache_dir or cache_dir_for(profile_name, release)
-    if vep_vcf:
+    explicit_reference = bool(vep_vcf)
+    if explicit_reference:
         resolved_ref = vep_vcf
     elif profile.vep_per_contig and chrom is None:
         # Each contig is a separate file, so there is nothing to slice a
@@ -405,6 +643,10 @@ def resolve(
             )
         else:
             resolved_ref = None
+    elif profile.manifest_section and not require_reference:
+        # Report-only and annotation-only modes do not read the manifest-backed
+        # reference, so they must remain usable without the ClinVar manifest.
+        resolved_ref = None
     else:
         resolved_ref = vep_vcf_for(profile_name, release, chrom)
     resolved_plugin_cache = None
@@ -434,6 +676,18 @@ def resolve(
             + "; ".join(problems)
             + "\n\nAvailable combinations:\n"
             + availability_table()
+        )
+
+    if (
+        require_reference
+        and resolved_ref is not None
+        and not explicit_reference
+        and profile.manifest_section
+    ):
+        _validate_manifest_reference(
+            profile_name,
+            profile.manifest_section,
+            resolved_ref,
         )
 
     annotate_kwargs = dict(profile.annotate_kwargs)

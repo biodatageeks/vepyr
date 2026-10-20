@@ -36,6 +36,115 @@ def test_defaults(monkeypatch, tmp_path):
     assert args.chroms is None
 
 
+def test_internal_input_validation_bypass_is_not_a_cli_option():
+    with pytest.raises(SystemExit):
+        cli.parse_args(["--_profile-input-validated"])
+
+
+def test_skip_annotate_does_not_require_the_clinvar_input_or_manifest(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles, "WGS_MANIFEST_PATH", tmp_path / "missing-manifest.json"
+    )
+    monkeypatch.setattr(cli, "md5_summary", lambda *args: [])
+
+    rc = cli.main(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--chroms",
+            "chrY",
+            "--skip-annotate",
+            "--comparison-mode",
+            "md5",
+        ]
+    )
+
+    assert rc == 0
+
+
+@pytest.mark.parametrize("explicit_vcf", [False, True])
+def test_manifest_input_error_is_reported_without_a_traceback(
+    monkeypatch, tmp_path, capsys, explicit_vcf
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    manifest_path = tmp_path / "wgs-manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "clinvar_profiles": {
+                    "clinvar_merged": {
+                        "input": {
+                            "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
+                            "sha256": "unused",
+                            "size": 1,
+                        }
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(profiles, "WGS_MANIFEST_PATH", manifest_path)
+    (tmp_path / "cache/116_GRCh38_merged").mkdir(parents=True)
+
+    args = [
+        "--release",
+        "116",
+        "--profile",
+        "clinvar_merged",
+        "--chroms",
+        "chr1",
+        "--skip-compare",
+    ]
+    if explicit_vcf:
+        args.extend(
+            [
+                "--vcf",
+                str(tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"),
+            ]
+        )
+
+    rc = cli.main(args)
+
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "Error: missing manifest input" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_profile_cache_resolution_fails_before_clinvar_input_validation(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles,
+        "validate_input_vcf",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("input scanning must wait until profile resolution")
+        ),
+    )
+
+    rc = cli.main(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--chroms",
+            "chr1",
+            "--skip-compare",
+        ]
+    )
+
+    assert rc == 2
+    assert "no Parquet cache" in capsys.readouterr().err
+
+
 def test_release_must_be_known():
     with pytest.raises(SystemExit):
         cli.parse_args(["--release", "999"])
@@ -299,7 +408,7 @@ def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
     monkeypatch.setattr(cli, "resolve_contigs", lambda *_args: ["chr1", "chr2"])
     monkeypatch.setattr(cli.report, "get_build_info", lambda: {"git": "head"})
 
-    def run_isolated(chrom, _args):
+    def run_isolated(chrom, _args, _resolved=None):
         if chrom == "chr2":
             (report_dir / "fast_chr2_merged_115_report.json").write_text(
                 json.dumps({"chrom": "chr2"})
@@ -438,7 +547,44 @@ def test_isolated_comparison_forwards_output_dir(monkeypatch, tmp_path):
     monkeypatch.setattr(
         cli.subprocess,
         "run",
-        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+        lambda cmd, **_kwargs: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
     )
     assert cli._run_contig_isolated("chr22", args)
     assert seen[0][seen[0].index("--output-dir") + 1] == str(tmp_path)
+
+
+def test_isolated_comparison_forwards_the_parent_resolved_reference(monkeypatch):
+    args = cli.parse_args(["--release", "116"])
+    args.comparison_mode = "md5"
+    seen = []
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda cmd, **kwargs: (
+            seen.append((cmd, kwargs)) or subprocess.CompletedProcess(cmd, 0)
+        ),
+    )
+    resolved = _fake_resolved("/data/output/reference.vcf.gz")
+
+    assert cli._run_contig_isolated("chr22", args, resolved)
+    command, options = seen[0]
+    assert command[command.index("--vep") + 1] == resolved.vep_vcf
+    assert "--_profile-input-validated" not in command
+    assert options["env"]["_VEPYR_PROFILE_INPUT_VALIDATED"] == "1"
+
+
+def test_isolated_comparison_forwards_normalize_override(monkeypatch, tmp_path):
+    args = cli.parse_args(
+        ["--release", "116", "--profile", "clinvar_merged", "--normalize"]
+    )
+    args.comparison_mode = "md5"
+    seen = []
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda cmd, **_kwargs: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+    )
+
+    assert cli._run_contig_isolated("chr22", args)
+    assert "--normalize" in seen[0]
+    assert "--no-normalize" not in seen[0]

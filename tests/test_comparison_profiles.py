@@ -1,7 +1,13 @@
+import gzip
+import hashlib
+import io
+import json
+import subprocess
 from pathlib import Path
 
 import pytest
 from comparison import profiles
+from comparison.cli import parse_args
 
 
 def test_suffixes_have_no_leading_underscore():
@@ -326,3 +332,244 @@ def test_plugin_profile_without_a_contig_uses_a_whole_genome_reference(
     wgs.write_bytes(b"")
     resolved = profiles.resolve("merged_plugins", "116", require_cache=False)
     assert resolved.vep_vcf == str(wgs)
+
+
+def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
+    input_path = tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"
+    input_path.parent.mkdir(parents=True)
+    input_records = b"1\t1\t.\tA\tC\t.\tPASS\t.\n"
+    input_path.write_bytes(
+        gzip.compress(
+            b"##fileDate=20261020\n#CHROM\tPOS\tID\tREF\tALT\n" + input_records
+        )
+    )
+    input_index_path = input_path.parent / (input_path.name + ".tbi")
+    input_index_path.write_bytes(b"normalized-input-index")
+    golden_rel = (
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
+    )
+    golden_path = tmp_path / golden_rel
+    golden_path.parent.mkdir(parents=True)
+    golden_path.write_bytes(golden_bytes)
+    golden_index_bytes = b"golden-index"
+    (golden_path.parent / (golden_path.name + ".tbi")).write_bytes(golden_index_bytes)
+    manifest_path = tmp_path / "wgs-manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "clinvar_profiles": {
+                    "clinvar_merged": {
+                        "input": {
+                            "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
+                            "sha256": hashlib.sha256(
+                                input_path.read_bytes()
+                            ).hexdigest(),
+                            "size": input_path.stat().st_size,
+                            "body_md5": hashlib.md5(input_records).hexdigest(),
+                            "records": 1,
+                        },
+                        "input_index": {
+                            "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
+                        },
+                        "golden": {
+                            "path": golden_rel,
+                            "sha256": hashlib.sha256(golden_bytes).hexdigest(),
+                            "size": len(golden_bytes),
+                        },
+                        "golden_index": {
+                            "path": golden_rel + ".tbi",
+                            "sha256": hashlib.sha256(golden_index_bytes).hexdigest(),
+                            "size": len(golden_index_bytes),
+                        },
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(profiles, "WGS_MANIFEST_PATH", manifest_path)
+    return input_path, golden_path, manifest_path
+
+
+def _mock_tabix_index_queries(monkeypatch, input_path, query_records):
+    def run(command, **_kwargs):
+        assert command == ["tabix", "-l", str(input_path)]
+        return subprocess.CompletedProcess(command, 0, stdout=b"1\n", stderr=b"")
+
+    class QueryProcess:
+        def __init__(self, command, **_kwargs):
+            assert command == ["tabix", str(input_path), "1"]
+            self.stdout = io.BytesIO(query_records)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.stdout.close()
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(profiles.subprocess, "run", run)
+    monkeypatch.setattr(profiles.subprocess, "Popen", QueryProcess)
+
+
+def test_clinvar_profile_resolves_canonical_paths_and_manifest_checksum(
+    tmp_path, monkeypatch
+):
+    input_path, golden_path, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+
+    resolved = profiles.resolve("clinvar_merged", "116")
+
+    assert profiles.input_vcf_for("clinvar_merged") == str(input_path)
+    assert resolved.vep_vcf == str(golden_path)
+    assert resolved.cache_dir == str(tmp_path / "cache/116_GRCh38_merged")
+    assert profiles.PROFILES["clinvar_merged"].no_normalize is True
+
+
+def test_clinvar_profile_rejects_a_golden_with_a_wrong_sha256(tmp_path, monkeypatch):
+    _, golden_path, _ = _write_clinvar_manifest(
+        tmp_path, monkeypatch, golden_bytes=b"golden-vcf"
+    )
+    # Keep the byte count unchanged so this specifically exercises SHA checking.
+    golden_path.write_bytes(b"broken-vcf")
+
+    with pytest.raises(profiles.ProfileUnavailable, match="SHA-256 mismatch"):
+        profiles.resolve("clinvar_merged", "116")
+
+
+def test_clinvar_profile_can_skip_missing_reference_when_no_reference_is_needed(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles, "WGS_MANIFEST_PATH", tmp_path / "missing-wgs-manifest.json"
+    )
+
+    resolved = profiles.resolve(
+        "clinvar_merged",
+        "116",
+        require_cache=False,
+        require_reference=False,
+    )
+
+    assert resolved.vep_vcf is None
+
+
+def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
+    tmp_path, monkeypatch
+):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    records = b"1\t1\t.\tA\tC\t.\tPASS\t.\n"
+    _mock_tabix_index_queries(monkeypatch, input_path, records)
+    # A regenerated bcftools header changes the compressed size and SHA-256.
+    input_path.write_bytes(
+        gzip.compress(b"##fileDate=20261021\n#CHROM\tPOS\tID\tREF\tALT\n" + records)
+    )
+
+    profiles.validate_input_vcf("clinvar_merged", str(input_path))
+    assert Path(str(input_path) + ".tbi").read_bytes() == b"normalized-input-index"
+
+    input_path.write_bytes(
+        gzip.compress(
+            b"##fileDate=20261021\n#CHROM\tPOS\tID\tREF\tALT\n"
+            b"1\t2\t.\tA\tC\t.\tPASS\t.\n"
+        )
+    )
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="input record-body MD5 mismatch"
+    ):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+
+def test_clinvar_profile_rejects_a_missing_input_index(tmp_path, monkeypatch):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    index_path = Path(str(input_path) + ".tbi")
+    index_path.unlink()
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="missing manifest input_index"
+    ):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+
+def test_clinvar_profile_rejects_an_index_that_returns_different_records(
+    tmp_path, monkeypatch
+):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    _mock_tabix_index_queries(monkeypatch, input_path, b"1\t2\t.\tA\tC\t.\tPASS\t.\n")
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="tabix index does not return the input body"
+    ):
+        profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+
+def test_clinvar_profile_rejects_a_golden_index_with_a_wrong_sha256(
+    tmp_path, monkeypatch
+):
+    _, golden_path, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+    golden_index = Path(str(golden_path) + ".tbi")
+    golden_index.write_bytes(b"x" * len(b"golden-index"))
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="golden_index SHA-256 mismatch"
+    ):
+        profiles.resolve("clinvar_merged", "116")
+
+
+def test_clinvar_profile_sets_input_and_normalization_defaults(tmp_path, monkeypatch):
+    input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
+
+    args = parse_args(
+        ["--release", "116", "--profile", "clinvar_merged", "--chroms", "all"]
+    )
+    explicit_normalize = parse_args(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--normalize",
+        ]
+    )
+    explicit_no_normalize = parse_args(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--no-normalize",
+        ]
+    )
+
+    assert args.vcf == str(input_path)
+    assert args.no_normalize is True
+    assert explicit_normalize.no_normalize is False
+    assert explicit_no_normalize.no_normalize is True
+
+
+def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
+    manifest_path = (
+        Path(__file__).resolve().parents[1]
+        / "e2e-testing"
+        / "golden"
+        / "wgs-manifest.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert set(manifest["profiles"]) == {"ensembl", "merged", "refseq"}
+    profile = manifest["clinvar_profiles"]["clinvar_merged"]
+    assert profile["input"]["path"] == ("input/clinvar/clinvar_20261011.norm.vcf.gz")
+    assert profile["golden"]["path"] == (
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
+    )
+    assert profile["golden"]["sha256"] == (
+        "ef4206e1a5168add794fb3defea9c061613fb608af986b3967a25349b9273564"
+    )
+    assert profile["golden"]["size"] == 5885304891
+    assert profile["no_normalize"] is True
+    assert profile["cache"]["revision"].startswith("5b83dd8")
