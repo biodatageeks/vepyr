@@ -249,11 +249,18 @@ def default_input(name):
     return _resolve_with_legacy_fallback("input", name, os.path.exists)
 
 
+def _data_path(relative):
+    """Join a manifest-style relative path (always "/"-separated) onto the data
+    directory with the platform's separators, so the result compares equal to a
+    pathlib path on Windows too."""
+    return os.path.join(data_dir(), *relative.split("/"))
+
+
 def input_vcf_for(profile_name):
     """Resolve a profile-specific input or use the standard HG002 input."""
     profile = PROFILES[profile_name]
     if profile.input_path:
-        return os.path.join(data_dir(), profile.input_path)
+        return _data_path(profile.input_path)
     return default_input(DEFAULT_VCF_NAME)
 
 
@@ -366,7 +373,7 @@ def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, pa
         )
     artifact = record.get(artifact_key) or {}
     relative = artifact.get("path")
-    expected_path = os.path.join(data_dir(), relative) if relative else None
+    expected_path = _data_path(relative) if relative else None
     if not expected_path or os.path.realpath(path) != os.path.realpath(expected_path):
         raise ProfileUnavailable(
             f"profile {profile_name!r} resolved {path}, but its manifest "
@@ -395,7 +402,7 @@ def validate_input_vcf(profile_name, path):
     profile = PROFILES[profile_name]
     if not profile.manifest_section or not profile.input_path:
         return
-    expected_path = os.path.join(data_dir(), profile.input_path)
+    expected_path = _data_path(profile.input_path)
     if os.path.realpath(path) != os.path.realpath(expected_path):
         return
 
@@ -405,7 +412,7 @@ def validate_input_vcf(profile_name, path):
             f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
         )
     input_record = record.get("input") or {}
-    expected_path = os.path.join(data_dir(), input_record.get("path", ""))
+    expected_path = _data_path(input_record.get("path", ""))
     if os.path.realpath(path) != os.path.realpath(expected_path):
         raise ProfileUnavailable(
             f"profile {profile_name!r} resolved {path}, but its manifest input "
@@ -428,7 +435,7 @@ def validate_input_vcf(profile_name, path):
         )
     index_record = record.get("input_index") or {}
     index_path = path + ".tbi"
-    expected_index_path = os.path.join(data_dir(), index_record.get("path", ""))
+    expected_index_path = _data_path(index_record.get("path", ""))
     if not index_record.get("path") or os.path.realpath(index_path) != os.path.realpath(
         expected_index_path
     ):
@@ -540,7 +547,7 @@ def vep_vcf_for(profile_name, release, chrom=None):
         golden = (record or {}).get("golden") or {}
         relative = golden.get("path")
         if relative:
-            path = os.path.join(data_dir(), relative)
+            path = _data_path(relative)
             return path if os.path.isfile(path) else None
         return None
     if profile.vep_per_contig:
