@@ -226,12 +226,12 @@ serde_json = "1"
 # below.
 # vepyr#207/#263: the VCF writer percent-encodes reserved characters in INFO/FORMAT
 # values (plus a space under a header before VCF 4.3), and the reader materializes
-# Type=Character INFO values. formats: merge commit `2d94421` of
-# biodatageeks/datafusion-bio-formats#266 (on top of #264's merge commit `051a953`).
-# functions: integration merge commit `bf12cd6bee13743f264e1b778b64e674b0042e70` (R2 PRs #277-#287 plus the
-# functions#275 merge commit `606ba1f`), which keeps CSQ verbatim and pins the
-# same formats rev in the same full-rev spelling, so cargo resolves one formats
-# source. Pinned by rev until release tags carry these commits.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "bf12cd6bee13743f264e1b778b64e674b0042e70", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2d94421b760603fb3149ac5dad7448f77a9b96ae" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "2d94421b760603fb3149ac5dad7448f77a9b96ae" }
+# Type=Character INFO values. Formats are pinned to the full master head
+# `6af1fa1480b2fc527e3b218585eae3a087f2aca9` (includes #264/#266 and #270); the
+# formats release is postponed. Functions integration commit
+# `a883f91f47c4d2b27d7e6eba5315f3711e6471f0` contains R2 PRs #277-#287 plus
+# functions#275 merge commit `606ba1f`, keeps CSQ verbatim, and pins the same
+# formats rev in every crate. Both sources use full rev pins.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "a883f91f47c4d2b27d7e6eba5315f3711e6471f0", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
