@@ -74,7 +74,7 @@ header, so the file checksum changes between runs; the md5 of the records
 ## 3. VEP reference
 
 ```bash
-VEP_REFERENCE_JOBS=8 e2e-testing/scripts/generate_vep_clinvar_reference.sh
+e2e-testing/scripts/generate_vep_clinvar_reference.sh
 ```
 
 The script first checks the free disk space, then fetches whatever is missing
@@ -102,11 +102,13 @@ joined in input order by copying their records as text: `bcftools concat` would
 reprint ClinVar's floating-point INFO values and change the bytes the md5 check
 compares.
 
-Two limits seen on a MacBook Air (M2, 8 cores, 24 GB):
+Memory and runtime varied substantially across contigs in the reference run:
 
-- **Memory.** Each VEP process grows to 2-3.5 GiB with the merged cache and
-  `--everything`. Eight jobs ran out of memory in a 15 GiB Docker VM; allow
-  about 3.5 GiB of Docker memory per job.
+- **Memory.** Most VEP processes used 2.5-4.5 GiB, while chr3 and chr4 reached
+  6.2 and 7.4 GiB. A chr17 process reached 22.4 GiB around BRCA1. The
+  generator therefore defaults to one contig at a time; allow at least 30 GiB
+  of Docker memory for that single process. Increase `VEP_REFERENCE_JOBS` only
+  when the Docker memory limit can cover the observed per-contig peaks together.
 - **Time.** ClinVar variants are almost all in genes, which makes them much
   slower for VEP than the HG002 calls: seven jobs together annotated about 75
   variants per second, which would take 15-17 hours for the whole release. The
@@ -121,9 +123,13 @@ cache revision used by this run (`5b83dd8`). The reference keeps its canonical
 filename, `$DATA_VEPYR_DIR/output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz`;
 the runner resolves that path from `clinvar_profiles` in
 `e2e-testing/golden/wgs-manifest.json` and checks its size and SHA-256 before
-comparison. The local ClinVar metadata is separate from the `profiles` map
-consumed by `/parity-wgs`, so this profile does not expand that workflow's
-HG002 profile matrix.
+comparison. It checks the input's tabix index is present and verifies the
+record-body MD5 `547285cb0e2b3f97c7222156a748c371`. The input's compressed
+SHA-256 and size in the manifest identify the recorded copy; they are not used
+as the identity check because bcftools embeds the preprocessing date in the
+header, changing the compressed bytes on regeneration. The local ClinVar
+metadata is separate from the `profiles` map consumed by `/parity-wgs`, so this
+profile does not expand that workflow's HG002 profile matrix.
 
 The input is already preprocessed, so the profile defaults to `--no-normalize`:
 

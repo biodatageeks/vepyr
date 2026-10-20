@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -336,7 +337,12 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
     (tmp_path / "cache" / "116_GRCh38_merged").mkdir(parents=True)
     input_path = tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"
     input_path.parent.mkdir(parents=True)
-    input_path.write_bytes(b"normalized-input")
+    input_records = b"1\t1\t.\tA\tC\t.\tPASS\t.\n"
+    input_path.write_bytes(
+        gzip.compress(
+            b"##fileDate=20261020\n#CHROM\tPOS\tID\tREF\tALT\n" + input_records
+        )
+    )
     input_index_bytes = b"normalized-input-index"
     (input_path.parent / (input_path.name + ".tbi")).write_bytes(input_index_bytes)
     golden_rel = (
@@ -355,8 +361,11 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
                     "clinvar_merged": {
                         "input": {
                             "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
-                            "sha256": hashlib.sha256(b"normalized-input").hexdigest(),
-                            "size": len(b"normalized-input"),
+                            "sha256": hashlib.sha256(
+                                input_path.read_bytes()
+                            ).hexdigest(),
+                            "size": input_path.stat().st_size,
+                            "body_md5": hashlib.md5(input_records).hexdigest(),
                         },
                         "input_index": {
                             "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
@@ -407,11 +416,28 @@ def test_clinvar_profile_rejects_a_golden_with_a_wrong_sha256(tmp_path, monkeypa
         profiles.resolve("clinvar_merged", "116")
 
 
-def test_clinvar_profile_rejects_input_with_a_wrong_sha256(tmp_path, monkeypatch):
+def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
+    tmp_path, monkeypatch
+):
     input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
-    input_path.write_bytes(b"x" * len(b"normalized-input"))
+    records = b"1\t1\t.\tA\tC\t.\tPASS\t.\n"
+    # A regenerated bcftools header changes the compressed size and SHA-256.
+    input_path.write_bytes(
+        gzip.compress(b"##fileDate=20261021\n#CHROM\tPOS\tID\tREF\tALT\n" + records)
+    )
 
-    with pytest.raises(profiles.ProfileUnavailable, match="input SHA-256 mismatch"):
+    profiles.validate_input_vcf("clinvar_merged", str(input_path))
+
+    input_path.write_bytes(
+        gzip.compress(
+            b"##fileDate=20261021\n#CHROM\tPOS\tID\tREF\tALT\n"
+            b"1\t2\t.\tA\tC\t.\tPASS\t.\n"
+        )
+    )
+
+    with pytest.raises(
+        profiles.ProfileUnavailable, match="input record-body MD5 mismatch"
+    ):
         profiles.validate_input_vcf("clinvar_merged", str(input_path))
 
 

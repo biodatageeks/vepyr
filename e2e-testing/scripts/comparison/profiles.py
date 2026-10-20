@@ -6,6 +6,7 @@ Both paths are derived rather than hardcoded, so adding a release means adding
 one RELEASE_DIRS entry.
 """
 
+import gzip
 import hashlib
 import json
 import os
@@ -274,6 +275,21 @@ def _sha256(path):
     return digest.hexdigest()
 
 
+def _vcf_body_md5(path):
+    """Hash VCF records without the date-bearing, regenerated header."""
+    digest = hashlib.md5()
+    try:
+        with gzip.open(path, "rb") as handle:
+            for line in handle:
+                if not line.startswith(b"#"):
+                    digest.update(line)
+    except (OSError, EOFError) as exc:
+        raise ProfileUnavailable(
+            f"cannot read ClinVar input VCF {path}: {exc}"
+        ) from exc
+    return digest.hexdigest()
+
+
 def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, path):
     """Fail closed when a manifest-backed file is missing or has changed."""
     record = _manifest_profile(profile_name, manifest_section)
@@ -308,7 +324,7 @@ def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, pa
 
 
 def validate_input_vcf(profile_name, path):
-    """Validate the default input when annotation will read it."""
+    """Validate ClinVar record identity and require its tabix index."""
     profile = PROFILES[profile_name]
     if not profile.manifest_section or not profile.input_path:
         return
@@ -316,15 +332,38 @@ def validate_input_vcf(profile_name, path):
     if os.path.realpath(path) != os.path.realpath(expected_path):
         return
 
-    _validate_manifest_artifact(profile_name, profile.manifest_section, "input", path)
     record = _manifest_profile(profile_name, profile.manifest_section)
-    if record.get("input_index"):
-        _validate_manifest_artifact(
-            profile_name,
-            profile.manifest_section,
-            "input_index",
-            path + ".tbi",
+    if record is None:
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no entry in {WGS_MANIFEST_PATH}"
         )
+    input_record = record.get("input") or {}
+    expected_path = os.path.join(data_dir(), input_record.get("path", ""))
+    if os.path.realpath(path) != os.path.realpath(expected_path):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} resolved {path}, but its manifest input "
+            f"is {input_record.get('path')!r}"
+        )
+    if not os.path.isfile(path):
+        raise ProfileUnavailable(f"missing manifest input at {path}")
+    expected_body_md5 = input_record.get("body_md5")
+    actual_body_md5 = _vcf_body_md5(path)
+    if actual_body_md5 != expected_body_md5:
+        raise ProfileUnavailable(
+            f"input record-body MD5 mismatch for {path}: got {actual_body_md5}, "
+            f"want {expected_body_md5}"
+        )
+    index_record = record.get("input_index") or {}
+    index_path = path + ".tbi"
+    expected_index_path = os.path.join(data_dir(), index_record.get("path", ""))
+    if not index_record.get("path") or os.path.realpath(index_path) != os.path.realpath(
+        expected_index_path
+    ):
+        raise ProfileUnavailable(
+            f"profile {profile_name!r} has no manifest index for input {path}"
+        )
+    if not os.path.isfile(index_path):
+        raise ProfileUnavailable(f"missing manifest input_index at {index_path}")
 
 
 def _validate_manifest_reference(profile_name, manifest_section, path):

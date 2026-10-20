@@ -58,7 +58,8 @@
       "input": {
         "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
         "sha256": "34d0dec69bbb12a89f5d30194a2886d66bb5b12963b1014c385869c9fdcec17d",
-        "size": 200635283
+        "size": 200635283,
+        "body_md5": "547285cb0e2b3f97c7222156a748c371"
       },
       "input_index": {
         "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",

@@ -13,14 +13,15 @@
 #
 # Requires: docker, curl, bcftools, bgzip, tabix and samtools. Whatever is
 # missing under $DATA_VEPYR_DIR is fetched first: the Ensembl 116 FASTA, the
-# raw VEP 116 merged cache, the Docker image and the ClinVar release. Each VEP
-# process grows to 2-3.5 GiB, so allow about 3.5 GiB of Docker memory per job.
+# raw VEP 116 merged cache, the Docker image and the ClinVar release. A VEP
+# process usually grows to 2.5-4.5 GiB, but chr17 reached 22.4 GiB. The default
+# is one contig; allow at least 30 GiB of Docker memory for it.
 
 set -euo pipefail
 
 DATA="${DATA_VEPYR_DIR:-$HOME/workspace/data_vepyr}"
 CLINVAR_RELEASE="${CLINVAR_RELEASE:-20261011}"
-JOBS="${VEP_REFERENCE_JOBS:-6}"
+JOBS="${VEP_REFERENCE_JOBS:-1}"
 # Keep the image immutable and aligned with vep_image in the ClinVar manifest.
 IMAGE="ensemblorg/ensembl-vep:release_116.0@sha256:f354dd8d09073e4d943acbbd02f5eb234a9d9e9d444371c1c349910f2123de11"
 CACHE="$DATA/homo_sapiens_merged/116_GRCh38"
@@ -78,19 +79,35 @@ docker image inspect "$IMAGE" > /dev/null 2>&1 || docker pull "$IMAGE"
 
 # 1. Download and verify the ClinVar release.
 RAW="$IN_DIR/$NAME.vcf.gz"
-if [[ ! -s "$RAW.tbi" ]]; then
-  for f in "$NAME.vcf.gz" "$NAME.vcf.gz.tbi" "$NAME.vcf.gz.md5"; do
+for f in "$NAME.vcf.gz" "$NAME.vcf.gz.tbi" "$NAME.vcf.gz.md5"; do
+  if [[ ! -s "$IN_DIR/$f" ]]; then
     curl -sSfL -C - -o "$IN_DIR/$f" "$URL/$f"
-  done
-  if command -v md5sum > /dev/null; then got=$(md5sum < "$RAW" | cut -d' ' -f1); else got=$(md5 -q "$RAW"); fi
-  [[ "$(cut -d' ' -f1 "$RAW.md5")" == "$got" ]] \
-    || { echo "ERROR: md5 mismatch for $RAW" >&2; rm -f "$RAW.tbi"; exit 1; }
-fi
+  fi
+done
+if command -v md5sum > /dev/null; then got=$(md5sum < "$RAW" | cut -d' ' -f1); else got=$(md5 -q "$RAW"); fi
+[[ "$(cut -d' ' -f1 "$RAW.md5")" == "$got" ]] \
+  || { echo "ERROR: md5 mismatch for $RAW" >&2; rm -f "$RAW.tbi"; exit 1; }
 
 # 2. Preprocess: drop ALT="." sites and records outside 1-22, X, Y, MT, then
 #    split multiallelic records exactly as the HG002 input was split.
 NORM="$IN_DIR/$NAME.norm.vcf.gz"
-if [[ ! -s "$NORM.tbi" ]]; then
+EXPECTED_BODY_MD5="547285cb0e2b3f97c7222156a748c371"
+vcf_body_md5() {
+  if command -v md5sum > /dev/null; then
+    bcftools view -H "$1" | md5sum | cut -d' ' -f1
+  else
+    bcftools view -H "$1" | md5 -q
+  fi
+}
+rebuild_norm=false
+if [[ ! -s "$NORM" || ! -s "$NORM.tbi" ]]; then
+  rebuild_norm=true
+elif [[ "$(vcf_body_md5 "$NORM")" != "$EXPECTED_BODY_MD5" ]]; then
+  echo "Existing preprocessed ClinVar records have the wrong body MD5; rebuilding" >&2
+  rebuild_norm=true
+fi
+if [[ "$rebuild_norm" == true ]]; then
+  rm -f "$NORM" "$NORM.tbi" "$NORM.tmp" "$NORM.tmp.tbi"
   contigs=$(IFS=,; echo "${ALL_CONTIGS[*]}")
   bcftools view -e 'ALT="."' -t "$contigs" "$RAW" -Ou \
     | bcftools norm -m -both -Oz -o "$NORM.tmp"
@@ -98,6 +115,8 @@ if [[ ! -s "$NORM.tbi" ]]; then
   mv -f "$NORM.tmp.tbi" "$NORM.tbi"
   mv -f "$NORM.tmp" "$NORM"
 fi
+[[ "$(vcf_body_md5 "$NORM")" == "$EXPECTED_BODY_MD5" ]] \
+  || { echo "ERROR: preprocessed ClinVar body MD5 mismatch for $NORM" >&2; rm -f "$NORM" "$NORM.tbi"; exit 1; }
 
 # 3. One VEP process per contig.
 run_one() {
