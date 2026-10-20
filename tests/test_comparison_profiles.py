@@ -344,8 +344,8 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
             b"##fileDate=20261020\n#CHROM\tPOS\tID\tREF\tALT\n" + input_records
         )
     )
-    input_index_bytes = b"normalized-input-index"
-    (input_path.parent / (input_path.name + ".tbi")).write_bytes(input_index_bytes)
+    input_index_path = input_path.parent / (input_path.name + ".tbi")
+    input_index_path.write_bytes(b"normalized-input-index")
     golden_rel = (
         "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
     )
@@ -370,8 +370,6 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
                         },
                         "input_index": {
                             "path": "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
-                            "sha256": hashlib.sha256(input_index_bytes).hexdigest(),
-                            "size": len(input_index_bytes),
                         },
                         "golden": {
                             "path": golden_rel,
@@ -452,10 +450,16 @@ def test_clinvar_profile_accepts_regenerated_header_and_validates_record_md5(
         profiles.validate_input_vcf("clinvar_merged", str(input_path))
 
 
-def test_clinvar_profile_rebuilds_input_index_before_annotation(tmp_path, monkeypatch):
+@pytest.mark.parametrize("index_state", ["missing", "stale"])
+def test_clinvar_profile_rebuilds_input_index_before_annotation(
+    tmp_path, monkeypatch, index_state
+):
     input_path, _, _ = _write_clinvar_manifest(tmp_path, monkeypatch)
     index_path = Path(str(input_path) + ".tbi")
-    index_path.write_bytes(b"stale-index")
+    if index_state == "missing":
+        index_path.unlink()
+    else:
+        index_path.write_bytes(b"stale-index")
     _mock_tabix_rebuild(monkeypatch, input_path)
 
     profiles.validate_input_vcf("clinvar_merged", str(input_path))

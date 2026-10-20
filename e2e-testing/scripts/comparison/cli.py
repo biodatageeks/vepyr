@@ -132,11 +132,6 @@ def parse_args(argv=None):
     p.set_defaults(no_normalize=None)
     p.add_argument("--vcf", default=None, help="Input VCF (default: $DATA/input/...)")
     p.add_argument(
-        "--_profile-input-validated",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
-    p.add_argument(
         "--output-dir",
         default=None,
         help="Write results/<release>/ and reports/ under this directory",
@@ -559,8 +554,6 @@ def _run_contig_isolated(chrom, args, resolved=None):
         "--fasta",
         args.fasta,
     ]
-    # The parent validated this input before launching isolated workers.
-    cmd.append("--_profile-input-validated")
     if args.force:
         cmd.append("--force")
     if args.bgzf:
@@ -593,7 +586,11 @@ def _run_contig_isolated(chrom, args, resolved=None):
         cmd += ["--plugin-cache", args.plugin_cache]
     if args.output_dir:
         cmd += ["--output-dir", args.output_dir]
-    return subprocess.run(cmd).returncode == 0
+    # The parent validated this input before launching isolated workers. Use
+    # an internal child environment marker instead of exposing a CLI bypass.
+    child_env = os.environ.copy()
+    child_env["_VEPYR_PROFILE_INPUT_VALIDATED"] = "1"
+    return subprocess.run(cmd, env=child_env).returncode == 0
 
 
 def main(argv=None):
@@ -622,7 +619,10 @@ def main(argv=None):
             if args.chroms is not None and len(args.chroms) == 1
             else None
         )
-        if not args.skip_annotate and not args._profile_input_validated:
+        if (
+            not args.skip_annotate
+            and os.environ.get("_VEPYR_PROFILE_INPUT_VALIDATED") != "1"
+        ):
             profiles.validate_input_vcf(args.profile, args.vcf)
         resolved = profiles.resolve(
             args.profile,

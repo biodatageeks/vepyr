@@ -325,7 +325,7 @@ def _validate_manifest_artifact(profile_name, manifest_section, artifact_key, pa
 
 
 def validate_input_vcf(profile_name, path):
-    """Validate ClinVar record identity and require its tabix index."""
+    """Validate ClinVar records and build a fresh index for the pinned input."""
     profile = PROFILES[profile_name]
     if not profile.manifest_section or not profile.input_path:
         return
@@ -363,8 +363,6 @@ def validate_input_vcf(profile_name, path):
         raise ProfileUnavailable(
             f"profile {profile_name!r} has no manifest index for input {path}"
         )
-    if not os.path.isfile(index_path):
-        raise ProfileUnavailable(f"missing manifest input_index at {index_path}")
     try:
         rebuilt = subprocess.run(
             ["tabix", "-f", "-p", "vcf", path],

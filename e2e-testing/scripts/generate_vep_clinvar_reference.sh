@@ -47,6 +47,11 @@ if [[ ! -f "$FASTA" && -f "$DATA/$(basename "$FASTA")" ]]; then
 fi
 mkdir -p "$DATA" "$IN_DIR" "$OUT_DIR/contigs" "$OUT_DIR/logs"
 
+# Remove abandoned VEP work directories from prior runs. A contig process is
+# never expected to need a full day; recent directories may belong to a live run.
+find "$OUT_DIR/contigs" -mindepth 1 -maxdepth 1 -type d -name '.chr*' \
+  -mmin +1440 -exec rm -rf {} +
+
 # 0. Check the disk before anything is downloaded. Counted in GiB, only for
 #    what is missing; the VEP outputs include the plain VCFs of running jobs.
 need=40
@@ -143,12 +148,12 @@ run_one() {
   local chrom="$1"
   local out="$OUT_DIR/contigs/${NAME}_chr${chrom}_vep116_merged.vcf"
   local log="$OUT_DIR/logs/chr${chrom}.log"
-  local n_in
-  n_in=$(tabix "$NORM" "$chrom" | wc -l | tr -d ' ')
   if [[ -s "$out.gz" && -s "$out.gz.tbi" ]]; then
     echo "SKIP chr${chrom}: complete"
     return
   fi
+  local n_in
+  n_in=$(tabix "$NORM" "$chrom" | wc -l | tr -d ' ')
   local work
   work=$(mktemp -d "$OUT_DIR/contigs/.chr${chrom}.XXXXXX")
   { tabix -H "$NORM"; tabix "$NORM" "$chrom"; } | bgzip -c > "$work/input.vcf.gz"
@@ -197,9 +202,9 @@ mkdir -p "$(dirname "$JOINED")"
 order=$(tabix -l "$NORM")
 first=$(head -n1 <<< "$order")
 {
-  bgzip -dc "$OUT_DIR/contigs/${NAME}_chr${first}_vep116_merged.vcf.gz" | grep '^#'
+  bgzip -dc "$OUT_DIR/contigs/${NAME}_chr${first}_vep116_merged.vcf.gz" | awk '/^#/ { print }'
   for chrom in $order; do
-    bgzip -dc "$OUT_DIR/contigs/${NAME}_chr${chrom}_vep116_merged.vcf.gz" | grep -v '^#'
+    bgzip -dc "$OUT_DIR/contigs/${NAME}_chr${chrom}_vep116_merged.vcf.gz" | awk '!/^#/ { print }'
   done
 } | bgzip -@ 4 -c > "$JOINED.tmp"
 tabix -f -p vcf "$JOINED.tmp"

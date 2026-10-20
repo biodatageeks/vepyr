@@ -36,6 +36,11 @@ def test_defaults(monkeypatch, tmp_path):
     assert args.chroms is None
 
 
+def test_internal_input_validation_bypass_is_not_a_cli_option():
+    with pytest.raises(SystemExit):
+        cli.parse_args(["--_profile-input-validated"])
+
+
 def test_skip_annotate_does_not_require_the_clinvar_input_or_manifest(
     monkeypatch, tmp_path
 ):
@@ -513,7 +518,7 @@ def test_isolated_comparison_forwards_output_dir(monkeypatch, tmp_path):
     monkeypatch.setattr(
         cli.subprocess,
         "run",
-        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+        lambda cmd, **_kwargs: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
     )
     assert cli._run_contig_isolated("chr22", args)
     assert seen[0][seen[0].index("--output-dir") + 1] == str(tmp_path)
@@ -526,13 +531,17 @@ def test_isolated_comparison_forwards_the_parent_resolved_reference(monkeypatch)
     monkeypatch.setattr(
         cli.subprocess,
         "run",
-        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+        lambda cmd, **kwargs: (
+            seen.append((cmd, kwargs)) or subprocess.CompletedProcess(cmd, 0)
+        ),
     )
     resolved = _fake_resolved("/data/output/reference.vcf.gz")
 
     assert cli._run_contig_isolated("chr22", args, resolved)
-    assert seen[0][seen[0].index("--vep") + 1] == resolved.vep_vcf
-    assert "--_profile-input-validated" in seen[0]
+    command, options = seen[0]
+    assert command[command.index("--vep") + 1] == resolved.vep_vcf
+    assert "--_profile-input-validated" not in command
+    assert options["env"]["_VEPYR_PROFILE_INPUT_VALIDATED"] == "1"
 
 
 def test_isolated_comparison_forwards_normalize_override(monkeypatch, tmp_path):
@@ -544,7 +553,7 @@ def test_isolated_comparison_forwards_normalize_override(monkeypatch, tmp_path):
     monkeypatch.setattr(
         cli.subprocess,
         "run",
-        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+        lambda cmd, **_kwargs: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
     )
 
     assert cli._run_contig_isolated("chr22", args)

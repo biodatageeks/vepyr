@@ -100,12 +100,15 @@ vep --dir /opt/vep/.vep --cache --offline --assembly GRCh38 --merged \
 
 VEP runs without `--fork`. Each contig is a separate VEP process on its own
 slice of the preprocessed input, and `VEP_REFERENCE_JOBS` contigs run at the
-same time. A contig is skipped when its output already exists, so an
-interrupted run is resumed by starting the script again. The script warns when
-a contig output holds fewer records than its input. The contig outputs are then
-joined in input order by copying their records as text: `bcftools concat` would
-reprint ClinVar's floating-point INFO values and change the bytes the md5 check
-compares.
+same time. A contig is skipped only when its VCF and index are both present.
+The script removes an old pair before publishing the new VCF and index, so an
+interruption between moves leaves a missing file and the contig is rerun. It
+warns when a contig output holds fewer records than its input. Contig outputs
+are joined in input order by copying their records as text: `bcftools concat`
+would reprint ClinVar's floating-point INFO values and change the bytes the md5
+check compares. Abandoned per-contig work directories older than 24 hours are
+removed at the start of a run; recent work directories are preserved for a
+possibly active VEP process.
 
 Memory and runtime varied substantially across contigs in the reference run:
 
@@ -128,10 +131,11 @@ cache revision used by this run (`5b83dd8`). The reference keeps its canonical
 filename, `$DATA_VEPYR_DIR/output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz`;
 the runner resolves that path from `clinvar_profiles` in
 `e2e-testing/golden/wgs-manifest.json` and checks its size and SHA-256 before
-comparison. It checks the input's tabix index is present and verifies the
-record-body MD5 `547285cb0e2b3f97c7222156a748c371`. Before annotation, the
-runner rebuilds the input tabix index so a stale or damaged index cannot change
-the records sliced for comparison. The input's compressed SHA-256 and size
+comparison. It verifies the record-body MD5
+`547285cb0e2b3f97c7222156a748c371` and rebuilds the input tabix index before
+annotation, so a missing, stale or damaged index cannot change the records
+sliced for comparison. The data directory must be writable for the index
+sidecar. The input's compressed SHA-256 and size
 identify the recorded copy; the body MD5 is used as the input identity because
 bcftools embeds the preprocessing date in the header, changing the compressed
 bytes on regeneration. The local ClinVar metadata is separate from the
