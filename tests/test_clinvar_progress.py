@@ -1107,3 +1107,41 @@ def test_a_header_without_feature_is_a_schema_difference():
     vepyr = rec("1", 1, "x", "A|m|p.X|").rstrip("\n")
     diffs, _ = cp.entry_diffs(vep, vepyr, fmt, no_feature)
     assert diffs["CSQ_FORMAT"] == ["Feature"]
+
+
+def test_assignment_is_optimal_against_brute_force():
+    import itertools
+    import random
+
+    rng = random.Random(7)
+    for _ in range(300):
+        n, m = rng.randint(1, 5), rng.randint(1, 5)
+        cost = [[rng.randint(-9, 9) for _ in range(m)] for _ in range(n)]
+        got = cp._min_cost_assignment(cost)
+        k = min(n, m)
+        assert len(got) == k
+        assert len({r for r, _ in got}) == k and len({c for _, c in got}) == k
+        if n <= m:
+            best = min(
+                sum(cost[i][p] for i, p in enumerate(perm))
+                for perm in itertools.permutations(range(m), n)
+            )
+        else:
+            best = min(
+                sum(cost[p][j] for j, p in enumerate(perm))
+                for perm in itertools.permutations(range(n), m)
+            )
+        assert sum(cost[r][c] for r, c in got) == best
+
+
+def test_a_large_duplicate_group_is_matched_globally():
+    """Seven duplicates starting aaa, abb vs aab, baa (codex review on #255)."""
+    fmt = ["Allele", "Feature", "Consequence", "IMPACT", "HGVSp"]
+    rest = ["c|c|c", "d|d|d", "e|e|e", "f|f|f", "g|g|g"]
+    vep_entries = ["a|a|a", "a|b|b"] + rest
+    vepyr_entries = ["a|a|b", "b|a|a"] + rest
+    vep = "1\t1\tx\tG\tA\t.\t.\tCSQ=" + ",".join(f"A|T1|{e}" for e in vep_entries)
+    vepyr = "1\t1\tx\tG\tA\t.\t.\tCSQ=" + ",".join(f"A|T1|{e}" for e in vepyr_entries)
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, fmt)
+    assert diffs["ORDER"] == ["CSQ_ORDER"]
+    assert sorted(diffs["T1"]) == ["Consequence", "IMPACT"]

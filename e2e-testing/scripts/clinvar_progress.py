@@ -63,7 +63,6 @@ import concurrent.futures
 import csv
 import gzip
 import hashlib
-import itertools
 import json
 import os
 from pathlib import Path
@@ -175,6 +174,49 @@ def split_record(line: str, fmt: list[str]):
     return non_csq, entries
 
 
+def _min_cost_assignment(cost: list[list[int]]) -> list[tuple[int, int]]:
+    """Minimum-cost matching of min(rows, cols) pairs (Hungarian, O(n^2 m)).
+
+    Returns (row, col) pairs. Rectangular input is handled by transposing so
+    that rows <= cols.
+    """
+    n, m = len(cost), len(cost[0])
+    if n > m:
+        return [
+            (r, c) for c, r in _min_cost_assignment([list(col) for col in zip(*cost)])
+        ]
+    inf = float("inf")
+    u, v = [0.0] * (n + 1), [0.0] * (m + 1)
+    p, way = [0] * (m + 1), [0] * (m + 1)
+    for i in range(1, n + 1):
+        p[0], j0 = i, 0
+        minv, used = [inf] * (m + 1), [False] * (m + 1)
+        while True:
+            used[j0] = True
+            i0, delta, j1 = p[j0], inf, 0
+            for j in range(1, m + 1):
+                if not used[j]:
+                    cur = cost[i0 - 1][j - 1] - u[i0] - v[j]
+                    if cur < minv[j]:
+                        minv[j], way[j] = cur, j0
+                    if minv[j] < delta:
+                        delta, j1 = minv[j], j
+            for j in range(m + 1):
+                if used[j]:
+                    u[p[j]] += delta
+                    v[j] -= delta
+                else:
+                    minv[j] -= delta
+            j0 = j1
+            if p[j0] == 0:
+                break
+        while j0:
+            j1 = way[j0]
+            p[j0] = p[j1]
+            j0 = j1
+    return sorted((p[j] - 1, j - 1) for j in range(1, m + 1) if p[j])
+
+
 def _pair_group(left, right, fields):
     """Pair two lists of (index, entry) sharing one key.
 
@@ -196,44 +238,24 @@ def _pair_group(left, right, fields):
             remaining.remove(match)
             pairs.append((item, match))
 
-    # The rest pair by similarity: the assignment with the most equal fields
-    # over the whole group (ties keep CSQ order), so changed duplicates that
-    # also moved are not cross-paired. Groups are tiny; larger ones fall back
-    # to a greedy pass.
+    # The rest pair by similarity, optimised over the whole group, so changed
+    # duplicates that also moved are not cross-paired.
     def score(a, b):
         return sum(
             _pairing_value(n, a[1].get(n, "")) == _pairing_value(n, b[1].get(n, ""))
             for n in fields
         )
 
-    k = min(len(left_rest), len(remaining))
     chosen_pairs = []
-    if k and max(len(left_rest), len(remaining)) <= 6:
-        # Permute the larger side, so either side may keep its unmatched ones.
-        if len(left_rest) <= len(remaining):
-            best = max(
-                itertools.permutations(range(len(remaining)), k),
-                key=lambda perm: (
-                    sum(score(left_rest[i], remaining[p]) for i, p in enumerate(perm)),
-                    [-p for p in perm],
-                ),
-            )
-            chosen_pairs = [(left_rest[i], remaining[p]) for i, p in enumerate(best)]
-        else:
-            best = max(
-                itertools.permutations(range(len(left_rest)), k),
-                key=lambda perm: (
-                    sum(score(left_rest[p], remaining[i]) for i, p in enumerate(perm)),
-                    [-p for p in perm],
-                ),
-            )
-            chosen_pairs = [(left_rest[p], remaining[i]) for i, p in enumerate(best)]
-    elif k:
-        pool = list(remaining)
-        for item in left_rest[:k]:
-            pick = max(pool, key=lambda r: (score(item, r), -r[0]))
-            pool.remove(pick)
-            chosen_pairs.append((item, pick))
+    if left_rest and remaining:
+        # Maximise equal fields over the whole group (Hungarian assignment);
+        # among equal totals prefer pairs close in CSQ order.
+        cost = [
+            [-score(a, b) * 1000 + abs(ia - ib) for ib, b in enumerate(remaining)]
+            for ia, a in enumerate(left_rest)
+        ]
+        for ia, ib in _min_cost_assignment(cost):
+            chosen_pairs.append((left_rest[ia], remaining[ib]))
     pairs += chosen_pairs
     unpaired = [a for a in left_rest if all(a is not x for x, _ in chosen_pairs)]
     remaining = [b for b in remaining if all(b is not y for _, y in chosen_pairs)]
