@@ -162,17 +162,15 @@ def split_record(line: str, fmt: list[str]):
             rest.append("CSQ")  # keeps CSQ's position in the INFO comparison
         else:
             rest.append(kv)
-    fi, ai = fmt.index("Feature"), fmt.index("Allele")
     entries = []
     for raw in csq:
         values = raw.split("|")
         entry = dict(zip(fmt, values))
-        # A malformed entry may end before Allele or Feature: key it with
-        # empty values rather than fail, and let CSQ_ARITY report it.
-        ident = values + [""] * (max(fi, ai) + 1 - len(values))
         # zip drops surplus values; keep the count so a malformed entry differs.
         entry[ARITY] = f"{len(values) - len(fmt)}|" + "|".join(values[len(fmt) :])
-        entries.append(((ident[ai], ident[fi]), entry))
+        # A header without Allele/Feature (CSQ_FORMAT reports it) or an entry
+        # that ends before them is keyed with empty values rather than fail.
+        entries.append(((entry.get("Allele", ""), entry.get("Feature", "")), entry))
     non_csq = "\t".join(cols[:7] + [";".join(rest)] + cols[8:])
     return non_csq, entries
 

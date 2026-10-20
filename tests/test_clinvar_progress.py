@@ -1098,3 +1098,12 @@ def test_the_summary_round_trips_non_ascii_text(tmp_path, monkeypatch):
     summary = (out / "summary_U.md").read_bytes().decode("utf-8")
     assert "Δ known, ünicode → kept" in summary
     assert b"\r\n" not in (out / "summary_U.md").read_bytes()
+
+
+def test_a_header_without_feature_is_a_schema_difference():
+    fmt = FORMAT.split("|")
+    no_feature = [f for f in fmt if f != "Feature"]
+    vep = rec("1", 1, "x", "A|m|T1|p.X|").rstrip("\n")
+    vepyr = rec("1", 1, "x", "A|m|p.X|").rstrip("\n")
+    diffs, _ = cp.entry_diffs(vep, vepyr, fmt, no_feature)
+    assert diffs["CSQ_FORMAT"] == ["Feature"]
