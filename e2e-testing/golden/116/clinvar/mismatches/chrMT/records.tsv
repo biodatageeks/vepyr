@@ -1,0 +1,2328 @@
+pos	clinvar_id	ref	alt	class	csq_order_differs	differing_fields	features	amino_acids_vep>vepyr
+3307	692328	A	T	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/L>I/L
+3308	692329	T	AC	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/NX>I/NX
+3308	9728	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/T>I/T
+3308	9729	T	G	codon_table	no	Amino_acids,Consequence,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	M/*>I/R
+3337	692337	G	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	V/M>V/I
+3388	29998	C	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	L/M>L/I
+3397	9726	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/V>I/V
+3398	692351	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/T>I/T
+3399	692352	A	T	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361390,ND1	M/I>I
+3535	692369	T	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	L/M>L/I
+3578	3337321	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/T>I/T
+3578	4850158	T	G	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361390,ND1	M/*>I/R
+3622	692378	C	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	L/M>L/I
+3669	1256442	A	G	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361390,ND1	W>*/W
+3712	692390	G	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	V/M>V/I
+3764	692398	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	T/M>T/I
+3772	692399	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/V>I/V
+3843	235228	A	G	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361390,ND1	W>*/W
+3992	692410	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	T/M>T/I
+4025	65520	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	T/M>T/I
+4029	692415	C	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361390,ND1	I/M>I
+4171	9732	C	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361390,ND1	L/M>L/I
+4211	692435	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/T>I/T
+4225	692436	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/V>I/V
+4226	692437	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361390,ND1	M/T>I/T
+4472	376834	T	C	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453	M/I>I
+4560	692462	G	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361453,ND2	V/M>V/I
+4612	692467	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4640	9718	C	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	I/M>I
+4676	692477	C	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	I/M>I
+4680	692478	C	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361453,ND2	L/M>L/I
+4705	692484	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4725	692489	A	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/L>I/L
+4725	692488	A	T	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/L>I/L
+4759	692497	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4763	692499	C	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	I/M>I
+4764	692500	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/V>I/V
+4765	692501	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4767	692502	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/V>I/V
+4768	235413	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4768	692503	TA	CG	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4769	441150	A	G	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361453,ND2	M>I/M
+4788	692506	G	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	G/*>G/R
+4793	3911621	A	G	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361453,ND2	M>I/M
+4810	9720	G	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361453,ND2	W/*>*
+4843	692513	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361453,ND2	T/M>T/I
+4894	692514	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+4974	692532	G	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	G/*>G/R
+5038	692535	T	C	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/T>I/T
+5067	692538	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/V>I/V
+5069	692539	A	T	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	M/I>I
+5178	692551	C	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361453,ND2	L/M>L/I
+5186	692552	A	T	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361453,ND2	W/C>*/C
+5191	692554	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361453,ND2	T/M>T/I
+5452	692590	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361453,ND2	T/M>T/I
+5496	692597	A	G	codon_table	no	Amino_acids,HGVSp	ENST00000361453,ND2	M/V>I/V
+5509	5002745	T	G	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361453,ND2	L/W>L/*
+5772	689981	G	A	csq_order	yes			
+5773	689982	G	A	csq_order	yes			
+5774	689983	T	C	csq_order	yes			
+5774	689984	T	G	csq_order	yes			
+5775	689985	T	C	csq_order	yes			
+5780	689986	G	A	csq_order	yes			
+5781	209212	CTGCTTCTTCGAATTTGCAA...(8142 bp)	C	codon_table	yes	Consequence,IMPACT	ENST00000361567,ND5	
+5783	689987	G	A	csq_order	yes			
+5784	689990	C	CT	csq_order	yes			
+5785	689988	T	C	csq_order	yes			
+5786	689989	T	C	csq_order	yes			
+5788	689991	T	C	csq_order	yes			
+5791	689992	G	A	csq_order	yes			
+5793	689993	A	G	csq_order	yes			
+5793	209213	ATTTGCAATTCAATATGAAA...(9084 bp)	A	codon_table	yes	Consequence,IMPACT	CYTB,ENST00000361789	
+5794	689994	T	C	csq_order	yes			
+5800	689995	A	G	csq_order	yes			
+5802	689996	T	C	csq_order	yes			
+5804	689997	A	G	csq_order	yes			
+5805	2505112	A	G	csq_order	yes			
+5806	689998	T	C	csq_order	yes			
+5807	689999	A	G	csq_order	yes			
+5809	690000	G	A	csq_order	yes			
+5811	690001	A	G	csq_order	yes			
+5814	690002	T	A	csq_order	yes			
+5814	30001	T	C	csq_order	yes			
+5816	30002	A	G	csq_order	yes			
+5817	690003	C	T	csq_order	yes			
+5819	690004	T	C	csq_order	yes			
+5821	690005	G	A	csq_order	yes			
+5822	690006	G	A	csq_order	yes			
+5823	690007	A	G	csq_order	yes			
+5824	690008	G	A	csq_order	yes			
+5828	3255385	G	A	csq_order	yes			
+5836	690009	A	G	csq_order	yes			
+5837	690010	G	A	csq_order	yes			
+5839	690011	C	T	csq_order	yes			
+5840	690012	C	A	csq_order	yes			
+5840	690013	C	T	csq_order	yes			
+5841	690014	T	C	csq_order	yes			
+5843	9553	A	G	csq_order	yes			
+5846	690015	C	T	csq_order	yes			
+5852	690016	T	C	csq_order	yes			
+5855	690017	A	G	csq_order	yes			
+5858	690018	T	C	csq_order	yes			
+5864	690019	G	A	csq_order	yes			
+5865	690020	T	C	csq_order	yes			
+5867	690021	C	T	csq_order	yes			
+5874	9550	T	C	csq_order	yes			
+5875	690022	C	T	csq_order	yes			
+5876	690023	A	G	csq_order	yes			
+5877	9552	C	T	csq_order	yes			
+5884	9551	AT	A	csq_order	yes			
+5885	690024	T	C	csq_order	yes			
+5889	690025	A	G	csq_order	yes			
+5907	692598	T	C	csq_order	yes			
+5910	692599	G	A	csq_order	yes			
+5911	692600	C	T	csq_order	yes			
+5913	692601	G	A	csq_order	yes			
+5918	805023	T	C	csq_order	yes			
+5920	9669	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	W/*>*
+5951	235783	A	G	csq_order	yes			
+5953	590893	CA	C	csq_order	yes			
+5961	692602	C	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX1,ENST00000361624	L/M>L/I
+5973	692603	G	A	csq_order	yes			
+5979	692604	G	A	csq_order	yes			
+5985	692605	G	A	csq_order	yes			
+5996	3911626	A	G	csq_order	yes			
+5999	994642	T	C	csq_order	yes			
+6002	430674	AAGCCTCCTTATTCGAGCCG...(5219 bp)	A	codon_table	yes	Consequence,IMPACT	COX1,ENST00000361381,ENST00000361624,ND4	
+6012	692606	A	G	csq_order	yes			
+6018	692607	G	A	csq_order	yes			
+6026	805024	G	A	csq_order	yes			
+6037	692608	G	A	csq_order	yes			
+6040	692609	A	G	csq_order	yes			
+6045	3911627	C	T	csq_order	yes			
+6047	994643	A	G	csq_order	yes			
+6048	692610	G	A	csq_order	yes			
+6052	692611	A	G	csq_order	yes			
+6054	618721	G	A	csq_order	yes			
+6060	692612	A	C	csq_order	yes			
+6060	692613	A	G	csq_order	yes			
+6061	692614	T	C	csq_order	yes			
+6071	235696	T	C	csq_order	yes			
+6072	692615	A	G	csq_order	yes			
+6075	692616	G	A	csq_order	yes			
+6081	692617	G	A	csq_order	yes			
+6081	692618	G	T	csq_order	yes			
+6093	692619	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX1,ENST00000361624	V/M>V/I
+6109	692620	T	C	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/T>I/T
+6120	235378	A	G	csq_order	yes			
+6121	692621	T	C	csq_order	yes			
+6126	692622	A	G	csq_order	yes			
+6132	692623	G	A	csq_order	yes			
+6145	692624	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	W/*>*
+6150	692625	G	A	csq_order	yes			
+6152	3911628	T	C	csq_order	yes			
+6164	3911629	C	T	csq_order	yes			
+6174	692626	G	A	csq_order	yes			
+6216	3910041	T	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX1,ENST00000361624	L/M>L/I
+6216	3911630	T	C	csq_order	yes			
+6217	3337310	T	C	csq_order	yes			
+6228	692627	C	T	csq_order	yes			
+6237	692628	C	A	csq_order	yes			
+6243	2412795	G	A	csq_order	yes			
+6249	692629	G	A	csq_order	yes			
+6252	692630	A	G	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/V>I/V
+6253	692631	T	C	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/T>I/T
+6254	994644	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	M>I/M
+6258	692632	G	A	csq_order	yes			
+6260	235511	G	A	csq_order	yes			
+6261	235718	G	A	csq_order	yes			
+6264	9667	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX1,ENST00000361624	G/*>G/R
+6267	692633	G	A	csq_order	yes			
+6273	692634	A	G	csq_order	yes			
+6277	9672	G	A	csq_order	yes			
+6278	446007	T	C	csq_order	yes			
+6285	692635	G	A	csq_order	yes			
+6286	692636	T	C	csq_order	yes			
+6289	692637	A	G	csq_order	yes			
+6296	3911631	C	T	csq_order	yes			
+6299	377327	A	G	csq_order	yes			
+6307	692638	A	G	csq_order	yes			
+6324	692639	G	A	csq_order	yes			
+6328	9671	C	T	csq_order	yes			
+6339	692640	A	G	csq_order	yes			
+6340	692641	C	T	csq_order	yes			
+6345	692642	T	C	csq_order	yes			
+6353	805025	A	G	csq_order	yes			
+6358	692643	T	C	csq_order	yes			
+6366	692644	G	A	csq_order	yes			
+6366	692645	G	C	csq_order	yes			
+6367	692646	T	C	csq_order	yes			
+6393	692647	T	C	csq_order	yes			
+6420	692648	C	A	csq_order	yes			
+6423	3337311	C	T	csq_order	yes			
+6445	692649	C	T	csq_order	yes			
+6446	805026	G	A	csq_order	yes			
+6456	692650	G	A	csq_order	yes			
+6465	692651	G	A	csq_order	yes			
+6467	430675	CCTAATCACAGCAGTCCTAC...(9120 bp)	C	codon_table,hgvs_shift	yes	Consequence,HGVS_OFFSET,HGVSc,IMPACT	ATP6,ATP8,COX1,COX2,COX3,CYTB,ENST00000361227,ENST00000361335,ENST00000361381,ENST00000361567,ENST00000361624,ENST00000361739,ENST00000361789,ENST00000361851,ENST00000361899,ENST00000362079,ENST00000387419,ENST00000387421,ENST00000387429,ENST00000387439,ENST00000387441,ENST00000387449,ENST00000387456,ND3,ND4,ND4L,ND5,TRND,TRNG,TRNH,TRNK,TRNL2,TRNR,TRNS2	
+6480	9666	G	A	csq_order	yes			
+6481	692652	T	C	csq_order	yes			
+6489	9670	C	A	csq_order	yes			
+6497	994645	T	C	csq_order	yes			
+6504	692653	G	A	csq_order	yes			
+6505	692654	T	C	csq_order	yes			
+6510	692655	G	A	csq_order	yes			
+6520	692656	T	C	csq_order	yes			
+6526	692657	T	C	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/T>I/T
+6528	3911632	C	T	csq_order	yes			
+6546	692658	C	T	csq_order	yes			
+6550	692659	A	G	csq_order	yes			
+6554	235548	C	T	csq_order	yes			
+6564	692660	G	A	csq_order	yes			
+6570	692661	G	T	csq_order	yes			
+6593	3911633	A	G	csq_order	yes			
+6607	590946	TC	T	csq_order	yes			
+6626	805027	T	C	csq_order	yes			
+6642	692662	A	G	csq_order	yes			
+6663	692663	A	G	csq_order	yes			
+6664	692664	T	C	csq_order	yes			
+6671	805028	T	C	csq_order	yes			
+6672	590947	AT	A	csq_order	yes			
+6674	376859	T	C	csq_order	yes			
+6681	692665	T	C	csq_order	yes			
+6687	590996	T	TCAC	csq_order	yes			
+6691	590948	GA	G	csq_order	yes			
+6709	692666	G	A	csq_order	yes			
+6712	692667	A	T	csq_order	yes			
+6713	805029	C	T	csq_order	yes			
+6714	692668	A	G	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/V>I/V
+6716	599214	A	AGGG	csq_order	yes			
+6719	235489	T	C	csq_order	yes			
+6721	9665	T	C	csq_order	yes			
+6723	692669	G	A	csq_order	yes			
+6734	235522	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX1,ENST00000361624	M>M/I
+6742	9664	T	C	csq_order	yes			
+6743	590999	T	TTGG	csq_order	yes			
+6747	692670	T	C	csq_order	yes			
+6748	692671	T	C	csq_order	yes			
+6748	599215	TC	T	csq_order	yes			
+6756	692672	T	C	csq_order	yes			
+6776	805030	T	C	csq_order	yes			
+6781	692673	T	C	csq_order	yes			
+6809	590895	A	AAAG	csq_order	yes			
+6814	590890	AT	A	csq_order	yes			
+6821	3911634	C	T	csq_order	yes			
+6844	692674	T	C	csq_order	yes			
+6852	692675	G	A	csq_order	yes			
+6855	692676	G	A	csq_order	yes			
+6856	692677	T	C	csq_order	yes			
+6857	590297	CA	C	csq_order	yes			
+6868	692678	G	A	csq_order	yes			
+6872	3911635	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	W>*/W
+6876	692679	G	A	csq_order	yes			
+6887	590898	C	CGGG	csq_order	yes			
+6891	692680	A	G	csq_order	yes			
+6896	805031	T	C	csq_order	yes			
+6897	692681	A	G	csq_order	yes			
+6899	3911636	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX1,ENST00000361624	M>M/I
+6899	805032	G	C	csq_order	yes			
+6899	590294	GA	G	csq_order	yes			
+6905	590897	A	ATCC	codon_table	yes	Consequence	COX1,ENST00000361624	
+6909	692682	G	A	csq_order	yes			
+6911	805033	T	C	csq_order	yes			
+6912	692683	G	A	csq_order	yes			
+6915	692684	G	A	csq_order	yes			
+6916	692685	T	C	csq_order	yes			
+6924	692686	G	A	csq_order	yes			
+6924	590295	GC	G	csq_order	yes			
+6930	9668	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX1,ENST00000361624	G/*>G/R
+6935	590296	CA	C	csq_order	yes			
+6938	587690	CT	C	csq_order	yes			
+6951	692687	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX1,ENST00000361624	V/M>V/I
+6972	692688	G	C	csq_order	yes			
+6978	692689	G	A	csq_order	yes			
+6987	692690	T	G	csq_order	yes			
+7013	805034	G	A	csq_order	yes			
+7015	692691	A	G	csq_order	yes			
+7020	692692	G	A	csq_order	yes			
+7023	1684904	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen	COX1,ENST00000361624	V/M>V/I
+7028	1676315	C	T	csq_order	yes			
+7032	692693	T	C	csq_order	yes			
+7041	440983	G	A	csq_order	yes			
+7051	692694	T	C	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/T>I/T
+7053	692695	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX1,ENST00000361624	G/*>G/R
+7076	3911637	A	G	csq_order	yes			
+7077	692696	G	A	csq_order	yes			
+7080	692697	T	C	csq_order	yes			
+7082	560166	C	A	csq_order	yes			
+7083	692698	A	G	csq_order	yes			
+7084	692699	T	C	csq_order	yes			
+7092	1328511	T	C	csq_order	yes			
+7119	692700	G	A	csq_order	yes			
+7125	692701	A	G	csq_order	yes			
+7125	430676	ACCTACGCCAAAATCCATTT...(6864 bp)	A	codon_table	yes	Consequence,IMPACT	COX1,ENST00000361567,ENST00000361624,ND5	
+7129	692702	A	G	csq_order	yes			
+7138	692703	T	C	csq_order	yes			
+7146	692704	A	G	csq_order	yes			
+7146	692705	AC	GT	csq_order	yes			
+7147	692706	C	T	csq_order	yes			
+7149	692707	A	G	csq_order	yes			
+7150	692708	T	C	csq_order	yes			
+7153	692709	T	C	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/T>I/T
+7155	692710	T	C	csq_order	yes			
+7158	692712	A	C	csq_order	yes			
+7158	692711	A	G	csq_order	yes			
+7159	692713	T	C	csq_order	yes			
+7168	692714	A	G	csq_order	yes			
+7175	235418	T	C	csq_order	yes			
+7187	692715	A	T	csq_order	yes			
+7191	692716	T	C	csq_order	yes			
+7196	805035	C	A	csq_order	yes			
+7220	445535	T	C	csq_order	yes			
+7222	692717	A	G	csq_order	yes			
+7233	692718	C	T	csq_order	yes			
+7242	3910042	T	A	csq_order	yes			
+7245	692719	A	G	csq_order	yes			
+7249	692720	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX1,ENST00000361624	T/M>T/I
+7255	3910043	A	G	csq_order	yes			
+7257	692721	A	G	csq_order	yes			
+7258	692722	T	C	csq_order	yes			
+7269	692723	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX1,ENST00000361624	V/M>V/I
+7270	692724	T	C	csq_order	yes			
+7272	692725	G	A	csq_order	yes			
+7274	805036	C	T	csq_order	yes			
+7275	9673	T	C	csq_order	yes			
+7278	692726	T	C	csq_order	yes			
+7279	692727	T	C	csq_order	yes			
+7284	692728	T	G	csq_order	yes			
+7290	692729	A	G	csq_order	yes			
+7299	692730	A	G	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/V>I/V
+7300	692731	T	C	codon_table	yes	Amino_acids,HGVSp	COX1,ENST00000361624	M/T>I/T
+7309	692732	T	C	csq_order	yes			
+7332	692733	G	A	csq_order	yes			
+7337	3911638	G	A	csq_order	yes			
+7347	692734	G	A	csq_order	yes			
+7348	3337312	T	C	csq_order	yes			
+7356	692735	G	A	codon_table	yes	Amino_acids,HGVSp,SIFT	COX1,ENST00000361624	V/M>V/I
+7357	692736	T	C	csq_order	yes			
+7362	692737	G	A	csq_order	yes			
+7363	692738	A	G	csq_order	yes			
+7365	692739	C	A	csq_order	yes			
+7373	370048	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	M>I/M
+7374	692740	A	G	csq_order	yes			
+7375	3337313	A	G	csq_order	yes			
+7389	692741	T	C	csq_order	yes			
+7394	3911639	A	G	csq_order	yes			
+7403	3911640	A	G	csq_order	yes			
+7408	692742	A	G	csq_order	yes			
+7419	692743	G	A	csq_order	yes			
+7431	692744	T	C	csq_order	yes			
+7432	692745	A	T	csq_order	yes			
+7440	692746	T	C	csq_order	yes			
+7440	692747	T	G	csq_order	yes			
+7443	40158	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	*/G>R/G
+7444	9663	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	*/K>R/K
+7445	9568	A	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	*/S>R/S
+7445	9563	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp	COX1,ENST00000361624	*>R
+7445	631469	A	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX1,ENST00000361624	*/S>R/S
+7453	869395	G	A	csq_order	yes			
+7460	690026	A	G	csq_order	yes			
+7462	631470	C	T	csq_order	yes			
+7465	42226	A	AC	csq_order	yes			
+7465	42227	AC	A	csq_order	yes			
+7468	42224	C	T	csq_order	yes			
+7469	690027	C	T	csq_order	yes			
+7471	690028	C	A	csq_order	yes			
+7471	42225	C	T	csq_order	yes			
+7472	1684923	A	C	csq_order	yes			
+7472	505297	A	T	csq_order	yes			
+7476	42228	C	T	csq_order	yes			
+7478	690029	G	A	csq_order	yes			
+7479	690030	G	A	csq_order	yes			
+7486	374215	G	A	csq_order	yes			
+7487	690031	C	T	csq_order	yes			
+7490	690032	A	G	csq_order	yes			
+7493	42229	C	T	csq_order	yes			
+7496	370049	T	C	csq_order	yes			
+7497	9569	G	A	csq_order	yes			
+7498	42230	G	A	csq_order	yes			
+7499	690033	C	A	csq_order	yes			
+7501	1684924	T	A	csq_order	yes			
+7501	690034	T	C	csq_order	yes			
+7502	228859	C	T	csq_order	yes			
+7505	40885	T	C	csq_order	yes			
+7510	9565	T	C	csq_order	yes			
+7511	9566	T	C	csq_order	yes			
+7512	9562	T	C	csq_order	yes			
+7514	930486	CA	C	csq_order	yes			
+7518	690035	A	G	csq_order	yes			
+7520	690036	G	A	csq_order	yes			
+7521	690037	G	A	csq_order	yes			
+7525	690038	T	C	csq_order	yes			
+7526	9619	A	G	csq_order	yes			
+7533	690039	C	T	csq_order	yes			
+7534	690040	C	T	csq_order	yes			
+7538	690041	T	C	csq_order	yes			
+7543	690042	A	G	csq_order	yes			
+7546	690043	T	C	csq_order	yes			
+7547	690044	T	C	csq_order	yes			
+7552	690045	A	G	csq_order	yes			
+7554	1684910	G	A	csq_order	yes			
+7555	690046	T	C	csq_order	yes			
+7559	690047	A	G	csq_order	yes			
+7561	690048	T	C	csq_order	yes			
+7562	690049	A	G	csq_order	yes			
+7566	690050	G	A	csq_order	yes			
+7567	690053	C	CT	csq_order	yes			
+7567	690051	C	T	csq_order	yes			
+7568	690052	T	C	csq_order	yes			
+7569	690054	A	G	csq_order	yes			
+7570	690055	A	G	csq_order	yes			
+7572	690056	T	C	csq_order	yes			
+7576	690057	A	G	csq_order	yes			
+7577	690058	T	C	csq_order	yes			
+7581	690059	T	C	csq_order	yes			
+7582	690060	C	T	csq_order	yes			
+7585	690061	A	G	csq_order	yes			
+7587	9658	T	C	csq_order	yes			
+7598	692748	G	A	csq_order	yes			
+7604	692749	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX2,ENST00000361739	V/M>V/I
+7606	994646	A	G	csq_order	yes			
+7608	692750	G	A	csq_order	yes			
+7623	1684905	C	T	csq_order	yes			
+7624	805037	T	A	csq_order	yes			
+7628	692751	C	A	csq_order	yes			
+7632	692752	T	C	csq_order	yes			
+7637	439912	G	A	csq_order	yes			
+7637	587691	GA	G	csq_order	yes			
+7645	994647	T	C	csq_order	yes			
+7649	692753	A	G	csq_order	yes			
+7650	692754	C	T	csq_order	yes			
+7661	590892	C	CCCA	csq_order	yes			
+7664	692756	G	A	csq_order	yes			
+7664	692755	G	T	csq_order	yes			
+7668	590896	T	TCCA	csq_order	yes			
+7671	9660	T	A	codon_table	yes	Amino_acids,HGVSp	COX2,ENST00000361739	M/K>I/K
+7673	692757	A	G	csq_order	yes			
+7674	692758	T	C	csq_order	yes			
+7679	692759	T	C	csq_order	yes			
+7680	590997	T	TGTC	csq_order	yes			
+7686	692760	T	C	csq_order	yes			
+7691	692761	T	C	csq_order	yes			
+7697	692762	G	A	csq_order	yes			
+7698	692763	T	C	csq_order	yes			
+7706	692764	G	A	csq_order	yes			
+7713	692765	T	C	csq_order	yes			
+7718	692766	A	G	csq_order	yes			
+7718	4279639	A	T	csq_order	yes			
+7724	692767	A	T	csq_order	yes			
+7729	430677	AAAACTAACTAATACTAACA...(3527 bp)	A	codon_table	yes	Consequence,IMPACT	COX2,ENST00000361381,ENST00000361739,ND4	
+7746	692768	A	G	csq_order	yes			
+7751	692769	T	G	csq_order	yes			
+7754	692770	G	A	csq_order	yes			
+7757	692771	G	A	csq_order	yes			
+7761	692772	A	G	csq_order	yes			
+7771	805038	A	G	csq_order	yes			
+7772	692773	A	G	csq_order	yes			
+7775	692774	G	A	csq_order	yes			
+7784	692775	A	G	csq_order	yes			
+7785	692776	T	C	csq_order	yes			
+7789	376897	G	A	csq_order	yes			
+7789	599024	G	GCTC	csq_order	yes			
+7796	692777	A	G	csq_order	yes			
+7797	692778	T	C	csq_order	yes			
+7805	692779	G	A	csq_order	yes			
+7806	692780	T	C	csq_order	yes			
+7808	692781	C	T	csq_order	yes			
+7810	3911641	C	T	csq_order	yes			
+7811	692782	A	G	csq_order	yes			
+7814	692783	G	A	csq_order	yes			
+7814	599025	G	GCCC	csq_order	yes			
+7819	235379	C	A	csq_order	yes			
+7830	692784	G	A	csq_order	yes			
+7833	692785	T	C	csq_order	yes			
+7844	692787	A	G	csq_order	yes			
+7844	692786	A	T	csq_order	yes			
+7853	692788	G	A	csq_order	yes			
+7854	692789	T	C	csq_order	yes			
+7859	692790	G	A	csq_order	yes			
+7861	235521	T	C	csq_order	yes			
+7864	3911642	C	T	csq_order	yes			
+7867	235282	C	T	csq_order	yes			
+7868	692791	C	T	csq_order	yes			
+7873	805039	C	T	csq_order	yes			
+7874	692792	A	G	csq_order	yes			
+7896	9662	G	A	csq_order	yes			
+7898	692793	T	C	csq_order	yes			
+7904	692794	A	G	csq_order	yes			
+7919	692795	G	A	csq_order	yes			
+7922	692796	T	C	csq_order	yes			
+7925	692797	G	A	csq_order	yes			
+7926	692798	G	A	csq_order	yes			
+7927	3911643	C	A	csq_order	yes			
+7929	1802982	G	A	csq_order	yes			
+7934	692799	A	G	csq_order	yes			
+7941	692800	A	G	csq_order	yes			
+7943	692801	T	C	csq_order	yes			
+7954	805040	T	C	csq_order	yes			
+7962	692802	T	C	csq_order	yes			
+7964	692803	T	C	csq_order	yes			
+7965	440835	T	C	csq_order	yes			
+7976	692804	G	A	csq_order	yes			
+7980	692805	A	G	csq_order	yes			
+7989	430690	T	C	csq_order	yes			
+8001	692806	A	G	csq_order	yes			
+8009	9659	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX2,ENST00000361739	V/M>V/I
+8010	692807	T	C	csq_order	yes			
+8012	692808	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX2,ENST00000361739	V/M>V/I
+8021	692809	A	G	csq_order	yes			
+8022	692810	T	C	csq_order	yes			
+8026	692811	A	T	csq_order	yes			
+8027	692812	G	A	csq_order	yes			
+8030	692813	C	T	csq_order	yes			
+8033	692814	A	G	csq_order	yes			
+8041	9661	AAT	A	codon_table	yes	Amino_acids	COX2,ENST00000361739	M/X>I/X
+8047	235679	T	C	csq_order	yes			
+8060	692815	G	A	csq_order	yes			
+8069	692816	T	C	csq_order	yes			
+8075	692817	G	A	csq_order	yes			
+8078	692818	G	A	csq_order	yes			
+8079	692819	T	C	csq_order	yes			
+8080	805041	C	T	csq_order	yes			
+8084	373996	A	G	csq_order	yes			
+8084	692820	A	T	csq_order	yes			
+8086	488349	AT	A	csq_order	yes			
+8100	3901286	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX2,ENST00000361739	T/M>T/I
+8108	692821	A	G	csq_order	yes			
+8135	692822	T	C	csq_order	yes			
+8141	692823	G	A	csq_order	yes			
+8151	1710006	CG	C	csq_order	yes			
+8155	3911644	G	A	csq_order	yes			
+8156	618723	G	C	csq_order	yes			
+8164	3911645	C	T	csq_order	yes			
+8167	3911646	T	A	csq_order	yes			
+8187	692824	G	A	csq_order	yes			
+8202	618722	T	C	csq_order	yes			
+8206	805042	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX2,ENST00000361739	M>M/I
+8210	692825	A	G	csq_order	yes			
+8225	692826	A	G	csq_order	yes			
+8237	692827	A	G	csq_order	yes			
+8238	692828	T	C	csq_order	yes			
+8251	3911647	G	A	csq_order	yes			
+8252	692829	C	T	csq_order	yes			
+8256	692830	T	C	csq_order	yes			
+8258	692831	T	C	csq_order	yes			
+8260	377045	T	C	csq_order	yes			
+8265	692832	T	C	csq_order	yes			
+8269	805043	G	A	csq_order	yes			
+8270	1526265	CACCCCCTCT	C	csq_order	yes			
+8289	430678	AGAGCCCACTGTAAAGCTAA...(4752 bp)	A	codon_table	yes	Consequence,IMPACT	ENST00000361567,ND5	
+8296	9584	A	G	csq_order	yes			
+8298	690062	T	C	csq_order	yes			
+8299	690063	G	A	csq_order	yes			
+8300	690064	T	C	csq_order	yes			
+8301	690065	A	G	csq_order	yes			
+8302	1807275	A	G	csq_order	yes			
+8306	986422	T	C	csq_order	yes			
+8308	690066	A	G	csq_order	yes			
+8311	690068	T	A	csq_order	yes			
+8311	690067	T	C	csq_order	yes			
+8313	9583	G	A	csq_order	yes			
+8315	690069	A	G	csq_order	yes			
+8316	2583105	T	C	csq_order	yes			
+8319	690070	A	G	csq_order	yes			
+8326	1684915	A	G	csq_order	yes			
+8328	1684916	G	A	csq_order	yes			
+8331	690071	A	G	csq_order	yes			
+8337	690072	T	C	csq_order	yes			
+8338	690073	A	G	csq_order	yes			
+8340	986424	G	A	csq_order	yes			
+8340	690074	G	GT	csq_order	yes			
+8342	9582	G	A	csq_order	yes			
+8343	690075	A	G	csq_order	yes			
+8344	9579	A	G	csq_order	yes			
+8345	690076	C	T	csq_order	yes			
+8346	690077	C	A	csq_order	yes			
+8347	690078	A	G	csq_order	yes			
+8348	690079	A	G	csq_order	yes			
+8349	690080	C	T	csq_order	yes			
+8349	638147	CACCTCTTTACAGTGAAATG...(5102 bp)	C	codon_table	yes	Consequence,IMPACT	ENST00000361567,ND5	
+8350	690081	A	G	csq_order	yes			
+8356	9580	T	C	csq_order	yes			
+8358	690082	A	G	csq_order	yes			
+8360	690083	A	G	csq_order	yes			
+8361	9585	G	A	csq_order	yes			
+8362	690084	T	G	csq_order	yes			
+8363	9581	G	A	csq_order	yes			
+8364	690085	A	T	csq_order	yes			
+8369	692833	C	T	csq_order	yes			
+8373	692834	A	G	csq_order	yes			
+8373	692835	A	T	csq_order	yes			
+8376	3911648	T	C	csq_order	yes			
+8379	692836	A	G	csq_order	yes			
+8381	692837	A	G	csq_order	yes			
+8381	692838	A	T	csq_order	yes			
+8382	445618	C	T	csq_order	yes			
+8387	692839	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ATP8,ENST00000361851	V/M>V/I
+8387	3337307	G	T	csq_order	yes			
+8388	692840	T	C	csq_order	yes			
+8389	3911649	A	G	csq_order	yes			
+8393	9638	C	T	csq_order	yes			
+8394	692841	C	T	csq_order	yes			
+8396	692842	A	G	csq_order	yes			
+8397	692843	C	G	csq_order	yes			
+8400	692844	T	C	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/T>I/T
+8403	692845	T	C	csq_order	yes			
+8406	692846	C	T	csq_order	yes			
+8408	930945	C	T	csq_order	yes			
+8410	235707	C	T	csq_order	yes			
+8411	692847	A	C	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/L>I/L
+8411	692848	A	G	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/V>I/V
+8412	692849	T	C	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/T>I/T
+8414	692850	C	T	csq_order	yes			
+8415	692851	T	C	csq_order	yes			
+8417	692852	C	T	csq_order	yes			
+8418	370050	T	C	csq_order	yes			
+8418	626321	T	TTAA	csq_order	yes			
+8426	692853	T	C	csq_order	yes			
+8427	3255387	T	C	csq_order	yes			
+8429	692854	C	T	csq_order	yes			
+8430	692855	T	C	csq_order	yes			
+8431	590888	C	CCCA	csq_order	yes			
+8433	692856	T	C	csq_order	yes			
+8435	692858	A	G	csq_order	yes			
+8435	692857	A	T	csq_order	yes			
+8439	4857763	A	G	csq_order	yes			
+8448	692859	T	C	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/T>I/T
+8453	692860	A	G	csq_order	yes			
+8454	692861	A	G	csq_order	yes			
+8460	692862	A	G	csq_order	yes			
+8461	692863	C	A	csq_order	yes			
+8462	692864	T	C	csq_order	yes			
+8463	692865	A	G	csq_order	yes			
+8466	692866	A	G	csq_order	yes			
+8467	4528936	CCTACCTCCCTCACCAAAGC...(5113 bp)	C	codon_table	yes	Consequence,IMPACT	ATP8,ENST00000361567,ENST00000361851,ND5	
+8469	692867	T	C	csq_order	yes			
+8469	430680	TACCTCCCTCACCAAAGCCC...(4978 bp)	T	codon_table	yes	Consequence,IMPACT	ATP8,ENST00000361567,ENST00000361851,ND5	
+8470	4795904	A	AC	csq_order	yes			
+8471	692868	C	T	csq_order	yes			
+8472	692869	C	T	csq_order	yes			
+8473	3911651	T	C	csq_order	yes			
+8474	692870	C	T	csq_order	yes			
+8475	3337309	C	T	csq_order	yes			
+8477	692871	T	C	csq_order	yes			
+8478	692872	C	T	csq_order	yes			
+8479	638146	ACCAAAGCCCATAAAAATAA...(4962 bp)	A	codon_table	yes	Consequence,IMPACT	ATP8,ENST00000361567,ENST00000361851,ND5	
+8480	692873	C	T	csq_order	yes			
+8481	692874	C	T	csq_order	yes			
+8489	692875	A	G	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/V>I/V
+8490	692876	T	C	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/T>I/T
+8496	692877	T	C	codon_table	yes	Amino_acids,HGVSp	ATP8,ENST00000361851	M/T>I/T
+8502	692878	A	G	csq_order	yes			
+8502	692879	A	T	csq_order	yes			
+8504	692880	T	C	csq_order	yes			
+8507	692881	A	G	csq_order	yes			
+8508	692882	A	G	csq_order	yes			
+8514	692883	C	T	csq_order	yes			
+8515	3911652	C	T	csq_order	yes			
+8516	692884	T	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP8,ENST00000361851	W/R>*/R
+8519	235671	G	A	csq_order	yes			
+8520	692885	A	G	csq_order	yes			
+8522	692886	C	T	csq_order	yes			
+8527	235294	A	G	csq_order	yes			
+8528	9640	T	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP8,ENST00000361851	W/R>*/R
+8529	9639	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ATP8,ENST00000361851,ENST00000361899	M>M/I;W/*>*
+8530	692887	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP8,ENST00000361851	W>*/W
+8531	692888	A	G	csq_order	yes			
+8533	692889	G	A	csq_order	yes			
+8537	692890	A	G	csq_order	yes			
+8538	235326	T	C	csq_order	yes			
+8540	235227	T	C	csq_order	yes			
+8541	692891	G	A	csq_order	yes			
+8542	692892	T	C	csq_order	yes			
+8545	692893	G	A	csq_order	yes			
+8547	692894	T	C	csq_order	yes			
+8548	692895	T	C	csq_order	yes			
+8550	692896	A	G	csq_order	yes			
+8551	692897	T	C	csq_order	yes			
+8552	692898	T	C	csq_order	yes			
+8553	618720	C	T	csq_order	yes			
+8554	692899	A	G	csq_order	yes			
+8557	692900	G	A	csq_order	yes			
+8557	692901	G	C	csq_order	yes			
+8560	590998	C	CCCA	csq_order	yes			
+8562	692902	C	T	csq_order	yes			
+8563	692903	A	G	csq_order	yes			
+8565	235492	A	G	csq_order	yes			
+8566	692904	A	G	csq_order	yes			
+8567	692905	T	C	csq_order	yes			
+8568	692906	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	I/M>I
+8568	918019	C	T	csq_order	yes			
+8570	3900733	T	C	csq_order	yes			
+8572	692907	G	A	csq_order	yes			
+8573	692908	G	A	csq_order	yes			
+8576	692909	T	C	csq_order	yes			
+8578	692910	C	T	csq_order	yes			
+8581	692911	G	A	csq_order	yes			
+8582	692912	C	T	csq_order	yes			
+8584	692913	G	A	csq_order	yes			
+8584	430681	GCAGTACTGATCATTCTATT...(4382 bp)	G	codon_table	yes	Consequence,IMPACT	ATP6,ENST00000361567,ENST00000361899,ND5	
+8588	692914	T	C	csq_order	yes			
+8591	692915	T	C	csq_order	yes			
+8593	692916	A	G	csq_order	yes			
+8596	692917	A	G	csq_order	yes			
+8597	692918	T	C	csq_order	yes			
+8599	692919	C	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ATP6,ENST00000361899	L/M>L/I
+8602	692920	T	C	csq_order	yes			
+8603	692921	T	C	csq_order	yes			
+8603	3251971	T	G	csq_order	yes			
+8605	692922	C	T	csq_order	yes			
+8609	692923	C	T	csq_order	yes			
+8612	692924	T	C	csq_order	yes			
+8615	692925	T	C	csq_order	yes			
+8616	235626	G	T	csq_order	yes			
+8617	9648	A	AT	csq_order	yes			
+8617	692926	A	G	csq_order	yes			
+8618	692927	T	C	csq_order	yes			
+8619	235451	C	T	csq_order	yes			
+8623	692928	A	C	csq_order	yes			
+8623	692929	A	G	csq_order	yes			
+8623	692930	A	T	csq_order	yes			
+8624	692931	C	T	csq_order	yes			
+8626	692932	T	C	csq_order	yes			
+8632	692933	T	C	csq_order	yes			
+8635	692934	C	T	csq_order	yes			
+8636	1326905	T	C	csq_order	yes			
+8638	692935	A	G	csq_order	yes			
+8639	692936	T	C	csq_order	yes			
+8641	692937	A	G	csq_order	yes			
+8642	692939	A	C	csq_order	yes			
+8642	692938	A	G	csq_order	yes			
+8648	692940	G	A	csq_order	yes			
+8651	441129	T	C	csq_order	yes			
+8653	692941	A	G	csq_order	yes			
+8654	692942	T	C	csq_order	yes			
+8656	692943	A	G	csq_order	yes			
+8657	692944	C	T	csq_order	yes			
+8659	692945	A	G	csq_order	yes			
+8666	692946	A	G	csq_order	yes			
+8668	692947	T	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP6,ENST00000361899	W/R>*/R
+8669	618717	G	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP6,ENST00000361899	W/S>*/S
+8674	4086043	A	G	csq_order	yes			
+8679	692948	A	C	csq_order	yes			
+8681	692949	T	C	csq_order	yes			
+8683	692950	A	G	csq_order	yes			
+8684	692951	C	T	csq_order	yes			
+8686	618718	T	A	csq_order	yes			
+8686	585120	T	C	csq_order	yes			
+8697	3911654	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	M>M/I
+8697	692952	G	T	csq_order	yes			
+8699	692953	T	C	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/T>I/T
+8700	692954	A	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	M/I>I
+8701	692955	A	G	csq_order	yes			
+8702	692956	C	T	csq_order	yes			
+8704	235260	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+8705	692957	T	C	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/T>I/T
+8711	692958	A	G	csq_order	yes			
+8712	3911655	C	T	csq_order	yes			
+8713	692959	A	G	csq_order	yes			
+8714	692960	C	T	csq_order	yes			
+8715	3911656	T	C	csq_order	yes			
+8718	4857762	A	AT	csq_order	yes			
+8719	692961	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	G/*>G/R
+8720	692963	G	A	csq_order	yes			
+8720	692962	G	C	csq_order	yes			
+8722	692964	C	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	R/W>R/*
+8723	692965	G	A	csq_order	yes			
+8723	2505068	G	T	csq_order	yes			
+8725	692966	A	G	csq_order	yes			
+8728	692967	T	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP6,ENST00000361899	W/R>*/R
+8731	692968	T	A	csq_order	yes			
+8735	692969	T	C	csq_order	yes			
+8737	692970	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+8744	692971	T	C	csq_order	yes			
+8746	692972	T	C	csq_order	yes			
+8750	692973	T	C	csq_order	yes			
+8750	590899	T	TAAA	csq_order	yes			
+8752	692974	A	G	csq_order	yes			
+8756	692975	T	C	csq_order	yes			
+8761	692976	A	C	csq_order	yes			
+8762	692977	T	C	csq_order	yes			
+8764	692978	G	A	csq_order	yes			
+8765	692979	C	T	csq_order	yes			
+8767	692980	A	G	csq_order	yes			
+8768	692981	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ATP6,ENST00000361899	T/M>T/I
+8781	376869	C	A	csq_order	yes			
+8782	692982	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	G/*>G/R
+8783	692983	G	A	csq_order	yes			
+8785	692985	C	G	csq_order	yes			
+8785	692984	C	T	csq_order	yes			
+8789	692986	T	C	csq_order	yes			
+8790	235546	G	A	csq_order	yes			
+8794	692987	C	T	csq_order	yes			
+8800	618719	T	C	csq_order	yes			
+8800	692988	T	G	csq_order	yes			
+8803	692989	A	G	csq_order	yes			
+8803	235370	A	T	csq_order	yes			
+8806	972939	C	T	csq_order	yes			
+8812	692990	A	G	csq_order	yes			
+8812	692991	A	T	csq_order	yes			
+8814	430682	CCAACTATCTATAAACCTAG...(4909 bp)	C	codon_table	yes	Consequence,IMPACT	ATP6,ENST00000361567,ENST00000361899,ND5	
+8816	376981	A	G	csq_order	yes			
+8818	235705	C	T	csq_order	yes			
+8821	1326901	T	A	csq_order	yes			
+8821	692992	T	C	csq_order	yes			
+8824	692993	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+8825	692994	T	C	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/T>I/T
+8833	3337302	G	A	csq_order	yes			
+8836	692995	A	G	csq_order	yes			
+8838	3911657	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	M>M/I
+8838	430683	GGCCATCCCCTTATGAGCGG...(6058 bp)	G	codon_table	yes	Consequence,IMPACT	ATP6,CYTB,ENST00000361789,ENST00000361899	
+8839	692996	G	A	csq_order	yes			
+8839	155892	G	C	csq_order	yes			
+8840	692997	C	T	csq_order	yes			
+8842	692998	A	C	csq_order	yes			
+8842	692999	A	G	csq_order	yes			
+8843	693000	T	C	csq_order	yes			
+8844	693001	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	I/M>I
+8851	9645	T	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ATP6,ENST00000361899	W/R>*/R
+8854	693002	G	A	csq_order	yes			
+8856	235606	G	A	csq_order	yes			
+8857	693003	G	A	csq_order	yes			
+8860	693004	A	G	csq_order	yes			
+8863	693005	G	A	csq_order	yes			
+8864	693006	T	C	csq_order	yes			
+8865	235457	G	A	csq_order	yes			
+8866	693007	A	G	csq_order	yes			
+8867	3911658	T	C	csq_order	yes			
+8868	693008	T	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	I/M>I
+8869	693009	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+8870	693010	T	C	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/T>I/T
+8873	693011	G	C	csq_order	yes			
+8875	693012	T	C	csq_order	yes			
+8878	918021	C	T	csq_order	yes			
+8879	693013	G	A	csq_order	yes			
+8884	3337303	A	G	csq_order	yes			
+8886	376933	G	A	csq_order	yes			
+8887	693014	A	G	csq_order	yes			
+8888	693015	T	C	csq_order	yes			
+8895	693016	T	A	csq_order	yes			
+8896	693017	G	A	csq_order	yes			
+8897	693018	C	T	csq_order	yes			
+8898	3911659	C	T	csq_order	yes			
+8901	3911660	A	G	csq_order	yes			
+8906	693019	A	C	csq_order	yes			
+8908	693020	T	C	csq_order	yes			
+8910	693021	C	A	csq_order	yes			
+8915	3773663	C	T	csq_order	yes			
+8920	693022	G	A	csq_order	yes			
+8921	693023	G	A	csq_order	yes			
+8923	693024	A	G	csq_order	yes			
+8930	693025	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ATP6,ENST00000361899	T/M>T/I
+8932	235343	C	T	csq_order	yes			
+8933	693026	C	T	csq_order	yes			
+8935	693027	C	T	csq_order	yes			
+8936	1172526	T	A	csq_order	yes			
+8936	693028	T	C	csq_order	yes			
+8938	693029	A	G	csq_order	yes			
+8939	693030	T	C	csq_order	yes			
+8941	693031	C	T	csq_order	yes			
+8943	377352	C	T	csq_order	yes			
+8943	4528935	CATACTAGTTATTATCGAAA...(6115 bp)	C	codon_table	yes	Consequence,IMPACT	ATP6,CYTB,ENST00000361789,ENST00000361899	
+8944	693032	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+8946	918025	A	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	M/I>I
+8950	590268	G	A	csq_order	yes			
+8951	693033	T	C	csq_order	yes			
+8953	693034	A	G	csq_order	yes			
+8954	693035	T	C	csq_order	yes			
+8959	693036	G	A	csq_order	yes			
+8962	693037	A	G	csq_order	yes			
+8966	693038	T	C	csq_order	yes			
+8967	3337304	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	I/M>I
+8968	4075025	A	C	csq_order	yes			
+8968	3901279	A	G	csq_order	yes			
+8969	191364	G	A	csq_order	yes			
+8972	693039	T	C	csq_order	yes			
+8974	693040	C	G	csq_order	yes			
+8975	693041	T	C	csq_order	yes			
+8978	693042	T	C	csq_order	yes			
+8980	931216	C	A	csq_order	yes			
+8981	693043	A	G	csq_order	yes			
+8986	693044	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+8987	693045	T	C	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/T>I/T
+8989	693046	G	A	csq_order	yes			
+8989	155893	G	C	csq_order	yes			
+8993	9642	T	C	csq_order	yes			
+8993	9641	T	G	csq_order	yes			
+8993	693047	TG	CA	csq_order	yes			
+8994	3911661	G	A	csq_order	yes			
+8998	693048	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ATP6,ENST00000361899	V/M>V/I
+8999	693049	T	C	csq_order	yes			
+9005	693050	T	C	csq_order	yes			
+9006	446022	A	G	csq_order	yes			
+9007	693051	A	G	csq_order	yes			
+9007	693052	A	T	csq_order	yes			
+9010	693053	G	A	csq_order	yes			
+9014	693054	A	G	csq_order	yes			
+9016	693055	A	G	csq_order	yes			
+9019	693056	A	G	csq_order	yes			
+9025	693057	G	A	csq_order	yes			
+9026	693058	G	A	csq_order	yes			
+9026	4871838	G	C	csq_order	yes			
+9028	693059	C	T	csq_order	yes			
+9029	693060	A	G	csq_order	yes			
+9032	693061	T	C	csq_order	yes			
+9035	690280	T	C	csq_order	yes			
+9038	693062	T	C	csq_order	yes			
+9040	4526381	C	T	csq_order	yes			
+9041	440988	A	G	csq_order	yes			
+9047	693063	T	C	csq_order	yes			
+9049	693064	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	G/*>G/R
+9052	693065	A	G	csq_order	yes			
+9053	693066	G	A	csq_order	yes			
+9055	693067	G	A	csq_order	yes			
+9056	693068	C	T	csq_order	yes			
+9058	693070	A	C	csq_order	yes			
+9058	693069	A	G	csq_order	yes			
+9064	693071	G	A	csq_order	yes			
+9066	3911662	A	G	csq_order	yes			
+9067	693072	A	G	codon_table	yes	Amino_acids,HGVSp	ATP6,ENST00000361899	M/V>I/V
+9070	693073	T	C	csq_order	yes			
+9070	693074	T	G	csq_order	yes			
+9071	693075	C	T	csq_order	yes			
+9072	235631	A	G	csq_order	yes			
+9073	693076	A	C	csq_order	yes			
+9077	693077	T	C	csq_order	yes			
+9079	693078	A	G	csq_order	yes			
+9080	693079	A	G	csq_order	yes			
+9082	693080	C	T	csq_order	yes			
+9083	693081	T	C	csq_order	yes			
+9085	693082	C	A	csq_order	yes			
+9086	693083	C	T	csq_order	yes			
+9088	693084	T	C	csq_order	yes			
+9091	376876	A	G	csq_order	yes			
+9093	3911663	A	G	csq_order	yes			
+9094	693085	C	T	csq_order	yes			
+9095	693086	T	C	csq_order	yes			
+9097	693087	A	G	csq_order	yes			
+9098	693088	T	C	csq_order	yes			
+9098	693089	T	G	csq_order	yes			
+9099	693090	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ATP6,ENST00000361899	I/M>I
+9100	693091	A	G	csq_order	yes			
+9101	9643	T	C	csq_order	yes			
+9101	693092	T	G	csq_order	yes			
+9103	693093	T	C	csq_order	yes			
+9104	693094	T	C	csq_order	yes			
+9106	693095	A	G	csq_order	yes			
+9110	693096	T	C	csq_order	yes			
+9115	693097	A	G	csq_order	yes			
+9116	693098	T	C	csq_order	yes			
+9122	693099	T	G	csq_order	yes			
+9123	3911664	G	A	csq_order	yes			
+9125	693100	C	T	csq_order	yes			
+9127	693101	A	G	csq_order	yes			
+9128	693102	T	C	csq_order	yes			
+9130	693103	C	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen	ATP6,ENST00000361899	L/M>L/I
+9132	3911665	A	G	csq_order	yes			
+9133	693104	G	A	csq_order	yes			
+9134	693105	A	G	csq_order	yes			
+9136	3337305	A	G	csq_order	yes			
+9137	693106	T	C	csq_order	yes			
+9138	3911666	C	T	csq_order	yes			
+9139	693107	G	A	csq_order	yes			
+9140	693108	C	T	csq_order	yes			
+9142	693109	G	A	csq_order	yes			
+9145	693110	G	A	csq_order	yes			
+9151	693111	A	G	csq_order	yes			
+9152	235698	T	C	csq_order	yes			
+9155	986472	A	G	csq_order	yes			
+9157	441146	G	A	csq_order	yes			
+9160	693112	T	C	csq_order	yes			
+9163	693113	G	A	csq_order	yes			
+9166	370051	T	C	csq_order	yes			
+9167	693114	T	C	csq_order	yes			
+9169	693115	A	G	csq_order	yes			
+9170	693116	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen	ATP6,ENST00000361899	T/M>T/I
+9176	9644	T	C	csq_order	yes			
+9176	9650	T	G	csq_order	yes			
+9179	693117	T	C	csq_order	yes			
+9180	3911667	A	G	csq_order	yes			
+9181	693118	A	G	csq_order	yes			
+9182	693119	G	A	csq_order	yes			
+9185	9647	T	C	csq_order	yes			
+9188	693120	A	G	csq_order	yes			
+9191	40153	T	C	csq_order	yes			
+9194	693121	A	G	csq_order	yes			
+9196	693122	G	A	csq_order	yes			
+9202	693123	A	G	csq_order	yes			
+9203	9646	CAT	C	codon_table	yes	HGVSp	ATP6,ENST00000361899	
+9204	3337306	A	AT	codon_table	yes	Consequence	ATP6,ENST00000361899	
+9205	693124	T	C	csq_order	yes			
+9210	693125	A	G	csq_order	yes			
+9211	693126	C	T	csq_order	yes			
+9214	693127	A	G	csq_order	yes			
+9217	693128	A	G	csq_order	yes			
+9219	693129	T	G	csq_order	yes			
+9234	693130	A	G	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/V>I/V
+9237	370052	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX3,ENST00000362079	V/M>V/I
+9247	693131	G	A	csq_order	yes			
+9247	1708973	G	C	csq_order	yes			
+9254	3911668	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX3,ENST00000362079	W>*/W
+9261	693132	A	G	csq_order	yes			
+9265	693133	G	A	csq_order	yes			
+9267	693134	G	A	csq_order	yes			
+9270	693135	C	T	csq_order	yes			
+9273	599028	T	TATC	csq_order	yes			
+9276	693136	G	A	csq_order	yes			
+9281	235461	C	T	csq_order	yes			
+9285	693137	A	G	csq_order	yes			
+9286	693138	T	C	csq_order	yes			
+9288	693139	A	G	csq_order	yes			
+9294	693140	G	A	csq_order	yes			
+9300	693141	G	A	csq_order	yes			
+9301	693142	C	T	csq_order	yes			
+9304	693143	T	C	csq_order	yes			
+9309	693144	T	C	csq_order	yes			
+9311	590894	T	TGCA	csq_order	yes			
+9316	693145	T	C	csq_order	yes			
+9318	618214	C	T	csq_order	yes			
+9319	693146	A	G	csq_order	yes			
+9324	693147	A	G	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/V>I/V
+9325	693148	T	C	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/T>I/T
+9327	693149	A	C	csq_order	yes			
+9327	693150	A	G	csq_order	yes			
+9331	693151	T	C	csq_order	yes			
+9336	693152	A	G	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/V>I/V
+9337	693153	T	C	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/T>I/T
+9342	693154	G	A	csq_order	yes			
+9353	235225	C	T	csq_order	yes			
+9355	693155	A	G	csq_order	yes			
+9355	523307	A	T	csq_order	yes			
+9357	693156	A	G	csq_order	yes			
+9367	693157	T	C	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/T>I/T
+9368	235541	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX3,ENST00000362079	M>I/M
+9369	3337314	T	C	csq_order	yes			
+9379	9657	G	A	csq_order	yes			
+9387	693158	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX3,ENST00000362079	V/M>V/I
+9390	693159	A	G	csq_order	yes			
+9391	693160	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX3,ENST00000362079	T/M>T/I
+9405	693161	T	C	csq_order	yes			
+9424	5002911	C	T	csq_order	yes			
+9429	599026	G	GCCC	csq_order	yes			
+9431	590891	C	CA	csq_order	yes			
+9438	9651	G	A	csq_order	yes			
+9439	693162	G	A	csq_order	yes			
+9441	599027	C	CTTT	csq_order	yes			
+9445	693163	G	A	csq_order	yes			
+9448	693164	A	G	csq_order	yes			
+9456	693166	A	C	csq_order	yes			
+9456	693165	A	G	csq_order	yes			
+9467	235458	T	C	csq_order	yes			
+9468	693167	A	G	csq_order	yes			
+9469	693168	C	T	csq_order	yes			
+9477	693169	G	A	csq_order	yes			
+9477	693170	G	C	csq_order	yes			
+9478	155885	T	C	csq_order	yes			
+9478	693171	T	G	csq_order	yes			
+9479	9654	TTTTTTCTTCGCAGGA	T	csq_order	yes			
+9480	693172	T	C	csq_order	yes			
+9481	693173	T	C	csq_order	yes			
+9484	693174	T	C	csq_order	yes			
+9489	693175	G	A	csq_order	yes			
+9490	693176	C	T	csq_order	yes			
+9495	693177	T	C	csq_order	yes			
+9508	693178	T	A	csq_order	yes			
+9509	235641	T	C	csq_order	yes			
+9525	693179	G	A	csq_order	yes			
+9531	9656	A	AC	csq_order	yes			
+9531	693180	A	G	csq_order	yes			
+9540	3027421	T	C	csq_order	yes			
+9545	235374	A	G	csq_order	yes			
+9548	3911670	G	A	csq_order	yes			
+9549	693181	C	T	csq_order	yes			
+9564	693182	G	A	csq_order	yes			
+9568	439914	T	C	csq_order	yes			
+9571	693183	C	T	csq_order	yes			
+9577	693184	T	C	csq_order	yes			
+9580	693185	A	C	csq_order	yes			
+9582	693186	C	T	csq_order	yes			
+9588	693187	G	A	csq_order	yes			
+9591	693188	G	A	csq_order	yes			
+9592	693189	T	C	csq_order	yes			
+9604	693190	A	G	csq_order	yes			
+9612	693191	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX3,ENST00000362079	V/M>V/I
+9621	693192	G	A	csq_order	yes			
+9627	4851466	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX3,ENST00000362079	G/*>G/R
+9630	693193	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX3,ENST00000362079	V/M>V/I
+9631	693194	T	C	csq_order	yes			
+9632	3911671	A	G	csq_order	yes			
+9633	693195	T	C	csq_order	yes			
+9636	693196	A	G	csq_order	yes			
+9637	693197	T	C	csq_order	yes			
+9652	693198	A	G	csq_order	yes			
+9654	693199	A	G	csq_order	yes			
+9655	3337315	G	A	csq_order	yes			
+9660	693200	A	G	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/V>I/V
+9663	693201	G	A	csq_order	yes			
+9664	693202	A	G	csq_order	yes			
+9667	693203	A	G	csq_order	yes			
+9670	693204	A	G	csq_order	yes			
+9682	693205	T	C	codon_table	yes	Amino_acids,HGVSp	COX3,ENST00000362079	M/T>I/T
+9685	693206	T	C	csq_order	yes			
+9698	3911672	T	C	csq_order	yes			
+9699	693207	A	G	csq_order	yes			
+9700	693208	T	C	csq_order	yes			
+9705	693209	A	G	csq_order	yes			
+9706	693210	T	C	csq_order	yes			
+9714	439913	G	A	csq_order	yes			
+9716	3911673	T	C	csq_order	yes			
+9717	693211	C	T	csq_order	yes			
+9727	693212	C	T	csq_order	yes			
+9738	693213	G	A	csq_order	yes			
+9739	693214	C	T	csq_order	yes			
+9751	693215	T	C	csq_order	yes			
+9751	693216	T	G	csq_order	yes			
+9752	693217	C	A	csq_order	yes			
+9753	693218	G	A	csq_order	yes			
+9753	693219	G	C	csq_order	yes			
+9754	693220	A	G	csq_order	yes			
+9756	693221	T	G	csq_order	yes			
+9759	693222	C	T	csq_order	yes			
+9765	693223	A	G	csq_order	yes			
+9769	693224	T	C	csq_order	yes			
+9777	693225	G	A	csq_order	yes			
+9786	693226	G	A	csq_order	yes			
+9801	693227	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	COX3,ENST00000362079	V/M>V/I
+9802	693228	T	C	csq_order	yes			
+9804	9652	G	A	csq_order	yes			
+9804	693229	G	C	csq_order	yes			
+9804	693230	G	T	csq_order	yes			
+9813	441131	T	A	csq_order	yes			
+9813	693231	T	C	csq_order	yes			
+9819	693232	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX3,ENST00000362079	G/*>G/R
+9820	693233	G	A	csq_order	yes			
+9822	693234	C	T	csq_order	yes			
+9828	693235	G	A	csq_order	yes			
+9837	693236	G	A	csq_order	yes			
+9838	693237	G	A	csq_order	yes			
+9843	693238	A	G	csq_order	yes			
+9844	693239	C	T	csq_order	yes			
+9852	693240	A	G	csq_order	yes			
+9855	693241	A	G	csq_order	yes			
+9856	693242	T	C	csq_order	yes			
+9861	235537	T	C	csq_order	yes			
+9862	693243	T	A	csq_order	yes			
+9868	693244	G	A	csq_order	yes			
+9903	693245	T	C	csq_order	yes			
+9909	693246	T	C	csq_order	yes			
+9911	693247	C	A	csq_order	yes			
+9921	693248	G	A	csq_order	yes			
+9922	693249	C	T	csq_order	yes			
+9939	693250	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen	COX3,ENST00000362079	V/M>V/I
+9947	235536	G	A	csq_order	yes			
+9948	693251	G	A	csq_order	yes			
+9952	9655	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX3,ENST00000362079	W/*>*
+9957	693252	T	C	csq_order	yes			
+9966	377020	G	A	csq_order	yes			
+9966	693253	G	C	csq_order	yes			
+9967	693254	T	C	csq_order	yes			
+9972	693255	A	G	csq_order	yes			
+9981	693256	T	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	COX3,ENST00000362079	W/G>*/G
+9984	693257	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	COX3,ENST00000362079	G/*>G/R
+9987	693258	T	C	csq_order	yes			
+9991	690086	A	G	csq_order	yes			
+9993	690087	T	C	csq_order	yes			
+9995	690088	T	C	csq_order	yes			
+9996	690089	T	C	csq_order	yes			
+9997	690090	T	A	csq_order	yes			
+9997	9611	T	C	csq_order	yes			
+10003	690091	T	C	csq_order	yes			
+10005	690092	A	G	csq_order	yes			
+10005	690093	A	T	csq_order	yes			
+10006	690094	A	G	csq_order	yes			
+10007	690095	T	C	csq_order	yes			
+10008	690096	A	G	csq_order	yes			
+10010	9612	T	C	csq_order	yes			
+10013	690097	C	T	csq_order	yes			
+10014	690098	G	A	csq_order	yes			
+10015	690099	T	C	csq_order	yes			
+10018	440974	A	G	csq_order	yes			
+10020	690100	T	C	csq_order	yes			
+10027	690101	T	C	csq_order	yes			
+10029	690102	A	G	csq_order	yes			
+10031	690103	T	C	csq_order	yes			
+10034	690104	T	C	csq_order	yes			
+10040	690105	C	T	csq_order	yes			
+10042	690106	A	G	csq_order	yes			
+10042	690107	AC	A	csq_order	yes			
+10044	9613	A	G	csq_order	yes			
+10045	690108	T	C	csq_order	yes			
+10046	235011	T	C	csq_order	yes			
+10048	690109	A	G	csq_order	yes			
+10055	690110	A	G	csq_order	yes			
+10083	693259	A	G	csq_order	yes			
+10084	235627	T	C	csq_order	yes			
+10086	693260	A	G	csq_order	yes			
+10098	693261	G	T	csq_order	yes			
+10104	430684	CTACTAATAATTATTACATT...(4963 bp)	C	codon_table	yes	Consequence,IMPACT	CYTB,ENST00000361227,ENST00000361789,ND3	
+10110	693262	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361227,ND3	M/V>I/V
+10111	693263	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361227,ND3	M/T>I/T
+10113	693264	A	G	csq_order	yes			
+10121	4795901	A	AT	csq_order	yes			
+10134	156375	C	A	csq_order	yes			
+10143	693265	G	A	csq_order	yes			
+10146	693266	T	C	csq_order	yes			
+10158	693267	T	A	csq_order	yes			
+10158	9714	T	C	csq_order	yes			
+10159	693268	C	A	csq_order	yes			
+10161	1701720	A	T	csq_order	yes			
+10172	1328510	G	A	csq_order	yes			
+10176	3781322	G	A	csq_order	yes			
+10188	693269	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361227,ND3	M/V>I/V
+10191	9712	T	C	csq_order	yes			
+10192	693270	C	A	csq_order	yes			
+10192	693271	C	T	csq_order	yes			
+10197	9715	G	A	csq_order	yes			
+10203	693272	G	A	csq_order	yes			
+10225	693273	T	C	csq_order	yes			
+10236	693274	A	G	csq_order	yes			
+10237	65508	T	C	csq_order	yes			
+10238	3911675	T	C	csq_order	yes			
+10254	155887	G	A	csq_order	yes			
+10266	693275	G	A	csq_order	yes			
+10269	693276	C	A	csq_order	yes			
+10290	4075101	G	A	csq_order	yes			
+10320	693277	G	A	csq_order	yes			
+10321	235782	T	C	csq_order	yes			
+10324	693278	T	C	csq_order	yes			
+10326	693279	T	A	csq_order	yes			
+10326	693280	T	C	csq_order	yes			
+10329	693281	T	C	csq_order	yes			
+10335	235460	T	C	csq_order	yes			
+10345	693282	T	C	csq_order	yes			
+10348	693283	T	C	csq_order	yes			
+10353	693284	G	A	csq_order	yes			
+10364	3911676	G	A	csq_order	yes			
+10365	693285	G	A	csq_order	yes			
+10366	693286	C	T	csq_order	yes			
+10371	693287	G	A	csq_order	yes			
+10372	3256117	A	G	csq_order	yes			
+10397	3911677	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361227,ND3	W>*/W
+10398	9713	A	G	csq_order	yes			
+10398	693288	A	T	csq_order	yes			
+10399	693289	C	T	csq_order	yes			
+10400	3911678	C	T	csq_order	yes			
+10401	693290	G	A	csq_order	yes			
+10405	690111	T	C	csq_order	yes			
+10406	690112	G	A	csq_order	yes			
+10407	3255384	G	A	csq_order	yes			
+10408	690113	T	C	csq_order	yes			
+10410	690115	T	A	csq_order	yes			
+10410	690114	T	C	csq_order	yes			
+10411	690116	A	G	csq_order	yes			
+10420	690117	A	G	csq_order	yes			
+10427	690118	G	A	csq_order	yes			
+10437	1684922	G	A	csq_order	yes			
+10438	9623	A	G	csq_order	yes			
+10440	690119	T	C	csq_order	yes			
+10446	690120	A	G	csq_order	yes			
+10448	690121	T	C	csq_order	yes			
+10450	30000	A	G	csq_order	yes			
+10454	690122	T	C	csq_order	yes			
+10455	690123	A	G	csq_order	yes			
+10456	690124	A	G	csq_order	yes			
+10457	690125	T	C	csq_order	yes			
+10460	690126	T	C	csq_order	yes			
+10462	690127	T	C	csq_order	yes			
+10463	690128	T	C	csq_order	yes			
+10489	693291	A	G	csq_order	yes			
+10491	1339835	A	G	csq_order	yes			
+10492	693292	T	C	csq_order	yes			
+10499	376866	A	G	csq_order	yes			
+10506	693293	A	G	csq_order	yes			
+10507	693294	C	T	csq_order	yes			
+10522	693295	G	A	csq_order	yes			
+10524	693296	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361335,ND4L	M/V>I/V
+10530	693297	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361335,ND4L	V/M>V/I
+10550	3911679	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361335,ND4L	M>I/M
+10563	9706	T	C	csq_order	yes			
+10579	693298	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361335,ND4L	M/T>I/T
+10599	693299	G	A	csq_order	yes			
+10600	693300	C	T	csq_order	yes			
+10602	693301	A	G	csq_order	yes			
+10609	693302	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361335,ND4L	M/T>I/T
+10620	693303	A	G	csq_order	yes			
+10630	693304	T	C	csq_order	yes			
+10632	376882	T	C	csq_order	yes			
+10635	693305	G	A	csq_order	yes			
+10639	693306	A	G	csq_order	yes			
+10644	618217	G	A	csq_order	yes			
+10653	693307	G	A	csq_order	yes			
+10654	693308	C	T	csq_order	yes			
+10663	9707	T	C	csq_order	yes			
+10677	693309	G	A	csq_order	yes			
+10679	3911680	A	G	csq_order	yes			
+10680	693310	G	A	csq_order	yes			
+10686	693311	G	A	csq_order	yes			
+10688	3911681	G	A	csq_order	yes			
+10704	693312	G	A	csq_order	yes			
+10749	693313	A	G	csq_order	yes			
+10750	693314	A	G	csq_order	yes			
+10774	3062020	CGTCCCAACAATTATATTAC...(4168 bp)	C	codon_table	yes	Consequence,IMPACT	CYTB,ENST00000361381,ENST00000361789,ND4	
+10775	693315	G	A	csq_order	yes			
+10776	693316	T	C	csq_order	yes			
+10785	693317	T	C	csq_order	yes			
+10791	693318	T	C	csq_order	yes			
+10798	445798	A	G	csq_order	yes			
+10845	693319	C	T	csq_order	yes			
+10857	693320	T	C	csq_order	yes			
+10863	693321	G	A	csq_order	yes			
+10873	3911682	T	C	csq_order	yes			
+10887	684482	A	G	csq_order	yes			
+10895	693322	A	G	csq_order	yes			
+10899	693323	A	G	csq_order	yes			
+10907	693324	T	C	csq_order	yes			
+10911	693325	G	A	csq_order	yes			
+10913	693326	T	C	csq_order	yes			
+10914	693327	G	A	csq_order	yes			
+10915	3911683	T	C	csq_order	yes			
+10915	693328	T	G	csq_order	yes			
+10920	693329	C	T	csq_order	yes			
+10922	693330	A	G	csq_order	yes			
+10927	3911684	T	C	csq_order	yes			
+10931	618728	T	C	csq_order	yes			
+10932	693331	C	T	csq_order	yes			
+10946	1806456	ACCCCCCTCCTAATACTAAC...(4592 bp)	A	codon_table	yes	Consequence,IMPACT	CYTB,ENST00000361381,ENST00000361789,ND4	
+10978	3911685	A	G	csq_order	yes			
+11004	693332	G	A	csq_order	yes			
+11013	693333	C	A	csq_order	yes			
+11016	693334	G	A	csq_order	yes			
+11016	618729	G	C	csq_order	yes			
+11025	693335	T	C	csq_order	yes			
+11031	487804	GA	G	csq_order	yes			
+11039	693336	C	T	csq_order	yes			
+11043	693337	A	G	csq_order	yes			
+11061	693338	C	T	csq_order	yes			
+11069	693339	A	G	csq_order	yes			
+11084	9709	A	G	csq_order	yes			
+11087	693340	T	C	csq_order	yes			
+11089	3911686	C	T	csq_order	yes			
+11090	693341	A	G	csq_order	yes			
+11111	693342	T	C	csq_order	yes			
+11120	693343	T	C	csq_order	yes			
+11129	693344	A	G	csq_order	yes			
+11139	693345	T	C	csq_order	yes			
+11144	693346	A	T	csq_order	yes			
+11150	693347	G	A	csq_order	yes			
+11151	693348	C	T	csq_order	yes			
+11157	693349	T	C	csq_order	yes			
+11167	235673	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361381,ND4	W>*/W
+11172	693350	A	G	csq_order	yes			
+11177	693351	C	T	csq_order	yes			
+11191	3911687	C	T	csq_order	yes			
+11204	693352	T	C	csq_order	yes			
+11223	693353	T	C	csq_order	yes			
+11232	693354	T	C	csq_order	yes			
+11246	693355	G	A	csq_order	yes			
+11251	3911690	A	G	csq_order	yes			
+11252	693356	A	G	csq_order	yes			
+11253	65509	T	C	csq_order	yes			
+11255	693357	T	C	csq_order	yes			
+11262	430685	ACAACACCCTAGGCTCACTA...(4113 bp)	A	codon_table	yes	Consequence,IMPACT	CYTB,ENST00000361381,ENST00000361789,ND4	
+11268	693358	C	T	csq_order	yes			
+11289	693359	T	C	csq_order	yes			
+11299	3911691	T	C	csq_order	yes			
+11301	693360	T	C	csq_order	yes			
+11318	693361	T	C	csq_order	yes			
+11332	3911692	C	T	csq_order	yes			
+11337	693362	A	G	csq_order	yes			
+11360	523304	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361381,ND4	M/V>I/V
+11361	693363	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361381,ND4	M/T>I/T
+11363	693364	G	A	csq_order	yes			
+11377	3911693	G	A	csq_order	yes			
+11393	693365	C	T	csq_order	yes			
+11428	377260	C	T	csq_order	yes			
+11443	523305	A	C	csq_order	yes			
+11447	693366	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361381,ND4	V/M>V/I
+11453	693367	G	A	csq_order	yes			
+11467	522716	A	G	csq_order	yes			
+11498	693368	A	G	csq_order	yes			
+11503	3911694	C	A	csq_order	yes			
+11549	3911695	C	T	csq_order	yes			
+11560	235733	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361381,ND4	W>*/W
+11577	693369	G	A	csq_order	yes			
+11582	693370	A	G	csq_order	yes			
+11583	693371	T	C	csq_order	yes			
+11590	377091	A	G	csq_order	yes			
+11615	693372	A	G	csq_order	yes			
+11619	693373	CAT	C	csq_order	yes			
+11634	693374	G	A	csq_order	yes			
+11654	693375	A	G	csq_order	yes			
+11665	3911696	C	T	csq_order	yes			
+11674	3911698	C	T	csq_order	yes			
+11696	9710	G	A	csq_order	yes			
+11708	693376	A	G	csq_order	yes			
+11711	693377	G	A	csq_order	yes			
+11719	3027424	G	A	csq_order	yes			
+11733	693378	T	C	csq_order	yes			
+11777	9711	C	A	csq_order	yes			
+11778	9708	G	A	csq_order	yes			
+11781	693379	T	C	csq_order	yes			
+11792	693380	T	G	csq_order	yes			
+11807	693381	A	G	csq_order	yes			
+11812	3911699	A	G	csq_order	yes			
+11815	370053	C	G	csq_order	yes			
+11825	693382	G	A	csq_order	yes			
+11896	370054	C	G	csq_order	yes			
+11899	235318	T	C	csq_order	yes			
+11906	693383	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361381,ND4	V/M>V/I
+11913	693384	C	T	csq_order	yes			
+11914	3911700	G	A	csq_order	yes			
+11928	693385	A	G	csq_order	yes			
+11930	693386	A	G	csq_order	yes			
+11931	693387	T	C	csq_order	yes			
+11944	3911701	T	C	csq_order	yes			
+11946	693388	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361381,ND4	T/M>T/I
+11947	3911702	A	G	csq_order	yes			
+11957	693389	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361381,ND4	M/V>I/V
+11963	693390	G	A	csq_order	yes			
+11964	693391	T	G	csq_order	yes			
+11969	693392	G	A	csq_order	yes			
+11978	693393	T	A	csq_order	yes			
+11981	693394	C	T	csq_order	yes			
+11984	155888	T	C	csq_order	yes			
+11990	693395	T	C	csq_order	yes			
+12007	3027422	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361381,ND4	W>W/*
+12010	370055	C	T	csq_order	yes			
+12011	693397	T	C	csq_order	yes			
+12011	693396	T	G	csq_order	yes			
+12013	370056	A	G	csq_order	yes			
+12014	693398	C	T	csq_order	yes			
+12015	805948	T	C	csq_order	yes			
+12017	693399	A	G	csq_order	yes			
+12018	370057	C	G	csq_order	yes			
+12020	693400	C	T	csq_order	yes			
+12026	693401	A	G	csq_order	yes			
+12030	693402	A	G	csq_order	yes			
+12031	693403	C	A	csq_order	yes			
+12033	693404	A	G	csq_order	yes			
+12040	693405	A	T	csq_order	yes			
+12054	693406	G	A	csq_order	yes			
+12063	693407	C	T	csq_order	yes			
+12074	693408	A	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361381,ND4	M/L>I/L
+12083	693409	T	G	csq_order	yes			
+12084	693410	C	T	csq_order	yes			
+12092	693411	C	A	csq_order	yes			
+12092	693412	C	T	csq_order	yes			
+12113	430686	GACATCATTACCGGGTTTTC...(2308 bp)	G	codon_table	yes	Consequence,IMPACT	ENST00000361381,ENST00000361681,ND4,ND6	
+12117	693413	T	C	csq_order	yes			
+12122	693414	A	G	csq_order	yes			
+12123	693415	C	T	csq_order	yes			
+12127	3911703	G	A	csq_order	yes			
+12128	693416	T	C	csq_order	yes			
+12134	693417	T	C	csq_order	yes			
+12135	693418	C	A	csq_order	yes			
+12141	690129	A	G	csq_order	yes			
+12142	690130	A	G	csq_order	yes			
+12143	690131	T	C	csq_order	yes			
+12144	690132	A	G	csq_order	yes			
+12146	1684913	A	G	csq_order	yes			
+12147	9610	G	A	csq_order	yes			
+12148	690133	T	C	csq_order	yes			
+12150	690134	T	C	csq_order	yes			
+12151	690135	A	G	csq_order	yes			
+12153	376983	C	T	csq_order	yes			
+12160	690136	A	G	csq_order	yes			
+12161	690137	T	C	csq_order	yes			
+12163	690138	A	G	csq_order	yes			
+12164	690139	G	A	csq_order	yes			
+12166	690140	T	C	csq_order	yes			
+12170	441080	G	A	csq_order	yes			
+12171	690141	A	G	csq_order	yes			
+12172	690142	A	G	csq_order	yes			
+12173	690144	T	A	csq_order	yes			
+12173	690143	T	C	csq_order	yes			
+12175	376964	T	C	csq_order	yes			
+12176	690145	G	A	csq_order	yes			
+12177	618221	A	G	csq_order	yes			
+12178	690146	C	T	csq_order	yes			
+12181	690147	C	T	csq_order	yes			
+12183	9609	G	A	csq_order	yes			
+12184	690148	A	G	csq_order	yes			
+12185	690149	G	A	csq_order	yes			
+12187	1684914	C	A	csq_order	yes			
+12187	918020	C	T	csq_order	yes			
+12188	690150	T	C	csq_order	yes			
+12189	690151	T	C	csq_order	yes			
+12191	690152	C	T	csq_order	yes			
+12192	9608	G	A	csq_order	yes			
+12193	690153	A	G	csq_order	yes			
+12196	690154	C	T	csq_order	yes			
+12201	30004	T	C	csq_order	yes			
+12202	690155	T	C	csq_order	yes			
+12204	690156	A	C	csq_order	yes			
+12205	690157	C	T	csq_order	yes			
+12207	9561	G	A	csq_order	yes			
+12213	690158	G	A	csq_order	yes			
+12215	690159	T	C	csq_order	yes			
+12216	690160	C	T	csq_order	yes			
+12217	690161	A	G	csq_order	yes			
+12218	690162	C	A	csq_order	yes			
+12223	690163	A	G	csq_order	yes			
+12230	690164	A	G	csq_order	yes			
+12231	690165	C	T	csq_order	yes			
+12234	690166	A	G	csq_order	yes			
+12235	690167	T	C	csq_order	yes			
+12236	440357	G	A	csq_order	yes			
+12236	690170	G	GC	csq_order	yes			
+12236	690169	GC	G	csq_order	yes			
+12237	690168	C	T	csq_order	yes			
+12239	235361	C	T	csq_order	yes			
+12245	690171	T	C	csq_order	yes			
+12246	1684925	C	A	csq_order	yes			
+12246	690172	C	T	csq_order	yes			
+12247	690173	T	C	csq_order	yes			
+12248	690174	A	G	csq_order	yes			
+12250	690175	C	T	csq_order	yes			
+12255	690176	T	C	csq_order	yes			
+12257	4849726	G	A	csq_order	yes			
+12258	9560	C	A	csq_order	yes			
+12258	690177	C	T	csq_order	yes			
+12264	690178	C	T	csq_order	yes			
+12265	690179	A	G	csq_order	yes			
+12271	430687	T	C	csq_order	yes			
+12273	690180	A	G	csq_order	yes			
+12276	690181	G	A	csq_order	yes			
+12278	690182	T	C	csq_order	yes			
+12279	690183	A	G	csq_order	yes			
+12279	690184	A	T	csq_order	yes			
+12280	690185	A	G	csq_order	yes			
+12281	690186	C	T	csq_order	yes			
+12283	430688	G	A	csq_order	yes			
+12285	690187	T	C	csq_order	yes			
+12291	690188	T	C	csq_order	yes			
+12293	690189	G	A	csq_order	yes			
+12294	986494	G	A	csq_order	yes			
+12295	690190	T	C	csq_order	yes			
+12297	9588	T	C	csq_order	yes			
+12299	2583104	A	C	csq_order	yes			
+12302	690191	C	A	csq_order	yes			
+12302	690192	C	T	csq_order	yes			
+12305	690194	C	CA	csq_order	yes			
+12308	690193	A	G	csq_order	yes			
+12311	690195	T	C	csq_order	yes			
+12315	9586	G	A	csq_order	yes			
+12316	986496	G	A	csq_order	yes			
+12317	1684920	T	C	csq_order	yes			
+12318	690196	G	A	csq_order	yes			
+12320	9587	A	G	csq_order	yes			
+12335	690197	T	C	csq_order	yes			
+12338	29999	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/T>I/T
+12340	693419	A	G	csq_order	yes			
+12341	693420	C	T	csq_order	yes			
+12344	693421	T	C	csq_order	yes			
+12344	4278475	T	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	M/*>M/R
+12346	445363	C	T	csq_order	yes			
+12349	693422	A	G	csq_order	yes			
+12352	693423	A	G	csq_order	yes			
+12358	693424	A	G	csq_order	yes			
+12361	693425	A	G	csq_order	yes			
+12362	693426	C	T	csq_order	yes			
+12367	693427	A	G	csq_order	yes			
+12372	522717	G	A	csq_order	yes			
+12373	693428	A	G	csq_order	yes			
+12382	693429	A	G	csq_order	yes			
+12383	693430	T	C	csq_order	yes			
+12386	693431	C	T	csq_order	yes			
+12389	693432	C	T	csq_order	yes			
+12397	9705	A	G	csq_order	yes			
+12400	693433	A	G	csq_order	yes			
+12401	693434	C	T	csq_order	yes			
+12403	693435	C	T	csq_order	yes			
+12406	693436	G	A	csq_order	yes			
+12410	693437	A	G	csq_order	yes			
+12414	3911705	T	C	csq_order	yes			
+12417	693440	CA	C	csq_order	yes			
+12424	693438	A	G	csq_order	yes			
+12425	693439	A	G	csq_order	yes			
+12426	693441	C	A	csq_order	yes			
+12432	235471	C	T	csq_order	yes			
+12436	693442	C	T	csq_order	yes			
+12437	693443	A	G	csq_order	yes			
+12448	693444	T	A	csq_order	yes			
+12448	693445	T	C	csq_order	yes			
+12451	693446	A	G	csq_order	yes			
+12454	693447	G	A	csq_order	yes			
+12457	693448	G	A	csq_order	yes			
+12458	693449	C	T	csq_order	yes			
+12477	3911706	T	C	csq_order	yes			
+12479	693450	T	C	csq_order	yes			
+12481	693452	T	A	csq_order	yes			
+12481	693451	T	C	csq_order	yes			
+12490	693453	A	G	csq_order	yes			
+12493	446034	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/V>I/V
+12499	918027	A	G	csq_order	yes			
+12501	3911707	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	M>M/I
+12501	693454	G	C	csq_order	yes			
+12509	693455	A	G	csq_order	yes			
+12512	693456	A	T	csq_order	yes			
+12520	693457	A	G	csq_order	yes			
+12530	693458	A	G	csq_order	yes			
+12535	235010	C	T	csq_order	yes			
+12542	693459	C	T	csq_order	yes			
+12544	693460	A	G	csq_order	yes			
+12545	693461	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	T/M>T/I
+12556	693462	A	G	csq_order	yes			
+12557	693463	C	T	csq_order	yes			
+12560	693464	A	G	csq_order	yes			
+12561	693465	G	C	csq_order	yes			
+12565	3337325	T	A	csq_order	yes			
+12587	693466	A	G	csq_order	yes			
+12599	693467	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/T>I/T
+12601	693468	T	C	csq_order	yes			
+12612	3911708	A	G	csq_order	yes			
+12613	693469	G	T	csq_order	yes			
+12618	3911709	G	A	csq_order	yes			
+12622	693470	G	A	csq_order	yes			
+12631	693471	T	C	csq_order	yes			
+12634	693472	A	G	csq_order	yes			
+12661	693473	A	T	csq_order	yes			
+12662	693474	A	G	csq_order	yes			
+12673	693475	A	G	csq_order	yes			
+12674	693476	A	G	csq_order	yes			
+12681	235613	T	C	csq_order	yes			
+12705	3911710	C	T	csq_order	yes			
+12706	9698	T	C	csq_order	yes			
+12713	693477	T	C	csq_order	yes			
+12715	693478	A	G	csq_order	yes			
+12730	693479	G	A	csq_order	yes			
+12743	693480	A	G	csq_order	yes			
+12757	693481	T	C	csq_order	yes			
+12770	9699	A	G	csq_order	yes			
+12775	693482	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	V/M>V/I
+12797	693483	T	C	csq_order	yes			
+12799	693484	A	G	csq_order	yes			
+12810	235499	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361567,ND5	W>*/W
+12811	65510	T	C	csq_order	yes			
+12814	693485	G	A	csq_order	yes			
+12820	693486	G	A	csq_order	yes			
+12835	693487	G	A	csq_order	yes			
+12836	693488	C	T	csq_order	yes			
+12842	693489	T	C	csq_order	yes			
+12848	9704	C	T	csq_order	yes			
+12850	693490	A	G	csq_order	yes			
+12851	693491	T	C	csq_order	yes			
+12858	693492	C	A	csq_order	yes			
+12865	693493	A	G	csq_order	yes			
+12868	693494	G	A	csq_order	yes			
+12879	3911711	T	C	csq_order	yes			
+12880	693495	T	C	csq_order	yes			
+12889	439963	G	A	csq_order	yes			
+12890	693496	C	T	csq_order	yes			
+12903	235388	T	C	csq_order	yes			
+12904	693497	A	G	csq_order	yes			
+12905	693498	T	C	csq_order	yes			
+12906	693499	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	I/M>I
+12923	2443068	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361567,ND5	W/*>*
+12923	693500	G	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361567,ND5	W/L>*/L
+12937	693501	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/V>I/V
+12940	693502	G	A	csq_order	yes			
+12941	693503	C	T	csq_order	yes			
+12950	693505	A	C	csq_order	yes			
+12950	693504	A	G	csq_order	yes			
+12952	693506	G	A	csq_order	yes			
+12961	693507	A	G	csq_order	yes			
+12967	693508	A	G	csq_order	yes			
+12994	693509	G	A	csq_order	yes			
+12997	693510	G	A	csq_order	yes			
+13002	3911713	C	A	csq_order	yes			
+13027	693511	C	A	csq_order	yes			
+13042	9703	G	A	csq_order	yes			
+13045	9700	A	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/L>I/L
+13046	693512	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/T>I/T
+13051	430689	G	A	csq_order	yes			
+13063	693513	G	A	csq_order	yes			
+13064	693514	T	C	csq_order	yes			
+13073	693515	T	A	csq_order	yes			
+13084	9701	A	T	csq_order	yes			
+13094	693516	T	C	csq_order	yes			
+13097	693517	T	C	csq_order	yes			
+13099	693518	G	A	csq_order	yes			
+13105	693519	A	G	csq_order	yes			
+13106	693520	T	C	csq_order	yes			
+13112	693521	T	C	csq_order	yes			
+13117	693522	A	G	csq_order	yes			
+13129	693523	C	T	csq_order	yes			
+13135	693524	G	A	csq_order	yes			
+13145	693525	G	A	csq_order	yes			
+13147	693526	C	T	csq_order	yes			
+13151	693527	T	C	csq_order	yes			
+13153	693528	A	G	csq_order	yes			
+13154	693529	T	C	csq_order	yes			
+13159	693530	A	G	csq_order	yes			
+13162	693531	C	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	L/M>L/I
+13183	693532	A	G	csq_order	yes			
+13184	693533	T	C	csq_order	yes			
+13198	693534	G	A	csq_order	yes			
+13204	693535	G	A	csq_order	yes			
+13204	693536	G	C	csq_order	yes			
+13212	445987	C	T	csq_order	yes			
+13225	693537	G	A	csq_order	yes			
+13240	693538	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	V/M>V/I
+13246	693539	T	C	csq_order	yes			
+13254	3911714	T	C	csq_order	yes			
+13276	693540	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/V>I/V
+13279	693541	G	A	csq_order	yes			
+13285	693542	A	G	csq_order	yes			
+13288	693543	G	A	csq_order	yes			
+13289	1709618	G	A	csq_order	yes			
+13326	3911715	T	C	csq_order	yes			
+13327	693544	A	G	csq_order	yes			
+13328	693545	C	A	csq_order	yes			
+13336	693546	T	C	csq_order	yes			
+13345	2683758	G	A	csq_order	yes			
+13368	3911716	G	A	csq_order	yes			
+13369	693547	T	C	csq_order	yes			
+13375	693548	A	G	csq_order	yes			
+13376	693549	T	C	csq_order	yes			
+13379	986501	A	C	csq_order	yes			
+13379	1693553	A	G	csq_order	yes			
+13388	693550	A	G	csq_order	yes			
+13391	693551	A	G	csq_order	yes			
+13398	3911717	A	G	csq_order	yes			
+13401	3911718	T	C	csq_order	yes			
+13406	693552	G	A	csq_order	yes			
+13415	693553	G	A	csq_order	yes			
+13434	3911719	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361567,ND5	M>I/M
+13436	693554	C	A	csq_order	yes			
+13438	693555	C	A	csq_order	yes			
+13463	693556	G	A	csq_order	yes			
+13466	693557	G	A	csq_order	yes			
+13466	693558	G	C	csq_order	yes			
+13468	693559	C	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	L/M>L/I
+13471	693560	G	A	csq_order	yes			
+13477	693561	G	A	csq_order	yes			
+13478	693562	C	T	csq_order	yes			
+13480	4795905	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	G/*>G/R
+13484	693563	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/T>I/T
+13485	235555	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	ENST00000361567,ND5	M>I/M
+13488	235486	T	C	csq_order	yes			
+13495	693564	A	G	csq_order	yes			
+13507	693565	T	C	csq_order	yes			
+13513	9702	G	A	csq_order	yes			
+13514	155889	A	G	csq_order	yes			
+13521	3337326	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	I/M>I
+13522	693567	A	C	csq_order	yes			
+13522	693566	A	G	csq_order	yes			
+13524	693568	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	I/M>I
+13528	618218	A	G	csq_order	yes			
+13535	693569	A	G	csq_order	yes			
+13543	693570	T	C	csq_order	yes			
+13547	918033	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	T/M>T/I
+13552	693571	G	A	csq_order	yes			
+13565	693572	C	T	csq_order	yes			
+13568	693573	T	C	csq_order	yes			
+13576	693574	A	G	csq_order	yes			
+13579	693575	G	A	csq_order	yes			
+13583	693576	C	T	csq_order	yes			
+13594	693577	A	G	csq_order	yes			
+13606	693578	A	G	csq_order	yes			
+13612	693579	A	T	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/L>I/L
+13615	693580	A	G	csq_order	yes			
+13616	693581	T	C	csq_order	yes			
+13617	3911720	T	C	csq_order	yes			
+13630	693582	A	G	csq_order	yes			
+13635	235598	T	C	csq_order	yes			
+13637	65511	A	G	csq_order	yes			
+13645	693583	T	A	csq_order	yes			
+13649	693584	C	T	csq_order	yes			
+13651	693585	A	C	csq_order	yes			
+13651	693586	A	G	csq_order	yes			
+13651	693587	A	T	csq_order	yes			
+13661	693588	A	G	csq_order	yes			
+13664	693589	T	C	csq_order	yes			
+13676	693590	A	G	csq_order	yes			
+13681	693591	A	G	csq_order	yes			
+13681	693592	A	T	csq_order	yes			
+13708	9696	G	A	csq_order	yes			
+13711	693593	G	A	csq_order	yes			
+13712	693594	C	T	csq_order	yes			
+13713	370058	C	A	csq_order	yes			
+13722	377244	A	G	csq_order	yes			
+13726	693595	G	A	csq_order	yes			
+13730	9697	G	A	csq_order	yes			
+13741	693596	A	G	csq_order	yes			
+13748	693597	A	G	csq_order	yes			
+13753	693598	T	C	csq_order	yes			
+13754	693599	C	T	csq_order	yes			
+13755	3911722	C	T	csq_order	yes			
+13759	693600	G	A	csq_order	yes			
+13760	693601	C	T	csq_order	yes			
+13760	4795906	CATCCCCCTTCCAAACAACA	C	csq_order	yes			
+13762	693602	T	A	csq_order	yes			
+13762	693603	T	G	csq_order	yes			
+13763	693604	C	T	csq_order	yes			
+13768	693605	T	A	csq_order	yes			
+13768	693606	T	C	csq_order	yes			
+13770	693607	C	A	csq_order	yes			
+13780	693608	A	G	csq_order	yes			
+13781	693609	T	C	csq_order	yes			
+13789	693610	T	C	csq_order	yes			
+13790	693611	A	G	csq_order	yes			
+13801	693612	A	G	csq_order	yes			
+13802	693613	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	T/M>T/I
+13810	693614	G	A	csq_order	yes			
+13813	693615	G	A	csq_order	yes			
+13816	693616	A	G	csq_order	yes			
+13819	693617	T	C	csq_order	yes			
+13820	693618	T	C	csq_order	yes			
+13834	693619	A	G	csq_order	yes			
+13835	693620	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	T/M>T/I
+13862	693621	A	G	csq_order	yes			
+13873	3337327	A	G	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/V>I/V
+13874	693622	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	M/T>I/T
+13879	693624	T	A	csq_order	yes			
+13879	693623	T	C	csq_order	yes			
+13880	693625	C	A	csq_order	yes			
+13885	693626	C	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen	ENST00000361567,ND5	L/M>L/I
+13886	693627	T	C	csq_order	yes			
+13888	693628	T	C	csq_order	yes			
+13889	693629	G	A	csq_order	yes			
+13907	693630	A	G	csq_order	yes			
+13912	1708995	C	T	csq_order	yes			
+13913	693631	T	C	csq_order	yes			
+13919	693632	T	A	csq_order	yes			
+13919	693633	T	C	csq_order	yes			
+13924	693634	C	T	csq_order	yes			
+13926	235477	T	C	csq_order	yes			
+13928	693636	G	A	csq_order	yes			
+13928	693635	G	C	csq_order	yes			
+13933	693637	A	G	csq_order	yes			
+13934	693638	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	T/M>T/I
+13943	693639	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361567,ND5	T/M>T/I
+13946	693640	T	C	csq_order	yes			
+13948	693641	C	T	csq_order	yes			
+13958	693642	G	C	csq_order	yes			
+13966	693643	A	G	csq_order	yes			
+13967	693644	C	T	csq_order	yes			
+13973	693645	A	T	csq_order	yes			
+13974	693646	A	T	csq_order	yes			
+13981	693647	C	T	csq_order	yes			
+13983	4857761	CCTA	C	csq_order	yes			
+14000	235700	T	A	csq_order	yes			
+14002	445967	A	G	csq_order	yes			
+14003	693648	C	T	csq_order	yes			
+14020	693649	T	G	csq_order	yes			
+14021	1709050	T	C	csq_order	yes			
+14022	235717	A	G	csq_order	yes			
+14029	693650	A	G	csq_order	yes			
+14035	693651	T	G	csq_order	yes			
+14040	445963	G	A	csq_order	yes			
+14040	693652	G	C	csq_order	yes			
+14041	693653	C	T	csq_order	yes			
+14042	693654	A	T	csq_order	yes			
+14047	693655	A	G	csq_order	yes			
+14050	693656	T	C	csq_order	yes			
+14051	693657	C	T	csq_order	yes			
+14053	693659	A	C	csq_order	yes			
+14053	693658	A	G	csq_order	yes			
+14059	693660	A	G	csq_order	yes			
+14060	693661	T	C	csq_order	yes			
+14062	693662	A	G	csq_order	yes			
+14063	693663	T	C	csq_order	yes			
+14071	693664	A	G	csq_order	yes			
+14076	446036	A	G	csq_order	yes			
+14091	693665	A	T	csq_order	yes			
+14110	693666	T	C	csq_order	yes			
+14112	693667	C	A	csq_order	yes			
+14113	693668	T	C	csq_order	yes			
+14120	3910044	T	C	csq_order	yes			
+14122	693669	A	G	csq_order	yes			
+14128	693670	A	G	csq_order	yes			
+14129	693671	C	T	csq_order	yes			
+14133	377029	A	G	csq_order	yes			
+14138	693672	T	C	csq_order	yes			
+14140	693673	A	G	csq_order	yes			
+14141	5002757	T	C	csq_order	yes			
+14142	693674	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361567,ND5	I/M>I
+14142	693675	C	G	csq_order	yes			
+14143	693676	A	G	csq_order	yes			
+14144	693677	C	T	codon_table	yes	Amino_acids,HGVSp	ENST00000361567,ND5	T/M>T/I
+14148	235351	A	G	csq_order	yes			
+14153	693678	T	C	csq_order	yes			
+14154	693679	T	G	csq_order	yes			
+14162	693680	G	A	csq_order	yes			
+14163	693681	C	T	csq_order	yes			
+14167	3911724	C	T	csq_order	yes			
+14178	693682	T	C	csq_order	yes			
+14180	693684	T	C	csq_order	yes			
+14180	693683	T	G	csq_order	yes			
+14181	693685	A	G	csq_order	yes			
+14182	3911725	T	C	csq_order	yes			
+14189	693686	A	G	csq_order	yes			
+14193	693687	A	G	csq_order	yes			
+14198	693688	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361681,ND6	T/M>T/I
+14199	693689	T	C	csq_order	yes			
+14207	693690	G	A	csq_order	yes			
+14210	693691	A	G	csq_order	yes			
+14211	693692	C	T	csq_order	yes			
+14213	3337328	A	G	csq_order	yes			
+14225	693693	C	T	csq_order	yes			
+14226	693694	G	A	csq_order	yes			
+14231	693695	T	C	csq_order	yes			
+14233	3911726	A	G	csq_order	yes			
+14234	693696	T	C	csq_order	yes			
+14243	224776	G	GC	csq_order	yes			
+14248	3911727	C	A	csq_order	yes			
+14249	693697	G	A	csq_order	yes			
+14256	693698	T	C	csq_order	yes			
+14258	693699	G	A	csq_order	yes			
+14259	693700	G	A	csq_order	yes			
+14275	3911728	C	T	csq_order	yes			
+14276	693701	C	T	csq_order	yes			
+14279	65516	G	A	csq_order	yes			
+14280	693703	A	C	csq_order	yes			
+14280	693702	A	G	csq_order	yes			
+14281	3911729	C	T	csq_order	yes			
+14297	693704	A	G	csq_order	yes			
+14301	693705	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361681,ND6	M/V>I/V
+14307	693706	T	C	csq_order	yes			
+14312	693707	A	G	csq_order	yes			
+14315	693708	C	T	csq_order	yes			
+14318	693709	T	C	csq_order	yes			
+14319	9695	T	C	csq_order	yes			
+14325	65512	T	C	csq_order	yes			
+14328	693710	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361681,ND6	V/M>V/I
+14334	693711	C	T	csq_order	yes			
+14339	693712	A	G	csq_order	yes			
+14340	693713	C	T	csq_order	yes			
+14348	693714	T	C	csq_order	yes			
+14356	3911730	C	T	csq_order	yes			
+14357	693715	A	G	csq_order	yes			
+14365	3911731	C	T	csq_order	yes			
+14372	218344	C	A	csq_order	yes			
+14375	693716	A	C	csq_order	yes			
+14382	693717	T	G	csq_order	yes			
+14384	693718	G	A	csq_order	yes			
+14393	235743	A	G	csq_order	yes			
+14405	693719	A	G	csq_order	yes			
+14417	693720	A	G	csq_order	yes			
+14420	693721	C	T	csq_order	yes			
+14423	693722	G	A	csq_order	yes			
+14430	4795907	A	G	csq_order	yes			
+14433	693723	C	T	csq_order	yes			
+14444	693724	T	C	csq_order	yes			
+14453	9692	G	A	csq_order	yes			
+14459	9689	G	A	csq_order	yes			
+14462	693725	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	ENST00000361681,ND6	T/M>T/I
+14465	693726	G	A	csq_order	yes			
+14466	693727	T	C	csq_order	yes			
+14468	693728	T	C	csq_order	yes			
+14470	235574	T	A	csq_order	yes			
+14476	376998	G	A	csq_order	yes			
+14477	523306	A	G	csq_order	yes			
+14482	9693	C	A	csq_order	yes			
+14482	65513	C	G	csq_order	yes			
+14484	9688	T	C	csq_order	yes			
+14484	693729	T	G	csq_order	yes			
+14487	9694	T	C	csq_order	yes			
+14488	5003150	T	TC	csq_order	yes			
+14495	9691	A	G	csq_order	yes			
+14498	65514	T	C	csq_order	yes			
+14500	3251970	A	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361681,ND6	I/M>I
+14502	690281	T	C	csq_order	yes			
+14511	800503	CTA	C	codon_table	yes	Amino_acids	ENST00000361681,ND6	M/X>I/X
+14514	693730	T	C	codon_table	yes	Amino_acids,HGVSp	ENST00000361681,ND6	M/V>I/V
+14523	693731	T	C	csq_order	yes			
+14529	693732	C	T	csq_order	yes			
+14544	693733	G	T	csq_order	yes			
+14552	693734	A	G	csq_order	yes			
+14553	693735	C	T	csq_order	yes			
+14562	693736	C	T	csq_order	yes			
+14563	370059	C	T	csq_order	yes			
+14564	693737	A	G	csq_order	yes			
+14568	65515	C	T	csq_order	yes			
+14571	693738	T	A	csq_order	yes			
+14573	693739	A	G	csq_order	yes			
+14574	693740	C	T	csq_order	yes			
+14576	693741	A	G	csq_order	yes			
+14577	693743	T	C	csq_order	yes			
+14577	693742	T	G	csq_order	yes			
+14582	693744	A	G	csq_order	yes			
+14587	3911732	A	G	csq_order	yes			
+14596	9690	A	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361681,ND6	I/M>I
+14597	209173	A	G	csq_order	yes			
+14598	374080	T	C	csq_order	yes			
+14601	693745	G	A	csq_order	yes			
+14615	693746	G	A	csq_order	yes			
+14619	693747	A	G	csq_order	yes			
+14620	3911733	C	T	csq_order	yes			
+14627	693748	A	G	csq_order	yes			
+14633	618219	A	G	csq_order	yes			
+14634	693749	T	C	csq_order	yes			
+14660	693750	A	G	csq_order	yes			
+14663	441110	G	A	csq_order	yes			
+14664	4075128	C	T	csq_order	yes			
+14667	693751	A	G	csq_order	yes			
+14668	1344550	C	T	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	ENST00000361681,ND6	M>M/I
+14670	693752	T	C	csq_order	yes			
+14674	9618	T	C	csq_order	yes			
+14674	30003	T	G	csq_order	yes			
+14680	1684911	C	A	csq_order	yes			
+14681	690198	G	A	csq_order	yes			
+14683	690199	A	G	csq_order	yes			
+14684	690200	C	T	csq_order	yes			
+14687	690201	A	G	csq_order	yes			
+14690	690202	A	G	csq_order	yes			
+14691	690203	C	T	csq_order	yes			
+14692	267298	A	G	csq_order	yes			
+14693	690204	A	G	csq_order	yes			
+14696	690206	A	C	csq_order	yes			
+14696	690205	A	G	csq_order	yes			
+14701	618220	C	T	csq_order	yes			
+14706	370060	A	G	csq_order	yes			
+14709	9617	T	C	csq_order	yes			
+14710	690207	G	A	csq_order	yes			
+14716	690208	C	T	csq_order	yes			
+14724	805947	G	A	csq_order	yes			
+14727	690209	T	C	csq_order	yes			
+14729	690210	T	C	csq_order	yes			
+14732	143918	A	G	csq_order	yes			
+14739	690211	G	A	csq_order	yes			
+14743	143864	A	G	csq_order	yes			
+14748	693753	T	C	csq_order	yes			
+14750	693754	A	G	csq_order	yes			
+14750	693755	A	T	csq_order	yes			
+14751	693756	C	T	csq_order	yes			
+14753	143865	C	T	csq_order	yes			
+14757	693757	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+14760	693758	G	A	csq_order	yes			
+14765	693759	A	T	csq_order	yes			
+14766	140587	C	T	csq_order	yes			
+14768	693760	A	G	csq_order	yes			
+14769	693761	A	G	csq_order	yes			
+14771	374216	C	A	csq_order	yes			
+14778	693762	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+14780	9686	AAATT	A	csq_order	yes			
+14783	140588	T	C	csq_order	yes			
+14784	143866	T	C	csq_order	yes			
+14786	693763	A	G	csq_order	yes			
+14790	693764	A	G	csq_order	yes			
+14792	693765	C	T	csq_order	yes			
+14793	693766	A	G	csq_order	yes			
+14795	693767	T	C	csq_order	yes			
+14798	693768	T	C	csq_order	yes			
+14800	143867	C	T	csq_order	yes			
+14804	693769	G	A	csq_order	yes			
+14809	3911735	C	T	csq_order	yes			
+14813	693770	A	T	csq_order	yes			
+14825	693771	A	G	csq_order	yes			
+14826	693772	T	C	csq_order	yes			
+14831	65517	G	A	csq_order	yes			
+14831	693773	G	C	csq_order	yes			
+14832	693774	C	T	csq_order	yes			
+14838	693775	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	CYTB,ENST00000361789	W/*>*
+14841	693776	A	G	csq_order	yes			
+14846	9679	G	A	csq_order	yes			
+14849	9685	T	C	csq_order	yes			
+14854	370061	C	T	csq_order	yes			
+14858	693777	G	A	csq_order	yes			
+14861	693778	G	A	csq_order	yes			
+14862	693779	C	T	csq_order	yes			
+14864	2583106	T	C	csq_order	yes			
+14870	693780	A	G	csq_order	yes			
+14871	693781	T	C	csq_order	yes			
+14872	3911736	C	T	csq_order	yes			
+14873	693782	C	T	csq_order	yes			
+14879	693783	A	T	csq_order	yes			
+14880	693784	T	C	csq_order	yes			
+14883	693785	C	T	csq_order	yes			
+14884	3911737	C	T	csq_order	yes			
+14888	693786	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	G/*>G/R
+14891	143868	C	G	csq_order	yes			
+14895	693787	T	C	csq_order	yes			
+14900	693788	G	A	csq_order	yes			
+14905	143919	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	M>M/I
+14911	235655	C	T	csq_order	yes			
+14921	693789	G	A	csq_order	yes			
+14924	693790	T	C	csq_order	yes			
+14927	693791	A	G	csq_order	yes			
+14935	143920	T	C	csq_order	yes			
+14945	693792	G	A	csq_order	yes			
+14950	143869	C	T	csq_order	yes			
+14952	693793	T	C	csq_order	yes			
+14954	693794	A	G	csq_order	yes			
+14958	693795	G	A	csq_order	yes			
+14960	693796	G	A	csq_order	yes			
+14963	693797	G	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	V/M>V/I
+14968	143870	T	C	csq_order	yes			
+14969	618215	T	C	csq_order	yes			
+14970	693798	A	G	csq_order	yes			
+14973	693799	G	A	csq_order	yes			
+14974	143871	C	G	csq_order	yes			
+14976	693800	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	CYTB,ENST00000361789	W/*>*
+14978	693801	A	G	csq_order	yes			
+14979	693802	T	C	csq_order	yes			
+14980	693803	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	I/M>I
+14982	693804	T	C	csq_order	yes			
+14985	9676	G	A	csq_order	yes			
+14990	693805	C	T	csq_order	yes			
+14996	693806	G	A	csq_order	yes			
+15001	143872	T	C	csq_order	yes			
+15002	693807	G	A	csq_order	yes			
+15003	693808	G	A	csq_order	yes			
+15011	693809	A	G	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/V>I/V
+15014	693810	T	C	csq_order	yes			
+15016	693811	C	A	csq_order	yes			
+15024	693812	G	C	csq_order	yes			
+15033	693813	T	C	csq_order	yes			
+15041	4795908	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	G/*>G/R
+15043	140589	G	A	csq_order	yes			
+15045	693814	G	A	csq_order	yes			
+15047	693815	G	A	csq_order	yes			
+15048	693816	G	C	csq_order	yes			
+15049	143873	C	T	csq_order	yes			
+15058	143874	C	T	csq_order	yes			
+15059	693817	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	G/*>G/R
+15060	370062	G	A	csq_order	yes			
+15061	143921	A	G	csq_order	yes			
+15062	693818	T	C	csq_order	yes			
+15071	445709	T	C	csq_order	yes			
+15074	693819	T	C	csq_order	yes			
+15077	693820	G	A	csq_order	yes			
+15078	693821	A	G	csq_order	yes			
+15080	693822	A	G	csq_order	yes			
+15090	693823	T	C	csq_order	yes			
+15096	370063	T	C	csq_order	yes			
+15098	143875	A	G	csq_order	yes			
+15099	693824	T	C	csq_order	yes			
+15100	693825	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	I/M>I
+15110	693826	G	A	csq_order	yes			
+15113	693827	A	G	csq_order	yes			
+15117	693828	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15119	693829	G	A	csq_order	yes			
+15122	693830	A	G	csq_order	yes			
+15127	370064	C	T	csq_order	yes			
+15138	693831	A	G	csq_order	yes			
+15141	693832	T	C	csq_order	yes			
+15148	143922	G	A	csq_order	yes			
+15150	9681	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	CYTB,ENST00000361789	W/*>*
+15152	693833	G	A	csq_order	yes			
+15153	693834	G	A	csq_order	yes			
+15159	693835	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15164	693836	T	C	csq_order	yes			
+15170	1684906	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	G/*>G/R
+15191	693837	T	A	codon_table	yes	Amino_acids,HGVSp,PolyPhen	CYTB,ENST00000361789	L/M>L/I
+15191	445359	T	C	csq_order	yes			
+15192	2664158	T	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	L/W>L/*
+15197	9682	T	C	csq_order	yes			
+15200	693838	G	A	csq_order	yes			
+15203	693839	A	G	csq_order	yes			
+15204	693840	T	C	csq_order	yes			
+15212	693841	A	G	csq_order	yes			
+15213	693842	T	C	csq_order	yes			
+15214	143876	T	C	csq_order	yes			
+15215	2687510	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	G/*>G/R
+15217	235375	G	A	csq_order	yes			
+15218	693843	A	G	csq_order	yes			
+15221	693844	G	A	csq_order	yes			
+15222	693845	A	G	csq_order	yes			
+15226	143877	A	G	csq_order	yes			
+15228	693846	T	C	csq_order	yes			
+15233	693847	T	C	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	CYTB,ENST00000361789	W/R>*/R
+15233	693848	T	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	CYTB,ENST00000361789	W/G>*/G
+15235	377041	A	G	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT	CYTB,ENST00000361789	W>*/W
+15236	693849	A	G	csq_order	yes			
+15237	693850	T	G	csq_order	yes			
+15238	693851	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	I/M>I
+15242	9680	G	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	G/*>G/R
+15243	693852	G	A	csq_order	yes			
+15245	693853	G	A	csq_order	yes			
+15246	370065	G	A	csq_order	yes			
+15257	9674	G	A	csq_order	yes			
+15257	693854	GA	AG	csq_order	yes			
+15259	143923	C	T	csq_order	yes			
+15261	693855	G	A	csq_order	yes			
+15261	3062051	G	C	csq_order	yes			
+15262	376959	T	C	csq_order	yes			
+15263	693856	C	T	csq_order	yes			
+15266	693857	A	G	csq_order	yes			
+15272	693858	A	G	csq_order	yes			
+15273	693859	C	A	csq_order	yes			
+15287	140590	T	C	csq_order	yes			
+15288	3337316	T	C	csq_order	yes			
+15289	143878	T	C	csq_order	yes			
+15294	693860	T	C	csq_order	yes			
+15300	693861	T	C	csq_order	yes			
+15301	140591	G	A	csq_order	yes			
+15309	693862	T	C	csq_order	yes			
+15311	693863	A	G	csq_order	yes			
+15312	693864	T	C	csq_order	yes			
+15314	143879	G	A	csq_order	yes			
+15315	693865	C	T	csq_order	yes			
+15317	693866	G	A	csq_order	yes			
+15323	143880	G	A	csq_order	yes			
+15326	140592	A	G	csq_order	yes			
+15326	693867	AC	GT	csq_order	yes			
+15327	693868	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	T/M>T/I
+15328	143881	A	G	csq_order	yes			
+15334	143882	C	T	csq_order	yes			
+15336	693869	T	A	csq_order	yes			
+15341	693870	T	C	csq_order	yes			
+15346	143883	G	A	csq_order	yes			
+15349	143884	C	A	csq_order	yes			
+15349	143885	C	T	csq_order	yes			
+15355	143886	G	A	csq_order	yes			
+15357	693871	G	A	csq_order	yes			
+15363	143887	A	G	csq_order	yes			
+15377	693872	A	G	csq_order	yes			
+15380	693873	A	G	csq_order	yes			
+15381	693874	C	T	csq_order	yes			
+15383	693875	T	C	csq_order	yes			
+15385	143888	C	T	csq_order	yes			
+15386	693876	C	T	csq_order	yes			
+15401	693877	A	G	csq_order	yes			
+15402	3901280	C	G	csq_order	yes			
+15402	693878	C	T	csq_order	yes			
+15404	693879	T	C	csq_order	yes			
+15412	3911739	T	C	csq_order	yes			
+15413	693880	T	C	csq_order	yes			
+15414	693881	A	T	csq_order	yes			
+15428	693882	G	A	csq_order	yes			
+15431	143924	G	A	csq_order	yes			
+15434	693883	C	T	csq_order	yes			
+15437	235525	G	A	csq_order	yes			
+15446	373995	C	T	csq_order	yes			
+15449	693884	T	C	csq_order	yes			
+15450	693885	T	C	csq_order	yes			
+15452	143925	C	A	csq_order	yes			
+15452	693886	CT	AC	csq_order	yes			
+15453	143889	T	C	csq_order	yes			
+15458	143890	T	C	csq_order	yes			
+15459	143891	C	T	csq_order	yes			
+15462	693887	T	C	csq_order	yes			
+15465	693888	T	C	csq_order	yes			
+15467	618216	A	G	csq_order	yes			
+15468	693889	C	T	codon_table	yes	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	T/M>T/I
+15470	143892	T	C	csq_order	yes			
+15479	693890	T	C	csq_order	yes			
+15483	693891	C	T	csq_order	yes			
+15485	2501808	C	T	csq_order	yes			
+15487	377154	A	G	csq_order	yes			
+15488	693892	G	A	csq_order	yes			
+15492	441132	T	C	csq_order	yes			
+15497	9687	G	A	csq_order	yes			
+15498	9684	G	A	csq_order	yes			
+15500	693893	G	A	csq_order	yes			
+15501	693894	A	G	csq_order	yes			
+15511	143893	T	C	csq_order	yes			
+15512	693895	T	C	csq_order	yes			
+15514	235650	T	C	csq_order	yes			
+15519	693897	T	A	csq_order	yes			
+15519	693896	T	C	csq_order	yes			
+15521	693898	G	A	csq_order	yes			
+15522	693899	C	G	csq_order	yes			
+15524	693900	A	G	csq_order	yes			
+15525	693901	A	G	csq_order	yes			
+15529	3911740	C	T	csq_order	yes			
+15531	693902	T	C	csq_order	yes			
+15533	693903	A	G	csq_order	yes			
+15534	693904	A	G	csq_order	yes			
+15542	693905	C	T	csq_order	yes			
+15553	143894	G	A	csq_order	yes			
+15557	693906	G	A	csq_order	yes			
+15567	693907	T	C	csq_order	yes			
+15572	9677	T	C	csq_order	yes			
+15575	693908	G	A	csq_order	yes			
+15579	9683	A	G	csq_order	yes			
+15581	693909	A	G	csq_order	yes			
+15584	693910	A	G	csq_order	yes			
+15596	693911	G	A	csq_order	yes			
+15607	143926	A	G	csq_order	yes			
+15612	693912	G	A	csq_order	yes			
+15614	693913	G	A	csq_order	yes			
+15615	9678	G	A	csq_order	yes			
+15617	693915	G	A	csq_order	yes			
+15617	693914	G	C	csq_order	yes			
+15623	693916	G	A	csq_order	yes			
+15637	143895	C	T	csq_order	yes			
+15638	693917	A	G	csq_order	yes			
+15638	3906237	A	T	csq_order	yes			
+15639	693918	T	C	csq_order	yes			
+15642	693919	T	C	csq_order	yes			
+15644	693920	A	G	csq_order	yes			
+15645	973006	T	C	csq_order	yes			
+15649	143896	A	G	csq_order	yes			
+15650	693921	G	A	csq_order	yes			
+15651	693922	C	T	csq_order	yes			
+15653	693923	A	G	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/V>I/V
+15653	693924	A	T	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/L>I/L
+15654	693925	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15657	693926	T	C	csq_order	yes			
+15662	693927	A	G	csq_order	yes			
+15663	693928	T	C	csq_order	yes			
+15664	693929	C	A	codon_table	yes	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	I/M>I
+15670	143927	T	C	csq_order	yes			
+15672	693930	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15674	693931	T	C	csq_order	yes			
+15682	143897	A	G	csq_order	yes			
+15686	693932	A	G	csq_order	yes			
+15690	693933	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15692	693934	A	G	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/V>I/V
+15693	693935	T	C	codon_table	yes	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15708	441130	G	A	csq_order	yes			
+15708	693936	G	C	csq_order	yes			
+15725	693937	C	T	csq_order	yes			
+15731	693938	G	A	csq_order	yes			
+15732	693939	C	T	csq_order	yes			
+15734	693940	G	A	csq_order	yes			
+15735	693941	C	T	csq_order	yes			
+15737	693942	G	A	csq_order	yes			
+15740	693943	C	T	csq_order	yes			
+15743	693944	C	T	csq_order	yes			
+15746	235623	A	G	csq_order	yes			
+15747	693945	T	C	csq_order	yes			
+15758	143898	A	G	csq_order	yes			
+15773	693947	G	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	V/M>V/I
+15793	693955	C	A	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	I/M>I
+15803	693956	G	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	V/M>V/I
+15812	9675	G	A	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	V/M>V/I
+15828	693961	C	T	codon_table	no	Amino_acids,HGVSp,PolyPhen,SIFT	CYTB,ENST00000361789	T/M>T/I
+15843	693964	T	C	codon_table	no	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15873	693971	T	C	codon_table	no	Amino_acids,HGVSp	CYTB,ENST00000361789	M/T>I/T
+15874	3337317	A	T	codon_table	no	Amino_acids,Consequence,HGVSp,IMPACT,PolyPhen,SIFT	CYTB,ENST00000361789	M/I>I
+15933	690245	GA	G	hgvs_shift	no	HGVS_OFFSET,HGVSc	ENST00000387460,TRNT	
+15939	690254	C	CT	hgvs_shift	no	HGVS_OFFSET,HGVSc	ENST00000387460,TRNT	
+15939	690251	CT	C	hgvs_shift	no	HGVS_OFFSET,HGVSc	ENST00000387460,TRNT	

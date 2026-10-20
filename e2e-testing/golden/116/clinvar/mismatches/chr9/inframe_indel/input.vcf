@@ -1,0 +1,92 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##fileDate=2026-10-11
+##source=ClinVar
+##reference=GRCh38
+##ID=<Description="ClinVar Variation ID">
+##INFO=<ID=AF_ESP,Number=1,Type=Float,Description="allele frequencies from GO-ESP">
+##INFO=<ID=AF_EXAC,Number=1,Type=Float,Description="allele frequencies from ExAC">
+##INFO=<ID=AF_TGP,Number=1,Type=Float,Description="allele frequencies from TGP">
+##INFO=<ID=ALLELEID,Number=1,Type=Integer,Description="the ClinVar Allele ID">
+##INFO=<ID=CLNDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB">
+##INFO=<ID=CLNDNINCL,Number=.,Type=String,Description="For included Variant : ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB">
+##INFO=<ID=CLNDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier submitted for germline classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=CLNDISDBINCL,Number=.,Type=String,Description="For included Variant: Tag-value pairs of disease database name and identifier for germline classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=CLNHGVS,Number=.,Type=String,Description="Top-level (primary assembly, alt, or patch) HGVS expression.">
+##INFO=<ID=CLNREVSTAT,Number=.,Type=String,Description="ClinVar review status of germline classification for the Variation ID">
+##INFO=<ID=CLNSIG,Number=.,Type=String,Description="Aggregate germline classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNSIGCONF,Number=.,Type=String,Description="Conflicting germline classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNSIGINCL,Number=.,Type=String,Description="Germline classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNSIGSCV,Number=.,Type=String,Description="SCV accession numbers for the submissions that contribute to the aggregate germline classification in ClinVar; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNVC,Number=1,Type=String,Description="Variant type">
+##INFO=<ID=CLNVCSO,Number=1,Type=String,Description="Sequence Ontology id for variant type">
+##INFO=<ID=CLNVI,Number=.,Type=String,Description="the variant's clinical sources reported as tag-value pairs of database and variant identifier">
+##INFO=<ID=DBVARID,Number=.,Type=String,Description="nsv accessions from dbVar for the variant">
+##INFO=<ID=GENEINFO,Number=1,Type=String,Description="Gene(s) for the variant reported as gene symbol:gene id. The gene symbol and id are delimited by a colon (:) and each pair is delimited by a vertical bar (|)">
+##INFO=<ID=MC,Number=.,Type=String,Description="comma separated list of molecular consequence in the form of Sequence Ontology ID|molecular_consequence">
+##INFO=<ID=ONCDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in ONCDISDB">
+##INFO=<ID=ONCDNINCL,Number=.,Type=String,Description="For included variant: ClinVar's preferred disease name for the concept specified by disease identifiers in ONCDISDBINCL">
+##INFO=<ID=ONCDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier submitted for oncogenicity classifications, e.g. MedGen:NNNNNN">
+##INFO=<ID=ONCDISDBINCL,Number=.,Type=String,Description="For included variant: Tag-value pairs of disease database name and identifier for oncogenicity classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=ONC,Number=.,Type=String,Description="Aggregate oncogenicity classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=ONCINCL,Number=.,Type=String,Description="Oncogenicity classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar">
+##INFO=<ID=ONCREVSTAT,Number=.,Type=String,Description="ClinVar review status of oncogenicity classification for the Variation ID">
+##INFO=<ID=ONCSCV,Number=.,Type=String,Description="SCV accession numbers for the submissions that contribute to the aggregate oncogenicity classification in ClinVar; multiple values are separated by a vertical bar">
+##INFO=<ID=ONCCONF,Number=.,Type=String,Description="Conflicting oncogenicity classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=ORIGIN,Number=.,Type=String,Description="Allele origin. One or more of the following values may be added: 0 - unknown; 1 - germline; 2 - somatic; 4 - inherited; 8 - paternal; 16 - maternal; 32 - de-novo; 64 - biparental; 128 - uniparental; 256 - not-tested; 512 - tested-inconclusive; 1073741824 - other">
+##INFO=<ID=RS,Number=.,Type=String,Description="dbSNP ID (i.e. rs number)">
+##INFO=<ID=SCIDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in SCIDISDB">
+##INFO=<ID=SCIDNINCL,Number=.,Type=String,Description="For included variant: ClinVar's preferred disease name for the concept specified by disease identifiers in SCIDISDBINCL">
+##INFO=<ID=SCIDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier submitted for somatic clinial impact classifications, e.g. MedGen:NNNNNN">
+##INFO=<ID=SCIDISDBINCL,Number=.,Type=String,Description="For included variant: Tag-value pairs of disease database name and identifier for somatic clinical impact classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=SCIREVSTAT,Number=.,Type=String,Description="ClinVar review status of somatic clinical impact for the Variation ID">
+##INFO=<ID=SCI,Number=.,Type=String,Description="Aggregate somatic clinical impact for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=SCIINCL,Number=.,Type=String,Description="Somatic clinical impact classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar">
+##INFO=<ID=SCISCV,Number=.,Type=String,Description="SCV accession numbers for the submissions that contribute to the aggregate somatic clinical impact in ClinVar; multiple values are separated by a vertical bar">
+##contig=<ID=1>
+##contig=<ID=2>
+##contig=<ID=3>
+##contig=<ID=4>
+##contig=<ID=5>
+##contig=<ID=6>
+##contig=<ID=7>
+##contig=<ID=8>
+##contig=<ID=9>
+##contig=<ID=10>
+##contig=<ID=11>
+##contig=<ID=12>
+##contig=<ID=13>
+##contig=<ID=14>
+##contig=<ID=15>
+##contig=<ID=16>
+##contig=<ID=17>
+##contig=<ID=18>
+##contig=<ID=19>
+##contig=<ID=20>
+##contig=<ID=21>
+##contig=<ID=22>
+##contig=<ID=X>
+##contig=<ID=Y>
+##contig=<ID=MT>
+##contig=<ID=NT_113889.1>
+##contig=<ID=NT_113891.3>
+##contig=<ID=NT_187576.1>
+##contig=<ID=NT_187633.1>
+##contig=<ID=NT_187661.1>
+##contig=<ID=NT_187693.1>
+##contig=<ID=NW_009646201.1>
+##bcftools_viewVersion=1.13+htslib-1.19.1
+##bcftools_viewCommand=view -e ALT="." -t 1,2,17,11,19,3,16,7,5,10,12,6,9,15,X,4,8,14,20,22,13,18,21,MT,Y -Ou /home/tgambin/workspace/vep_data/input/clinvar/clinvar_20261011.vcf.gz; Date=Sun Oct 18 13:03:26 2026
+##bcftools_normVersion=1.13+htslib-1.19.1
+##bcftools_normCommand=norm -m -both -Oz -o /home/tgambin/workspace/vep_data/input/clinvar/clinvar_20261011.norm.vcf.gz.tmp; Date=Sun Oct 18 13:03:26 2026
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+9	3828310	2505757	AGCGGTCCAC	G	.	.	ALLELEID=2670721;CLNDISDB=MedGen:C3661900|MONDO:MONDO:0012436,MedGen:C1857775,OMIM:610199,Orphanet:79118;CLNDN=not_provided|Neonatal_diabetes_mellitus_with_congenital_hypothyroidism;CLNHGVS=NC_000009.12:g.3828310_3828319delinsG;CLNREVSTAT=criteria_provided,_multiple_submitters,_no_conflicts;CLNSIG=Uncertain_significance;CLNSIGSCV=SCV003933185|SCV005677340;CLNVC=Indel;CLNVCSO=SO:1000032;CLNVI=ClinGen:CA2580616148;GENEINFO=GLIS3:169792;MC=SO:0001820|inframe_indel;ORIGIN=1;RS=2537067526
+9	36249397	4814613	CCT	GCCAAAATA	.	.	ALLELEID=4928061;CLNDISDB=MONDO:MONDO:0011603,MedGen:C1853926,OMIM:605820,Orphanet:602;CLNDN=GNE_myopathy;CLNHGVS=NC_000009.12:g.36249397_36249399delinsGCCAAAATA;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Likely_pathogenic;CLNSIGSCV=SCV007525081;CLNVC=Indel;CLNVCSO=SO:1000032;GENEINFO=GNE:10020;MC=SO:0001574|splice_acceptor_variant,SO:0001627|intron_variant;ORIGIN=1
+9	77370460	4816431	AGGGGG	CCCTTAGCACCTATGCTACCATAGCAGCTATGACCATGGATGCTTGGTCCTTAGCACCATAGCTACCCA	.	.	ALLELEID=4926862;CLNDISDB=MONDO:MONDO:0008695,MedGen:C0393576,OMIM:200150,Orphanet:2388;CLNDN=VPS13A-related_neurodegenerative_disease;CLNHGVS=NC_000009.12:g.77370460_77370465delinsCCCTTAGCACCTATGCTACCATAGCAGCTATGACCATGGATGCTTGGTCCTTAGCACCATAGCTACCCA;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Likely_pathogenic;CLNSIGSCV=SCV007527704;CLNVC=Indel;CLNVCSO=SO:1000032;GENEINFO=VPS13A:23230;MC=SO:0001587|nonsense;ORIGIN=1
+9	92474742	3910744	CTCATCA	C	.	.	ALLELEID=4024723;CLNDISDB=MedGen:CN169374;CLNDN=not_specified;CLNHGVS=NC_000009.12:g.92474745ATC[12];CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Benign;CLNSIGSCV=SCV006104686;CLNVC=Microsatellite;CLNVCSO=SO:0000289;GENEINFO=CENPP:401541|ASPN:54829;MC=SO:0001627|intron_variant;ORIGIN=1
+9	95459618	419615	GCATGTAGTC	ACTA	.	.	ALLELEID=407779;CLNDISDB=MedGen:CN517202;CLNDN=not_provided;CLNHGVS=NC_000009.12:g.95459618_95459627delinsACTA;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Pathogenic;CLNSIGSCV=SCV000567530;CLNVC=Indel;CLNVCSO=SO:1000032;CLNVI=ClinGen:CA16618902;GENEINFO=PTCH1:5727;MC=SO:0001587|nonsense,SO:0001619|non-coding_transcript_variant;ORIGIN=1;RS=1064793991
+9	95508360	1498733	A	ATGT	.	.	ALLELEID=1395634;CLNDISDB=MONDO:MONDO:0015356,MeSH:D009386,MedGen:C0027672,Orphanet:140162|MONDO:MONDO:0007187,MedGen:C0004779,OMIM:PS109400,Orphanet:377;CLNDN=Hereditary_cancer-predisposing_syndrome|Gorlin_syndrome;CLNHGVS=NC_000009.12:g.95508363_95508365dup;CLNREVSTAT=criteria_provided,_multiple_submitters,_no_conflicts;CLNSIG=Uncertain_significance;CLNSIGSCV=SCV002278211|SCV005158170;CLNVC=Duplication;CLNVCSO=SO:1000035;CLNVI=ClinGen:CA1865612583;GENEINFO=PTCH1:5727|LOC130002133:130002133;MC=SO:0001582|initiator_codon_variant,SO:0001619|non-coding_transcript_variant,SO:0001627|intron_variant,SO:0001821|inframe_insertion;ORIGIN=1;RS=1843916701
+9	127817156	3712961	GTCAGGGC	CT	.	.	ALLELEID=3841225;CLNDISDB=MONDO:MONDO:0019180,MedGen:C0039445,OMIM:PS187300,Orphanet:774;CLNDN=Hereditary_hemorrhagic_telangiectasia;CLNHGVS=NC_000009.12:g.127817156_127817163delinsCT;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Uncertain_significance;CLNSIGSCV=SCV005824450;CLNVC=Indel;CLNVCSO=SO:1000032;GENEINFO=ENG:2022|LOC102723566:102723566;MC=SO:0001619|non-coding_transcript_variant,SO:0001820|inframe_indel;ORIGIN=1
+9	127818308	1773699	CAGGCCCCAAG	AAGGCCCAAT	.	.	ALLELEID=1830205;CLNDISDB=MedGen:CN230736;CLNDN=Cardiovascular_phenotype;CLNHGVS=NC_000009.12:g.127818308_127818318delinsAAGGCCCAAT;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Pathogenic;CLNSIGSCV=SCV002700858;CLNVC=Indel;CLNVCSO=SO:1000032;CLNVI=ClinGen:CA2580079659;GENEINFO=ENG:2022|LOC102723566:102723566;MC=SO:0001589|frameshift_variant;ORIGIN=1;RS=2539059724
+9	132912434	4905167	T	TCATGAGTTTCTAATCTCTTCCA	.	.	ALLELEID=5019234;CLNDISDB=.;CLNDN=TSC1-related_disorder;CLNHGVS=NC_000009.12:g.132912436_132912457dup;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Likely_pathogenic;CLNSIGSCV=SCV007737056;CLNVC=Duplication;CLNVCSO=SO:1000035;GENEINFO=TSC1:7248;MC=SO:0001587|nonsense,SO:0001619|non-coding_transcript_variant,SO:0001623|5_prime_UTR_variant;ORIGIN=1
+9	136439417	1420605	C	CATGGACGGT	.	.	ALLELEID=1403212;CLNDISDB=MONDO:MONDO:0018772,MedGen:C5979921,OMIM:PS213300,Orphanet:475|.;CLNDN=Joubert_syndrome|INPP5E-related_disorder;CLNHGVS=NC_000009.12:g.136439418_136439426dup;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Uncertain_significance;CLNSIGSCV=SCV002194101;CLNVC=Duplication;CLNVCSO=SO:1000035;CLNVI=ClinGen:CA591186241;GENEINFO=INPP5E:56623;ORIGIN=1;RS=1489150239

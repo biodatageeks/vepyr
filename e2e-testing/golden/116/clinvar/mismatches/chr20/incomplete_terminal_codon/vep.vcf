@@ -1,0 +1,86 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##fileDate=2026-10-11
+##source=ClinVar
+##reference=GRCh38
+##ID=<Description="ClinVar Variation ID">
+##INFO=<ID=AF_ESP,Number=1,Type=Float,Description="allele frequencies from GO-ESP">
+##INFO=<ID=AF_EXAC,Number=1,Type=Float,Description="allele frequencies from ExAC">
+##INFO=<ID=AF_TGP,Number=1,Type=Float,Description="allele frequencies from TGP">
+##INFO=<ID=ALLELEID,Number=1,Type=Integer,Description="the ClinVar Allele ID">
+##INFO=<ID=CLNDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB">
+##INFO=<ID=CLNDNINCL,Number=.,Type=String,Description="For included Variant : ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB">
+##INFO=<ID=CLNDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier submitted for germline classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=CLNDISDBINCL,Number=.,Type=String,Description="For included Variant: Tag-value pairs of disease database name and identifier for germline classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=CLNHGVS,Number=.,Type=String,Description="Top-level (primary assembly, alt, or patch) HGVS expression.">
+##INFO=<ID=CLNREVSTAT,Number=.,Type=String,Description="ClinVar review status of germline classification for the Variation ID">
+##INFO=<ID=CLNSIG,Number=.,Type=String,Description="Aggregate germline classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNSIGCONF,Number=.,Type=String,Description="Conflicting germline classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNSIGINCL,Number=.,Type=String,Description="Germline classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNSIGSCV,Number=.,Type=String,Description="SCV accession numbers for the submissions that contribute to the aggregate germline classification in ClinVar; multiple values are separated by a vertical bar">
+##INFO=<ID=CLNVC,Number=1,Type=String,Description="Variant type">
+##INFO=<ID=CLNVCSO,Number=1,Type=String,Description="Sequence Ontology id for variant type">
+##INFO=<ID=CLNVI,Number=.,Type=String,Description="the variant's clinical sources reported as tag-value pairs of database and variant identifier">
+##INFO=<ID=DBVARID,Number=.,Type=String,Description="nsv accessions from dbVar for the variant">
+##INFO=<ID=GENEINFO,Number=1,Type=String,Description="Gene(s) for the variant reported as gene symbol:gene id. The gene symbol and id are delimited by a colon (:) and each pair is delimited by a vertical bar (|)">
+##INFO=<ID=MC,Number=.,Type=String,Description="comma separated list of molecular consequence in the form of Sequence Ontology ID|molecular_consequence">
+##INFO=<ID=ONCDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in ONCDISDB">
+##INFO=<ID=ONCDNINCL,Number=.,Type=String,Description="For included variant: ClinVar's preferred disease name for the concept specified by disease identifiers in ONCDISDBINCL">
+##INFO=<ID=ONCDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier submitted for oncogenicity classifications, e.g. MedGen:NNNNNN">
+##INFO=<ID=ONCDISDBINCL,Number=.,Type=String,Description="For included variant: Tag-value pairs of disease database name and identifier for oncogenicity classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=ONC,Number=.,Type=String,Description="Aggregate oncogenicity classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=ONCINCL,Number=.,Type=String,Description="Oncogenicity classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar">
+##INFO=<ID=ONCREVSTAT,Number=.,Type=String,Description="ClinVar review status of oncogenicity classification for the Variation ID">
+##INFO=<ID=ONCSCV,Number=.,Type=String,Description="SCV accession numbers for the submissions that contribute to the aggregate oncogenicity classification in ClinVar; multiple values are separated by a vertical bar">
+##INFO=<ID=ONCCONF,Number=.,Type=String,Description="Conflicting oncogenicity classification for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=ORIGIN,Number=.,Type=String,Description="Allele origin. One or more of the following values may be added: 0 - unknown; 1 - germline; 2 - somatic; 4 - inherited; 8 - paternal; 16 - maternal; 32 - de-novo; 64 - biparental; 128 - uniparental; 256 - not-tested; 512 - tested-inconclusive; 1073741824 - other">
+##INFO=<ID=RS,Number=.,Type=String,Description="dbSNP ID (i.e. rs number)">
+##INFO=<ID=SCIDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in SCIDISDB">
+##INFO=<ID=SCIDNINCL,Number=.,Type=String,Description="For included variant: ClinVar's preferred disease name for the concept specified by disease identifiers in SCIDISDBINCL">
+##INFO=<ID=SCIDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier submitted for somatic clinial impact classifications, e.g. MedGen:NNNNNN">
+##INFO=<ID=SCIDISDBINCL,Number=.,Type=String,Description="For included variant: Tag-value pairs of disease database name and identifier for somatic clinical impact classifications, e.g. OMIM:NNNNNN">
+##INFO=<ID=SCIREVSTAT,Number=.,Type=String,Description="ClinVar review status of somatic clinical impact for the Variation ID">
+##INFO=<ID=SCI,Number=.,Type=String,Description="Aggregate somatic clinical impact for this single variant; multiple values are separated by a vertical bar">
+##INFO=<ID=SCIINCL,Number=.,Type=String,Description="Somatic clinical impact classification for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:classification; multiple values are separated by a vertical bar">
+##INFO=<ID=SCISCV,Number=.,Type=String,Description="SCV accession numbers for the submissions that contribute to the aggregate somatic clinical impact in ClinVar; multiple values are separated by a vertical bar">
+##contig=<ID=1>
+##contig=<ID=2>
+##contig=<ID=3>
+##contig=<ID=4>
+##contig=<ID=5>
+##contig=<ID=6>
+##contig=<ID=7>
+##contig=<ID=8>
+##contig=<ID=9>
+##contig=<ID=10>
+##contig=<ID=11>
+##contig=<ID=12>
+##contig=<ID=13>
+##contig=<ID=14>
+##contig=<ID=15>
+##contig=<ID=16>
+##contig=<ID=17>
+##contig=<ID=18>
+##contig=<ID=19>
+##contig=<ID=20>
+##contig=<ID=21>
+##contig=<ID=22>
+##contig=<ID=X>
+##contig=<ID=Y>
+##contig=<ID=MT>
+##contig=<ID=NT_113889.1>
+##contig=<ID=NT_113891.3>
+##contig=<ID=NT_187576.1>
+##contig=<ID=NT_187633.1>
+##contig=<ID=NT_187661.1>
+##contig=<ID=NT_187693.1>
+##contig=<ID=NW_009646201.1>
+##bcftools_viewVersion=1.13+htslib-1.19.1
+##bcftools_viewCommand=view -e ALT="." -t 1,2,17,11,19,3,16,7,5,10,12,6,9,15,X,4,8,14,20,22,13,18,21,MT,Y -Ou /home/tgambin/workspace/vep_data/input/clinvar/clinvar_20261011.vcf.gz; Date=Sun Oct 18 13:03:26 2026
+##bcftools_normVersion=1.13+htslib-1.19.1
+##bcftools_normCommand=norm -m -both -Oz -o /home/tgambin/workspace/vep_data/input/clinvar/clinvar_20261011.norm.vcf.gz.tmp; Date=Sun Oct 18 13:03:26 2026
+##VEP="v116.0" API="v116" time="2026-10-18 12:24:18" cache="/opt/vep/.vep/homo_sapiens_merged/116_GRCh38" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes="phase3" COSMIC="102" ClinVar="202509" HGMD-PUBLIC="20204" assembly="GRCh38.p14" dbSNP="156" gencode="GENCODE 50" genebuild="GENCODE50" gnomADe="v4.1" gnomADg="v4.1" polyphen="2.2.3" refseq="GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff" regbuild="1.0" sift="6.2.1"
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE|MANE_SELECT|MANE_PLUS_CLINICAL|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|UNIPROT_ISOFORM|REFSEQ_MATCH|SOURCE|REFSEQ_OFFSET|GIVEN_REF|USED_REF|BAM_EDIT|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|gnomADe_AF|gnomADe_AFR_AF|gnomADe_AMR_AF|gnomADe_ASJ_AF|gnomADe_EAS_AF|gnomADe_FIN_AF|gnomADe_MID_AF|gnomADe_NFE_AF|gnomADe_REMAINING_AF|gnomADe_SAS_AF|gnomADg_AF|gnomADg_AFR_AF|gnomADg_AMI_AF|gnomADg_AMR_AF|gnomADg_ASJ_AF|gnomADg_EAS_AF|gnomADg_FIN_AF|gnomADg_MID_AF|gnomADg_NFE_AF|gnomADg_REMAINING_AF|gnomADg_SAS_AF|MAX_AF|MAX_AF_POPS|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS">
+##VEP-command-line='vep --assembly GRCh38 --cache --database 0 --dir [PATH]/.vep --dir_plugins /plugins --everything --fasta [PATH]/Homo_sapiens.GRCh38.dna.primary_assembly.fa --force_overwrite --hgvs --input_file [PATH]/input.vcf.gz --merged --no_stats --offline --output_file [PATH]/output.vcf --vcf'
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+20	59877463	633614	GTTTTT	G	.	.	ALLELEID=622046;CLNDISDB=Human_Phenotype_Ontology:HP:0031039,MedGen:C4476925|Human_Phenotype_Ontology:HP:0011961,MedGen:C4021107|MONDO:MONDO:0009776,MedGen:C0403810,OMIM:258150;CLNDN=Spermatocyte_maturation_arrest|Non-obstructive_azoospermia|Oligosynaptic_infertility;CLNHGVS=NC_000020.11:g.59877468_59877472del;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Pathogenic/Likely_pathogenic;CLNSIGSCV=SCV000920593|SCV001860307;CLNVC=Deletion;CLNVCSO=SO:0000159;CLNVI=ClinGen:CA915953142|OMIM:604105.0001;GENEINFO=SYCP2:10388;MC=SO:0001589|frameshift_variant;ORIGIN=1;RS=753462162;CSQ=-|frameshift_variant|HIGH|SYCP2|ENSG00000196074|Transcript|ENST00000357552|protein_coding|33/45||ENST00000357552.8:c.3067_3071del|ENSP00000350162.2:p.Lys1023LeufsTer2|3275-3279|3067-3071|1023-1024|KN/X|AAAAAc/c|rs753462162||-1||deletion|HGNC|HGNC:11490|YES|MANE_Select|NM_014258.4||1|P1|CCDS13482.1|ENSP00000350162|Q9BX26.172||UPI0000135683|||Ensembl||TTTTT|TTTTT|||||AFDB-ENSP_mappings:AF-Q9BX26-F1||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|ENSG00000196074|Transcript|ENST00000371001|protein_coding|32/44||ENST00000371001.7:c.3067_3071del|ENSP00000360040.2:p.Lys1023LeufsTer2|4736-4740|3067-3071|1023-1024|KN/X|AAAAAc/c|rs753462162||-1||deletion|HGNC|HGNC:11490|||||1|P1|CCDS13482.1|ENSP00000360040|Q9BX26.172||UPI0000135683|||Ensembl||TTTTT|TTTTT|||||AFDB-ENSP_mappings:AF-Q9BX26-F1||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|ENSG00000196074|Transcript|ENST00000446834|protein_coding|33/33||ENST00000446834.5:c.3067_3071del|ENSP00000402456.1:p.Lys1023_Ter1024del|3337-3341|3067-3071|1023-1024|KX/-|AAAAA/-|rs753462162||-1|cds_end_NF|deletion|HGNC|HGNC:11490|||||1|||ENSP00000402456||A2A341.99|UPI0000E5A374|||Ensembl||TTTTT|TTTTT|||||AFDB-ENSP_mappings:AF-A2A341-F1&MobiDB_lite:mobidb-lite&MobiDB_lite:mobidb-lite||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|downstream_gene_variant|MODIFIER|SYCP2|ENSG00000196074|Transcript|ENST00000474749|protein_coding_CDS_not_defined||||||||||rs753462162|2851|-1||deletion|HGNC|HGNC:11490|||||4|||||||||Ensembl||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|ENSG00000196074|Transcript|ENST00001134248|protein_coding|33/45||ENST00001134248.1:c.3067_3071del|ENSP00000808571.1:p.Lys1023LeufsTer2|3322-3326|3067-3071|1023-1024|KN/X|AAAAAc/c|rs753462162||-1||deletion|HGNC|HGNC:11490||||||P1|CCDS13482.1|ENSP00000808571|||UPI0000135683|||Ensembl||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|NM_014258.4|protein_coding|33/45||NM_014258.4:c.3067_3071del|NP_055073.2:p.Lys1023LeufsTer2|3275-3279|3067-3071|1023-1024|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490|YES|MANE_Select|ENST00000357552.8|||||NP_055073.2||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_011528487.4|protein_coding|33/45||XM_011528487.4:c.3088_3092del|XP_011526789.1:p.Lys1030LeufsTer2|3296-3300|3088-3092|1030-1031|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_011526789.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_011528488.3|protein_coding|33/45||XM_011528488.3:c.3088_3092del|XP_011526790.1:p.Lys1030LeufsTer2|3634-3638|3088-3092|1030-1031|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_011526790.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_011528489.3|protein_coding|33/45||XM_011528489.3:c.3067_3071del|XP_011526791.1:p.Lys1023LeufsTer2|3613-3617|3067-3071|1023-1024|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_011526791.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_011528490.4|protein_coding|33/45||XM_011528490.4:c.3064_3068del|XP_011526792.1:p.Lys1022LeufsTer2|3272-3276|3064-3068|1022-1023|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_011526792.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_017027586.2|protein_coding|32/44||XM_017027586.2:c.3088_3092del|XP_016883075.1:p.Lys1030LeufsTer2|4710-4714|3088-3092|1030-1031|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_016883075.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_017027587.2|protein_coding|33/45||XM_017027587.2:c.3085_3089del|XP_016883076.1:p.Lys1029LeufsTer2|3293-3297|3085-3089|1029-1030|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_016883076.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_047439825.1|protein_coding|32/44||XM_047439825.1:c.3067_3071del|XP_047295781.1:p.Lys1023LeufsTer2|4689-4693|3067-3071|1023-1024|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_047295781.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_047439826.1|protein_coding|33/44||XM_047439826.1:c.3088_3092del|XP_047295782.1:p.Lys1030LeufsTer2|3296-3300|3088-3092|1030-1031|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_047295782.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|intron_variant|MODIFIER|SYCP2|10388|Transcript|XM_047439827.1|protein_coding||32/43|XM_047439827.1:c.3000+540_3000+544del|||||||rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_047295783.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|intron_variant|MODIFIER|SYCP2|10388|Transcript|XM_047439828.1|protein_coding||32/42|XM_047439828.1:c.3000+540_3000+544del|||||||rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_047295784.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||,-|frameshift_variant|HIGH|SYCP2|10388|Transcript|XM_047439829.1|protein_coding|27/39||XM_047439829.1:c.2572_2576del|XP_047295785.1:p.Lys858LeufsTer2|2654-2658|2572-2576|858-859|KN/X|AAAAAc/c|rs753462162||-1||deletion|EntrezGene|HGNC:11490||||||||XP_047295785.1||||||RefSeq||TTTTT|TTTTT|||||||||||||||||||||||||||||||||||||likely_pathogenic&pathogenic||1|31866047|||||
