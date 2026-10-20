@@ -80,7 +80,7 @@ def test_no_concurrency_group_runner_serialises():
     # A group keeps one pending run, so a third request would evict a queued one.
     assert not re.search(r"^\s*concurrency:", WF, re.M)
     assert "cancel-in-progress" not in WF
-    assert "max-parallel: 1" in job_block("profile")
+    assert "max-parallel: 3" in job_block("profile")
 
 
 def test_profile_job_runs_no_checked_out_code_on_host():

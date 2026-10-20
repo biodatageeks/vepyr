@@ -81,13 +81,19 @@ script is idempotent: existing verified downloads are reused, and the final
 data) rather than comparing against the wrong files. `check.sh` shows the
 same drift without running a job.
 
-## Serialisation
+## Parallelism
 
-The workflow has no concurrency group: jobs are serialised only because a
-single runner carries the `vepyr-wgs` label (GitHub queues jobs for it FIFO,
-for up to 24 hours) and the profile matrix uses `max-parallel: 1`. Adding a
-second `vepyr-wgs` runner removes that serialisation: two runs would then
-share `/data/vepyr`, the disk and the memory budget at once.
+Four hosts carry the `vepyr-wgs` label (`gh-runner-bdg-1`..`4`, `huge-c10m25`,
+one runner each, all provisioned by the `openstack-bdg-runners` `gha_runner`
+role with their own `/data/vepyr`, scratch and memory). A runner takes one job
+at a time, and the profile matrix uses `max-parallel: 3`, so one `/parity-wgs`
+request runs its three profiles on three hosts at once and takes as long as the
+slowest profile instead of the sum. Further jobs queue FIFO (up to 24 hours)
+for a free host. The workflow still has no concurrency group, because GitHub
+keeps only one pending run per group and would evict a queued admin run.
+
+Do not register a second runner service on the same host: two jobs there would
+share one `/data/vepyr`, scratch disk and memory budget.
 
 ## Runtime
 
