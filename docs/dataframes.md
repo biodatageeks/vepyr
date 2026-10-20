@@ -649,6 +649,12 @@ provenance and the `CSQ` declaration; its command-line line records the
 annotation but has no `output` or `compression`, and it does not record what you
 did to the frame afterwards.
 
+One exception until a polars-bio release carries the VCF writer of
+datafusion-bio-formats that re-encodes percent escapes
+([#207](https://github.com/biodatageeks/vepyr/issues/207)): an input value
+written with an escape such as ClinVar's `%3B` is written decoded by `sink_vcf`,
+which breaks that record, while `output_vcf` writes it back as it came in.
+
 That relies on three things:
 
 - **`skip_csq=False`.** Without the `CSQ` column there is nothing to write.
