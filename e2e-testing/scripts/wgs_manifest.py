@@ -43,11 +43,14 @@ def _canonical(manifest: dict) -> str:
 
 
 def _manifest_sha(manifest: dict) -> str:
-    return hashlib.sha256(_canonical(manifest).encode()).hexdigest()
+    staged_manifest = {
+        key: value for key, value in manifest.items() if key != "clinvar_profiles"
+    }
+    return hashlib.sha256(_canonical(staged_manifest).encode("utf-8")).hexdigest()
 
 
 def build_manifest(data: Path, chr22_manifest: Path, profiles: dict[str, str]) -> dict:
-    chr22 = json.loads(Path(chr22_manifest).read_text())
+    chr22 = json.loads(Path(chr22_manifest).read_text(encoding="utf-8"))
     profs, inputs = {}, {VCF: _entry(data, VCF)}
     for name, suffix in profiles.items():
         rel = _golden_rel(suffix)
@@ -148,19 +151,27 @@ def main(argv=None) -> int:
 
     if a.cmd == "prepare":
         m = build_manifest(a.data, a.chr22_manifest, PROFILES)
-        a.out.write_text(_canonical(m) + "\n")
+        if a.out.is_file():
+            previous = json.loads(a.out.read_text(encoding="utf-8"))
+            if previous.get("clinvar_profiles"):
+                m["clinvar_profiles"] = previous["clinvar_profiles"]
+        a.out.write_text(_canonical(m) + "\n", encoding="utf-8")
         return 0
-    manifest = json.loads(a.manifest.read_text())
+    manifest = json.loads(a.manifest.read_text(encoding="utf-8"))
     if a.cmd == "record-staged":
         a.out.write_text(
-            json.dumps(record_staged(a.data, manifest), indent=2, sort_keys=True) + "\n"
+            json.dumps(record_staged(a.data, manifest), indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
         )
         return 0
     sp = a.data / "STAGED.json"
     if not sp.is_file():
         print(f"no STAGED.json under {a.data} — {RESTAGE}", file=sys.stderr)
         return 3
-    problems = check_staged(a.data, manifest, json.loads(sp.read_text()))
+    problems = check_staged(
+        a.data, manifest, json.loads(sp.read_text(encoding="utf-8"))
+    )
     if problems:
         print("\n".join(problems), file=sys.stderr)
         print(RESTAGE, file=sys.stderr)

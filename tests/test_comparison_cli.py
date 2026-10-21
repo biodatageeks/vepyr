@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 from comparison import cli, profiles
@@ -34,6 +35,130 @@ def test_defaults(monkeypatch, tmp_path):
     assert args.isolate is False
     assert args.no_normalize is False
     assert args.chroms is None
+
+
+def test_internal_input_validation_bypass_is_not_a_cli_option():
+    with pytest.raises(SystemExit):
+        cli.parse_args(["--_profile-input-validated"])
+
+
+def test_skip_annotate_does_not_require_the_clinvar_input_or_manifest(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles, "WGS_MANIFEST_PATH", tmp_path / "missing-manifest.json"
+    )
+    monkeypatch.setattr(cli, "md5_summary", lambda *args: [])
+
+    rc = cli.main(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--chroms",
+            "chrY",
+            "--skip-annotate",
+            "--comparison-mode",
+            "md5",
+        ]
+    )
+
+    assert rc == 0
+
+
+@pytest.mark.parametrize("explicit_vcf", [False, True])
+def test_manifest_input_error_is_reported_without_a_traceback(
+    monkeypatch, tmp_path, capsys, explicit_vcf
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setenv("_VEPYR_PROFILE_INPUT_VALIDATED", "1")
+    manifest_path = tmp_path / "wgs-manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "clinvar_profiles": {
+                    "clinvar_merged": {
+                        "input": {
+                            "path": "input/clinvar/clinvar_20261011.norm.vcf.gz",
+                            "sha256": "unused",
+                            "size": 1,
+                        },
+                        "cache": {
+                            "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+                            "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+                        },
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(profiles, "WGS_MANIFEST_PATH", manifest_path)
+    cache = tmp_path / "cache/116_GRCh38_merged"
+    cache.mkdir(parents=True)
+    (cache / ".revision").write_text(
+        json.dumps(
+            {
+                "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+                "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    args = [
+        "--release",
+        "116",
+        "--profile",
+        "clinvar_merged",
+        "--chroms",
+        "chr1",
+        "--skip-compare",
+    ]
+    if explicit_vcf:
+        args.extend(
+            [
+                "--vcf",
+                str(tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"),
+            ]
+        )
+
+    rc = cli.main(args)
+
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "Error: missing manifest input" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_profile_cache_resolution_fails_before_clinvar_input_validation(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        profiles,
+        "validate_input_vcf",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("input scanning must wait until profile resolution")
+        ),
+    )
+
+    rc = cli.main(
+        [
+            "--release",
+            "116",
+            "--profile",
+            "clinvar_merged",
+            "--chroms",
+            "chr1",
+            "--skip-compare",
+        ]
+    )
+
+    assert rc == 2
+    assert "no Parquet cache" in capsys.readouterr().err
 
 
 def test_release_must_be_known():
@@ -269,8 +394,8 @@ def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
     report_dir.mkdir()
     stale_report = report_dir / "fast_chr1_merged_115_report.json"
     stale_ledger = report_dir / "fast_chr1_merged_115_mismatches.jsonl"
-    stale_report.write_text(json.dumps({"chrom": "chr1"}))
-    stale_ledger.write_text('{"kind":"old"}\n')
+    stale_report.write_text(json.dumps({"chrom": "chr1"}), encoding="utf-8")
+    stale_ledger.write_text('{"kind":"old"}\n', encoding="utf-8")
     observed = {}
 
     monkeypatch.setattr(cli, "__file__", str(module_path))
@@ -299,14 +424,14 @@ def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
     monkeypatch.setattr(cli, "resolve_contigs", lambda *_args: ["chr1", "chr2"])
     monkeypatch.setattr(cli.report, "get_build_info", lambda: {"git": "head"})
 
-    def run_isolated(chrom, _args):
+    def run_isolated(chrom, _args, _resolved=None):
         if chrom == "chr2":
             (report_dir / "fast_chr2_merged_115_report.json").write_text(
-                json.dumps({"chrom": "chr2"})
+                json.dumps({"chrom": "chr2"}), encoding="utf-8"
             )
             return True
-        stale_report.write_text(json.dumps({"attempt": "failed"}))
-        stale_ledger.write_text('{"kind":"partial"}\n')
+        stale_report.write_text(json.dumps({"attempt": "failed"}), encoding="utf-8")
+        stale_ledger.write_text('{"kind":"partial"}\n', encoding="utf-8")
         return False
 
     monkeypatch.setattr(cli, "_run_contig_isolated", run_isolated)
@@ -329,8 +454,10 @@ def test_failed_isolated_rerun_quarantines_and_excludes_old_evidence(
     assert not stale_ledger.exists()
     quarantined_report = report_dir / (stale_report.name + ".stale")
     quarantined_ledger = report_dir / (stale_ledger.name + ".stale")
-    assert json.loads(quarantined_report.read_text()) == {"attempt": "failed"}
-    assert quarantined_ledger.read_text() == '{"kind":"partial"}\n'
+    assert json.loads(quarantined_report.read_text(encoding="utf-8")) == {
+        "attempt": "failed"
+    }
+    assert quarantined_ledger.read_text(encoding="utf-8") == '{"kind":"partial"}\n'
 
 
 def test_main_forwards_the_sole_contig_to_profile_resolution(monkeypatch):
@@ -392,7 +519,8 @@ def test_main_passes_no_contig_when_several_are_requested(monkeypatch):
 def _vcf(path, csq):
     path.write_text(
         "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
-        f"chr1\t10\t.\tA\tT\t.\tPASS\tCSQ={csq}\n"
+        f"chr1\t10\t.\tA\tT\t.\tPASS\tCSQ={csq}\n",
+        encoding="utf-8",
     )
     return str(path)
 
@@ -420,7 +548,7 @@ def test_md5_summary_says_when_csq_order_was_ignored(tmp_path, capsys):
 
     entry = {"body_match": True, "vep_records": 1, "csq_order_ignored": True}
     path = report.report_json_path(str(tmp_path), "chr1", "merged_per_gene", "116")
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump({"md5": {"strict": entry}}, f)
 
     failed = cli.md5_summary(
@@ -438,7 +566,61 @@ def test_isolated_comparison_forwards_output_dir(monkeypatch, tmp_path):
     monkeypatch.setattr(
         cli.subprocess,
         "run",
-        lambda cmd: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+        lambda cmd, **_kwargs: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
     )
     assert cli._run_contig_isolated("chr22", args)
     assert seen[0][seen[0].index("--output-dir") + 1] == str(tmp_path)
+
+
+def test_isolated_comparison_forwards_the_parent_resolved_reference(monkeypatch):
+    args = cli.parse_args(["--release", "116"])
+    args.comparison_mode = "md5"
+    seen = []
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda cmd, **kwargs: (
+            seen.append(
+                (
+                    cmd,
+                    kwargs,
+                    json.loads(
+                        Path(
+                            kwargs["env"]["_VEPYR_PROFILE_INPUT_VALIDATION_TICKET"]
+                        ).read_text(encoding="utf-8")
+                    ),
+                )
+            )
+            or subprocess.CompletedProcess(cmd, 0)
+        ),
+    )
+    resolved = _fake_resolved("/data/output/reference.vcf.gz")
+
+    assert cli._run_contig_isolated("chr22", args, resolved)
+    command, options, ticket = seen[0]
+    assert command[command.index("--vep") + 1] == resolved.vep_vcf
+    assert "--_profile-input-validated" not in command
+    ticket_path = options["env"]["_VEPYR_PROFILE_INPUT_VALIDATION_TICKET"]
+    assert ticket == {
+        "parent_pid": os.getpid(),
+        "profile": args.profile,
+        "input_path": os.path.realpath(args.vcf),
+    }
+    assert not Path(ticket_path).exists()
+
+
+def test_isolated_comparison_forwards_normalize_override(monkeypatch, tmp_path):
+    args = cli.parse_args(
+        ["--release", "116", "--profile", "clinvar_merged", "--normalize"]
+    )
+    args.comparison_mode = "md5"
+    seen = []
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda cmd, **_kwargs: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0),
+    )
+
+    assert cli._run_contig_isolated("chr22", args)
+    assert "--normalize" in seen[0]
+    assert "--no-normalize" not in seen[0]
