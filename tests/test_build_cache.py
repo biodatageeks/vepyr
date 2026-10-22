@@ -807,7 +807,7 @@ class TestBuildCacheIntegration:
         alleles = tables["variation"].column("allele_string").to_pylist()
         assert all("/" in a for a in alleles)
 
-    # ── Transcript (106 rows, 78 cols) ──────────────────────────────
+    # ── Transcript (106 rows, 79 cols) ──────────────────────────────
 
     def test_transcript_row_count(self, built_cache):
         _, _, _, tables = built_cache
@@ -816,8 +816,9 @@ class TestBuildCacheIntegration:
     def test_transcript_column_count(self, built_cache):
         _, _, _, tables = built_cache
         # 77 since datafusion-bio-formats#269 (vepyr#241, #205) exports the
-        # translation SeqEdits as `translation_seq_edits`.
-        assert tables["transcript"].num_columns == 77
+        # translation SeqEdits as `translation_seq_edits`; 79 since
+        # datafusion-bio-formats#270 exports `gene_start` and `gene_end`.
+        assert tables["transcript"].num_columns == 79
 
     def test_transcript_omits_unpersisted_columns(self, built_cache):
         # The cache build stops at the columns something reads. The raw
