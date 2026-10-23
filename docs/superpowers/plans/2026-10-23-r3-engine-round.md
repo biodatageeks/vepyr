@@ -1,9 +1,12 @@
 # R3 ClinVar engine round
 
-This branch carries the draft functions PR stack #289–#294 through
-`r3/integration` at `bc3cfc3a13f97956fe1058132893319bb2754b98`. The engine
-changes cover vepyr issues #211, #212, #213, #220, #228, #232, #234, #237,
-#245 and #247. The formats pin remains
+This branch carries the draft functions PR stack #289–#294 and three regression
+fix branches through `r3/integration` at
+`9176255fe8a1e0310ede21aef58287d00017edf6`. The regression fixes address the
+12 second-pass issues found on the first integration head; the partial-CDS
+branch also addresses the Codex P1 on functions PR #295. The engine changes
+cover vepyr issues #211, #212, #213, #220, #228, #232, #234, #237, #245 and
+#247. The formats pin remains
 `6af1fa1480b2fc527e3b218585eae3a087f2aca9`; the formats release is postponed.
 
 This is an engine-pin round only. The integration branch was built and tested
