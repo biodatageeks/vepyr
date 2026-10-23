@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cache-n1
+spec:
+  completions: 1
+  parallelism: 1
+  completionMode: Indexed
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: cache-build-worker:local
+        imagePullPolicy: Never
+        env:
+        - name: WORKER_COUNT
+          value: "1"
+        - name: CHROMS
+          value: "22"

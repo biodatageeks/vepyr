@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: point5-baseline-chr1-3
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: worker
+        image: vepyr-cache-worker:chr1-3
+        imagePullPolicy: Never
+        env:
+        - name: WORKER_COUNT
+          value: "1"
+        - name: CHROMS
+          value: "1,2,3"
+        - name: CACHE_ROOT
+          value: "/raw_cache/homo_sapiens_merged/116_GRCh38"
+        - name: OUTPUT_DIR
+          value: "/output"
+        - name: MALLOC_ARENA_MAX
+          value: "1"
+        command: ["python", "/app/worker.py"]
+        resources:
+          requests:
+            cpu: "2"
+            memory: "6Gi"
+          limits:
+            cpu: "2"
+            memory: "6Gi"
+        volumeMounts:
+        - name: output
+          mountPath: /output
+      volumes:
+      - name: output
+        emptyDir: {}

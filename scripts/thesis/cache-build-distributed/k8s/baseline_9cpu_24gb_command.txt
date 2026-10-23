@@ -1,0 +1,1 @@
+/usr/bin/caffeinate -d -i -s -m /usr/bin/time -p docker run --rm --cpus=9 --memory=24g --memory-swap=24g -e WORKER_COUNT=1 -e WORKER_INDEX=0 -e CHROMS=1,2,3 -e CACHE_ROOT=/raw_cache/homo_sapiens_merged/116_GRCh38 -e OUTPUT_DIR=/output -v baseline-chr1-3-9cpu24gb:/output vepyr-cache-worker:chr1-3 python /app/worker.py

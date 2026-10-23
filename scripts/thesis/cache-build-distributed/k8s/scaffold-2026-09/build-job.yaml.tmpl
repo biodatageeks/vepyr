@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cache-build-${WORKER_COUNT}
+  labels:
+    app: cache-build-bench
+    worker-count: "${WORKER_COUNT}"
+spec:
+  completionMode: Indexed
+  completions: ${WORKER_COUNT}
+  parallelism: ${WORKER_COUNT}
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: cache-build-bench
+        worker-count: "${WORKER_COUNT}"
+    spec:
+      restartPolicy: Never
+      # Spread pods across distinct nodes so N pods actually exercises N
+      # separate VMs (multi-node minikube), not N pods piled on one node.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: cache-build-bench
+              worker-count: "${WORKER_COUNT}"
+      containers:
+        - name: worker
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          # `docker cp`/`kubectl cp` cannot reach a container's filesystem
+          # once it has exited (a colima/lima quirk: stopped-container `docker
+          # cp` fails with "could not find the file" even though `docker
+          # exec ... test -f` on the same path, same container, succeeds).
+          # Keep the container alive after the real work finishes so
+          # collection can use `kubectl cp` against a still-Running pod.
+          command: ["/bin/sh", "-c", "python /app/worker.py; echo COLLECT_READY; sleep 600"]
+          env:
+            - name: WORKER_COUNT
+              value: "${WORKER_COUNT}"
+            - name: CHROMS
+              value: "${CHROMS}"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 512Mi
+            limits:
+              memory: 4000Mi

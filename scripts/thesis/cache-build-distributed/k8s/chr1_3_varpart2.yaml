@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: point5-chr1-3-varpart2
+  labels:
+    point5-variant: chr1-3-varpart2
+spec:
+  completions: 3
+  parallelism: 3
+  completionMode: Indexed
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        point5-variant: chr1-3-varpart2
+    spec:
+      restartPolicy: Never
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                point5-variant: chr1-3-varpart2
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: worker
+        image: vepyr-cache-worker:chr1-3
+        imagePullPolicy: Never
+        env:
+        - name: WORKER_COUNT
+          value: "1"
+        - name: CHROM_SET
+          value: "1,2,3"
+        - name: CACHE_ROOT
+          value: "/raw_cache/homo_sapiens_merged/116_GRCh38"
+        - name: OUTPUT_DIR
+          value: "/output"
+        - name: MALLOC_ARENA_MAX
+          value: "1"
+        - name: VEPYR_VAR_PARTITIONS
+          value: "2"
+        command: ["sh", "-c"]
+        args:
+        - |
+          case "$JOB_COMPLETION_INDEX" in
+            0) export CHROMS=1;;
+            1) export CHROMS=2;;
+            2) export CHROMS=3;;
+          esac
+          unset JOB_COMPLETION_INDEX
+          export WORKER_INDEX=0
+          exec python /app/worker.py
+        resources:
+          requests:
+            cpu: "2"
+            memory: "6Gi"
+          limits:
+            cpu: "2"
+            memory: "6Gi"
+        volumeMounts:
+        - name: output
+          mountPath: /output
+      volumes:
+      - name: output
+        emptyDir: {}

@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: point5-chrom-shard
+  labels:
+    point5-variant: point5-chrom-shard
+spec:
+  completions: 3
+  parallelism: 3
+  completionMode: Indexed
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        point5-variant: point5-chrom-shard
+    spec:
+      restartPolicy: Never
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                point5-variant: point5-chrom-shard
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: worker
+        image: cache-build-worker:local
+        imagePullPolicy: Never
+        env:
+        - name: WORKER_COUNT
+          value: "3"
+        - name: CHROMS
+          value: "22"
+        command: ["sh", "-c"]
+        args:
+        - |
+          if [ "chromosome" = "chromosome" ]; then
+            case "$JOB_COMPLETION_INDEX" in
+              0) export CHROMS=20;;
+              1) export CHROMS=21;;
+              2) export CHROMS=22;;
+            esac
+          fi
+          exec python /app/worker.py
