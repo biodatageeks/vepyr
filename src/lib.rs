@@ -153,10 +153,10 @@ fn build_cache(
         build_concurrency
     }
     .max(1);
-    // The runtime needs enough worker threads to actually run the concurrent
-    // build units (each may also drive its own intra-query partitions), so
-    // decouple it from `partitions`.
-    let worker_threads = partitions.max(resolved_concurrency).max(1);
+    let available_cpus = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4);
+    let worker_threads = partitions.max(resolved_concurrency).max(available_cpus);
 
     let mut builder = CacheBuilder::new(cache_root, output_dir)
         .with_partitions(partitions)
