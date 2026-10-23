@@ -226,12 +226,11 @@ serde_json = "1"
 # below.
 # vepyr#207/#263: the VCF writer percent-encodes reserved characters in INFO/FORMAT
 # values (plus a space under a header before VCF 4.3), and the reader materializes
-# Type=Character INFO values. Functions is pinned to merge commit
-# `38af8c27c9f7ab6466dc923041e3e5d0088abe89` of datafusion-bio-functions#288 on
-# master, which carries the vepyr#240 round-2 PRs #277-#287 and pins the same
-# formats rev. Formats are pinned to the full master head
-# `6af1fa1480b2fc527e3b218585eae3a087f2aca9` (includes #264/#266 and #270); the
-# formats release is postponed. Both sources use full rev pins.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "38af8c27c9f7ab6466dc923041e3e5d0088abe89", features = ["cache-builder"] }
+# Type=Character INFO values. Functions is pinned to the R3 integration head,
+# which carries draft PRs #289-#294 for vepyr#240. The two functions workspace
+# crates resolve from this same full git revision. Formats remain pinned to the
+# full master head `6af1fa1480b2fc527e3b218585eae3a087f2aca9` (includes
+# #264/#266 and #270); the formats release is postponed.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "bc3cfc3a13f97956fe1058132893319bb2754b98", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
