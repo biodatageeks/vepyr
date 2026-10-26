@@ -1,0 +1,15 @@
+# R4 ClinVar engine pin
+
+Tracking issue: biodatageeks/vepyr#240. Base: vepyr master `c9a1ab86d99ad296f7c9399dcab49d24506491af` (#263).
+
+The functions integration is PR #304, merged to functions master as `ea47537a1d2a0db806e529903a84dcdd7514f24c` (its tree is identical to the gated integration head `f804d80cbf893769b6c9f7ccc450b3c923d60a49`). It carries the R4C stack (#242, #236, #155), R4B (#223, #227, #244), and R4A (#202, #208), plus Ensembl-source-backed conflict resolutions and source-backed RefSeq consequence/domain geometry fixes. This branch pins only `datafusion-bio-function-vep` to that functions revision and updates Cargo.lock. No ranges dev-dependency is needed in vepyr. Formats stay at `6af1fa1480b2fc527e3b218585eae3a087f2aca9`; the release remains postponed.
+
+## Round gates
+
+- `cargo test --no-default-features --features mimalloc` and `uv run pytest`.
+- Release builds for the R4 head and vepyr master `c9a1ab8`, using native CPU flags.
+- Strict HG002 merged-profile md5 for 22 contigs.
+- Unfiltered ClinVar full-ledger comparison over all 9,249 records and 25 contigs against the R3 baseline, plus the R4A/R4B/R4C identical-record union check and the named chr1/chr10 records.
+- `compare_runs.py` against vepyr master at 1 and 8 workers, with discarded warm-ups and ABBA/BAAB pairs.
+
+No formats or schema change is planned. The PR stays draft; `/parity-wgs` remains pending for the coordinator and is never run in this round task.
