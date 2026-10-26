@@ -225,12 +225,13 @@ serde_json = "1"
 # `9936c6e`; formats#262, merge commit `abac8df`). Both are ancestors of the pins
 # below.
 # vepyr#240 round 4: functions PR #304 integrates #296-#298, #301-#302 and
-# #299/#303, plus source-backed conflict fixes. Pin the VEP engine to integration
-# head f804d80cbf893769b6c9f7ccc450b3c923d60a49 by full rev; Cargo.lock records
-# that same git revision.
+# #299/#303, plus source-backed conflict fixes. Pin the VEP engine to #304's
+# merge commit ea47537a1d2a0db806e529903a84dcdd7514f24c on functions master by full rev
+# (tree identical to integration head f804d80); Cargo.lock records that same
+# git revision.
 # Formats remain pinned to the full master head
 # `6af1fa1480b2fc527e3b218585eae3a087f2aca9` (includes #264/#266 and #270); the
 # formats release is postponed.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "f804d80cbf893769b6c9f7ccc450b3c923d60a49", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "ea47537a1d2a0db806e529903a84dcdd7514f24c", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
