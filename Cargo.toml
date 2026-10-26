@@ -226,16 +226,16 @@ serde_json = "1"
 # below.
 # vepyr#240 round 4: functions PR #304 integrates #296-#298, #301-#302 and
 # #299/#303, plus source-backed conflict fixes. Pin the functions workspace
-# crates to integration head 1f679e460ad3fad627fbcefc7834ba17adb0a60c by full
+# crates to integration head 45d925d528dc6592d6182588e5c00b573b58dd50 by full
 # rev; Cargo.lock records each resolved crate at the same git revision.
 # Formats remain pinned to the full master head
 # `6af1fa1480b2fc527e3b218585eae3a087f2aca9` (includes #264/#266 and #270); the
 # formats release is postponed.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1f679e460ad3fad627fbcefc7834ba17adb0a60c", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "45d925d528dc6592d6182588e5c00b573b58dd50", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "6af1fa1480b2fc527e3b218585eae3a087f2aca9" }
 
 [dev-dependencies]
 # Keep the workspace sibling on the same source revision as the VEP engine.
 # It is a test-only pin because the engine uses ranges in its own dev-dependencies.
-datafusion-bio-function-ranges = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1f679e460ad3fad627fbcefc7834ba17adb0a60c" }
+datafusion-bio-function-ranges = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "45d925d528dc6592d6182588e5c00b573b58dd50" }

@@ -2,7 +2,7 @@
 
 Tracking issue: biodatageeks/vepyr#240. Base: vepyr master `c9a1ab86d99ad296f7c9399dcab49d24506491af` (#263).
 
-The functions integration is PR #304 at `1f679e460ad3fad627fbcefc7834ba17adb0a60c`. It carries the R4C stack (#242, #236, #155), R4B (#223, #227, #244), and R4A (#202, #208), plus Ensembl-source-backed conflict resolutions. This branch pins that functions revision and updates Cargo.lock. Formats stay at `6af1fa1480b2fc527e3b218585eae3a087f2aca9`; the release remains postponed.
+The functions integration is PR #304 at `45d925d528dc6592d6182588e5c00b573b58dd50`. It carries the R4C stack (#242, #236, #155), R4B (#223, #227, #244), and R4A (#202, #208), plus Ensembl-source-backed conflict resolutions and the source-backed RefSeq mapped-span consequence fix. This branch pins that functions revision and updates Cargo.lock. Formats stay at `6af1fa1480b2fc527e3b218585eae3a087f2aca9`; the release remains postponed.
 
 ## Round gates
 
