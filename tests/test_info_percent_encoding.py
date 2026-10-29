@@ -69,14 +69,10 @@ RESERVED = [
 # `CLNVI=...base_change%3Dins%20A`).
 ESCAPED_SPACE = ("GENEINFO=base_change%3Dins%20A;CLNVI=a%20b,c;P=x", "0/1:x")
 
-# Input bytes the writer cannot restore, because the reader already decoded
-# them: an escape of a character that needs none (`%2B`, `%20` under a VCF 4.3
-# header, which allows a space, and `%3B` in a sample column, where `;`
-# separates nothing) comes back decoded, a lower-case escape comes back
-# upper-cased, and a literal `%` that starts no escape (valid before VCF 4.3)
-# comes back as `%25`. Exact bytes need the raw input text carried through, the
-# #207 follow-up (#252). One case each, as (fileformat, INFO, sample), so a
-# partial follow-up shows up as an XPASS.
+# Inputs that the typed values alone cannot restore. Formats #272 carries the
+# original INFO text, so these four INFO cases now round-trip exactly. The
+# FORMAT sample semicolon remains outside that raw-INFO carry and stays an
+# expected failure.
 UNRESTORABLE = {
     "space_from_vcf_4_3": ("VCFv4.3", "GENEINFO=base_change%3Dins%20A;P=x", "0/1:x"),
     "plus": ("VCFv4.2", "GENEINFO=a%2Bb;P=x", "0/1:x"),
@@ -164,12 +160,22 @@ def test_a_literal_space_stays_literal_from_vcf_4_3(tmp_path):
     assert (_input_info(written), written[9]) == record
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="vepyr#252: escapes the writer does not re-encode need the raw input "
-    "text carried through",
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param(
+            "format_semicolon",
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="the raw source carry covers INFO, not FORMAT sample text",
+            ),
+        ),
+        "literal_percent",
+        "lower_case",
+        "plus",
+        "space_from_vcf_4_3",
+    ],
 )
-@pytest.mark.parametrize("case", sorted(UNRESTORABLE))
 def test_unrestorable_escapes_are_written_back_byte_for_byte(tmp_path, case):
     file_format, *record = UNRESTORABLE[case]
     (written,) = _annotate_vcf(tmp_path, [tuple(record)], file_format)

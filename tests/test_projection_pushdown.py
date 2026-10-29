@@ -197,7 +197,10 @@ def _frame_columns() -> list[str]:
     return annotate().collect_schema().names()
 
 
-ALL_COLUMNS = _frame_columns()
+# formats #272 adds `_vcf_raw_info` as a private record-layout helper. It is
+# present in the LazyFrame schema for VCF sinks, but is not an annotate_vep
+# output column and is not part of the public per-column projection matrix.
+ALL_COLUMNS = [column for column in _frame_columns() if column != "_vcf_raw_info"]
 
 
 @pytest.mark.parametrize("column", [c for c in ALL_COLUMNS if c not in KEY])
