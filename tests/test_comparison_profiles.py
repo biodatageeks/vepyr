@@ -817,4 +817,5 @@ def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
     )
     assert profile["golden"]["size"] == 5885304891
     assert profile["no_normalize"] is True
-    assert profile["cache"]["revision"].startswith("5b83dd8")
+    # The ClinVar run stages the same merged cache as the HG002 profiles.
+    assert profile["cache"]["revision"] == manifest["caches"]["merged"]["revision"]
