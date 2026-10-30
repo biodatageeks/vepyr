@@ -49,6 +49,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      # The runner's own python3 (ubuntu-26.04) ships no shared libpython for
+      # the test binary to link, so use a setup-python interpreter, which does.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       # The `extension-module` feature makes PyO3 skip linking libpython (the
       # interpreter supplies the symbols when the module is imported), which
       # leaves a standalone `cargo test` binary with undefined Python symbols.

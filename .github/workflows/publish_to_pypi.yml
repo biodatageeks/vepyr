@@ -94,6 +94,10 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.ref }}
       - uses: dtolnay/rust-toolchain@stable
+      # The runner's python3 has no shared libpython to link; setup-python's does.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       # extension-module makes PyO3 skip linking libpython; build tests without
       # it so the standalone test binary links libpython, and expose LIBDIR.
       - name: cargo test
