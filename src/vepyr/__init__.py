@@ -54,7 +54,9 @@ log = logging.getLogger(__name__)
 
 # Record-layout columns (``preserve_record_layout``); the engine only carries
 # them when a query reads one.
-_RECORD_LAYOUT_COLUMNS = frozenset({"_vcf_info_keys", "_vcf_format_keys"})
+_RECORD_LAYOUT_COLUMNS = frozenset(
+    {"_vcf_info_keys", "_vcf_format_keys", "_vcf_raw_info"}
+)
 
 # Plugin cache manifest value types (engine ``ValueType``) to Polars dtypes.
 _PLUGIN_VALUE_TYPES = {"Utf8": "String", "Float32": "Float32", "Int32": "Int32"}
@@ -1613,9 +1615,9 @@ def annotate(
         non-variant while ``ALT=C,.`` is an ordinary record.
     preserve_record_layout : bool, optional
         Write each record's INFO fields in the order the input wrote them, and
-        its own FORMAT keys (default: on). On the LazyFrame it adds two string
-        columns, ``_vcf_info_keys`` and ``_vcf_format_keys``, which
-        ``polars_bio.sink_vcf`` uses to write each record exactly as
+        its own FORMAT keys (default: on). On the LazyFrame it adds three string
+        columns, ``_vcf_info_keys``, ``_vcf_format_keys`` and ``_vcf_raw_info``
+        (the record's INFO text as read), which ``polars_bio.sink_vcf`` uses to write each record exactly as
         ``output_vcf`` would; they have to stay in the frame for that. Pass
         ``False`` to leave them out. The default is skipped for an input that
         cannot carry the layout (BCF, or a file declaring a field with either
@@ -2053,9 +2055,9 @@ def annotate(
         opts["vcf_info_fields"] = list(info_fields)
     if format_fields is not None:
         opts["vcf_format_fields"] = list(format_fields)
-    # LazyFrame path: carry `_vcf_info_keys` / `_vcf_format_keys` so that
-    # polars_bio.sink_vcf writes each record exactly as output_vcf does. On by
-    # default; the default gives way for an input that cannot carry it (BCF, or a
+    # LazyFrame path: carry `_vcf_info_keys` / `_vcf_format_keys` /
+    # `_vcf_raw_info` so that polars_bio.sink_vcf writes each record exactly as
+    # output_vcf does. On by default; the default gives way for an input that cannot carry it (BCF, or a
     # file declaring a field with either name), an explicit True raises. With no
     # input INFO or FORMAT field selected there is no layout to keep, and that
     # selection is the 0.7 frame exactly, so the default leaves it alone.
