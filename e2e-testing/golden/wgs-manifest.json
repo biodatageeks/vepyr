@@ -2,15 +2,15 @@
   "caches": {
     "ensembl": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_ensembl",
-      "revision": "058d887ec86163333fcbdd20c28ef75683faa8b5"
+      "revision": "02d7acf270f8ae63e3bfeca01f210923cc5192cf"
     },
     "merged": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-      "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+      "revision": "ac2c8ad979ad063816368b0720e6e4501d64a3f3"
     },
     "refseq": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_refseq",
-      "revision": "ae28273ce0b4744201ddaecd71a7ea8bf2c19d95"
+      "revision": "2f78f969add42aa9ae016751b276262cc2143533"
     }
   },
   "fasta": "input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
@@ -80,7 +80,7 @@
       "cache": {
         "flavour": "merged",
         "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-        "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+        "revision": "ac2c8ad979ad063816368b0720e6e4501d64a3f3"
       }
     }
   },
