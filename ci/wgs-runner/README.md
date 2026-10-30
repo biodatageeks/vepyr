@@ -77,7 +77,9 @@ It writes `/work/result.json` and `/work/summary.txt`.
 `wgs-manifest.json` pins the goldens, inputs and cache revisions. When it
 changes (a new cache revision or regenerated goldens), re-run step 7. The
 script is idempotent: existing verified downloads are reused, and the final
-`record-staged` rewrites `STAGED.json`. Until then every job exits 3 (stale
+`record-staged` rewrites `STAGED.json`. A cache at a new revision fetches only
+the files that changed: it is staged in a hard-link copy of the current cache,
+swapped in once complete, and stripped of files the new revision dropped. Until then every job exits 3 (stale
 data) rather than comparing against the wrong files. `check.sh` shows the
 same drift without running a job.
 

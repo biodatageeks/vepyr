@@ -34,9 +34,14 @@ fetch() { # url dest [sha256]: download to .part, re-download when the sha diffe
 [ ! -d "$DATA" ] || chmod -R u+w "$DATA"
 mkdir -p "$DATA/cache" "$DATA/input" "$DATA/output/116"
 
-# 2. caches. `hf download --local-dir` never deletes files that a newer
-# revision dropped, and record-staged hashes everything under $DATA, so a cache
-# at another revision is rebuilt in a fresh sibling dir and swapped in.
+# 2. caches. A cache at another revision is rebuilt in a sibling dir and
+# swapped in, so a failed download leaves the old one intact. The sibling starts
+# as a hard-link copy of the current cache: `hf download --local-dir` skips a
+# file whose recorded etag still matches and lands a changed one by rename,
+# which never writes through a link into the old cache. Only the changed files
+# are fetched. Its metadata under .cache/ is rewritten in place, so that is a
+# real copy. `hf download` never deletes, and record-staged lists every file
+# under $DATA, so files the revision dropped are removed afterwards.
 for flavour in $(mf "' '.join(sorted(d['caches']))"); do
   repo_id="$(mf "d['caches']['$flavour']['repo_id']")"
   rev="$(mf "d['caches']['$flavour']['revision']")"
@@ -46,8 +51,33 @@ for flavour in $(mf "' '.join(sorted(d['caches']))"); do
     continue
   fi
   rm -rf "$dest.new" "$dest.old"
+  if [ -d "$dest" ]; then
+    cp -al "$dest" "$dest.new"
+    rm -rf "$dest.new/.cache" "$dest.new/.revision"
+    if [ -d "$dest/.cache" ]; then
+      cp -a "$dest/.cache" "$dest.new/.cache" && chmod -R u+w "$dest.new/.cache"
+    fi
+  fi
   uvx --from huggingface_hub hf download "$repo_id" --repo-type dataset \
     --revision "$rev" --local-dir "$dest.new"
+  uv run --no-project --with huggingface_hub python3 - "$repo_id" "$rev" "$dest.new" <<'PY'
+import sys
+from pathlib import Path
+from huggingface_hub import HfApi
+repo_id, rev, root = sys.argv[1], sys.argv[2], Path(sys.argv[3])
+keep = set(HfApi().list_repo_files(repo_id, repo_type="dataset", revision=rev))
+meta = root / ".cache" / "huggingface" / "download"
+for p in sorted(root.rglob("*")):
+    rel = p.relative_to(root).as_posix()
+    if p.is_file() and not rel.startswith(".cache/") and rel not in keep:
+        print(f"removing {rel} (not in {rev})")
+        p.unlink()
+        for m in (meta / f"{rel}.metadata", meta / f"{rel}.lock"):
+            m.unlink(missing_ok=True)
+for p in sorted((q for q in root.rglob("*") if q.is_dir()), reverse=True):
+    if not any(p.iterdir()):
+        p.rmdir()
+PY
   echo "$rev" > "$dest.new/.revision"
   [ ! -e "$dest" ] || mv "$dest" "$dest.old"
   mv "$dest.new" "$dest"
