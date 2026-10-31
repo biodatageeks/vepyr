@@ -227,6 +227,6 @@ serde_json = "1"
 # vepyr#240 round 5: functions integration PR #313 includes functions #305-#312
 # and source-backed conflict fixes. Pin its current integration head by full rev.
 # Formats PR #272 is also pinned by full rev until its merge; release postponed.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7747ac80bad8655a77dc55c81d4fd9570659401c", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "27119f7702fbffe3e0f4623affd53c64cd4a00e1", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
