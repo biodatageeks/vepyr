@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import json
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,23 @@ import pytest
 from pins import Pin, PinError, load_pins, main, render_table
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = REPO_ROOT.parent
+
+
+def _published_cache_pins() -> dict[tuple[int, str, str], str]:
+    """Read the literal PINS mapping without importing the vepyr package."""
+    published = PROJECT_ROOT / "src" / "vepyr" / "_published.py"
+    module = ast.parse(published.read_text(encoding="utf-8"), filename=str(published))
+    pins_assignment = next(
+        node
+        for node in module.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "PINS"
+    )
+    pins = ast.literal_eval(pins_assignment.value)
+    assert isinstance(pins, dict)
+    return pins
 
 
 def test_every_real_pin_loads_and_is_well_formed() -> None:
@@ -23,6 +42,27 @@ def test_every_real_pin_loads_and_is_well_formed() -> None:
     assert all(p.role == "dataset" for p in pins.values())
     assert all(len(p.sha) == 40 for p in pins.values() if p.name != "grch38_fasta")
     assert len(pins["grch38_fasta"].sha) == 64
+
+
+def test_cache_pins_match_published_pins_and_golden_manifests() -> None:
+    """One published pin set guards PINS.toml and the checked-in cache manifests."""
+    cache_types = ("ensembl", "refseq", "merged")
+    published = _published_cache_pins()
+    pins = load_pins(REPO_ROOT / "PINS.toml")
+
+    for cache_type in cache_types:
+        revision = published[(116, "GRCh38", cache_type)]
+        assert pins[f"hf_cache_{cache_type}"].sha == revision
+
+    manifests = (
+        PROJECT_ROOT / "e2e-testing" / "golden" / "116" / "chr22" / "manifest.json",
+        PROJECT_ROOT / "e2e-testing" / "golden" / "wgs-manifest.json",
+    )
+    for manifest_path in manifests:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for cache_type, cache in manifest["caches"].items():
+            if cache_type in cache_types:
+                assert cache["revision"] == published[(116, "GRCh38", cache_type)]
 
 
 def test_a_short_sha_is_rejected(tmp_path: Path) -> None:
