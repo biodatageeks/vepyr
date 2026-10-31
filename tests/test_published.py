@@ -48,7 +48,7 @@ def test_repository_ids():
 def test_pinned_revision_is_the_default():
     assert (
         _published.cache_revision(116, "GRCh38", "merged", None)
-        == "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+        == _published.PINS[(116, "GRCh38", "merged")]
     )
     assert (
         _published.plugin_revision(116, "GRCh38", "clinvar", None)

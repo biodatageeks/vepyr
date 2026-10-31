@@ -244,6 +244,25 @@ def load_dataset_pins(
     return datasets, fasta
 
 
+def _network_errors() -> tuple[type[BaseException], ...]:
+    """Return the Hub client's optional transport-error classes."""
+    import httpx
+    from huggingface_hub.errors import HfHubHTTPError
+
+    errors: tuple[type[BaseException], ...] = (
+        HfHubHTTPError,
+        httpx.HTTPError,
+        OSError,
+    )
+    try:
+        import httpx2
+    except ImportError:
+        pass
+    else:
+        errors += (httpx2.HTTPError,)
+    return errors
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RemoteFile:
     """One file of a dataset at the pinned revision, as the Hub describes it."""
@@ -294,20 +313,20 @@ def hub_lister(repo_id: str, revision: str) -> list[RemoteFile]:
         RunTestsError: :attr:`Exit.REVISION` when the revision or repository is not
             found; :attr:`Exit.INCOMPLETE` when the Hub cannot be reached.
     """
-    import httpx
     from huggingface_hub import HfApi
     from huggingface_hub.errors import (
-        HfHubHTTPError,
         RepositoryNotFoundError,
         RevisionNotFoundError,
     )
+
+    network_errors = _network_errors()
 
     try:
         info = HfApi().dataset_info(repo_id, revision=revision, files_metadata=True)
     except (RevisionNotFoundError, RepositoryNotFoundError) as exc:
         raise RunTestsError(Exit.REVISION, f"{repo_id}@{revision}: {exc}") from exc
-    except (HfHubHTTPError, httpx.HTTPError, OSError) as exc:
-        # httpx.ConnectError & co. are NOT OSError (httpx 0.28) but httpx.HTTPError.
+    except network_errors as exc:
+        # Hub 2.x uses httpx2; older clients use httpx. Neither ConnectError is OSError.
         raise RunTestsError(
             Exit.INCOMPLETE, f"{repo_id}@{revision}: Hub unreachable: {exc}"
         ) from exc
@@ -345,14 +364,14 @@ def hub_downloader(
         RunTestsError: :attr:`Exit.REVISION` / :attr:`Exit.INCOMPLETE` mapped from the
             library's own exception classes.
     """
-    import httpx
     from huggingface_hub import snapshot_download
     from huggingface_hub.errors import (
-        HfHubHTTPError,
         IncompleteSnapshotError,
         RepositoryNotFoundError,
         RevisionNotFoundError,
     )
+
+    network_errors = _network_errors()
 
     manifests_only = allow_patterns == [f"*/{MANIFEST}"]
     try:
@@ -374,7 +393,7 @@ def hub_downloader(
         raise RunTestsError(Exit.REVISION, f"{repo_id}@{revision}: {exc}") from exc
     except IncompleteSnapshotError as exc:
         raise RunTestsError(Exit.INCOMPLETE, f"{repo_id}@{revision}: {exc}") from exc
-    except (HfHubHTTPError, httpx.HTTPError, OSError) as exc:
+    except network_errors as exc:
         raise RunTestsError(
             Exit.INCOMPLETE, f"{repo_id}@{revision}: Hub unreachable: {exc}"
         ) from exc
@@ -384,7 +403,7 @@ def hub_downloader(
         # the httpx exception (measured 2026-09-07: ``httpx.ReadTimeout`` escaped as a
         # raw traceback, exit 1). Same class of failure: exit 4.
         cause = exc.__cause__ or exc.__context__
-        if isinstance(cause, (HfHubHTTPError, httpx.HTTPError, OSError)):
+        if isinstance(cause, network_errors):
             raise RunTestsError(
                 Exit.INCOMPLETE,
                 f"{repo_id}@{revision}: Hub unreachable: {cause} ({exc})",

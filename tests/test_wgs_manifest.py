@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from vepyr import _published
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "e2e-testing" / "scripts"))
 import wgs_manifest  # noqa: E402
@@ -142,7 +143,11 @@ def test_prepare_preserves_clinvar_profiles_in_existing_manifest(
     data = tmp_path / "data"
     make_layout(data)
     out = tmp_path / "wgs.json"
-    clinvar_profiles = {"clinvar_merged": {"cache": {"revision": "5b83dd8"}}}
+    clinvar_profiles = {
+        "clinvar_merged": {
+            "cache": {"revision": _published.PINS[(116, "GRCh38", "merged")]}
+        }
+    }
     out.write_text(json.dumps({"clinvar_profiles": clinvar_profiles}), encoding="utf-8")
 
     assert (

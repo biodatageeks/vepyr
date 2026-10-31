@@ -289,7 +289,7 @@ then exits 0 without running anything. For a bless it shows the tag
 image = "ensemblorg/ensembl-vep@sha256:..."   # the digest that ran, never the tag
 command = "vep --offline --cache --dir_cache /opt/vep/.vep ..."  # generated from extra_flags; paths inside the container
 date = "2026-09-23"
-cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+cache_source = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged/tree/ac2c8ad979ad063816368b0720e6e4501d64a3f3"
 vep_cache = "https://ftp.ensembl.org/pub/release-116/variation/indexed_vep_cache/homo_sapiens_merged_vep_116_GRCh38.tar.gz"
 vep_cache_checksum = "unverified"
 fasta_source = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"

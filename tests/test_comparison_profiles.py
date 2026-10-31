@@ -8,6 +8,10 @@ from pathlib import Path
 import pytest
 from comparison import clinvar_reference_state, profiles
 from comparison.cli import parse_args
+from vepyr import _published
+
+
+MERGED_REVISION = _published.PINS[(116, "GRCh38", "merged")]
 
 
 def test_suffixes_have_no_leading_underscore():
@@ -346,7 +350,7 @@ def _write_clinvar_manifest(tmp_path, monkeypatch, golden_bytes=b"golden-vcf"):
     cache_path.mkdir(parents=True)
     cache_identity = {
         "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-        "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+        "revision": MERGED_REVISION,
     }
     (cache_path / ".revision").write_text(json.dumps(cache_identity), encoding="utf-8")
     input_path = tmp_path / "input/clinvar/clinvar_20261011.norm.vcf.gz"

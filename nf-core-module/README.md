@@ -89,14 +89,14 @@ cd nf-core-module
 ```
 
 The runner picks the host's platform, reads that platform's Docker image from
-`meta.yml`, fetches the pinned upstream UNTAR, `bcftools/norm` and
+`meta.yml`, fetches the pinned upstream `bcftools/norm` and
 `huggingface/download` modules the tests need, stages the test data into
 `.testdata/` with `stage-testdata.sh`, and runs all four test files with
 `dev/nf-test.config`. The `bcftools/norm` and `huggingface/download` images are
 linux/amd64 only; `dev/local.config` runs them under emulation, which works
 because bcftools and the `hf` CLI, unlike vepyr, need no AVX. The Hugging Face
-subworkflow test downloads chr22 of the published 116 cache, so it needs network
-access.
+module and subworkflow tests download chr22 of the published 116 Ensembl cache,
+so they need network access.
 Extra arguments go to `nf-test`.
 
 | Host | Platform picked | Image (from `meta.yml`) |
@@ -237,13 +237,10 @@ Treat any *second* failure as a genuine regression.
    this fixture is small enough that the module can assert on real annotation
    output.
 
-   The cache is an archive rather than a directory because
-   `modules_testdata_base_path` points at raw.githubusercontent.com, which serves
-   blobs and not directory trees, so Nextflow cannot stage a directory URL.
-   (`ensemblvep/vep` and `snpeff/snpeff` get away with directories only because
-   they read from `s3://annotation-cache/`, where Nextflow can list.) The nf-test
-   extracts it in a `setup` block with the `UNTAR` module, the same pattern
-   `kraken2/kraken2` uses for its database.
+   The archive remains part of the published test-datasets fixture, but the
+   vepyr module and subworkflow tests now download the pinned chr22 cache from
+   Hugging Face. The older archive predates the cache refresh that added fields
+   required by the R6 engine.
 4. **~~Generate the snapshots.~~** Done in the nf-core/modules PRs. With 2 and 3 done, against nf-core's published
    URLs (`VEPYR_NF_TESTDATA` unset):
    `nf-test test modules/nf-core/vepyr/annotate/tests/main.nf.test subworkflows/nf-core/vcf_annotate_vepyr/tests/main.nf.test --update-snapshot`
