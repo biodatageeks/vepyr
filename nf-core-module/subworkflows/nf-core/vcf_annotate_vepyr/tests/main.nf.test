@@ -11,7 +11,6 @@ nextflow_workflow {
     tag "bcftools/norm"
     tag "vepyr"
     tag "vepyr/annotate"
-    tag "untar"
     tag "huggingface"
     tag "huggingface/download"
 
@@ -19,20 +18,7 @@ nextflow_workflow {
 
         config "./nextflow.config"
 
-        // raw.githubusercontent.com serves blobs, not directory trees, so the cache
-        // is published as an archive and extracted here.
         setup {
-            run("UNTAR") {
-                script "modules/nf-core/untar/main.nf"
-                process {
-                    """
-                    input[0] = channel.of([
-                        [ id:'116_GRCh38_ensembl' ],
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
-                    ])
-                    """
-                }
-            }
             run("BCFTOOLS_NORM", alias: "BCFTOOLS_JOIN_MULTIALLELICS") {
                 script "modules/nf-core/bcftools/norm/main.nf"
                 process {
@@ -55,7 +41,7 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = BCFTOOLS_JOIN_MULTIALLELICS.out.vcf.map { _meta, vcf -> [ [ id:'test' ], vcf, [] ] }
-                input[1] = UNTAR.out.untar.collect()
+                input[1] = [[], []]
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
@@ -65,7 +51,7 @@ nextflow_workflow {
                 input[3] = 116
                 input[4] = [[], []]
                 input[5] = true
-                input[6] = ''
+                input[6] = 'biodatageeks/vepyr_116_GRCh38_ensembl'
                 """
             }
         }
@@ -73,7 +59,7 @@ nextflow_workflow {
         then {
             assertAll(
                 { assert workflow.success },
-                { assert !workflow.trace.tasks().any { it.name.contains('HUGGINGFACE_DOWNLOAD') } },
+                { assert workflow.trace.tasks().count { it.name.contains('HUGGINGFACE_DOWNLOAD') } == 1 },
                 { assert workflow.out.vcf_tbi.size() == 1 },
                 { assert file(workflow.out.vcf_tbi[0][2]).exists() },
                 { assert workflow.trace.tasks().collect { it.name.tokenize(' ')[0] }.toSet().containsAll(['VCF_ANNOTATE_VEPYR:BCFTOOLS_NORM', 'VCF_ANNOTATE_VEPYR:VEPYR_ANNOTATE']) },
@@ -92,17 +78,6 @@ nextflow_workflow {
         config "./nextflow.config"
 
         setup {
-            run("UNTAR") {
-                script "modules/nf-core/untar/main.nf"
-                process {
-                    """
-                    input[0] = channel.of([
-                        [ id:'116_GRCh38_ensembl' ],
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
-                    ])
-                    """
-                }
-            }
             run("BCFTOOLS_NORM", alias: "BCFTOOLS_JOIN_MULTIALLELICS") {
                 script "modules/nf-core/bcftools/norm/main.nf"
                 process {
@@ -128,7 +103,7 @@ nextflow_workflow {
             workflow {
                 """
                 input[0] = BCFTOOLS_JOIN_MULTIALLELICS.out.vcf.map { _meta, vcf -> [ [ id:'test' ], vcf, [] ] }
-                input[1] = UNTAR.out.untar.collect()
+                input[1] = [[], []]
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
@@ -138,7 +113,7 @@ nextflow_workflow {
                 input[3] = 116
                 input[4] = [[], []]
                 input[5] = true
-                input[6] = ''
+                input[6] = 'biodatageeks/vepyr_116_GRCh38_ensembl'
                 """
             }
         }
@@ -146,7 +121,7 @@ nextflow_workflow {
         then {
             assertAll(
                 { assert workflow.success },
-                { assert !workflow.trace.tasks().any { it.name.contains('HUGGINGFACE_DOWNLOAD') } },
+                { assert workflow.trace.tasks().count { it.name.contains('HUGGINGFACE_DOWNLOAD') } == 1 },
                 { assert workflow.out.vcf_tbi.size() == 1 },
                 { assert file(workflow.out.vcf_tbi[0][2]).exists() },
                 { assert workflow.trace.tasks().collect { it.name.tokenize(' ')[0] }.toSet().containsAll(['VCF_ANNOTATE_VEPYR:BCFTOOLS_NORM', 'VCF_ANNOTATE_VEPYR:VEPYR_ANNOTATE']) },
@@ -162,19 +137,7 @@ nextflow_workflow {
 
     test("homo_sapiens - vcf - no normalise") {
 
-        setup {
-            run("UNTAR") {
-                script "modules/nf-core/untar/main.nf"
-                process {
-                    """
-                    input[0] = channel.of([
-                        [ id:'116_GRCh38_ensembl' ],
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
-                    ])
-                    """
-                }
-            }
-        }
+        config "./nextflow.config"
 
         when {
             workflow {
@@ -184,7 +147,7 @@ nextflow_workflow {
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz', checkIfExists: true),
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz.tbi', checkIfExists: true)
                 ])
-                input[1] = UNTAR.out.untar.collect()
+                input[1] = [[], []]
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
@@ -194,7 +157,7 @@ nextflow_workflow {
                 input[3] = 116
                 input[4] = [[], []]
                 input[5] = false
-                input[6] = []
+                input[6] = 'biodatageeks/vepyr_116_GRCh38_ensembl'
                 """
             }
         }
@@ -202,7 +165,7 @@ nextflow_workflow {
         then {
             assertAll(
                 { assert workflow.success },
-                { assert !workflow.trace.tasks().any { it.name.contains('HUGGINGFACE_DOWNLOAD') } },
+                { assert workflow.trace.tasks().count { it.name.contains('HUGGINGFACE_DOWNLOAD') } == 1 },
                 { assert workflow.out.vcf_tbi.size() == 1 },
                 { assert file(workflow.out.vcf_tbi[0][2]).exists() },
                 { assert !workflow.trace.tasks().any { it.name.startsWith('VCF_ANNOTATE_VEPYR:BCFTOOLS_NORM') } },
@@ -218,9 +181,6 @@ nextflow_workflow {
         config "./nextflow.config"
 
         when {
-            params {
-                hf_download_args = "--revision 02d7acf270f8ae63e3bfeca01f210923cc5192cf --include '*/chr22.parquet' --include '*/chrom_manifest.json'"
-            }
             workflow {
                 """
                 input[0] = channel.of('test', 'test2').map { id -> [
@@ -304,14 +264,55 @@ nextflow_workflow {
 
         options "-stub"
 
+        when {
+            workflow {
+                """
+                input[0] = channel.of([
+                    [ id:'test' ],
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz', checkIfExists: true),
+                    []
+                ])
+                input[1] = [[], []]
+                input[2] = channel.value([
+                    [ id:'GRCh38' ],
+                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
+                    [],
+                    []
+                ])
+                input[3] = []
+                input[4] = [[], []]
+                input[5] = true
+                input[6] = 'biodatageeks/vepyr_116_GRCh38_ensembl'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.trace.tasks().count { it.name.contains('HUGGINGFACE_DOWNLOAD') } == 1 },
+                { assert workflow.out.vcf_tbi.size() == 1 },
+                { assert file(workflow.out.vcf_tbi[0][2]).exists() },
+                { assert snapshot(workflow.out).match() }
+            )
+        }
+    }
+
+    test("homo_sapiens - vcf - cache and Hugging Face repo - fails") {
+
+        config "./nextflow.config"
+
+        options "-stub"
+
         setup {
-            run("UNTAR") {
-                script "modules/nf-core/untar/main.nf"
+            run("HUGGINGFACE_DOWNLOAD") {
+                script "modules/nf-core/huggingface/download/main.nf"
                 process {
                     """
                     input[0] = channel.of([
                         [ id:'116_GRCh38_ensembl' ],
-                        file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
+                        'datasets/biodatageeks/vepyr_116_GRCh38_ensembl',
+                        []
                     ])
                     """
                 }
@@ -326,48 +327,7 @@ nextflow_workflow {
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz', checkIfExists: true),
                     []
                 ])
-                input[1] = UNTAR.out.untar.collect()
-                input[2] = channel.value([
-                    [ id:'GRCh38' ],
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
-                    [],
-                    []
-                ])
-                input[3] = []
-                input[4] = [[], []]
-                input[5] = true
-                input[6] = ''
-                """
-            }
-        }
-
-        then {
-            assertAll(
-                { assert workflow.success },
-                { assert !workflow.trace.tasks().any { it.name.contains('HUGGINGFACE_DOWNLOAD') } },
-                { assert workflow.out.vcf_tbi.size() == 1 },
-                { assert file(workflow.out.vcf_tbi[0][2]).exists() },
-                { assert snapshot(workflow.out).match() }
-            )
-        }
-    }
-
-    test("homo_sapiens - vcf - cache and Hugging Face repo - fails") {
-
-        options "-stub"
-
-        when {
-            workflow {
-                """
-                input[0] = channel.of([
-                    [ id:'test' ],
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz', checkIfExists: true),
-                    []
-                ])
-                input[1] = channel.value([
-                    [ id:'cache' ],
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
-                ])
+                input[1] = HUGGINGFACE_DOWNLOAD.out.output.collect()
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),

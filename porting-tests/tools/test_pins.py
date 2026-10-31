@@ -65,6 +65,24 @@ def test_cache_pins_match_published_pins_and_golden_manifests() -> None:
                 assert cache["revision"] == published[(116, "GRCh38", cache_type)]
 
 
+def test_nf_core_cache_downloads_use_the_published_ensembl_pin() -> None:
+    """The nf-test cache setup uses the same pinned chr22 Ensembl dataset."""
+    revision = _published_cache_pins()[(116, "GRCh38", "ensembl")]
+    test_configs = (
+        PROJECT_ROOT
+        / "nf-core-module/modules/nf-core/vepyr/annotate/tests/nextflow.config",
+        PROJECT_ROOT
+        / "nf-core-module/subworkflows/nf-core/vcf_annotate_vepyr/tests"
+        / "nextflow.config",
+    )
+
+    for config_path in test_configs:
+        config = config_path.read_text(encoding="utf-8")
+        assert f"--revision {revision}" in config
+        assert "--include '*/chr22.parquet'" in config
+        assert "--include '*/chrom_manifest.json'" in config
+
+
 def test_a_short_sha_is_rejected(tmp_path: Path) -> None:
     """A truncated SHA is the exact failure this validator exists to catch (AC-2)."""
     bad = tmp_path / "PINS.toml"

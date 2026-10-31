@@ -10,24 +10,24 @@ nextflow_process {
     tag "vepyr"
     tag "vepyr/annotate"
 
-    // raw.githubusercontent.com serves blobs, not directory trees, so the cache
-    // is published as an archive and extracted here. UNTAR strips the single
-    // top-level directory, leaving the entity directories at the cache root.
-    setup {
-        run("UNTAR") {
-            script "modules/nf-core/untar/main.nf"
-            process {
-                """
-                input[0] = Channel.of([
-                    [ id:'116_GRCh38_ensembl' ],
-                    file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/cache.tar.gz', checkIfExists: true)
-                ])
-                """
+    test("homo_sapiens - vcf") {
+        config "./nextflow.config"
+
+        setup {
+            run("HUGGINGFACE_DOWNLOAD") {
+                script "modules/nf-core/huggingface/download/main.nf"
+                process {
+                    """
+                    input[0] = channel.of([
+                        [ id:'116_GRCh38_ensembl' ],
+                        'datasets/biodatageeks/vepyr_116_GRCh38_ensembl',
+                        []
+                    ])
+                    """
+                }
             }
         }
-    }
 
-    test("homo_sapiens - vcf") {
         when {
             process {
                 """
@@ -36,7 +36,7 @@ nextflow_process {
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz', checkIfExists: true),
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz.tbi', checkIfExists: true)
                 ])
-                input[1] = UNTAR.out.untar.collect()
+                input[1] = HUGGINGFACE_DOWNLOAD.out.output.collect()
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
@@ -58,6 +58,23 @@ nextflow_process {
     }
 
     test("homo_sapiens - vcf - no index") {
+        config "./nextflow.config"
+
+        setup {
+            run("HUGGINGFACE_DOWNLOAD") {
+                script "modules/nf-core/huggingface/download/main.nf"
+                process {
+                    """
+                    input[0] = channel.of([
+                        [ id:'116_GRCh38_ensembl' ],
+                        'datasets/biodatageeks/vepyr_116_GRCh38_ensembl',
+                        []
+                    ])
+                    """
+                }
+            }
+        }
+
         when {
             process {
                 """
@@ -66,7 +83,7 @@ nextflow_process {
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/input.vcf.gz', checkIfExists: true),
                     []
                 ])
-                input[1] = UNTAR.out.untar.collect()
+                input[1] = HUGGINGFACE_DOWNLOAD.out.output.collect()
                 input[2] = channel.value([
                     [ id:'GRCh38' ],
                     file(params.modules_testdata_base_path + 'genomics/homo_sapiens/vepyr/reference.fa.gz', checkIfExists: true),
