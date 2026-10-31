@@ -224,9 +224,9 @@ serde_json = "1"
 # codon_table from _variation_effect_feature_cache (functions#274, merge commit
 # `9936c6e`; formats#262, merge commit `abac8df`). Both are ancestors of the pins
 # below.
-# vepyr#240 round 6: datafusion-bio-functions integration PR #317. Pin its current
-# integration head by full rev; re-pin to the merge commit after the PR merges.
-# Formats PR #272 is also pinned by full rev until its merge; release postponed.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "27119f7702fbffe3e0f4623affd53c64cd4a00e1", features = ["cache-builder"] }
+# vepyr#240 round 6: datafusion-bio-functions integration PR #317, merged as
+# `e152225` (tree-identical to the gated head `27119f7`). Formats PR #272 is pinned
+# by its merge commit `e0379fb`; release postponed.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "e152225270a458e4417448082866a09c9a55a5c0", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
