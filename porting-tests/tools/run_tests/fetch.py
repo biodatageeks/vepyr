@@ -302,12 +302,20 @@ def hub_lister(repo_id: str, revision: str) -> list[RemoteFile]:
         RevisionNotFoundError,
     )
 
+    network_errors = (HfHubHTTPError, httpx.HTTPError, OSError)
+    try:
+        import httpx2
+    except ImportError:
+        pass
+    else:
+        network_errors += (httpx2.HTTPError,)
+
     try:
         info = HfApi().dataset_info(repo_id, revision=revision, files_metadata=True)
     except (RevisionNotFoundError, RepositoryNotFoundError) as exc:
         raise RunTestsError(Exit.REVISION, f"{repo_id}@{revision}: {exc}") from exc
-    except (HfHubHTTPError, httpx.HTTPError, OSError) as exc:
-        # httpx.ConnectError & co. are NOT OSError (httpx 0.28) but httpx.HTTPError.
+    except network_errors as exc:
+        # Hub 2.x uses httpx2; older clients use httpx. Neither ConnectError is OSError.
         raise RunTestsError(
             Exit.INCOMPLETE, f"{repo_id}@{revision}: Hub unreachable: {exc}"
         ) from exc
@@ -354,6 +362,14 @@ def hub_downloader(
         RevisionNotFoundError,
     )
 
+    network_errors = (HfHubHTTPError, httpx.HTTPError, OSError)
+    try:
+        import httpx2
+    except ImportError:
+        pass
+    else:
+        network_errors += (httpx2.HTTPError,)
+
     manifests_only = allow_patterns == [f"*/{MANIFEST}"]
     try:
         # The Downloader contract: present files, trimmed manifests included, are left
@@ -374,7 +390,7 @@ def hub_downloader(
         raise RunTestsError(Exit.REVISION, f"{repo_id}@{revision}: {exc}") from exc
     except IncompleteSnapshotError as exc:
         raise RunTestsError(Exit.INCOMPLETE, f"{repo_id}@{revision}: {exc}") from exc
-    except (HfHubHTTPError, httpx.HTTPError, OSError) as exc:
+    except network_errors as exc:
         raise RunTestsError(
             Exit.INCOMPLETE, f"{repo_id}@{revision}: Hub unreachable: {exc}"
         ) from exc
@@ -384,7 +400,7 @@ def hub_downloader(
         # the httpx exception (measured 2026-09-07: ``httpx.ReadTimeout`` escaped as a
         # raw traceback, exit 1). Same class of failure: exit 4.
         cause = exc.__cause__ or exc.__context__
-        if isinstance(cause, (HfHubHTTPError, httpx.HTTPError, OSError)):
+        if isinstance(cause, network_errors):
             raise RunTestsError(
                 Exit.INCOMPLETE,
                 f"{repo_id}@{revision}: Hub unreachable: {cause} ({exc})",
