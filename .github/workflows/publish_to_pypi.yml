@@ -173,7 +173,7 @@ jobs:
 
   macos:
     needs: prepare
-    runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}
+    runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-15' }}
     permissions:
       contents: read
     strategy:
