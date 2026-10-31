@@ -30,7 +30,7 @@
   "caches": {
     "ensembl": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_ensembl",
-      "revision": "058d887ec86163333fcbdd20c28ef75683faa8b5",
+      "revision": "02d7acf270f8ae63e3bfeca01f210923cc5192cf",
       "files": {
         "chr_synonyms.txt": {
           "size": 122763,
@@ -65,8 +65,8 @@
           "git_blob": "bd93637832511451b1b2e54ed7019612818fffa0"
         },
         "transcript/chr22.parquet": {
-          "size": 3530420,
-          "sha256": "de98648460a567d4ad4ae73b71d1efebacf9019b3b807ba63428f08913e7094c"
+          "size": 3561672,
+          "sha256": "18f351e440777469328848429b87441eaa6431f7de0d46081d5dbc4bf88b725b"
         },
         "transcript/chrom_manifest.json": {
           "size": 158572,
@@ -100,7 +100,7 @@
     },
     "merged": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-      "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+      "revision": "ac2c8ad979ad063816368b0720e6e4501d64a3f3",
       "files": {
         "chr_synonyms.txt": {
           "size": 122763,
@@ -135,8 +135,8 @@
           "git_blob": "bd93637832511451b1b2e54ed7019612818fffa0"
         },
         "transcript/chr22.parquet": {
-          "size": 4360710,
-          "sha256": "2e9d7f826a5e58ac6f344d6126ddbccf31ffc72d895040d9216d1635b21dc8bd"
+          "size": 4410674,
+          "sha256": "de543b0e32b0709e9c8b066ea3a99e1c76494a39c0295e0c4b3e4c0a96c953d2"
         },
         "transcript/chrom_manifest.json": {
           "size": 160463,
@@ -170,7 +170,7 @@
     },
     "refseq": {
       "repo_id": "biodatageeks/vepyr_116_GRCh38_refseq",
-      "revision": "ae28273ce0b4744201ddaecd71a7ea8bf2c19d95",
+      "revision": "2f78f969add42aa9ae016751b276262cc2143533",
       "files": {
         "chr_synonyms.txt": {
           "size": 122763,
@@ -205,8 +205,8 @@
           "git_blob": "bd93637832511451b1b2e54ed7019612818fffa0"
         },
         "transcript/chr22.parquet": {
-          "size": 1899889,
-          "sha256": "b56fae84f198877f1b0b93806317363a10d35a3954567dd91c20544976b0de8c"
+          "size": 1921623,
+          "sha256": "6cef8f5a9e0a9986e3f6cb075fa6201638300b5d240b378f2d464fef41fcf65e"
         },
         "transcript/chrom_manifest.json": {
           "size": 50087,

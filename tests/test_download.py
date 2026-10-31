@@ -11,7 +11,7 @@ from huggingface_hub import errors
 from huggingface_hub import utils as hub_utils
 
 import vepyr
-from vepyr import _download
+from vepyr import _download, _published
 
 
 def hub_error(cls, message="fake"):
@@ -91,7 +91,7 @@ CORE_FILES = [
     "variation/chrom_manifest.json",
 ]
 CORE_SIDECARS = ["*/chrom_manifest.json", "reference_policy.json", "chr_synonyms.txt"]
-MERGED_PIN = "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+MERGED_PIN = _published.PINS[(116, "GRCh38", "merged")]
 MAIN_COMMIT = "f" * 40
 
 

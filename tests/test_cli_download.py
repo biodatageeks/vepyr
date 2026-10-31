@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 import vepyr
+from vepyr import _published
 from vepyr.cli import (
     build_parser,
     download_cache_kwargs,
@@ -112,7 +113,8 @@ def test_download_cache_prints_source_and_next_step(monkeypatch, capsys):
     ]
     out = capsys.readouterr().out.splitlines()
     assert out == [
-        "Downloaded biodatageeks/vepyr_116_GRCh38_merged @ 5b83dd8 (22) "
+        f"Downloaded biodatageeks/vepyr_116_GRCh38_merged @ "
+        f"{_published.PINS[(116, 'GRCh38', 'merged')][:7]} (22) "
         "-> /c/116_GRCh38_merged",
         "Next: vepyr annotate --dir_cache /c/116_GRCh38_merged ...",
     ]

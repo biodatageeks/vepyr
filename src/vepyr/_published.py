@@ -12,9 +12,9 @@ HF_ORG = "biodatageeks"
 
 # (release, assembly, name) -> commit; name is a cache type or "plugin_<plugin>".
 PINS: dict[tuple[int, str, str], str] = {
-    (116, "GRCh38", "ensembl"): "058d887ec86163333fcbdd20c28ef75683faa8b5",
-    (116, "GRCh38", "refseq"): "ae28273ce0b4744201ddaecd71a7ea8bf2c19d95",
-    (116, "GRCh38", "merged"): "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+    (116, "GRCh38", "ensembl"): "02d7acf270f8ae63e3bfeca01f210923cc5192cf",
+    (116, "GRCh38", "refseq"): "2f78f969add42aa9ae016751b276262cc2143533",
+    (116, "GRCh38", "merged"): "ac2c8ad979ad063816368b0720e6e4501d64a3f3",
     (116, "GRCh38", "plugin_cadd"): "bcfca1e030b6d372086f9b9f2bf7aae3295d321a",
     (116, "GRCh38", "plugin_spliceai"): "7158a9c34758b1afe8a56b9e433640b9d3845920",
     (116, "GRCh38", "plugin_alphamissense"): "00558a86d2ec30c5ed68ff291164786228534b19",

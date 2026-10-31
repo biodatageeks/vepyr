@@ -105,9 +105,9 @@ cache at that revision first, then record the source identity, for example:
 
 ```bash
 hf download biodatageeks/vepyr_116_GRCh38_merged --repo-type dataset \
-  --revision 5b83dd8d249106c6cc3f1c04c522b4bec716cc97 \
+  --revision ac2c8ad979ad063816368b0720e6e4501d64a3f3 \
   --local-dir "$DATA_VEPYR_DIR/cache/116_GRCh38_merged"
-python3 -c 'import json, os; from pathlib import Path; p=Path(os.environ["DATA_VEPYR_DIR"])/"cache/116_GRCh38_merged/.revision"; p.write_text(json.dumps({"repo_id":"biodatageeks/vepyr_116_GRCh38_merged","revision":"5b83dd8d249106c6cc3f1c04c522b4bec716cc97"}, sort_keys=True)+"\n", encoding="utf-8")'
+python3 -c 'import json, os; from pathlib import Path; p=Path(os.environ["DATA_VEPYR_DIR"])/"cache/116_GRCh38_merged/.revision"; p.write_text(json.dumps({"repo_id":"biodatageeks/vepyr_116_GRCh38_merged","revision":"ac2c8ad979ad063816368b0720e6e4501d64a3f3"}, sort_keys=True)+"\n", encoding="utf-8")'
 ```
 
 The profile rejects a missing or mismatched identity marker. Report-only modes

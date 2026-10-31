@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 from comparison import cli, profiles
+from vepyr import _published
+
+
+MERGED_REVISION = _published.PINS[(116, "GRCh38", "merged")]
 
 
 def _fake_resolved(vep_vcf="ref.gz"):
@@ -87,7 +91,7 @@ def test_manifest_input_error_is_reported_without_a_traceback(
                         },
                         "cache": {
                             "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-                            "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+                            "revision": MERGED_REVISION,
                         },
                     }
                 }
@@ -102,7 +106,7 @@ def test_manifest_input_error_is_reported_without_a_traceback(
         json.dumps(
             {
                 "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
-                "revision": "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+                "revision": MERGED_REVISION,
             }
         ),
         encoding="utf-8",

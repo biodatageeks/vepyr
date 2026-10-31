@@ -50,10 +50,9 @@ from run_tests.fetch import (
 from run_tests.verdict import Exit, RunTestsError
 
 CONTIGS: Final = ("chr1", "chr21", "chr22")
+PINS_PATH: Final = Path(__file__).resolve().parents[1] / "PINS.toml"
 REVISIONS: Final[dict[Flavour, str]] = {
-    Flavour.ENSEMBL: "15a048f0585a7a40d2d40cb1c2f7806638ee500b",
-    Flavour.REFSEQ: "d1b97a0a72d8ed94418b7a65562e89d8a0a5b3ca",
-    Flavour.MERGED: "5b83dd8d249106c6cc3f1c04c522b4bec716cc97",
+    flavour: pin.revision for flavour, pin in load_dataset_pins(PINS_PATH)[0].items()
 }
 PINS_TOML: Final = (
     "\n".join(

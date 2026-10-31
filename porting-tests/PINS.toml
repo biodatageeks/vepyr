@@ -4,30 +4,30 @@
 #
 # For HF tables, `sha` is the dataset COMMIT on huggingface.co (40 hex).
 # For grch38_fasta, `sha` is the sha256 of the UNCOMPRESSED .fa.
-# Measured 2026-09-04.
+# Measured 2026-10-31.
 
 schema_version = 1
 
 [hf_cache_ensembl]
 repo = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_ensembl"
 ref  = "main"
-sha  = "15a048f0585a7a40d2d40cb1c2f7806638ee500b"
+sha  = "02d7acf270f8ae63e3bfeca01f210923cc5192cf"
 role = "dataset"
-note = "VEP 116 GRCh38 ensembl; deterministic rebuild 2026-09-03T16:38:58Z; pinned tree 7633 files, 34 191 612 150 B (dataset README says 7,632)"
+note = "VEP 116 GRCh38 ensembl; pre-0.11.0 refresh; pinned tree 7635 files, 34 388 628 993 B"
 
 [hf_cache_refseq]
 repo = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_refseq"
 ref  = "main"
-sha  = "d1b97a0a72d8ed94418b7a65562e89d8a0a5b3ca"
+sha  = "2f78f969add42aa9ae016751b276262cc2143533"
 role = "dataset"
-note = "VEP 116 GRCh38 refseq; deterministic rebuild 2026-09-03T16:39:02Z; pinned tree 2351 files, 32 623 535 154 B"
+note = "VEP 116 GRCh38 refseq; pre-0.11.0 refresh; pinned tree 2353 files, 32 719 412 339 B"
 
 [hf_cache_merged]
 repo = "https://huggingface.co/datasets/biodatageeks/vepyr_116_GRCh38_merged"
 ref  = "main"
-sha  = "5b83dd8d249106c6cc3f1c04c522b4bec716cc97"
+sha  = "ac2c8ad979ad063816368b0720e6e4501d64a3f3"
 role = "dataset"
-note = "VEP 116 GRCh38 merged; Hub commit 2026-10-07T05:31:06Z (measured 2026-10-08); pinned tree 7699 files, 37 702 759 839 B"
+note = "VEP 116 GRCh38 merged; pre-0.11.0 refresh; pinned tree 7699 files, 37 709 675 175 B"
 
 [grch38_fasta]
 repo = "https://ftp.ensembl.org/pub/release-116/fasta/homo_sapiens/dna"
