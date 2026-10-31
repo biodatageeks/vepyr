@@ -1280,6 +1280,37 @@ def test_an_unreachable_hub_endpoint_is_exit_4_not_a_traceback(tmp_path: Path) -
     assert not (tmp_path / "root").exists()
 
 
+@pytest.mark.parametrize("client", ("lister", "downloader"))
+def test_httpx2_errors_from_hub_client_are_exit_4(
+    client: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Hub 2.x transport exceptions follow the same incomplete path as httpx."""
+    httpx2 = pytest.importorskip("httpx2")
+    import huggingface_hub
+    from huggingface_hub import HfApi
+
+    def failing(*_args: object, **_kwargs: object) -> None:
+        raise httpx2.HTTPError("injected httpx2 transport failure")
+
+    if client == "lister":
+        monkeypatch.setattr(HfApi, "dataset_info", failing)
+
+        def invoke() -> object:
+            return fetch_cache.hub_lister("org/repo", "a" * 40)
+
+    else:
+        monkeypatch.setattr(huggingface_hub, "snapshot_download", failing)
+
+        def invoke() -> object:
+            return fetch_cache.hub_downloader("org/repo", "a" * 40, ["*"], tmp_path)
+
+    with pytest.raises(RunTestsError) as caught:
+        invoke()
+    assert caught.value.code is Exit.INCOMPLETE
+    assert "Hub unreachable" in str(caught.value)
+    assert "injected httpx2 transport failure" in str(caught.value)
+
+
 def test_a_forced_download_timeout_wrapped_in_value_error_is_exit_4(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

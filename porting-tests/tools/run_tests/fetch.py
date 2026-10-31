@@ -244,6 +244,25 @@ def load_dataset_pins(
     return datasets, fasta
 
 
+def _network_errors() -> tuple[type[BaseException], ...]:
+    """Return the Hub client's optional transport-error classes."""
+    import httpx
+    from huggingface_hub.errors import HfHubHTTPError
+
+    errors: tuple[type[BaseException], ...] = (
+        HfHubHTTPError,
+        httpx.HTTPError,
+        OSError,
+    )
+    try:
+        import httpx2
+    except ImportError:
+        pass
+    else:
+        errors += (httpx2.HTTPError,)
+    return errors
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RemoteFile:
     """One file of a dataset at the pinned revision, as the Hub describes it."""
@@ -294,21 +313,13 @@ def hub_lister(repo_id: str, revision: str) -> list[RemoteFile]:
         RunTestsError: :attr:`Exit.REVISION` when the revision or repository is not
             found; :attr:`Exit.INCOMPLETE` when the Hub cannot be reached.
     """
-    import httpx
     from huggingface_hub import HfApi
     from huggingface_hub.errors import (
-        HfHubHTTPError,
         RepositoryNotFoundError,
         RevisionNotFoundError,
     )
 
-    network_errors = (HfHubHTTPError, httpx.HTTPError, OSError)
-    try:
-        import httpx2
-    except ImportError:
-        pass
-    else:
-        network_errors += (httpx2.HTTPError,)
+    network_errors = _network_errors()
 
     try:
         info = HfApi().dataset_info(repo_id, revision=revision, files_metadata=True)
@@ -353,22 +364,14 @@ def hub_downloader(
         RunTestsError: :attr:`Exit.REVISION` / :attr:`Exit.INCOMPLETE` mapped from the
             library's own exception classes.
     """
-    import httpx
     from huggingface_hub import snapshot_download
     from huggingface_hub.errors import (
-        HfHubHTTPError,
         IncompleteSnapshotError,
         RepositoryNotFoundError,
         RevisionNotFoundError,
     )
 
-    network_errors = (HfHubHTTPError, httpx.HTTPError, OSError)
-    try:
-        import httpx2
-    except ImportError:
-        pass
-    else:
-        network_errors += (httpx2.HTTPError,)
+    network_errors = _network_errors()
 
     manifests_only = allow_patterns == [f"*/{MANIFEST}"]
     try:
