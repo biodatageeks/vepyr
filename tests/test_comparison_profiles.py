@@ -467,6 +467,68 @@ def test_clinvar_profile_rejects_cache_without_revision_metadata(tmp_path, monke
         profiles.resolve("clinvar_merged", "116")
 
 
+def _stage_data_revision_helpers(tmp_path):
+    """The write_revision/revision_state shell functions of stage-data.sh."""
+    script = (
+        Path(__file__).resolve().parents[1] / "ci" / "wgs-runner" / "stage-data.sh"
+    ).read_text(encoding="utf-8")
+    start = script.index("write_revision() {")
+    end = script.index("for flavour in ", start)
+    helpers = tmp_path / "revision_helpers.sh"
+    helpers.write_text(script[start:end], encoding="utf-8")
+    return helpers
+
+
+def _bash(helpers, command, *args):
+    return subprocess.run(
+        ["bash", "-c", f'. "$0"; {command}', str(helpers), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def test_stage_data_revision_marker_satisfies_the_clinvar_resolver(
+    tmp_path, monkeypatch
+):
+    # The /parity-wgs hosts get .revision from stage-data.sh; the ClinVar
+    # profile only resolves when that marker carries repo_id and revision.
+    _write_clinvar_manifest(tmp_path, monkeypatch)
+    marker = tmp_path / "cache/116_GRCh38_merged/.revision"
+    identity = json.loads(marker.read_text(encoding="utf-8"))
+    marker.unlink()
+    helpers = _stage_data_revision_helpers(tmp_path)
+
+    _bash(
+        helpers,
+        'write_revision "$1" "$2" "$3"',
+        str(marker),
+        identity["repo_id"],
+        identity["revision"],
+    )
+
+    resolved = profiles.resolve("clinvar_merged", "116")
+    assert resolved.cache_dir == str(tmp_path / "cache/116_GRCh38_merged")
+
+
+def test_stage_data_revision_state_upgrades_a_bare_sha_marker(tmp_path):
+    helpers = _stage_data_revision_helpers(tmp_path)
+    marker = tmp_path / ".revision"
+    state = 'revision_state "$1" org/cache "$2"'
+
+    assert _bash(helpers, state, str(marker), "abc") == "missing"
+    marker.write_text("abc\n", encoding="utf-8")
+    assert _bash(helpers, state, str(marker), "abc") == "legacy"
+    assert _bash(helpers, state, str(marker), "def") == "stale"
+    _bash(helpers, 'write_revision "$1" org/cache abc', str(marker))
+    assert json.loads(marker.read_text(encoding="utf-8")) == {
+        "repo_id": "org/cache",
+        "revision": "abc",
+    }
+    assert _bash(helpers, state, str(marker), "abc") == "current"
+    assert _bash(helpers, 'revision_state "$1" org/other abc', str(marker)) == "stale"
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [

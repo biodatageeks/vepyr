@@ -46,14 +46,41 @@ mkdir -p "$DATA/cache" "$DATA/input" "$DATA/output/116"
 # are fetched. Its metadata under .cache/ is rewritten in place, so that is a
 # real copy. `hf download` never deletes, and record-staged lists every file
 # under $DATA, so files the revision dropped are removed afterwards.
+write_revision() { # path repo_id revision: the JSON marker _validate_cache_revision reads
+  python3 -c 'import json, sys; open(sys.argv[1], "w").write(json.dumps({"repo_id": sys.argv[2], "revision": sys.argv[3]}) + "\n")' "$1" "$2" "$3"
+}
+revision_state() { # path repo_id revision -> current | legacy (bare SHA) | stale | missing
+  python3 -c '
+import json, sys
+path, repo_id, rev = sys.argv[1:4]
+try:
+    text = open(path, encoding="utf-8").read().strip()
+except OSError:
+    print("missing"); sys.exit()
+try:
+    data = json.loads(text)
+except ValueError:
+    data = text
+print("current" if data == {"repo_id": repo_id, "revision": rev} else "legacy" if data == rev else "stale")
+' "$1" "$2" "$3"
+}
 for flavour in $(mf "' '.join(sorted(d['caches']))"); do
   repo_id="$(mf "d['caches']['$flavour']['repo_id']")"
   rev="$(mf "d['caches']['$flavour']['revision']")"
   dest="$DATA/cache/116_GRCh38_$flavour"
-  if [ -f "$dest/.revision" ] && [ "$(cat "$dest/.revision")" = "$rev" ]; then
-    echo "cache $flavour already at $rev"
-    continue
-  fi
+  # .revision is JSON {"repo_id", "revision"}: the manifest-backed ClinVar
+  # profile (comparison/profiles.py::_validate_cache_revision) requires both.
+  # A marker from an older stage-data.sh holds the bare SHA; when that SHA is
+  # current, only the marker is rewritten.
+  case "$(revision_state "$dest/.revision" "$repo_id" "$rev")" in
+    current)
+      echo "cache $flavour already at $rev"
+      continue ;;
+    legacy)
+      write_revision "$dest/.revision" "$repo_id" "$rev"
+      echo "cache $flavour already at $rev (revision marker rewritten as JSON)"
+      continue ;;
+  esac
   rm -rf "$dest.new" "$dest.old"
   if [ -d "$dest" ]; then
     cp -al "$dest" "$dest.new"
@@ -82,7 +109,7 @@ for p in sorted((q for q in root.rglob("*") if q.is_dir()), reverse=True):
     if not any(p.iterdir()):
         p.rmdir()
 PY
-  echo "$rev" > "$dest.new/.revision"
+  write_revision "$dest.new/.revision" "$repo_id" "$rev"
   [ ! -e "$dest" ] || mv "$dest" "$dest.old"
   mv "$dest.new" "$dest"
   rm -rf "$dest.old"
