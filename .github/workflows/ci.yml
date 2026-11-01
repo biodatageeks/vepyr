@@ -233,7 +233,7 @@ jobs:
       ref: ${{ github.sha }}
 
   macos:
-    runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-14' }}
+    runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-15' }}
     strategy:
       matrix:
         target: [x86_64, aarch64]
