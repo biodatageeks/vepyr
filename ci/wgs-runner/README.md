@@ -1,7 +1,8 @@
 # /parity-wgs runner kit
 
-Everything the self-hosted runner (`gh-runner-bdg-1`, org runner id 4683; 16 vCPU, 64 GB) needs to run the
-whole-genome VEP 116 parity check (`/parity-wgs`). The job runs in a locally
+Everything the four self-hosted runners (`gh-runner-bdg-1`..`4`, flavour
+`huge-c10m25`; 10 vCPU and about 25 GB each) need to run the whole-genome VEP
+116 parity check (`/parity-wgs`). The job runs in a locally
 built image with the staged data mounted read-only; `run-profile.sh` is the
 in-container entrypoint (`run-profile.sh <profile> <wheel-path>`, repo at
 `/src`, data at `/data`, scratch at `/work`).
@@ -67,14 +68,14 @@ It writes `/work/result.json` and `/work/summary.txt`.
    whose boot-time restore would also replay stale Docker rules).
    `check.sh` fails if any rule is missing.
 6. In a checkout of `master`, run `ci/wgs-runner/build-image.sh`.
-7. Run `ci/wgs-runner/stage-data.sh --goldens-from <user@host:~/workspace/data_vepyr/output/116>`.
+7. Run `ci/wgs-runner/stage-data.sh --goldens-from <user@host:~/workspace/data_vepyr/output/116> --clinvar-input-from <user@host:~/workspace/data_vepyr/input/clinvar>`.
    Needs `uvx`, `curl`, `rsync`, `python3` (3.11+) on the host.
 8. Run `ci/wgs-runner/check.sh` (as root or with passwordless sudo, so it can
    read the firewall rules; otherwise it warns and you check them by hand).
 
 ## Re-staging when the manifest changes
 
-`wgs-manifest.json` pins the goldens, inputs and cache revisions. When it
+`wgs-manifest.json` pins the goldens, inputs, tabix indexes and cache revisions. When it
 changes (a new cache revision or regenerated goldens), re-run step 7. The
 script is idempotent: existing verified downloads are reused, and the final
 `record-staged` rewrites `STAGED.json`. A cache at a new revision fetches only
@@ -88,9 +89,9 @@ same drift without running a job.
 Four hosts carry the `vepyr-wgs` label (`gh-runner-bdg-1`..`4`, `huge-c10m25`,
 one runner each, all provisioned by the `openstack-bdg-runners` `gha_runner`
 role with their own `/data/vepyr`, scratch and memory). A runner takes one job
-at a time, and the profile matrix uses `max-parallel: 3`, so one `/parity-wgs`
-request runs its three profiles on three hosts at once and takes as long as the
-slowest profile instead of the sum. Further jobs queue FIFO (up to 24 hours)
+at a time, and the profile matrix uses `max-parallel: 4`, so one `/parity-wgs`
+request runs `merged`, `ensembl`, `refseq` and `clinvar_merged` on all four
+hosts at once. Further jobs queue FIFO (up to 24 hours)
 for a free host. The workflow still has no concurrency group, because GitHub
 keeps only one pending run per group and would evict a queued admin run.
 
@@ -99,11 +100,21 @@ share one `/data/vepyr`, scratch disk and memory budget.
 
 ## Runtime
 
-Measured 2026-10-11 on `gh-runner-bdg-1` (16 vCPU, 64 GB): `merged` 29 min,
-`ensembl` 23 min, `refseq` 21 min per job, after a ~15 min wheel build on
-`ubuntu-latest`. Annotation is ~15 s per contig; the rest is the
-single-threaded reference slicing and md5 verification. Each profile job has
-a 60-minute timeout (2x the slowest).
+Measured HG002 times on 2026-10-11 on `gh-runner-bdg-1` (then 16 vCPU, 64 GB):
+`merged` 29 min, `ensembl` 23 min, `refseq` 21 min per job. They retain
+`--md5-mode both` and have a 90-minute timeout to allow for the current
+10-vCPU hosts until their runtime is measured there.
+
+ClinVar was measured locally on 2026-11-01 with 10 workers: 25 contigs took
+92 minutes, peak process RSS was 15.2 GiB, and peak temporary slices were
+1.04 GiB with per-contig cleanup. `clinvar_merged` uses a 20 GiB container cap,
+matching the measured run, and a 240-minute timeout (about 2.6x the measured
+wall time). HG002 containers get a 22 GiB cap pending a measurement on the
+10-vCPU hosts. ClinVar checks `strict-clin-sig`: it sorts only the known
+VEP-nondeterministic `CLIN_SIG` groups (vepyr#238), keeping INFO order, QUAL,
+FORMAT keys and all other record bytes strict. The other three profiles check
+both strict and canonical md5. A diagnostic `--md5-mode both` run reports the
+expected strict difference at chr22 and canonical concordance on all 25.
 
 ## Statuses
 

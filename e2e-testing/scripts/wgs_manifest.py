@@ -43,10 +43,7 @@ def _canonical(manifest: dict) -> str:
 
 
 def _manifest_sha(manifest: dict) -> str:
-    staged_manifest = {
-        key: value for key, value in manifest.items() if key != "clinvar_profiles"
-    }
-    return hashlib.sha256(_canonical(staged_manifest).encode("utf-8")).hexdigest()
+    return hashlib.sha256(_canonical(manifest).encode("utf-8")).hexdigest()
 
 
 def build_manifest(data: Path, chr22_manifest: Path, profiles: dict[str, str]) -> dict:
@@ -75,9 +72,14 @@ def build_manifest(data: Path, chr22_manifest: Path, profiles: dict[str, str]) -
 
 
 def _tracked_files(manifest: dict) -> list[str]:
-    return [p["golden"] for p in manifest["profiles"].values()] + list(
-        manifest["inputs"]
-    )
+    files = [p["golden"] for p in manifest["profiles"].values()]
+    files.extend(manifest["inputs"])
+    for profile in (manifest.get("clinvar_profiles") or {}).values():
+        for key in ("input", "input_index", "golden", "golden_index"):
+            asset = profile.get(key)
+            if asset and asset.get("path"):
+                files.append(asset["path"])
+    return list(dict.fromkeys(files))
 
 
 def record_staged(data: Path, manifest: dict) -> dict:
@@ -100,22 +102,40 @@ def check_staged(data: Path, manifest: dict, staged: dict) -> list[str]:
     problems = []
     if staged.get("manifest_sha256") != _manifest_sha(manifest):
         problems.append("manifest changed since staging")
-    expected = {p["golden"]: (n, p["sha256"]) for n, p in manifest["profiles"].items()}
-    expected.update({rel: (rel, e["sha256"]) for rel, e in manifest["inputs"].items()})
+    expected = {
+        p["golden"]: (n, p["sha256"], p["size"])
+        for n, p in manifest["profiles"].items()
+    }
+    expected.update(
+        {rel: (rel, e["sha256"], e["size"]) for rel, e in manifest["inputs"].items()}
+    )
+    for name, profile in (manifest.get("clinvar_profiles") or {}).items():
+        for key in ("input", "input_index", "golden", "golden_index"):
+            asset = profile.get(key)
+            if asset and asset.get("path"):
+                expected[asset["path"]] = (
+                    f"{name}/{key}",
+                    asset["sha256"],
+                    asset["size"],
+                )
     sfiles = staged.get("files", {})
-    for rel, (label, sha) in expected.items():
+    for rel, (label, sha, size) in expected.items():
         s = sfiles.get(rel)
         if s is None:
             problems.append(f"{rel} ({label}): not recorded in STAGED.json")
             continue
-        if s["sha256"] != sha:
+        staged_size = s.get("size")
+        if s.get("sha256") != sha:
             problems.append(f"{rel} ({label}): staged sha256 differs from manifest")
+        if staged_size != size:
+            problems.append(f"{rel} ({label}): staged size differs from manifest")
         p = data / rel
         if not p.is_file():
             problems.append(f"{rel} ({label}): missing on disk")
-        elif p.stat().st_size != s["size"]:
+        elif staged_size is not None and p.stat().st_size != staged_size:
             problems.append(
-                f"{rel} ({label}): size {p.stat().st_size} != staged {s['size']} (truncated or replaced)"
+                f"{rel} ({label}): size {p.stat().st_size} != staged "
+                f"{staged_size} (truncated or replaced)"
             )
     for rel, size in staged.get("cache_files", {}).items():
         p = data / rel
@@ -129,6 +149,20 @@ def check_staged(data: Path, manifest: dict, staged: dict) -> list[str]:
         if staged.get("caches", {}).get(f) != c["revision"]:
             problems.append(
                 f"cache {f}: staged revision {staged.get('caches', {}).get(f)} != manifest {c['revision']}"
+            )
+        # The ClinVar profile (comparison/profiles.py::_validate_cache_revision)
+        # needs the JSON identity marker stage-data.sh writes; an older bare-SHA
+        # marker would pass every other check here and then fail each run.
+        marker = data / f"cache/{manifest.get('release', '116')}_GRCh38_{f}/.revision"
+        want = {"repo_id": c.get("repo_id"), "revision": c["revision"]}
+        try:
+            got = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            got = None
+        if got != want:
+            problems.append(
+                f"cache {f}: {marker.relative_to(data).as_posix()} is not the JSON identity "
+                f"{want['repo_id']}@{want['revision']}"
             )
     return problems
 

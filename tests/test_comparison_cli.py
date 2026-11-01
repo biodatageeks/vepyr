@@ -41,6 +41,24 @@ def test_defaults(monkeypatch, tmp_path):
     assert args.chroms is None
 
 
+def test_md5_mode_choices_include_strict_clin_sig_without_changing_both(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("DATA_VEPYR_DIR", str(tmp_path))
+    args = cli.parse_args(
+        [
+            "--release",
+            "116",
+            "--comparison-mode",
+            "md5",
+            "--md5-mode",
+            "strict-clin-sig",
+        ]
+    )
+    assert args.md5_mode == "strict-clin-sig"
+    assert cli.parse_args(["--release", "116"]).md5_mode == "both"
+
+
 def test_internal_input_validation_bypass_is_not_a_cli_option():
     with pytest.raises(SystemExit):
         cli.parse_args(["--_profile-input-validated"])
@@ -563,6 +581,28 @@ def test_md5_summary_says_when_csq_order_was_ignored(tmp_path, capsys):
     assert "CSQ entry order ignored" in capsys.readouterr().out
 
 
+def test_md5_summary_reports_clin_sig_only_records(tmp_path, capsys):
+    from comparison import report
+
+    entry = {
+        "body_match": True,
+        "vep_records": 1,
+        "clin_sig_order_only": 1,
+    }
+    path = report.report_json_path(str(tmp_path), "chr22", "merged", "116")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"md5": {"strict-clin-sig": entry}}, f)
+
+    failed = cli.md5_summary(
+        str(tmp_path), ["chr22"], "merged", "116", "strict-clin-sig"
+    )
+
+    assert failed == []
+    out = capsys.readouterr().out
+    assert "STRICT-CLIN-SIG" in out
+    assert "strict-clin-sig: 1 record(s) VEP-nondeterministic" in out
+
+
 def test_isolated_comparison_forwards_output_dir(monkeypatch, tmp_path):
     args = cli.parse_args(["--release", "116", "--output-dir", str(tmp_path)])
     args.comparison_mode = "md5"
@@ -628,3 +668,12 @@ def test_isolated_comparison_forwards_normalize_override(monkeypatch, tmp_path):
     assert cli._run_contig_isolated("chr22", args)
     assert "--normalize" in seen[0]
     assert "--no-normalize" not in seen[0]
+
+
+def test_help_renders(capsys):
+    # argparse %-formats help strings; a bare "%3B" (CLIN_SIG's separator)
+    # raised ValueError: unsupported format character 'B'.
+    with pytest.raises(SystemExit) as exc:
+        cli.parse_args(["--help"])
+    assert exc.value.code == 0
+    assert "%3B" in capsys.readouterr().out

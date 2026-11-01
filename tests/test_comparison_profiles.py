@@ -2,13 +2,18 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from comparison import clinvar_reference_state, profiles
 from comparison.cli import parse_args
 from vepyr import _published
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ci"))
+import ci_helpers  # noqa: E402
 
 
 MERGED_REVISION = _published.PINS[(116, "GRCh38", "merged")]
@@ -463,6 +468,74 @@ def test_clinvar_profile_rejects_cache_without_revision_metadata(tmp_path, monke
         profiles.resolve("clinvar_merged", "116")
 
 
+def _stage_data_revision_helpers(tmp_path):
+    """The write_revision/revision_state shell functions of stage-data.sh."""
+    script = (
+        Path(__file__).resolve().parents[1] / "ci" / "wgs-runner" / "stage-data.sh"
+    ).read_text(encoding="utf-8")
+    start = script.index("write_revision() {")
+    end = script.index("for flavour in ", start)
+    helpers = tmp_path / "revision_helpers.sh"
+    helpers.write_text(script[start:end], encoding="utf-8")
+    return helpers
+
+
+def _bash(helpers, command, *args):
+    return subprocess.run(
+        ["bash", "-c", f'. "$0"; {command}', str(helpers), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="stage-data.sh runs only on the Linux /parity-wgs hosts"
+)
+def test_stage_data_revision_marker_satisfies_the_clinvar_resolver(
+    tmp_path, monkeypatch
+):
+    # The /parity-wgs hosts get .revision from stage-data.sh; the ClinVar
+    # profile only resolves when that marker carries repo_id and revision.
+    _write_clinvar_manifest(tmp_path, monkeypatch)
+    marker = tmp_path / "cache/116_GRCh38_merged/.revision"
+    identity = json.loads(marker.read_text(encoding="utf-8"))
+    marker.unlink()
+    helpers = _stage_data_revision_helpers(tmp_path)
+
+    _bash(
+        helpers,
+        'write_revision "$1" "$2" "$3"',
+        str(marker),
+        identity["repo_id"],
+        identity["revision"],
+    )
+
+    resolved = profiles.resolve("clinvar_merged", "116")
+    assert resolved.cache_dir == str(tmp_path / "cache/116_GRCh38_merged")
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="stage-data.sh runs only on the Linux /parity-wgs hosts"
+)
+def test_stage_data_revision_state_upgrades_a_bare_sha_marker(tmp_path):
+    helpers = _stage_data_revision_helpers(tmp_path)
+    marker = tmp_path / ".revision"
+    state = 'revision_state "$1" org/cache "$2"'
+
+    assert _bash(helpers, state, str(marker), "abc") == "missing"
+    marker.write_text("abc\n", encoding="utf-8")
+    assert _bash(helpers, state, str(marker), "abc") == "legacy"
+    assert _bash(helpers, state, str(marker), "def") == "stale"
+    _bash(helpers, 'write_revision "$1" org/cache abc', str(marker))
+    assert json.loads(marker.read_text(encoding="utf-8")) == {
+        "repo_id": "org/cache",
+        "revision": "abc",
+    }
+    assert _bash(helpers, state, str(marker), "abc") == "current"
+    assert _bash(helpers, 'revision_state "$1" org/other abc', str(marker)) == "stale"
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -801,7 +874,7 @@ def test_clinvar_profile_sets_input_and_normalization_defaults(tmp_path, monkeyp
     assert explicit_no_normalize.no_normalize is True
 
 
-def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
+def test_clinvar_manifest_expands_parity_wgs_profile_list():
     manifest_path = (
         Path(__file__).resolve().parents[1]
         / "e2e-testing"
@@ -811,6 +884,12 @@ def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert set(manifest["profiles"]) == {"ensembl", "merged", "refseq"}
+    assert ci_helpers.profiles(manifest_path) == [
+        "merged",
+        "ensembl",
+        "refseq",
+        "clinvar_merged",
+    ]
     profile = manifest["clinvar_profiles"]["clinvar_merged"]
     assert profile["input"]["path"] == ("input/clinvar/clinvar_20261011.norm.vcf.gz")
     assert profile["golden"]["path"] == (
@@ -820,6 +899,10 @@ def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
         "ef4206e1a5168add794fb3defea9c061613fb608af986b3967a25349b9273564"
     )
     assert profile["golden"]["size"] == 5885304891
+    assert profile["input_index"]["sha256"] == (
+        "b8af55402ea7863b6fc6d9843a51347b16b807ca6a6f5a738d9a174c7dfec2ff"
+    )
+    assert profile["input_index"]["size"] == 611454
     assert profile["no_normalize"] is True
     # The ClinVar run stages the same merged cache as the HG002 profiles.
     assert profile["cache"]["revision"] == manifest["caches"]["merged"]["revision"]

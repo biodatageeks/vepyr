@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+import pytest
+
 SCRIPTS_DIR = Path(__file__).parents[1] / "e2e-testing" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -79,7 +81,7 @@ def record_with_csq(csq: str, info_prefix: str = "DP=1;") -> str:
 
 
 def test_csq_entry_order_differs_by_default(tmp_path):
-    for mode in ("strict", "canonical"):
+    for mode in ("strict", "strict-clin-sig", "canonical"):
         vep = mc.digest_vcf(
             write(tmp_path, "vep.vcf", VEP_HEADER, record_with_csq(TWO_GENE_CSQ)),
             mode,
@@ -254,6 +256,49 @@ def test_clin_sig_group_order_is_ignored_by_canonical_but_not_by_strict(tmp_path
     assert vep.clin_sig_reordered == vepyr.clin_sig_reordered == {}
 
 
+def test_strict_clin_sig_ignores_only_clin_sig_group_order(tmp_path):
+    vep, vepyr = clin_sig_digests(
+        tmp_path,
+        clin_sig_record(CLIN_SIG_VEP),
+        clin_sig_record(CLIN_SIG_VEPYR),
+        "strict-clin-sig",
+    )
+    assert vep.body == vepyr.body
+    assert (
+        mc.Result(mc.Pair("chr22", "vep", "vepyr"), vep, vepyr).clin_sig_order_only == 1
+    )
+
+
+def test_strict_clin_sig_keeps_info_key_order_strict(tmp_path):
+    vep_record = clin_sig_record(CLIN_SIG_VEP).replace("CSQ=", "DP=1;CSQ=", 1)
+    vepyr_record = clin_sig_record(CLIN_SIG_VEPYR).replace(
+        f"CSQ={CLIN_SIG_VEPYR}", f"CSQ={CLIN_SIG_VEPYR};DP=1"
+    )
+
+    strict_vep, strict_vepyr = clin_sig_digests(
+        tmp_path, vep_record, vepyr_record, "strict-clin-sig"
+    )
+    canonical_vep, canonical_vepyr = clin_sig_digests(
+        tmp_path, vep_record, vepyr_record, "canonical"
+    )
+    assert strict_vep.body != strict_vepyr.body
+    assert canonical_vep.body == canonical_vepyr.body
+
+
+def test_strict_clin_sig_keeps_qual_format_strict(tmp_path):
+    vep_record = clin_sig_record(CLIN_SIG_VEP).replace("\t.\t.\t", "\t50\t.\t")
+    vepyr_record = clin_sig_record(CLIN_SIG_VEPYR).replace("\t.\t.\t", "\t50.00\t.\t")
+
+    strict_vep, strict_vepyr = clin_sig_digests(
+        tmp_path, vep_record, vepyr_record, "strict-clin-sig"
+    )
+    canonical_vep, canonical_vepyr = clin_sig_digests(
+        tmp_path, vep_record, vepyr_record, "canonical"
+    )
+    assert strict_vep.body != strict_vepyr.body
+    assert canonical_vep.body == canonical_vepyr.body
+
+
 def test_ignore_csq_order_also_ignores_clin_sig_group_order_in_strict(tmp_path):
     """--ignore-csq-order exists for VEP's Perl hash order, and CLIN_SIG is the
     same defect inside an entry. The two are applied together, so entries whose
@@ -337,6 +382,11 @@ def test_compare_reports_clin_sig_order_records_as_vep_nondeterministic(tmp_path
     assert canonical.clin_sig_order_only == 2
     assert any("vepyr#238" in note for note in canonical.notes)
 
+    strict_clin_sig = mc.compare(pair, "strict-clin-sig")
+    assert strict_clin_sig.body_match
+    assert strict_clin_sig.clin_sig_order_only == 2
+    assert any("vepyr#238" in note for note in strict_clin_sig.notes)
+
     strict = mc.compare(pair, "strict")
     assert not strict.body_match
     assert strict.clin_sig_order_only == 0
@@ -363,6 +413,10 @@ def test_main_prints_the_vep_nondeterministic_count(tmp_path, capsys):
     assert mc.main(["--pair", vep, vepyr]) == 0
     out = capsys.readouterr().out
     assert "VEP-nondeterministic: 1 record(s)" in out
+    assert mc.main(["--pair", vep, vepyr, "--mode", "strict-clin-sig"]) == 0
+    out = capsys.readouterr().out
+    assert "mode: strict-clin-sig" in out
+    assert "1 record(s) concord only after sorting CLIN_SIG" in out
     assert mc.main(["--pair", vep, vepyr, "--mode", "strict"]) == 1
 
 
@@ -392,3 +446,12 @@ def test_explain_names_csq_order_plus_clin_sig_order():
     assert mc.classify_difference(vep, vepyr, (3, 3)) == [
         "CSQ order + CLIN_SIG order (VEP-nondeterministic, vepyr#238)"
     ]
+
+
+def test_help_renders(capsys):
+    # argparse %-formats help strings; a bare "%3B" (CLIN_SIG's separator)
+    # raised ValueError: unsupported format character 'B'.
+    with pytest.raises(SystemExit) as exc:
+        mc.main(["--help"])
+    assert exc.value.code == 0
+    assert "%3B" in capsys.readouterr().out

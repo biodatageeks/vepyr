@@ -244,7 +244,9 @@ resolved contradiction.
 
 `--md5-mode` defaults to `both`, reporting `strict` (record bytes as-is, the
 parity target) and `canonical` (cosmetic serialization normalised first)
-side by side. Hashing twice is cheap and the pair is diagnostic: a strict
+side by side. `strict-clin-sig` sorts only the VEP-nondeterministic `CLIN_SIG`
+`%3B` groups (vepyr#238), preserving strict bytes for every other field.
+Hashing twice is cheap and the pair is diagnostic: a strict
 failure with a canonical pass isolates serialization drift from a change in
 annotation content, which either digest alone leaves ambiguous.
 
@@ -261,11 +263,11 @@ still fails. Every other profile keeps the exact byte comparison.
 variant's allele-specific clinical significances from a Perl hash's keys, so a
 value with two or more `%3B`-separated groups changes order between runs and
 between the entries of one record
-([#238](https://github.com/biodatageeks/vepyr/issues/238)). The canonical
-digest, `--ignore-csq-order` and the field comparison sort those groups on both
-sides; plain strict never does. Records that concord only because of the sort
-are counted separately and printed as **VEP-nondeterministic**, not as plain
-matches.
+([#238](https://github.com/biodatageeks/vepyr/issues/238)). Canonical,
+strict-clin-sig, `--ignore-csq-order` and the field comparison sort those groups
+on both sides; plain strict never does. Records that concord only because of
+the sort are counted separately and printed as **VEP-nondeterministic**, not
+as plain matches.
 
 **Defaults:** `--profile merged`, always regenerate annotation output, reuse
 only source-identified normalized/input/reference slices (`--force` to recreate
@@ -354,7 +356,7 @@ the bytes the same?" It hashes each file's header and record body separately
 and compares the digests, which is what qualifies vepyr's VCF output as a
 drop-in replacement for VEP's rather than merely an equivalent one.
 
-Two modes over the same digest pipeline:
+Three modes over the same digest pipeline:
 
 - `canonical` (default) normalizes the serialization differences that are known
   to be cosmetic before hashing -- QUAL rendered numerically, INFO and FORMAT
@@ -363,8 +365,11 @@ Two modes over the same digest pipeline:
   how they were written out.
 - `strict` hashes the record bytes as-is. This is the parity target: it passes
   only once vepyr reproduces VEP's serialization exactly.
+- `strict-clin-sig` sorts only the `%3B` groups within the `CLIN_SIG` field of
+  each CSQ entry (vepyr#238), leaving INFO key order, QUAL, FORMAT keys and
+  all other record bytes unchanged.
 
-The canonical mode, and `--ignore-csq-order` in either mode, also sort the
+The canonical mode, strict-clin-sig, and `--ignore-csq-order` also sort the
 `%3B` groups of `CLIN_SIG` inside every CSQ entry, whose VEP order is random
 ([#238](https://github.com/biodatageeks/vepyr/issues/238)). A pass that needed
 the sort reports how many records were VEP-nondeterministic.
