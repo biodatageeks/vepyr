@@ -161,7 +161,7 @@ def check_staged(data: Path, manifest: dict, staged: dict) -> list[str]:
             got = None
         if got != want:
             problems.append(
-                f"cache {f}: {marker.relative_to(data)} is not the JSON identity "
+                f"cache {f}: {marker.relative_to(data).as_posix()} is not the JSON identity "
                 f"{want['repo_id']}@{want['revision']}"
             )
     return problems

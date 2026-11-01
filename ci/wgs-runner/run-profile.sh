@@ -44,7 +44,7 @@ grep -E 'md5 (strict|strict-clin-sig|canonical)|^  chr([0-9]+|X|Y|MT) |MD5 conco
 # run_comparison returns 1 for BOTH an md5 mismatch and a crashed contig (2 for
 # usage/provenance errors). Only the md5 table's "FAIL: body digest differs"
 # line marks a real mismatch; a bare 1 without it is an error. The full log is
-# searched, not summary.txt, whose 80-line tail can drop that line.
+# searched, not summary.txt, whose 120-line tail can drop that line.
 case "$rc" in
   0) outcome=success; code=0 ;;
   1)
