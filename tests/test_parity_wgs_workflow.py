@@ -179,6 +179,8 @@ def test_run_profile_outcome_strings_match_run_comparison():
         assert marker in script
         assert marker in cli
     assert "grep -q 'FAIL: body digest differs' /work/run.log" in script
+    assert "VEP-nondeterministic|concord only after sorting CLIN_SIG" in script
+    assert "count and verdict; update this filter with new modes" in script
 
 
 def test_clinvar_run_uses_all_contigs_no_normalize_and_strict_clin_sig_md5():
@@ -199,8 +201,15 @@ def test_clinvar_run_uses_all_contigs_no_normalize_and_strict_clin_sig_md5():
         "clinvar_profiles']['clinvar_merged']['golden_index']['sha256",
     ):
         assert marker in stage
+    assert (
+        'clinvar_golden_source_subdir="$(dirname "$clinvar_golden_source_rel")"'
+        in stage
+    )
     assert 'clinvar_golden_name="$(basename "$clinvar_golden")"' in stage
-    assert '--include="$clinvar_golden_name*"' in stage
+    assert 'clinvar_golden_index_name="$(basename "$clinvar_golden_index")"' in stage
+    assert '--include="$clinvar_golden_name"' in stage
+    assert '--include="$clinvar_golden_index_name"' in stage
+    assert '"$DATA/$(dirname "$clinvar_golden")/"' in stage
 
 
 def test_fork_prs_must_pin_the_reviewed_sha():

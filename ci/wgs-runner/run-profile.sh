@@ -38,7 +38,9 @@ fi
   --output-dir /work/out 2>&1 | tee /work/run.log
 rc=${PIPESTATUS[0]}
 # Table rows include chrX, chrY and chrMT (contigs canonicalised to chr*).
-grep -E 'md5 (strict|strict-clin-sig|canonical)|^  chr([0-9]+|X|Y|MT) |MD5 concordance|PASS|FAIL|no md5 evidence' /work/run.log | tail -80 > /work/summary.txt || true
+# For the current 25-contig matrix, keep per-contig digests, table, CLIN_SIG
+# count and verdict; update this filter with new modes.
+grep -E 'md5 (strict|strict-clin-sig|canonical)|^  chr([0-9]+|X|Y|MT) |MD5 concordance|VEP-nondeterministic|concord only after sorting CLIN_SIG|PASS|FAIL|no md5 evidence' /work/run.log | tail -80 > /work/summary.txt || true
 # run_comparison returns 1 for BOTH an md5 mismatch and a crashed contig (2 for
 # usage/provenance errors). Only the md5 table's "FAIL: body digest differs"
 # line marks a real mismatch; a bare 1 without it is an error. The full log is

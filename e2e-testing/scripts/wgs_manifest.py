@@ -124,17 +124,18 @@ def check_staged(data: Path, manifest: dict, staged: dict) -> list[str]:
         if s is None:
             problems.append(f"{rel} ({label}): not recorded in STAGED.json")
             continue
+        staged_size = s.get("size")
         if s.get("sha256") != sha:
             problems.append(f"{rel} ({label}): staged sha256 differs from manifest")
-        if s.get("size") != size:
+        if staged_size != size:
             problems.append(f"{rel} ({label}): staged size differs from manifest")
         p = data / rel
         if not p.is_file():
             problems.append(f"{rel} ({label}): missing on disk")
-        elif p.stat().st_size != s.get("size"):
+        elif staged_size is not None and p.stat().st_size != staged_size:
             problems.append(
                 f"{rel} ({label}): size {p.stat().st_size} != staged "
-                f"{s.get('size')} (truncated or replaced)"
+                f"{staged_size} (truncated or replaced)"
             )
     for rel, size in staged.get("cache_files", {}).items():
         p = data / rel

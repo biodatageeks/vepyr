@@ -81,6 +81,7 @@ def test_check_reports_legacy_staged_entries_without_size(tmp_path, chr22_manife
     problems = wgs_manifest.check_staged(data, manifest, staged)
 
     assert any("staged size differs from manifest" in problem for problem in problems)
+    assert not any("truncated or replaced" in problem for problem in problems)
 
 
 def test_check_detects_missing_truncated_and_revision_change(tmp_path, chr22_manifest):

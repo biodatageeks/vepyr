@@ -132,19 +132,34 @@ check_sha "$DATA/$clinvar_input_index" "$(mf "d['clinvar_profiles']['clinvar_mer
 
 # 5. goldens (+ tbi) from the host that holds the VEP reference runs
 clinvar_golden="$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['path']")"
+clinvar_golden_index="$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['path']")"
+case "$clinvar_golden" in
+  output/*/*) clinvar_golden_source_rel="${clinvar_golden#output/}"; clinvar_golden_source_rel="${clinvar_golden_source_rel#*/}" ;;
+  *) echo "unexpected ClinVar golden path: $clinvar_golden" >&2; exit 1 ;;
+esac
+clinvar_golden_source_subdir="$(dirname "$clinvar_golden_source_rel")"
 clinvar_golden_name="$(basename "$clinvar_golden")"
+clinvar_golden_index_name="$(basename "$clinvar_golden_index")"
 rsync -a --progress \
   --include='HG002_annotated_wgs_everything_hgvs_vep.vcf.gz*' \
   --include='HG002_annotated_wgs_everything_hgvs_merged.vcf.gz*' \
   --include='HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz*' \
-  --include="$clinvar_golden_name*" \
   --exclude='*' "$GOLDENS_FROM/" "$DATA/output/116/"
+if [ "$clinvar_golden_source_subdir" = . ]; then
+  clinvar_golden_source="$GOLDENS_FROM/"
+else
+  clinvar_golden_source="$GOLDENS_FROM/$clinvar_golden_source_subdir/"
+fi
+mkdir -p "$DATA/$(dirname "$clinvar_golden")"
+rsync -a --progress \
+  --include="$clinvar_golden_name" \
+  --include="$clinvar_golden_index_name" \
+  --exclude='*' "$clinvar_golden_source" "$DATA/$(dirname "$clinvar_golden")/"
 for p in $(mf "' '.join(sorted(d['profiles']))"); do
   g="$(mf "d['profiles']['$p']['golden']")"
   check_sha "$DATA/$g" "$(mf "d['profiles']['$p']['sha256']")"
   check_sha "$DATA/$g.tbi" "$(mf "d['inputs']['$g.tbi']['sha256']")"
 done
-clinvar_golden_index="$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['path']")"
 check_sha "$DATA/$clinvar_golden" "$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['sha256']")"
 check_sha "$DATA/$clinvar_golden_index" "$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['sha256']")"
 
