@@ -169,13 +169,64 @@ def test_prepare_preserves_clinvar_profiles_in_existing_manifest(
     assert prepared["clinvar_profiles"] == clinvar_profiles
 
 
-def test_clinvar_profiles_do_not_invalidate_existing_wgs_staging(
+def test_clinvar_assets_are_recorded_and_invalidate_staging_when_manifest_changes(
     tmp_path, chr22_manifest
 ):
     data = tmp_path / "data"
     make_layout(data)
+    clinvar_input = data / "input/clinvar/clinvar_20261011.norm.vcf.gz"
+    clinvar_input_index = data / "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi"
+    clinvar_golden = (
+        data / "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz"
+    )
+    clinvar_golden_index = Path(f"{clinvar_golden}.tbi")
+    for path, body in (
+        (clinvar_input, b"clinvar input"),
+        (clinvar_input_index, b"clinvar input index"),
+        (clinvar_golden, b"clinvar golden"),
+        (clinvar_golden_index, b"clinvar golden index"),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
     manifest = wgs_manifest.build_manifest(data, chr22_manifest, PROFILES)
+    manifest["clinvar_profiles"] = {
+        "clinvar_merged": {
+            key: {
+                "path": path.relative_to(data).as_posix(),
+                **wgs_manifest._entry(data, path.relative_to(data).as_posix()),
+            }
+            for key, path in (
+                ("input", clinvar_input),
+                ("input_index", clinvar_input_index),
+                ("golden", clinvar_golden),
+                ("golden_index", clinvar_golden_index),
+            )
+        }
+    }
     staged = wgs_manifest.record_staged(data, manifest)
-    with_clinvar = {**manifest, "clinvar_profiles": {"clinvar_merged": {}}}
+    tracked = {
+        "input/clinvar/clinvar_20261011.norm.vcf.gz",
+        "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi",
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz",
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz.tbi",
+    }
+    assert tracked <= set(staged["files"])
+    assert all(
+        staged["files"][rel]["size"] == (data / rel).stat().st_size for rel in tracked
+    )
+    assert wgs_manifest.check_staged(data, manifest, staged) == []
 
-    assert wgs_manifest.check_staged(data, with_clinvar, staged) == []
+    changed = json.loads(json.dumps(manifest))
+    changed["clinvar_profiles"]["clinvar_merged"]["input_index"]["sha256"] = "0" * 64
+    assert any(
+        "input/clinvar/clinvar_20261011.norm.vcf.gz.tbi" in problem
+        for problem in wgs_manifest.check_staged(data, changed, staged)
+    )
+    changed = json.loads(json.dumps(manifest))
+    changed["clinvar_profiles"]["clinvar_merged"]["golden_index"]["size"] += 1
+    assert any(
+        "output/116/clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz.tbi"
+        in problem
+        and "size differs from manifest" in problem
+        for problem in wgs_manifest.check_staged(data, changed, staged)
+    )

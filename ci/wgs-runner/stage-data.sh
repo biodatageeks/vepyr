@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 # One-time (and on manifest change) staging of the /parity-wgs data on the
-# runner host. Usage: stage-data.sh --goldens-from <rsync-source> [--data /data/vepyr]
+# runner host. Usage: stage-data.sh --goldens-from <rsync-source>
+#   --clinvar-input-from <rsync-source> [--data /data/vepyr]
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; repo="$(cd "$here/../.." && pwd)"
 manifest="$repo/e2e-testing/golden/wgs-manifest.json"
 DATA=/data/vepyr
 GOLDENS_FROM=""
+CLINVAR_INPUT_FROM=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --goldens-from) GOLDENS_FROM="$2"; shift 2 ;;
+    --clinvar-input-from) CLINVAR_INPUT_FROM="$2"; shift 2 ;;
     --data) DATA="$2"; shift 2 ;;
-    *) echo "usage: $0 --goldens-from <rsync-source> [--data /data/vepyr]" >&2; exit 2 ;;
+    *) echo "usage: $0 --goldens-from <rsync-source> --clinvar-input-from <rsync-source> [--data /data/vepyr]" >&2; exit 2 ;;
   esac
 done
 [ -n "$GOLDENS_FROM" ] || { echo "--goldens-from is required" >&2; exit 2; }
+[ -n "$CLINVAR_INPUT_FROM" ] || { echo "--clinvar-input-from is required" >&2; exit 2; }
 
 mf() { python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(eval(sys.argv[2]))" "$manifest" "$1"; }
 check_sha() { # file expected-sha256
@@ -113,17 +117,35 @@ for f in HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz HG002_GRCh38_1_22_v4.2.1_benc
   check_sha "$DATA/input/$f" "$want"
 done
 
+# 4b. ClinVar normalized input + tabix index from the controller.
+clinvar_input="$(mf "d['clinvar_profiles']['clinvar_merged']['input']['path']")"
+clinvar_input_index="$(mf "d['clinvar_profiles']['clinvar_merged']['input_index']['path']")"
+clinvar_input_name="$(basename "$clinvar_input")"
+clinvar_input_index_name="$(basename "$clinvar_input_index")"
+mkdir -p "$DATA/input/clinvar"
+rsync -a --progress \
+  --include="$clinvar_input_name" \
+  --include="$clinvar_input_index_name" \
+  --exclude='*' "$CLINVAR_INPUT_FROM/" "$DATA/input/clinvar/"
+check_sha "$DATA/$clinvar_input" "$(mf "d['clinvar_profiles']['clinvar_merged']['input']['sha256']")"
+check_sha "$DATA/$clinvar_input_index" "$(mf "d['clinvar_profiles']['clinvar_merged']['input_index']['sha256']")"
+
 # 5. goldens (+ tbi) from the host that holds the VEP reference runs
 rsync -a --progress \
   --include='HG002_annotated_wgs_everything_hgvs_vep.vcf.gz*' \
   --include='HG002_annotated_wgs_everything_hgvs_merged.vcf.gz*' \
   --include='HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz*' \
+  --include='clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz*' \
   --exclude='*' "$GOLDENS_FROM/" "$DATA/output/116/"
 for p in $(mf "' '.join(sorted(d['profiles']))"); do
   g="$(mf "d['profiles']['$p']['golden']")"
   check_sha "$DATA/$g" "$(mf "d['profiles']['$p']['sha256']")"
   check_sha "$DATA/$g.tbi" "$(mf "d['inputs']['$g.tbi']['sha256']")"
 done
+clinvar_golden="$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['path']")"
+clinvar_golden_index="$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['path']")"
+check_sha "$DATA/$clinvar_golden" "$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['sha256']")"
+check_sha "$DATA/$clinvar_golden_index" "$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['sha256']")"
 
 # 6. record what was staged
 python3 "$repo/e2e-testing/scripts/wgs_manifest.py" record-staged --data "$DATA" --manifest "$manifest" --out "$DATA/STAGED.json"

@@ -80,7 +80,8 @@ def test_no_concurrency_group_runner_serialises():
     # A group keeps one pending run, so a third request would evict a queued one.
     assert not re.search(r"^\s*concurrency:", WF, re.M)
     assert "cancel-in-progress" not in WF
-    assert "max-parallel: 3" in job_block("profile")
+    assert "max-parallel: 4" in job_block("profile")
+    assert "matrix.profile == 'clinvar_merged' && 240 || 60" in job_block("profile")
 
 
 def test_profile_job_runs_no_checked_out_code_on_host():
@@ -119,7 +120,7 @@ def test_profile_job_writes_and_uploads_only_outside_workspace():
 
 
 def test_profile_container_has_memory_cap():
-    assert "--memory 56g --memory-swap 56g" in job_block("profile")
+    assert "--memory 20g --memory-swap 20g" in job_block("profile")
 
 
 def test_parity_tests_ignores_parity_wgs_comments():
@@ -175,6 +176,23 @@ def test_run_profile_outcome_strings_match_run_comparison():
         assert marker in script
         assert marker in cli
     assert "grep -q 'FAIL: body digest differs' /work/run.log" in script
+
+
+def test_clinvar_run_uses_all_contigs_no_normalize_and_canonical_md5():
+    script = (ROOT / "ci/wgs-runner/run-profile.sh").read_text()
+    assert (
+        "comparison_args=(--chroms all --no-normalize --md5-mode canonical)" in script
+    )
+    assert "^  chr([0-9]+|X|Y|MT) " in script
+    stage = (ROOT / "ci/wgs-runner/stage-data.sh").read_text()
+    for marker in (
+        "--clinvar-input-from",
+        "clinvar_profiles']['clinvar_merged']['input']['sha256",
+        "clinvar_profiles']['clinvar_merged']['input_index']['sha256",
+        "clinvar_profiles']['clinvar_merged']['golden']['sha256",
+        "clinvar_profiles']['clinvar_merged']['golden_index']['sha256",
+    ):
+        assert marker in stage
 
 
 def test_fork_prs_must_pin_the_reviewed_sha():

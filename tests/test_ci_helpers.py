@@ -90,12 +90,22 @@ def test_find_wheel_returns_absolute_path_for_relative_dir(tmp_path, monkeypatch
     assert found.is_file()
 
 
-def test_profiles_reads_manifest_keys_sorted(tmp_path):
+def test_profiles_reads_core_and_clinvar_profiles_in_stable_order(tmp_path):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(
-        json.dumps({"profiles": {"refseq": {}, "ensembl": {}, "merged": {}}})
+        json.dumps(
+            {
+                "profiles": {"refseq": {}, "ensembl": {}, "merged": {}},
+                "clinvar_profiles": {"clinvar_merged": {}},
+            }
+        )
     )
-    assert ci_helpers.profiles(manifest) == ["ensembl", "merged", "refseq"]
+    assert ci_helpers.profiles(manifest) == [
+        "merged",
+        "ensembl",
+        "refseq",
+        "clinvar_merged",
+    ]
 
 
 @pytest.mark.parametrize("body", [{}, {"profiles": {}}])
@@ -127,6 +137,18 @@ def test_profiles_matches_the_committed_manifest():
         / "e2e-testing/golden/116/chr22/manifest.json"
     )
     assert len(ci_helpers.profiles(manifest)) == 10
+
+
+def test_profiles_includes_clinvar_from_the_wgs_manifest():
+    manifest = (
+        Path(__file__).resolve().parents[1] / "e2e-testing/golden/wgs-manifest.json"
+    )
+    assert ci_helpers.profiles(manifest) == [
+        "merged",
+        "ensembl",
+        "refseq",
+        "clinvar_merged",
+    ]
 
 
 ENV_YML = """---
@@ -503,13 +525,13 @@ def test_parity_and_wgs_commands_do_not_overlap():
 
 
 def test_wgs_statuses_all_green(tmp_path):
-    for p in ("ensembl", "merged", "refseq"):
+    profiles = ["merged", "ensembl", "refseq", "clinvar_merged"]
+    for p in profiles:
         write_result(tmp_path, f"wgs/{p}", "success", "md5 strict: body MATCH")
-    rows = as_dict(
-        ci_helpers.wgs_statuses(tmp_path, ["ensembl", "merged", "refseq"], "success")
-    )
-    assert rows["parity/wgs"] == ("success", "3 profiles pass")
+    rows = as_dict(ci_helpers.wgs_statuses(tmp_path, profiles, "success"))
+    assert rows["parity/wgs"] == ("success", "4 profiles pass")
     assert rows["parity/wgs/merged"][0] == "success"
+    assert rows["parity/wgs/clinvar_merged"][0] == "success"
 
 
 def test_wgs_statuses_missing_record_is_error(tmp_path):

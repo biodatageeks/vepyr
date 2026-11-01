@@ -2,7 +2,7 @@
 
 The `clinvar_merged` comparison profile annotates every GRCh38 record of the ClinVar release of 2026-10-11 with vepyr and the merged cache. It compares the result per contig by body md5 against Ensembl VEP 116.0, the same check the HG002 golden suite runs.
 
-The VCFs are too large for Git and stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`). The golden VCF and index sizes and SHA-256 values are pinned in `clinvar_profiles` of [`../../wgs-manifest.json`](../../wgs-manifest.json), and the runner checks those bytes before comparing. The input's size and SHA-256 are provenance fields: the runner allows a regenerated BGZF header and instead checks record count, record-body MD5, and that indexed queries return the same records.
+The VCFs are too large for Git and stay in the data directory (`$DATA_VEPYR_DIR`, default `~/workspace/data_vepyr`). The input, input index, golden VCF and golden index sizes and SHA-256 values are pinned in `clinvar_profiles` of [`../../wgs-manifest.json`](../../wgs-manifest.json). Staging verifies each checksum, and `wgs_manifest.py check` verifies the staged checksums and sizes before comparing.
 
 | File | Location |
 |------|----------|
@@ -115,14 +115,57 @@ that do not annotate do not require the cache.
 
 ```bash
 python e2e-testing/scripts/run_comparison.py --release 116 --profile clinvar_merged \
-  --chroms all --comparison-mode md5 --md5-mode both --bgzf --workers 8
+  --chroms all --comparison-mode md5 --md5-mode canonical --bgzf --workers 10 \
+  --no-normalize
 ```
 
 - `--chroms` takes space-separated contig names (`22 Y` or `chr22 chrY`) or `all`. For a quick check, use `--chroms 22 Y`.
-- A full run takes about an hour on a laptop. ClinVar is about 20× slower per record than HG002 (biodatageeks/vepyr#258).
-- It needs about 30 GB of temporary slices.
+- `/parity-wgs` uses canonical md5 for ClinVar so VEP's nondeterministic
+  `CLIN_SIG` group order is tolerated; the three HG002 profiles still use both
+  strict and canonical md5. A diagnostic `--md5-mode both` run shows the strict
+  mismatch and canonical match separately.
+- On 2026-11-01, a local run with 10 workers completed all 25 contigs in
+  5,519 seconds (91m 59s), peaked at 15.18 GiB RSS and 1.04 GiB task scratch.
+  Scratch was removed after each contig. The largest wall-time contributors
+  were chr2 (25m 47s) and chr17 (8m 51s); chr2 shows the single-partition tail
+  described in [vepyr#258](https://github.com/biodatageeks/vepyr/issues/258).
+
+| Contig | Records | Strict md5 | Canonical md5 | Wall |
+|--------|--------:|------------|---------------|-----:|
+| chr1 | 414,715 | PASS | PASS | 5m 30s |
+| chr2 | 401,230 | PASS | PASS | 25m 47s |
+| chr3 | 251,389 | PASS | PASS | 3m 48s |
+| chr4 | 163,605 | PASS | PASS | 2m 52s |
+| chr5 | 222,343 | PASS | PASS | 3m 23s |
+| chr6 | 206,599 | PASS | PASS | 3m 25s |
+| chr7 | 223,219 | PASS | PASS | 3m 03s |
+| chr8 | 155,536 | PASS | PASS | 2m 46s |
+| chr9 | 203,226 | PASS | PASS | 2m 59s |
+| chr10 | 171,717 | PASS | PASS | 2m 25s |
+| chr11 | 267,817 | PASS | PASS | 3m 46s |
+| chr12 | 211,578 | PASS | PASS | 2m 50s |
+| chr13 | 90,238 | PASS | PASS | 1m 15s |
+| chr14 | 145,471 | PASS | PASS | 2m 18s |
+| chr15 | 159,327 | PASS | PASS | 2m 12s |
+| chr16 | 237,223 | PASS | PASS | 3m 44s |
+| chr17 | 277,114 | PASS | PASS | 8m 51s |
+| chr18 | 76,630 | PASS | PASS | 1m 09s |
+| chr19 | 261,537 | PASS | PASS | 3m 29s |
+| chr20 | 99,377 | PASS | PASS | 1m 18s |
+| chr21 | 51,667 | PASS | PASS | 0m 45s |
+| chr22 | 99,409 | DIFFER* | PASS | 1m 34s |
+| chrX | 198,574 | PASS | PASS | 2m 25s |
+| chrY | 697 | PASS | PASS | 0m 03s |
+| chrMT | 3,134 | PASS | PASS | 0m 02s |
+
+`*` ClinVar 2691795 at chr22:26666332 G>A differs in `INFO/CSQ` only by the
+ordering of `CLIN_SIG` groups. The canonical digest matches after sorting those
+groups (vepyr#238). The diagnostic `--md5-mode both` command therefore returns
+exit 1 for its strict verdict; the `/parity-wgs` ClinVar run uses canonical
+mode and passes all 25 contigs.
 
 Before annotation, the runner scans the 4,593,372 input records and checks the
-indexed queries. It also hashes the 5.9 GB golden before comparison. At vepyr
-master `99dd788` (2026-10-20), chrY matches byte for byte, and the other 24
-contigs still differ on 4,983 of the 4,593,372 records.
+indexed queries. It also hashes the 5.9 GB golden before comparison. The
+measured pinned cache at revision
+`ac2c8ad979ad063816368b0720e6e4501d64a3f3` canonically matches the VEP 116.0
+golden on all 25 contigs.

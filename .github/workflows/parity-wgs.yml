@@ -1,6 +1,6 @@
 name: Parity tests (whole genome)
 
-# Admin-only whole-genome md5 parity (HG002, VEP 116, profiles in
+# Admin-only whole-genome md5 parity (HG002 plus ClinVar, VEP 116, profiles in
 # e2e-testing/golden/wgs-manifest.json) on the self-hosted runner.
 #   gh workflow run parity-wgs.yml -f pr=123 [-f sha=<head sha>]
 #   a PR comment that is exactly `/parity-wgs` or `/parity-wgs <head sha>`
@@ -223,21 +223,22 @@ jobs:
   # a host-created directory outside the workspace that all uploads come from.
   # Parallelism: four hosts (gh-runner-bdg-1..4, one runner each) carry the
   # vepyr-wgs label, each with its own /data/vepyr, scratch disk and memory,
-  # and a runner takes one job at a time. max-parallel: 3 runs a request's
-  # three profiles on three hosts at once; further jobs queue FIFO for a free
+  # and a runner takes one job at a time. max-parallel: 4 runs a request's
+  # four profiles on four hosts at once; further jobs queue FIFO for a free
   # host. No workflow concurrency group: GitHub keeps only one pending run per
   # group, so any third request would evict a queued admin run.
   profile:
     needs: [authorize, build-wheel]
     name: wgs (${{ matrix.profile }})
     runs-on: [self-hosted, linux, x64, vepyr-wgs]
-    # Measured 2026-10-11 on a 16 vCPU host: merged 29, ensembl 23, refseq 21 min.
-    timeout-minutes: 60
+    # ClinVar took 92 minutes at 10 workers locally; 240 minutes gives >2x
+    # headroom for the 10-vCPU hosts and the chr2 single-partition tail.
+    timeout-minutes: ${{ matrix.profile == 'clinvar_merged' && 240 || 60 }}
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 4
       matrix:
         profile: ${{ fromJSON(needs.authorize.outputs.profiles) }}
     env:
@@ -274,7 +275,7 @@ jobs:
           wheel="${wheels[0]}"
           docker run --rm --name "$CONTAINER" --label vepyr-wgs=1 --network bridge \
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 4096 \
-            --memory 56g --memory-swap 56g \
+            --memory 20g --memory-swap 20g \
             --user "$(id -u):$(id -g)" --read-only --tmpfs /tmp:rw,size=4g \
             -e DATA_VEPYR_DIR=/data -e HOME=/work -e WORK=/work \
             -v /data/vepyr:/data:ro -v "$SCRATCH":/work:rw -v "$GITHUB_WORKSPACE":/src:ro \

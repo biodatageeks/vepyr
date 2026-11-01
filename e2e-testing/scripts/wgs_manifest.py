@@ -43,10 +43,7 @@ def _canonical(manifest: dict) -> str:
 
 
 def _manifest_sha(manifest: dict) -> str:
-    staged_manifest = {
-        key: value for key, value in manifest.items() if key != "clinvar_profiles"
-    }
-    return hashlib.sha256(_canonical(staged_manifest).encode("utf-8")).hexdigest()
+    return hashlib.sha256(_canonical(manifest).encode("utf-8")).hexdigest()
 
 
 def build_manifest(data: Path, chr22_manifest: Path, profiles: dict[str, str]) -> dict:
@@ -75,9 +72,14 @@ def build_manifest(data: Path, chr22_manifest: Path, profiles: dict[str, str]) -
 
 
 def _tracked_files(manifest: dict) -> list[str]:
-    return [p["golden"] for p in manifest["profiles"].values()] + list(
-        manifest["inputs"]
-    )
+    files = [p["golden"] for p in manifest["profiles"].values()]
+    files.extend(manifest["inputs"])
+    for profile in (manifest.get("clinvar_profiles") or {}).values():
+        for key in ("input", "input_index", "golden", "golden_index"):
+            asset = profile.get(key)
+            if asset and asset.get("path"):
+                files.append(asset["path"])
+    return list(dict.fromkeys(files))
 
 
 def record_staged(data: Path, manifest: dict) -> dict:
@@ -100,16 +102,32 @@ def check_staged(data: Path, manifest: dict, staged: dict) -> list[str]:
     problems = []
     if staged.get("manifest_sha256") != _manifest_sha(manifest):
         problems.append("manifest changed since staging")
-    expected = {p["golden"]: (n, p["sha256"]) for n, p in manifest["profiles"].items()}
-    expected.update({rel: (rel, e["sha256"]) for rel, e in manifest["inputs"].items()})
+    expected = {
+        p["golden"]: (n, p["sha256"], p["size"])
+        for n, p in manifest["profiles"].items()
+    }
+    expected.update(
+        {rel: (rel, e["sha256"], e["size"]) for rel, e in manifest["inputs"].items()}
+    )
+    for name, profile in (manifest.get("clinvar_profiles") or {}).items():
+        for key in ("input", "input_index", "golden", "golden_index"):
+            asset = profile.get(key)
+            if asset and asset.get("path"):
+                expected[asset["path"]] = (
+                    f"{name}/{key}",
+                    asset["sha256"],
+                    asset["size"],
+                )
     sfiles = staged.get("files", {})
-    for rel, (label, sha) in expected.items():
+    for rel, (label, sha, size) in expected.items():
         s = sfiles.get(rel)
         if s is None:
             problems.append(f"{rel} ({label}): not recorded in STAGED.json")
             continue
         if s["sha256"] != sha:
             problems.append(f"{rel} ({label}): staged sha256 differs from manifest")
+        if s["size"] != size:
+            problems.append(f"{rel} ({label}): staged size differs from manifest")
         p = data / rel
         if not p.is_file():
             problems.append(f"{rel} ({label}): missing on disk")

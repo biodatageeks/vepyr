@@ -58,8 +58,12 @@ def result_record(name: str, outcome: str, summary: str) -> dict:
 
 
 def profiles(manifest: Path) -> list[str]:
-    """Integration profiles = the golden manifest's ``profiles`` keys."""
-    names = sorted(json.loads(manifest.read_text()).get("profiles") or {})
+    """WGS profiles, including any separately declared ClinVar profiles."""
+    data = json.loads(manifest.read_text())
+    core = set(data.get("profiles") or {})
+    clinvar = set(data.get("clinvar_profiles") or {})
+    preferred = [name for name in ("merged", "ensembl", "refseq") if name in core]
+    names = preferred + sorted(core - set(preferred)) + sorted(clinvar)
     if not names:
         raise CiError(f"no profiles in {manifest}")
     for name in names:

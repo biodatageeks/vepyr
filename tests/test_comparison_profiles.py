@@ -3,12 +3,16 @@ import hashlib
 import io
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from comparison import clinvar_reference_state, profiles
 from comparison.cli import parse_args
 from vepyr import _published
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ci"))
+import ci_helpers  # noqa: E402
 
 
 MERGED_REVISION = _published.PINS[(116, "GRCh38", "merged")]
@@ -801,7 +805,7 @@ def test_clinvar_profile_sets_input_and_normalization_defaults(tmp_path, monkeyp
     assert explicit_no_normalize.no_normalize is True
 
 
-def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
+def test_clinvar_manifest_expands_parity_wgs_profile_list():
     manifest_path = (
         Path(__file__).resolve().parents[1]
         / "e2e-testing"
@@ -811,6 +815,12 @@ def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert set(manifest["profiles"]) == {"ensembl", "merged", "refseq"}
+    assert ci_helpers.profiles(manifest_path) == [
+        "merged",
+        "ensembl",
+        "refseq",
+        "clinvar_merged",
+    ]
     profile = manifest["clinvar_profiles"]["clinvar_merged"]
     assert profile["input"]["path"] == ("input/clinvar/clinvar_20261011.norm.vcf.gz")
     assert profile["golden"]["path"] == (
@@ -820,6 +830,10 @@ def test_clinvar_manifest_does_not_expand_parity_wgs_profile_list():
         "ef4206e1a5168add794fb3defea9c061613fb608af986b3967a25349b9273564"
     )
     assert profile["golden"]["size"] == 5885304891
+    assert profile["input_index"]["sha256"] == (
+        "b8af55402ea7863b6fc6d9843a51347b16b807ca6a6f5a738d9a174c7dfec2ff"
+    )
+    assert profile["input_index"]["size"] == 611454
     assert profile["no_normalize"] is True
     # The ClinVar run stages the same merged cache as the HG002 profiles.
     assert profile["cache"]["revision"] == manifest["caches"]["merged"]["revision"]

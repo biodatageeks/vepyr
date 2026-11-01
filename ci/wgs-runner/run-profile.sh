@@ -26,12 +26,19 @@ fi
 uv venv --python python3.12 /work/venv >/dev/null
 uv pip install --python /work/venv/bin/python "$wheel" "huggingface_hub==1.28.0"
 export PATH="/work/venv/bin:$PATH"
+if [ "$profile" = clinvar_merged ]; then
+  # The ClinVar golden has one known VEP-nondeterministic CLIN_SIG group order
+  # (vepyr#238); canonical md5 normalizes that known ordering difference.
+  comparison_args=(--chroms all --no-normalize --md5-mode canonical)
+else
+  comparison_args=(--md5-mode both)
+fi
 /work/venv/bin/python e2e-testing/scripts/run_comparison.py --release 116 --profile "$profile" \
-  --comparison-mode md5 --md5-mode both --bgzf --workers "$(nproc)" \
+  "${comparison_args[@]}" --comparison-mode md5 --bgzf --workers "$(nproc)" \
   --output-dir /work/out 2>&1 | tee /work/run.log
 rc=${PIPESTATUS[0]}
-# Table rows look like "  chr1   1,234  ok  DIFFER" (contigs are canonicalised to chr*).
-grep -E 'md5 (strict|canonical)|^  chr[0-9XYM]+ |MD5 concordance|PASS|FAIL|no md5 evidence' /work/run.log | tail -80 > /work/summary.txt || true
+# Table rows include chrX, chrY and chrMT (contigs canonicalised to chr*).
+grep -E 'md5 (strict|canonical)|^  chr([0-9]+|X|Y|MT) |MD5 concordance|PASS|FAIL|no md5 evidence' /work/run.log | tail -80 > /work/summary.txt || true
 # run_comparison returns 1 for BOTH an md5 mismatch and a crashed contig (2 for
 # usage/provenance errors). Only the md5 table's "FAIL: body digest differs"
 # line marks a real mismatch; a bare 1 without it is an error. The full log is
