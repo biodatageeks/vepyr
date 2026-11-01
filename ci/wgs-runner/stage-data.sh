@@ -131,18 +131,19 @@ check_sha "$DATA/$clinvar_input" "$(mf "d['clinvar_profiles']['clinvar_merged'][
 check_sha "$DATA/$clinvar_input_index" "$(mf "d['clinvar_profiles']['clinvar_merged']['input_index']['sha256']")"
 
 # 5. goldens (+ tbi) from the host that holds the VEP reference runs
+clinvar_golden="$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['path']")"
+clinvar_golden_name="$(basename "$clinvar_golden")"
 rsync -a --progress \
   --include='HG002_annotated_wgs_everything_hgvs_vep.vcf.gz*' \
   --include='HG002_annotated_wgs_everything_hgvs_merged.vcf.gz*' \
   --include='HG002_annotated_wgs_everything_hgvs_refseq.vcf.gz*' \
-  --include='clinvar_20261011_annotated_wgs_everything_hgvs_merged.vcf.gz*' \
+  --include="$clinvar_golden_name*" \
   --exclude='*' "$GOLDENS_FROM/" "$DATA/output/116/"
 for p in $(mf "' '.join(sorted(d['profiles']))"); do
   g="$(mf "d['profiles']['$p']['golden']")"
   check_sha "$DATA/$g" "$(mf "d['profiles']['$p']['sha256']")"
   check_sha "$DATA/$g.tbi" "$(mf "d['inputs']['$g.tbi']['sha256']")"
 done
-clinvar_golden="$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['path']")"
 clinvar_golden_index="$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['path']")"
 check_sha "$DATA/$clinvar_golden" "$(mf "d['clinvar_profiles']['clinvar_merged']['golden']['sha256']")"
 check_sha "$DATA/$clinvar_golden_index" "$(mf "d['clinvar_profiles']['clinvar_merged']['golden_index']['sha256']")"

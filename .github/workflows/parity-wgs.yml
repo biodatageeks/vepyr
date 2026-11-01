@@ -232,8 +232,9 @@ jobs:
     name: wgs (${{ matrix.profile }})
     runs-on: [self-hosted, linux, x64, vepyr-wgs]
     # ClinVar took 92 minutes at 10 workers locally; 240 minutes gives >2x
-    # headroom for the 10-vCPU hosts and the chr2 single-partition tail.
-    timeout-minutes: ${{ matrix.profile == 'clinvar_merged' && 240 || 60 }}
+    # headroom. HG002's 29-minute measurement was on 16 vCPU; allow 90 minutes
+    # on the current 10-vCPU hosts until the next run confirms that runtime.
+    timeout-minutes: ${{ matrix.profile == 'clinvar_merged' && 240 || 90 }}
     permissions:
       contents: read
     strategy:
@@ -273,9 +274,13 @@ jobs:
           wheels=("$SCRATCH"/dist/vepyr-*manylinux*x86_64*.whl)
           [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one x86_64 wheel, got ${#wheels[@]}"; exit 3; }
           wheel="${wheels[0]}"
+          # ClinVar's 15.18 GiB peak was measured under a 20 GiB cap. Give
+          # HG002 more headroom pending a measurement on the 10-vCPU hosts.
+          memory_limit=22g
+          if [ "$PROFILE" = clinvar_merged ]; then memory_limit=20g; fi
           docker run --rm --name "$CONTAINER" --label vepyr-wgs=1 --network bridge \
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 4096 \
-            --memory 20g --memory-swap 20g \
+            --memory "$memory_limit" --memory-swap "$memory_limit" \
             --user "$(id -u):$(id -g)" --read-only --tmpfs /tmp:rw,size=4g \
             -e DATA_VEPYR_DIR=/data -e HOME=/work -e WORK=/work \
             -v /data/vepyr:/data:ro -v "$SCRATCH":/work:rw -v "$GITHUB_WORKSPACE":/src:ro \

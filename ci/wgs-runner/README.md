@@ -101,16 +101,19 @@ share one `/data/vepyr`, scratch disk and memory budget.
 ## Runtime
 
 Measured HG002 times on 2026-10-11 on `gh-runner-bdg-1` (then 16 vCPU, 64 GB):
-`merged` 29 min, `ensembl` 23 min, `refseq` 21 min per job. Those profiles keep
-their 60-minute timeout.
+`merged` 29 min, `ensembl` 23 min, `refseq` 21 min per job. They retain
+`--md5-mode both` and have a 90-minute timeout to allow for the current
+10-vCPU hosts until their runtime is measured there.
 
 ClinVar was measured locally on 2026-11-01 with 10 workers: 25 contigs took
 92 minutes, peak process RSS was 15.2 GiB, and peak temporary slices were
-1.04 GiB with per-contig cleanup. The runner container is capped at 20 GiB on
-the 25 GB hosts; `clinvar_merged` has a 240-minute timeout (about 2.6x the
-measured wall time). Its job checks canonical md5, which sorts the known
-VEP-nondeterministic `CLIN_SIG` groups; the other three profiles check both
-strict and canonical md5. A diagnostic `--md5-mode both` run reports the
+1.04 GiB with per-contig cleanup. `clinvar_merged` uses a 20 GiB container cap,
+matching the measured run, and a 240-minute timeout (about 2.6x the measured
+wall time). HG002 containers get a 22 GiB cap pending a measurement on the
+10-vCPU hosts. ClinVar checks `strict-clin-sig`: it sorts only the known
+VEP-nondeterministic `CLIN_SIG` groups (vepyr#238), keeping INFO order, QUAL,
+FORMAT keys and all other record bytes strict. The other three profiles check
+both strict and canonical md5. A diagnostic `--md5-mode both` run reports the
 expected strict difference at chr22 and canonical concordance on all 25.
 
 ## Statuses

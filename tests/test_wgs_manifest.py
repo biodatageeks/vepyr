@@ -70,6 +70,19 @@ def test_check_passes_on_fresh_staging(tmp_path, chr22_manifest):
     assert wgs_manifest.check_staged(data, m, staged) == []
 
 
+def test_check_reports_legacy_staged_entries_without_size(tmp_path, chr22_manifest):
+    data = tmp_path / "data"
+    make_layout(data)
+    manifest = wgs_manifest.build_manifest(data, chr22_manifest, PROFILES)
+    staged = wgs_manifest.record_staged(data, manifest)
+    for entry in staged["files"].values():
+        entry.pop("size")
+
+    problems = wgs_manifest.check_staged(data, manifest, staged)
+
+    assert any("staged size differs from manifest" in problem for problem in problems)
+
+
 def test_check_detects_missing_truncated_and_revision_change(tmp_path, chr22_manifest):
     data = tmp_path / "data"
     make_layout(data)

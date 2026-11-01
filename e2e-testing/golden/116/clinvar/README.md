@@ -115,15 +115,16 @@ that do not annotate do not require the cache.
 
 ```bash
 python e2e-testing/scripts/run_comparison.py --release 116 --profile clinvar_merged \
-  --chroms all --comparison-mode md5 --md5-mode canonical --bgzf --workers 10 \
+  --chroms all --comparison-mode md5 --md5-mode strict-clin-sig --bgzf --workers 10 \
   --no-normalize
 ```
 
 - `--chroms` takes space-separated contig names (`22 Y` or `chr22 chrY`) or `all`. For a quick check, use `--chroms 22 Y`.
-- `/parity-wgs` uses canonical md5 for ClinVar so VEP's nondeterministic
-  `CLIN_SIG` group order is tolerated; the three HG002 profiles still use both
-  strict and canonical md5. A diagnostic `--md5-mode both` run shows the strict
-  mismatch and canonical match separately.
+- `/parity-wgs` uses `strict-clin-sig` for ClinVar. It sorts only VEP's
+  nondeterministic `CLIN_SIG` `%3B` groups (vepyr#238), preserving strict bytes
+  for INFO key order, QUAL, FORMAT keys and every other field. The three HG002
+  profiles still use `--md5-mode both` (strict plus canonical). A diagnostic
+  `--md5-mode both` run shows the strict mismatch and canonical match separately.
 - On 2026-11-01, a local run with 10 workers completed all 25 contigs in
   5,519 seconds (91m 59s), peaked at 15.18 GiB RSS and 1.04 GiB task scratch.
   Scratch was removed after each contig. The largest wall-time contributors
@@ -159,10 +160,10 @@ python e2e-testing/scripts/run_comparison.py --release 116 --profile clinvar_mer
 | chrMT | 3,134 | PASS | PASS | 0m 02s |
 
 `*` ClinVar 2691795 at chr22:26666332 G>A differs in `INFO/CSQ` only by the
-ordering of `CLIN_SIG` groups. The canonical digest matches after sorting those
-groups (vepyr#238). The diagnostic `--md5-mode both` command therefore returns
-exit 1 for its strict verdict; the `/parity-wgs` ClinVar run uses canonical
-mode and passes all 25 contigs.
+ordering of `CLIN_SIG` groups. Both canonical and `strict-clin-sig` sort only
+those groups (vepyr#238); the latter leaves all other body bytes exact. The
+diagnostic `--md5-mode both` command therefore returns exit 1 for its strict
+verdict. The `/parity-wgs` ClinVar run uses `strict-clin-sig`.
 
 Before annotation, the runner scans the 4,593,372 input records and checks the
 indexed queries. It also hashes the 5.9 GB golden before comparison. The

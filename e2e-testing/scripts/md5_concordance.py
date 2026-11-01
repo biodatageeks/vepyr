@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MD5 concordance between Ensembl VEP and vepyr VCF output.
 
-Two modes, same digest pipeline:
+Three modes, same digest pipeline:
 
   canonical (default)
       Normalizes the serialization differences that are known to be cosmetic
@@ -14,7 +14,13 @@ Two modes, same digest pipeline:
       Hashes the record bytes as-is. This is the eventual parity target: it
       passes only once vepyr reproduces VEP's serialization exactly.
 
-Either mode can additionally ignore the order of CSQ entries within a record
+  strict-clin-sig
+      Hashes strict record bytes after sorting only the ``%3B`` groups in
+      CLIN_SIG within each CSQ entry. This tolerates the VEP nondeterminism in
+      vepyr#238 without normalizing INFO key order, QUAL, FORMAT keys, or any
+      other record bytes.
+
+Any mode can additionally ignore the order of CSQ entries within a record
 (``--ignore-csq-order``). This is for --per_gene and --pick_allele_gene, where
 Ensembl VEP emits the selected entries by iterating Perl hashes, so their order
 changes between two VEP runs on the same input (vepyr#138). Entries are sorted,
@@ -24,12 +30,13 @@ CLIN_SIG order (vepyr#238). Ensembl VEP joins a co-located variant's
 allele-specific clinical significances with ``;`` (``%3B`` inside CSQ) by
 iterating a Perl hash, so a CLIN_SIG holding two or more values comes out in a
 different order between runs, and even between CSQ entries of one record. The
-canonical mode and ``--ignore-csq-order`` sort those ``%3B`` groups inside every
-CSQ entry on both sides. Plain strict mode never does: it is the byte-parity
-claim. Records that concord only because of this sort are counted separately
-and reported as VEP-nondeterministic rather than as plain matches.
+canonical and strict-clin-sig modes, and ``--ignore-csq-order``, sort those
+``%3B`` groups inside every CSQ entry on both sides. Plain strict mode never
+does: it is the byte-parity claim. Records that concord only because of this
+sort are counted separately and reported as VEP-nondeterministic rather than
+as plain matches.
 
-Headers are hashed separately from the body in both modes, because VEP appends
+Headers are hashed separately from the body in every mode, because VEP appends
 run-specific provenance (``##VEP=`` carries a timestamp) that never matches and
 is not meant to.
 
@@ -251,13 +258,13 @@ class Digest:
 
 def normalizes_clin_sig(mode: str, ignore_csq_order: bool) -> bool:
     """Whether `mode` sorts CLIN_SIG groups. Plain strict never does."""
-    return mode == "canonical" or ignore_csq_order
+    return mode in ("canonical", "strict-clin-sig") or ignore_csq_order
 
 
 def _body_line(line: str, mode: str, ignore_csq_order: bool) -> str:
     if ignore_csq_order:
         line = sort_csq_entries(line)
-    if mode == "strict":
+    if mode in ("strict", "strict-clin-sig"):
         return line
     return canonical_record(line.rstrip("\n")) + "\n"
 
@@ -266,9 +273,9 @@ def digest_vcf(path: str, mode: str, ignore_csq_order: bool = False) -> Digest:
     """Hash a VCF's header and body separately under `mode`.
 
     With `ignore_csq_order`, CSQ entries are sorted within each record before
-    hashing, in either mode. The canonical mode and `ignore_csq_order` also
-    sort the CLIN_SIG groups inside each CSQ entry (vepyr#238); plain strict
-    hashes the record bytes untouched.
+    hashing, in every mode. The canonical and strict-clin-sig modes, and
+    `ignore_csq_order`, also sort the CLIN_SIG groups inside each CSQ entry
+    (vepyr#238); plain strict hashes the record bytes untouched.
     """
     header = hashlib.md5()
     body = hashlib.md5()
@@ -384,7 +391,7 @@ def classify_difference(
                 )
             ):
                 # A diagnosis, not an absorption: plain strict still fails the
-                # record. It names why the record would pass the canonical mode.
+                # record. It names why the record passes a CLIN_SIG-sorting mode.
                 out.append(clin_sig)
             elif any(ax[k] != by[k] for k in ax):
                 out.append("INFO VALUES")
@@ -608,10 +615,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=("canonical", "strict"),
+        choices=("canonical", "strict", "strict-clin-sig"),
         default="canonical",
         help="canonical normalizes cosmetic serialization first (default); "
-        "strict hashes record bytes as-is.",
+        "strict hashes record bytes as-is; strict-clin-sig sorts only CLIN_SIG "
+        "%3B groups before hashing (vepyr#238).",
     )
     parser.add_argument(
         "--ignore-csq-order",

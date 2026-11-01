@@ -108,12 +108,14 @@ def parse_args(argv=None):
     )
     p.add_argument(
         "--md5-mode",
-        choices=("strict", "canonical", "both"),
+        choices=("strict", "strict-clin-sig", "canonical", "both"),
         default="both",
         dest="md5_mode",
         help="Digest mode for --comparison-mode md5 (default: both). "
         "'strict' hashes record bytes as-is -- the parity target. 'canonical' "
-        "normalises cosmetic serialization first. 'both' is the default "
+        "normalises cosmetic serialization first. 'strict-clin-sig' sorts only "
+        "CLIN_SIG %3B groups (vepyr#238). 'both' remains strict plus canonical "
+        "and is the default "
         "because hashing twice is cheap and the pair is diagnostic: a strict "
         "failure with a canonical pass isolates serialization drift from a "
         "content change, which one digest alone cannot tell you.",
