@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+import pytest
+
 SCRIPTS_DIR = Path(__file__).parents[1] / "e2e-testing" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -444,3 +446,12 @@ def test_explain_names_csq_order_plus_clin_sig_order():
     assert mc.classify_difference(vep, vepyr, (3, 3)) == [
         "CSQ order + CLIN_SIG order (VEP-nondeterministic, vepyr#238)"
     ]
+
+
+def test_help_renders(capsys):
+    # argparse %-formats help strings; a bare "%3B" (CLIN_SIG's separator)
+    # raised ValueError: unsupported format character 'B'.
+    with pytest.raises(SystemExit) as exc:
+        mc.main(["--help"])
+    assert exc.value.code == 0
+    assert "%3B" in capsys.readouterr().out

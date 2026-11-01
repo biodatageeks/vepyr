@@ -619,7 +619,7 @@ def main(argv: list[str] | None = None) -> int:
         default="canonical",
         help="canonical normalizes cosmetic serialization first (default); "
         "strict hashes record bytes as-is; strict-clin-sig sorts only CLIN_SIG "
-        "%3B groups before hashing (vepyr#238).",
+        "%%3B groups before hashing (vepyr#238).",
     )
     parser.add_argument(
         "--ignore-csq-order",
