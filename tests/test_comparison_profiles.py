@@ -2,6 +2,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -488,6 +489,9 @@ def _bash(helpers, command, *args):
     ).stdout.strip()
 
 
+@pytest.mark.skipif(
+    os.name == "nt", reason="stage-data.sh runs only on the Linux /parity-wgs hosts"
+)
 def test_stage_data_revision_marker_satisfies_the_clinvar_resolver(
     tmp_path, monkeypatch
 ):
@@ -511,6 +515,9 @@ def test_stage_data_revision_marker_satisfies_the_clinvar_resolver(
     assert resolved.cache_dir == str(tmp_path / "cache/116_GRCh38_merged")
 
 
+@pytest.mark.skipif(
+    os.name == "nt", reason="stage-data.sh runs only on the Linux /parity-wgs hosts"
+)
 def test_stage_data_revision_state_upgrades_a_bare_sha_marker(tmp_path):
     helpers = _stage_data_revision_helpers(tmp_path)
     marker = tmp_path / ".revision"
