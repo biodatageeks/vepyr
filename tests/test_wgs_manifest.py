@@ -23,6 +23,15 @@ def make_layout(root: Path) -> None:
         d = root / f"cache/116_GRCh38_{flavour}/variation"
         d.mkdir(parents=True)
         (d / "chr1.parquet").write_bytes(b"x" * 10)
+        (d.parent / ".revision").write_text(
+            json.dumps(
+                {
+                    "repo_id": f"biodatageeks/vepyr_116_GRCh38_{flavour}",
+                    "revision": f"rev-{flavour}",
+                }
+            ),
+            encoding="utf-8",
+        )
 
 
 @pytest.fixture
@@ -149,6 +158,51 @@ def test_cli_check_exit_codes(tmp_path, chr22_manifest, capsys):
         wgs_manifest.main(["check", "--data", str(data), "--manifest", str(mpath)]) == 3
     )
     assert "stage-data.sh" in capsys.readouterr().err
+
+
+def test_check_rejects_a_bare_sha_cache_revision_marker(tmp_path, chr22_manifest):
+    # An older stage-data.sh wrote .revision as the bare SHA; the ClinVar
+    # profile needs the JSON identity, so check must call the host stale.
+    data = tmp_path / "data"
+    make_layout(data)
+    mpath = tmp_path / "wgs.json"
+    wgs_manifest.main(
+        [
+            "prepare",
+            "--data",
+            str(data),
+            "--chr22-manifest",
+            str(chr22_manifest),
+            "--out",
+            str(mpath),
+        ]
+    )
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    (data / "cache/116_GRCh38_merged/.revision").write_text(
+        "rev-merged\n", encoding="utf-8"
+    )
+    wgs_manifest.main(
+        [
+            "record-staged",
+            "--data",
+            str(data),
+            "--manifest",
+            str(mpath),
+            "--out",
+            str(data / "STAGED.json"),
+        ]
+    )
+    staged = json.loads((data / "STAGED.json").read_text(encoding="utf-8"))
+
+    problems = wgs_manifest.check_staged(data, manifest, staged)
+
+    assert problems == [
+        "cache merged: cache/116_GRCh38_merged/.revision is not the JSON identity "
+        "biodatageeks/vepyr_116_GRCh38_merged@rev-merged"
+    ]
+    assert (
+        wgs_manifest.main(["check", "--data", str(data), "--manifest", str(mpath)]) == 3
+    )
 
 
 def test_prepare_preserves_clinvar_profiles_in_existing_manifest(

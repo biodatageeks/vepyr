@@ -150,6 +150,20 @@ def check_staged(data: Path, manifest: dict, staged: dict) -> list[str]:
             problems.append(
                 f"cache {f}: staged revision {staged.get('caches', {}).get(f)} != manifest {c['revision']}"
             )
+        # The ClinVar profile (comparison/profiles.py::_validate_cache_revision)
+        # needs the JSON identity marker stage-data.sh writes; an older bare-SHA
+        # marker would pass every other check here and then fail each run.
+        marker = data / f"cache/{manifest.get('release', '116')}_GRCh38_{f}/.revision"
+        want = {"repo_id": c.get("repo_id"), "revision": c["revision"]}
+        try:
+            got = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            got = None
+        if got != want:
+            problems.append(
+                f"cache {f}: {marker.relative_to(data)} is not the JSON identity "
+                f"{want['repo_id']}@{want['revision']}"
+            )
     return problems
 
 
