@@ -65,7 +65,7 @@ def test_payload_requires_every_tier():
     ):
         assert needed in contexts
     assert {
-        f"linux-tests (x86_64, {v})" for v in ("3.10", "3.11", "3.12", "3.13", "3.14")
+        f"linux-tests (x86_64, {v})" for v in ("3.11", "3.12", "3.13", "3.14")
     } <= contexts
     assert not any(c.startswith("parity/integration/") for c in contexts)
 

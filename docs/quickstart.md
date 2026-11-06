@@ -28,7 +28,7 @@ current version.
 
 ### From source (for development)
 
-vepyr requires a Rust toolchain and Python 3.10+.
+vepyr requires a Rust toolchain and Python 3.11+.
 
 1. Install [uv](https://docs.astral.sh/uv/) and [Rust](https://rustup.rs/):
 
