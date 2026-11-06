@@ -179,6 +179,14 @@ jobs:
   # the same abi3 reasoning as the Windows job above.
   linux-arm64-tests:
     runs-on: ubuntu-24.04-arm
+    # vepyr and polars_bio each bundle mimalloc, whose initial-exec TLS must be
+    # static. On aarch64 other modules claim spare static TLS first, so importing
+    # both fails with "cannot allocate memory in static TLS block". A budget below
+    # the total of all loaded modules (about 120 KB) passes or fails by import
+    # order, so this stays well above it. It only unblocks the tests: installed
+    # packages still hit the failure without this variable.
+    env:
+      GLIBC_TUNABLES: glibc.rtld.optional_static_tls=262144
     strategy:
       fail-fast: false
       matrix:
