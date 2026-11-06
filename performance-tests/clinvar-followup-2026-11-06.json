@@ -1,0 +1,511 @@
+{
+  "status": "provisional_screens_and_standard_gate_passed",
+  "final_matrix_and_whole_pending": true,
+  "source": {
+    "parent": "562af65835f443305784b6567004872966922df0",
+    "files": {
+      "datafusion/bio-function-vep/src/annotate_provider.rs": "2aedddf304c2510b871717d80ed74d75f64e9b2c9e9955e9ebe99ea383a23943",
+      "datafusion/bio-function-vep/src/hgvs.rs": "98175e5aeafe152877e7c2873ba59127a97fcd7696db3af124d1fec17f215aba",
+      "datafusion/bio-function-vep/src/transcript_consequence.rs": "f55dc9a789952a396d5e5cb9ed93e6c6053c8c681167c05d281437bb8884a7e7",
+      "datafusion/bio-function-vep/src/transcript_consequence/reference_memo.rs": "2442848d44092f26ae2db3c81a41d3be53f1514cf12753b290ae021431ecc151"
+    }
+  },
+  "stages": {
+    "h": {
+      "python": "/private/tmp/vepyr-clinvar-opt-run/serial-h-venv/bin/python",
+      "extension_sha256": "c2ef6a305793e84228e7065a46310b027d73b78a1d84449509f6c7664ce0a6f1",
+      "engine_revision": "562af65835f443305784b6567004872966922df0",
+      "evidence": "../serial-reference"
+    },
+    "i": {
+      "python": "/private/tmp/vepyr-clinvar-opt-run/followup-i-venv/bin/python",
+      "extension_sha256": "34cecb0e07a697cc0ffee709bfce97b1e15744dc62f3d92eeb1f58cbcbaf8ad9",
+      "engine_revision": "562af65835f443305784b6567004872966922df0 + i/candidate.patch",
+      "evidence": "i"
+    },
+    "j": {
+      "python": "/private/tmp/vepyr-clinvar-opt-run/followup-j-venv/bin/python",
+      "extension_sha256": "b8b30a52f25abe76d9a7b406faaa1447577c8f647ccba4b3b0584b8f3020ee96",
+      "engine_revision": "562af65835f443305784b6567004872966922df0 + j/candidate.patch",
+      "evidence": "j"
+    },
+    "j2": {
+      "python": "/private/tmp/vepyr-clinvar-opt-run/followup-j2-venv/bin/python",
+      "extension_sha256": "b4a67d6757341d3eea922e35693b9ca6d4ac0c0f2ad345934cf330917c947b8a",
+      "engine_revision": "562af65835f443305784b6567004872966922df0 + j2/candidate.patch",
+      "evidence": "j2"
+    },
+    "k": {
+      "python": "/private/tmp/vepyr-clinvar-opt-run/followup-k-venv/bin/python",
+      "extension_sha256": "bc480566670e8438ffc734629090976f21e9afad5414ed0892df5c53852f2113",
+      "engine_revision": "562af65835f443305784b6567004872966922df0 + k/candidate.patch",
+      "evidence": "k"
+    },
+    "k2": {
+      "python": "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+      "extension_sha256": "46f4074b2bd708e107a089c5c1ef56851480bf7c20c219de149271f5c46566ec",
+      "engine_revision": "562af65835f443305784b6567004872966922df0 + k2/candidate.patch",
+      "evidence": "k2"
+    }
+  },
+  "standard": {
+    "complete": {
+      "passed": true,
+      "verdicts": {
+        "dense-1": 1,
+        "sparse-1": 0,
+        "dense-2": 0,
+        "sparse-2": 0
+      },
+      "final_attempt": 2
+    },
+    "logs": {
+      "dense-gate-1.log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       222.3        167.6   -24.6%\n1/context/transcripts_done/elapsed_ms           164.2        144.4   -12.1%\n1/prefetch/data_done/elapsed_ms                 423.3        345.5   -18.4%\n1/vcf_format/done/elapsed_ms                   1857.0       1856.7    -0.0%\n1/vcf_stream/batch_ready/stream_wait_ms      120237.6     103324.5   -14.1%\n1/vcf_write/done/elapsed_ms                    1412.4       1346.7    -4.7%\n8/context/done/elapsed_ms                       137.2        145.9    +6.4%  <-- REGRESSION\n8/context/transcripts_done/elapsed_ms           361.2        364.4    +0.9%\n8/prefetch/data_done/elapsed_ms                 539.0        557.3    +3.4%\n8/vcf_format/done/elapsed_ms                   2500.3       2450.0    -2.0%\n\n10 phases compared, 1 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s          123.8          106.9   -13.7%\n      1   rss_kb      3269856.0      3474496.0    +6.3%\n      8   wall_s           27.7           23.4   -15.3%\n      8   rss_kb      4385296.0      4146352.0    -5.4%\n\nVERDICT: FAIL (1 bar(s) exceeded)\n",
+      "dense-gate-2.log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       176.8        170.3    -3.7%\n1/context/transcripts_done/elapsed_ms           145.4        143.2    -1.5%\n1/prefetch/data_done/elapsed_ms                 356.6        345.8    -3.0%\n1/vcf_format/done/elapsed_ms                   1878.2       1854.7    -1.3%\n1/vcf_stream/batch_ready/stream_wait_ms      121967.9     103273.0   -15.3%\n1/vcf_write/done/elapsed_ms                    3490.7       1360.4   -61.0%\n8/context/done/elapsed_ms                       146.4        148.0    +1.1%\n8/context/transcripts_done/elapsed_ms           363.0        361.3    -0.5%\n8/prefetch/data_done/elapsed_ms                 549.0        555.6    +1.2%\n8/vcf_format/done/elapsed_ms                   2467.9       2457.1    -0.4%\n\n10 phases compared, 0 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s          127.7          106.8   -16.3%\n      1   rss_kb      3333024.0      3302272.0    -0.9%\n      8   wall_s           27.3           23.5   -13.8%\n      8   rss_kb      4489632.0      4213664.0    -6.1%\n\nVERDICT: PASS (0 bar(s) exceeded)\n",
+      "sparse-gate-1.log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       169.5        168.2    -0.8%\n1/context/transcripts_done/elapsed_ms           147.8        146.0    -1.2%\n1/prefetch/data_done/elapsed_ms                 351.8        346.6    -1.5%\n1/vcf_format/done/elapsed_ms                    603.2        609.0    +1.0%\n1/vcf_stream/batch_ready/stream_wait_ms        6931.7       6882.7    -0.7%\n1/vcf_write/done/elapsed_ms                     189.5        191.3    +1.0%\n8/context/done/elapsed_ms                       136.6        138.3    +1.3%\n8/context/transcripts_done/elapsed_ms           226.6        226.8    +0.1%\n8/prefetch/data_done/elapsed_ms                 399.2        404.6    +1.4%\n8/vcf_format/done/elapsed_ms                    679.7        669.7    -1.5%\n\n10 phases compared, 0 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s            7.8            7.8    -0.3%\n      1   rss_kb      2168672.0      2086272.0    -3.8%\n      8   wall_s            2.5            2.4    -2.4%\n      8   rss_kb      2881760.0      2923344.0    +1.4%\n\nVERDICT: PASS (0 bar(s) exceeded)\n",
+      "sparse-gate-2.log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       155.9        157.5    +1.0%\n1/context/transcripts_done/elapsed_ms           140.3        136.4    -2.8%\n1/prefetch/data_done/elapsed_ms                 327.7        325.3    -0.7%\n1/vcf_format/done/elapsed_ms                    609.1        607.4    -0.3%\n1/vcf_stream/batch_ready/stream_wait_ms        6896.7       6896.2    -0.0%\n1/vcf_write/done/elapsed_ms                     195.6        187.8    -4.0%\n8/context/done/elapsed_ms                       140.7        140.3    -0.3%\n8/context/transcripts_done/elapsed_ms           227.0        230.6    +1.6%\n8/prefetch/data_done/elapsed_ms                 403.7        411.4    +1.9%\n8/vcf_format/done/elapsed_ms                    667.4        666.2    -0.2%\n\n10 phases compared, 0 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s            7.8            7.8    -0.2%\n      1   rss_kb      2142240.0      2129920.0    -0.6%\n      8   wall_s            2.5            2.3    -5.9%\n      8   rss_kb      2951312.0      2982208.0    +1.0%\n\nVERDICT: PASS (0 bar(s) exceeded)\n"
+    }
+  },
+  "screens": {
+    "2": {
+      "status": "complete",
+      "acceptance": false,
+      "measurements": [
+        {
+          "group": "k2-chromosome-chr2-w8",
+          "case": "chr2-workers8",
+          "chromosome": "2",
+          "workers": 8,
+          "label": "warmup",
+          "arm": "j2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-j2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr2/input_chr2.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr2-w8/chr2-workers8/warmup-j2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:45:52.269798+00:00",
+          "load_start": [
+            7.15478515625,
+            6.9013671875,
+            6.0419921875
+          ],
+          "ended": "2026-11-06T21:47:05.307650+00:00",
+          "load_end": [
+            6.54345703125,
+            6.95556640625,
+            6.1455078125
+          ],
+          "wall_s": 73.03,
+          "user_s": 189.88,
+          "system_s": 8.44,
+          "rss_bytes": 5381357568.0,
+          "identity": {
+            "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+            "contigs": {
+              "2": {
+                "body_md5": "4df6ae8cdc714236b95943abd465752d",
+                "records": 401230
+              }
+            }
+          },
+          "output_bytes": 7065317772
+        },
+        {
+          "group": "k2-chromosome-chr2-w8",
+          "case": "chr2-workers8",
+          "chromosome": "2",
+          "workers": 8,
+          "label": "warmup",
+          "arm": "k2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr2/input_chr2.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr2-w8/chr2-workers8/warmup-k2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:47:18.359631+00:00",
+          "load_start": [
+            6.21240234375,
+            6.87353515625,
+            6.1259765625
+          ],
+          "ended": "2026-11-06T21:48:07.644485+00:00",
+          "load_end": [
+            6.34375,
+            6.8984375,
+            6.1826171875
+          ],
+          "wall_s": 49.27,
+          "user_s": 192.07,
+          "system_s": 6.52,
+          "rss_bytes": 4681367552.0,
+          "identity": {
+            "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+            "contigs": {
+              "2": {
+                "body_md5": "4df6ae8cdc714236b95943abd465752d",
+                "records": 401230
+              }
+            }
+          },
+          "output_bytes": 7065317772
+        },
+        {
+          "group": "k2-chromosome-chr2-w8",
+          "case": "chr2-workers8",
+          "chromosome": "2",
+          "workers": 8,
+          "label": "measured-1",
+          "arm": "j2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-j2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr2/input_chr2.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr2-w8/chr2-workers8/measured-1-j2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:48:20.708636+00:00",
+          "load_start": [
+            6.41259765625,
+            6.88623046875,
+            6.1904296875
+          ],
+          "ended": "2026-11-06T21:49:34.591605+00:00",
+          "load_end": [
+            5.294921875,
+            6.52587890625,
+            6.11328125
+          ],
+          "wall_s": 73.87,
+          "user_s": 189.53,
+          "system_s": 8.42,
+          "rss_bytes": 5532073984.0,
+          "identity": {
+            "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+            "contigs": {
+              "2": {
+                "body_md5": "4df6ae8cdc714236b95943abd465752d",
+                "records": 401230
+              }
+            }
+          },
+          "output_bytes": 7065317776
+        },
+        {
+          "group": "k2-chromosome-chr2-w8",
+          "case": "chr2-workers8",
+          "chromosome": "2",
+          "workers": 8,
+          "label": "measured-1",
+          "arm": "k2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr2/input_chr2.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr2-w8/chr2-workers8/measured-1-k2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:49:47.473624+00:00",
+          "load_start": [
+            4.70556640625,
+            6.33642578125,
+            6.05224609375
+          ],
+          "ended": "2026-11-06T21:50:36.340752+00:00",
+          "load_end": [
+            5.41162109375,
+            6.40234375,
+            6.09912109375
+          ],
+          "wall_s": 48.85,
+          "user_s": 192.51,
+          "system_s": 6.42,
+          "rss_bytes": 4730241024.0,
+          "identity": {
+            "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+            "contigs": {
+              "2": {
+                "body_md5": "4df6ae8cdc714236b95943abd465752d",
+                "records": 401230
+              }
+            }
+          },
+          "output_bytes": 7065317776
+        }
+      ],
+      "summaries": {
+        "chr2-workers8": {
+          "j2": {
+            "n": 1,
+            "wall_s": 73.87,
+            "rss_bytes": 5532073984.0
+          },
+          "k2": {
+            "n": 1,
+            "wall_s": 48.85,
+            "rss_bytes": 4730241024.0
+          }
+        }
+      }
+    },
+    "17": {
+      "status": "complete",
+      "acceptance": false,
+      "measurements": [
+        {
+          "group": "k2-chromosome-chr17-w8",
+          "case": "chr17-workers8",
+          "chromosome": "17",
+          "workers": 8,
+          "label": "warmup",
+          "arm": "j2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-j2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr17/input_chr17.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr17-w8/chr17-workers8/warmup-j2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:43:24.767526+00:00",
+          "load_start": [
+            7.15869140625,
+            6.43994140625,
+            5.73779296875
+          ],
+          "ended": "2026-11-06T21:43:48.163842+00:00",
+          "load_end": [
+            7.44287109375,
+            6.568359375,
+            5.80078125
+          ],
+          "wall_s": 23.39,
+          "user_s": 110.6,
+          "system_s": 7.34,
+          "rss_bytes": 4607393792.0,
+          "identity": {
+            "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+            "contigs": {
+              "17": {
+                "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                "records": 277114
+              }
+            }
+          },
+          "output_bytes": 7165827364
+        },
+        {
+          "group": "k2-chromosome-chr17-w8",
+          "case": "chr17-workers8",
+          "chromosome": "17",
+          "workers": 8,
+          "label": "warmup",
+          "arm": "k2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr17/input_chr17.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr17-w8/chr17-workers8/warmup-k2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:44:01.537722+00:00",
+          "load_start": [
+            7.64306640625,
+            6.654296875,
+            5.84423828125
+          ],
+          "ended": "2026-11-06T21:44:25.046637+00:00",
+          "load_end": [
+            7.41455078125,
+            6.7060546875,
+            5.88720703125
+          ],
+          "wall_s": 23.5,
+          "user_s": 111.77,
+          "system_s": 6.75,
+          "rss_bytes": 4230201344.0,
+          "identity": {
+            "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+            "contigs": {
+              "17": {
+                "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                "records": 277114
+              }
+            }
+          },
+          "output_bytes": 7165827364
+        },
+        {
+          "group": "k2-chromosome-chr17-w8",
+          "case": "chr17-workers8",
+          "chromosome": "17",
+          "workers": 8,
+          "label": "measured-1",
+          "arm": "j2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-j2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr17/input_chr17.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr17-w8/chr17-workers8/measured-1-j2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:44:38.506716+00:00",
+          "load_start": [
+            6.7353515625,
+            6.58349609375,
+            5.85302734375
+          ],
+          "ended": "2026-11-06T21:45:01.938401+00:00",
+          "load_end": [
+            7.2919921875,
+            6.75341796875,
+            5.93603515625
+          ],
+          "wall_s": 23.42,
+          "user_s": 111.22,
+          "system_s": 7.58,
+          "rss_bytes": 4575576064.0,
+          "identity": {
+            "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+            "contigs": {
+              "17": {
+                "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                "records": 277114
+              }
+            }
+          },
+          "output_bytes": 7165827368
+        },
+        {
+          "group": "k2-chromosome-chr17-w8",
+          "case": "chr17-workers8",
+          "chromosome": "17",
+          "workers": 8,
+          "label": "measured-1",
+          "arm": "k2",
+          "trace": false,
+          "command": [
+            "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+            "-P",
+            "/private/tmp/vepyr-clinvar-opt-run/serial-reference/annotate_once.py",
+            "/private/tmp/vepyr-clinvar-opt-run/baseline/clinvar_merged-w1/results/116/fast_chr17/input_chr17.vcf.gz",
+            "/private/tmp/vepyr-clinvar-opt-run/followup-optimizations/k2-chromosome-chr17-w8/chr17-workers8/measured-1-k2.vcf",
+            "8"
+          ],
+          "started": "2026-11-06T21:45:15.548599+00:00",
+          "load_start": [
+            8.6826171875,
+            7.0771484375,
+            6.064453125
+          ],
+          "ended": "2026-11-06T21:45:38.448627+00:00",
+          "load_end": [
+            8.2431640625,
+            7.0859375,
+            6.0908203125
+          ],
+          "wall_s": 22.88,
+          "user_s": 110.43,
+          "system_s": 6.71,
+          "rss_bytes": 4383391744.0,
+          "identity": {
+            "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+            "contigs": {
+              "17": {
+                "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                "records": 277114
+              }
+            }
+          },
+          "output_bytes": 7165827368
+        }
+      ],
+      "summaries": {
+        "chr17-workers8": {
+          "j2": {
+            "n": 1,
+            "wall_s": 23.42,
+            "rss_bytes": 4575576064.0
+          },
+          "k2": {
+            "n": 1,
+            "wall_s": 22.88,
+            "rss_bytes": 4383391744.0
+          }
+        }
+      }
+    }
+  },
+  "python": {
+    "status": "passed",
+    "hashes": {
+      "k2": "46f4074b2bd708e107a089c5c1ef56851480bf7c20c219de149271f5c46566ec"
+    },
+    "time": "2026-11-06T21:55:39.564467+00:00",
+    "commands": [
+      [
+        "python-dependencies",
+        [
+          "uv",
+          "pip",
+          "install",
+          "--python",
+          "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+          "--no-deps",
+          "pytest==9.0.2",
+          "iniconfig==2.3.0",
+          "packaging==26.0",
+          "pluggy==1.6.0",
+          "pygments==2.19.2",
+          "datafusion==53.0.0"
+        ]
+      ],
+      [
+        "python-tests",
+        [
+          "/private/tmp/vepyr-clinvar-opt-run/followup-k2-venv/bin/python",
+          "-P",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--basetemp",
+          "/private/tmp/vepyr-clinvar-opt-run/pytest-followup-k2"
+        ]
+      ]
+    ]
+  },
+  "pre_commit": "[INFO] Installing environment for https://github.com/pre-commit/pre-commit-hooks.\n[INFO] Once installed this environment will be reused.\n[INFO] This may take a few minutes...\ncheck for merge conflicts................................................Passed\ntrim trailing whitespace.................................................Passed\nfix end of files.........................................................Passed\ncheck for added large files..............................................Passed\nfmt......................................................................Passed\nclippy...................................................................Passed\n",
+  "parity_policy": {
+    "time": "2026-11-06T20:15:23.624700+00:00",
+    "profile": "clinvar_merged",
+    "mode": "strict-clin-sig",
+    "ignore_csq_order": false,
+    "normalization": "Only %3B-separated CLIN_SIG groups, within each original CSQ entry.",
+    "independent_optimization_gate": "Raw body MD5 and original CHROM/POS/ID/REF/ALT identity/order versus pre-edit vepyr on every contig; no normalization.",
+    "source_hashes": {
+      "e2e-testing/scripts/md5_concordance.py": "71e48ccc211ce3caf8038b389ce859dae6ab7272df78b688864cf4859d9dab1c",
+      "ci/wgs-runner/run-profile.sh": "18c4a9603040128aba3f91a8bccf8bd2fd337736dc6bf5d9c4995bb45522b5d0",
+      "tests/test_md5_concordance.py": "1658588c8b9b91cb81910bf5b966a742c2c4c963432e0c8ae57d9294413e1995"
+    },
+    "runner": "ci/wgs-runner/run-profile.sh:29-34",
+    "tests": "tests/test_md5_concordance.py:259-300",
+    "user_correction": "but profile clivar address this ordering issue"
+  }
+}
