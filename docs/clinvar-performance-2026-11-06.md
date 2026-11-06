@@ -1,5 +1,7 @@
 # ClinVar optimization snapshot — 2026-11-06
 
+Historical snapshot before the serial reference-default correction. See the [current serial results](clinvar-serial-performance-2026-11-06.md) for the new one-worker measurements. The parallel results below remain historical context.
+
 This snapshot pins [engine PR #326](https://github.com/biodatageeks/datafusion-bio-functions/pull/326)
 to `5a62b9cf30b4ab5f13a8cebd98a6fef2a50d91cf`. It adds bounded reference and
 prediction reuse, indexed protein translation, whole-buffer worker balancing,
