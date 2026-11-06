@@ -507,5 +507,17 @@
     "runner": "ci/wgs-runner/run-profile.sh:29-34",
     "tests": "tests/test_md5_concordance.py:259-300",
     "user_correction": "but profile clivar address this ordering issue"
+  },
+  "published_engine_revision": "8e279811b10b8ce95de465b4bd69b79c0e4af75f",
+  "source_equivalence": {
+    "engine_revision": "8e279811b10b8ce95de465b4bd69b79c0e4af75f",
+    "locked_resolution": true,
+    "engine_rust_and_manifest_files_identical_to_published_tree": 146,
+    "measured_functional_files_unchanged": true,
+    "post_build_edits": "Performance documentation only",
+    "only_lock_change": "engine source revision",
+    "formats_revision": "e0379fb28a0d4d74f8da4c9cbd357182361349f9",
+    "vep_crate_rust_and_manifest_files": 76,
+    "repository_wide_rust_and_manifest_files": 146
   }
 }

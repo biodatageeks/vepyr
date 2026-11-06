@@ -15,7 +15,10 @@ baseline at engine `562af65835f443305784b6567004872966922df0`.
   public owned HGVS API and formatting semantics remain unchanged.
 - Charge shared text before allocation against the existing 128 MiB reference
   admission budget; retained references retain their budget leases. This budget
-  covers selected payloads, not total process RSS.
+  covers selected payloads, not total process RSS. The small replacement vector
+  and any full alternate string materialized by a consumer are ordinary output
+  allocations outside that budget. Failed canonical-text admission is remembered
+  for that memo entry; subsequent requests use the owned fallback.
 - Weight transcript overlaps using available coding length, then choose contiguous
   whole-buffer partitions that minimize the largest estimated worker cost. Keep
   the original cuts when already optimal. Worker count, biological buffer
@@ -84,5 +87,15 @@ Candidate extension SHA256:
 `46f4074b2bd708e107a089c5c1ef56851480bf7c20c219de149271f5c46566ec`.
 Formats remains `e0379fb28a0d4d74f8da4c9cbd357182361349f9`; cache revision remains
 `ac2c8ad979ad063816368b0720e6e4501d64a3f3` (VEP 116 GRCh38 merged).
+
+Published engine revision: `8e279811b10b8ce95de465b4bd69b79c0e4af75f`
+([functions PR #326](https://github.com/biodatageeks/datafusion-bio-functions/pull/326)).
+The four measured Rust files match this commit byte for byte. Locked Cargo
+metadata resolves this revision, and all 146 tracked Rust/manifest files across
+the upstream repository match its checkout. That includes 76 files in the VEP
+crate subtree, the scope used by the preceding serial report; the different
+counts describe different verification scopes. Historical reports retain their
+own snapshot counts. The only post-build engine change is performance
+documentation; the companion lockfile changes only the engine source revision.
 
 [Screen observations, source hashes, and complete standard gate logs](../performance-tests/clinvar-followup-2026-11-06.json).
