@@ -26,7 +26,7 @@ GITHUB_ACTIONS_APP_ID = 15368
 REQUIRED = [
     "lint",
     "test-rust",
-    *(f"linux-tests (x86_64, {v})" for v in ("3.10", "3.11", "3.12", "3.13", "3.14")),
+    *(f"linux-tests (x86_64, {v})" for v in ("3.11", "3.12", "3.13", "3.14")),
     "windows-tests (3.12)",
     "linux-arm64-tests (3.12)",
     "vep-parity-checks",

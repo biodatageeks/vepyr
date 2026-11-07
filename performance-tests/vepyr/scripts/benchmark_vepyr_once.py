@@ -11,6 +11,7 @@ import os
 import resource
 import sys
 import time
+import tomllib
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,13 +27,6 @@ COMPRESSED_SUFFIXES = (".gz", ".bgz", ".bgzf")
 # `VEPYR_EXPECTED_VERSION` still pins an explicit release when reproducing
 # published numbers.
 def _declared_vepyr_version() -> str:
-    try:
-        # tomllib is 3.11+; pyproject.toml declares requires-python >=3.10 and the
-        # CI matrix runs 3.10, so this import must not be top-level.
-        import tomllib
-    except ImportError:
-        return importlib.metadata.version("vepyr")
-
     pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
     try:
         with open(pyproject, "rb") as fh:
