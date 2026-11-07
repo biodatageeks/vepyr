@@ -195,6 +195,84 @@ def test_ensure_bgzf_reindexes_an_edited_compressed_input(
     assert queried.stdout.startswith("chr1\t300\t")
 
 
+@pytest.fixture(params=["directory", "index"])
+def read_only_bgzf(bgzf_vcf, monkeypatch, request):
+    source_dir = bgzf_vcf.parent / "source"
+    source_dir.mkdir()
+    bgzf_vcf = bgzf_vcf.rename(source_dir / bgzf_vcf.name)
+    subprocess.run(["tabix", "-p", "vcf", str(bgzf_vcf)], check=True)
+    real_access = os.access
+    real_run = subprocess.run
+    protected = (
+        str(bgzf_vcf.parent) if request.param == "directory" else str(bgzf_vcf) + ".tbi"
+    )
+    builds = []
+
+    def access(path, mode, *args, **kwargs):
+        if os.fspath(path) == protected and mode & os.W_OK:
+            return False
+        return real_access(path, mode, *args, **kwargs)
+
+    def run(command, *args, **kwargs):
+        if command[0] == "tabix" and "-f" in command:
+            if command[-1] == str(bgzf_vcf):
+                raise PermissionError("source index is read-only")
+            builds.append(command[-1])
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(vcfio.os, "access", access)
+    monkeypatch.setattr(vcfio.subprocess, "run", run)
+    return bgzf_vcf, builds
+
+
+def test_ensure_bgzf_indexes_read_only_compressed_input_in_workdir(
+    read_only_bgzf, tmp_path
+):
+    source, builds = read_only_bgzf
+    source_bytes = source.read_bytes()
+    index = source.with_name(source.name + ".tbi")
+    index_bytes = index.read_bytes()
+    out_dir = tmp_path / "work"
+
+    result = vcfio.ensure_bgzf(str(source), str(out_dir))
+    assert result == str(out_dir / source.name)
+    assert vcfio.count_data_lines(result) == 2
+    assert (out_dir / source.name).read_bytes() == source_bytes
+    assert source.read_bytes() == source_bytes
+    assert index.read_bytes() == index_bytes
+    assert vcfio.detect_contigs(result) == ["chr1"]
+
+    assert vcfio.ensure_bgzf(str(source), str(out_dir)) == result
+    assert builds == [result]
+
+
+def test_ensure_bgzf_refreshes_read_only_copy_when_source_changes(
+    read_only_bgzf, plain_vcf, tmp_path
+):
+    source, builds = read_only_bgzf
+    out_dir = tmp_path / "work"
+    result = vcfio.ensure_bgzf(str(source), str(out_dir))
+    index = source.with_name(source.name + ".tbi")
+    old_index = index.read_bytes()
+    plain_vcf.write_text(
+        VCF_BODY + "chr1\t300\t.\tC\tG\t50\tPASS\tCSQ=G|intron_variant|ENST01\n"
+    )
+    with source.open("wb") as stream:
+        subprocess.run(["bgzip", "-c", str(plain_vcf)], stdout=stream, check=True)
+
+    assert vcfio.ensure_bgzf(str(source), str(out_dir)) == result
+    assert builds == [result, result]
+    assert index.read_bytes() == old_index
+    assert vcfio.count_data_lines(result) == 3
+    queried = subprocess.run(
+        ["tabix", result, "chr1:300-300"],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert queried.stdout.startswith("chr1\t300\t")
+
+
 MULTI_CONTIG_BODY = """##fileformat=VCFv4.2
 ##contig=<ID=chr1>
 ##contig=<ID=chr2>

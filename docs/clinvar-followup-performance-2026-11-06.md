@@ -43,8 +43,28 @@ differs, so vep-rs is a timing reference, not a biological correctness oracle.
 
 The preceding serial metadata change reduced one paired chr2/one-worker process
 measurement from 198.88 s to 169.07 s, with peak RSS increasing 34.6 MiB (+0.94%).
-The earlier official vep-rs three-run median was 317.38 s. The final candidate's
-fresh three-arm, three-repeat matrix at one/eight workers is still pending.
+The earlier official vep-rs three-run median was 317.38 s.
+
+## Final repeated chromosome comparison
+
+The fresh three-arm matrix is complete. Each configuration has one discarded
+warm-up followed by three measurements in rotating engine order. The full
+[report and observations](clinvar-final-chromosome-performance-2026-11-07.md)
+retain every observation, including warm-ups.
+
+| Input | Previous vepyr | Optimized vepyr | Official vep-rs v0.5.0 | Previous / optimized / vep-rs peak GiB |
+|---|---:|---:|---:|---|
+| Chr2, 1 worker | 268.22 s | 169.56 s | 312.74 s | 3.742 / 3.648 / 3.946 |
+| Chr2, 8 workers | 130.96 s | 48.77 s | 47.57 s | 4.943 / 4.407 / 3.998 |
+| Chr17, 1 worker | 115.73 s | 95.69 s | 206.14 s | 3.136 / 3.193 / 3.769 |
+| Chr17, 8 workers | 27.36 s | 23.26 s | 31.33 s | 4.280 / 3.939 / 4.109 |
+
+These are median process wall times and peak RSS, with plain VCF output and
+startup included. Time falls 15.0–62.8% against the previous vepyr baseline.
+Chr2 at eight workers remains 2.5% slower than vep-rs and uses 10.2% more peak
+memory. Chr17 at one worker uses 1.8% more memory than previous vepyr; every
+configuration passes the unchanged +10% wall/RSS guards. Every output retains
+the original pre-edit raw body MD5 and record identity/order.
 
 ## Verification and rejected experiment
 
@@ -77,9 +97,23 @@ Whole-ClinVar golden comparison uses the existing `clinvar_merged` profile and
 every candidate must match the original pre-edit vepyr raw body MD5 and input
 identity/order. WGS retains its existing policy. No comparator change is included.
 
-Whole ClinVar, isolated per-chromosome BGZF comparisons against official vep-rs
-v0.5.0, final repeated plain-output comparisons, and remote checks/reviews remain
-pending. No whole-input performance or parity result is claimed here.
+Whole ClinVar and isolated per-chromosome BGZF comparisons against official
+vep-rs v0.5.0 remain pending. No whole-input performance or ClinVar golden parity
+result is claimed here.
+
+GHA run [42304855077](https://github.com/biodatageeks/vepyr/actions/runs/42304855077)
+passed all three WGS profiles (ensembl, merged and refseq), each with 22 contigs
+and 4,096,123 records. ClinVar stopped before annotation: `--no-normalize`
+attempted to refresh a tabix index under the read-only `/data` mount. The harness
+now copies compressed input into writable scratch space when its source
+directory or index is read-only, then indexes that byte-identical copy. Source
+identity still invalidates stale copies and indexes. Writable inputs keep the
+existing path; comparison semantics and annotation code are unchanged.
+
+Four new regression cases failed against the old helper. With the fix, 270
+focused harness tests and pre-commit passed. The full 2,635-test Python result
+above predates this harness-only fix; CI and both reviewers are requested again
+on the updated companion head, including the whole ClinVar/WGS parity workflow.
 
 Native measurement build: Rust 1.91.1,
 `RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr`.
