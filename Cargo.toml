@@ -227,8 +227,8 @@ serde_json = "1"
 # The ClinVar branch below includes vepyr#240 round 6 from functions PR #317,
 # merge `e152225` (tree-identical to gated head `27119f7`). Formats PR #272
 # remains pinned by its merge commit `e0379fb`; release is postponed.
-# ClinVar optimization draft: bounded reuse/output, shared HGVS and coding-work balancing.
-# Re-pin to the upstream merge before release.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "8e279811b10b8ce95de465b4bd69b79c0e4af75f", features = ["cache-builder"] }
+# ClinVar optimizations: bounded reuse/output, shared HGVS and coding-work balancing.
+# Merge commit `344fb2c` of functions #326 on master.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "344fb2c3eb60154d9dc2b2d92fe58c45e410866a", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
