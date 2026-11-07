@@ -184,10 +184,8 @@ def ensure_tabix_index(vcf_gz, source_marker=None):
     records the source identity the index was accepted for, so an input edited
     or replaced between runs sharing that working directory is re-indexed even
     if its index looks newer. A fresh working directory has no marker yet: the
-    mtime rule decides, and the marker is written. Re-indexing in place on every
-    fresh run would fail on a read-only input directory, which is how the
-    /parity-wgs hosts mount the staged ClinVar input (its `.tbi` is verified by
-    sha256 at staging).
+    mtime rule decides, and the marker is written. ``ensure_bgzf`` does not call
+    this for a read-only input: it indexes a working copy instead.
     """
     tbi = vcf_gz + ".tbi"
     source = source_identity(vcf_gz)

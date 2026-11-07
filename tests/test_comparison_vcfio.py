@@ -168,14 +168,29 @@ def test_ensure_bgzf_returns_an_already_compressed_file_unchanged(bgzf_vcf, tmp_
     assert vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir)) == str(bgzf_vcf)
 
 
+def test_ensure_bgzf_reuses_a_current_index_in_a_fresh_workdir(bgzf_vcf, tmp_path):
+    # A new working directory has no source marker yet, so the mtime rule
+    # decides and the marker is written for later runs.
+    subprocess.run(["tabix", "-f", "-p", "vcf", str(bgzf_vcf)], check=True)
+    tbi = bgzf_vcf.with_name(f"{bgzf_vcf.name}.tbi")
+    stamp = bgzf_vcf.stat().st_mtime_ns + 1_000_000_000
+    os.utime(tbi, ns=(stamp, stamp))
+    out_dir = tmp_path / "fresh-work"
+
+    result = vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir))
+
+    assert result == str(bgzf_vcf)
+    assert tbi.stat().st_mtime_ns == stamp
+    marker = json.loads((out_dir / "sample_bgzf.vcf.gz.tbi.source.json").read_text())
+    assert marker == vcfio.source_identity(str(bgzf_vcf))
+
+
 @pytest.mark.skipif(
     hasattr(os, "geteuid") and os.geteuid() == 0, reason="root ignores read-only dirs"
 )
-def test_ensure_bgzf_reuses_a_current_index_in_a_read_only_input_dir(
-    bgzf_vcf, tmp_path
-):
-    # /parity-wgs mounts the staged ClinVar input read-only and starts every
-    # job with a fresh working directory, so no source marker exists yet.
+def test_ensure_bgzf_copies_an_input_from_a_read_only_dir(bgzf_vcf, tmp_path):
+    # /parity-wgs mounts the staged ClinVar input read-only. Unlike the
+    # read_only_bgzf fixture below, this uses real permissions.
     input_dir = tmp_path / "staged"
     input_dir.mkdir()
     staged = input_dir / bgzf_vcf.name
@@ -194,9 +209,11 @@ def test_ensure_bgzf_reuses_a_current_index_in_a_read_only_input_dir(
         for path in (staged, tbi):
             os.chmod(path, 0o644)
 
-    assert result == str(staged)
+    assert result == str(out_dir / staged.name)
+    assert vcfio.count_data_lines(result) == 2
+    assert vcfio.detect_contigs(result) == ["chr1"]
     assert tbi.read_bytes() == index_bytes
-    marker = json.loads((out_dir / "sample_bgzf.vcf.gz.tbi.source.json").read_text())
+    marker = json.loads((out_dir / "sample_bgzf.vcf.gz.source.json").read_text())
     assert marker == vcfio.source_identity(str(staged))
 
 
