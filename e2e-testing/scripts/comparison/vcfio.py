@@ -10,6 +10,7 @@ import contextlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -201,13 +202,19 @@ def ensure_tabix_index(vcf_gz, source_marker=None):
 
 
 def ensure_bgzf(path, out_dir):
-    """Return a bgzf-compressed, tabix-indexed copy of `path`.
+    """Return a bgzf-compressed, tabix-indexed input with a usable index.
 
-    Already-compressed inputs are returned untouched. A plain VCF is copied into
-    `out_dir` and block-gzipped there, so a read-only source directory is never
-    written to. This is what lets --no-normalize accept an uncompressed VCF.
+    Compressed inputs with writable indexes retain the existing in-place path.
+    Read-only compressed inputs and plain VCFs get a writable working copy, so
+    index refresh never requires changing a read-only source. Source identities
+    invalidate both the working copy and its index when the input changes.
     """
-    if path.endswith(GZIP_SUFFIXES):
+    compressed = path.endswith(GZIP_SUFFIXES)
+    index_path = path + ".tbi"
+    can_index_source = os.access(os.path.dirname(os.path.abspath(path)), os.W_OK) and (
+        not os.path.exists(index_path) or os.access(index_path, os.W_OK)
+    )
+    if compressed and can_index_source:
         os.makedirs(out_dir, exist_ok=True)
         source_marker = os.path.join(
             out_dir,
@@ -218,7 +225,7 @@ def ensure_bgzf(path, out_dir):
 
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, os.path.basename(path))
-    target_gz = target + ".gz"
+    target_gz = target if compressed else target + ".gz"
     sidecar_path = target_gz + ".source.json"
     source = source_identity(path)
     if (
@@ -228,9 +235,13 @@ def ensure_bgzf(path, out_dir):
     ):
         return target_gz
 
-    print(f"  Input is plain text, block-gzipping {os.path.basename(path)} ...")
-    with open(target_gz, "wb") as fh:
-        subprocess.run(["bgzip", "-c", path], stdout=fh, check=True)
+    if compressed:
+        print(f"  Copying read-only compressed input {os.path.basename(path)} ...")
+        shutil.copyfile(path, target_gz)
+    else:
+        print(f"  Input is plain text, block-gzipping {os.path.basename(path)} ...")
+        with open(target_gz, "wb") as fh:
+            subprocess.run(["bgzip", "-c", path], stdout=fh, check=True)
     subprocess.run(["tabix", "-f", "-p", "vcf", target_gz], check=True)
     with open(sidecar_path, "w") as stream:
         json.dump(source, stream, indent=2)

@@ -1,0 +1,1589 @@
+{
+  "description": "Completed serial reference-default comparison; warmups excluded from medians",
+  "measured_source_parent": "5a62b9cf30b4ab5f13a8cebd98a6fef2a50d91cf",
+  "measured_source_file_sha256": {
+    "datafusion/bio-function-vep/PERFORMANCE.md": "24fd296fe2e08ed6b3cd3cf598e35d84ac1c205e7e34652c068bba208706cf9e",
+    "datafusion/bio-function-vep/src/annotate_provider.rs": "9e93a84e83c043916d5290d1b33f899713a2d35b273459bd37dbf82104f2aa1a",
+    "datafusion/bio-function-vep/src/cache_budget.rs": "5167922626bac5ec3c1316839211fce6910a17b3d3b4df2dfdac9e8fe5776b30",
+    "datafusion/bio-function-vep/src/transcript_consequence.rs": "4d67182db4620e78f9795f5fa004423816acd34e4255a5d47913c6a832d6a242"
+  },
+  "measured_patch_sha256": "f739ce3bc23dd8fd97d0c424b336bbd5802fc3ae771f9a24ebd9dbdc00899357",
+  "extension_sha256": "c2ef6a305793e84228e7065a46310b027d73b78a1d84449509f6c7664ce0a6f1",
+  "baseline_extension_sha256": "01b61cd0f5f661a9eed35b8e7d2eba0cabe777241ec735d5e5d0a826e03c3273",
+  "veprs_version": "0.5.0",
+  "veprs_sha256": "a8188a1d64d33d35be4cdd73ec6d5f1560774d73b2119b5ab35c91fae2b85884",
+  "policy": {
+    "created": "2026-11-06T15:40:47.850570+00:00",
+    "scope": "serial reference-cache default0\u2192128MiB; parallel scaling deferred",
+    "baseline_source": "5a62b9cf30b4ab5f13a8cebd98a6fef2a50d91cf",
+    "baseline_implementation": "8fa75a3f343697c59cef99d7b05ccabaef5047c8",
+    "baseline_binary_sha256": "01b61cd0f5f661a9eed35b8e7d2eba0cabe777241ec735d5e5d0a826e03c3273",
+    "candidate_reference_override": "must be unset in acceptance",
+    "application_cases": [
+      {
+        "chromosome": "2",
+        "workers": 1
+      },
+      {
+        "chromosome": "17",
+        "workers": 1
+      }
+    ],
+    "application_orders": [
+      [
+        "warmup",
+        [
+          "baseline",
+          "candidate",
+          "veprs"
+        ]
+      ],
+      [
+        "measured-1",
+        [
+          "baseline",
+          "candidate",
+          "veprs"
+        ]
+      ],
+      [
+        "measured-2",
+        [
+          "candidate",
+          "veprs",
+          "baseline"
+        ]
+      ],
+      [
+        "measured-3",
+        [
+          "veprs",
+          "baseline",
+          "candidate"
+        ]
+      ]
+    ],
+    "acceptance": {
+      "candidate_median_wall": "below both baseline and vep-rs for each chromosome",
+      "body_and_order": "exact original baseline",
+      "rss_regression_max_pct": 10,
+      "repeatable_slowdown_for_memory_savings": false
+    },
+    "standard_gate": {
+      "inputs": [
+        "ClinVar chr17",
+        "HG002 chr17"
+      ],
+      "workers": [
+        1,
+        8
+      ],
+      "phase_regression_max_pct": 5,
+      "time_and_rss_regression_max_pct": 10,
+      "one_complete_paired_confirmation_if_initial_gate_fails": true,
+      "all_failures_retained": true
+    },
+    "whole_clinvar": false,
+    "source_changes_before_this_policy": false
+  },
+  "cases": {
+    "chr2-workers1": {
+      "chromosome": "2",
+      "workers": 1,
+      "engines": {
+        "baseline": {
+          "wall_s": {
+            "median": 368.86,
+            "min": 366.82,
+            "max": 391.56
+          },
+          "user_s": {
+            "median": 370.46,
+            "min": 369.67,
+            "max": 391.54
+          },
+          "rss_bytes": {
+            "median": 3724410880.0,
+            "min": 3695099904.0,
+            "max": 3725770752.0
+          }
+        },
+        "candidate": {
+          "wall_s": {
+            "median": 279.45,
+            "min": 271.74,
+            "max": 293.34
+          },
+          "user_s": {
+            "median": 279.94,
+            "min": 277.63,
+            "max": 291.38
+          },
+          "rss_bytes": {
+            "median": 3889954816.0,
+            "min": 3831660544.0,
+            "max": 3910647808.0
+          }
+        },
+        "veprs": {
+          "wall_s": {
+            "median": 317.38,
+            "min": 313.89,
+            "max": 328.93
+          },
+          "user_s": {
+            "median": 320.71,
+            "min": 318.46,
+            "max": 331.42
+          },
+          "rss_bytes": {
+            "median": 4249600000.0,
+            "min": 4202774528.0,
+            "max": 4264984576.0
+          }
+        }
+      },
+      "checks": {
+        "beats_baseline": true,
+        "beats_veprs": true,
+        "rss_guard": true
+      }
+    },
+    "chr17-workers1": {
+      "chromosome": "17",
+      "workers": 1,
+      "engines": {
+        "baseline": {
+          "wall_s": {
+            "median": 140.33,
+            "min": 139.39,
+            "max": 145.49
+          },
+          "user_s": {
+            "median": 141.19,
+            "min": 141.0,
+            "max": 146.44
+          },
+          "rss_bytes": {
+            "median": 3297771520.0,
+            "min": 3134619648.0,
+            "max": 3324444672.0
+          }
+        },
+        "candidate": {
+          "wall_s": {
+            "median": 117.61,
+            "min": 116.53,
+            "max": 121.05
+          },
+          "user_s": {
+            "median": 119.25,
+            "min": 118.46,
+            "max": 120.1
+          },
+          "rss_bytes": {
+            "median": 3378610176.0,
+            "min": 3318497280.0,
+            "max": 3388489728.0
+          }
+        },
+        "veprs": {
+          "wall_s": {
+            "median": 207.23,
+            "min": 206.29,
+            "max": 214.12
+          },
+          "user_s": {
+            "median": 210.08,
+            "min": 208.83,
+            "max": 216.16
+          },
+          "rss_bytes": {
+            "median": 4071030784.0,
+            "min": 4047945728.0,
+            "max": 4189388800.0
+          }
+        }
+      },
+      "checks": {
+        "beats_baseline": true,
+        "beats_veprs": true,
+        "rss_guard": true
+      }
+    }
+  },
+  "measurements": [
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "baseline",
+      "started": "2026-11-06T16:11:32.516123+00:00",
+      "ended": "2026-11-06T16:17:55.890498+00:00",
+      "wall_s": 383.36,
+      "user_s": 383.55,
+      "system_s": 8.39,
+      "rss_bytes": 3489693696.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317750
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "candidate",
+      "started": "2026-11-06T16:18:09.838958+00:00",
+      "ended": "2026-11-06T16:22:54.939823+00:00",
+      "wall_s": 285.08,
+      "user_s": 286.74,
+      "system_s": 8.19,
+      "rss_bytes": 3590881280.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "veprs",
+      "started": "2026-11-06T16:23:09.560616+00:00",
+      "ended": "2026-11-06T16:28:39.600181+00:00",
+      "wall_s": 330.02,
+      "user_s": 331.22,
+      "system_s": 5.3,
+      "rss_bytes": 4202135552.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858721
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "baseline",
+      "started": "2026-11-06T16:28:55.300802+00:00",
+      "ended": "2026-11-06T16:35:26.892227+00:00",
+      "wall_s": 391.56,
+      "user_s": 391.54,
+      "system_s": 8.18,
+      "rss_bytes": 3725770752.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317754
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "candidate",
+      "started": "2026-11-06T16:35:41.521597+00:00",
+      "ended": "2026-11-06T16:40:34.881726+00:00",
+      "wall_s": 293.34,
+      "user_s": 291.38,
+      "system_s": 8.12,
+      "rss_bytes": 3889954816.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317755
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "veprs",
+      "started": "2026-11-06T16:40:49.579203+00:00",
+      "ended": "2026-11-06T16:46:18.522920+00:00",
+      "wall_s": 328.93,
+      "user_s": 331.42,
+      "system_s": 4.92,
+      "rss_bytes": 4264984576.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858725
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "candidate",
+      "started": "2026-11-06T16:46:34.457430+00:00",
+      "ended": "2026-11-06T16:51:13.927235+00:00",
+      "wall_s": 279.45,
+      "user_s": 279.94,
+      "system_s": 6.87,
+      "rss_bytes": 3910647808.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317755
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "veprs",
+      "started": "2026-11-06T16:51:27.901301+00:00",
+      "ended": "2026-11-06T16:56:45.304491+00:00",
+      "wall_s": 317.38,
+      "user_s": 320.71,
+      "system_s": 4.07,
+      "rss_bytes": 4202774528.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858725
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "baseline",
+      "started": "2026-11-06T16:57:00.481153+00:00",
+      "ended": "2026-11-06T17:03:09.357832+00:00",
+      "wall_s": 368.86,
+      "user_s": 369.67,
+      "system_s": 6.3,
+      "rss_bytes": 3695099904.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317754
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "veprs",
+      "started": "2026-11-06T17:03:23.123777+00:00",
+      "ended": "2026-11-06T17:08:37.026693+00:00",
+      "wall_s": 313.89,
+      "user_s": 318.46,
+      "system_s": 3.81,
+      "rss_bytes": 4249600000.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858725
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "baseline",
+      "started": "2026-11-06T17:08:51.884488+00:00",
+      "ended": "2026-11-06T17:14:58.718673+00:00",
+      "wall_s": 366.82,
+      "user_s": 370.46,
+      "system_s": 6.16,
+      "rss_bytes": 3724410880.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317754
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "candidate",
+      "started": "2026-11-06T17:15:12.859688+00:00",
+      "ended": "2026-11-06T17:19:44.623475+00:00",
+      "wall_s": 271.74,
+      "user_s": 277.63,
+      "system_s": 6.01,
+      "rss_bytes": 3831660544.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317755
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "baseline",
+      "started": "2026-11-06T17:19:58.334164+00:00",
+      "ended": "2026-11-06T17:22:18.810423+00:00",
+      "wall_s": 140.46,
+      "user_s": 141.26,
+      "system_s": 5.42,
+      "rss_bytes": 3347054592.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827341
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "candidate",
+      "started": "2026-11-06T17:22:32.658278+00:00",
+      "ended": "2026-11-06T17:24:29.915928+00:00",
+      "wall_s": 117.24,
+      "user_s": 119.9,
+      "system_s": 5.17,
+      "rss_bytes": 3620749312.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827342
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "veprs",
+      "started": "2026-11-06T17:24:43.725953+00:00",
+      "ended": "2026-11-06T17:28:10.431915+00:00",
+      "wall_s": 206.69,
+      "user_s": 208.63,
+      "system_s": 3.58,
+      "rss_bytes": 4100964352.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107406
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "baseline",
+      "started": "2026-11-06T17:28:25.441855+00:00",
+      "ended": "2026-11-06T17:30:45.795420+00:00",
+      "wall_s": 140.33,
+      "user_s": 141.19,
+      "system_s": 5.32,
+      "rss_bytes": 3134619648.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827345
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "candidate",
+      "started": "2026-11-06T17:31:00.389998+00:00",
+      "ended": "2026-11-06T17:33:01.460963+00:00",
+      "wall_s": 121.05,
+      "user_s": 120.1,
+      "system_s": 5.39,
+      "rss_bytes": 3318497280.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827346
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "veprs",
+      "started": "2026-11-06T17:33:16.075651+00:00",
+      "ended": "2026-11-06T17:36:50.213662+00:00",
+      "wall_s": 214.12,
+      "user_s": 216.16,
+      "system_s": 3.66,
+      "rss_bytes": 4071030784.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107410
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "candidate",
+      "started": "2026-11-06T17:37:04.870774+00:00",
+      "ended": "2026-11-06T17:39:02.498463+00:00",
+      "wall_s": 117.61,
+      "user_s": 118.46,
+      "system_s": 5.37,
+      "rss_bytes": 3388489728.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827346
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "veprs",
+      "started": "2026-11-06T17:39:16.015671+00:00",
+      "ended": "2026-11-06T17:42:42.328318+00:00",
+      "wall_s": 206.29,
+      "user_s": 208.83,
+      "system_s": 3.58,
+      "rss_bytes": 4189388800.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107410
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "baseline",
+      "started": "2026-11-06T17:42:56.996231+00:00",
+      "ended": "2026-11-06T17:45:16.407611+00:00",
+      "wall_s": 139.39,
+      "user_s": 141.0,
+      "system_s": 5.4,
+      "rss_bytes": 3297771520.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827345
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "veprs",
+      "started": "2026-11-06T17:50:41.609200+00:00",
+      "ended": "2026-11-06T17:54:08.853137+00:00",
+      "wall_s": 207.23,
+      "user_s": 210.08,
+      "system_s": 3.47,
+      "rss_bytes": 4047945728.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107410
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "baseline",
+      "started": "2026-11-06T17:54:22.602810+00:00",
+      "ended": "2026-11-06T17:56:48.109018+00:00",
+      "wall_s": 145.49,
+      "user_s": 146.44,
+      "system_s": 5.38,
+      "rss_bytes": 3324444672.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827345
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "candidate",
+      "started": "2026-11-06T17:57:02.290159+00:00",
+      "ended": "2026-11-06T17:58:58.840425+00:00",
+      "wall_s": 116.53,
+      "user_s": 119.25,
+      "system_s": 5.18,
+      "rss_bytes": 3378610176.0,
+      "reference_cache_override": null,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827346
+    }
+  ],
+  "standard_gate": {
+    "verdicts": {
+      "dense-1": 1,
+      "sparse-1": 0,
+      "dense-2": 0,
+      "sparse-2": 0
+    },
+    "final_attempt": 2,
+    "passed": true
+  },
+  "standard_gate_script_sha256": "3f3231c78947f7a322090bd83c733461a7c9625fc8b822085b187a7903a05040",
+  "standard_runs": {
+    "dense-1": {
+      "verdict": 1,
+      "gate_log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       172.0        171.0    -0.6%\n1/context/transcripts_done/elapsed_ms           145.2        143.2    -1.3%\n1/prefetch/data_done/elapsed_ms                 350.6        349.8    -0.2%\n1/vcf_format/done/elapsed_ms                   1855.6       1849.2    -0.3%\n1/vcf_stream/batch_ready/stream_wait_ms      141367.0     121029.4   -14.4%\n1/vcf_write/done/elapsed_ms                    2900.9       2873.5    -0.9%\n8/context/done/elapsed_ms                       144.2        199.7   +38.5%  <-- REGRESSION\n8/context/transcripts_done/elapsed_ms           364.2        388.5    +6.7%  <-- REGRESSION\n8/prefetch/data_done/elapsed_ms                 551.2        651.0   +18.1%  <-- REGRESSION\n8/vcf_format/done/elapsed_ms                   2467.2       2477.8    +0.4%\n\n10 phases compared, 3 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s          146.5          126.1   -13.9%\n      1   rss_kb      3297648.0      3269824.0    -0.8%\n      8   wall_s           29.9           31.9    +6.8%\n      8   rss_kb      4497264.0      4416432.0    -1.8%\n\nVERDICT: FAIL (3 bar(s) exceeded)\n",
+      "arms": {
+        "baseline": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 31.281447791028768,
+                "rss_kb": 4389536.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 143.235,
+              "8/context/transcripts_done/elapsed_ms": 360.489,
+              "8/grid_balance/done/elapsed_ms": 6.677,
+              "8/grid_plans/done/elapsed_ms": 8.929,
+              "8/prefetch/data_done/elapsed_ms": 546.12,
+              "8/vcf_format/done/elapsed_ms": 2495.6839999999997
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  4.06884765625,
+                  3.81494140625,
+                  3.80859375
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 29.90266275004251,
+                "rss_kb": 4497264.0
+              },
+              "1": {
+                "wall_s": 146.45325837505516,
+                "rss_kb": 3297648.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 171.952,
+              "1/context/transcripts_done/elapsed_ms": 145.151,
+              "1/prefetch/data_done/elapsed_ms": 350.608,
+              "1/vcf_format/done/elapsed_ms": 1855.6240000000003,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 141366.95199999993,
+              "1/vcf_write/done/elapsed_ms": 2900.9300000000003,
+              "8/context/done/elapsed_ms": 144.183,
+              "8/context/transcripts_done/elapsed_ms": 364.222,
+              "8/grid_balance/done/elapsed_ms": 7.302,
+              "8/grid_plans/done/elapsed_ms": 7.954,
+              "8/prefetch/data_done/elapsed_ms": 551.193,
+              "8/vcf_format/done/elapsed_ms": 2467.1699999999996
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  4.556640625,
+                  4.064453125,
+                  3.90478515625
+                ]
+              },
+              "1": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  4.8955078125,
+                  4.47265625,
+                  4.095703125
+                ]
+              }
+            }
+          }
+        },
+        "candidate": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 31.26918616698822,
+                "rss_kb": 4344032.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 145.8,
+              "8/context/transcripts_done/elapsed_ms": 367.38,
+              "8/grid_balance/done/elapsed_ms": 7.38,
+              "8/grid_plans/done/elapsed_ms": 8.703,
+              "8/prefetch/data_done/elapsed_ms": 556.181,
+              "8/vcf_format/done/elapsed_ms": 2471.835999999996
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  5.4677734375,
+                  4.83642578125,
+                  4.25927734375
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 31.939040500030387,
+                "rss_kb": 4416432.0
+              },
+              "1": {
+                "wall_s": 126.08251841599122,
+                "rss_kb": 3269824.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 170.976,
+              "1/context/transcripts_done/elapsed_ms": 143.22,
+              "1/prefetch/data_done/elapsed_ms": 349.777,
+              "1/vcf_format/done/elapsed_ms": 1849.1829999999989,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 121029.36999999998,
+              "1/vcf_write/done/elapsed_ms": 2873.5080000000007,
+              "8/context/done/elapsed_ms": 199.729,
+              "8/context/transcripts_done/elapsed_ms": 388.514,
+              "8/grid_balance/done/elapsed_ms": 7.912,
+              "8/grid_plans/done/elapsed_ms": 7.691,
+              "8/prefetch/data_done/elapsed_ms": 651.017,
+              "8/vcf_format/done/elapsed_ms": 2477.783000000002
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  5.8125,
+                  5.07568359375,
+                  4.37890625
+                ]
+              },
+              "1": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  5.9541015625,
+                  5.29833984375,
+                  4.55908203125
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "sparse-1": {
+      "verdict": 0,
+      "gate_log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       157.2        155.6    -1.0%\n1/context/transcripts_done/elapsed_ms           135.6        135.1    -0.4%\n1/prefetch/data_done/elapsed_ms                 324.1        322.6    -0.5%\n1/vcf_format/done/elapsed_ms                    604.9        602.2    -0.4%\n1/vcf_stream/batch_ready/stream_wait_ms        6913.8       6880.6    -0.5%\n1/vcf_write/done/elapsed_ms                     189.2        191.9    +1.4%\n8/context/done/elapsed_ms                       139.0        138.6    -0.3%\n8/context/transcripts_done/elapsed_ms           224.6        223.7    -0.4%\n8/prefetch/data_done/elapsed_ms                 399.3        397.7    -0.4%\n8/vcf_format/done/elapsed_ms                    665.2        663.7    -0.2%\n\n10 phases compared, 0 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s            7.8            7.8    -0.4%\n      1   rss_kb      2117296.0      2174096.0    +2.7%\n      8   wall_s            2.5            2.5    +1.1%\n      8   rss_kb      2840720.0      2939184.0    +3.5%\n\nVERDICT: PASS (0 bar(s) exceeded)\n",
+      "arms": {
+        "baseline": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 2.5786972920177504,
+                "rss_kb": 2908656.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 141.142,
+              "8/context/transcripts_done/elapsed_ms": 231.891,
+              "8/grid_balance/done/elapsed_ms": 2.897,
+              "8/grid_plans/done/elapsed_ms": 11.03,
+              "8/prefetch/data_done/elapsed_ms": 410.126,
+              "8/vcf_format/done/elapsed_ms": 668.373
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  5.71728515625,
+                  5.259765625,
+                  4.5498046875
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 2.4640034579788335,
+                "rss_kb": 2840720.0
+              },
+              "1": {
+                "wall_s": 7.826660541002639,
+                "rss_kb": 2117296.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 157.194,
+              "1/context/transcripts_done/elapsed_ms": 135.625,
+              "1/prefetch/data_done/elapsed_ms": 324.073,
+              "1/vcf_format/done/elapsed_ms": 604.9150000000002,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 6913.758000000001,
+              "1/vcf_write/done/elapsed_ms": 189.24499999999998,
+              "8/context/done/elapsed_ms": 139.035,
+              "8/context/transcripts_done/elapsed_ms": 224.56,
+              "8/grid_balance/done/elapsed_ms": 2.901,
+              "8/grid_plans/done/elapsed_ms": 9.863,
+              "8/prefetch/data_done/elapsed_ms": 399.262,
+              "8/vcf_format/done/elapsed_ms": 665.1869999999998
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  7.18115234375,
+                  5.57080078125,
+                  4.66357421875
+                ]
+              },
+              "1": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  6.9189453125,
+                  5.56787109375,
+                  4.6728515625
+                ]
+              }
+            }
+          }
+        },
+        "candidate": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 2.4835769170313142,
+                "rss_kb": 2862416.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 136.614,
+              "8/context/transcripts_done/elapsed_ms": 224.576,
+              "8/grid_balance/done/elapsed_ms": 2.904,
+              "8/grid_plans/done/elapsed_ms": 9.915,
+              "8/prefetch/data_done/elapsed_ms": 396.591,
+              "8/vcf_format/done/elapsed_ms": 663.4520000000003
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  7.00537109375,
+                  5.60791015625,
+                  4.69189453125
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 2.4909708749619313,
+                "rss_kb": 2939184.0
+              },
+              "1": {
+                "wall_s": 7.7923195420298725,
+                "rss_kb": 2174096.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 155.632,
+              "1/context/transcripts_done/elapsed_ms": 135.123,
+              "1/prefetch/data_done/elapsed_ms": 322.614,
+              "1/vcf_format/done/elapsed_ms": 602.1979999999998,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 6880.560999999998,
+              "1/vcf_write/done/elapsed_ms": 191.92,
+              "8/context/done/elapsed_ms": 138.568,
+              "8/context/transcripts_done/elapsed_ms": 223.711,
+              "8/grid_balance/done/elapsed_ms": 2.883,
+              "8/grid_plans/done/elapsed_ms": 10.031,
+              "8/prefetch/data_done/elapsed_ms": 397.652,
+              "8/vcf_format/done/elapsed_ms": 663.669
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  7.1650390625,
+                  5.6640625,
+                  4.716796875
+                ]
+              },
+              "1": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  6.517578125,
+                  5.57568359375,
+                  4.6962890625
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "dense-2": {
+      "verdict": 0,
+      "gate_log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       169.2        170.0    +0.5%\n1/context/transcripts_done/elapsed_ms           145.6        142.1    -2.5%\n1/prefetch/data_done/elapsed_ms                 347.2        345.2    -0.6%\n1/vcf_format/done/elapsed_ms                   1853.7       1876.6    +1.2%\n1/vcf_stream/batch_ready/stream_wait_ms      140296.0     119007.8   -15.2%\n1/vcf_write/done/elapsed_ms                    3061.2       2814.2    -8.1%\n8/context/done/elapsed_ms                       138.4        137.4    -0.7%\n8/context/transcripts_done/elapsed_ms           364.2        363.8    -0.1%\n8/prefetch/data_done/elapsed_ms                 542.8        541.1    -0.3%\n8/vcf_format/done/elapsed_ms                   2490.4       2513.6    +0.9%\n\n10 phases compared, 0 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s          145.6          124.0   -14.8%\n      1   rss_kb      3253584.0      3282624.0    +0.9%\n      8   wall_s           28.7           29.6    +3.4%\n      8   rss_kb      4532736.0      4503200.0    -0.7%\n\nVERDICT: PASS (0 bar(s) exceeded)\n",
+      "arms": {
+        "baseline": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 28.54241541697411,
+                "rss_kb": 4319856.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 134.129,
+              "8/context/transcripts_done/elapsed_ms": 360.729,
+              "8/grid_balance/done/elapsed_ms": 7.136,
+              "8/grid_plans/done/elapsed_ms": 9.017,
+              "8/prefetch/data_done/elapsed_ms": 533.855,
+              "8/vcf_format/done/elapsed_ms": 2444.153000000001
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  7.12646484375,
+                  5.67919921875,
+                  4.92724609375
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 28.6704467079835,
+                "rss_kb": 4532736.0
+              },
+              "1": {
+                "wall_s": 145.59444374998566,
+                "rss_kb": 3253584.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 169.172,
+              "1/context/transcripts_done/elapsed_ms": 145.646,
+              "1/prefetch/data_done/elapsed_ms": 347.215,
+              "1/vcf_format/done/elapsed_ms": 1853.6530000000007,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 140296.01,
+              "1/vcf_write/done/elapsed_ms": 3061.2359999999994,
+              "8/context/done/elapsed_ms": 138.443,
+              "8/context/transcripts_done/elapsed_ms": 364.216,
+              "8/grid_balance/done/elapsed_ms": 7.643,
+              "8/grid_plans/done/elapsed_ms": 7.685,
+              "8/prefetch/data_done/elapsed_ms": 542.769,
+              "8/vcf_format/done/elapsed_ms": 2490.3669999999997
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  6.8193359375,
+                  5.8984375,
+                  5.0517578125
+                ]
+              },
+              "1": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  4.32470703125,
+                  5.35400390625,
+                  4.97802734375
+                ]
+              }
+            }
+          }
+        },
+        "candidate": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 29.981084958009887,
+                "rss_kb": 4504928.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 134.176,
+              "8/context/transcripts_done/elapsed_ms": 354.046,
+              "8/grid_balance/done/elapsed_ms": 6.172,
+              "8/grid_plans/done/elapsed_ms": 7.92,
+              "8/prefetch/data_done/elapsed_ms": 527.027,
+              "8/vcf_format/done/elapsed_ms": 2527.793999999998
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  5.89990234375,
+                  5.59716796875,
+                  4.7548828125
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 29.63564504199894,
+                "rss_kb": 4503200.0
+              },
+              "1": {
+                "wall_s": 124.03246504196431,
+                "rss_kb": 3282624.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 170.03,
+              "1/context/transcripts_done/elapsed_ms": 142.062,
+              "1/prefetch/data_done/elapsed_ms": 345.188,
+              "1/vcf_format/done/elapsed_ms": 1876.6420000000005,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 119007.84099999996,
+              "1/vcf_write/done/elapsed_ms": 2814.156000000001,
+              "8/context/done/elapsed_ms": 137.44,
+              "8/context/transcripts_done/elapsed_ms": 363.776,
+              "8/grid_balance/done/elapsed_ms": 6.821,
+              "8/grid_plans/done/elapsed_ms": 7.803,
+              "8/prefetch/data_done/elapsed_ms": 541.146,
+              "8/vcf_format/done/elapsed_ms": 2513.561999999999
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  5.330078125,
+                  5.5556640625,
+                  4.78515625
+                ]
+              },
+              "1": {
+                "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+                "contigs": {
+                  "17": {
+                    "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+                    "records": 277114
+                  }
+                },
+                "output_bytes": 7165827372,
+                "load_average_end": [
+                  5.6396484375,
+                  5.11767578125,
+                  4.69384765625
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "sparse-2": {
+      "verdict": 0,
+      "gate_log": "worker/stage/event/metric                     base_ms     final_ms    delta\n1/context/done/elapsed_ms                       153.1        155.1    +1.3%\n1/context/transcripts_done/elapsed_ms           135.7        135.0    -0.5%\n1/prefetch/data_done/elapsed_ms                 320.0        322.0    +0.6%\n1/vcf_format/done/elapsed_ms                    605.9        605.4    -0.1%\n1/vcf_stream/batch_ready/stream_wait_ms        6879.9       6871.4    -0.1%\n1/vcf_write/done/elapsed_ms                     193.4        188.4    -2.6%\n8/context/done/elapsed_ms                       139.0        138.4    -0.5%\n8/context/transcripts_done/elapsed_ms           223.7        224.0    +0.1%\n8/prefetch/data_done/elapsed_ms                 398.5        397.6    -0.2%\n8/vcf_format/done/elapsed_ms                    668.0        668.1    +0.0%\n\n10 phases compared, 0 over 5.0%, 0 present on only one side\n\nworkers   metric           base          final    delta\n      1   wall_s            7.8            7.8    -0.2%\n      1   rss_kb      2118864.0      2066272.0    -2.5%\n      8   wall_s            2.5            2.5    -1.5%\n      8   rss_kb      2969984.0      2951968.0    -0.6%\n\nVERDICT: PASS (0 bar(s) exceeded)\n",
+      "arms": {
+        "baseline": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 2.5121469169971533,
+                "rss_kb": 2894064.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 137.625,
+              "8/context/transcripts_done/elapsed_ms": 224.945,
+              "8/grid_balance/done/elapsed_ms": 2.892,
+              "8/grid_plans/done/elapsed_ms": 10.197,
+              "8/prefetch/data_done/elapsed_ms": 398.705,
+              "8/vcf_format/done/elapsed_ms": 661.2290000000004
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  4.5361328125,
+                  5.33642578125,
+                  4.98291015625
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 2.513634708011523,
+                "rss_kb": 2969984.0
+              },
+              "1": {
+                "wall_s": 7.796802832977846,
+                "rss_kb": 2118864.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 153.086,
+              "1/context/transcripts_done/elapsed_ms": 135.695,
+              "1/prefetch/data_done/elapsed_ms": 320.005,
+              "1/vcf_format/done/elapsed_ms": 605.9490000000002,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 6879.942000000001,
+              "1/vcf_write/done/elapsed_ms": 193.445,
+              "8/context/done/elapsed_ms": 139.002,
+              "8/context/transcripts_done/elapsed_ms": 223.684,
+              "8/grid_balance/done/elapsed_ms": 2.888,
+              "8/grid_plans/done/elapsed_ms": 9.919,
+              "8/prefetch/data_done/elapsed_ms": 398.473,
+              "8/vcf_format/done/elapsed_ms": 668.035
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  6.0146484375,
+                  5.62939453125,
+                  5.08837890625
+                ]
+              },
+              "1": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  5.771484375,
+                  5.59130859375,
+                  5.08056640625
+                ]
+              }
+            }
+          }
+        },
+        "candidate": {
+          "warmup": {
+            "summary": {
+              "8": {
+                "wall_s": 2.545890750014223,
+                "rss_kb": 2834624.0
+              }
+            },
+            "phase_durations_ms": {
+              "8/context/done/elapsed_ms": 133.771,
+              "8/context/transcripts_done/elapsed_ms": 227.429,
+              "8/grid_balance/done/elapsed_ms": 3.987,
+              "8/grid_plans/done/elapsed_ms": 10.923,
+              "8/prefetch/data_done/elapsed_ms": 397.168,
+              "8/vcf_format/done/elapsed_ms": 668.4139999999996
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  4.37841796875,
+                  5.34765625,
+                  4.97802734375
+                ]
+              }
+            }
+          },
+          "archive": {
+            "summary": {
+              "8": {
+                "wall_s": 2.476829458028078,
+                "rss_kb": 2951968.0
+              },
+              "1": {
+                "wall_s": 7.781294375017751,
+                "rss_kb": 2066272.0
+              }
+            },
+            "phase_durations_ms": {
+              "1/context/done/elapsed_ms": 155.1,
+              "1/context/transcripts_done/elapsed_ms": 135.04,
+              "1/prefetch/data_done/elapsed_ms": 321.988,
+              "1/vcf_format/done/elapsed_ms": 605.4029999999999,
+              "1/vcf_stream/batch_ready/stream_wait_ms": 6871.354000000002,
+              "1/vcf_write/done/elapsed_ms": 188.362,
+              "8/context/done/elapsed_ms": 138.373,
+              "8/context/transcripts_done/elapsed_ms": 223.968,
+              "8/grid_balance/done/elapsed_ms": 3.032,
+              "8/grid_plans/done/elapsed_ms": 9.778,
+              "8/prefetch/data_done/elapsed_ms": 397.59,
+              "8/vcf_format/done/elapsed_ms": 668.0969999999996
+            },
+            "validated_outputs": {
+              "8": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  5.068359375,
+                  5.474609375,
+                  5.02490234375
+                ]
+              },
+              "1": {
+                "identity_sha256": "fe435dc502ff834cc17b58b7e5ede5d3b1b733dfa29173bb65a00c956054769d",
+                "contigs": {
+                  "chr17": {
+                    "body_md5": "927aa175d903867883ca3cf5a5a80510",
+                    "records": 108376
+                  }
+                },
+                "output_bytes": 1031773479,
+                "load_average_end": [
+                  4.669921875,
+                  5.3759765625,
+                  4.99462890625
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "interruption": {
+    "reason": "Between-run disk headroom guard",
+    "preserved_observations": 21,
+    "resumed_order": [
+      "veprs",
+      "baseline",
+      "candidate"
+    ],
+    "case": "chr17-workers1",
+    "label": "measured-3",
+    "timed_process_interrupted": false,
+    "thresholds_changed": false
+  },
+  "whole_clinvar": false,
+  "published_engine_revision": "562af65835f443305784b6567004872966922df0"
+}

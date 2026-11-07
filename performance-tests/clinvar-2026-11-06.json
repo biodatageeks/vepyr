@@ -1,0 +1,679 @@
+{
+  "description": "ClinVar chromosome-only comparison; measured repetitions retained; warmups excluded from medians",
+  "source_functions": "5a62b9cf30b4ab5f13a8cebd98a6fef2a50d91cf",
+  "measured_implementation_functions": "8fa75a3f343697c59cef99d7b05ccabaef5047c8",
+  "extension_sha256": "01b61cd0f5f661a9eed35b8e7d2eba0cabe777241ec735d5e5d0a826e03c3273",
+  "veprs_version": "0.5.0",
+  "veprs_sha256": "a8188a1d64d33d35be4cdd73ec6d5f1560774d73b2119b5ab35c91fae2b85884",
+  "formats_revision": "e0379fb28a0d4d74f8da4c9cbd357182361349f9",
+  "cache_revision": "ac2c8ad979ad063816368b0720e6e4501d64a3f3",
+  "cache_release": "116_GRCh38_merged",
+  "input_records": {
+    "17": 277114,
+    "2": 401230
+  },
+  "cases": {
+    "chr17-workers1": {
+      "chromosome": "17",
+      "workers": 1,
+      "engines": {
+        "vepyr": {
+          "wall_s": {
+            "median": 144.69,
+            "min": 139.24,
+            "max": 147.2
+          },
+          "rss_bytes": {
+            "median": 3386343424.0,
+            "min": 3381149696.0,
+            "max": 3400925184.0
+          }
+        },
+        "veprs": {
+          "wall_s": {
+            "median": 210.73,
+            "min": 205.99,
+            "max": 212.19
+          },
+          "rss_bytes": {
+            "median": 4061118464.0,
+            "min": 4016783360.0,
+            "max": 4082368512.0
+          }
+        }
+      },
+      "source": "New paired session"
+    },
+    "chr2-workers1": {
+      "chromosome": "2",
+      "workers": 1,
+      "engines": {
+        "vepyr": {
+          "wall_s": {
+            "median": 383.39,
+            "min": 375.79,
+            "max": 386.67
+          },
+          "rss_bytes": {
+            "median": 3702456320.0,
+            "min": 3643736064.0,
+            "max": 3720151040.0
+          }
+        },
+        "veprs": {
+          "wall_s": {
+            "median": 313.19,
+            "min": 312.91,
+            "max": 326.3
+          },
+          "rss_bytes": {
+            "median": 4238852096.0,
+            "min": 4222959616.0,
+            "max": 4280729600.0
+          }
+        }
+      },
+      "source": "New paired session"
+    },
+    "chr2-workers8": {
+      "chromosome": "2",
+      "workers": 8,
+      "engines": {
+        "vepyr": {
+          "wall_s": {
+            "median": 138.74,
+            "min": 137.46,
+            "max": 138.74
+          },
+          "rss_bytes": {
+            "median": 5243092992.0,
+            "min": 5234933760.0,
+            "max": 5285281792.0
+          }
+        },
+        "veprs": {
+          "wall_s": {
+            "median": 49.84,
+            "min": 49.52,
+            "max": 53.2
+          },
+          "rss_bytes": {
+            "median": 4372152320.0,
+            "min": 4297048064.0,
+            "max": 4378001408.0
+          }
+        }
+      },
+      "source": "New paired session"
+    },
+    "chr17-workers8": {
+      "chromosome": "17",
+      "workers": 8,
+      "engines": {
+        "vepyr": {
+          "wall_s": {
+            "median": 29.16,
+            "min": 27.92,
+            "max": 29.32
+          },
+          "rss_bytes": {
+            "median": 4465180672.0,
+            "min": 4463755264.0,
+            "max": 4530225152.0
+          }
+        },
+        "veprs": {
+          "wall_s": {
+            "median": 33.06,
+            "min": 32.42,
+            "max": 33.19
+          },
+          "rss_bytes": {
+            "median": 4507910144.0,
+            "min": 4437573632.0,
+            "max": 4525867008.0
+          }
+        }
+      },
+      "source": "Earlier paired session"
+    }
+  },
+  "measurements": [
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "vepyr",
+      "started": "2026-11-06T13:33:11.176693+00:00",
+      "wall_s": 140.77,
+      "user_s": 139.36,
+      "system_s": 5.83,
+      "rss_bytes": 3136405504.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827338
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "veprs",
+      "started": "2026-11-06T13:35:46.577255+00:00",
+      "wall_s": 213.57,
+      "user_s": 214.56,
+      "system_s": 4.23,
+      "rss_bytes": 4038639616.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107406
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "vepyr",
+      "started": "2026-11-06T13:39:34.889533+00:00",
+      "wall_s": 144.69,
+      "user_s": 145.17,
+      "system_s": 5.88,
+      "rss_bytes": 3400925184.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827342
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "veprs",
+      "started": "2026-11-06T13:42:13.691089+00:00",
+      "wall_s": 212.19,
+      "user_s": 213.54,
+      "system_s": 4.11,
+      "rss_bytes": 4016783360.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107410
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "veprs",
+      "started": "2026-11-06T13:46:00.222226+00:00",
+      "wall_s": 210.73,
+      "user_s": 212.67,
+      "system_s": 3.86,
+      "rss_bytes": 4082368512.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107410
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "vepyr",
+      "started": "2026-11-06T13:49:45.774457+00:00",
+      "wall_s": 139.24,
+      "user_s": 139.81,
+      "system_s": 5.43,
+      "rss_bytes": 3386343424.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827342
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "vepyr",
+      "started": "2026-11-06T13:52:18.675163+00:00",
+      "wall_s": 147.2,
+      "user_s": 148.66,
+      "system_s": 5.4,
+      "rss_bytes": 3381149696.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d2f003d60f8c85a91dbc2247d21d855a",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7165827342
+    },
+    {
+      "case": "chr17-workers1",
+      "chromosome": "17",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "veprs",
+      "started": "2026-11-06T13:54:59.739947+00:00",
+      "wall_s": 205.99,
+      "user_s": 208.49,
+      "system_s": 3.6,
+      "rss_bytes": 4061118464.0,
+      "identity": {
+        "identity_sha256": "80be19e05f8917d50f4377e970ba1683768c87bc936a05a4360c344be463e8a2",
+        "contigs": {
+          "17": {
+            "body_md5": "d16b8b23cacf2de478e125e967d46b47",
+            "records": 277114
+          }
+        }
+      },
+      "output_bytes": 7485107410
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "vepyr",
+      "started": "2026-11-06T13:58:40.437998+00:00",
+      "wall_s": 383.33,
+      "user_s": 386.11,
+      "system_s": 6.38,
+      "rss_bytes": 3634184192.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317747
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "warmup",
+      "arm": "veprs",
+      "started": "2026-11-06T14:05:18.199514+00:00",
+      "wall_s": 314.53,
+      "user_s": 318.79,
+      "system_s": 3.94,
+      "rss_bytes": 4245766144.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858721
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "vepyr",
+      "started": "2026-11-06T14:10:48.620825+00:00",
+      "wall_s": 383.39,
+      "user_s": 386.43,
+      "system_s": 6.38,
+      "rss_bytes": 3720151040.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-1",
+      "arm": "veprs",
+      "started": "2026-11-06T14:17:25.570138+00:00",
+      "wall_s": 313.19,
+      "user_s": 317.79,
+      "system_s": 3.95,
+      "rss_bytes": 4238852096.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858725
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "veprs",
+      "started": "2026-11-06T14:22:54.778216+00:00",
+      "wall_s": 312.91,
+      "user_s": 317.11,
+      "system_s": 3.9,
+      "rss_bytes": 4280729600.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858725
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-2",
+      "arm": "vepyr",
+      "started": "2026-11-06T14:28:23.524063+00:00",
+      "wall_s": 386.67,
+      "user_s": 386.71,
+      "system_s": 7.3,
+      "rss_bytes": 3643736064.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "vepyr",
+      "started": "2026-11-06T14:35:04.420666+00:00",
+      "wall_s": 375.79,
+      "user_s": 378.35,
+      "system_s": 7.36,
+      "rss_bytes": 3702456320.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers1",
+      "chromosome": "2",
+      "workers": 1,
+      "label": "measured-3",
+      "arm": "veprs",
+      "started": "2026-11-06T14:43:20.082281+00:00",
+      "wall_s": 326.3,
+      "user_s": 329.13,
+      "system_s": 5.73,
+      "rss_bytes": 4222959616.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858725
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "warmup",
+      "arm": "vepyr",
+      "started": "2026-11-06T14:53:08.624872+00:00",
+      "wall_s": 133.6,
+      "user_s": 295.75,
+      "system_s": 11.28,
+      "rss_bytes": 5078204416.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317747
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "warmup",
+      "arm": "veprs",
+      "started": "2026-11-06T14:55:35.738866+00:00",
+      "wall_s": 47.92,
+      "user_s": 339.14,
+      "system_s": 4.43,
+      "rss_bytes": 4293181440.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858723
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "measured-1",
+      "arm": "vepyr",
+      "started": "2026-11-06T14:56:38.771607+00:00",
+      "wall_s": 138.74,
+      "user_s": 300.26,
+      "system_s": 11.74,
+      "rss_bytes": 5234933760.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "measured-1",
+      "arm": "veprs",
+      "started": "2026-11-06T14:59:13.393763+00:00",
+      "wall_s": 49.84,
+      "user_s": 350.06,
+      "system_s": 5.44,
+      "rss_bytes": 4378001408.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858727
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "measured-2",
+      "arm": "veprs",
+      "started": "2026-11-06T15:00:19.348042+00:00",
+      "wall_s": 49.52,
+      "user_s": 344.27,
+      "system_s": 4.64,
+      "rss_bytes": 4297048064.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858727
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "measured-2",
+      "arm": "vepyr",
+      "started": "2026-11-06T15:01:23.972593+00:00",
+      "wall_s": 137.46,
+      "user_s": 300.18,
+      "system_s": 11.59,
+      "rss_bytes": 5285281792.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "measured-3",
+      "arm": "vepyr",
+      "started": "2026-11-06T15:03:56.727667+00:00",
+      "wall_s": 138.74,
+      "user_s": 305.35,
+      "system_s": 11.66,
+      "rss_bytes": 5243092992.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "4df6ae8cdc714236b95943abd465752d",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7065317751
+    },
+    {
+      "case": "chr2-workers8",
+      "chromosome": "2",
+      "workers": 8,
+      "label": "measured-3",
+      "arm": "veprs",
+      "started": "2026-11-06T15:06:30.279354+00:00",
+      "wall_s": 53.2,
+      "user_s": 353.86,
+      "system_s": 4.88,
+      "rss_bytes": 4372152320.0,
+      "identity": {
+        "identity_sha256": "b1aa75b472e2891eaec3913ea37d3365e09b1ef5d17da24c3ec25176bab443a2",
+        "contigs": {
+          "2": {
+            "body_md5": "a2d18b2aab44946c47db472f04860d04",
+            "records": 401230
+          }
+        }
+      },
+      "output_bytes": 7797858727
+    }
+  ],
+  "whole_clinvar": false,
+  "limitations": [
+    "Shared host with background activity",
+    "Chr17/8 reused from preceding paired session",
+    "vep-rs annotation coverage differs",
+    "Diagnostic pause occurred after a timed process exited",
+    "Disk guard stopped before chr2/8; pending case resumed without exclusions"
+  ]
+}
