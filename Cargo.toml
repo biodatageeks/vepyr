@@ -230,6 +230,8 @@ serde_json = "1"
 # ClinVar optimizations: bounded reuse/output, shared HGVS and coding-work balancing.
 # Includes merge `344fb2c` of functions #326 and input setup follow-up #327:
 # no prefix query during planning; one physical VCF input per grid worker.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "6f996176653a835a04dca77ceee514f5055e2921", features = ["cache-builder"] }
+# Stacked balancing follow-up: estimate work at actual input positions, applying
+# the coding-length premium only inside coding exons; preserve logical buffers.
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "57f772aa119630858f8cbd152736ea426c4bb495", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
