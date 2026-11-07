@@ -179,26 +179,38 @@ def validate_vep_reference_identity(identity, target):
 def ensure_tabix_index(vcf_gz, source_marker=None):
     """Create or refresh the tabix index for `vcf_gz`.
 
-    Without a marker, an existing index is reusable only when it is at least as
-    new as the compressed VCF. ``ensure_bgzf`` additionally supplies a working
-    directory marker so an edited or replaced ``--no-normalize`` input cannot
-    retain a stale, newer-looking index.
+    An existing index is reusable when it is at least as new as the compressed
+    VCF. ``ensure_bgzf`` additionally supplies a working-directory marker that
+    records the source identity the index was accepted for, so an input edited
+    or replaced between runs sharing that working directory is re-indexed even
+    if its index looks newer. A fresh working directory has no marker yet: the
+    mtime rule decides, and the marker is written. Re-indexing in place on every
+    fresh run would fail on a read-only input directory, which is how the
+    /parity-wgs hosts mount the staged ClinVar input (its `.tbi` is verified by
+    sha256 at staging).
     """
     tbi = vcf_gz + ".tbi"
     source = source_identity(vcf_gz)
     if os.path.exists(tbi):
-        if source_marker is not None:
-            if _read_json(source_marker) == source:
+        recorded = _read_json(source_marker) if source_marker is not None else None
+        if recorded is not None:
+            if recorded == source:
                 return
         elif os.stat(tbi).st_mtime_ns >= source["mtime_ns"]:
+            if source_marker is not None:
+                _write_source_marker(source_marker, source)
             return
 
     print(f"  Indexing (tabix) {os.path.basename(vcf_gz)} ...")
     subprocess.run(["tabix", "-f", "-p", "vcf", vcf_gz], check=True)
     if source_marker is not None:
-        os.makedirs(os.path.dirname(os.path.abspath(source_marker)), exist_ok=True)
-        with open(source_marker, "w") as stream:
-            json.dump(source, stream, indent=2)
+        _write_source_marker(source_marker, source)
+
+
+def _write_source_marker(source_marker, source):
+    os.makedirs(os.path.dirname(os.path.abspath(source_marker)), exist_ok=True)
+    with open(source_marker, "w") as stream:
+        json.dump(source, stream, indent=2)
 
 
 def ensure_bgzf(path, out_dir):

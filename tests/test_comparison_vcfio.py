@@ -168,6 +168,38 @@ def test_ensure_bgzf_returns_an_already_compressed_file_unchanged(bgzf_vcf, tmp_
     assert vcfio.ensure_bgzf(str(bgzf_vcf), str(out_dir)) == str(bgzf_vcf)
 
 
+@pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0, reason="root ignores read-only dirs"
+)
+def test_ensure_bgzf_reuses_a_current_index_in_a_read_only_input_dir(
+    bgzf_vcf, tmp_path
+):
+    # /parity-wgs mounts the staged ClinVar input read-only and starts every
+    # job with a fresh working directory, so no source marker exists yet.
+    input_dir = tmp_path / "staged"
+    input_dir.mkdir()
+    staged = input_dir / bgzf_vcf.name
+    shutil.copy2(bgzf_vcf, staged)
+    subprocess.run(["tabix", "-f", "-p", "vcf", str(staged)], check=True)
+    tbi = input_dir / f"{staged.name}.tbi"
+    index_bytes = tbi.read_bytes()
+    out_dir = tmp_path / "fresh-work"
+    for path in (staged, tbi):
+        os.chmod(path, 0o444)
+    os.chmod(input_dir, 0o555)
+    try:
+        result = vcfio.ensure_bgzf(str(staged), str(out_dir))
+    finally:
+        os.chmod(input_dir, 0o755)
+        for path in (staged, tbi):
+            os.chmod(path, 0o644)
+
+    assert result == str(staged)
+    assert tbi.read_bytes() == index_bytes
+    marker = json.loads((out_dir / "sample_bgzf.vcf.gz.tbi.source.json").read_text())
+    assert marker == vcfio.source_identity(str(staged))
+
+
 def test_ensure_bgzf_reindexes_an_edited_compressed_input(
     bgzf_vcf, plain_vcf, tmp_path
 ):
