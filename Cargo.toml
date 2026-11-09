@@ -229,7 +229,8 @@ serde_json = "1"
 # remains pinned by its merge commit `e0379fb`; release is postponed.
 # ClinVar optimizations: bounded reuse/output, shared HGVS and coding-work balancing.
 # Merge commit `344fb2c` of functions #326 on master.
-# Long-transcript optimizations on top of it: head `1a08011` of functions #329.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "1a08011ebb53a920a33ff61f292ccf06af3a9b16", features = ["cache-builder"] }
+# Long-transcript optimizations on top of it: merge commit `4ecb793` of functions
+# #329 on master (tree-identical to gated head `1a08011`).
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4ecb793eb358c9a4adc059703003f812dc34c601", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
