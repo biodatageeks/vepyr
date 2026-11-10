@@ -31,7 +31,7 @@ the preceding optimized Stage G build (6.561 to 4.159 GiB), while preserving
 throughput (29.34 to 29.16 s). That is the incremental memory comparison, not
 the baseline for the complete optimization series.
 
-[Machine-readable measurements](../performance-tests/clinvar-2026-11-06.json)
+[Machine-readable measurements](clinvar-2026-11-06.json)
 retain every new measured run and warm-up, input/body identities, binary hashes,
 and the reused chr17/eight-worker summary. All observations are retained,
 including background host activity. A diagnostic pause occurred only after a
