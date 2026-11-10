@@ -232,7 +232,8 @@ serde_json = "1"
 # Long-transcript optimizations on top of it: merge commit `4ecb793` of functions
 # #329 on master (tree-identical to gated head `1a08011`).
 # Ensembl buffer-grid output (vepyr#282), one VCF scan per grid worker and the
-# uniform Ensembl split: head `2bdb441` of functions #330, not merged yet.
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "2bdb44177ecb92e7a49ff5e75f2709ae2b2a2628", features = ["cache-builder"] }
+# uniform Ensembl split: merge commit `4c6cc45` of functions #330 on master
+# (tree-identical to gated head `2bdb441`).
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4c6cc4563b43940c0728ad1f69142f3b53840246", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
