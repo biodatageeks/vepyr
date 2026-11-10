@@ -5,6 +5,8 @@
 - [`scripts/plot_vep_vs_vepyr_macos.py`](scripts/plot_vep_vs_vepyr_macos.py) — the
   side-by-side figure below
 - [`figures/`](figures/) — cross-tool figures
+- [`clinvar/`](clinvar/README.md) — ClinVar optimisation snapshots and their raw
+  measurements
 
 Generated VCFs, the staging FASTA and the caches stay outside Git; every run
 directory keeps its exact command, GNU time logs, stderr and a summary TSV.

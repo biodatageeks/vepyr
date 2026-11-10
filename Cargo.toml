@@ -4,11 +4,8 @@ version = "0.10.0"
 edition = "2021"
 
 [features]
-# Allocator selection (mirrors polars-bio). Exactly one global allocator is linked;
-# see src/lib.rs. mimalloc is on by default; jemalloc is opt-in and takes precedence
-# when enabled, except on Windows/MSVC where tikv-jemallocator is unsupported.
-#   Build with jemalloc: maturin build --release --no-default-features \
-#     --features extension-module,jemalloc
+# Exactly one global allocator is linked (see src/lib.rs). jemalloc takes
+# precedence when enabled, except on Windows/MSVC where it is unsupported.
 default = ["extension-module", "mimalloc"]
 extension-module = ["pyo3/extension-module"]
 mimalloc = ["dep:mimalloc"]
@@ -17,24 +14,15 @@ dhat-heap = ["dep:dhat"]
 
 [lib]
 name = "_core"
-# "cdylib" is necessary to produce a shared library for Python to import from.
 crate-type = ["cdylib"]
 
 [dependencies]
-# Global allocators, selected via [features] above (mimalloc default-on, jemalloc
-# opt-in). Both optional so exactly one is linked. mimalloc pinned to v2: v3
-# segfaults at import on macOS arm64 (per polars-bio). jemalloc is unsupported on
-# Windows/MSVC; there the build falls back to mimalloc.
+# mimalloc stays on v2: v3 segfaults at import on macOS arm64.
 mimalloc = { version = "0.1", default-features = false, features = ["v2"], optional = true }
 tikv-jemallocator = { version = "0.7.0", optional = true }
 dhat = { version = "0.3", optional = true }
-# PyO3 for Python bindings
 pyo3 = { version = "0.28", features = ["abi3-py310"] }
-
-# Arrow interop between Rust and Python (PyArrow)
 arrow = { version = "58", features = ["pyarrow"] }
-
-# DataFusion for query execution
 datafusion = "=53.0.0"
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
 futures = "0.3"
@@ -42,198 +30,9 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false }
 serde_json = "1"
 
-# bio-functions 44f5954 (#238): typed motif columns are per-consequence lists and
-# SWISSPROT/TREMBL typed values use `&` like the CSQ string; supersedes
-# bio-functions b145bc6 (#237): the plugin-cache tier ORDER BY is the probe key
-# (tier, start, allele_string, match cols) instead of every column, which is what let the
-# full-source SpliceAI chr1/chr2 shards build at the default 8 GiB pool (bio-functions#235).
-#
-# Historical dependency selections (the current pins are below this history):
-# bio-functions dba94e3: regions option for annotate_vep (biodatageeks/datafusion-bio-functions#239, merge commit)
-# bio-formats 12016a9 (v1.12.0 + the exon dedup tie-break, biodatageeks/datafusion-bio-formats#246)
-# and bio-functions 6476619 (v0.19.2 + the translation_core ORDER BY #224, the unread-column
-# drop #225, the bio-formats bump #226, the partial-cache source-type probe #227, which
-# reads bio.vep.cache_source_type from the first variation shard present on disk instead of
-# the manifest's first entry, so a per-contig download with whole-cache manifests annotates,
-# and plugin source verification #228 (vepyr#68): the plugin cache builder hashes each build
-# input and its tabix index once under strict/warn/skip, stages every shard until the sources
-# are re-checked, and records the provenance under `sources` in the emitted manifest.json;
-# #230 makes plugin shard row order reproducible, #231 records the manifest source version,
-# and #232 preserves the requested plugin order in the annotation output).
-# Together these make a cache build reproducible:
-# the exon dedup tie-break is now total, translation_core has a total output ORDER BY instead
-# of relying on CoalescePartitionsExec arrival order, and the four context entities no longer
-# persist raw_object_json / object_hash / _rn, which no reader projects.
-#
-# bio-formats v1.11.0 carried each record's INFO and FORMAT key order through
-# a read/write round trip; v0.18.0 turned that on for annotation output and
-# stopped stripping field metadata from the annotation schema, without which the
-# carry reaches the writer unrecognised. v0.19.0 adds the plugin cache-builder
-# work: source-level tabix selection for indexed delimited sources, multi-part
-# manifests, and registration of the tabix staging slice as headerless. Together
-# with the merged header and QUAL work they make vepyr's VCF output
-# byte-identical to Ensembl VEP 116.0 on all 22 autosomes of HG002.
-# The two MUST move together: bio-function-vep pins its own bio-formats rev, and
-# two different revs are two different sources to cargo, so a mismatch compiles
-# the formats crates twice and `CacheSourceType` / the VCF writer types then fail
-# to cross into `CacheBuilder` (E0308).
-# bio-functions 0bf7175 (v0.20.0~2): streaming run pool, workers>1 on the LazyFrame path (#240)
-# bio-functions v0.20.1 fast-forwards that pin by three commits: the two release
-# commits plus the bio-formats bump to v1.12.1 (#241). bio-formats v1.12.1 adds
-# BED3 support and reader-error propagation (#249) on top of the v1.12.0 exon
-# dedup tie-break already pinned here.
-# The reference form matters as much as the commit: cargo keys a git source on
-# its reference, so `tag = "v1.12.1"` and a `rev =` of the same commit are two
-# sources. bio-function-vep declares bio-formats by tag, so vepyr declares it the
-# same way -- otherwise the formats crates compile twice and the E0308 above returns.
-# bio-functions 97aa8ca: the merge commit of biodatageeks/datafusion-bio-functions#242
-# (vepyr#95 -- same-length alleles are no longer trimmed, and HGVS is computed
-# from the clipped allele except on transcripts carrying `_rna_edit`
-# attributes). Pinned by rev rather than tag because no release has been cut on
-# top of it yet; move to that tag when one is. bio-formats stays declared by tag
-# on both sides, per the note above, so the formats crates resolve to a single
-# source.
-# bio-functions b470460: the MERGE commit of biodatageeks/datafusion-bio-functions#243
-# (vepyr#93 -- a CSQ whitespace RUN now collapses to one underscore, per
-# OutputFactory/VCF.pm:403 `s/\s+/\_/g`, and the engine's two CSQ escapers
-# became one function). Two behaviour notes for this repo: a bare `-` in a
-# PLUGIN value now blanks like VEP's (VCF.pm:396-398 applies to plugin columns,
-# which VCF.pm:449 puts in @fields), so it reaches the LazyFrame as null via the
-# `.replace("", None)` in _plugin_column; and DOMAINS deliberately keeps
-# per-character escaping, because VEP's rule there (OutputFactory.pm:1505) has
-# no quantifier. Pinned by rev rather than tag because no release has been cut
-# on top of the merge yet; move to that tag when one is.
-# bio-functions 4b0bd00: the MERGE commit of biodatageeks/datafusion-bio-functions#245
-# (vepyr#97 -- a record whose FIRST ALT is `.` carries no
-# alternate allele, and Ensembl drops it outright (Parser/VCF.pm:259-266 returns
-# without building a VariationFeature) unless --allow_non_variant is given. We
-# were annotating it as a one-base deletion with frameshift consequences,
-# because the reader joins zero alternate bases into the empty string and the
-# engine's guard recognised only NULL and `*`. Three notes for this repo:
-# `allow_non_variant=` is a new annotate() kwarg, default False, matching VEP;
-# it needs a line in src/annotate.rs as well as the opts dict, because the VCF
-# output path hand-copies each option into AnnotateVcfConfig instead of passing
-# options_json through as the LazyFrame path does; and the flag keeps the record
-# with NO CSQ, which is what VEP's VCF writer emits, so on the LazyFrame path it
-# arrives as a null CSQ rather than a missing row. bio-formats does not move:
-# its part of this fix is reader-contract tests only
-# (biodatageeks/datafusion-bio-formats#252), which change no src logic, so
-# v1.12.1 still describes the artifact.) Pinned by rev rather than tag because
-# no release has been cut on top of the merge yet; move to that tag when one is.
-# bio-functions v0.22.0: the release cut on top of the merge commit 170c84c of
-# biodatageeks/datafusion-bio-functions#250. Its src tree is identical to the
-# PR head d51fc79 this was pinned to before the merge. (Performance only, no
-# behaviour change: after every variation lookup the engine rebuilds the 27
-# allele-frequency columns from the shard's 2-array encoding, and did it through
-# three or four heap allocations per frequency plus a joined group string that
-# was split straight back apart. It now writes each population's column
-# directly and formats `%.4g` on the stack, memoised per call. `format_g4` stays
-# the definition the cache builder validates against, so the output is meant to
-# be byte-identical; on this side that is what the strict md5 gate over all 22
-# contigs checks, and its result for this pin is recorded in the PR that moved
-# it, not asserted here. Two notes for this repo: the win is CPU, not latency,
-# because at one worker the lookup runs ahead of a slower downstream stage; and
-# `VEP_LOOKUP_PROFILE_DETAILED=1` now prints a `take offsets= payload=
-# af_rebuild= matched=` line, which is the only place this change is visible --
-# tools/vepyr-fix/compare_runs.py reads `[VEP_PIPELINE_TRACE]` and the lookup
-# carries no duration there. The same PR also moves the hot function-local maps
-# of the annotation stage off std's SipHash, and makes HGVS hydration use the
-# per-contig exon index instead of rebuilding one per window; both ARE on the
-# critical path and do move wall.) bio-formats does not move.
-# bio-functions 97b87a7: the MERGE commit of
-# biodatageeks/datafusion-bio-functions#252 (vepyr#121 -- an input whose INFO
-# or single-sample FORMAT id is
-# also an engine output column failed with `Schema contains duplicate qualified
-# field name "annotate_vep()"."AF"`. INFO/AF is enough, so gnomAD, 1000 Genomes,
-# `bcftools +fill-tags` output and every VEP-annotated file (INFO/CSQ) could not
-# be annotated through output_vcf, the CLI or the nf-core module. The colliding
-# INPUT column now gives way -- INFO_<id>, or fmt_<id> for FORMAT -- and the VCF
-# sink writes it back under its own key; an existing CSQ is replaced and the new
-# one placed last, per OutputFactory/VCF.pm:328-349 and :221. Three notes for
-# this repo: no Python changes, because _flags_for_projection matches bare names
-# and those still belong to VEP's columns; the LazyFrame path never hit this,
-# only because it opens the VCF with no INFO/FORMAT fields; and the annotator's
-# Arrow schema now carries the input's schema-level VCF metadata, which nothing
-# here reads yet.) bio-formats does not move. Its tree is identical to the
-# PR head f03fc86 this was pinned to in review.
-# bio-functions v0.22.1: the first release with
-# biodatageeks/datafusion-bio-functions#252 (above), #253 and #254. The last two
-# move the engine's bio-formats pins from v1.12.1 to v1.13.0 for
-# biodatageeks/datafusion-bio-formats#254: the VCF serializer wrote FORMAT keys
-# in header order when the record layout is not carried, so an input declaring
-# DP before GT (GIAB HG002 does) came out as `DP:GT`; VCF 4.x requires GT first.
-# Only output written with preserve_record_layout=False changes. The default,
-# True, carries the source record's own key order and is reproduced as before.
-# bio-formats MOVES with it, v1.12.1 -> v1.13.0: this crate names two formats
-# crates directly, and a source that differs from the engine's resolves a second
-# copy of datafusion-bio-format-vcf and -core, which does not compile (`expected
-# VcfCompressionType, found a different VcfCompressionType`). Every engine bump
-# has to check the engine's formats pin for that reason. v0.22.1 is the #254
-# merge commit 3d70923 plus the release's version bumps; every src tree is
-# identical.
-# bio-functions v0.22.2: the first release with
-# biodatageeks/datafusion-bio-functions#256, on top of v0.22.1. It makes the annotated-VCF header builder
-# public (`vcf_sink::annotation_header_lines`), so the LazyFrame path can hand
-# polars_bio.sink_vcf the same provenance lines output_vcf writes (vepyr#127).
-# It also declares serde_json's preserve_order, which the provenance line's key
-# order depends on. Same bio-formats tag as before, so bio-formats does not
-# move. v0.22.2 is the #256 merge commit b3673bf plus the release's version
-# bumps; every src tree is identical.
-# bio-functions 0cefc99: the MERGE commit of
-# biodatageeks/datafusion-bio-functions#260 (closes #257), on top of #258 (the
-# co-located switches on the VCF config). `annotation_header_lines` now also
-# returns the CSQ description, so vepyr declares the layout the engine writes
-# instead of deriving one from its typed columns. Its src tree is identical to
-# the PR head 304d148 this was pinned to in review. Pinned by rev because no
-# release has been cut on top of the merge yet; move to that tag when one is.
-# bio-functions v0.23.0: the release cut on master ab84639, after the squash
-# merges of biodatageeks/datafusion-bio-functions#262 (93a0925: the streaming
-# run pool's output budget scales with workers and the stateful run floor gives
-# way on small contigs and regions, so the LazyFrame path scales like
-# output_vcf) and #261 (ab84639: plugin takes timed and run concurrently on a
-# dedicated pool). v0.23.0 adds only version bumps to ab84639, and #262 was
-# gated at its PR head 737c5cd, whose src tree is identical to 93a0925. Same
-# bio-formats tag as before, v1.13.0.
-# REF==ALT: preserve the record without consequences, matching VEP 116.
-# The engine guards both provider cache hits and direct Rust evaluation.
-# formats remains v1.13.0; only the functions engine owns this behavior.
-# REF/CDS mismatch: replay VEP's ordinary CDS and RNA-edit reference rules.
-# Pin the master merge commit of biodatageeks/datafusion-bio-functions#264.
-# formats stays at v1.13.0.
-# vepyr#147: uppercase annotation alleles after raw parser trimming.
-# Included since the master merge commit of biodatageeks/datafusion-bio-functions#265.
-# REF/ALT source columns stay unchanged.
-# vepyr#148: preserve native chromosome synonyms and resolve accession inputs.
-# Pin the master merge commit of biodatageeks/datafusion-bio-functions#266.
-# Current review pins for vepyr#150: native cache reference policy and independent
-# genomic HGVSc. The earlier REF==ALT, REF/CDS and lowercase-allele fixes are retained.
-# functions#268 and vepyr pin the released formats v1.14.0 (contains formats#259).
-# vepyr#149: replay shifted insertion HGVSp mapper windows and allele rotation.
-# Engine PR267 includes the merged lowercase-allele and contig-synonym fixes.
-# formats moves to the released v1.14.0 (formats#259), matching functions#267.
-# vepyr#156: preserve cached strand and normalize each ALT in known-variant lookup.
-# functions#269 also bounds multi-worker context loading.
-# Released functions v0.23.1 carries #267, #268, #269 and #271; formats v1.14.0.
-# Projection pushdown: functions#272 (merge commit 483a499 on main, after
-# v0.23.1) skips the work no projected annotate_vep() column needs. Pinned by
-# rev until a release tag carries it.
-# vepyr#199: order transcripts by VEP's `stable_id_dbID` key (CSQ order and the
-# pick tie-break; RefSeq ND4L before ND4 on chrMT). functions#273, squash-merged
-# as 4704ff9 on top of 483a499; pinned by rev until a release tag carries it.
-# vepyr#200: translate MT transcripts with their codon table and read
-# codon_table from _variation_effect_feature_cache (functions#274, merge commit
-# `9936c6e`; formats#262, merge commit `abac8df`). Both are ancestors of the pins
-# below.
-# The ClinVar branch below includes vepyr#240 round 6 from functions PR #317,
-# merge `e152225` (tree-identical to gated head `27119f7`). Formats PR #272
-# remains pinned by its merge commit `e0379fb`; release is postponed.
-# ClinVar optimizations: bounded reuse/output, shared HGVS and coding-work balancing.
-# Merge commit `344fb2c` of functions #326 on master.
-# Long-transcript optimizations on top of it: merge commit `4ecb793` of functions
-# #329 on master (tree-identical to gated head `1a08011`).
-# Ensembl buffer-grid output (vepyr#282), one VCF scan per grid worker and the
-# uniform Ensembl split: merge commit `4c6cc45` of functions #330 on master
-# (tree-identical to gated head `2bdb441`).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "4c6cc4563b43940c0728ad1f69142f3b53840246", features = ["cache-builder"] }
+# The two bio-formats crates must use the same source (tag or rev) as the
+# bio-formats pins of bio-function-vep, or cargo resolves two copies and the
+# build fails with mismatched types (E0308).
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.24.1", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }

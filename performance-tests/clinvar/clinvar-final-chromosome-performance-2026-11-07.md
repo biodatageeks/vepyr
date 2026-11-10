@@ -28,4 +28,4 @@ Candidate extension SHA256: `46f4074b2bd708e107a089c5c1ef56851480bf7c20c219de149
 
 Exact source hashes, published-pin verification, native build logs, all failed and passing standard-gate attempts, and per-observation commands/load samples remain in the adjacent artifacts. Whole-ClinVar validation uses the existing `clinvar_merged` / `strict-clin-sig` golden policy in addition to raw pre-edit vepyr parity. This report does not claim whole-input completion.
 
-[All observations, including discarded warm-ups](../performance-tests/clinvar-final-chromosome-2026-11-07.csv).
+[All observations, including discarded warm-ups](clinvar-final-chromosome-2026-11-07.csv).
