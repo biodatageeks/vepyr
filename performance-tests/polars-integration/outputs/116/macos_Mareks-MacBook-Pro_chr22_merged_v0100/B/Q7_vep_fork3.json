@@ -1,0 +1,78 @@
+{
+  "query": "Q7",
+  "tool": "vep",
+  "fork": 3,
+  "processes": 4,
+  "annotate_median_wall_s": 151.67597329200362,
+  "filter": {
+    "warmups": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q7.fv.fork3.vcf",
+          "(Consequence match stop_gained or Consequence match frameshift_variant or Consequence match splice_acceptor_variant or Consequence match splice_donor_variant or Consequence match start_lost or Consequence match stop_lost) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 73.14402420900296,
+        "user_s": 0.018009,
+        "sys_s": 0.019098999999999998,
+        "max_rss_bytes": 28131328,
+        "load_1m_before": 3.93798828125
+      }
+    ],
+    "runs": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q7.fv.fork3.vcf",
+          "(Consequence match stop_gained or Consequence match frameshift_variant or Consequence match splice_acceptor_variant or Consequence match splice_donor_variant or Consequence match start_lost or Consequence match stop_lost) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 73.36339362499712,
+        "user_s": 0.01869,
+        "sys_s": 0.014711,
+        "max_rss_bytes": 28065792,
+        "load_1m_before": 3.4267578125
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q7.fv.fork3.vcf",
+          "(Consequence match stop_gained or Consequence match frameshift_variant or Consequence match splice_acceptor_variant or Consequence match splice_donor_variant or Consequence match start_lost or Consequence match stop_lost) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 73.20943441700365,
+        "user_s": 0.017606,
+        "sys_s": 0.014214,
+        "max_rss_bytes": 28360704,
+        "load_1m_before": 3.8603515625
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q7.fv.fork3.vcf",
+          "(Consequence match stop_gained or Consequence match frameshift_variant or Consequence match splice_acceptor_variant or Consequence match splice_donor_variant or Consequence match start_lost or Consequence match stop_lost) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 72.85426274999918,
+        "user_s": 0.013531,
+        "sys_s": 0.012114,
+        "max_rss_bytes": 28360704,
+        "load_1m_before": 3.306640625
+      }
+    ],
+    "median_wall_s": 73.20943441700365,
+    "min_wall_s": 72.85426274999918,
+    "max_wall_s": 73.36339362499712,
+    "median_rss_bytes": 28360704
+  },
+  "median_wall_s": 224.88540770900727
+}

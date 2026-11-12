@@ -1,0 +1,78 @@
+{
+  "query": "Q10",
+  "tool": "vep",
+  "fork": 0,
+  "processes": 1,
+  "annotate_median_wall_s": 560.7538525000127,
+  "filter": {
+    "warmups": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q10.fv.fork0.vcf",
+          "IMPACT in HIGH,MODERATE and (MAX_AF < 0.01 or not MAX_AF) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 62.54510858299909,
+        "user_s": 0.01487,
+        "sys_s": 0.014086999999999999,
+        "max_rss_bytes": 28262400,
+        "load_1m_before": 3.22216796875
+      }
+    ],
+    "runs": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q10.fv.fork0.vcf",
+          "IMPACT in HIGH,MODERATE and (MAX_AF < 0.01 or not MAX_AF) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 65.45050720899599,
+        "user_s": 0.013281999999999999,
+        "sys_s": 0.013141,
+        "max_rss_bytes": 28213248,
+        "load_1m_before": 2.8134765625
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q10.fv.fork0.vcf",
+          "IMPACT in HIGH,MODERATE and (MAX_AF < 0.01 or not MAX_AF) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 64.50309708301211,
+        "user_s": 0.013803999999999999,
+        "sys_s": 0.01171,
+        "max_rss_bytes": 27918336,
+        "load_1m_before": 3.23046875
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork0/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/Q10.fv.fork0.vcf",
+          "IMPACT in HIGH,MODERATE and (MAX_AF < 0.01 or not MAX_AF) and (CANONICAL is YES or MANE_SELECT)"
+        ],
+        "exit": 0,
+        "wall_s": 64.4507740830013,
+        "user_s": 0.014495,
+        "sys_s": 0.013167,
+        "max_rss_bytes": 27770880,
+        "load_1m_before": 3.18310546875
+      }
+    ],
+    "median_wall_s": 64.50309708301211,
+    "min_wall_s": 64.4507740830013,
+    "max_wall_s": 65.45050720899599,
+    "median_rss_bytes": 27918336
+  },
+  "median_wall_s": 625.2569495830248
+}

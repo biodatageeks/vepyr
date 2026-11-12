@@ -1,0 +1,78 @@
+{
+  "query": "R2",
+  "tool": "vep",
+  "fork": 3,
+  "processes": 4,
+  "annotate_median_wall_s": 151.67597329200362,
+  "filter": {
+    "warmups": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/R2.fv.fork3.vcf",
+          "(CHROM is chr22 and POS >= 30000000 and POS <= 30100000)"
+        ],
+        "exit": 0,
+        "wall_s": 59.85011470899917,
+        "user_s": 0.015335,
+        "sys_s": 0.011644999999999999,
+        "max_rss_bytes": 27951104,
+        "load_1m_before": 3.33544921875
+      }
+    ],
+    "runs": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/R2.fv.fork3.vcf",
+          "(CHROM is chr22 and POS >= 30000000 and POS <= 30100000)"
+        ],
+        "exit": 0,
+        "wall_s": 60.083024583000224,
+        "user_s": 0.015252,
+        "sys_s": 0.013869,
+        "max_rss_bytes": 27852800,
+        "load_1m_before": 2.8896484375
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/R2.fv.fork3.vcf",
+          "(CHROM is chr22 and POS >= 30000000 and POS <= 30100000)"
+        ],
+        "exit": 0,
+        "wall_s": 59.62999800000398,
+        "user_s": 0.016191999999999998,
+        "sys_s": 0.014204,
+        "max_rss_bytes": 27721728,
+        "load_1m_before": 2.37646484375
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/_wt/vepyr-supplement/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22_v0100/runs/B/R2.fv.fork3.vcf",
+          "(CHROM is chr22 and POS >= 30000000 and POS <= 30100000)"
+        ],
+        "exit": 0,
+        "wall_s": 59.84780437499285,
+        "user_s": 0.014478,
+        "sys_s": 0.012593,
+        "max_rss_bytes": 28000256,
+        "load_1m_before": 2.51416015625
+      }
+    ],
+    "median_wall_s": 59.84780437499285,
+    "min_wall_s": 59.62999800000398,
+    "max_wall_s": 60.083024583000224,
+    "median_rss_bytes": 27852800
+  },
+  "median_wall_s": 211.52377766699647
+}

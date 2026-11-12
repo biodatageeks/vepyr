@@ -1,0 +1,29 @@
+\begin{longtable}{llp{0.55\linewidth}p{0.2\linewidth}}
+\toprule
+Id & Tier & \texttt{filter\_vep} & Note \\
+\midrule
+\endfirsthead
+\toprule
+Id & Tier & \texttt{filter\_vep} & Note \\
+\midrule
+\endhead
+R1 & region & \texttt{(CHROM is chr22 and POS $\geq$ 20000000 and POS $\leq$ 25000000)} & 5 Mb window \\
+R2 & region & \texttt{(CHROM is chr22 and POS $\geq$ 30000000 and POS $\leq$ 30100000)} & 100 kb window \\
+R3 & region & \texttt{(CHROM is chr22 and POS $\geq$ 29603520 and POS $\leq$ 29698600)} & ACMG SF v3.2 gene loci on chr22 (NF2 only) \\
+Q1 & frequency & \texttt{MAX\_AF $<$ 0.01 or not MAX\_AF} &  \\
+Q2 & frequency & \texttt{gnomADg\_AF $<$ 0.001 or not gnomADg\_AF} &  \\
+Q3 & known & \texttt{not Existing\_variation} &  \\
+Q4 & known & \texttt{CLIN\_SIG match pathogenic} & case-insensitive substring: also matches likely\_pathogenic and conflicting\_*\_pathogenicity \\
+Q5 & consequence & \texttt{IMPACT is HIGH} &  \\
+Q6 & consequence & \texttt{IMPACT in HIGH,MODERATE} &  \\
+Q7 & consequence & \texttt{(Consequence match stop\_gained or Consequence match frameshift\_variant or Consequence match splice\_acceptor\_variant or Consequence match splice\_donor\_variant or Consequence match start\_lost or Consequence match stop\_lost) and (CANONICAL is YES or MANE\_SELECT)} &  \\
+Q8 & consequence & \texttt{Consequence match missense\_variant and SIFT match deleterious and PolyPhen match damaging} &  \\
+Q9 & consequence & \texttt{SYMBOL in /panels/acmg\_sf\_v3.2.txt} &  \\
+Q10 & composite & \texttt{IMPACT in HIGH,MODERATE and (MAX\_AF $<$ 0.01 or not MAX\_AF) and (CANONICAL is YES or MANE\_SELECT)} &  \\
+P1 & plugin & \texttt{CADD\_PHRED $>$ 20} &  \\
+P2 & plugin & \texttt{am\_class is likely\_pathogenic} &  \\
+P3 & plugin & \texttt{SpliceAI\_pred\_DS\_AG $\geq$ 0.5 or SpliceAI\_pred\_DS\_AL $\geq$ 0.5 or SpliceAI\_pred\_DS\_DG $\geq$ 0.5 or SpliceAI\_pred\_DS\_DL $\geq$ 0.5} &  \\
+P4 & plugin & \texttt{ClinVar\_CLNSIG match Pathogenic} &  \\
+P5 & plugin & \texttt{IMPACT in HIGH,MODERATE and (MAX\_AF $<$ 0.01 or not MAX\_AF) and (CANONICAL is YES or MANE\_SELECT) and (CADD\_PHRED $>$ 20 or am\_class is likely\_pathogenic)} &  \\
+\bottomrule
+\end{longtable}
