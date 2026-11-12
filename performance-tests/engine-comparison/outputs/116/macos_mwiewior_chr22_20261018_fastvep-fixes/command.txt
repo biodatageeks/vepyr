@@ -1,0 +1,17 @@
+# 2026-10-18, MacBook Pro M3 Max (16 logical CPUs, 64 GiB), macOS 15.7.9.
+# fastVEP from mwiewior/fastVEP cache-dir-fixes 78d58fc (master 5d8004a plus
+# three fixes), vepyr 0.10.0 from PyPI; vep-rs not included.
+# The work directory reused the 20261017 run's downloads, .osa2 databases and
+# vepyr venv; everything else was rebuilt. Wall time of the whole run 13.5 min.
+D=~/workspace/data_vepyr
+python3 performance-tests/engine-comparison/scripts/compare_vep_engines.py all \
+  --work-dir $SCRATCH/ecwork-fvfork --chrom 22 --tools vepyr,fastvep \
+  --fastvep-repo https://github.com/mwiewior/fastVEP.git --fastvep-ref cache-dir-fixes \
+  --input-vcf $D/polars_integration/chr22/input/HG002_chr22.vcf.gz \
+  --fasta $D/polars_integration/chr22/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+  --vep-cache-ensembl $D/homo_sapiens_ensembl/116_GRCh38 \
+  --vep-cache-merged $D/homo_sapiens_merged/116_GRCh38 \
+  --vepyr-cache-ensembl $D/cache/116_GRCh38_ensembl \
+  --vepyr-cache-merged $D/cache/116_GRCh38_merged \
+  --reference-ensembl $D/output/116/HG002_annotated_wgs_everything_hgvs_vep.vcf.gz \
+  --reference-merged $D/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz

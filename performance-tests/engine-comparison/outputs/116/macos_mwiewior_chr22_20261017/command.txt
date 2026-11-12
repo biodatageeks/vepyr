@@ -1,0 +1,14 @@
+# 2026-10-17, MacBook Pro M3 Max (16 logical CPUs, 64 GiB), macOS 15.7.9.
+# vep-rs main f642723 (0.4.0), fastVEP master 5d8004a, vepyr 0.10.0 from PyPI.
+# Ran from this commit's parent tree; wall time of the whole run 1 h 33 min.
+D=~/workspace/data_vepyr
+python3 performance-tests/engine-comparison/scripts/compare_vep_engines.py all \
+  --work-dir $SCRATCH/ecwork --chrom 22 \
+  --input-vcf $D/polars_integration/chr22/input/HG002_chr22.vcf.gz \
+  --fasta $D/polars_integration/chr22/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+  --vep-cache-ensembl $D/homo_sapiens_ensembl/116_GRCh38 \
+  --vep-cache-merged $D/homo_sapiens_merged/116_GRCh38 \
+  --vepyr-cache-ensembl $D/cache/116_GRCh38_ensembl \
+  --vepyr-cache-merged $D/cache/116_GRCh38_merged \
+  --reference-ensembl $D/output/116/HG002_annotated_wgs_everything_hgvs_vep.vcf.gz \
+  --reference-merged $D/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz
