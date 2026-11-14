@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - [Rust toolchain](https://rustup.rs/) (stable)
-- Python 3.10+ with [uv](https://docs.astral.sh/uv/)
+- Python 3.11+ with [uv](https://docs.astral.sh/uv/)
 
 ## Building from source
 

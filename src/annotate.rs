@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use arrow::pyarrow::ToPyArrow;
+use arrow::datatypes::Schema;
+use arrow::ffi::FFI_ArrowSchema;
+use arrow::ffi_stream::FFI_ArrowArrayStream;
+use arrow::record_batch::{RecordBatch, RecordBatchIterator, RecordBatchReader};
 use datafusion::execution::SendableRecordBatchStream;
 use datafusion::prelude::{SessionConfig, SessionContext};
 use datafusion_bio_format_vcf::VcfCompressionType;
@@ -11,6 +14,30 @@ use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
+
+// `schema_to_pyarrow` and `batch_to_pyarrow` make the same C Data Interface calls
+// as arrow-pyarrow's `ToPyArrow`, which ties pyo3 to 0.28 below arrow 59.1 (see the
+// note in Cargo.toml).
+fn schema_to_pyarrow<'py>(py: Python<'py>, schema: &Schema) -> PyResult<Bound<'py, PyAny>> {
+    let c_schema = FFI_ArrowSchema::try_from(schema)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+    py.import("pyarrow")?
+        .getattr("Schema")?
+        .call_method1("_import_from_c", (&raw const c_schema as usize,))
+}
+
+fn batch_to_pyarrow<'py>(py: Python<'py>, batch: RecordBatch) -> PyResult<Bound<'py, PyAny>> {
+    // Through a one-batch stream rather than RecordBatch._import_from_c, to work
+    // around apache/arrow#37669.
+    let schema = batch.schema();
+    let reader: Box<dyn RecordBatchReader + Send> =
+        Box::new(RecordBatchIterator::new(vec![Ok(batch)], schema));
+    let stream = FFI_ArrowArrayStream::new(reader);
+    py.import("pyarrow")?
+        .getattr("RecordBatchReader")?
+        .call_method1("_import_from_c", (&raw const stream as usize,))?
+        .call_method0("read_next_batch")
+}
 
 fn worker_thread_count(workers: usize) -> usize {
     workers.max(1)
@@ -98,8 +125,7 @@ impl StreamingAnnotator {
                     if batch.num_rows() == 0 {
                         continue;
                     }
-                    let py_batch = batch
-                        .to_pyarrow(py)
+                    let py_batch = batch_to_pyarrow(py, batch)
                         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
                     return Ok(Some(py_batch.into()));
                 }
@@ -732,8 +758,7 @@ pub fn create_streaming_annotator(
         Ok::<_, PyErr>((stream, schema))
     })?;
 
-    let py_schema = schema
-        .to_pyarrow(py)
+    let py_schema = schema_to_pyarrow(py, &schema)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("{e}")))?;
 
     Ok(StreamingAnnotator {

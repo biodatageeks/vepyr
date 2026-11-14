@@ -6,9 +6,8 @@ readme = "README.md"
 authors = [
     { name = "Marek Wiewiórka", email = "marek.wiewiorka@gmail.com" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -16,15 +15,14 @@ classifiers = [
 ]
 # Same ranges as polars-bio 0.36.1, so the base install and the polars-bio extra
 # resolve to one environment (and polars 2.x is not picked up untested).
-dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2", "tqdm>=4.67.0,<5", "huggingface_hub>=1.22,<3", "filelock>=3.29.5"]
+dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2", "tqdm>=4.67.0,<5", "huggingface_hub>=1.22,<3", "filelock>=4.2.1"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
 # Writing the annotated LazyFrame back as VCF with polars_bio.sink_vcf. 0.36.0 is
 # the first release that writes the input header back verbatim and honours the
-# record layout columns, which is what makes the body match output_vcf's. It
-# needs Python 3.11+, so on 3.10 the extra installs nothing and the sink tests skip.
-polars-bio = ["polars-bio>=0.36.1; python_version >= '3.11'"]
+# record layout columns, which is what makes the body match output_vcf's.
+polars-bio = ["polars-bio>=0.36.1"]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",

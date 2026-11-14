@@ -93,27 +93,27 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 
 ## Languages
 - Rust 2021 edition - native annotation engine and cache conversion code in `src/lib.rs`, `src/annotate.rs`, and `src/convert.rs`
-- Python 3.10+ - public package API and orchestration layer in `src/vepyr/__init__.py`
+- Python 3.11+ - public package API and orchestration layer in `src/vepyr/__init__.py`
 - Markdown - user-facing package docs in `README.md`
 - TOML - package/build configuration in `Cargo.toml`, `pyproject.toml`, and `uv.lock`
 ## Runtime
-- CPython 3.10+ - required by `pyproject.toml`, with `.python-version` pinned to `3.12` for local development
+- CPython 3.11+ - required by `pyproject.toml`, with `.python-version` pinned to `3.12` for local development
 - Native Python extension module via PyO3 abi3 - built as `_core` from Rust with `crate-type = ["cdylib"]` in `Cargo.toml`
 - Tokio multi-thread runtime - created inside `src/annotate.rs` to drive DataFusion streaming work
 - `uv` - implied by committed `uv.lock` and README install command
 - Rust/Cargo - used for native dependency resolution through `Cargo.toml`
 - Lockfiles: `uv.lock` and `Cargo.lock` are committed
 ## Frameworks
-- PyO3 0.28 - Python bindings and module export surface in `src/lib.rs`
+- PyO3 0.29 - Python bindings and module export surface in `src/lib.rs`
 - DataFusion 53.0 - SQL/query execution for cache conversion and VCF annotation in `src/annotate.rs` and `src/convert.rs`
-- Arrow 58 with `pyarrow` feature - Arrow/PyArrow interop for batch streaming
+- Arrow 58 with `ffi` feature - Arrow/PyArrow interop for batch streaming (C Data Interface, in `src/annotate.rs`)
 - released `datafusion-bio-*` crates pinned by tags - domain-specific VCF and Ensembl cache table providers plus VEP functions
 - Pytest 8+ - Python test runner declared in `pyproject.toml`
 - Polars and PyArrow - exercised in integration tests under `tests/test_annotate.py` and `tests/test_golden.py`
 - Maturin 1.x - build backend configured in `pyproject.toml`
 - `uv sync --reinstall-package vepyr` - documented local install/bootstrap flow in `README.md`
 ## Key Dependencies
-- `pyo3` 0.28 - exposes Rust functions/classes to Python
+- `pyo3` 0.29 - exposes Rust functions/classes to Python
 - `datafusion` 53.0 - powers SQL execution and streaming annotation
 - `arrow` 58 - schema and RecordBatch transport to Python
 - `datafusion-bio-function-vep` v0.15.0 - registers annotation functions
@@ -129,7 +129,7 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 - `pyproject.toml` defines Python package metadata and maturin settings
 - `.python-version` pins local interpreter expectations
 ## Platform Requirements
-- Python 3.12 is the local default, but package metadata allows 3.10+
+- Python 3.12 is the local default, but package metadata allows 3.11+
 - Rust toolchain is required to build the extension module
 - External genomics CLI tools are required only for fixture generation: `bcftools`, `samtools`, `bgzip`, `tabix` in `tests/data/golden/prepare.py`
 - Distributed as a Python package with an embedded native extension
