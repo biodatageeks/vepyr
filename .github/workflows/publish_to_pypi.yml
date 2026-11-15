@@ -147,33 +147,99 @@ jobs:
           name: wheels-sdist
           path: dist
 
+  # Wheels build with `--profile dist` (fat LTO, one codegen unit; see
+  # Cargo.toml). Its single-threaded final link peaked at 16.2 GB RSS on macOS
+  # arm64, more than GitHub's 16 GB Linux runners can be trusted to hold, so
+  # both Linux wheels build on the org's self-hosted hosts (10 vCPU, 25 GB RAM,
+  # 64 GB swap); aarch64 is cross-compiled there.
+  #
+  # Those hosts also run /parity-wgs. Its PR code only runs in a locked-down
+  # container (no Docker socket), but host state persists between jobs, and
+  # maturin-action reuses any local image carrying the requested tag without
+  # pulling. The build images are therefore pinned by digest, which only the
+  # registry's content can satisfy. Bump a digest by resolving the tag that
+  # maturin-action's `manylinux: auto` would pick (quay.io/pypa/manylinux2014_x86_64:latest,
+  # ghcr.io/rust-cross/manylinux2014-cross:aarch64). The build container is
+  # `--rm` and installs Rust itself, so no CARGO_HOME carries over.
   linux:
     needs: prepare
-    runs-on: ${{ matrix.target == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: [self-hosted, linux, x64, vepyr-wgs]
+    timeout-minutes: 120
     permissions:
       contents: read
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        include:
+          - target: x86_64
+            container: quay.io/pypa/manylinux2014_x86_64@sha256:e6a785657009c612fe2a85fa933051d03a50ba62b1c5e47d62abcab546a2e423
+          - target: aarch64
+            container: ghcr.io/rust-cross/manylinux2014-cross@sha256:32c92568ebee8db53e0598c21bcd06a6dd1649d45d507646a8a49313c50325f8
     steps:
+      - name: Clean leftovers from earlier jobs
+        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || sudo -n find "$GITHUB_WORKSPACE" -mindepth 1 -delete
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.ref }}
+          persist-credentials: false
+      - name: Note swap counters before the build
+        run: echo "PSWPOUT_BEFORE=$(awk '/^pswpout/ {print $2}' /proc/vmstat)" >> "$GITHUB_ENV"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          container: ${{ matrix.container }}
+          args: --profile dist --out dist --find-interpreter
           sccache: false
           manylinux: auto
+      - name: Report whether the build swapped
+        if: always()
+        run: |
+          # Pages swapped out during this job: non-zero means the link outgrew
+          # the host's RAM, which the next host sizing should account for.
+          after=$(awk '/^pswpout/ {print $2}' /proc/vmstat)
+          pages=$(( after - ${PSWPOUT_BEFORE:-$after} ))
+          echo "Swapped out during the build: ${pages} pages ($(( pages * 4 / 1024 )) MiB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          ls -la dist/ | tee -a "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
 
+  # The aarch64 wheel is cross-compiled on x86_64 and no test tier runs it, so
+  # load it on real arm64 before it can be published.
+  linux-aarch64-import:
+    needs: [prepare, linux]
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          persist-credentials: false
+          sparse-checkout: tests/test_import.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-aarch64
+          path: dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Import the wheel and run the import tests
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install --quiet dist/vepyr-*manylinux*aarch64*.whl pytest
+          cd /tmp && /tmp/venv/bin/python -m pytest -v "$GITHUB_WORKSPACE/tests/test_import.py"
+
   macos:
     needs: prepare
     runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-15' }}
+    # Both macOS images are arm64 runners with 7 GB RAM; the 16 GB fat-LTO link
+    # swaps there. polars-bio's 9 GB link took 2-3 hours on them, so allow the
+    # hosted maximum.
+    timeout-minutes: 360
     permissions:
       contents: read
     strategy:
@@ -187,7 +253,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --profile dist --out dist --find-interpreter
           sccache: false
       - uses: actions/upload-artifact@v4
         with:
@@ -211,7 +277,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           maturin-version: v1.13.3
-          args: --release --out dist --find-interpreter
+          args: --profile dist --out dist --find-interpreter
           sccache: false
       - uses: actions/upload-artifact@v4
         with:
@@ -245,7 +311,7 @@ jobs:
   publish:
     name: Publish to PyPI
     if: ${{ !inputs.dry_run }}
-    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
+    needs: [prepare, test-rust, test-python, sdist, linux, linux-aarch64-import, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
