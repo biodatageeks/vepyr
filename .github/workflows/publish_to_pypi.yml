@@ -224,7 +224,7 @@ jobs:
           after=$(awk '/^pswpout/ {print $2}' /proc/vmstat)
           pages=$(( after - ${PSWPOUT_BEFORE:-$after} ))
           echo "Swapped out during the build: ${pages} pages ($(( pages * 4 / 1024 )) MiB)" | tee -a "$GITHUB_STEP_SUMMARY"
-          ls -la dist/ | tee -a "$GITHUB_STEP_SUMMARY" || true
+          find dist -maxdepth 1 -type f -printf '%s bytes  %f\n' | tee -a "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-manylinux-${{ matrix.target }}
