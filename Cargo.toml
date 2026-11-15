@@ -49,7 +49,7 @@ strip = "symbols"
 # 47.4 -> 34.5 MB, annotation 3-5% faster in wall and CPU time on HG002 and
 # ClinVar, byte-identical output. The cost is the build: 3.5x longer and a
 # single-threaded final link that peaked at 16.2 GB RSS, which is why the Linux
-# wheels build on the self-hosted runners. Reproduce a published wheel with
+# x86_64 wheel builds on the self-hosted runners and aarch64 adds swap. Reproduce a published wheel with
 # `maturin build --profile dist`.
 [profile.dist]
 inherits = "release"

@@ -149,34 +149,59 @@ jobs:
 
   # Wheels build with `--profile dist` (fat LTO, one codegen unit; see
   # Cargo.toml). Its single-threaded final link peaked at 16.2 GB RSS on macOS
-  # arm64, more than GitHub's 16 GB Linux runners can be trusted to hold, so
-  # both Linux wheels build on the org's self-hosted hosts (10 vCPU, 25 GB RAM,
-  # 64 GB swap); aarch64 is cross-compiled there.
+  # arm64, more than GitHub's 16 GB Linux runners can be trusted to hold.
+  # - x86_64 builds on the org's self-hosted hosts (10 vCPU, 25 GB RAM, 64 GB
+  #   swap).
+  # - aarch64 builds natively on GitHub's arm64 runner, with a swapfile added
+  #   for the link. It cannot be cross-compiled on the self-hosted hosts:
+  #   rust-cross/manylinux2014-cross:aarch64 ships gcc 4.8, and libdeflate-sys
+  #   needs >= 4.9 and arm_acle.h. The manylinux_2_28 cross image would raise
+  #   the wheel's glibc floor from 2.17 to 2.28.
   #
-  # Those hosts also run /parity-wgs. Its PR code only runs in a locked-down
-  # container (no Docker socket), but host state persists between jobs, and
-  # maturin-action reuses any local image carrying the requested tag without
-  # pulling. The build images are therefore pinned by digest, which only the
-  # registry's content can satisfy. Bump a digest by resolving the tag that
-  # maturin-action's `manylinux: auto` would pick (quay.io/pypa/manylinux2014_x86_64:latest,
-  # ghcr.io/rust-cross/manylinux2014-cross:aarch64). The build container is
-  # `--rm` and installs Rust itself, so no CARGO_HOME carries over.
+  # The self-hosted hosts also run /parity-wgs. Its PR code only runs in a
+  # locked-down container (no Docker socket), but host state persists between
+  # jobs, and maturin-action reuses any local image carrying the requested tag
+  # without pulling. The build images are therefore pinned by digest, which
+  # only the registry's content can satisfy. Bump a digest by resolving the tag
+  # that maturin-action's `manylinux: auto` picks: quay.io/pypa/manylinux2014_<arch>:latest.
+  # The build container is `--rm` and installs Rust itself, so no CARGO_HOME
+  # carries over.
   linux:
     needs: prepare
-    runs-on: [self-hosted, linux, x64, vepyr-wgs]
-    timeout-minutes: 120
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.timeout }}
     permissions:
       contents: read
     strategy:
+      # One target's failure must not cancel the other's measurement.
+      fail-fast: false
       matrix:
         include:
           - target: x86_64
+            runner: [self-hosted, linux, x64, vepyr-wgs]
+            timeout: 120
             container: quay.io/pypa/manylinux2014_x86_64@sha256:e6a785657009c612fe2a85fa933051d03a50ba62b1c5e47d62abcab546a2e423
           - target: aarch64
-            container: ghcr.io/rust-cross/manylinux2014-cross@sha256:32c92568ebee8db53e0598c21bcd06a6dd1649d45d507646a8a49313c50325f8
+            runner: ubuntu-24.04-arm
+            timeout: 300
+            container: quay.io/pypa/manylinux2014_aarch64@sha256:c2995cae5e2d433fbe757d1466486727b3edd68ba644cd60df253365f35fda9e
     steps:
       - name: Clean leftovers from earlier jobs
         run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || sudo -n find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+      - name: Add swap for the fat-LTO link (GitHub-hosted only)
+        if: matrix.target == 'aarch64'
+        run: |
+          set -euo pipefail
+          free -g; df -h /
+          # Leave 15 GiB of the root disk for the build; swap gets the rest, up to 32 GiB.
+          avail=$(df -BG --output=avail / | tail -1 | tr -dc 0-9)
+          size=$(( avail - 15 )); [ "$size" -gt 32 ] && size=32
+          [ "$size" -ge 8 ] || { echo "::error::only ${avail} GiB free on /, cannot add swap"; exit 1; }
+          sudo fallocate -l "${size}G" /swapfile-lto
+          sudo chmod 600 /swapfile-lto
+          sudo mkswap /swapfile-lto
+          sudo swapon /swapfile-lto
+          free -g
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.ref }}
@@ -205,8 +230,8 @@ jobs:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
 
-  # The aarch64 wheel is cross-compiled on x86_64 and no test tier runs it, so
-  # load it on real arm64 before it can be published.
+  # No test tier runs the aarch64 wheel (they all take x86_64), so load the
+  # fat-LTO build on arm64 before it can be published.
   linux-aarch64-import:
     needs: [prepare, linux]
     runs-on: ubuntu-24.04-arm
