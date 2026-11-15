@@ -132,4 +132,4 @@ counts describe different verification scopes. Historical reports retain their
 own snapshot counts. The only post-build engine change is performance
 documentation; the companion lockfile changes only the engine source revision.
 
-[Screen observations, source hashes, and complete standard gate logs](../performance-tests/clinvar-followup-2026-11-06.json).
+[Screen observations, source hashes, and complete standard gate logs](clinvar-followup-2026-11-06.json).

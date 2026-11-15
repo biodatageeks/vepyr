@@ -53,6 +53,26 @@ cache directory name is not a fallback, and `expected_cache_version` can only
 assert the independently detected metadata—it cannot label an old
 metadata-less cache. Such caches must be rebuilt.
 
+### Caches built before vepyr 0.11.0
+
+vepyr 0.11.0 reads each transcript's gene bounds from two `transcript`
+columns, `gene_start` and `gene_end`. Caches built or downloaded with vepyr
+0.10.0 or earlier do not have them, and there is no fallback, so annotation
+stops with:
+
+```text
+annotate_vep(): transcript table 'transcript' is missing required column gene_start
+```
+
+`cache_contig_identity()` still accepts such a cache, because it checks the
+release metadata and not the columns. To upgrade, do one of:
+
+- Download the cache again with [`download_cache`](downloads.md#hugging-face).
+  vepyr 0.11.0 pins the refreshed revision. Use an empty directory: a download
+  into a directory that already holds another revision is refused.
+- Rebuild it from the raw Ensembl VEP cache with vepyr 0.11.0's
+  [`build_cache`](#building-a-cache).
+
 ## Layout & entities
 
 `build_cache` downloads the Ensembl cache tarball and converts each **entity**
@@ -203,7 +223,7 @@ cache, leaving 19.
     | `af_gnomadg_alleles` | `list<item: string>` |
     | `af_gnomadg_freqs` | `list<item: float>` |
 
-??? note "`transcript` — 57 columns (+ 20 provenance)"
+??? note "`transcript` — 60 columns (+ 20 provenance)"
 
     The transcript models, including sequences and the nested `exons` / `cdna_mapper_segments` / `refseq_edits` structures. No provenance block shown — see above.
 
@@ -220,6 +240,8 @@ cache, leaving 19.
     | `source` | `string` |
     | `is_canonical` | `bool` |
     | `gene_stable_id` | `string` |
+    | `gene_start` | `int64` |
+    | `gene_end` | `int64` |
     | `gene_symbol` | `string` |
     | `gene_symbol_source` | `string` |
     | `gene_hgnc_id` | `string` |
@@ -243,6 +265,7 @@ cache, leaving 19.
     | `cdna_seq` | `string` |
     | `peptide_seq` | `string` |
     | `codon_table` | `int32` |
+    | `translation_seq_edits` | `list<item: struct<code: string not null, start: int64 not null, end…` |
     | `tsl` | `int32` |
     | `appris` | `string` |
     | `mane_select` | `string` |

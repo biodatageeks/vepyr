@@ -402,7 +402,16 @@ uv run python run_comparison.py --release 115 --profile merged_pick_allele_gene
 # Plugin fields, against a VEP reference built with the same five plugins.
 # Plugin references are written one file per contig, so name the contig.
 uv run python run_comparison.py --release 116 --profile merged_plugins --chroms 22
+
+# Every GRCh38 record of ClinVar 2026-10-11, merged cache, body md5 per contig
+uv run python run_comparison.py --release 116 --profile clinvar_merged \
+  --chroms all --comparison-mode md5 --md5-mode strict-clin-sig --bgzf \
+  --workers 10 --no-normalize
 ```
+
+The `clinvar_merged` profile has its own input, preprocessing and cache
+identity requirements; see the
+[ClinVar profile README](https://github.com/biodatageeks/vepyr/blob/master/e2e-testing/golden/116/clinvar/README.md).
 
 !!! note "Plugin profiles need a contig"
     `generate_vep_plugin_references.sh` writes one reference per contig under

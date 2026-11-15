@@ -108,9 +108,8 @@ cache = os.path.expanduser("~/vepyr_cache/116_GRCh38_merged")
 print(vepyr.cache_contig_identity(cache, "chr22", expected_cache_version="116"))
 ```
 
-For a second mirror, per-contig partial downloads, and the four prebuilt plugin
-caches, see [Download Ensembl VEP and plugin
-caches](downloads.md).
+For per-contig partial downloads and the five prebuilt plugin caches, see
+[Download Ensembl VEP and plugin caches](downloads.md).
 
 ### Option B — build your own cache
 

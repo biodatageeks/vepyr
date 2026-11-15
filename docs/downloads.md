@@ -11,8 +11,8 @@ fields, and how the three cache types differ.
 
 !!! info "Currently available: release 116, GRCh38"
     All three cache types are published for **Ensembl release 116 / GRCh38**,
-    along with four [plugin caches](#plugin-caches). Release 115 caches are not
-    mirrored yet — build those locally for now. The **dbNSFP** plugin cache is
+    along with five [plugin caches](#plugin-caches). Release 115 caches are not
+    published yet — build those locally for now. The **dbNSFP** plugin cache is
     a different case: it is supported but cannot be published at all, see
     [dbNSFP](#dbnsfp-supported-but-not-published).
 
@@ -22,17 +22,13 @@ fields, and how the three cache types differ.
 | `116_GRCh38_ensembl` | Ensembl/GENCODE | 32 G |
 | `116_GRCh38_refseq` | RefSeq | 31 G |
 
-## Mirrors
+!!! warning "Upgrading from vepyr 0.10.0 or earlier"
+    vepyr 0.11.0 needs caches that carry the transcript columns `gene_start`
+    and `gene_end`. A cache downloaded or built with an earlier vepyr does not,
+    and annotating with it stops with an error. Download it again into an empty
+    directory — see [Caches built before vepyr 0.11.0](caches.md#caches-built-before-vepyr-0110).
 
-Two mirrors carry the same data. **Hugging Face is recommended** — it is the
-only one that lets you fetch part of a cache, and it needs no extraction step.
-
-| Mirror | Access | Resumable | Partial download |
-|---|---|---|---|
-| [Hugging Face](#hugging-face-recommended) | Anonymous | Yes | Yes — per contig |
-| [WUT OneDrive](#wut-onedrive) | Anonymous | Yes — HTTP range | No — whole `.tar` |
-
-## Hugging Face (recommended)
+## Hugging Face
 
 Each cache is a public dataset repository holding the Parquet shard tree
 directly, so no extraction step is needed and the download lands in the layout
@@ -122,59 +118,10 @@ hf download biodatageeks/vepyr_116_GRCh38_merged \
     with `no partitioned Parquet VEP cache found`, even for annotations that
     never touch co-located variant data.
 
-## WUT OneDrive
-
-Hosted by the Warsaw University of Technology. Each cache is a single
-uncompressed `.tar` with an accompanying `.md5`.
-
-| Cache | Archive | Checksum |
-|---|---|---|
-| merged | [`116_GRCh38_merged.tar`](https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQAsAbtWiUx-QLA5yiy8wClSAfT3KpLrbDcvpdOlD5ka2aU?e=EflRzo) | [`.md5`](https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDTHLVwjV-BR5qXZPMUVz4xATfQuqeQ94zqb0wj4XnPimQ?e=RSXvUS) |
-| ensembl | [`116_GRCh38_ensembl.tar`](https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDBwMnLehLPSIyDrWSKLIskAUJBmopl9c0y-RHLTTvLIr4?e=a4ChWs) | [`.md5`](https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDW2HeREYS4Qpbj4MLAi9UaAbaWQ0veOPyXTphwbMgl77o?e=Y5Mjmf) |
-| refseq | [`116_GRCh38_refseq.tar`](https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQDx9TWK4YtDQrGzbIWkJQZNASyK-VNiHaoes5Gk8wLKqto?e=g9M6qL) | [`.md5`](https://wutwaw-my.sharepoint.com/:u:/g/personal/tomasz_gambin_pw_edu_pl/IQCqfmTkXfTRQ5ce6SFgI6v7AdldBfrWJ2tuIgGy9iT0x_U?e=4OMu4g) |
-
-### Downloading from a terminal
-
-Appending `&download=1` turns a share link into a direct download. SharePoint
-sets a session cookie on the first redirect, so curl needs a cookie jar —
-without one it returns `403`:
-
-```bash
-URL='<share link from the table above>&download=1'
-
-curl -L -c cookies.txt -b cookies.txt -C - -o 116_GRCh38_merged.tar "$URL"
-```
-
-`-C -` resumes an interrupted transfer; the server supports HTTP range
-requests, so a partial file continues rather than restarting.
-
-## Verifying and extracting a `.tar` download
-
-Applies to the OneDrive mirror only — the Hugging Face client verifies
-downloads itself.
-
-```bash
-cd ~/Downloads
-
-# 1. Verify the archive against its checksum
-md5sum -c 116_GRCh38_merged.tar.md5
-
-# 2. Extract into your cache root
-mkdir -p ~/vepyr_cache
-tar -xf 116_GRCh38_merged.tar -C ~/vepyr_cache
-```
-
-On macOS use `md5 -r 116_GRCh38_merged.tar` and compare the digest by eye —
-there is no `md5sum -c` in the base system.
-
-!!! note "Disk space"
-    Extraction needs room for the archive **and** the extracted tree at the
-    same time — budget ~72 G for the merged cache, then delete the `.tar`.
-
 ## Confirming the cache before you annotate
 
-Whatever mirror you used, check that the cache reports the release and assembly
-you expect. This opens only the shards for the named contig, so it is fast:
+Before annotating, check that the cache reports the release and assembly you
+expect. This opens only the shards for the named contig, so it is fast:
 
 ```python
 import os

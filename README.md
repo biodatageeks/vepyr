@@ -136,13 +136,14 @@ dedicated status-posting GitHub App, required by branch protection, closes it.
 ### Whole-genome parity (`/parity-wgs`)
 
 An admin comment that is exactly `/parity-wgs` (or
-`gh workflow run parity-wgs.yml -f pr=<n>`) runs the HG002 GRCh38
-whole-genome md5 parity gate against the Ensembl VEP 116.0 golden VCFs for
-the `ensembl`, `merged` and `refseq` profiles on the self-hosted runner.
-It reports `parity/wgs` (and `parity/wgs/<profile>`) on the PR head. Runs
-run one at a time on the self-hosted runner, take about 1.5 hours (wheel build,
-then 20–30 minutes per profile), and are not
-a required check unless added to branch protection. On a fork PR, pin the head
+`gh workflow run parity-wgs.yml -f pr=<n>`) runs the whole-genome md5 parity
+gate against the Ensembl VEP 116.0 golden VCFs on the self-hosted runners:
+HG002 GRCh38 for the `ensembl`, `merged` and `refseq` profiles, and the ClinVar
+2026-10-11 release for `clinvar_merged`. It reports `parity/wgs` (and
+`parity/wgs/<profile>`) on the PR head. The four profiles run at once on four
+hosts. An HG002 profile takes 20–30 minutes after the wheel build, and
+`clinvar_merged` takes longer (240-minute timeout). The check is not required
+unless added to branch protection. On a fork PR, pin the head
 commit you reviewed: `/parity-wgs <sha>` (7+ hex characters, or
 `-f sha=<sha>`); the run is refused if the head has moved. PR code runs only inside
 a fresh, locked-down container with the staged data mounted read-only. Runner

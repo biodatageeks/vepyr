@@ -53,6 +53,6 @@ Initial gate `dense-1` failed and is retained:
 
 Published engine revision: `562af65835f443305784b6567004872966922df0` ([PR #326](https://github.com/biodatageeks/datafusion-bio-functions/pull/326)).
 
-[All observations and standard-gate phase totals](../performance-tests/clinvar-serial-2026-11-06.json).
+[All observations and standard-gate phase totals](clinvar-serial-2026-11-06.json).
 
 Locked Cargo metadata resolves the published engine revision exactly. All 76 tracked engine Rust/manifest files match the published tree; measured functional files are unchanged, with only the recorded comment/documentation edits after the build. The lockfile changes only the engine source revision.
