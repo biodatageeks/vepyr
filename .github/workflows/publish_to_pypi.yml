@@ -219,11 +219,13 @@ jobs:
       - name: Report whether the build swapped
         if: always()
         run: |
-          # Pages swapped out during this job: non-zero means the link outgrew
-          # the host's RAM, which the next host sizing should account for.
+          # Pages swapped out host-wide while the build ran: non-zero means the
+          # link outgrew the host's RAM, which the next host sizing should
+          # account for. A runner takes one job at a time, so other processes
+          # on the host contribute little, but the counter is not per-job.
           after=$(awk '/^pswpout/ {print $2}' /proc/vmstat)
           pages=$(( after - ${PSWPOUT_BEFORE:-$after} ))
-          echo "Swapped out during the build: ${pages} pages ($(( pages * 4 / 1024 )) MiB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Swapped out host-wide during the build: ${pages} pages ($(( pages * 4 / 1024 )) MiB)" | tee -a "$GITHUB_STEP_SUMMARY"
           find dist -maxdepth 1 -type f -printf '%s bytes  %f\n' | tee -a "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         with:
@@ -254,8 +256,11 @@ jobs:
       - name: Import the wheel and run the import tests
         run: |
           set -euo pipefail
+          shopt -s nullglob
+          wheels=(dist/vepyr-*manylinux*aarch64*.whl)
+          [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one aarch64 wheel, got ${#wheels[@]}"; exit 1; }
           python -m venv /tmp/venv
-          /tmp/venv/bin/pip install --quiet dist/vepyr-*manylinux*aarch64*.whl pytest
+          /tmp/venv/bin/pip install --quiet "${wheels[0]}" pytest
           cd /tmp && /tmp/venv/bin/python -m pytest -v "$GITHUB_WORKSPACE/tests/test_import.py"
 
   macos:
