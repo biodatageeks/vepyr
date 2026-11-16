@@ -168,6 +168,14 @@ jobs:
   # `auto` adds no `--manylinux` flag, so it is left unset; maturin derives the
   # wheel tag from the image's glibc. The build container is `--rm` and
   # installs Rust itself, so no CARGO_HOME carries over.
+  #
+  # That container runs as root and leaves `target/` and `dist/` root-owned in
+  # the workspace. maturin-action hands them back with `sudo chown`, which fails
+  # (ignored) on the self-hosted hosts: their sudo needs a password. So on
+  # self-hosted runners, the workspace is deleted as root in the pinned build
+  # image at the end of the job, and at the start if anything earlier (another
+  # job, a cancelled run) left entries the runner user cannot delete. `find`
+  # never follows symlinks, so nothing outside the workspace mount is touched.
   linux:
     needs: prepare
     runs-on: ${{ matrix.runner }}
@@ -189,7 +197,16 @@ jobs:
             container: quay.io/pypa/manylinux2014_aarch64@sha256:c2995cae5e2d433fbe757d1466486727b3edd68ba644cd60df253365f35fda9e
     steps:
       - name: Clean leftovers from earlier jobs
-        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || sudo -n find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+        env:
+          IMAGE: ${{ matrix.container }}
+        run: |
+          set -euo pipefail
+          err="$RUNNER_TEMP/clean.err"
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>"$err"; then
+            echo "::warning::$(wc -l < "$err") workspace entries are not deletable by $(id -un); deleting them as root in the build image"
+            head -n 20 "$err"
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$IMAGE" /w -mindepth 1 -delete
+          fi
       - name: Add swap for the fat-LTO link (GitHub-hosted only)
         if: matrix.target == 'aarch64'
         run: |
@@ -232,6 +249,11 @@ jobs:
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
+      - name: Delete the root-owned build tree (self-hosted only)
+        if: always() && runner.environment == 'self-hosted'
+        env:
+          IMAGE: ${{ matrix.container }}
+        run: docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$IMAGE" /w -mindepth 1 -delete
 
   # No test tier runs the aarch64 wheel (they all take x86_64), so check the
   # fat-LTO build on arm64 before it can be published: the import tests, plus
