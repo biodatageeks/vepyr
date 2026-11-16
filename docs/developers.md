@@ -72,14 +72,18 @@ uv run maturin build --release
 
 Wheels are produced for Linux (x86_64, aarch64), macOS (x86_64, aarch64), and Windows (x64).
 
-Release and `dist` builds strip the symbol table (`strip = "symbols"` in
-`Cargo.toml`). A native panic backtrace from a published wheel therefore shows
-addresses instead of function names. To get a backtrace with function names,
-reproduce the failure on an unstripped build. The `uv run maturin develop`
-debug build is unstripped. For release speed, override the profile:
+The `release` profile strips the symbol table (`strip = "symbols"` in
+`Cargo.toml`), and `dist` inherits that. A native panic backtrace from a
+published wheel therefore shows addresses instead of function names. To get
+a backtrace with function names, reproduce the failure on an unstripped
+build. The `uv run maturin develop` debug build is unstripped. For release
+speed, or for a crash that only the fat-LTO build shows, override the strip
+setting of that profile:
 
 ```bash
 CARGO_PROFILE_RELEASE_STRIP=none uv run maturin develop --release
+# or, matching the published wheel:
+CARGO_PROFILE_DIST_STRIP=none uv run maturin develop --profile dist
 RUST_BACKTRACE=1 python your_script.py
 ```
 

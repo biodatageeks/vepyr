@@ -214,7 +214,8 @@ jobs:
           free -g; df -h /
           # Leave 15 GiB of the root disk for the build; swap gets the rest, up to 32 GiB.
           avail=$(df -BG --output=avail / | tail -1 | tr -dc 0-9)
-          size=$(( avail - 15 )); [ "$size" -gt 32 ] && size=32
+          size=$(( avail - 15 ))
+          if [ "$size" -gt 32 ]; then size=32; fi
           [ "$size" -ge 8 ] || { echo "::error::only ${avail} GiB free on /, cannot add swap"; exit 1; }
           sudo fallocate -l "${size}G" /swapfile-lto
           sudo chmod 600 /swapfile-lto
