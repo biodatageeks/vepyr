@@ -147,33 +147,162 @@ jobs:
           name: wheels-sdist
           path: dist
 
+  # Wheels build with `--profile dist` (fat LTO, one codegen unit; see
+  # Cargo.toml). Its single-threaded final link peaked at 16.2 GB RSS on macOS
+  # arm64, more than GitHub's 16 GB Linux runners can be trusted to hold.
+  # - x86_64 builds on the org's self-hosted hosts (10 vCPU, 25 GB RAM, 64 GB
+  #   swap).
+  # - aarch64 builds natively on GitHub's arm64 runner, with a swapfile added
+  #   for the link. It cannot be cross-compiled on the self-hosted hosts:
+  #   rust-cross/manylinux2014-cross:aarch64 ships gcc 4.8, and libdeflate-sys
+  #   needs >= 4.9 and arm_acle.h. The manylinux_2_28 cross image would raise
+  #   the wheel's glibc floor from 2.17 to 2.28.
+  #
+  # The self-hosted hosts also run /parity-wgs. Its PR code only runs in a
+  # locked-down container (no Docker socket), but host state persists between
+  # jobs, and maturin-action reuses any local image carrying the requested tag
+  # without pulling. The build images are therefore pinned by digest, which
+  # only the registry's content can satisfy. Bump a digest by resolving the tag
+  # maturin-action would otherwise pick, quay.io/pypa/manylinux2014_<arch>:latest.
+  # With `container:` set, maturin-action's `manylinux` input picks nothing, and
+  # `auto` adds no `--manylinux` flag, so it is left unset; maturin derives the
+  # wheel tag from the image's glibc. The build container is `--rm` and
+  # installs Rust itself, so no CARGO_HOME carries over.
+  #
+  # That container runs as root and leaves `target/` and `dist/` root-owned in
+  # the workspace. maturin-action hands them back with `sudo chown`, which fails
+  # (ignored) on the self-hosted hosts: their sudo needs a password. So on
+  # self-hosted runners, the workspace is deleted as root in the pinned build
+  # image at the end of the job, and at the start if anything earlier (another
+  # job, a cancelled run) left entries the runner user cannot delete. `find`
+  # never follows symlinks, so nothing outside the workspace mount is touched.
   linux:
     needs: prepare
-    runs-on: ${{ matrix.target == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.timeout }}
     permissions:
       contents: read
     strategy:
+      # One target's failure must not cancel the other's measurement.
+      fail-fast: false
       matrix:
-        target: [x86_64, aarch64]
+        include:
+          - target: x86_64
+            runner: [self-hosted, linux, x64, vepyr-wgs]
+            timeout: 120
+            container: quay.io/pypa/manylinux2014_x86_64@sha256:e6a785657009c612fe2a85fa933051d03a50ba62b1c5e47d62abcab546a2e423
+          - target: aarch64
+            runner: ubuntu-24.04-arm
+            timeout: 300
+            container: quay.io/pypa/manylinux2014_aarch64@sha256:c2995cae5e2d433fbe757d1466486727b3edd68ba644cd60df253365f35fda9e
     steps:
+      - name: Clean leftovers from earlier jobs
+        env:
+          IMAGE: ${{ matrix.container }}
+        run: |
+          set -euo pipefail
+          err="$RUNNER_TEMP/clean.err"
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>"$err"; then
+            echo "::warning::$(wc -l < "$err") workspace entries are not deletable by $(id -un); deleting them as root in the build image"
+            head -n 20 "$err"
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$IMAGE" /w -mindepth 1 -delete
+          fi
+      - name: Add swap for the fat-LTO link (GitHub-hosted only)
+        if: matrix.target == 'aarch64'
+        run: |
+          set -euo pipefail
+          free -g; df -h /
+          # Leave 15 GiB of the root disk for the build; swap gets the rest, up to 32 GiB.
+          avail=$(df -BG --output=avail / | tail -1 | tr -dc 0-9)
+          size=$(( avail - 15 ))
+          if [ "$size" -gt 32 ]; then size=32; fi
+          [ "$size" -ge 8 ] || { echo "::error::only ${avail} GiB free on /, cannot add swap"; exit 1; }
+          sudo fallocate -l "${size}G" /swapfile-lto
+          sudo chmod 600 /swapfile-lto
+          sudo mkswap /swapfile-lto
+          sudo swapon /swapfile-lto
+          free -g
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.ref }}
+          persist-credentials: false
+      - name: Note swap counters before the build
+        run: echo "PSWPOUT_BEFORE=$(awk '/^pswpout/ {print $2}' /proc/vmstat)" >> "$GITHUB_ENV"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          container: ${{ matrix.container }}
+          args: --profile dist --out dist --find-interpreter
           sccache: false
-          manylinux: auto
+      - name: Report whether the build swapped
+        if: always()
+        run: |
+          # Pages swapped out host-wide while the build ran: non-zero means the
+          # link outgrew the host's RAM, which the next host sizing should
+          # account for. A runner takes one job at a time, so other processes
+          # on the host contribute little, but the counter is not per-job.
+          after=$(awk '/^pswpout/ {print $2}' /proc/vmstat)
+          pages=$(( after - ${PSWPOUT_BEFORE:-$after} ))
+          echo "Swapped out host-wide during the build: ${pages} pages ($(( pages * 4 / 1024 )) MiB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          find dist -maxdepth 1 -type f -printf '%s bytes  %f\n' | tee -a "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
+      - name: Delete the root-owned build tree (self-hosted only)
+        if: always() && runner.environment == 'self-hosted'
+        env:
+          IMAGE: ${{ matrix.container }}
+        run: docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$IMAGE" /w -mindepth 1 -delete
+
+  # No test tier runs the aarch64 wheel (they all take x86_64), so check the
+  # fat-LTO build on arm64 before it can be published: the import tests, plus
+  # the default golden suite, which annotates tests/data/golden against its
+  # Ensembl VEP output (~10 s). That catches an LTO miscompile, not just a
+  # broken link.
+  linux-aarch64-smoke:
+    needs: [prepare, linux]
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          persist-credentials: false
+          # The golden cache shards are LFS objects.
+          lfs: true
+          sparse-checkout: tests
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-aarch64
+          path: dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the wheel and run the import and golden tests
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          wheels=(dist/vepyr-*manylinux*aarch64*.whl)
+          [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one aarch64 wheel, got ${#wheels[@]}"; exit 1; }
+          python -m venv /tmp/venv
+          # datafusion: tests/cache_metadata.py writes the golden cache copy
+          # with it. Both pins must match uv.lock (tests/test_publish_workflow.py).
+          /tmp/venv/bin/pip install --quiet "${wheels[0]}" "pytest==9.0.2" "datafusion==53.0.0"
+          # The src layout keeps the checkout's vepyr off sys.path; fail loudly
+          # if anything but the installed wheel is imported.
+          /tmp/venv/bin/python -c 'import vepyr, sys; p = vepyr.__file__; print(p); sys.exit("/tmp/venv/" not in p)'
+          /tmp/venv/bin/python -m pytest -v -p no:cacheprovider tests/test_import.py tests/test_golden.py
 
   macos:
     needs: prepare
     runs-on: ${{ matrix.target == 'aarch64' && 'macos-latest' || 'macos-15' }}
+    # Both macOS images are arm64 runners with 7 GB RAM; the 16 GB fat-LTO link
+    # swaps there. polars-bio's 9 GB link took 2-3 hours on them, so allow the
+    # hosted maximum.
+    timeout-minutes: 360
     permissions:
       contents: read
     strategy:
@@ -187,7 +316,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --profile dist --out dist --find-interpreter
           sccache: false
       - uses: actions/upload-artifact@v4
         with:
@@ -211,7 +340,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           maturin-version: v1.13.3
-          args: --release --out dist --find-interpreter
+          args: --profile dist --out dist --find-interpreter
           sccache: false
       - uses: actions/upload-artifact@v4
         with:
@@ -245,7 +374,7 @@ jobs:
   publish:
     name: Publish to PyPI
     if: ${{ !inputs.dry_run }}
-    needs: [prepare, test-rust, test-python, sdist, linux, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
+    needs: [prepare, test-rust, test-python, sdist, linux, linux-aarch64-smoke, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

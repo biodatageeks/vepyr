@@ -27,6 +27,9 @@ uv run maturin develop
 # Build release wheel
 uv run maturin build --release
 
+# Build a wheel like the published one (fat LTO; ~12 min, ~16 GB peak RSS)
+uv run maturin build --profile dist
+
 # Run Python tests
 uv run pytest
 

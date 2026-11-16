@@ -36,3 +36,22 @@ serde_json = "1"
 datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.24.1", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
+
+# The symbol table is not needed at runtime (dynamic exports such as PyInit__core
+# stay), and dropping it cuts each wheel by ~13% (macOS arm64: 54.3 -> 47.4 MB).
+# Native panic backtraces show addresses instead of function names.
+[profile.release]
+strip = "symbols"
+
+# Published wheels only: publish_to_pypi.yml builds with `--profile dist`.
+# `maturin develop`, the CI/parity wheel builds and conda keep `release`.
+# Measured on macOS arm64 (biodatageeks/polars-bio#511 for the method): wheel
+# 47.4 -> 34.5 MB, annotation 3-5% faster in wall and CPU time on HG002 and
+# ClinVar, byte-identical output. The cost is the build: 3.5x longer and a
+# single-threaded final link that peaked at 16.2 GB RSS, which is why the Linux
+# x86_64 wheel builds on the self-hosted runners and aarch64 adds swap.
+# Reproduce a published wheel with `maturin build --profile dist`.
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
