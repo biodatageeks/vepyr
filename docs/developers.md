@@ -62,10 +62,26 @@ uv run mkdocs build
 ## Release wheels
 
 ```bash
+# Same build as the wheels published to PyPI: fat LTO, one codegen unit.
+# Takes ~12 min and peaks at ~16 GB RSS in the final link.
+uv run maturin build --profile dist
+
+# Faster release build, used by CI and the parity tiers
 uv run maturin build --release
 ```
 
 Wheels are produced for Linux (x86_64, aarch64), macOS (x86_64, aarch64), and Windows (x64).
+
+Release and `dist` builds strip the symbol table (`strip = "symbols"` in
+`Cargo.toml`). A native panic backtrace from a published wheel therefore shows
+addresses instead of function names. To get a backtrace with function names,
+reproduce the failure on an unstripped build. The `uv run maturin develop`
+debug build is unstripped. For release speed, override the profile:
+
+```bash
+CARGO_PROFILE_RELEASE_STRIP=none uv run maturin develop --release
+RUST_BACKTRACE=1 python your_script.py
+```
 
 ## Smoke test
 

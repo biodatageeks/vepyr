@@ -163,9 +163,11 @@ jobs:
   # jobs, and maturin-action reuses any local image carrying the requested tag
   # without pulling. The build images are therefore pinned by digest, which
   # only the registry's content can satisfy. Bump a digest by resolving the tag
-  # that maturin-action's `manylinux: auto` picks: quay.io/pypa/manylinux2014_<arch>:latest.
-  # The build container is `--rm` and installs Rust itself, so no CARGO_HOME
-  # carries over.
+  # maturin-action would otherwise pick, quay.io/pypa/manylinux2014_<arch>:latest.
+  # With `container:` set, maturin-action's `manylinux` input picks nothing, and
+  # `auto` adds no `--manylinux` flag, so it is left unset; maturin derives the
+  # wheel tag from the image's glibc. The build container is `--rm` and
+  # installs Rust itself, so no CARGO_HOME carries over.
   linux:
     needs: prepare
     runs-on: ${{ matrix.runner }}
@@ -215,7 +217,6 @@ jobs:
           container: ${{ matrix.container }}
           args: --profile dist --out dist --find-interpreter
           sccache: false
-          manylinux: auto
       - name: Report whether the build swapped
         if: always()
         run: |
@@ -232,9 +233,12 @@ jobs:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
 
-  # No test tier runs the aarch64 wheel (they all take x86_64), so load the
-  # fat-LTO build on arm64 before it can be published.
-  linux-aarch64-import:
+  # No test tier runs the aarch64 wheel (they all take x86_64), so check the
+  # fat-LTO build on arm64 before it can be published: the import tests, plus
+  # the default golden suite, which annotates tests/data/golden against its
+  # Ensembl VEP output (~10 s). That catches an LTO miscompile, not just a
+  # broken link.
+  linux-aarch64-smoke:
     needs: [prepare, linux]
     runs-on: ubuntu-24.04-arm
     permissions:
@@ -244,8 +248,9 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.ref }}
           persist-credentials: false
-          sparse-checkout: tests/test_import.py
-          sparse-checkout-cone-mode: false
+          # The golden cache shards are LFS objects.
+          lfs: true
+          sparse-checkout: tests
       - uses: actions/download-artifact@v4
         with:
           name: wheels-manylinux-aarch64
@@ -253,15 +258,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Import the wheel and run the import tests
+      - name: Install the wheel and run the import and golden tests
         run: |
           set -euo pipefail
           shopt -s nullglob
           wheels=(dist/vepyr-*manylinux*aarch64*.whl)
           [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one aarch64 wheel, got ${#wheels[@]}"; exit 1; }
           python -m venv /tmp/venv
-          /tmp/venv/bin/pip install --quiet "${wheels[0]}" pytest
-          cd /tmp && /tmp/venv/bin/python -m pytest -v "$GITHUB_WORKSPACE/tests/test_import.py"
+          # datafusion: tests/cache_metadata.py writes the golden cache copy
+          # with it. Pinned to the uv.lock version.
+          /tmp/venv/bin/pip install --quiet "${wheels[0]}" pytest "datafusion==53.0.0"
+          # The src layout keeps the checkout's vepyr off sys.path; fail loudly
+          # if anything but the installed wheel is imported.
+          /tmp/venv/bin/python -c 'import vepyr, sys; p = vepyr.__file__; print(p); sys.exit("/tmp/venv/" not in p)'
+          /tmp/venv/bin/python -m pytest -v -p no:cacheprovider tests/test_import.py tests/test_golden.py
 
   macos:
     needs: prepare
@@ -341,7 +351,7 @@ jobs:
   publish:
     name: Publish to PyPI
     if: ${{ !inputs.dry_run }}
-    needs: [prepare, test-rust, test-python, sdist, linux, linux-aarch64-import, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
+    needs: [prepare, test-rust, test-python, sdist, linux, linux-aarch64-smoke, macos, windows, tier-vep-parity, tier-integration, tier-nfcore]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
