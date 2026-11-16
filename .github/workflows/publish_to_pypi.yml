@@ -289,8 +289,8 @@ jobs:
           [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one aarch64 wheel, got ${#wheels[@]}"; exit 1; }
           python -m venv /tmp/venv
           # datafusion: tests/cache_metadata.py writes the golden cache copy
-          # with it. Pinned to the uv.lock version.
-          /tmp/venv/bin/pip install --quiet "${wheels[0]}" pytest "datafusion==53.0.0"
+          # with it. Both pins must match uv.lock (tests/test_publish_workflow.py).
+          /tmp/venv/bin/pip install --quiet "${wheels[0]}" "pytest==9.0.2" "datafusion==53.0.0"
           # The src layout keeps the checkout's vepyr off sys.path; fail loudly
           # if anything but the installed wheel is imported.
           /tmp/venv/bin/python -c 'import vepyr, sys; p = vepyr.__file__; print(p); sys.exit("/tmp/venv/" not in p)'

@@ -47,15 +47,28 @@ def _holds(clause: str, minor: tuple[int, int]) -> bool:
     return {">=": minor >= bound, "<": minor < bound, "==": minor == bound}[op]
 
 
-def test_smoke_datafusion_pin_matches_uv_lock():
+def test_smoke_pins_match_uv_lock():
     smoke = job_block("linux-aarch64-smoke")
     python = re.search(r'python-version: "([\d.]+)"', smoke).group(1)
-    pinned = re.findall(r'"datafusion==([^"]+)"', smoke)
-    assert len(pinned) == 1, pinned
-    assert locked_versions("datafusion", python) == pinned, (
-        f"linux-aarch64-smoke pins datafusion=={pinned[0]} for Python {python}; "
-        "bump it to the version uv.lock resolves"
-    )
+    pins = dict(re.findall(r'"([a-z0-9_-]+)==([^"]+)"', smoke))
+    assert set(pins) == {"pytest", "datafusion"}, pins
+    for package, version in pins.items():
+        assert locked_versions(package, python) == [version], (
+            f"linux-aarch64-smoke pins {package}=={version} for Python {python}; "
+            "bump it to the version uv.lock resolves"
+        )
+
+
+def test_linux_build_images_are_pinned_by_digest():
+    # maturin-action reuses any local image carrying the requested tag without
+    # pulling, and the self-hosted hosts are shared, so a tag is not enough.
+    images = re.findall(r"^\s+container: (\S+)$", job_block("linux"), re.M)
+    images = [i for i in images if not i.startswith("${{")]
+    assert len(images) == 2, images
+    for image in images:
+        assert re.fullmatch(r"quay\.io/pypa/manylinux\S+@sha256:[0-9a-f]{64}", image), (
+            image
+        )
 
 
 def test_publish_waits_for_the_aarch64_smoke_job():
