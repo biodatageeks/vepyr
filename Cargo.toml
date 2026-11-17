@@ -33,7 +33,7 @@ serde_json = "1"
 # The two bio-formats crates must use the same source (tag or rev) as the
 # bio-formats pins of bio-function-vep, or cargo resolves two copies and the
 # build fails with mismatched types (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.27.0", features = ["cache-builder"] }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", rev = "7b0f9e35d288fa29d7bc767ea2700428a5ee2ffc", features = ["cache-builder"] }
 datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.17.0" }
 datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.17.0" }
 
