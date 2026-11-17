@@ -618,7 +618,7 @@ Filter the frame in Polars and write it back as VCF with
 [polars-bio](https://biodatageeks.org/polars-bio/)'s `sink_vcf`:
 
 ```bash
-pip install "vepyr[polars-bio]"    # polars-bio >= 0.36.1, Python 3.11+
+pip install "vepyr[polars-bio]"    # polars-bio >= 0.38.0, Python 3.11+
 ```
 
 ```python
@@ -649,11 +649,13 @@ provenance and the `CSQ` declaration; its command-line line records the
 annotation but has no `output` or `compression`, and it does not record what you
 did to the frame afterwards.
 
-One exception until a polars-bio release carries the VCF writer of
-datafusion-bio-formats that re-encodes percent escapes
-([#207](https://github.com/biodatageeks/vepyr/issues/207)): an input value
-written with an escape such as ClinVar's `%3B` is written decoded by `sink_vcf`,
-which breaks that record, while `output_vcf` writes it back as it came in.
+Percent escapes in input values
+([#207](https://github.com/biodatageeks/vepyr/issues/207)) come back as they
+went in for the characters VCF reserves, such as ClinVar's `%3B` and `%3D`. An
+escape of a character VCF does not reserve, such as `%2B` for `+`, is written
+decoded by `sink_vcf`: the value is the same, but that line is not
+byte-identical to `output_vcf`'s, which writes the input text back unchanged. In
+ClinVar 20261011 one of the 1,966 records carrying an escape differs this way.
 
 That relies on three things:
 

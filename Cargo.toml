@@ -21,9 +21,9 @@ crate-type = ["cdylib"]
 mimalloc = { version = "0.1", default-features = false, features = ["v2"], optional = true }
 tikv-jemallocator = { version = "0.7.0", optional = true }
 dhat = { version = "0.3", optional = true }
-pyo3 = { version = "0.28", features = ["abi3-py310"] }
-arrow = { version = "58", features = ["pyarrow"] }
-datafusion = "=53.0.0"
+pyo3 = { version = "0.29.3", features = ["abi3-py310"] }
+arrow = { version = "59.3.2", features = ["pyarrow"] }
+datafusion = "=55.2.0"
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
 futures = "0.3"
 log = "0.4"
@@ -33,9 +33,9 @@ serde_json = "1"
 # The two bio-formats crates must use the same source (tag or rev) as the
 # bio-formats pins of bio-function-vep, or cargo resolves two copies and the
 # build fails with mismatched types (E0308).
-datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.24.1", features = ["cache-builder"] }
-datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
-datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", rev = "e0379fb28a0d4d74f8da4c9cbd357182361349f9" }
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.27.0", features = ["cache-builder"] }
+datafusion-bio-format-ensembl-cache = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.17.0" }
+datafusion-bio-format-vcf = { git = "https://github.com/biodatageeks/datafusion-bio-formats.git", tag = "v1.17.0" }
 
 # The symbol table is not needed at runtime (dynamic exports such as PyInit__core
 # stay), and dropping it cuts each wheel by ~13% (macOS arm64: 54.3 -> 47.4 MB).

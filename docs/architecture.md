@@ -145,9 +145,9 @@ the engine reads — never change the result.
 |---|---|
 | Language (engine) | Rust 2021 edition |
 | Language (API) | Python 3.10+ |
-| Python bindings | PyO3 0.28, abi3 stable ABI |
-| Query engine | Apache DataFusion 53.0 |
-| Data format | Apache Arrow 58 |
+| Python bindings | PyO3 0.29, abi3 stable ABI |
+| Query engine | Apache DataFusion 55.2 |
+| Data format | Apache Arrow 59 |
 | Async runtime | Tokio |
 | Interval trees | COITree |
 | Cache format | Partitioned, page-indexed Parquet |
