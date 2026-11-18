@@ -22,12 +22,6 @@ fields, and how the three cache types differ.
 | `116_GRCh38_ensembl` | Ensembl/GENCODE | 32 G |
 | `116_GRCh38_refseq` | RefSeq | 31 G |
 
-!!! warning "Upgrading from vepyr 0.10.0 or earlier"
-    vepyr 0.11.0 needs caches that carry the transcript columns `gene_start`
-    and `gene_end`. A cache downloaded or built with an earlier vepyr does not,
-    and annotating with it stops with an error. Download it again into an empty
-    directory — see [Caches built before vepyr 0.11.0](caches.md#caches-built-before-vepyr-0110).
-
 ## Hugging Face
 
 Each cache is a public dataset repository holding the Parquet shard tree

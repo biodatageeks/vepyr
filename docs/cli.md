@@ -14,7 +14,7 @@ needed. `python -m vepyr` runs the same entry point when
 the scripts directory is not on `PATH`.
 
 ```bash
-vepyr --version          # vepyr 0.6.0
+vepyr --version          # prints the installed version
 vepyr annotate --help
 ```
 

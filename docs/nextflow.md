@@ -235,10 +235,9 @@ FASTA index fails the task. Only the input VCF's index is built when absent.
 The module sets `-i`, `-o`, `--dir_cache`, `--fasta`, `--cache_version`,
 `--plugin_cache_root`, `--fork` and `--no_progress` itself.
 
-**Annotation always runs `--everything`.** The module pins
-`bioconda::vepyr=0.9.0`, which always annotates as Ensembl VEP `--everything`
-and accepts `--everything` and `--hgvsc` only as no-ops, so `ext.args` need not
-carry them. The reference FASTA is therefore required: the module stops before
+**Annotation always runs `--everything`.** The module's bioconda vepyr
+always annotates as Ensembl VEP `--everything` and accepts `--everything` and
+`--hgvsc` only as no-ops, so `ext.args` need not carry them. The reference FASTA is therefore required: the module stops before
 starting the task when channel 3 carries none.
 
 **`--fork` comes from `cpus`, not `ext.args`.** The module appends

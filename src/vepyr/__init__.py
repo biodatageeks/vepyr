@@ -269,10 +269,10 @@ def _require_reference_policy(cache_dir: str) -> None:
         if source in ("merged", "refseq") and b"bio.vep.cache_version" in metadata:
             raise ValueError(
                 f"Cache '{cache_dir}' is a {source} cache without reference_policy.json: "
-                "it was converted by a vepyr older than engine v0.23.1, so its BAM-edited "
-                "transcript policy is unknown and annotation would differ from Ensembl VEP "
-                "at BAM-edited loci. Rebuild it with vepyr.build_cache(..., overwrite=True), "
-                "or download the v0.23.1 revision of the prebuilt cache."
+                "it was built by an older vepyr, so its BAM-edited transcript policy is "
+                "unknown and annotation would differ from Ensembl VEP at BAM-edited loci. "
+                "Rebuild it with vepyr.build_cache(..., overwrite=True), or download it "
+                "again with vepyr.download_cache() into an empty directory."
             )
 
 

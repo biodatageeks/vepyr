@@ -1,5 +1,7 @@
 """annotate() refuses merged/RefSeq caches that predate reference_policy.json."""
 
+import re
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -24,8 +26,15 @@ def _cache(tmp_path, source, policy, identity=True):
 
 @pytest.mark.parametrize("source", ["merged", "refseq"])
 def test_bam_capable_cache_without_policy_is_rejected(tmp_path, source):
-    with pytest.raises(ValueError, match="reference_policy.json"):
-        _require_reference_policy(_cache(tmp_path, source, policy=False))
+    cache_dir = _cache(tmp_path, source, policy=False)
+    with pytest.raises(ValueError, match="reference_policy.json") as err:
+        _require_reference_policy(cache_dir)
+    message = str(err.value).replace(cache_dir, "<cache>")
+    # The remedy must work with this vepyr: a fresh download of the pinned
+    # revision or a rebuild, never an older cache revision.
+    assert "vepyr.download_cache()" in message
+    assert "build_cache(..., overwrite=True)" in message
+    assert re.search(r"\bv?0\.\d+", message) is None, message
 
 
 @pytest.mark.parametrize("source", ["merged", "refseq", "ensembl"])

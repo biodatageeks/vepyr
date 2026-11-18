@@ -53,24 +53,23 @@ cache directory name is not a fallback, and `expected_cache_version` can only
 assert the independently detected metadata—it cannot label an old
 metadata-less cache. Such caches must be rebuilt.
 
-### Caches built before vepyr 0.11.0
+### Caches from an older vepyr
 
-vepyr 0.11.0 reads each transcript's gene bounds from two `transcript`
-columns, `gene_start` and `gene_end`. Caches built or downloaded with vepyr
-0.10.0 or earlier do not have them, and there is no fallback, so annotation
-stops with:
+vepyr reads each transcript's gene bounds from two `transcript` columns,
+`gene_start` and `gene_end`. A cache built or downloaded with an older vepyr
+may not have them. There is no fallback, so annotation stops with:
 
 ```text
 annotate_vep(): transcript table 'transcript' is missing required column gene_start
 ```
 
 `cache_contig_identity()` still accepts such a cache, because it checks the
-release metadata and not the columns. To upgrade, do one of:
+release metadata and not the columns. To replace it, do one of:
 
-- Download the cache again with [`download_cache`](downloads.md#hugging-face).
-  vepyr 0.11.0 pins the refreshed revision. Use an empty directory: a download
-  into a directory that already holds another revision is refused.
-- Rebuild it from the raw Ensembl VEP cache with vepyr 0.11.0's
+- Download the cache again with [`download_cache`](downloads.md#hugging-face),
+  which fetches the revision this vepyr pins. Use an empty directory: a
+  download into a directory that already holds another revision is refused.
+- Rebuild it from the raw Ensembl VEP cache with
   [`build_cache`](#building-a-cache).
 
 ## Layout & entities
