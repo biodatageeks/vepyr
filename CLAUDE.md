@@ -107,20 +107,20 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 - Rust/Cargo - used for native dependency resolution through `Cargo.toml`
 - Lockfiles: `uv.lock` and `Cargo.lock` are committed
 ## Frameworks
-- PyO3 0.28 - Python bindings and module export surface in `src/lib.rs`
-- DataFusion 53.0 - SQL/query execution for cache conversion and VCF annotation in `src/annotate.rs` and `src/convert.rs`
-- Arrow 58 with `pyarrow` feature - Arrow/PyArrow interop for batch streaming
+- PyO3 0.29 - Python bindings and module export surface in `src/lib.rs`
+- DataFusion 55.2 - SQL/query execution for cache conversion and VCF annotation in `src/annotate.rs` and `src/convert.rs`
+- Arrow 59 with `pyarrow` feature - Arrow/PyArrow interop for batch streaming
 - released `datafusion-bio-*` crates pinned by tags - domain-specific VCF and Ensembl cache table providers plus VEP functions
 - Pytest 8+ - Python test runner declared in `pyproject.toml`
 - Polars and PyArrow - exercised in integration tests under `tests/test_annotate.py` and `tests/test_golden.py`
 - Maturin 1.x - build backend configured in `pyproject.toml`
 - `uv sync --reinstall-package vepyr` - documented local install/bootstrap flow in `README.md`
 ## Key Dependencies
-- `pyo3` 0.28 - exposes Rust functions/classes to Python
-- `datafusion` 53.0 - powers SQL execution and streaming annotation
-- `arrow` 58 - schema and RecordBatch transport to Python
-- `datafusion-bio-function-vep` v0.15.0 - registers annotation functions
-- `datafusion-bio-format-ensembl-cache` and `datafusion-bio-format-vcf` v1.9.0 - provide table providers for cache and input VCFs
+- `pyo3` 0.29 - exposes Rust functions/classes to Python
+- `datafusion` 55.2 - powers SQL execution and streaming annotation
+- `arrow` 59 - schema and RecordBatch transport to Python
+- `datafusion-bio-function-vep` v0.27.1 - registers annotation functions
+- `datafusion-bio-format-ensembl-cache` and `datafusion-bio-format-vcf` v1.17.0 - provide table providers for cache and input VCFs
 - `tokio` 1.x - runtime for async DataFusion execution
 - `futures` 0.3 - stream iteration in Rust
 - `pyarrow`, `tqdm`, `ipywidgets` - Python-side data transport and notebook/progress UX
