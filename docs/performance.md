@@ -73,14 +73,15 @@ print(f"{df.height} variants in {elapsed:.1f}s")
 
 ### Ensembl VEP vs vepyr on one machine
 
-Both tools annotated the same normalized HG002 GRCh38 input with the same
-release-116 merged cache, `--everything --hgvs` and a reference FASTA, writing
-plain VCF, on one MacBook Pro (Apple M3 Max, 16 cores, 64 GiB). VEP ran in
-its native arm64 Docker image (16 vCPU, 16.5 GiB VM); vepyr ran on the
-host. Measured in September 2026. Whole-process wall time, one run per setting. VEP `--fork N` runs N
-annotation children plus the parent, so the runs are paired by process count:
-VEP without `--fork` against vepyr's default `workers=1`, `--fork 1` against
-`workers=2`, and `--fork 8` (nine processes) against `workers=8`.
+Measured in September 2026. Both tools annotated the same normalized HG002
+GRCh38 input with the same release-116 merged cache, `--everything --hgvs` and
+a reference FASTA, writing plain VCF, on one MacBook Pro (Apple M3 Max, 16
+cores, 64 GiB). VEP ran in its native arm64 Docker image (16 vCPU, 16.5 GiB
+VM); vepyr ran on the host. Whole-process wall time, one run per setting. VEP
+`--fork N` runs N annotation children plus the parent, so the runs are paired
+by process count: VEP without `--fork` against vepyr's default `workers=1`,
+`--fork 1` against `workers=2`, and `--fork 8` (nine processes) against
+`workers=8`.
 
 ![Ensembl VEP vs vepyr on an M3 Max](assets/vep_vs_vepyr_macos_116.png)
 
