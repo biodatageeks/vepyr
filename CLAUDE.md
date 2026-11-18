@@ -119,7 +119,7 @@ vepyr is a Python-facing, Rust-powered reimplementation of Ensembl's Variant Eff
 - `pyo3` 0.29 - exposes Rust functions/classes to Python
 - `datafusion` 55.2 - powers SQL execution and streaming annotation
 - `arrow` 59 - schema and RecordBatch transport to Python
-- `datafusion-bio-function-vep` v0.27.0 - registers annotation functions
+- `datafusion-bio-function-vep` v0.27.1 - registers annotation functions
 - `datafusion-bio-format-ensembl-cache` and `datafusion-bio-format-vcf` v1.17.0 - provide table providers for cache and input VCFs
 - `tokio` 1.x - runtime for async DataFusion execution
 - `futures` 0.3 - stream iteration in Rust
