@@ -139,8 +139,8 @@ element per CSQ entry; `Existing_variation`, `CLIN_SIG` and `PUBMED` hold the
 distinct values for the variant instead. Values that VEP repeats on every
 entry, such as the frequencies, are stored once as scalars. The input's `INFO`
 fields and its sample columns are carried too, named by their VCF ids; pass
-`info_fields=[]` and `format_fields=[]` for the 0.7 frame. An id that is also an
-annotation column arrives as `INFO_<id>` (`fmt_<id>` for FORMAT): `AF` is
+`info_fields=[]` and `format_fields=[]` to leave them out. An id that is also
+an annotation column arrives as `INFO_<id>` (`fmt_<id>` for FORMAT): `AF` is
 always VEP's. Add `skip_csq=False` to get the raw `CSQ` string as a column.
 
 `CSQ` is the one carried field this run can replace. Annotating an input that
