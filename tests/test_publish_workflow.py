@@ -65,10 +65,32 @@ def test_linux_build_images_are_pinned_by_digest():
     images = re.findall(r"^\s+container: (\S+)$", job_block("linux"), re.M)
     images = [i for i in images if not i.startswith("${{")]
     assert len(images) == 2, images
-    for image in images:
-        assert re.fullmatch(r"quay\.io/pypa/manylinux\S+@sha256:[0-9a-f]{64}", image), (
-            image
-        )
+    allowed = (
+        r"quay\.io/pypa/manylinux2014_x86_64@sha256:[0-9a-f]{64}",
+        r"ghcr\.io/rust-cross/manylinux_2_28-cross@sha256:[0-9a-f]{64}",
+    )
+    for image, pattern in zip(images, allowed):
+        assert re.fullmatch(pattern, image), image
+
+
+def test_both_linux_wheels_build_on_the_self_hosted_hosts():
+    # The fat-LTO link does not fit a hosted runner's 16 GB without swapping.
+    linux = job_block("linux")
+    runners = re.findall(r"^\s+runner: (.+)$", linux, re.M)
+    assert runners == ["[self-hosted, linux, x64, vepyr-wgs]"] * 2, runners
+    assert "swapon" not in linux
+
+
+def test_aarch64_wheel_is_cross_built_for_manylinux_2_28():
+    # The cross image fixes the glibc floor; the flag makes the tag state it,
+    # and a cross build needs the abi3 floor named instead of found.
+    linux = job_block("linux")
+    entry = linux.split("- target: aarch64", 1)[1].split("steps:", 1)[0]
+    assert re.search(r'^\s+manylinux: "2_28"$', entry, re.M), entry
+    assert re.search(r"^\s+interpreter: --interpreter python3\.10$", entry, re.M), entry
+    assert "manylinux: ${{ matrix.manylinux }}" in linux
+    assert "args: --profile dist --out dist ${{ matrix.interpreter }}" in linux
+    assert 'features = ["abi3-py310"]' in (ROOT / "Cargo.toml").read_text()
 
 
 def test_publish_waits_for_the_aarch64_smoke_job():
