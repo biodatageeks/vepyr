@@ -1,0 +1,11 @@
+graph LR
+    A[Python API<br/>vepyr] --> B[PyO3 FFI Layer<br/>vepyr._core]
+    B --> C[Annotation Engine<br/>datafusion-bio-function-vep]
+    B --> D[Cache Reader<br/>datafusion-bio-format-ensembl-cache]
+    C --> P[Plugin caches<br/>plugin_cache: build + lookup]
+    C --> E[DataFusion SQL Engine]
+    D --> E
+    P --> E
+    E --> F[Arrow RecordBatches]
+    F --> G[Polars LazyFrame]
+    F --> H[VCF Output]
