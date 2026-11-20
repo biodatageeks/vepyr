@@ -10,16 +10,17 @@
 \heavyrulewidth=0.6pt \lightrulewidth=0.35pt
 \sbox\figonetablebox{\begin{tabular}{@{}>{\raggedright\arraybackslash}p{5.40cm}>{\raggedright\arraybackslash}p{7.00cm}>{\raggedright\arraybackslash}p{7.00cm}>{\raggedright\arraybackslash}p{7.00cm}>{\columncolor{hl}\raggedright\arraybackslash}p{7.00cm}@{}}
 \toprule
- & Ensembl VEP\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}116.0\enspace\texttt{57ea5c5}} & fastVEP\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.4.0+6\enspace\texttt{5d8004a}} & vep-rs\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.4.0\enspace\texttt{f642723}} & \textbf{vepyr}\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.10.0\enspace\texttt{3f21520}} \\
+ & Ensembl VEP\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}116.0\enspace\texttt{57ea5c5}} & fastVEP\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.6.1\enspace\texttt{4ca2a6e}} & vep-rs\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.5.0\enspace\texttt{1d84873}} & \textbf{vepyr}\newline{\fontsize{5.8}{6.6}\selectfont\color{muted}0.11.0\enspace\texttt{d75efcc}} \\
 \midrule
 \textcolor{muted}{Language} & Perl & Rust & Rust & Rust, Python \\
 \textcolor{muted}{Parallelism} & processes & threads & threads & threads \\
 \textcolor{muted}{Cache format} & Storable, gzip per 1-Mb region & bincode + zstd (transcripts), OSAv2 (annotations) & JSON, gzip optional & Parquet, ZSTD (core and plugins) \\
-\textcolor{muted}{Fields filled\textsuperscript{a}} & 80/80 & \ensuremath{\leq}37/80 & \ensuremath{\leq}71/80 (34/80)\textsuperscript{b} & \textbf{80/80} \\
-\textcolor{muted}{Transcript sets} & Ensembl, RefSeq, merged & Ensembl, RefSeq, merged\textsuperscript{c} & Ensembl, RefSeq, merged\textsuperscript{d} & Ensembl, RefSeq, merged \\
-\textcolor{muted}{Declared variant classes} & SNV, indel, SV & SNV, indel, SV\textsuperscript{e} & SNV, indel, SV\textsuperscript{e} & SNV, indel \\
+\textcolor{muted}{Fields filled\textsuperscript{a}} & 80/80 & 66/80 & 75/80 & \textbf{80/80} \\
+\textcolor{muted}{Transcript sets} & Ensembl, RefSeq, merged & Ensembl, RefSeq, merged\textsuperscript{b} & Ensembl, RefSeq, merged\textsuperscript{c} & Ensembl, RefSeq, merged \\
+\textcolor{muted}{Declared variant classes} & SNV, indel, SV & SNV, indel, SV\textsuperscript{d} & SNV, indel, SV\textsuperscript{d} & SNV, indel \\
 \textcolor{muted}{External annotation sources} & yes & yes & yes & yes \\
-\textcolor{muted}{Concordance (chr22, merged)} & reference & \textcolor{todo}{\textbf{TODO}} & \textcolor{todo}{\textbf{TODO}} & \textcolor{todo}{\textbf{TODO}} \\
+\textcolor{muted}{Records as in VEP, Ensembl / merged\textsuperscript{e}} & reference & 37\% / 36\% & 95\% / 46\% & \textbf{100\% / 100\%} \\
+\textcolor{muted}{Whole genome, 8 workers\textsuperscript{f}} & 89.5 min & 1.7 min & 3.5 min & \textbf{1.0 min} \\
 \textcolor{muted}{Interfaces} & CLI, web, REST & CLI, web, REST & CLI & Python API, SQL, CLI \\
 \textcolor{muted}{Evaluation} & streaming & streaming & streaming & \textbf{lazy, \mbox{pushdown}} \\
 \textcolor{muted}{Output} & VCF, tab, JSON & VCF, tab, JSON & VCF, tab, JSON, Parquet & Polars DataFrame/\allowbreak LazyFrame, VCF \\
@@ -28,4 +29,4 @@
 \vbox{\copy\figonetablebox\vskip 3pt
 \hsize=\wd\figonetablebox \parindent=0pt
 {\fontsize{5.6}{6.8}\selectfont\color{muted}\raggedright
-\textsuperscript{a}Of the 80 \texttt{CSQ} fields of VEP~116 \texttt{--everything} (Ensembl cache), those the tool can fill, counted from its source code and documentation. \textsuperscript{b}34/80 on the cache converted from VEP, used for all concordance results (no known variants, SIFT or PolyPhen). \textsuperscript{c}From Ensembl and RefSeq GFF3 files (merged: both, with \texttt{SOURCE}); RefSeq-specific fields are not written. \textsuperscript{d}Through a cache converted from the VEP RefSeq or merged cache; \texttt{SOURCE} and the RefSeq fields are not written. \textsuperscript{e}As declared by the authors; SV annotation not fully validated against VEP.\par}}}}
+\textsuperscript{a}Of the 80 \texttt{CSQ} fields of VEP~116 \texttt{--everything} (Ensembl cache), those with a value in at least one record of the output for chromosome~21 of HG002, on which VEP fills all 80. \textsuperscript{b}From Ensembl and RefSeq GFF3 files (merged: both, with \texttt{SOURCE}); RefSeq-specific fields are not written. \textsuperscript{c}Through a cache converted from the VEP RefSeq or merged cache; \texttt{SOURCE} and the RefSeq fields are not written. \textsuperscript{d}As declared by the authors; structural variants were not evaluated here. \textsuperscript{e}Records of HG002 (chromosomes 1--22; 4,095,611 with a \texttt{CSQ} field) whose \texttt{CSQ} entries agree with VEP in every field shared with VEP. For vepyr, and for vep-rs with the Ensembl cache, these records are identical to VEP byte for byte. \textsuperscript{f}Wall time for HG002 with the merged cache in one invocation, with 8 processes (VEP) or 8 workers, on macOS (Apple M3~Max).\par}}}}

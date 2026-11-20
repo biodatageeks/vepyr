@@ -10,9 +10,12 @@ One data source, three outputs:
 * ``tool-comparison.pdf``: the working document that shows both, the
   footnotes, the sources and the notes.
 
-The cells for fastVEP and vep-rs come from their preprints and repositories
-at the commits listed in ``tool-comparison.tex``; field counts are taken
-from their source code and documentation, not from running them.
+The compact panel describes the released versions compared in Section 10 of
+the supplement (``HEAD``). Its field counts, concordance and wall times are
+measured: see the comments beside ``COMPACT``. The detailed table and the
+working document still describe the earlier versions (``DETAIL_HEAD``), from
+the preprints and repositories at the commits listed in
+``tool-comparison.tex``; they have not been revised for the newer releases.
 
     python build_table.py          # write the .tex fragments
     python build_table.py --pdf    # ... and build panels and document
@@ -27,10 +30,19 @@ HERE = Path(__file__).resolve().parent
 
 TOOLS = ["VEP", "fastVEP", "vep-rs", "vepyr"]
 
-# (name, release, git commit of the code described). fastVEP is described at
-# its default branch, six commits after the v0.4.0 tag (d728c46); VEP is the
-# ensembl-vep release/116.0 tag (plugins: VEP_plugins release/116, 59b34e5).
+# (name, release, git commit of the code described). Compact panel: the release
+# tags compared in Section 10 of the supplement; VEP is the ensembl-vep
+# release/116.0 tag (plugins: VEP_plugins release/116, 59b34e5).
 HEAD = {
+    "VEP": ("Ensembl VEP", "116.0", "57ea5c5"),
+    "fastVEP": ("fastVEP", "0.6.1", "4ca2a6e"),
+    "vep-rs": ("vep-rs", "0.5.0", "1d84873"),
+    "vepyr": ("vepyr", "0.11.0", "d75efcc"),
+}
+
+# Detailed table: the versions its cells were written for. fastVEP at its
+# default branch six commits after the v0.4.0 tag (d728c46).
+DETAIL_HEAD = {
     "VEP": ("Ensembl VEP", "116.0", "57ea5c5"),
     "fastVEP": ("fastVEP", "0.4.0+6", "5d8004a"),
     "vep-rs": ("vep-rs", "0.4.0", "f642723"),
@@ -39,6 +51,21 @@ HEAD = {
 
 # ---------------------------------------------------------------------------
 # Compact cells: Figure 1 panel. Superscripts refer to PANEL_NOTES.
+#
+# Measured cells (2026-11-20, supplement Section 10):
+# * fields: of the 80 CSQ fields of VEP 116 --everything (Ensembl cache), those
+#   with a value in at least one record of the tool's output for HG002 chr21,
+#   where VEP fills all 80. fastVEP 0.6.1 declares 73 of the 80 (not SWISSPROT,
+#   TREMBL, UNIPARC, UNIPROT_ISOFORM, GENE_PHENO, DOMAINS, miRNA) and leaves
+#   SIFT, PolyPhen and the five motif fields empty; vep-rs 0.5.0 declares all 80
+#   and leaves the five motif fields empty; vepyr 0.11.0 is byte-identical to VEP.
+# * concordance: HG002 chr1-22, annotated records whose CSQ entries agree with
+#   VEP in every shared field, out of 4,095,611. Ensembl cache: fastVEP
+#   1,526,240, vep-rs 3,900,706; merged cache: fastVEP 1,482,881, vep-rs
+#   1,867,999; vepyr all, with both caches.
+# * time: HG002, merged cache, 8 workers, one invocation for the whole VCF on
+#   macOS (Apple M3 Max): fastVEP 101.4 s, vep-rs 209.2 s, vepyr 59.5 s
+#   (supplement Table 35); VEP 116.0 with 8 processes 5,372 s (panel E data).
 # ---------------------------------------------------------------------------
 
 COMPACT_ROWS = [
@@ -49,7 +76,8 @@ COMPACT_ROWS = [
     ("transcripts", "Transcript sets"),
     ("variants", "Declared variant classes"),
     ("plugins", "External annotation sources"),
-    ("concordance", "Concordance (chr22, merged)"),
+    ("concordance", r"Records as in VEP, Ensembl / merged\textsuperscript{e}"),
+    ("time", r"Whole genome, 8 workers\textsuperscript{f}"),
     ("ui", "Interfaces"),
     ("evaluation", "Evaluation"),
     ("output", "Output"),
@@ -67,6 +95,7 @@ COMPACT = {
         "variants": "SNV, indel, SV",
         "plugins": "yes",
         "concordance": "reference",
+        "time": "89.5 min",
         "ui": "CLI, web, REST",
         "evaluation": "streaming",
         "output": "VCF, tab, JSON",
@@ -75,11 +104,12 @@ COMPACT = {
         "lang": "Rust",
         "parallel": "threads",
         "cache": "bincode + zstd (transcripts), OSAv2 (annotations)",
-        "fields": "≤37/80",
-        "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{c}",
-        "variants": r"SNV, indel, SV\textsuperscript{e}",
+        "fields": "66/80",
+        "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{b}",
+        "variants": r"SNV, indel, SV\textsuperscript{d}",
         "plugins": "yes",
-        "concordance": TODO,
+        "concordance": r"37\% / 36\%",
+        "time": "1.7 min",
         "ui": "CLI, web, REST",
         "evaluation": "streaming",
         "output": "VCF, tab, JSON",
@@ -88,11 +118,12 @@ COMPACT = {
         "lang": "Rust",
         "parallel": "threads",
         "cache": "JSON, gzip optional",
-        "fields": r"≤71/80 (34/80)\textsuperscript{b}",
-        "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{d}",
-        "variants": r"SNV, indel, SV\textsuperscript{e}",
+        "fields": "75/80",
+        "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{c}",
+        "variants": r"SNV, indel, SV\textsuperscript{d}",
         "plugins": "yes",
-        "concordance": TODO,
+        "concordance": r"95\% / 46\%",
+        "time": "3.5 min",
         "ui": "CLI",
         "evaluation": "streaming",
         "output": "VCF, tab, JSON, Parquet",
@@ -105,7 +136,8 @@ COMPACT = {
         "transcripts": "Ensembl, RefSeq, merged",
         "variants": "SNV, indel",
         "plugins": "yes",
-        "concordance": TODO,
+        "concordance": r"\textbf{100\% / 100\%}",
+        "time": r"\textbf{1.0 min}",
         "ui": "Python API, SQL, CLI",
         "evaluation": r"\textbf{lazy, \mbox{pushdown}}",
         "output": r"Polars DataFrame/\allowbreak LazyFrame, VCF",
@@ -115,15 +147,34 @@ COMPACT = {
 PANEL_SMALL = r"\fontsize{5.8}{6.6}\selectfont"
 
 PANEL_NOTES = [
-    ("a", r"Of the 80 \texttt{CSQ} fields of VEP~116 \texttt{--everything} (Ensembl cache), "
-          r"those the tool can fill, counted from its source code and documentation."),
-    ("b", r"34/80 on the cache converted from VEP, used for all concordance results "
-          r"(no known variants, SIFT or PolyPhen)."),
-    ("c", r"From Ensembl and RefSeq GFF3 files (merged: both, with \texttt{SOURCE}); "
-          r"RefSeq-specific fields are not written."),
-    ("d", r"Through a cache converted from the VEP RefSeq or merged cache; "
-          r"\texttt{SOURCE} and the RefSeq fields are not written."),
-    ("e", r"As declared by the authors; SV annotation not fully validated against VEP."),
+    (
+        "a",
+        r"Of the 80 \texttt{CSQ} fields of VEP~116 \texttt{--everything} (Ensembl cache), "
+        r"those with a value in at least one record of the output for chromosome~21 of "
+        r"HG002, on which VEP fills all 80.",
+    ),
+    (
+        "b",
+        r"From Ensembl and RefSeq GFF3 files (merged: both, with \texttt{SOURCE}); "
+        r"RefSeq-specific fields are not written.",
+    ),
+    (
+        "c",
+        r"Through a cache converted from the VEP RefSeq or merged cache; "
+        r"\texttt{SOURCE} and the RefSeq fields are not written.",
+    ),
+    ("d", r"As declared by the authors; structural variants were not evaluated here."),
+    (
+        "e",
+        r"Records of HG002 (chromosomes 1--22; 4,095,611 with a \texttt{CSQ} field) whose "
+        r"\texttt{CSQ} entries agree with VEP in every field shared with VEP. For vepyr, and "
+        r"for vep-rs with the Ensembl cache, these records are identical to VEP byte for byte.",
+    ),
+    (
+        "f",
+        r"Wall time for HG002 with the merged cache in one invocation, with 8 processes "
+        r"(VEP) or 8 workers, on macOS (Apple M3~Max).",
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -230,10 +281,20 @@ DETAIL = {
 }
 
 
-def tool_head(tool: str, bold: bool = False, small: str = r"\footnotesize") -> str:
-    name, version, sha = HEAD[tool]
+def tool_head(
+    tool: str,
+    bold: bool = False,
+    small: str = r"\footnotesize",
+    head: dict | None = None,
+) -> str:
+    name, version, sha = (head or HEAD)[tool]
     name = r"\textbf{%s}" % name if bold or tool == "vepyr" else name
-    return r"%s\newline{%s\color{muted}%s\enspace\texttt{%s}}" % (name, small, version, sha)
+    return r"%s\newline{%s\color{muted}%s\enspace\texttt{%s}}" % (
+        name,
+        small,
+        version,
+        sha,
+    )
 
 
 def compact_table(label_w: float = 2.45, col_w: float = 2.55) -> str:
@@ -269,18 +330,31 @@ def panel_notes() -> str:
 
 def detail_table() -> str:
     """Supplementary table: tools as columns, all attributes."""
-    head = r"\textbf{Attribute} & " + " & ".join(tool_head(t, bold=True) for t in TOOLS) + r" \\"
+    head = (
+        r"\textbf{Attribute} & "
+        + " & ".join(tool_head(t, bold=True, head=DETAIL_HEAD) for t in TOOLS)
+        + r" \\"
+    )
     lines = [
         r"\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.2cm}"
         + r">{\raggedright\arraybackslash}p{3.55cm}" * len(TOOLS)
         + r"@{}}",
-        r"\toprule", head, r"\midrule", r"\endfirsthead",
-        r"\toprule", head, r"\midrule", r"\endhead",
-        r"\bottomrule", r"\endfoot",
+        r"\toprule",
+        head,
+        r"\midrule",
+        r"\endfirsthead",
+        r"\toprule",
+        head,
+        r"\midrule",
+        r"\endhead",
+        r"\bottomrule",
+        r"\endfoot",
     ]
     for key, label in DETAIL_ROWS:
         lines.append(
-            r"\textit{%s} & " % label + " & ".join(DETAIL[t][key] for t in TOOLS) + r" \\[3pt]"
+            r"\textit{%s} & " % label
+            + " & ".join(DETAIL[t][key] for t in TOOLS)
+            + r" \\[3pt]"
         )
     lines.append(r"\end{longtable}")
     return "\n".join(lines) + "\n"
@@ -360,21 +434,37 @@ def build_pdfs() -> None:
     build = HERE / "build"
     build.mkdir(exist_ok=True)
     for name in PANELS:
-        run(["xelatex", "-interaction=nonstopmode", "-halt-on-error",
-             f"-output-directory={build}", f"{name}.tex"])
+        run(
+            [
+                "xelatex",
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                f"-output-directory={build}",
+                f"{name}.tex",
+            ]
+        )
         shutil.copy(build / f"{name}.pdf", HERE / f"{name}.pdf")
         run(["pdftoppm", "-png", "-r", "600", "-singlefile", f"{name}.pdf", name])
         run(["pdftocairo", "-svg", f"{name}.pdf", f"{name}.svg"])
     for _ in range(2):
-        run(["pdflatex", "-interaction=nonstopmode", "-halt-on-error",
-             f"-output-directory={build}", "tool-comparison.tex"])
+        run(
+            [
+                "pdflatex",
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                f"-output-directory={build}",
+                "tool-comparison.tex",
+            ]
+        )
     shutil.copy(build / "tool-comparison.pdf", HERE / "tool-comparison.pdf")
     print("built panels (PDF, PNG, SVG) and tool-comparison.pdf")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--pdf", action="store_true", help="also build panels and document")
+    parser.add_argument(
+        "--pdf", action="store_true", help="also build panels and document"
+    )
     args = parser.parse_args()
     write_fragments()
     if args.pdf:
