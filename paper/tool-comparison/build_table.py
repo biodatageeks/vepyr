@@ -53,9 +53,11 @@ DETAIL_HEAD = {
 # Compact cells: Figure 1 panel. Superscripts refer to PANEL_NOTES.
 #
 # Measured cells (2026-11-20, supplement Section 10):
-# * fields: of the 80 CSQ fields of VEP 116 --everything (Ensembl cache), those
-#   with a value in at least one record of the tool's output for HG002 chr21,
-#   where VEP fills all 80. fastVEP 0.6.1 declares 73 of the 80 (not SWISSPROT,
+# * fields: of the 80 (Ensembl cache) and 86 (merged cache) CSQ fields of VEP 116
+#   --everything, those with a value in at least one record of the tool's output
+#   for HG002 chr21. Ensembl: VEP fills all 80. Merged: VEP fills 85 (REFSEQ_MATCH
+#   is empty in its output), vepyr the same 85, vep-rs 77 of the 82 it declares,
+#   fastVEP 67 of the 74 it declares. Ensembl details: fastVEP 0.6.1 declares 73 of the 80 (not SWISSPROT,
 #   TREMBL, UNIPARC, UNIPROT_ISOFORM, GENE_PHENO, DOMAINS, miRNA) and leaves
 #   SIFT, PolyPhen and the five motif fields empty; vep-rs 0.5.0 declares all 80
 #   and leaves the five motif fields empty; vepyr 0.11.0 is byte-identical to VEP.
@@ -72,7 +74,7 @@ COMPACT_ROWS = [
     ("lang", "Language"),
     ("parallel", "Parallelism"),
     ("cache", "Cache format"),
-    ("fields", r"Fields filled\textsuperscript{a}"),
+    ("fields", r"Fields filled, of 80 / 86 (Ensembl / merged)\textsuperscript{a}"),
     ("transcripts", "Transcript sets"),
     ("variants", "Declared variant classes"),
     ("plugins", "External annotation sources"),
@@ -90,7 +92,7 @@ COMPACT = {
         "lang": "Perl",
         "parallel": "processes",
         "cache": "Storable, gzip per 1-Mb region",
-        "fields": "80/80",
+        "fields": "80 / 85",
         "transcripts": "Ensembl, RefSeq, merged",
         "variants": "SNV, indel, SV",
         "plugins": "yes",
@@ -104,7 +106,7 @@ COMPACT = {
         "lang": "Rust",
         "parallel": "threads",
         "cache": "bincode + zstd (transcripts), OSAv2 (annotations)",
-        "fields": "66/80",
+        "fields": "66 / 67",
         "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{b}",
         "variants": r"SNV, indel, SV\textsuperscript{d}",
         "plugins": "yes",
@@ -118,7 +120,7 @@ COMPACT = {
         "lang": "Rust",
         "parallel": "threads",
         "cache": "JSON, gzip optional",
-        "fields": "75/80",
+        "fields": "75 / 77",
         "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{c}",
         "variants": r"SNV, indel, SV\textsuperscript{d}",
         "plugins": "yes",
@@ -132,7 +134,7 @@ COMPACT = {
         "lang": "Rust, Python",
         "parallel": "threads",
         "cache": "Parquet, ZSTD (core and plugins)",
-        "fields": r"\textbf{80/80}",
+        "fields": r"\textbf{80 / 85}",
         "transcripts": "Ensembl, RefSeq, merged",
         "variants": "SNV, indel",
         "plugins": "yes",
@@ -149,9 +151,10 @@ PANEL_SMALL = r"\fontsize{5.8}{6.6}\selectfont"
 PANEL_NOTES = [
     (
         "a",
-        r"Of the 80 \texttt{CSQ} fields of VEP~116 \texttt{--everything} (Ensembl cache), "
-        r"those with a value in at least one record of the output for chromosome~21 of "
-        r"HG002, on which VEP fills all 80.",
+        r"Of the 80 and 86 \texttt{CSQ} fields of VEP~116 \texttt{--everything} with the "
+        r"Ensembl and the merged cache, those with a value in at least one record of the "
+        r"output for chromosome~21 of HG002. VEP fills all 80; with the merged cache, "
+        r"\texttt{REFSEQ\_MATCH} is empty in its output as well.",
     ),
     (
         "b",
