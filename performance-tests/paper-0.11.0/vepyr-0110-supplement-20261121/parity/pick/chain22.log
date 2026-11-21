@@ -1,7 +1,0 @@
-merged_flag_pick chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)
-merged_flag_pick_allele chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)
-merged_flag_pick_allele_gene chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)
-merged_pick_filter chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)
-merged_pick_allele chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)
-merged_per_gene chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)
-merged_pick_allele_gene chr22 rc=0   PASS: 1 contig(s) concord (50,861 records)

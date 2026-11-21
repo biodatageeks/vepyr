@@ -11,4 +11,4 @@ writer/ writer memory (Section 8.4): writer_memory.py, writer_once.py; v0100.jso
         figures as a check of the method, v0110.json is the new measurement.
 polars  Section 8.5: run.sh in the run directory above (stages prepare, equiv, pushdown, e2e, tables); VEP side
         reused from ..._v0100 because Docker was not available.
-chain.zsh runs everything in this order; logs *.log here.
+chain.zsh runs everything in this order (console logs not included).

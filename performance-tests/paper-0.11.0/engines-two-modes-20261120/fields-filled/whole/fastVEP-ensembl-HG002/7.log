@@ -1,5 +1,0 @@
-Annotating: /Users/mwiewior/research/benchmarks/ensembl-engine-comparison-20261108/hg002-w8/HG002/chr7/prepared/HG002/input.vcf.gz -> /Users/mwiewior/research/benchmarks/engines-two-modes-20261120/fields-filled/whole/.pipe-fastVEP
-Loaded 33632 transcripts from cache /Users/mwiewior/research/benchmarks/ensembl-engine-comparison-20261108/hg002-w8/caches/chr7/fastVEP-main-merged116.cache
-Memory-mapped reference FASTA from /Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa (using .fai index)
-Loaded VEP cache info: species=homo_sapiens, assembly=GRCh38, 42 variation columns
-rc=0

@@ -26,5 +26,5 @@ page cache filled by reading the cache, FASTA and input; it is not used in the p
 
 ## Files
 
-`mem.tsv`, `run_with_sampler.sh`, `times.txt`, `cgroup_memory_peak.txt`, `vep.stdout.txt`,
-`vep.stderr.txt`, `HG002_merged_fork7.vcf_warnings.txt`. The VCF output is not included.
+`mem.tsv`, `run_with_sampler.sh`, `times.txt`, `cgroup_memory_peak.txt`. The VCF output and the
+console output of VEP are not included.

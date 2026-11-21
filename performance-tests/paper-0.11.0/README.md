@@ -33,16 +33,16 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 
 - `vepyr-0110-supplement-20261121/`: re-runs of the supplement's vepyr measurements with the
   vepyr 0.11.0 PyPI wheel (README.txt). `run_wgs2.zsh` produced `wgs2/` (reported), `run_wgs.zsh`
-  produced `wgs/` (not used). `chain.zsh`, `chain2.zsh` and their logs ran the stages in order;
-  `polars-*.log` and `sweep.log` are the console logs of the Polars stages and the worker sweep whose
-  results are in the polars-integration run directory. `parity/env.txt` records the vepyr build used.
+  produced `wgs/` (not used). `chain.zsh` and `chain2.zsh` ran the stages in order; the results of
+  the Polars stages and the worker sweep are in the polars-integration run directory.
+  `parity/env.txt` records the vepyr build used.
 - `engines-two-modes-20261120/`: engine comparison in two modes (per chromosome, whole VCF).
   `runs.csv` is the reported table; `runs.before-memfix.csv`, `runs.before-remeasure.csv`,
   `sentinel.before-memfix.csv`, `remeasure.obsolete.txt` and `whole-md5.before-remeasure/` are earlier
   states kept for the record (`remeasure.txt` explains each re-measurement and the user's decisions).
-  `memlog.csv` / `memstate.log` track free memory before each run. `logs/` holds the build logs of the
-  vep-rs and fastVEP binaries; `whole/*/prepared.json`, `cache-write.log` and `cache-veprs/info.json`
-  describe the whole-VCF inputs and engine caches.
+  `memlog.csv` tracks free memory before each run. `logs/*-build.json` record how the vep-rs and
+  fastVEP binaries were built; `whole/*/prepared.json` and `cache-veprs/info.json` describe the
+  whole-VCF inputs and engine caches.
 - `vep-peakmem-fork7-20261121/`: README.md.
 - `cache-pages-20261121/`: README.md.
 
@@ -51,3 +51,6 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 - The Linux rows of supplement Table 17 (merged cache only since the RefSeq rows were removed) and
   the Linux curve of Figure 1E are still vepyr 0.9.0; a re-run with 0.11.0 is pending.
 - The trio analysis of main Figure 1B (4.2 min + 1.3 min) has no raw results located yet.
+
+Console logs, stdout and stderr of the runs are not included; only results, the scripts that
+produced them and their metadata.
