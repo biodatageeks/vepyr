@@ -176,7 +176,8 @@ jobs:
               --published src/vepyr/_published.py \
               --manifest e2e-testing/golden/cache-parity-manifest.json \
               --select "$SELECT" 2>"$RUNNER_TEMP/targets.err"); then
-            msg=$(head -c 300 "$RUNNER_TEMP/targets.err" | tr -d '\r\n`')
+            # \140 is a backtick: the message goes into a PR comment.
+            msg=$(head -c 300 "$RUNNER_TEMP/targets.err" | tr -d '\r\n\140')
             printf 'msg=%s\n' "$msg" >> "$GITHUB_OUTPUT"; echo "::error::$msg"; exit 1
           fi
           printf '%s\n' "$out" >> "$GITHUB_OUTPUT"
@@ -367,7 +368,8 @@ jobs:
               budget=$((budget - $(stat -c %s -- "$dest")))
             done < <(find "$SCRATCH/out/reports" -type f -print0)
           fi
-          { echo "### caches ($TARGET)"; echo '```'; cat "$RES/summary.txt" 2>/dev/null || echo "did not run"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # A fenced block keeps the summary's column alignment.
+          { echo "### caches ($TARGET)"; echo "~~~"; cat "$RES/summary.txt" 2>/dev/null || echo "did not run"; echo "~~~"; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

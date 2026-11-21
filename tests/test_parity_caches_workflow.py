@@ -185,6 +185,9 @@ def test_collect_step_is_the_parity_wgs_one():
         mine.replace("caches/%s", "wgs/%s")
         .replace("result-caches-$TARGET", "result-wgs-$PROFILE")
         .replace('"$TARGET"', '"$PROFILE"')
+        .replace(
+            "          # A fenced block keeps the summary's column alignment.\n", ""
+        )
     )
     summary = '          { echo "### '
     assert same.split(summary)[0] == theirs.split(summary)[0]
