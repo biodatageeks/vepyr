@@ -17,6 +17,7 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 | Supplement Table 17, macOS rows; main Figure 1E, macOS curve (whole genome, merged cache, 8/4/2/1 workers) | `performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_vepyr_0.11.0_20261121/` | this PR |
 | Same, harness logs of that run (memory log, run log, the unused first set) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/wgs2/` (reported), `wgs/` (first set, **not used**: other light work ran meanwhile) | this PR |
 | Supplement Table 17, Linux rows (merged cache only); main Figure 1E, Linux curve | `performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/` (vepyr **0.9.0**) | master |
+| Same, re-run with vepyr 0.11.0 on the same host (not yet in the paper) | `performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/` | this PR |
 | Ensembl VEP reference times, macOS (Table 17, Figure 1E) | `performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/` | master |
 | Ensembl VEP fork scaling, Linux (Table 17 Linux rows, Figure 1E) | `performance-tests/vep/outputs/116/merged_fork_scaling/` | master |
 | Supplement Table 12 (interval routes) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/interval/` (`v0110.json`; `v0100.json` is the same measurement with vepyr 0.10.0; `time_routes.py`, `route1.py`) | this PR |
@@ -49,7 +50,9 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 ## Open items
 
 - The Linux rows of supplement Table 17 (merged cache only since the RefSeq rows were removed) and
-  the Linux curve of Figure 1E are still vepyr 0.9.0; a re-run with 0.11.0 is pending.
+  the Linux curve of Figure 1E are still vepyr 0.9.0. The re-run with 0.11.0 is in
+  `performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/`; the paper does not
+  use it yet.
 - The trio analysis of main Figure 1B (4.2 min + 1.3 min) has no raw results located yet.
 
 Console logs, stdout and stderr of the runs are not included; only results, the scripts that
