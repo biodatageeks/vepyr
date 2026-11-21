@@ -14,10 +14,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-# Within polars-bio 0.38.0's ranges, so the base install and the polars-bio extra
-# resolve to one environment. polars stays below 2: polars-bio allows <2.2, but
-# vepyr is not tested on polars 2.x yet.
-dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2", "tqdm>=4.67.0,<5", "huggingface_hub>=1.22,<3", "filelock>=3.29.5"]
+# The polars, pyarrow and tqdm ranges are those of polars-bio 0.38.0, so the base
+# install and the polars-bio extra resolve to one environment. polars 2.1 needs
+# Python 3.11+, so on 3.10 the range resolves to 2.0.x.
+dependencies = ["pyarrow>=23.0.1,<25", "polars>=1.40.0,<2.2", "tqdm>=4.67.0,<5", "huggingface_hub>=1.22,<3", "filelock>=3.29.5"]
 
 [project.optional-dependencies]
 notebook = ["ipywidgets>=8.0"]
