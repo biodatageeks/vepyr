@@ -34,7 +34,7 @@
       "scratch_gb": 100,
       "timeout_minutes": 1440
     },
-    "clinvar": {},
+    "clinvar": {"manifest_ref": "v0.2.1"},
     "phenotypeorthologous": {},
     "spliceai": {
       "opt_in": "a 28.5 GB source file and a 23 GB cache; Illumina's SpliceAI licence restricts use",
