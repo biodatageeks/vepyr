@@ -24,7 +24,6 @@ The figure is written as TikZ by build_tikz.py, which imports this module.
 
 from __future__ import annotations
 
-import argparse
 import base64
 import copy
 import re
@@ -46,22 +45,17 @@ BLOCK_HEIGHT = 1385  # C1-C3 with leaders, in the coordinates of the old figure
 RELABEL = {"A1": "C1", "A2": "C2", "A3": "C3", "A4": "C4"}
 # Phrases joined with middle dots, rewritten as text.
 REWRITE = {
-    "Human GRCh38 · SNVs + indels · releases 115 / 116":
-        "Human GRCh38, SNVs and indels, releases 115 and 116",
-    "Ensembl / RefSeq / merged · --everything · HGVS":
-        "Ensembl, RefSeq and merged caches, --everything with HGVS",
-    "Arrow streaming · lazy queries · DataFrame API / SQL · declarative plugins":
-        "Arrow streaming, lazy queries, DataFrame API and SQL, declarative plugins",
+    "Human GRCh38 · SNVs + indels · releases 115 / 116": "Human GRCh38, SNVs and indels, releases 115 and 116",
+    "Ensembl / RefSeq / merged · --everything · HGVS": "Ensembl, RefSeq and merged caches, --everything with HGVS",
+    "Arrow streaming · lazy queries · DataFrame API / SQL · declarative plugins": "Arrow streaming, lazy queries, DataFrame API and SQL, declarative plugins",
     "annotate_vep() · table function": "annotate_vep() table function",
     "Known variants / AF · optional plugins": "Known variants and AF, optional plugins",
     "Plugin build · TOML": "Plugin build (TOML)",
     "Small pages · sorted within tiers": "Small pages sorted within tiers",
     "chr22.parquet · …": "chr22.parquet …",
     "manifest.json · provenance": "manifest.json with provenance",
-    "Probe positions · chr22:16,050,075 and chr22:16,050,213":
-        "Probe positions chr22:16,050,075 and chr22:16,050,213",
-    "Illustrative rows · page ranges → exact positions → allele matching":
-        "Illustrative rows: page ranges → exact positions → allele matching",
+    "Probe positions · chr22:16,050,075 and chr22:16,050,213": "Probe positions chr22:16,050,075 and chr22:16,050,213",
+    "Illustrative rows · page ranges → exact positions → allele matching": "Illustrative rows: page ranges → exact positions → allele matching",
 }
 PUSHDOWN_NOTE = (
     "PUSH-DOWN: selected columns · genomic regions · LIMIT",
@@ -117,13 +111,29 @@ def table_panel() -> tuple[fig.Scene, float]:
     s = fig.Scene()
     s._counter = 80000
     s.label(0, 14, 64, 44, "A", font_size=31, weight=700)
-    s.label(74, 15, 1500, 42, "Ensembl VEP and its reimplementations", font_size=29,
-            weight=700)
-    s.label(CONTENT - 900, 18, 900, 36,
-            "release and git commit under each name, details in Table Sx",
-            font_size=20, color=GREY, align="right")
+    s.label(
+        74,
+        15,
+        1500,
+        42,
+        "Ensembl VEP and its reimplementations",
+        font_size=29,
+        weight=700,
+    )
+    s.label(
+        CONTENT - 900,
+        18,
+        900,
+        36,
+        "release and git commit under each name, details in Supplementary Section 10",
+        font_size=20,
+        color=GREY,
+        align="right",
+    )
     height = CONTENT * h / w
-    uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
+        "ascii"
+    )
     s.image(0, 60, CONTENT, height, uri)
     return s, 60 + height
 
@@ -148,14 +158,17 @@ def performance_panel(performance_svg: str, width: float) -> tuple[fig.Scene, fl
     s.label(0, 14, 64, 44, "E", font_size=31, weight=700)
     s.label(74, 15, width - 74, 42, "Performance", font_size=29, weight=700)
     height = width * build_performance.HEIGHT / build_performance.WIDTH
-    uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
+        "ascii"
+    )
     s.image(0, 70, width, height, uri)
     return s, 70 + height
 
 
 def full_figure(performance_svg: str) -> tuple[fig.Scene, int]:
     perf_uri = "data:image/svg+xml;base64," + base64.b64encode(
-        performance_svg.encode("utf-8")).decode("ascii")
+        performance_svg.encode("utf-8")
+    ).decode("ascii")
     s = fig.Scene()
 
     table, table_h = table_panel()
@@ -170,14 +183,22 @@ def full_figure(performance_svg: str) -> tuple[fig.Scene, int]:
 
     # C1-C3 keep their geometry (x 40-2360); C4 is a column to their right.
     y -= 6
-    s.elements.extend(simplified.translated(architecture_block(perf_uri), 0, y).elements)
-    s.elements.extend(simplified.translated(workflow.lookup_column("C4"), 40 + CONTENT - 520,
-                                            y + 14).elements)
+    s.elements.extend(
+        simplified.translated(architecture_block(perf_uri), 0, y).elements
+    )
+    s.elements.extend(
+        simplified.translated(
+            workflow.lookup_column("C4"), 40 + CONTENT - 520, y + 14
+        ).elements
+    )
     y += BLOCK_HEIGHT + 14
 
     # D and E share the last row, whose height E sets.
-    perf_w = round((build_pushdown.HEIGHT - 70) * build_performance.WIDTH
-                   / build_performance.HEIGHT)
+    perf_w = round(
+        (build_pushdown.HEIGHT - 70)
+        * build_performance.WIDTH
+        / build_performance.HEIGHT
+    )
     pushdown = build_pushdown.panel("D", CONTENT - perf_w - 80)
     s.elements.extend(simplified.translated(pushdown, 40, y).elements)
     perf, perf_h = performance_panel(performance_svg, perf_w)
@@ -190,8 +211,10 @@ def full_figure(performance_svg: str) -> tuple[fig.Scene, int]:
 def main() -> None:
     """Report the canvas; the figure itself is written by build_tikz.py."""
     full, height = full_figure(build_performance.build_svg())
-    print(f"canvas {WIDTH} x {height} (height/width {height / WIDTH:.2f}); "
-          f"at 488.5 pt width: {488.5 * height / WIDTH:.0f} pt high")
+    print(
+        f"canvas {WIDTH} x {height} (height/width {height / WIDTH:.2f}); "
+        f"at 488.5 pt width: {488.5 * height / WIDTH:.0f} pt high"
+    )
 
 
 if __name__ == "__main__":

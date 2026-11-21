@@ -64,7 +64,7 @@ class Archive:
 
 def collect(archive, platform, cache_type="merged"):
     linux = platform == "linux"
-    version = "0.9.0" if linux else "0.7.0"
+    version = "0.9.0" if linux else "0.11.0"
     vep_base = (
         f"{VEP}/{cache_type}_fork_scaling"
         if linux
@@ -73,7 +73,7 @@ def collect(archive, platform, cache_type="merged"):
     vepyr_base = (
         f"{VEPYR}/linux_vepyr_0.9.0_20261002/vepyr_{cache_type}_worker_scaling"
         if linux
-        else f"{VEPYR}/macos_mwiewior_wgs_20260914/raw"
+        else f"{VEPYR}/macos_mwiewior_wgs_vepyr_0.11.0_20261121/raw"
     )
     vep_paths = [f"{vep_base}/summary.tsv"]
     if not linux:
