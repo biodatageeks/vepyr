@@ -80,8 +80,11 @@ def test_every_job_first_empties_the_workspace_and_fails_closed():
                 'if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then',
                 'docker run --rm --network none -v "$GITHUB_WORKSPACE:/w"'
                 ' --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete',
-                '[ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ]'
-                ' || { echo "::error::workspace not empty after clean-up"; exit 1; }',
+                # A workspace find cannot read counts as not empty.
+                'rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)'
+                " || rest=unreadable",
+                '[ -z "$rest" ] || { echo "::error::workspace not empty or not'
+                ' readable after clean-up"; exit 1; }',
             )
         ]
         assert order == sorted(order), job
@@ -334,7 +337,7 @@ def test_build_tree_is_deleted_as_root_even_after_a_failure():
     kill = delete.index('docker rm -f "$CONTAINER"')
     verify = delete.index('docker ps -aq --filter "name=^${CONTAINER}')
     wipe = delete.index('--entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete')
-    empty = delete.index("workspace not empty after clean-up")
+    empty = delete.index("workspace not empty or not readable after clean-up")
     assert kill < verify < wipe < empty
 
 

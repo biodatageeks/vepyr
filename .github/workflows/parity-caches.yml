@@ -88,11 +88,12 @@ jobs:
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           # Entries the runner user cannot delete (a wheel build writes as
           # root) are deleted as root in the pinned image. `find` follows no
-          # symbolic link.
+          # symbolic link, and GNU find exits non-zero when a delete fails.
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
           fi
-          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit) || rest=unreadable
+          [ -z "$rest" ] || { echo "::error::workspace not empty or not readable after clean-up"; exit 1; }
           # Without this check a missing python3 would read as "not a command".
           python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' \
             || { echo "::error::python3 3.10 or newer is required on runner $RUNNER_NAME"; exit 1; }
@@ -163,7 +164,8 @@ jobs:
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
           fi
-          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit) || rest=unreadable
+          [ -z "$rest" ] || { echo "::error::workspace not empty or not readable after clean-up"; exit 1; }
           command -v gh >/dev/null || { echo "::error::gh is not installed on runner $RUNNER_NAME"; exit 1; }
           python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' \
             || { echo "::error::python3 3.10 or newer is required on runner $RUNNER_NAME"; exit 1; }
@@ -324,7 +326,8 @@ jobs:
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
           fi
-          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit) || rest=unreadable
+          [ -z "$rest" ] || { echo "::error::workspace not empty or not readable after clean-up"; exit 1; }
           res=$(mktemp -d "$RUNNER_TEMP/wheel.XXXXXX")
           echo "RES=$res" >> "$GITHUB_ENV"
           # maturin-action runs `sudo rm` and `sudo chown` on paths under the
@@ -399,7 +402,8 @@ jobs:
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
           fi
-          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit) || rest=unreadable
+          [ -z "$rest" ] || { echo "::error::workspace not empty or not readable after clean-up"; exit 1; }
           rm -rf ${RES:+"$RES"}
 
   # Built like the profile job of parity-wgs.yml. It runs no checked-out (PR)
@@ -445,7 +449,8 @@ jobs:
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
           fi
-          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit) || rest=unreadable
+          [ -z "$rest" ] || { echo "::error::workspace not empty or not readable after clean-up"; exit 1; }
           rm -rf "$SCRATCH" && mkdir -p "$SCRATCH"
           res=$(mktemp -d "$RUNNER_TEMP/caches-res.XXXXXX")
           echo "RES=$res" >> "$GITHUB_ENV"
@@ -581,7 +586,8 @@ jobs:
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
           fi
-          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rest=$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit) || rest=unreadable
+          [ -z "$rest" ] || { echo "::error::workspace not empty or not readable after clean-up"; exit 1; }
           command -v gh >/dev/null || { echo "::error::gh is not installed on runner $RUNNER_NAME"; exit 1; }
           python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' \
             || { echo "::error::python3 3.10 or newer is required on runner $RUNNER_NAME"; exit 1; }
