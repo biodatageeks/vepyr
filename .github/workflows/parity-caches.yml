@@ -1,0 +1,454 @@
+name: Parity tests (caches)
+
+# Admin-only cache parity on the self-hosted runner: rebuild each published
+# cache with the PR's wheel (`vepyr.build_cache`, `vepyr.build_plugin_cache`)
+# from inputs staged on the runner and compare it with the revision pinned in
+# src/vepyr/_published.py, shard by shard: rows, schema, tiers, every column.
+#   gh workflow run parity-caches.yml -f pr=123 [-f sha=<head sha>] [-f select="core clinvar"]
+#   a PR comment `/parity-caches [<head sha>] [<selector> ...]`
+# Selectors: `core`, `plugins`, a cache type (`merged`) or a plugin name
+# (`clinvar`). None runs every target that is not opt-in; an opt-in plugin
+# (e2e-testing/golden/cache-parity-manifest.json) runs only when named.
+# Authorization, SHA pinning and isolation are those of parity-wgs.yml:
+# a fork PR must pin the head SHA the admin reviewed (7+ hex characters), so a
+# push between the comment and `authorize` cannot run unreviewed code on the
+# persistent runner. A pinned SHA is enforced for any PR.
+# issue_comment always runs the default branch's copy of this workflow.
+# PR code runs only inside a fresh `docker run` of the locally built image,
+# with the staged data mounted read-only. See ci/wgs-runner/README.md.
+# The SHA is resolved once by `authorize`; a push during the run leaves the new
+# head without a status until an admin re-runs this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+        type: string
+      sha:
+        description: Head SHA you reviewed (required for fork PRs; 7+ hex characters)
+        required: false
+        type: string
+      select:
+        description: Targets (core, plugins, a cache type, a plugin name); empty runs every default target
+        required: false
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+env:
+  WGS_IMAGE: vepyr-wgs:1
+
+jobs:
+  # Command shape check, separate from authorize so that a non-command comment
+  # ends here with every later job skipped. Runs master's helper only: for
+  # issue_comment the ref is always the default branch.
+  command:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.issue.pull_request
+          && startsWith(github.event.comment.body, '/parity-caches'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+      pin: ${{ steps.check.outputs.pin }}
+      select: ${{ steps.check.outputs.select }}
+    steps:
+      - if: github.event_name == 'issue_comment'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: ci
+      - id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          SHA_INPUT: ${{ inputs.sha }}
+          SELECT_INPUT: ${{ inputs.select }}
+        run: |
+          # The pin (hex, 7-40) and the selectors are validated again in authorize.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            printf 'pin=%s\n' "${SHA_INPUT//[^0-9A-Za-z]/}" >> "$GITHUB_OUTPUT"
+            printf 'select=%s\n' "${SELECT_INPUT//[^0-9A-Za-z_ ]/}" >> "$GITHUB_OUTPUT"
+          elif parsed=$(python3 ci/ci_helpers.py parity-caches-command --env COMMENT_BODY); then
+            # Two lines, pin=<hex or empty> and select=<lowercase words>.
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "$parsed" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            echo "Comment is not a /parity-caches command; nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  authorize:
+    needs: command
+    if: needs.command.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      # Master's own helper, pins and manifest (sparse checkout below), never the PR.
+      contents: read
+      statuses: write
+      # Read the PR; for a /parity-caches comment, also reply (pull-requests)
+      # and react on the comment (issue comment reactions need issues: write).
+      pull-requests: write
+      issues: write
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+      targets: ${{ steps.targets.outputs.targets }}
+      matrix: ${{ steps.targets.outputs.matrix }}
+      aggregate: ${{ steps.targets.outputs.aggregate }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr || github.event.issue.number }}
+      COMMENT_ID: ${{ github.event.comment.id }}
+      REF: ${{ github.ref }}
+      ACTOR: ${{ github.actor }}
+      TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+      PIN: ${{ needs.command.outputs.pin }}
+      SELECT: ${{ needs.command.outputs.select }}
+    steps:
+      - name: Only master's workflow may run this
+        run: |
+          # Dispatching from a branch would run that branch's workflow and helper.
+          [ "$REF" = "refs/heads/master" ] || { echo "::error::dispatch from master, not $REF"; exit 1; }
+      - id: admin
+        name: Only admins may run this
+        run: |
+          # A re-run keeps github.actor as the original dispatcher, so check
+          # both. "Re-run all jobs" re-runs this job, so triggering_actor must be
+          # an admin; "Re-run failed jobs" reuses the earlier successful
+          # authorize, which is acceptable: an admin already approved that SHA.
+          # For a /parity-caches comment, github.actor is the commenter.
+          for who in "$ACTOR" "$TRIGGERING_ACTOR"; do
+            perm=$(gh api "repos/$REPO/collaborators/$who/permission" --jq .permission)
+            if [ "$perm" != "admin" ]; then
+              echo "::error::$who has '$perm' permission; parity tests are admin-only"; exit 1
+            fi
+          done
+      - id: pr
+        name: Resolve the PR head SHA
+        run: |
+          [[ "$PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number, got '$PR'"; exit 1; }
+          refuse() {  # message for the reply step, then fail
+            printf 'msg=%s\n' "$1" >> "$GITHUB_OUTPUT"; echo "::error::$1"; exit 1
+          }
+          # One read, so state, head and fork-ness describe the same moment.
+          read -r state sha head_repo < <(gh api "repos/$REPO/pulls/$PR" \
+            --jq '[.state, .head.sha, (.head.repo.full_name // "deleted")] | @tsv')
+          [ "$state" = "open" ] || refuse "PR #$PR is $state"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || refuse "unexpected head SHA"
+          # Master's helper is not checked out yet: match the pin in shell.
+          pin=${PIN,,}
+          if [ -n "$pin" ]; then
+            [[ "$pin" =~ ^[0-9a-f]{7,40}$ ]] || refuse "pinned SHA must be 7-40 hex characters"
+            [[ "$sha" == "$pin"* ]] \
+              || refuse "pinned SHA does not match the PR head \`$sha\` (pushed after review?); re-check and pin the new head"
+          elif [ "$head_repo" != "$REPO" ]; then
+            refuse "fork PR: pin the head you reviewed with \`/parity-caches ${sha:0:12}\`"
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Testing PR #$PR at $sha" >> "$GITHUB_STEP_SUMMARY"
+      # The workflow's own ref (master), never the PR: the pinned caches and the
+      # manifest decide which statuses a run owes and what each job may use, so
+      # a PR must not be able to shrink the list or raise its own limits.
+      # Non-cone patterns keep the golden VCFs next to the manifest out.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /ci/
+            /e2e-testing/golden/cache-parity-manifest.json
+            /src/vepyr/_published.py
+          persist-credentials: false
+      - id: targets
+        name: Resolve the targets from master's pins and manifest
+        run: |
+          # The helper prints targets=, matrix= and aggregate=; its error text
+          # quotes a selector only after checking it is a lowercase word.
+          if ! out=$(python3 ci/ci_helpers.py cache-targets \
+              --published src/vepyr/_published.py \
+              --manifest e2e-testing/golden/cache-parity-manifest.json \
+              --select "$SELECT" 2>"$RUNNER_TEMP/targets.err"); then
+            msg=$(head -c 300 "$RUNNER_TEMP/targets.err" | tr -d '\r\n`')
+            printf 'msg=%s\n' "$msg" >> "$GITHUB_OUTPUT"; echo "::error::$msg"; exit 1
+          fi
+          printf '%s\n' "$out" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$out" | sed -n 's/^targets=/Targets: /p; s/^aggregate=/Covers every default target: /p' >> "$GITHUB_STEP_SUMMARY"
+      - name: Mark pending
+        env:
+          SHA: ${{ steps.pr.outputs.sha }}
+          TARGETS: ${{ steps.targets.outputs.targets }}
+          AGGREGATE: ${{ steps.targets.outputs.aggregate }}
+        run: |
+          # parity/caches speaks for the whole default set, so a run of
+          # selected targets leaves it alone and marks only its own contexts.
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          contexts=()
+          if [ "$AGGREGATE" = true ]; then contexts+=(parity/caches); fi
+          while IFS= read -r target; do
+            contexts+=("parity/caches/$target")
+          done < <(python3 -c 'import json, sys; print("\n".join(json.loads(sys.argv[1])))' "$TARGETS")
+          for context in "${contexts[@]}"; do
+            gh api -X POST "repos/$REPO/statuses/$SHA" \
+              -f state=pending -f context="$context" -f description="running" \
+              -f target_url="$url"
+          done
+      - name: Acknowledge the /parity-caches comment
+        if: github.event_name == 'issue_comment'
+        # The run is already authorized and pending; a failed reply must not
+        # skip the tests and leave the status pending.
+        continue-on-error: true
+        env:
+          SHA: ${{ steps.pr.outputs.sha }}
+          TARGETS: ${{ steps.targets.outputs.targets }}
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          gh api -X POST "repos/$REPO/issues/$PR/comments" \
+            -f body="Cache parity started on \`$SHA\` for @$ACTOR (\`${TARGETS//\`/}\`): $url"
+          gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=rocket \
+            || echo "::warning::reaction failed"
+      - name: Refuse a non-admin /parity-caches comment
+        if: failure() && github.event_name == 'issue_comment' && steps.admin.outcome == 'failure'
+        run: |
+          gh api -X POST "repos/$REPO/issues/$PR/comments" \
+            -f body="@$ACTOR /parity-caches is admin-only; ask a maintainer to run it."
+      - name: Report a /parity-caches comment that could not start
+        if: failure() && github.event_name == 'issue_comment' && steps.admin.outcome == 'success'
+        env:
+          # Built in the pr and targets steps from API values, validated
+          # selectors and fixed text only.
+          MSG: ${{ steps.pr.outputs.msg || steps.targets.outputs.msg }}
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          gh api -X POST "repos/$REPO/issues/$PR/comments" \
+            -f body="/parity-caches could not start${MSG:+: $MSG}; see $url"
+
+  build-wheel:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+      - uses: PyO3/maturin-action@v1
+        with:
+          target: x86_64
+          args: --release --out dist --find-interpreter
+          # No sccache: a PR build.rs could poison entries in master's cache scope.
+          sccache: false
+          manylinux: auto
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist
+
+  # The only job on the persistent self-hosted runner, built like the profile
+  # job of parity-wgs.yml. It runs no checked-out (PR) code on the host: the
+  # wheel is found with a shell glob, the fallback result is written with
+  # printf, and the PR's run-cache-parity.sh runs only inside a throwaway,
+  # unprivileged container.
+  # The host never follows a PR-controlled path: after checkout it neither
+  # reads nor writes the workspace (a PR can commit symlinks there), and it
+  # reads $SCRATCH (written by PR code in the container) only after purging
+  # every non-regular entry, copying size-capped regular files into $RES,
+  # a host-created directory outside the workspace that all uploads come from.
+  # Timeout and memory cap of each target come from master's manifest
+  # (authorize), not from the PR.
+  # Parallelism: the four vepyr-wgs hosts take one job each; further targets
+  # queue FIFO, behind or ahead of /parity-wgs jobs. No workflow concurrency
+  # group, for the reason given in parity-wgs.yml.
+  cache:
+    needs: [authorize, build-wheel]
+    name: caches (${{ matrix.target }})
+    runs-on: [self-hosted, linux, x64, vepyr-wgs]
+    timeout-minutes: ${{ matrix.timeout }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.authorize.outputs.matrix) }}
+    env:
+      TARGET: ${{ matrix.target }}
+      MEMORY: ${{ matrix.memory }}
+      SCRATCH: /scratch/vepyr-wgs/${{ github.run_id }}-${{ github.run_attempt }}-caches-${{ matrix.target }}
+      CONTAINER: vepyr-caches-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.target }}
+    steps:
+      - name: Clean leftovers from earlier jobs
+        run: |
+          # A job container that outlived a cancelled or timed-out job; the
+          # label is shared with /parity-wgs, whose jobs use the same hosts.
+          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
+          rm -rf "$SCRATCH" && mkdir -p "$SCRATCH"
+          res=$(mktemp -d "$RUNNER_TEMP/caches-res.XXXXXX")
+          echo "RES=$res" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          lfs: false
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: ${{ env.SCRATCH }}/dist
+      - id: run
+        name: Rebuild and compare in a fresh container
+        run: |
+          docker image inspect "$WGS_IMAGE" >/dev/null || { echo "::error::image $WGS_IMAGE missing on runner; run ci/wgs-runner/build-image.sh"; exit 3; }
+          [[ "$MEMORY" =~ ^[1-9][0-9]{0,3}g$ ]] || { echo "::error::unexpected memory cap"; exit 3; }
+          # No checked-out (PR) code runs on the host: shell only here. The
+          # container has not run yet, so dist/ holds only the downloaded wheel.
+          shopt -s nullglob
+          wheels=("$SCRATCH"/dist/vepyr-*manylinux*x86_64*.whl)
+          [ "${#wheels[@]}" -eq 1 ] || { echo "::error::expected one x86_64 wheel, got ${#wheels[@]}"; exit 3; }
+          wheel="${wheels[0]}"
+          # --network bridge: PyPI for the wheel's dependencies, GitHub for the
+          # plugin manifests and, for a plugin cache that is not staged,
+          # Hugging Face. The egress firewall allows the public internet only.
+          docker run --rm --name "$CONTAINER" --label vepyr-wgs=1 --network bridge \
+            --cap-drop ALL --security-opt no-new-privileges --pids-limit 4096 \
+            --memory "$MEMORY" --memory-swap "$MEMORY" \
+            --user "$(id -u):$(id -g)" --read-only --tmpfs /tmp:rw,size=4g \
+            -e HOME=/work -e WORK=/work \
+            -v /data/vepyr:/data:ro -v "$SCRATCH":/work:rw -v "$GITHUB_WORKSPACE":/src:ro \
+            "$WGS_IMAGE" bash /src/ci/wgs-runner/run-cache-parity.sh "$TARGET" "/work/dist/$(basename "$wheel")"
+      - name: Collect results
+        if: always()
+        run: |
+          if [ -z "${RES:-}" ] || [ ! -d "$RES" ]; then echo "::error::no host results dir"; exit 1; fi
+          fail() {  # host-side error result; $SCRATCH is not read
+            printf '{"name":"caches/%s","conclusion":"error","summary":"%s"}\n' "$TARGET" "$1" > "$RES/result-caches-$TARGET.json"
+            echo "::error::$1"; exit 1
+          }
+          # On cancel or timeout the runner kills the docker CLI, not the
+          # container: make sure no PR code is still writing to $SCRATCH.
+          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+          left=$(docker ps -aq --filter "name=^${CONTAINER}\$") || fail "cannot list containers"
+          [ -z "$left" ] || fail "job container still present"
+          # $SCRATCH was written by PR code: drop symlinks and specials first
+          # (twice, around the chmod that undoes any unreadable directories).
+          find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
+          chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
+          find "$SCRATCH" -mindepth 1 \( -type l -o ! -type f ! -type d \) -delete 2>/dev/null || true
+          real_scratch=$(realpath -e -- "$SCRATCH") || fail "scratch missing"
+          take() {  # take SRC DEST MAXBYTES: copy a capped regular file into $RES
+            [ -f "$1" ] && [ ! -L "$1" ] || return 1
+            local real
+            # Defence in depth against a symlinked directory component.
+            real=$(realpath -e -- "$1") || return 1
+            case "$real" in "$real_scratch"/*) ;; *) return 1 ;; esac
+            mkdir -p "$(dirname "$2")" && head -c "$3" -- "$real" > "$2"
+          }
+          take "$SCRATCH/summary.txt" "$RES/summary.txt" 65536 || true
+          take "$SCRATCH/run.log" "$RES/reports/run.log" 5242880 || true
+          take "$SCRATCH/result.json" "$RES/result-caches-$TARGET.json" 16384 \
+            || printf '{"name":"caches/%s","conclusion":"error","summary":"no result written"}\n' "$TARGET" > "$RES/result-caches-$TARGET.json"
+          if [ -f "$RES/summary.txt" ]; then mkdir -p "$RES/reports" && cp -- "$RES/summary.txt" "$RES/reports/summary.txt"; fi
+          if [ -d "$SCRATCH/out/reports" ] && [ ! -L "$SCRATCH/out/reports" ]; then
+            # At most 200 files, 5 MiB each, 200 MiB in total.
+            n=0; budget=$((200 * 1024 * 1024))
+            while IFS= read -r -d '' f; do
+              n=$((n + 1))
+              if [ "$n" -gt 200 ] || [ "$budget" -le 0 ]; then break; fi
+              cap=$((budget < 5242880 ? budget : 5242880))
+              dest="$RES/reports/out/${f#"$SCRATCH/out/reports/"}"
+              take "$f" "$dest" "$cap" || continue
+              budget=$((budget - $(stat -c %s -- "$dest")))
+            done < <(find "$SCRATCH/out/reports" -type f -print0)
+          fi
+          { echo "### caches ($TARGET)"; echo '```'; cat "$RES/summary.txt" 2>/dev/null || echo "did not run"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-caches-${{ matrix.target }}
+          path: ${{ env.RES }}/result-caches-${{ matrix.target }}.json
+          # "Re-run failed jobs" uploads the same name again in this run.
+          overwrite: true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: caches-${{ matrix.target }}-reports
+          path: ${{ env.RES }}/reports
+          overwrite: true
+          if-no-files-found: ignore
+      - name: Remove scratch, results and workspace
+        if: always()
+        run: |
+          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+          chmod -R u+rwX "$SCRATCH" 2>/dev/null || true
+          rm -rf "$SCRATCH" ${RES:+"$RES"}
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
+
+  report:
+    needs: [authorize, cache]
+    if: ${{ !cancelled() && needs.authorize.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+      # Reply on the PR for a /parity-caches comment.
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr || github.event.issue.number }}
+      SHA: ${{ needs.authorize.outputs.sha }}
+      # From master's pins and manifest (authorize); the job result is a fixed
+      # enum. Result files come from a job that ran PR code: data only, never
+      # interpolated into a script.
+      TARGETS: ${{ needs.authorize.outputs.targets }}
+      AGGREGATE: ${{ needs.authorize.outputs.aggregate }}
+      CACHE_RESULT: ${{ needs.cache.result }}
+    steps:
+      # The workflow's own ref (master), never the PR: this job holds statuses: write.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-caches-*
+          path: results
+      - name: Post statuses
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          mkdir -p results
+          python3 ci/ci_helpers.py caches-statuses --results-dir results \
+            --targets "$TARGETS" --job "$CACHE_RESULT" --aggregate "$AGGREGATE" \
+            > statuses.tsv
+          cat statuses.tsv
+          failed=0
+          while IFS=$'\t' read -r ctx state desc; do
+            gh api -X POST "repos/$REPO/statuses/$SHA" \
+              -f state="$state" -f context="$ctx" -f description="$desc" \
+              -f target_url="$url" || failed=1
+          done < statuses.tsv
+          exit "$failed"
+      - name: Reply to the /parity-caches comment
+        if: ${{ !cancelled() && github.event_name == 'issue_comment' }}
+        run: |
+          url="$GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"
+          # Descriptions can carry text from a job that ran PR code: keep it
+          # inside a code span so it cannot render as markdown or mentions.
+          # Contexts are built from master's validated target names.
+          body="Cache parity on \`$SHA\`:"
+          rows=0
+          while IFS=$'\t' read -r ctx state desc; do
+            body+=$'\n'"- \`${ctx//\`/}\`: **${state//[^a-z]/}** \`${desc//\`/}\`"
+            rows=$((rows + 1))
+          done < <(cat statuses.tsv 2>/dev/null || true)
+          [ "$rows" -gt 0 ] || body+=$'\n'"- **error** \`no status computed\`"
+          body+=$'\n\n'"Run: $url"
+          gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$body"

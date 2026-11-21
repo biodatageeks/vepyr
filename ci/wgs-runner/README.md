@@ -16,9 +16,9 @@ It writes `/work/result.json` and `/work/summary.txt`.
 1. Install Docker, add the runner user to the `docker` group and restart the
    runner service.
 2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, `gh-runner-bdg-1`).
-3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
-   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`
-   where the plan allows it. **Currently not done** (see "Accepted residual
+3. Restrict the runner group to repository `biodatageeks/vepyr` and workflows
+   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master` and
+   `.../parity-caches.yml@refs/heads/master` where the plan allows it. **Currently not done** (see "Accepted residual
    risk"): the runner is in the shared default group `bdg-runners`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
 5. **Mandatory: egress firewall.** Job containers run PR code with
@@ -130,6 +130,93 @@ When `Dockerfile` changes, bump `IMAGE` (for example `vepyr-wgs:2`) and the
 workflow's `WGS_IMAGE` in the same commit, merge, then run `build-image.sh`
 from a checkout of `master` on the runner. Jobs never pull the image; a tag
 that was not built locally fails fast.
+
+## Cache parity (`/parity-caches`)
+
+`.github/workflows/parity-caches.yml` uses the same four hosts, image,
+container hardening and admin-only authorization as `/parity-wgs`. Each job
+runs `run-cache-parity.sh <target> <wheel-path>` in the container: it rebuilds
+one published cache with the PR's wheel and compares it with the revision
+pinned in `src/vepyr/_published.py`
+(`e2e-testing/scripts/cache_parity.py`). A target is a cache type (`ensembl`,
+`merged`, `refseq`) or `plugin_<name>`; the list comes from master's
+`_published.py`, and timeouts, memory caps and the opt-in plugins from master's
+`e2e-testing/golden/cache-parity-manifest.json`.
+
+Exit codes of `run-cache-parity.sh`: 0 the rebuilt cache is the published one,
+1 parity mismatch, 3 the runner is not ready (staged data missing or at
+another revision, scratch too small), anything else is an error. It writes
+`/work/result.json`, `/work/summary.txt` and
+`/work/out/reports/cache-parity.json` (every shard, with the differing columns
+and example rows).
+
+### What a job compares
+
+- Core cache: `vepyr.build_cache(..., local_cache=<raw cache>)` into scratch,
+  compared with `/data/vepyr/cache/<release>_<assembly>_<type>`, the copy
+  `stage-data.sh` already stages for `/parity-wgs`. Its `.revision` marker must
+  name the pinned revision, otherwise the job exits 3. Per entity and contig
+  shard: row count, schema (names, order, types, nullability, key-value
+  metadata) and every column in row order; also `chrom_manifest.json`,
+  `reference_policy.json` and `chr_synonyms.txt`.
+- Plugin cache: `vepyr.build_plugin_cache(...)` into scratch, for the contigs,
+  source files and `vepyr-plugins` commit that the published `manifest.json`
+  records (`chroms`, `sources`, `cache_source_version`), with tiers taken from
+  the staged `merged` cache. Compared like a core cache, plus the warm/cold
+  counts of the `tier` column and of `manifest.json`. `verify_source` is strict
+  when the published build verified the upstream digest, and `warn` when its
+  input was a derived file (AlphaMissense's BGZF re-compression).
+- Rows in another order but otherwise identical pass with a note, for shards
+  of up to 2,000,000 rows; a larger shard is compared in row order only.
+
+### Staged inputs
+
+`stage-cache-inputs.sh [--data /data/vepyr] [--select "<selectors>"]` stages
+them next to the `/parity-wgs` data (run `stage-data.sh` first). It needs
+`uvx`, `curl`, `python3`, `md5sum`, `tar`, and `bgzip`/`tabix` for
+AlphaMissense. Without `--select` it stages every default target; an opt-in
+plugin is staged only when named (`--select "core plugins cadd spliceai"`).
+
+| Path under `/data/vepyr` | Content | Size |
+|---|---|---|
+| `cache/116_GRCh38_{ensembl,merged,refseq}` | published core caches (from `stage-data.sh`) | 97 GB |
+| `vep-cache/homo_sapiens{,_merged,_refseq}/116_GRCh38` | raw Ensembl VEP caches, unpacked from `indexed_vep_cache/*_vep_116_GRCh38.tar.gz` and checked against Ensembl's `CHECKSUMS` | about 150 GB |
+| `plugin-cache/116_GRCh38/plugin/<plugin>` | published plugin cache at the pinned revision, with a `.revision` marker | 81 MB ClinVar, 541 MB AlphaMissense, 2 MB PhenotypeOrthologous |
+| `plugin-source/<plugin>/<file>` (+ index) | the files listed under `sources` in the published `manifest.json`, under the names recorded there, fetched from the recorded `url` and checked against the recorded `md5` | 192 MB ClinVar, 628 MB AlphaMissense, 3 MB PhenotypeOrthologous |
+
+A plugin cache that is not staged, or is staged at another revision than the
+PR pins, is downloaded inside the job with `vepyr.download_plugin_cache` (the
+egress firewall allows the public internet, so Hugging Face is reachable from
+the container); staging it avoids the download and is what the opt-in plugins
+need. Core caches are never downloaded in a job: a staged core cache at
+another revision ends the job with exit code 3. The plugin manifests are cloned from GitHub by
+`build_plugin_cache` itself.
+
+Opt-in plugins (`opt_in` in the manifest; not staged and not run unless
+named):
+
+| Plugin | Sources | Published cache | Why opt-in |
+|---|---|---|---|
+| CADD | 87.5 GB + 1.3 GB | 71 GB | size; free for non-commercial use only |
+| SpliceAI | 28.5 GB | 23 GB | size; Illumina's licence restricts use |
+
+dbNSFP has no published cache (its licence forbids redistribution), so it is
+not a target. AlphaMissense's build input is a BGZF re-compression of the
+upstream gzip file; the staging script prepares it as
+`vepyr-plugins/plugins/alphamissense/README.md` describes. BGZF output is not
+byte-stable across htslib versions, so the job reports a digest that differs
+from the published build's as a note, not as a failure.
+
+A core job needs about 60 GB of scratch for the rebuilt cache (`scratch_gb` in
+the manifest; the job exits 3 when `/scratch` has less), which is more than the
+20 GB `check.sh` asks for.
+
+### Statuses
+
+`parity/caches` is posted only by a run that covers every default target, and
+follows the rules of `parity/wgs`: `error` when any target hit missing data or
+a crash, `failure` for mismatches alone. `parity/caches/<target>` are
+informational. A run of selected targets posts only those.
 
 ## Accepted residual risk
 

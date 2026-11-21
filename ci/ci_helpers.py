@@ -9,6 +9,7 @@ Stdlib only: it runs on a bare runner before any environment exists.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -200,6 +201,7 @@ def _tier_rows(
     profiles: list[str],
     job_result: str,
     error_wins: bool = False,
+    noun: str = "profiles",
 ) -> list[tuple[str, str, str]]:
     """Per-profile rows plus a job-confirmed aggregate for one matrix tier.
 
@@ -221,15 +223,15 @@ def _tier_rows(
     if error_wins and errored:
         aggregate = (
             "error",
-            f"{len(errored)} of {len(profiles)} profiles errored: {', '.join(errored)}",
+            f"{len(errored)} of {len(profiles)} {noun} errored: {', '.join(errored)}",
         )
     elif bad:
         aggregate = (
             "failure",
-            f"{len(bad)} of {len(profiles)} profiles not passing: {', '.join(bad)}",
+            f"{len(bad)} of {len(profiles)} {noun} not passing: {', '.join(bad)}",
         )
     else:
-        aggregate = ("success", f"{len(profiles)} profiles pass")
+        aggregate = ("success", f"{len(profiles)} {noun} pass")
     if aggregate[0] == "success" and job_result != "success":
         aggregate = ("error", f"job result {job_result} contradicts verdict")
     rows.append((context, *aggregate))
@@ -334,6 +336,179 @@ def is_parity_wgs_command(text: str) -> bool:
     return parity_wgs_pin(text) is not None
 
 
+PARITY_CACHES_COMMAND = "/parity-caches"
+CACHE_SELECTOR = re.compile(r"[a-z][a-z0-9_]*")
+MAX_CACHE_SELECTORS = 16
+PLUGIN_PREFIX = "plugin_"
+COMMIT = re.compile(r"[0-9a-f]{40}")
+MEMORY_LIMIT = re.compile(r"[1-9][0-9]{0,3}g")
+
+
+def parity_caches_command(text: str) -> tuple[str, list[str]] | None:
+    """Pinned SHA and selectors of a /parity-caches comment; None if not the command.
+
+    The command is `/parity-caches [<sha>] [<selector> ...]` on one line, the
+    words separated by single spaces. The SHA is pinned as for /parity-wgs and
+    must come first: a first word of 7-40 hex characters is the pin, never a
+    selector. Selectors (`core`, `plugins`, a cache type, a plugin name) are
+    only checked for shape here; `cache_targets` resolves them.
+    """
+    head, *words = text.rstrip(" \t\r\n").split(" ")
+    if head != PARITY_CACHES_COMMAND:
+        return None
+    pin = ""
+    if words and PINNED_SHA.fullmatch(words[0]):
+        pin, words = words[0], words[1:]
+    if len(words) > MAX_CACHE_SELECTORS:
+        return None
+    if any(not CACHE_SELECTOR.fullmatch(word) for word in words):
+        return None
+    return pin, words
+
+
+def published_pins(published_py: Path) -> dict[tuple[int, str, str], str]:
+    """`PINS` of src/vepyr/_published.py, read without importing vepyr."""
+    for node in ast.parse(published_py.read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.AnnAssign):
+            target = node.target
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+        else:
+            continue
+        if not (isinstance(target, ast.Name) and target.id == "PINS" and node.value):
+            continue
+        try:
+            pins = ast.literal_eval(node.value)
+        except ValueError as exc:
+            raise CiError(f"PINS in {published_py} is not a literal: {exc}") from exc
+        if not isinstance(pins, dict):
+            break
+        for key, commit in pins.items():
+            if not (
+                isinstance(key, tuple)
+                and len(key) == 3
+                and isinstance(key[0], int)
+                and isinstance(key[1], str)
+                and isinstance(key[2], str)
+                and isinstance(commit, str)
+                and COMMIT.fullmatch(commit)
+            ):
+                raise CiError(f"unexpected PINS entry in {published_py}: {key!r}")
+        return pins
+    raise CiError(f"no PINS dictionary in {published_py}")
+
+
+def _cache_limits(manifest: dict, target: str) -> dict:
+    """Job timeout and container memory of one target, from the parity manifest."""
+    is_plugin = target.startswith(PLUGIN_PREFIX)
+    limits = dict(
+        (manifest.get("limits") or {}).get("plugin" if is_plugin else "core") or {}
+    )
+    section = manifest.get("plugins" if is_plugin else "core") or {}
+    entry = section.get(target.removeprefix(PLUGIN_PREFIX)) or {}
+    limits.update({k: entry[k] for k in ("timeout_minutes", "memory") if k in entry})
+    timeout, memory = limits.get("timeout_minutes"), limits.get("memory")
+    if not (
+        isinstance(timeout, int)
+        and not isinstance(timeout, bool)
+        and 1 <= timeout <= 7200
+    ):
+        raise CiError(f"{target}: timeout_minutes must be 1-7200, got {timeout!r}")
+    if not (isinstance(memory, str) and MEMORY_LIMIT.fullmatch(memory)):
+        raise CiError(f"{target}: memory must look like '22g', got {memory!r}")
+    return {"timeout": timeout, "memory": memory}
+
+
+def cache_targets(
+    pins: dict[tuple[int, str, str], str], manifest: dict, selectors: list[str]
+) -> dict:
+    """The /parity-caches matrix: one target per pinned cache and plugin cache.
+
+    Targets are the names pinned for the manifest's release and assembly: a
+    cache type, or `plugin_<name>`. A plugin the manifest marks `opt_in` runs
+    only when a selector names it. `aggregate` is true when the selection
+    covers every default target, so `parity/caches` may speak for the whole
+    set; a narrower run reports only its own targets.
+    """
+    release, assembly = manifest.get("release"), manifest.get("assembly")
+    names = sorted(n for (r, a, n) in pins if r == release and a == assembly)
+    for name in names:
+        if not PROFILE_NAME.fullmatch(name):
+            raise CiError(f"invalid cache name: {name!r}")
+    core = [n for n in names if not n.startswith(PLUGIN_PREFIX)]
+    plugins = [n for n in names if n.startswith(PLUGIN_PREFIX)]
+    if not names:
+        raise CiError(f"no cache is pinned for release {release} {assembly}")
+    entries = manifest.get("plugins") or {}
+    opt_in = {
+        n
+        for n in plugins
+        if (entries.get(n.removeprefix(PLUGIN_PREFIX)) or {}).get("opt_in")
+    }
+    default = [n for n in names if n not in opt_in]
+    chosen: set[str] = set() if selectors else set(default)
+    for selector in selectors:
+        if not CACHE_SELECTOR.fullmatch(selector):
+            raise CiError(f"invalid selector: {selector!r}")
+        if selector == "core":
+            chosen.update(core)
+        elif selector == "plugins":
+            chosen.update(n for n in plugins if n not in opt_in)
+        elif selector in names:
+            chosen.add(selector)
+        elif PLUGIN_PREFIX + selector in plugins:
+            chosen.add(PLUGIN_PREFIX + selector)
+        else:
+            known = [
+                "core",
+                "plugins",
+                *core,
+                *(p.removeprefix(PLUGIN_PREFIX) for p in plugins),
+            ]
+            raise CiError(
+                f"unknown selector '{selector}'; use one of: {', '.join(known)}"
+            )
+    targets = [n for n in (*core, *plugins) if n in chosen]
+    if not targets:
+        raise CiError("the selection is empty")
+    return {
+        "targets": targets,
+        "aggregate": set(default) <= set(targets),
+        "matrix": {
+            "include": [{"target": n, **_cache_limits(manifest, n)} for n in targets]
+        },
+    }
+
+
+def caches_statuses(
+    results_dir: Path, targets: list[str], job_result: str, aggregate: bool
+) -> list[tuple[str, str, str]]:
+    """Commit statuses for one /parity-caches run, same trust rules as statuses().
+
+    Without `aggregate` (a run of selected targets) there is no `parity/caches`
+    row. The per-target rows then carry the verdict, so they are not believed
+    when every one claims success but the matrix job did not succeed.
+    """
+    _check_profiles(targets)
+    records, duplicates = _load_records(results_dir)
+    rows = _tier_rows(
+        records,
+        duplicates,
+        context="parity/caches",
+        record_prefix="caches/",
+        profiles=targets,
+        job_result=job_result,
+        error_wins=True,
+        noun="targets",
+    )
+    if not aggregate and targets:
+        rows = rows[:-1]
+        if job_result != "success" and all(state == "success" for _, state, _ in rows):
+            contradiction = f"job result {job_result} contradicts verdict"
+            rows = [(ctx, "error", contradiction) for ctx, _, _ in rows]
+    return [(ctx, st, _clip(desc)) for ctx, st, desc in rows]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ci_helpers.py")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -374,6 +549,23 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--results-dir", type=Path, required=True)
     p.add_argument("--profiles", default="[]", help="JSON list (may be empty)")
     p.add_argument("--job", required=True, help="needs.<job>.result")
+    p = sub.add_parser(
+        "parity-caches-command",
+        help="print pin= and select= of a /parity-caches comment; "
+        "exit 1 if the text is not the command",
+    )
+    p.add_argument("--env", help="read the text from this variable, not stdin")
+    p = sub.add_parser(
+        "cache-targets", help="print targets=, matrix= and aggregate= for a selection"
+    )
+    p.add_argument("--published", type=Path, required=True, help="_published.py")
+    p.add_argument("--manifest", type=Path, required=True)
+    p.add_argument("--select", default="", help="selectors separated by spaces")
+    p = sub.add_parser("caches-statuses")
+    p.add_argument("--results-dir", type=Path, required=True)
+    p.add_argument("--targets", default="[]", help="JSON list (may be empty)")
+    p.add_argument("--job", required=True, help="needs.<job>.result")
+    p.add_argument("--aggregate", required=True, choices=["true", "false"])
     args = parser.parse_args(argv)
     try:
         if args.command == "find-wheel":
@@ -416,6 +608,31 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "wgs-statuses":
             names = parse_profiles(args.profiles)
             for ctx, st, desc in wgs_statuses(args.results_dir, names, args.job):
+                print(f"{ctx}\t{st}\t{desc}")
+        elif args.command == "parity-caches-command":
+            text = os.environ.get(args.env, "") if args.env else sys.stdin.read()
+            parsed = parity_caches_command(text)
+            if parsed is None:
+                raise CiError("not the /parity-caches command")
+            print(f"pin={parsed[0]}")
+            print(f"select={' '.join(parsed[1])}")
+        elif args.command == "cache-targets":
+            try:
+                manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                raise CiError(f"cannot read {args.manifest}: {exc}") from exc
+            selection = cache_targets(
+                published_pins(args.published), manifest, args.select.split()
+            )
+            print(f"targets={json.dumps(selection['targets'])}")
+            print(f"matrix={json.dumps(selection['matrix'])}")
+            print(f"aggregate={'true' if selection['aggregate'] else 'false'}")
+        elif args.command == "caches-statuses":
+            names = parse_profiles(args.targets)
+            rows = caches_statuses(
+                args.results_dir, names, args.job, args.aggregate == "true"
+            )
+            for ctx, st, desc in rows:
                 print(f"{ctx}\t{st}\t{desc}")
     except CiError as exc:
         print(f"ci_helpers: {exc}", file=sys.stderr)

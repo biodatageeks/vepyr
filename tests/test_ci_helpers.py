@@ -604,3 +604,320 @@ def test_wgs_statuses_cli(tmp_path, capsys):
         line.split("\t")[0] for line in capsys.readouterr().out.strip().splitlines()
     }
     assert ctxs == {"parity/wgs/merged", "parity/wgs"}
+
+
+# ---- /parity-caches ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text, parsed",
+    [
+        ("/parity-caches", ("", [])),
+        ("/parity-caches\n", ("", [])),
+        ("/parity-caches \r\n", ("", [])),
+        ("/parity-caches 3bba0d5", ("3bba0d5", [])),
+        ("/parity-caches " + "a" * 40, ("a" * 40, [])),
+        ("/parity-caches core", ("", ["core"])),
+        ("/parity-caches plugins merged", ("", ["plugins", "merged"])),
+        ("/parity-caches 3bba0d5 clinvar cadd", ("3bba0d5", ["clinvar", "cadd"])),
+        ("/parity-caches plugin_clinvar", ("", ["plugin_clinvar"])),
+        # cadd is hex but too short for a pin, so it is a selector
+        ("/parity-caches cadd", ("", ["cadd"])),
+    ],
+)
+def test_parity_caches_command_accepts(text, parsed):
+    assert ci_helpers.parity_caches_command(text) == parsed
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "/parity",
+        "/parity-wgs",
+        " /parity-caches",
+        "/parity-cachesx",
+        "/parity-caches-now",
+        "`/parity-caches`",
+        "/parity-caches\nclinvar",
+        "/parity-caches  clinvar",  # two spaces
+        "/parity-caches\tclinvar",
+        "/parity-caches Clinvar",
+        "/parity-caches clinvar;id",
+        "/parity-caches $(id)",
+        "/parity-caches 3BBA0D5",  # not lowercase, and not a selector
+        "/parity-caches 115",
+        "/parity-caches core 3bba0d5",  # the pin comes first
+        "/parity-caches " + " ".join(["core"] * 17),
+    ],
+)
+def test_parity_caches_command_rejects(text):
+    assert ci_helpers.parity_caches_command(text) is None
+
+
+def test_parity_commands_do_not_overlap_with_caches():
+    assert not ci_helpers.is_parity_command("/parity-caches")
+    assert not ci_helpers.is_parity_wgs_command("/parity-caches")
+    assert ci_helpers.parity_caches_command("/parity") is None
+    assert ci_helpers.parity_caches_command("/parity-wgs 3bba0d5") is None
+
+
+def test_parity_caches_command_cli(monkeypatch, capsys):
+    monkeypatch.setenv("BODY", "/parity-caches 3bba0d5 core clinvar")
+    assert ci_helpers.main(["parity-caches-command", "--env", "BODY"]) == 0
+    assert capsys.readouterr().out == "pin=3bba0d5\nselect=core clinvar\n"
+    monkeypatch.setenv("BODY", "/parity-caches")
+    assert ci_helpers.main(["parity-caches-command", "--env", "BODY"]) == 0
+    assert capsys.readouterr().out == "pin=\nselect=\n"
+    monkeypatch.setenv("BODY", "/parity-caches now!")
+    assert ci_helpers.main(["parity-caches-command", "--env", "BODY"]) == 1
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PUBLISHED_PY = REPO_ROOT / "src/vepyr/_published.py"
+CACHE_MANIFEST = REPO_ROOT / "e2e-testing/golden/cache-parity-manifest.json"
+CACHE_PINS = {
+    (116, "GRCh38", "ensembl"): "1" * 40,
+    (116, "GRCh38", "merged"): "2" * 40,
+    (116, "GRCh38", "plugin_big"): "3" * 40,
+    (116, "GRCh38", "plugin_small"): "4" * 40,
+    (115, "GRCh38", "refseq"): "5" * 40,
+}
+CACHE_CONFIG = {
+    "release": 116,
+    "assembly": "GRCh38",
+    "limits": {
+        "core": {"timeout_minutes": 480, "memory": "22g"},
+        "plugin": {"timeout_minutes": 120, "memory": "20g"},
+    },
+    "core": {"ensembl": {}, "merged": {"memory": "24g"}},
+    "plugins": {"small": {}, "big": {"opt_in": "large", "timeout_minutes": 900}},
+}
+
+
+def test_published_pins_reads_the_committed_file_without_importing_vepyr():
+    pins = ci_helpers.published_pins(PUBLISHED_PY)
+    namespace: dict = {}
+    exec(compile(PUBLISHED_PY.read_text(), str(PUBLISHED_PY), "exec"), namespace)
+    assert pins == namespace["PINS"]
+    assert (116, "GRCh38", "merged") in pins
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "X = 1\n",
+        "PINS = build()\n",
+        "PINS = {(116, 'GRCh38'): 'a'}\n",
+        "PINS = {(116, 'GRCh38', 'merged'): 'main'}\n",
+        "PINS = [1]\n",
+    ],
+)
+def test_published_pins_refuses_anything_else(tmp_path, body):
+    path = tmp_path / "_published.py"
+    path.write_text(body)
+    with pytest.raises(ci_helpers.CiError):
+        ci_helpers.published_pins(path)
+
+
+def test_cache_targets_default_is_everything_but_opt_in():
+    selection = ci_helpers.cache_targets(CACHE_PINS, CACHE_CONFIG, [])
+    assert selection["targets"] == ["ensembl", "merged", "plugin_small"]
+    assert selection["aggregate"] is True
+    assert selection["matrix"] == {
+        "include": [
+            {"target": "ensembl", "timeout": 480, "memory": "22g"},
+            {"target": "merged", "timeout": 480, "memory": "24g"},
+            {"target": "plugin_small", "timeout": 120, "memory": "20g"},
+        ]
+    }
+
+
+@pytest.mark.parametrize(
+    "selectors, targets, aggregate",
+    [
+        (["core"], ["ensembl", "merged"], False),
+        (["plugins"], ["plugin_small"], False),
+        (["core", "plugins"], ["ensembl", "merged", "plugin_small"], True),
+        (["merged"], ["merged"], False),
+        (["small"], ["plugin_small"], False),
+        (["plugin_small", "small"], ["plugin_small"], False),
+        (["big"], ["plugin_big"], False),  # naming an opt-in plugin opts in
+        (["plugins", "big"], ["plugin_big", "plugin_small"], False),
+        (
+            ["core", "plugins", "big"],
+            ["ensembl", "merged", "plugin_big", "plugin_small"],
+            True,
+        ),
+    ],
+)
+def test_cache_targets_selectors(selectors, targets, aggregate):
+    selection = ci_helpers.cache_targets(CACHE_PINS, CACHE_CONFIG, selectors)
+    assert selection["targets"] == targets
+    assert selection["aggregate"] is aggregate
+    limits = {row["target"]: row["timeout"] for row in selection["matrix"]["include"]}
+    assert limits.get("plugin_big", 900) == 900
+
+
+@pytest.mark.parametrize(
+    "selectors, message",
+    [
+        (["refseq"], "unknown selector 'refseq'; use one of: core, plugins, ensembl"),
+        (["nope"], "unknown selector 'nope'"),
+        (["Big"], "invalid selector"),
+        (["a;b"], "invalid selector"),
+    ],
+)
+def test_cache_targets_refuses_unknown_selectors(selectors, message):
+    with pytest.raises(ci_helpers.CiError, match=message):
+        ci_helpers.cache_targets(CACHE_PINS, CACHE_CONFIG, selectors)
+
+
+def test_cache_targets_refuses_bad_manifests():
+    with pytest.raises(ci_helpers.CiError, match="no cache is pinned"):
+        ci_helpers.cache_targets(CACHE_PINS, {**CACHE_CONFIG, "release": 999}, [])
+    no_limits = {**CACHE_CONFIG, "limits": {}}
+    with pytest.raises(ci_helpers.CiError, match="timeout_minutes must be"):
+        ci_helpers.cache_targets(CACHE_PINS, no_limits, ["ensembl"])
+    bad_memory = {**CACHE_CONFIG, "core": {"ensembl": {"memory": "22g --privileged"}}}
+    with pytest.raises(ci_helpers.CiError, match="memory must look like"):
+        ci_helpers.cache_targets(CACHE_PINS, bad_memory, ["ensembl"])
+    only_opt_in = {
+        **CACHE_CONFIG,
+        "plugins": {"small": {"opt_in": "x"}, "big": {"opt_in": "y"}},
+    }
+    with pytest.raises(ci_helpers.CiError, match="selection is empty"):
+        ci_helpers.cache_targets(CACHE_PINS, only_opt_in, ["plugins"])
+    forged = {**CACHE_PINS, (116, "GRCh38", "plugin_a b"): "6" * 40}
+    with pytest.raises(ci_helpers.CiError, match="invalid cache name"):
+        ci_helpers.cache_targets(forged, CACHE_CONFIG, [])
+
+
+def test_committed_cache_manifest_covers_every_pin():
+    """A new pin must be given a raw cache path or a plugin entry on purpose."""
+    pins = ci_helpers.published_pins(PUBLISHED_PY)
+    manifest = json.loads(CACHE_MANIFEST.read_text())
+    release, assembly = manifest["release"], manifest["assembly"]
+    names = {n for (r, a, n) in pins if (r, a) == (release, assembly)}
+    core = {n for n in names if not n.startswith("plugin_")}
+    plugins = {n.removeprefix("plugin_") for n in names - core}
+    assert set(manifest["core"]) == core
+    assert all(manifest["core"][c]["raw"] for c in core)
+    assert set(manifest["plugins"]) == plugins
+    assert manifest["plugin_tiering_cache"] in core
+    selection = ci_helpers.cache_targets(pins, manifest, [])
+    assert selection["targets"] == [
+        "ensembl",
+        "merged",
+        "refseq",
+        "plugin_alphamissense",
+        "plugin_clinvar",
+        "plugin_phenotypeorthologous",
+    ]
+    everything = ci_helpers.cache_targets(
+        pins, manifest, ["core", "plugins", "cadd", "spliceai"]
+    )
+    assert set(everything["targets"]) == names
+
+
+def test_cache_targets_cli(capsys):
+    args = [
+        "cache-targets",
+        "--published",
+        str(PUBLISHED_PY),
+        "--manifest",
+        str(CACHE_MANIFEST),
+    ]
+    assert ci_helpers.main([*args, "--select", "clinvar  merged"]) == 0
+    out = dict(line.split("=", 1) for line in capsys.readouterr().out.splitlines())
+    assert json.loads(out["targets"]) == ["merged", "plugin_clinvar"]
+    assert out["aggregate"] == "false"
+    assert json.loads(out["matrix"])["include"][0] == {
+        "target": "merged",
+        "timeout": 480,
+        "memory": "22g",
+    }
+    assert ci_helpers.main(args) == 0
+    assert "aggregate=true" in capsys.readouterr().out
+    assert ci_helpers.main([*args, "--select", "dbnsfp"]) == 1
+    assert "unknown selector 'dbnsfp'" in capsys.readouterr().err
+
+
+def test_caches_statuses_all_green(tmp_path):
+    targets = ["merged", "plugin_clinvar"]
+    for t in targets:
+        write_result(tmp_path, f"caches/{t}", "success", "PASS: 25 of 25 shards")
+    rows = as_dict(ci_helpers.caches_statuses(tmp_path, targets, "success", True))
+    assert rows["parity/caches"] == ("success", "2 targets pass")
+    assert rows["parity/caches/plugin_clinvar"] == ("success", "PASS: 25 of 25 shards")
+
+
+def test_caches_statuses_mismatch_is_failure_and_error_wins(tmp_path):
+    write_result(tmp_path, "caches/merged", "success")
+    write_result(
+        tmp_path, "caches/plugin_clinvar", "failure", "FAIL: 25 of 25 shards differ"
+    )
+    targets = ["merged", "plugin_clinvar", "refseq"]
+    rows = as_dict(ci_helpers.caches_statuses(tmp_path, targets[:2], "failure", True))
+    assert rows["parity/caches"][0] == "failure"
+    assert "plugin_clinvar" in rows["parity/caches"][1]
+    rows = as_dict(ci_helpers.caches_statuses(tmp_path, targets, "failure", True))
+    assert rows["parity/caches/refseq"][0] == "error"
+    assert rows["parity/caches"][0] == "error"
+
+
+def test_caches_statuses_selected_targets_have_no_aggregate(tmp_path):
+    write_result(tmp_path, "caches/plugin_clinvar", "success", "PASS")
+    rows = ci_helpers.caches_statuses(tmp_path, ["plugin_clinvar"], "success", False)
+    assert rows == [("parity/caches/plugin_clinvar", "success", "PASS")]
+    # A forged success is not believed when the job itself did not succeed.
+    rows = ci_helpers.caches_statuses(tmp_path, ["plugin_clinvar"], "failure", False)
+    assert rows == [
+        (
+            "parity/caches/plugin_clinvar",
+            "error",
+            "job result failure contradicts verdict",
+        )
+    ]
+    write_result(tmp_path, "caches/merged", "failure", "FAIL")
+    rows = as_dict(
+        ci_helpers.caches_statuses(
+            tmp_path, ["merged", "plugin_clinvar"], "failure", False
+        )
+    )
+    assert rows == {
+        "parity/caches/merged": ("failure", "FAIL"),
+        "parity/caches/plugin_clinvar": ("success", "PASS"),
+    }
+
+
+def test_caches_statuses_cancelled_job_never_success(tmp_path):
+    write_result(tmp_path, "caches/merged", "success")
+    rows = as_dict(ci_helpers.caches_statuses(tmp_path, ["merged"], "cancelled", True))
+    assert rows["parity/caches"][0] == "error"
+    assert as_dict(ci_helpers.caches_statuses(tmp_path, [], "success", False)) == {
+        "parity/caches": ("error", "profile list missing (profiles job failed)")
+    }
+
+
+def test_caches_statuses_cli(tmp_path, capsys):
+    write_result(tmp_path, "caches/merged", "success")
+    args = [
+        "caches-statuses",
+        "--results-dir",
+        str(tmp_path),
+        "--targets",
+        '["merged"]',
+    ]
+    assert ci_helpers.main([*args, "--job", "success", "--aggregate", "true"]) == 0
+    lines = capsys.readouterr().out.strip().splitlines()
+    assert [line.split("\t")[0] for line in lines] == [
+        "parity/caches/merged",
+        "parity/caches",
+    ]
+    assert ci_helpers.main([*args, "--job", "success", "--aggregate", "false"]) == 0
+    assert capsys.readouterr().out.count("\n") == 1
+    assert (
+        ci_helpers.main([*args[:-1], '["a b"]', "--job", "x", "--aggregate", "true"])
+        == 1
+    )
