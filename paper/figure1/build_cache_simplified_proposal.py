@@ -35,7 +35,7 @@ LIGHT = "#dedede"
 # Position-column pages holding at least one cache row matched by vepyr's probes
 # (extended probes, as vepyr runs) for HG002 chr22 buffer 0 (records 1-5,000),
 # VEP 116 merged cache: position-sorted control 907, frequency-grouped cache 315
-# (65% fewer; 65-72% over the 10 full buffers of chr22). The payload of the
+# (65% fewer; 64-72% over the 10 full buffers of chr22). The payload of the
 # matched rows is read from these pages' row ranges, so payload pages decoded fall
 # by about the same share (25,517 -> 8,713 over all columns). The position-column
 # scan that finds these rows is NOT reduced (964 vs 907 pages decoded), because
