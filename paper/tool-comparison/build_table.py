@@ -145,7 +145,7 @@ COMPACT = {
     "vepyr": {
         "lang": "Rust, Python",
         "parallel": "threads",
-        "cache": "Parquet, ZSTD (core and plugins)",
+        "cache": "Parquet, zstd (core and plugins)",
         "fields": r"\textbf{80 / 85}",
         "transcripts": "Ensembl, RefSeq, merged",
         "variants": "SNV, indel",
@@ -278,7 +278,7 @@ DETAIL = {
     "vepyr": {
         "parallel": r"multi-threaded workers over index-defined position windows; output independent of the number of workers",
         "lang": r"Rust engine (DataFusion, Arrow); Python API (PyO3)",
-        "cache": r"Apache Parquet (ZSTD), partitioned by chromosome and entity, with page indexes; converted from the official VEP cache; prebuilt caches on Hugging Face with pinned revisions and manifests",
+        "cache": r"Apache Parquet (zstd), partitioned by chromosome and entity, with page indexes; converted from the official VEP cache; prebuilt caches on Hugging Face with pinned revisions and manifests",
         "coverage": r"all: 80/80, 85/85, 86/86 fields; 42 plugin fields",
         "scope": r"SNVs and short indels; regulatory and motif features; \texttt{--everything} always on; no SVs",
         "chr22": TODO,

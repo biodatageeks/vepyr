@@ -4,7 +4,7 @@
 \midrule
 \textcolor{muted}{Language} & Perl & Rust & Rust & Rust, Python \\
 \textcolor{muted}{Parallelism} & processes & threads & threads & threads \\
-\textcolor{muted}{Cache format} & Storable, gzip per 1-Mb region & bincode + zstd (transcripts), OSAv2 (annotations) & JSON, gzip optional & Parquet, ZSTD (core and plugins) \\
+\textcolor{muted}{Cache format} & Storable, gzip per 1-Mb region & bincode + zstd (transcripts), OSAv2 (annotations) & JSON, gzip optional & Parquet, zstd (core and plugins) \\
 \textcolor{muted}{Fields filled, of 80 / 86 (Ensembl / merged)\textsuperscript{a}} & 80 / 85 & 66 / 67 & 75 / 77 & \textbf{80 / 85} \\
 \textcolor{muted}{Transcript sets} & Ensembl, RefSeq, merged & Ensembl, RefSeq, merged\textsuperscript{b} & Ensembl, RefSeq, merged\textsuperscript{c} & Ensembl, RefSeq, merged \\
 \textcolor{muted}{Declared variant classes} & SNV, indel, SV & SNV, indel, SV\textsuperscript{d} & SNV, indel, SV\textsuperscript{d} & SNV, indel \\

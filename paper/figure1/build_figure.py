@@ -705,7 +705,7 @@ def build_scene(performance_uri: str) -> Scene:
         1250,
         378,
         81,
-        "CURRENT CODE DEFAULTS\nZSTD 3 · dictionary OFF\n4 KiB / 512-row page targets",
+        "CURRENT CODE DEFAULTS\nzstd 3 · dictionary OFF\n4 KiB / 512-row page targets",
         font_size=18,
         align="left",
     )
