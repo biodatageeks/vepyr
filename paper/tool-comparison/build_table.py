@@ -70,10 +70,13 @@ DETAIL_HEAD = {
 #   macOS (Apple M3 Max): fastVEP 101.4 s, vep-rs 209.2 s, vepyr 59.5 s
 #   (supplement Table 35); VEP 116.0 with 8 processes 5,372 s (panel E data).
 # * memory: peak resident set size of the same runs (supplement Table 35): fastVEP
-#   7.68 GiB, vep-rs 39.26 GiB, vepyr 9.14 GiB. VEP ran in Docker, where only the
-#   client process is measured, so it has no value yet: TODO (requested 2026-11-21),
-#   measure the peak memory of VEP with --fork 7 (8 processes in total), e.g. from the
-#   container's cgroup memory.peak, and replace the TODO cell and the footnote sentence.
+#   7.68 GiB, vep-rs 39.26 GiB, vepyr 9.14 GiB. VEP 116.0 with --fork 7 (8 processes),
+#   measured 2026-11-21 in Docker (ensembl-vep:release_116.0, arm64): Rss and Pss of every
+#   process in the container summed every 5 s from /proc/<pid>/smaps_rollup; peak summed
+#   Rss 3,575,780 kB = 3.41 GiB, peak summed Pss 1,972,006 kB = 1.88 GiB; 4,096,123
+#   records, wall 5,518 s with the sampler (cgroup memory.peak 13.26 GiB includes the
+#   page cache of the 29 GB output). Files:
+#   ~/workspace/data_vepyr/output/116/vep_peakmem_fork7_20261121/.
 # The "Evaluation" row (streaming / lazy, pushdown) was removed on 2026-11-21 at the
 # request of the author: vep-rs allocates up to 39 GiB in one invocation, so
 # "streaming" is not established for it.
@@ -107,7 +110,7 @@ COMPACT = {
         "plugins": "yes",
         "concordance": "reference",
         "time": "89.5 min",
-        "memory": TODO,
+        "memory": "3.4 GiB",
         "ui": "CLI, web, REST",
         "output": "VCF, tab, JSON",
     },
@@ -186,7 +189,7 @@ PANEL_NOTES = [
         "f",
         r"Wall time and peak memory of the process for HG002 with the merged cache in one "
         r"invocation, with 8 processes (VEP, \texttt{--fork 7}) or 8 workers, on macOS (Apple "
-        r"M3~Max). The peak memory of VEP is still to be measured.",
+        r"M3~Max). For VEP, the resident memory of all its processes, summed (1.9~GiB when memory shared between them is counted once).",
     ),
 ]
 
