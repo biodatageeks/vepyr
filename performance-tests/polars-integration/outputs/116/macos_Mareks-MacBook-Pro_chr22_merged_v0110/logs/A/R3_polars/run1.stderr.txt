@@ -1,1 +1,0 @@
-0rows [00:00, ?rows/s]131rows [00:00, 211.69rows/s]131rows [00:00, 211.56rows/s]
