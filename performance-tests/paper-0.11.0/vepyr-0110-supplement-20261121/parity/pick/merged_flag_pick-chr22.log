@@ -1,0 +1,36 @@
+  Note: using legacy location /Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz; move it under input/ (see docs/superpowers/specs/2026-07-28-merge-comparison-runners-design.md)
+============================================================
+  profile:   merged_flag_pick
+  release:   116
+  cache_dir: /Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged
+  vep_vcf:   /Users/mwiewior/workspace/data_vepyr/output/116/pick/HG002_chr22_merged_flag_pick_vep116.vcf.gz
+  results:   /Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/pick/merged_flag_pick-chr22/results/116
+============================================================
+  Normalizing HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz (bcftools norm -m -both) ...
+Lines   total/split/joined/realigned/removed/skipped:	4048342/47781/0/0/0/0
+  Created /Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/pick/merged_flag_pick-chr22/results/116/_shared/normalized.vcf.gz
+  contigs:   chr22
+
+============================================================
+  chr22 (profile=merged_flag_pick, release=116)
+============================================================
+  Created /Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/pick/merged_flag_pick-chr22/results/116/fast_chr22/input_chr22.vcf.gz
+  Input: 50,861 variants for chr22
+Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz: 0 variants [00:00, ? variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  10%|▉         | 5000/50861 [00:00<00:08, 5404.24 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  10%|▉         | 5000/50861 [00:00<00:08, 5404.24 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  41%|████      | 20861/50861 [00:00<00:01, 29884.50 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  41%|████      | 20861/50861 [00:00<00:01, 29884.50 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  61%|██████    | 30861/50861 [00:01<00:00, 30844.42 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  61%|██████    | 30861/50861 [00:01<00:00, 30844.42 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  80%|████████  | 40861/50861 [00:01<00:00, 49538.22 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  80%|████████  | 40861/50861 [00:01<00:00, 49538.22 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  90%|█████████ | 45861/50861 [00:01<00:00, 39409.74 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz:  90%|█████████ | 45861/50861 [00:01<00:00, 39409.74 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz: 100%|██████████| 50861/50861 [00:01<00:00, 51337.67 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz: 100%|██████████| 50861/50861 [00:01<00:00, 51337.67 variants/s]Annotating → vepyr_parquet_chr22_merged_flag_pick.vcf.gz: 100%|██████████| 50861/50861 [00:01<00:00, 34857.54 variants/s]
+  bgzf check: output is valid block-gzip (BGZF)
+  Done: 50,861 variants in 1.5s (34,398 variants/s), 29 MB
+  Extracting chr22 from VEP reference via tabix ...
+  Extracted 50,861 VEP records for chr22
+  md5 strict: body MATCH (50,861 records)
+  md5 canonical: body MATCH (50,861 records)
+  Report: /Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/pick/merged_flag_pick-chr22/reports/fast_chr22_merged_flag_pick_116_report.json
+
+============================================================
+  MD5 concordance vs the VEP reference (strict, canonical)
+============================================================
+  CONTIG        RECORDS  STRICT     CANONICAL
+  -------------------------------------------
+  chr22          50,861  ok         ok       
+
+  PASS: 1 contig(s) concord (50,861 records)
+============================================================

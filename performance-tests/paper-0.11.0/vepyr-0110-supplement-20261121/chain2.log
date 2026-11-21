@@ -1,0 +1,5 @@
+[07:50:42] polars equiv (compare only) (Battery Power, 50%)
+[07:50:44] polars pushdown (Battery Power, 50%)
+[08:27:15] polars e2e (AC Power, 57%)
+[09:18:54] polars tables (AC Power, 99%)
+[09:18:57] finished (AC Power, 99%)

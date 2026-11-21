@@ -1,0 +1,3 @@
+collect wall 13.21 s rss 7.82 GiB
+parquet wall 13.27 s rss 3.25 GiB
+vcf wall 14.69 s rss 3.10 GiB

@@ -1,0 +1,19 @@
+R1 polars: 0.92s (was 0.98s) rows=5457
+R2 polars: 0.83s (was 0.87s) rows=60
+R3 polars: 0.83s (was 0.88s) rows=131
+Q1 polars: 1.15s (was 1.22s) rows=1106
+Q2 polars: 1.15s (was 1.21s) rows=1246
+Q3 polars: 1.15s (was 1.18s) rows=430
+Q4 polars: 1.15s (was 1.19s) rows=2
+Q5 polars: 1.16s (was 1.16s) rows=71
+Q6 polars: 1.15s (was 1.18s) rows=443
+Q7 polars: 2.13s (was 2.18s) rows=19
+Q8 polars: 2.13s (was 2.25s) rows=33
+Q9 polars: 1.14s (was 1.20s) rows=152
+Q10 polars: 2.62s (was 2.75s) rows=5
+P1 polars: 1.34s (was 1.44s) rows=73
+P2 polars: 1.35s (was 1.48s) rows=5
+P3 polars: 3.39s (was 3.67s) rows=16
+P4 polars: 1.34s (was 1.43s) rows=3
+P5 polars: 4.74s (was 5.26s) rows=1
+filter-only, Polars side: all 18 queries keep the same records; results written

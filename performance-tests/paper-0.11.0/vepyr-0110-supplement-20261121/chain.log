@@ -1,0 +1,12 @@
+[07:15:16] sweep (Battery Power, 68%)
+[07:18:25] wgs2 (Battery Power, 65%)
+[07:37:10] writer memory 0.10.0 (/Users/mwiewior/research/git/vepyr/.worktrees/polars-0110/performance-tests/polars-integration/outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v0110/workers_chr1/input/input_chr1.vcf.gz) (Battery Power, 56%)
+[07:39:57] writer memory 0.11.0 (Battery Power, 55%)
+[07:42:23] polars prepare (Battery Power, 54%)
+[07:42:23] polars equiv (Battery Power, 53%)
+FAILED polars equiv
+P2 DIFFERENT {"reference_rows": 5, "collect": {"rows_new": 5, "rows_old": 5, "equal": true}, "vcf": {"records_new": 5, "records_old": 5, "equal": true}, "parquet": {"rows_new": 5, "rows_old": 5, "equal": false, "same_schema": false}}
+P3 DIFFERENT {"reference_rows": 16, "collect": {"rows_new": 16, "rows_old": 16, "equal": true}, "vcf": {"records_new": 16, "records_old": 16, "equal": true}, "parquet": {"rows_new": 16, "rows_old": 16, "equal": false, "same_schema": false}}
+P4 DIFFERENT {"reference_rows": 3, "collect": {"rows_new": 3, "rows_old": 3, "equal": true}, "vcf": {"records_new": 3, "records_old": 3, "equal": true}, "parquet": {"rows_new": 3, "rows_old": 3, "equal": false, "same_schema": false}}
+P5 DIFFERENT {"reference_rows": 1, "collect": {"rows_new": 1, "rows_old": 1, "equal": true}, "vcf": {"records_new": 1, "records_old": 1, "equal": true}, "parquet": {"rows_new": 1, "rows_old": 1, "equal": false, "same_schema": false}}
+equivalence gate: FAILED ['R1', 'R2', 'R3', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'P1', 'P2', 'P3', 'P4', 'P5']
