@@ -71,7 +71,9 @@ DETAIL_HEAD = {
 #   (supplement Table 35); VEP 116.0 with 8 processes 5,372 s (panel E data).
 # * memory: peak resident set size of the same runs (supplement Table 35): fastVEP
 #   7.68 GiB, vep-rs 39.26 GiB, vepyr 9.14 GiB. VEP ran in Docker, where only the
-#   client process is measured, so it has no value.
+#   client process is measured, so it has no value yet: TODO (requested 2026-11-21),
+#   measure the peak memory of VEP with --fork 7 (8 processes in total), e.g. from the
+#   container's cgroup memory.peak, and replace the TODO cell and the footnote sentence.
 # The "Evaluation" row (streaming / lazy, pushdown) was removed on 2026-11-21 at the
 # request of the author: vep-rs allocates up to 39 GiB in one invocation, so
 # "streaming" is not established for it.
@@ -105,7 +107,7 @@ COMPACT = {
         "plugins": "yes",
         "concordance": "reference",
         "time": "89.5 min",
-        "memory": "not measured",
+        "memory": TODO,
         "ui": "CLI, web, REST",
         "output": "VCF, tab, JSON",
     },
@@ -183,8 +185,8 @@ PANEL_NOTES = [
     (
         "f",
         r"Wall time and peak memory of the process for HG002 with the merged cache in one "
-        r"invocation, with 8 processes (VEP) or 8 workers, on macOS (Apple M3~Max). VEP ran in "
-        r"a container and its memory was not measured.",
+        r"invocation, with 8 processes (VEP, \texttt{--fork 7}) or 8 workers, on macOS (Apple "
+        r"M3~Max). The peak memory of VEP is still to be measured.",
     ),
 ]
 
