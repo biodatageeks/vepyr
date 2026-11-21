@@ -90,9 +90,9 @@ COMPACT_ROWS = [
     ("transcripts", "Transcript sets"),
     ("variants", "Declared variant classes"),
     ("plugins", "External annotation sources"),
-    ("concordance", r"Records as in VEP, Ensembl / merged\textsuperscript{e}"),
-    ("time", r"Whole genome, merged cache, 8 workers\textsuperscript{f}"),
-    ("memory", r"Peak memory in these runs\textsuperscript{f}"),
+    ("concordance", r"Records as in VEP, Ensembl / merged\textsuperscript{d}"),
+    ("time", r"Whole genome, merged cache, 8 workers\textsuperscript{e}"),
+    ("memory", r"Peak memory in these runs\textsuperscript{e}"),
     ("ui", "Interfaces"),
     ("output", "Output"),
 ]
@@ -120,7 +120,7 @@ COMPACT = {
         "cache": "bincode + zstd (transcripts), OSAv2 (annotations)",
         "fields": "66 / 67",
         "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{b}",
-        "variants": r"SNV, indel, SV\textsuperscript{d}",
+        "variants": "SNV, indel, SV",
         "plugins": "yes",
         "concordance": r"37\% / 36\%",
         "time": "1.7 min",
@@ -134,7 +134,7 @@ COMPACT = {
         "cache": "JSON, gzip optional",
         "fields": "75 / 77",
         "transcripts": r"Ensembl, RefSeq, merged\textsuperscript{c}",
-        "variants": r"SNV, indel, SV\textsuperscript{d}",
+        "variants": "SNV, indel, SV",
         "plugins": "yes",
         "concordance": r"95\% / 46\%",
         "time": "3.5 min",
@@ -178,15 +178,14 @@ PANEL_NOTES = [
         r"Through a cache converted from the VEP RefSeq or merged cache; "
         r"\texttt{SOURCE} and the RefSeq fields are not written.",
     ),
-    ("d", r"As declared by the authors; structural variants were not evaluated here."),
     (
-        "e",
+        "d",
         r"Records of HG002 (chromosomes 1--22; 4,095,611 with a \texttt{CSQ} field) whose "
         r"\texttt{CSQ} entries agree with VEP in every field shared with VEP. For vepyr, and "
         r"for vep-rs with the Ensembl cache, these records are identical to VEP byte for byte.",
     ),
     (
-        "f",
+        "e",
         r"Wall time and peak memory of the process for HG002 with the merged cache in one "
         r"invocation, with 8 processes (VEP, \texttt{--fork 7}) or 8 workers, on macOS (Apple "
         r"M3~Max). For VEP, the resident memory of all its processes, summed (1.9~GiB when memory shared between them is counted once).",

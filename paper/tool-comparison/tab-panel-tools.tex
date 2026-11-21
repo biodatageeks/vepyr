@@ -7,11 +7,11 @@
 \textcolor{muted}{Cache format} & Storable, gzip per 1-Mb region & bincode + zstd (transcripts), OSAv2 (annotations) & JSON, gzip optional & Parquet, zstd (core and plugins) \\
 \textcolor{muted}{Fields filled, of 80 / 86 (Ensembl / merged)\textsuperscript{a}} & 80 / 85 & 66 / 67 & 75 / 77 & \textbf{80 / 85} \\
 \textcolor{muted}{Transcript sets} & Ensembl, RefSeq, merged & Ensembl, RefSeq, merged\textsuperscript{b} & Ensembl, RefSeq, merged\textsuperscript{c} & Ensembl, RefSeq, merged \\
-\textcolor{muted}{Declared variant classes} & SNV, indel, SV & SNV, indel, SV\textsuperscript{d} & SNV, indel, SV\textsuperscript{d} & SNV, indel \\
+\textcolor{muted}{Declared variant classes} & SNV, indel, SV & SNV, indel, SV & SNV, indel, SV & SNV, indel \\
 \textcolor{muted}{External annotation sources} & yes & yes & yes & yes \\
-\textcolor{muted}{Records as in VEP, Ensembl / merged\textsuperscript{e}} & reference & 37\% / 36\% & 95\% / 46\% & \textbf{100\% / 100\%} \\
-\textcolor{muted}{Whole genome, merged cache, 8 workers\textsuperscript{f}} & 89.5 min & 1.7 min & 3.5 min & \textbf{1.0 min} \\
-\textcolor{muted}{Peak memory in these runs\textsuperscript{f}} & 3.4 GiB & 7.7 GiB & 39.3 GiB & 9.1 GiB \\
+\textcolor{muted}{Records as in VEP, Ensembl / merged\textsuperscript{d}} & reference & 37\% / 36\% & 95\% / 46\% & \textbf{100\% / 100\%} \\
+\textcolor{muted}{Whole genome, merged cache, 8 workers\textsuperscript{e}} & 89.5 min & 1.7 min & 3.5 min & \textbf{1.0 min} \\
+\textcolor{muted}{Peak memory in these runs\textsuperscript{e}} & 3.4 GiB & 7.7 GiB & 39.3 GiB & 9.1 GiB \\
 \textcolor{muted}{Interfaces} & CLI, web, REST & CLI, web, REST & CLI & Python API, SQL, CLI \\
 \textcolor{muted}{Output} & VCF, tab, JSON & VCF, tab, JSON & VCF, tab, JSON, Parquet & Polars DataFrame/\allowbreak LazyFrame, VCF \\
 \bottomrule

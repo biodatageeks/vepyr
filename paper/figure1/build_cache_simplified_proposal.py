@@ -20,18 +20,30 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_FIGURE_DIR = (
-    HERE if (HERE / "build_figure.py").exists()
+    HERE
+    if (HERE / "build_figure.py").exists()
     else Path("/Users/tgambin/workspace/vepyr/paper/figure1")
 )
 sys.path.insert(0, str(DEFAULT_FIGURE_DIR))
-import build_figure as fig
+import build_figure as fig  # noqa: E402
 
 
 WIDTH, HEIGHT = 1260, 630
 INK = "#111111"
 GREY = "#777777"
 LIGHT = "#dedede"
-PAGE_COUNTS = (920, 220)
+# Position-column pages holding at least one cache row matched by vepyr's probes
+# (extended probes, as vepyr runs) for HG002 chr22 buffer 0 (records 1-5,000),
+# VEP 116 merged cache: position-sorted control 907, frequency-grouped cache 315
+# (65% fewer; 65-72% over the 10 full buffers of chr22). The payload of the
+# matched rows is read from these pages' row ranges, so payload pages decoded fall
+# by about the same share (25,517 -> 8,713 over all columns). The position-column
+# scan that finds these rows is NOT reduced (964 vs 907 pages decoded), because
+# every probe is searched in both tiers. Measured 2026-11-21 with a copy of the
+# engine's lookup (datafusion-bio-functions 46d8c20); earlier value 920 -> 220
+# counted one probe per variant. Measurement notes: vepyr-paper session scratch
+# pages76/.
+PAGE_COUNTS = (907, 315)
 BASELINE_COMMON = (1, 18, 35, 52, 69, 86)
 BASELINE_RARE = (44, 92)
 GROUPED_COMMON = (1, 2, 3, 5, 7, 8)
@@ -49,17 +61,42 @@ def panel(code: str = "A3") -> fig.Scene:
     s.box(34, 90, 214, 88, "", stroke_width=1.8)
     s.label(38, 97, 206, 34, "Input variants", font_size=23, weight=700, align="center")
     for i in range(8):
-        s.box(62 + i * 21, 146, 12, 12, "", fill=INK if i < 6 else "white", stroke_width=1.5)
+        s.box(
+            62 + i * 21,
+            146,
+            12,
+            12,
+            "",
+            fill=INK if i < 6 else "white",
+            stroke_width=1.5,
+        )
     s.edge(250, 134, 345, 134, width=2)
-    s.box(347, 90, 513, 88, "Retrieve records and match alleles",
-          font_size=26, stroke_width=1.8)
+    s.box(
+        347,
+        90,
+        513,
+        88,
+        "Retrieve records and match alleles",
+        font_size=26,
+        stroke_width=1.8,
+    )
     s.edge(862, 134, 959, 134, width=2)
-    s.box(961, 90, 265, 88, "Known-variant\nannotations", font_size=25, stroke_width=1.8)
+    s.box(
+        961, 90, 265, 88, "Known-variant\nannotations", font_size=25, stroke_width=1.8
+    )
 
     s.edge(34, 207, 1226, 207, arrow=False, color=LIGHT, width=1)
-    s.label(30, 220, 778, 36, "Same cache records, different layouts", font_size=26, weight=700)
-    s.label(875, 220, 350, 36, "Pages read", font_size=26, weight=700)
-    s.label(875, 256, 350, 29, "Position column only", font_size=21, color=GREY)
+    s.label(
+        30,
+        220,
+        778,
+        36,
+        "Same cache records, different layouts",
+        font_size=26,
+        weight=700,
+    )
+    s.label(875, 220, 350, 36, "Pages with matches", font_size=26, weight=700)
+    s.label(875, 256, 350, 29, "Annotation read from these", font_size=21, color=GREY)
     s.edge(839, 228, 839, 561, arrow=False, color=LIGHT, width=1)
 
     def strip(y: int, common: tuple[int, ...], rare: tuple[int, ...]) -> None:
@@ -70,18 +107,35 @@ def panel(code: str = "A3") -> fig.Scene:
         for p in range(12):
             px = x + p * page_width
             selected = p in hit_pages
-            s.box(px, y, page_width, 44, "", fill="#f0f0f0" if selected else "white",
-                  stroke=GREY, stroke_width=0.8)
+            s.box(
+                px,
+                y,
+                page_width,
+                44,
+                "",
+                fill="#f0f0f0" if selected else "white",
+                stroke=GREY,
+                stroke_width=0.8,
+            )
             for k in range(1, slots):
-                s.edge(px + 8 * k, y + 3, px + 8 * k, y + 41,
-                       arrow=False, color="#d4d4d4", width=0.6)
+                s.edge(
+                    px + 8 * k,
+                    y + 3,
+                    px + 8 * k,
+                    y + 41,
+                    arrow=False,
+                    color="#d4d4d4",
+                    width=0.6,
+                )
         for i in common:
             s.box(x + i * 8 + 1, y + 10, 6, 24, "", fill=INK, stroke_width=0.7)
         for i in rare:
             s.box(x + i * 8 + 1, y + 10, 6, 24, "", fill="white", stroke_width=1.4)
         # Outline last so the read-state boundary stays unambiguous.
         for p in sorted(hit_pages):
-            s.box(x + p * page_width, y, page_width, 44, "", fill="none", stroke_width=2.6)
+            s.box(
+                x + p * page_width, y, page_width, 44, "", fill="none", stroke_width=2.6
+            )
 
     s.label(30, 262, 782, 35, "Position-sorted", font_size=25, weight=700)
     strip(305, BASELINE_COMMON, BASELINE_RARE)
@@ -97,35 +151,52 @@ def panel(code: str = "A3") -> fig.Scene:
         s.edge(x1, 461, x1, 469, arrow=False, width=1.2)
     s.label(22, 470, 110, 30, "warm", font_size=23, weight=700, align="center")
     s.label(350, 470, 210, 30, "cold", font_size=23, align="center")
-    s.label(550, 470, 253, 30, "Both tiers queried", font_size=21, color=GREY, align="right")
+    s.label(
+        550, 470, 253, 30, "Both tiers queried", font_size=21, color=GREY, align="right"
+    )
 
     s.box(36, 530, 12, 16, "", fill=INK, stroke_width=1.2)
     s.label(54, 521, 178, 33, "common hit", font_size=22)
     s.box(251, 530, 12, 16, "", fill="white", stroke_width=1.6)
     s.label(269, 521, 141, 33, "rare hit", font_size=22)
     s.box(421, 529, 28, 18, "", fill="none", stroke_width=2.6)
-    s.label(455, 521, 172, 33, "page read", font_size=22)
+    s.label(455, 521, 172, 33, "matched page", font_size=22)
     s.label(655, 521, 149, 33, "schematic", font_size=20, color=GREY, align="right")
 
-    # Linear zero-based chart. Counts refer only to the locate pass over start,
-    # not payload pages, bytes, I/O calls, or end-to-end annotation wall time.
+    # Linear zero-based chart. Counts are position-column pages holding matched
+    # rows (see PAGE_COUNTS), not bytes, I/O calls or annotation wall time.
     chart_x, chart_width = 880, 282
-    for y, count, fill in ((312, PAGE_COUNTS[0], "#b6b6b6"), (421, PAGE_COUNTS[1], INK)):
+    for y, count, fill in (
+        (312, PAGE_COUNTS[0], "#b6b6b6"),
+        (421, PAGE_COUNTS[1], INK),
+    ):
         width = chart_width * count / 1000
         s.box(chart_x, y, width, 30, "", fill=fill, stroke_width=0)
-        s.label(chart_x + width + 7, y - 5, 68, 39, f"{count:,}", font_size=25, weight=700)
+        s.label(
+            chart_x + width + 7, y - 5, 68, 39, f"{count:,}", font_size=25, weight=700
+        )
     s.edge(chart_x, 472, chart_x + chart_width, 472, arrow=False, color=GREY, width=1)
     for tick in (0, 500, 1000):
         tx = chart_x + chart_width * tick / 1000
         s.edge(tx, 472, tx, 478, arrow=False, color=GREY, width=1)
-        s.label(tx - 35, 481, 70, 28, f"{tick:,}", font_size=19, color=GREY, align="center")
+        s.label(
+            tx - 35, 481, 70, 28, f"{tick:,}", font_size=19, color=GREY, align="center"
+        )
     reduction = 100 * (1 - PAGE_COUNTS[1] / PAGE_COUNTS[0])
-    s.label(875, 515, 350, 45, f"{reduction:.0f}% fewer pages", font_size=29, weight=700)
+    s.label(
+        875, 515, 350, 45, f"{reduction:.0f}% fewer pages", font_size=29, weight=700
+    )
 
     s.edge(34, 580, 1226, 580, arrow=False, color=LIGHT, width=1)
-    s.label(30, 587, 1196, 30,
-            "HG002 chr22 · one 5,000-record buffer · VEP 116 merged cache",
-            font_size=22, color=GREY)
+    s.label(
+        30,
+        587,
+        1196,
+        30,
+        "HG002 chr22 · one 5,000-record buffer · VEP 116 merged cache",
+        font_size=22,
+        color=GREY,
+    )
     return s
 
 
@@ -165,19 +236,28 @@ def save(scene: fig.Scene, output: Path, width: int, height: int, title: str) ->
     model.set("pageWidth", str(width))
     model.set("pageHeight", str(height))
     drawio.find("diagram").set("name", title)
-    output.with_suffix(".drawio").write_text(ET.tostring(drawio, encoding="unicode") + "\n")
+    output.with_suffix(".drawio").write_text(
+        ET.tostring(drawio, encoding="unicode") + "\n"
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=HERE)
-    parser.add_argument("--render", action="store_true", help="Render PNG previews with Chrome")
+    parser.add_argument(
+        "--render", action="store_true", help="Render PNG previews with Chrome"
+    )
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     standalone = panel()
-    save(standalone, args.output_dir / "a3-cache-simplified-proposal", WIDTH, HEIGHT,
-         "A3 — Frequency-aware cache lookup")
+    save(
+        standalone,
+        args.output_dir / "a3-cache-simplified-proposal",
+        WIDTH,
+        HEIGHT,
+        "A3 — Frequency-aware cache lookup",
+    )
 
     # Reuse the frozen performance SVG; never recalculate unrelated panels.
     original = ET.parse(DEFAULT_FIGURE_DIR / "figure1.svg").getroot()
@@ -185,16 +265,29 @@ def main() -> None:
     if performance is None:
         raise ValueError("Figure 1 is missing the embedded performance panel")
     full = fig.build_scene(performance.attrib["href"])
-    start = next(i for i, e in enumerate(full.elements) if e.id == "shard-zoom-frame") + 1
-    end = next(i for i, e in enumerate(full.elements)
-               if isinstance(e, fig.Label) and e.lines == ["B"] and e.y == 1425)
+    start = (
+        next(i for i, e in enumerate(full.elements) if e.id == "shard-zoom-frame") + 1
+    )
+    end = next(
+        i
+        for i, e in enumerate(full.elements)
+        if isinstance(e, fig.Label) and e.lines == ["B"] and e.y == 1425
+    )
     full.elements[start:end] = translated(panel("A3"), 1100, 750).elements
-    save(full, args.output_dir / "figure1-cache-simplified-proposal", fig.WIDTH, fig.HEIGHT,
-         "Figure 1 — simplified frequency-aware cache proposal")
+    save(
+        full,
+        args.output_dir / "figure1-cache-simplified-proposal",
+        fig.WIDTH,
+        fig.HEIGHT,
+        "Figure 1 — simplified frequency-aware cache proposal",
+    )
     print(f"Generated standalone and full-figure SVG / Drawio in {args.output_dir}")
     if args.render:
-        chrome = shutil.which("google-chrome") or shutil.which("chromium") or \
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        chrome = (
+            shutil.which("google-chrome")
+            or shutil.which("chromium")
+            or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        )
         for name, width, height in (
             ("a3-cache-simplified-proposal", WIDTH, HEIGHT),
             ("figure1-cache-simplified-proposal", fig.WIDTH, fig.HEIGHT),
@@ -203,12 +296,23 @@ def main() -> None:
             png = svg.with_suffix(".png")
             before = png.stat().st_mtime_ns if png.exists() else 0
             with tempfile.TemporaryDirectory(prefix="vepyr-a3-preview-") as profile:
-                command = [chrome, "--headless=new", "--disable-gpu", "--no-sandbox",
-                           "--allow-file-access-from-files", "--hide-scrollbars",
-                           "--disable-background-networking", "--disable-component-update",
-                           f"--user-data-dir={profile}", f"--window-size={width},{height}",
-                           f"--screenshot={png}", svg.as_uri()]
-                proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                command = [
+                    chrome,
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--allow-file-access-from-files",
+                    "--hide-scrollbars",
+                    "--disable-background-networking",
+                    "--disable-component-update",
+                    f"--user-data-dir={profile}",
+                    f"--window-size={width},{height}",
+                    f"--screenshot={png}",
+                    svg.as_uri(),
+                ]
+                proc = subprocess.Popen(
+                    command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
                 try:
                     _, err = proc.communicate(timeout=12)
                 except subprocess.TimeoutExpired:
@@ -219,7 +323,9 @@ def main() -> None:
                         proc.kill()
                         _, err = proc.communicate(timeout=5)
                 if not png.exists() or png.stat().st_mtime_ns <= before:
-                    raise RuntimeError(f"Render failed for {name}: {err.decode(errors='replace')[-1000:]}")
+                    raise RuntimeError(
+                        f"Render failed for {name}: {err.decode(errors='replace')[-1000:]}"
+                    )
             print(f"Rendered {png.name}", flush=True)
 
 
