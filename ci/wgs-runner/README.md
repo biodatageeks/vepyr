@@ -72,6 +72,12 @@ It writes `/work/result.json` and `/work/summary.txt`.
    Needs `uvx`, `curl`, `rsync`, `python3` (3.11+) on the host.
 8. Run `ci/wgs-runner/check.sh` (as root or with passwordless sudo, so it can
    read the firewall rules; otherwise it warns and you check them by hand).
+9. For `/parity-caches`, which runs every job on the host (see "Where the jobs
+   run"): the runner service needs `gh` and `python3` (3.10 or newer) on its
+   `PATH`, and `git` 2.28 or newer for the sparse checkouts. The `gha_runner`
+   role installs none of them explicitly, so check each host as the runner
+   user: `gh --version; python3 --version; git --version`. The jobs that call
+   `gh` or `python3` fail in their first step when one is missing.
 
 ## Re-staging when the manifest changes
 
@@ -95,8 +101,16 @@ hosts at once. Further jobs queue FIFO (up to 24 hours)
 for a free host. The workflow still has no concurrency group, because GitHub
 keeps only one pending run per group and would evict a queued admin run.
 
+`/parity-caches` takes the same four hosts for every job, not only for its
+target matrix (`max-parallel: 4`): the command check, the authorization, the
+wheel build and the report each wait for a free host. While four long jobs
+run, a new `/parity-caches` comment gets no reaction or reply, and a finished
+run posts no statuses, until a host is free. GitHub cancels a job that has
+queued for 24 hours; a run whose report was cancelled leaves its statuses
+`pending`.
+
 Do not register a second runner service on the same host: two jobs there would
-share one `/data/vepyr`, scratch disk and memory budget.
+share one `/data/vepyr`, scratch disk and memory budget, and one workspace.
 
 ## Runtime
 
@@ -149,6 +163,37 @@ another revision, scratch too small), anything else is an error. It writes
 `/work/result.json`, `/work/summary.txt` and
 `/work/out/reports/cache-parity.json` (every shard, with the differing columns
 and example rows).
+
+### Where the jobs run
+
+All five jobs (`command`, `authorize`, `build-wheel`, `cache`, `report`) run on
+the `vepyr-wgs` hosts; the workflow uses no GitHub-hosted runner. `/parity-wgs`
+is different: only its `profile` job runs here.
+
+- `command`, `authorize` and `report` check out and run the workflow's own ref
+  only, which `authorize` requires to be `master`: its helper, pins and
+  manifest. They never check out the PR. A `/parity-caches` comment from
+  anyone starts `command` on a host; it runs master's parser on the comment
+  text and nothing else.
+- `build-wheel` builds the PR's wheel as `publish_to_pypi.yml` builds the
+  x86_64 release wheel on these hosts: `maturin-action` in the
+  `quay.io/pypa/manylinux2014_x86_64` image pinned by digest, in a `--rm`
+  container that installs Rust itself and mounts only the workspace. The
+  container runs as root on Docker's default network (the egress firewall of
+  step 5 applies), with `no-new-privileges`, without `NET_RAW` and `MKNOD`,
+  with a pid limit and, as in the release build, without a memory cap. It is
+  named and labelled `vepyr-wgs=1`, so a container that outlived a cancelled
+  job is removed by the next job on that host.
+- Around that container the host refuses a PR checkout that holds a symbolic
+  link (`maturin-action` reads `rust-toolchain.toml` and `pyproject.toml` on
+  the host), hides the runner's ssh agent and git credentials from
+  `maturin-action`, shadows `sudo`, and takes exactly one regular,
+  size-capped file with a wheel name out of `dist/` into a host-made
+  directory, from which the artifact is uploaded.
+- Every job starts by removing labelled containers and emptying the
+  workspace, as root in the pinned image when the runner user cannot delete an
+  entry (the wheel build writes as root), and fails if anything is left.
+  `build-wheel` does the same at its end, also after a failure.
 
 ### What a job compares
 
@@ -233,15 +278,33 @@ Mitigations:
   files to a host-made directory from which all artifacts are uploaded;
 - the egress firewall (setup step 5) keeps job containers off the host and
   the LAN;
-- no secrets are available to the job, and its GitHub token is read-only;
-- privileged jobs (anything with secrets or write access) never run on this
-  machine;
+- no secrets are available to a job that runs PR code, and its GitHub token
+  is read-only;
+- privileged jobs of `/parity-wgs` (anything with secrets or write access)
+  never run on this machine; for `/parity-caches` see below;
 - `_work` and scratch are cleaned before and after each job;
 - a fork PR must pin the reviewed head (`/parity-wgs <sha>`), so a push after
   the admin's comment cannot run; any pinned SHA must equal the head.
 
 The main defence is the admin's review of the PR before commenting
 `/parity-wgs`. The upgrade path, if that is not enough, is ephemeral runners.
+
+**All `/parity-caches` jobs on these hosts (owner's decision, 2026-11-21).**
+Two things differ from `/parity-wgs`:
+
+- `authorize` and `report` run here with a token that can write commit
+  statuses and PR comments. They run master's code in an emptied workspace,
+  but a host on which earlier code gained the runner user (see the shared
+  runner group below) can use that token while such a job runs, for example
+  to post a green `parity/*` status.
+- The wheel is built from PR code here, as root in a container that can write
+  to the workspace. The job deletes that tree as root when it ends. If that
+  step does not run (the host reboots or the runner is killed during a
+  build), root-owned files written by PR code stay in the workspace. Every
+  `/parity-caches` job and the release build delete them as root before
+  anything else; the `profile` job of `/parity-wgs` ignores entries it cannot
+  delete and then runs `actions/checkout` in that directory. Giving that job
+  the same first step closes this.
 
 **Shared runner group (accepted 2026-10-11).** `gh-runner-bdg-1` is in the
 org's default runner group `bdg-runners`, which is not restricted to a

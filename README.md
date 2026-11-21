@@ -171,6 +171,15 @@ The command is admin-only and, as for `/parity-wgs`, a fork PR must pin the
 reviewed head: `/parity-caches <sha> [selectors]`. The staged inputs are listed
 in `ci/wgs-runner/README.md`.
 
+Every job of this workflow runs on the four self-hosted runners and none on a
+GitHub-hosted one: the command check, the authorization, the wheel build, the
+target jobs and the report. The jobs that hold a write-scoped token check out
+and run master's code only. PR code runs only in containers: the wheel build in
+the manylinux image that `publish_to_pypi.yml` pins by digest, the rebuild and
+comparison in the locked-down job container. While all four hosts are busy, a
+new `/parity-caches` comment is acknowledged, and a finished run is reported,
+only once a host is free.
+
 ## License
 
 [Apache-2.0](LICENSE)

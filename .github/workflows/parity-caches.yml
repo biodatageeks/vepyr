@@ -9,15 +9,28 @@ name: Parity tests (caches)
 # Selectors: `core`, `plugins`, a cache type (`merged`) or a plugin name
 # (`clinvar`). None runs every target that is not opt-in; an opt-in plugin
 # (e2e-testing/golden/cache-parity-manifest.json) runs only when named.
-# Authorization, SHA pinning and isolation are those of parity-wgs.yml:
+# Authorization and SHA pinning are those of parity-wgs.yml:
 # a fork PR must pin the head SHA the admin reviewed (7+ hex characters), so a
 # push between the comment and `authorize` cannot run unreviewed code on the
 # persistent runner. A pinned SHA is enforced for any PR.
 # issue_comment always runs the default branch's copy of this workflow.
-# PR code runs only inside a fresh `docker run` of the locally built image,
-# with the staged data mounted read-only. See ci/wgs-runner/README.md.
 # The SHA is resolved once by `authorize`; a push during the run leaves the new
 # head without a status until an admin re-runs this.
+#
+# Every job runs on the organization's self-hosted hosts (gh-runner-bdg-1..4,
+# label vepyr-wgs); none uses a GitHub-hosted runner. The hosts persist between
+# jobs, so:
+# - `command`, `authorize` and `report` check out and run the workflow's own
+#   ref only (master: its helper, pins and manifest), never the PR;
+# - PR code runs only inside containers: the wheel build in the manylinux image
+#   that publish_to_pypi.yml pins by digest (`build-wheel`), the rebuild and
+#   comparison in a fresh, locked-down `docker run` of the locally built image
+#   with the staged data mounted read-only (`cache`);
+# - every job first removes a job container left by an earlier job and empties
+#   the workspace, as root in the pinned image where the runner user cannot,
+#   and fails if anything is left. No step then starts in a directory that PR
+#   code wrote.
+# See ci/wgs-runner/README.md.
 
 on:
   workflow_dispatch:
@@ -41,17 +54,24 @@ permissions: {}
 
 env:
   WGS_IMAGE: vepyr-wgs:1
+  # The x86_64 wheel build image of publish_to_pypi.yml, pinned by digest for
+  # the reason given there: maturin-action reuses any local image carrying the
+  # requested tag without pulling, and only the registry's content can satisfy
+  # a digest. Every job also uses it to empty the workspace as root.
+  BUILD_IMAGE: quay.io/pypa/manylinux2014_x86_64@sha256:e6a785657009c612fe2a85fa933051d03a50ba62b1c5e47d62abcab546a2e423
 
 jobs:
   # Command shape check, separate from authorize so that a non-command comment
   # ends here with every later job skipped. Runs master's helper only: for
   # issue_comment the ref is always the default branch.
+  # The job-level `if` is evaluated before a runner is assigned, so only a PR
+  # comment that starts with /parity-caches (from anyone) occupies a host.
   command:
     if: >-
       github.event_name == 'workflow_dispatch'
       || (github.event.issue.pull_request
           && startsWith(github.event.comment.body, '/parity-caches'))
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, vepyr-wgs]
     timeout-minutes: 5
     permissions:
       contents: read
@@ -60,10 +80,27 @@ jobs:
       pin: ${{ steps.check.outputs.pin }}
       select: ${{ steps.check.outputs.select }}
     steps:
+      - name: Clean leftovers from earlier jobs
+        run: |
+          set -euo pipefail
+          # A host takes one job at a time: a labelled container found here
+          # outlived a cancelled or timed-out job and may still be writing.
+          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
+          # Entries the runner user cannot delete (a wheel build writes as
+          # root) are deleted as root in the pinned image. `find` follows no
+          # symbolic link.
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
+          fi
+          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          # Without this check a missing python3 would read as "not a command".
+          python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' \
+            || { echo "::error::python3 3.10 or newer is required on runner $RUNNER_NAME"; exit 1; }
       - if: github.event_name == 'issue_comment'
         uses: actions/checkout@v4
         with:
           sparse-checkout: ci
+          persist-credentials: false
       - id: check
         env:
           EVENT: ${{ github.event_name }}
@@ -87,10 +124,12 @@ jobs:
             echo "Comment is not a /parity-caches command; nothing to do." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+  # Holds the only write scopes besides `report`, on a persistent host: it runs
+  # the workflow's own ref (master) and never checks out the PR.
   authorize:
     needs: command
     if: needs.command.outputs.go == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, vepyr-wgs]
     timeout-minutes: 5
     permissions:
       # Master's own helper, pins and manifest (sparse checkout below), never the PR.
@@ -116,6 +155,18 @@ jobs:
       PIN: ${{ needs.command.outputs.pin }}
       SELECT: ${{ needs.command.outputs.select }}
     steps:
+      - name: Clean leftovers from earlier jobs
+        run: |
+          set -euo pipefail
+          # As in `command`: every later step starts in the workspace.
+          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
+          fi
+          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          command -v gh >/dev/null || { echo "::error::gh is not installed on runner $RUNNER_NAME"; exit 1; }
+          python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' \
+            || { echo "::error::python3 3.10 or newer is required on runner $RUNNER_NAME"; exit 1; }
       - name: Only master's workflow may run this
         run: |
           # Dispatching from a branch would run that branch's workflow and helper.
@@ -233,33 +284,128 @@ jobs:
           gh api -X POST "repos/$REPO/issues/$PR/comments" \
             -f body="/parity-caches could not start${MSG:+: $MSG}; see $url"
 
+  # The wheel is built from PR code on a persistent host, so the build follows
+  # the x86_64 build of publish_to_pypi.yml: maturin-action runs it in the
+  # manylinux image pinned by digest, in a `--rm` container that installs Rust
+  # itself and mounts the workspace as its only host directory. With
+  # `container:` set, the `manylinux` input picks nothing and is left unset.
+  # That container runs as root, so PR code can write anything into the
+  # workspace. The host therefore:
+  # - names and labels the container, so that this job and the first step of
+  #   every later job can remove one that outlived a cancel or a timeout;
+  # - refuses a checkout that holds a symbolic link (the repository has none):
+  #   maturin-action reads rust-toolchain.toml and pyproject.toml on the host
+  #   and copies what it finds into the build script and the log;
+  # - hides the runner's ssh agent and git credentials, which maturin-action
+  #   would mount into the container, and shadows `sudo`, which it calls on
+  #   target/ and dist/ after the build;
+  # - takes the wheel as one size-capped regular file with a wheel name, by
+  #   its resolved path, into a host-made directory outside the workspace that
+  #   the upload comes from;
+  # - deletes the workspace as root in the pinned image at the end, and fails
+  #   if anything is left.
+  # The build container keeps Docker's default network (the egress firewall of
+  # ci/wgs-runner/README.md applies) and, as in publish_to_pypi.yml, has no
+  # memory cap.
   build-wheel:
     needs: authorize
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, vepyr-wgs]
     timeout-minutes: 60
     permissions:
       contents: read
+    env:
+      CONTAINER: vepyr-build-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      - name: Clean leftovers from earlier jobs
+        run: |
+          set -euo pipefail
+          # As in `command`.
+          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
+          fi
+          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          res=$(mktemp -d "$RUNNER_TEMP/wheel.XXXXXX")
+          echo "RES=$res" >> "$GITHUB_ENV"
+          # maturin-action runs `sudo rm` and `sudo chown` on paths under the
+          # workspace. The hosts' sudo needs a password, so both fail and are
+          # ignored; this stand-in keeps that true whatever the sudoers say.
+          mkdir -p "$RUNNER_TEMP/no-sudo"
+          printf '#!/bin/sh\nexit 1\n' > "$RUNNER_TEMP/no-sudo/sudo"
+          chmod +x "$RUNNER_TEMP/no-sudo/sudo"
+          echo "$RUNNER_TEMP/no-sudo" >> "$GITHUB_PATH"
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.authorize.outputs.sha }}
-      - uses: PyO3/maturin-action@v1
+          lfs: false
+          persist-credentials: false
+      - name: Refuse a checkout that holds a symbolic link
+        run: |
+          set -euo pipefail
+          # The name of the link is PR-controlled and is not printed.
+          link=$(find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print -quit)
+          [ -z "$link" ] || { echo "::error::the checkout holds a symbolic link; the wheel is not built on this host"; exit 1; }
+      - name: Build the wheel in the pinned container
+        uses: PyO3/maturin-action@v1
+        env:
+          SSH_AUTH_SOCK: ""
+          XDG_CONFIG_HOME: ${{ runner.temp }}/no-config
         with:
           target: x86_64
+          container: ${{ env.BUILD_IMAGE }}
           args: --release --out dist --find-interpreter
           # No sccache: a PR build.rs could poison entries in master's cache scope.
           sccache: false
-          manylinux: auto
+          docker-options: >-
+            --name ${{ env.CONTAINER }} --label vepyr-wgs=1
+            --security-opt no-new-privileges --cap-drop NET_RAW --cap-drop MKNOD
+            --pids-limit 4096
+      - name: Collect the wheel
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          if [ -z "${RES:-}" ] || [ ! -d "$RES" ]; then fail "no host results dir"; fi
+          # `docker run --rm` has returned; make sure no PR code is still
+          # writing to the workspace while the host reads dist/.
+          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+          left=$(docker ps -aq --filter "name=^${CONTAINER}\$") || fail "cannot list containers"
+          [ -z "$left" ] || fail "build container still present"
+          ws=$(realpath -e -- "$GITHUB_WORKSPACE") || fail "workspace missing"
+          if [ ! -d "$ws/dist" ] || [ -L "$ws/dist" ]; then fail "dist is not a directory"; fi
+          shopt -s nullglob
+          wheels=("$ws"/dist/vepyr-*manylinux*x86_64*.whl)
+          [ "${#wheels[@]}" -eq 1 ] || fail "expected one x86_64 wheel, got ${#wheels[@]}"
+          wheel="${wheels[0]}"
+          name=$(basename -- "$wheel")
+          [[ "$name" =~ ^vepyr-[0-9A-Za-z._+-]+\.whl$ ]] || fail "unexpected wheel name"
+          if [ ! -f "$wheel" ] || [ -L "$wheel" ]; then fail "wheel is not a regular file"; fi
+          [ "$(realpath -e -- "$wheel")" = "$ws/dist/$name" ] || fail "wheel resolves outside dist"
+          size=$(stat -c %s -- "$wheel")
+          [ "$size" -le $((512 * 1024 * 1024)) ] || fail "wheel larger than 512 MiB"
+          cp -- "$wheel" "$RES/$name"
+          echo "Built $name ($size bytes)" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-manylinux-x86_64
-          path: dist
+          path: ${{ env.RES }}
+          if-no-files-found: error
+      - name: Delete the root-owned build tree
+        if: always()
+        run: |
+          set -euo pipefail
+          docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+          left=$(docker ps -aq --filter "name=^${CONTAINER}\$")
+          [ -z "$left" ] || { echo "::error::build container still present"; exit 1; }
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
+          fi
+          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          rm -rf ${RES:+"$RES"}
 
-  # The only job on the persistent self-hosted runner, built like the profile
-  # job of parity-wgs.yml. It runs no checked-out (PR) code on the host: the
-  # wheel is found with a shell glob, the fallback result is written with
-  # printf, and the PR's run-cache-parity.sh runs only inside a throwaway,
-  # unprivileged container.
+  # Built like the profile job of parity-wgs.yml. It runs no checked-out (PR)
+  # code on the host: the wheel is found with a shell glob, the fallback result
+  # is written with printf, and the PR's run-cache-parity.sh runs only inside a
+  # throwaway, unprivileged container.
   # The host never follows a PR-controlled path: after checkout it neither
   # reads nor writes the workspace (a PR can commit symlinks there), and it
   # reads $SCRATCH (written by PR code in the container) only after purging
@@ -268,8 +414,11 @@ jobs:
   # Timeout and memory cap of each target come from master's manifest
   # (authorize), not from the PR.
   # Parallelism: the four vepyr-wgs hosts take one job each; further targets
-  # queue FIFO, behind or ahead of /parity-wgs jobs. No workflow concurrency
-  # group, for the reason given in parity-wgs.yml.
+  # queue FIFO, behind or ahead of /parity-wgs jobs. The other jobs of this
+  # workflow wait for the same hosts: while four targets run, a new
+  # /parity-caches comment is not acknowledged and `report` does not start
+  # until a host is free. No workflow concurrency group, for the reason given
+  # in parity-wgs.yml.
   cache:
     needs: [authorize, build-wheel]
     name: caches (${{ matrix.target }})
@@ -289,10 +438,14 @@ jobs:
     steps:
       - name: Clean leftovers from earlier jobs
         run: |
-          # A job container that outlived a cancelled or timed-out job; the
-          # label is shared with /parity-wgs, whose jobs use the same hosts.
+          set -euo pipefail
+          # As in `command`; the label is shared with /parity-wgs, whose jobs
+          # use the same hosts, and with the wheel build of this workflow.
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
-          find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
+          fi
+          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
           rm -rf "$SCRATCH" && mkdir -p "$SCRATCH"
           res=$(mktemp -d "$RUNNER_TEMP/caches-res.XXXXXX")
           echo "RES=$res" >> "$GITHUB_ENV"
@@ -394,10 +547,13 @@ jobs:
           rm -rf "$SCRATCH" ${RES:+"$RES"}
           find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null || true
 
+  # Waits for a free host like any other job: after the last target one is
+  # free unless another request took it. GitHub cancels a job that has queued
+  # for 24 hours; the statuses then stay pending, as after any cancelled run.
   report:
     needs: [authorize, cache]
     if: ${{ !cancelled() && needs.authorize.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, vepyr-wgs]
     timeout-minutes: 5
     permissions:
       contents: read
@@ -417,10 +573,23 @@ jobs:
       AGGREGATE: ${{ needs.authorize.outputs.aggregate }}
       CACHE_RESULT: ${{ needs.cache.result }}
     steps:
+      - name: Clean leftovers from earlier jobs
+        run: |
+          set -euo pipefail
+          # As in `command`: every later step starts in the workspace.
+          docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
+          if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
+          fi
+          [ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ] || { echo "::error::workspace not empty after clean-up"; exit 1; }
+          command -v gh >/dev/null || { echo "::error::gh is not installed on runner $RUNNER_NAME"; exit 1; }
+          python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' \
+            || { echo "::error::python3 3.10 or newer is required on runner $RUNNER_NAME"; exit 1; }
       # The workflow's own ref (master), never the PR: this job holds statuses: write.
       - uses: actions/checkout@v4
         with:
           sparse-checkout: ci
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: result-caches-*

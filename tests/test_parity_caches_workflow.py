@@ -1,7 +1,14 @@
-"""Static guarantees of parity-caches.yml: the ones parity-wgs.yml gives, mirrored."""
+"""Static guarantees of parity-caches.yml.
+
+Authorization, the job container and the result collection are those of
+parity-wgs.yml, mirrored. Unlike parity-wgs.yml, every job runs on the
+self-hosted hosts, the wheel build included.
+"""
 
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -12,6 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 WF = (ROOT / ".github/workflows/parity-caches.yml").read_text()
 WGS = (ROOT / ".github/workflows/parity-wgs.yml").read_text()
 PARITY_TESTS = (ROOT / ".github/workflows/parity-tests.yml").read_text()
+PUBLISH = (ROOT / ".github/workflows/publish_to_pypi.yml").read_text()
+JOBS = ("command", "authorize", "build-wheel", "cache", "report")
+CLEAN = "Clean leftovers from earlier jobs"
 RUN_SCRIPT = (ROOT / "ci/wgs-runner/run-cache-parity.sh").read_text()
 
 
@@ -41,11 +51,66 @@ def test_image_tag_matches_runner_kit():
     assert f"WGS_IMAGE: {tag}" in WF
 
 
-def test_only_cache_job_uses_self_hosted_with_the_wgs_labels():
-    labels = "runs-on: [self-hosted, linux, x64, vepyr-wgs]"
-    assert WF.count("vepyr-wgs]") == 1
-    assert labels in block("cache")
-    assert labels in job_block("profile", WGS)
+def test_every_job_runs_on_the_self_hosted_hosts():
+    """No job of this workflow may use a GitHub-hosted runner."""
+    labels = "[self-hosted, linux, x64, vepyr-wgs]"
+    jobs = re.findall(r"^  ([a-z][a-z0-9-]*):\n", WF[WF.index("\njobs:\n") :], re.M)
+    assert tuple(jobs) == JOBS
+    for job in jobs:
+        assert re.findall(r"^ +runs-on: (.*)$", block(job), re.M) == [labels], job
+    assert len(re.findall(r"^ +runs-on:", WF, re.M)) == len(JOBS)
+    for hosted in ("ubuntu-", "macos-", "windows-"):
+        assert hosted not in WF, hosted
+    # The labels of the /parity-wgs profile job, which keeps its hosted jobs.
+    assert f"runs-on: {labels}" in job_block("profile", WGS)
+    assert WGS.count("vepyr-wgs]") == 1
+
+
+def test_every_job_first_empties_the_workspace_and_fails_closed():
+    """The hosts persist: no step may start in a directory PR code wrote."""
+    for job in JOBS:
+        steps = block(job).split("    steps:\n", 1)[1]
+        assert steps.startswith(f"      - name: {CLEAN}\n"), job
+        clean = _step(block(job), CLEAN)
+        order = [
+            clean.index(line)
+            for line in (
+                "set -euo pipefail",
+                "docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f",
+                'if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then',
+                'docker run --rm --network none -v "$GITHUB_WORKSPACE:/w"'
+                ' --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete',
+                '[ -z "$(find "$GITHUB_WORKSPACE" -mindepth 1 -print -quit)" ]'
+                ' || { echo "::error::workspace not empty after clean-up"; exit 1; }',
+            )
+        ]
+        assert order == sorted(order), job
+        assert "|| true" not in clean, job
+
+
+def test_only_the_build_and_cache_jobs_check_out_the_pr():
+    for job in ("command", "authorize", "report"):
+        text = block(job)
+        assert text.count("uses: actions/checkout@v4") == 1, job
+        # No `ref:` key: the workflow's own ref, which authorize pins to master.
+        assert not re.search(r"^\s+ref:", text, re.M), job
+        assert "sparse-checkout" in text, job
+    for job in ("build-wheel", "cache"):
+        text = block(job)
+        assert text.count("uses: actions/checkout@v4") == 1, job
+        assert "ref: ${{ needs.authorize.outputs.sha }}" in text, job
+    # No job leaves its token in .git/config on a persistent host.
+    assert WF.count("persist-credentials: false") == len(JOBS)
+    assert WF.count("uses: actions/checkout@v4") == len(JOBS)
+
+
+def test_jobs_check_the_host_tools_they_call():
+    """A missing python3 would otherwise read as "not a /parity-caches command"."""
+    python = "python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))'"
+    for job in ("command", "authorize", "report"):
+        assert python in _step(block(job), CLEAN), job
+    for job in ("authorize", "report"):
+        assert "command -v gh >/dev/null ||" in _step(block(job), CLEAN), job
 
 
 def test_command_job_only_reacts_to_parity_caches_comments():
@@ -111,8 +176,8 @@ def test_targets_come_from_masters_pins_and_manifest():
     assert '--memory "$MEMORY" --memory-swap "$MEMORY"' in cache
 
 
-def test_privileged_jobs_have_no_expressions_in_run_scripts():
-    for job in ("authorize", "report"):
+def test_no_job_has_expressions_in_run_scripts():
+    for job in JOBS:
         scripts = run_scripts(block(job))
         assert scripts, job
         for run in scripts:
@@ -137,12 +202,140 @@ def test_no_concurrency_group_runner_serialises():
     assert "fail-fast: false" in block("cache")
 
 
-def test_build_wheel_job_is_the_parity_wgs_one():
-    def steps(text: str) -> str:
-        return text.split("\n  #")[0]  # without the next job's leading comment
+def test_wheel_is_built_in_the_image_publish_pins_by_digest():
+    image = re.search(r"^  BUILD_IMAGE: (\S+)$", WF, re.M).group(1)
+    assert re.fullmatch(
+        r"quay\.io/pypa/manylinux2014_x86_64@sha256:[0-9a-f]{64}", image
+    )
+    # The image publish_to_pypi.yml builds the x86_64 release wheel in, on the
+    # same hosts: bump both digests together.
+    assert f"container: {image}\n" in PUBLISH
+    build = _step(block("build-wheel"), "Build the wheel in the pinned container")
+    assert "uses: PyO3/maturin-action@v1" in build
+    assert "container: ${{ env.BUILD_IMAGE }}" in build
+    assert "sccache: false" in build
+    # With `container:` set the input picks nothing (see publish_to_pypi.yml).
+    assert "manylinux:" not in build
+    # The wheel /parity-wgs tests: same target, profile and artifact.
+    theirs = job_block("build-wheel", WGS)
+    for line in (
+        "target: x86_64",
+        "args: --release --out dist --find-interpreter",
+        "name: wheels-manylinux-x86_64",
+    ):
+        assert line in block("build-wheel") and line in theirs, line
 
-    assert steps(block("build-wheel")) == steps(job_block("build-wheel", WGS))
-    assert "sccache: false" in block("build-wheel")
+
+def test_build_container_is_named_labelled_and_given_nothing_of_the_host():
+    job = block("build-wheel")
+    assert (
+        "CONTAINER: vepyr-build-${{ github.run_id }}-${{ github.run_attempt }}" in job
+    )
+    build = _step(job, "Build the wheel in the pinned container")
+    options = re.search(r"docker-options: >-\n((?: {12}\S.*\n?)+)", build).group(1)
+    for flag in (
+        "--name ${{ env.CONTAINER }}",
+        "--label vepyr-wgs=1",
+        "--security-opt no-new-privileges",
+        "--cap-drop NET_RAW",
+        "--cap-drop MKNOD",
+        "--pids-limit 4096",
+    ):
+        assert flag in options, flag
+    for flag in (
+        "--privileged",
+        "--cap-add",
+        "--volume",
+        "--mount",
+        "--network",
+        "--pid",
+        "--user",
+        "-v ",
+        "-e ",
+        "docker.sock",
+    ):
+        assert flag not in options.replace("--pids-limit", ""), flag
+    # maturin-action forwards an ssh agent and mounts the runner user's git
+    # credentials when it finds them, and calls sudo on build paths.
+    assert 'SSH_AUTH_SOCK: ""' in build
+    assert "XDG_CONFIG_HOME: ${{ runner.temp }}/no-config" in build
+    assert 'echo "$RUNNER_TEMP/no-sudo" >> "$GITHUB_PATH"' in _step(job, CLEAN)
+
+
+def test_build_job_runs_no_checked_out_code_on_host():
+    def code(script: str) -> str:
+        lines = script.splitlines()
+        return "\n".join(ln for ln in lines if not ln.lstrip().startswith("#"))
+
+    job = block("build-wheel")
+    scripts = [code(run) for run in run_scripts(job)]
+    assert len(scripts) == 4
+    words = r"\b(python3?|cargo|maturin|pip3?|uv|make|bash|source)\b"
+    for script in scripts:
+        assert not re.search(words, script), script
+    names = (
+        f"- name: {CLEAN}",
+        "uses: actions/checkout@v4",
+        "- name: Refuse a checkout that holds a symbolic link",
+        "uses: PyO3/maturin-action@v1",
+        "- name: Collect the wheel",
+        "uses: actions/upload-artifact@v4",
+        "- name: Delete the root-owned build tree",
+    )
+    positions = [job.index(name) for name in names]
+    assert positions == sorted(positions)
+    link = _step(job, "Refuse a checkout that holds a symbolic link")
+    assert '-path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print -quit' in link
+
+
+def test_repository_holds_no_symbolic_link():
+    """build-wheel refuses a checkout that holds one."""
+    git = shutil.which("git")
+    if git is None or not (ROOT / ".git").exists():
+        pytest.skip("not a git checkout")
+    listed = subprocess.run(
+        [git, "-C", str(ROOT), "ls-files", "-s"], capture_output=True, text=True
+    )
+    if listed.returncode != 0:
+        pytest.skip("git ls-files failed")
+    assert [ln for ln in listed.stdout.splitlines() if ln.startswith("120000 ")] == []
+
+
+def test_wheel_is_uploaded_from_a_host_made_directory():
+    """dist/ is written by PR code as root: one checked regular file leaves it."""
+    job = block("build-wheel")
+    collect = _step(job, "Collect the wheel")
+    kill = collect.index('docker rm -f "$CONTAINER"')
+    verify = collect.index('docker ps -aq --filter "name=^${CONTAINER}')
+    assert kill < verify < collect.index('"$ws"/dist/')
+    checks = (
+        'if [ ! -d "$ws/dist" ] || [ -L "$ws/dist" ]; then fail',
+        '[ "${#wheels[@]}" -eq 1 ] || fail',
+        '[[ "$name" =~ ^vepyr-[0-9A-Za-z._+-]+\\.whl$ ]] || fail',
+        'if [ ! -f "$wheel" ] || [ -L "$wheel" ]; then fail',
+        '[ "$(realpath -e -- "$wheel")" = "$ws/dist/$name" ] || fail',
+        '[ "$size" -le $((512 * 1024 * 1024)) ] || fail',
+    )
+    copy = collect.index('cp -- "$wheel" "$RES/$name"')
+    for check in checks:
+        assert collect.index(check) < copy, check
+    upload = job[job.index("uses: actions/upload-artifact@v4") :]
+    assert "path: ${{ env.RES }}\n" in upload
+    assert "if-no-files-found: error" in upload
+    assert "path: dist" not in job
+    # The same glob finds the wheel in the cache job.
+    assert "vepyr-*manylinux*x86_64*.whl" in collect
+    assert "vepyr-*manylinux*x86_64*.whl" in block("cache")
+
+
+def test_build_tree_is_deleted_as_root_even_after_a_failure():
+    delete = _step(block("build-wheel"), "Delete the root-owned build tree")
+    assert "if: always()" in delete
+    kill = delete.index('docker rm -f "$CONTAINER"')
+    verify = delete.index('docker ps -aq --filter "name=^${CONTAINER}')
+    wipe = delete.index('--entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete')
+    empty = delete.index("workspace not empty after clean-up")
+    assert kill < verify < wipe < empty
 
 
 def test_cache_job_runs_no_checked_out_code_on_host():
@@ -154,7 +347,7 @@ def test_cache_job_runs_no_checked_out_code_on_host():
 
 def test_container_is_hardened_like_the_wgs_one():
     def docker_run(text: str) -> str:
-        start = text.index("docker run --rm")
+        start = text.index('docker run --rm --name "$CONTAINER"')
         return text[start : text.index("\n      - ", start)]
 
     mine, theirs = docker_run(block("cache")), docker_run(job_block("profile", WGS))
@@ -173,7 +366,7 @@ def test_container_is_hardened_like_the_wgs_one():
         '--name "$CONTAINER"',
     ):
         assert flag in mine and flag in theirs, flag
-    clean = _step(block("cache"), "Clean leftovers from earlier jobs")
+    clean = _step(block("cache"), CLEAN)
     assert "docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f" in clean
 
 
@@ -193,7 +386,8 @@ def test_collect_step_is_the_parity_wgs_one():
     assert same.split(summary)[0] == theirs.split(summary)[0]
     kill = mine.index('docker rm -f "$CONTAINER"')
     assert kill < mine.index(PURGE) < mine.index('"$SCRATCH/')
-    after_run = block("cache")[block("cache").index("docker run --rm") :]
+    job_run = block("cache").index('docker run --rm --name "$CONTAINER"')
+    after_run = block("cache")[job_run:]
     assert "env.SCRATCH" not in after_run  # nothing uploaded from scratch
     uploads = re.findall(
         r"uses: actions/upload-artifact@v4.*?path: (.*?)\n(?=\s*(?:if-no|- |#|$))",
