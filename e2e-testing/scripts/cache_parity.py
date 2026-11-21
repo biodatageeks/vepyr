@@ -11,6 +11,14 @@ names, order, types, nullability and key-value metadata) and the content of
 every column, row by row. Plugin caches also compare the warm/cold tier counts
 (the shard's `tier` column and `manifest.json`).
 
+Rows in another order: a shard that differs in row order is checked without
+regard to order, by sorting when it is small and by a streaming digest of its
+rows when it is not. The same rows in another order pass with a note.
+
+Build provenance (the plugin manifest revision and source files recorded in
+`manifest.json`, the Parquet writer) is printed as notes and never decides the
+verdict.
+
 Exit codes: 0 identical, 1 parity mismatch (the summary has a `FAIL:` line),
 3 the runner is not ready (staged data missing or stale, scratch too small),
 anything else is an error.
@@ -29,13 +37,14 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+import polars as pl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 BATCH_ROWS = 65_536
-# Above this a shard is never loaded whole: a difference in row order alone
-# cannot be told from a difference in content and is reported as a mismatch.
+# Above this a shard is never loaded whole: whether it holds the same rows in
+# another order is decided by a streaming digest of its rows, not by sorting.
 SORT_LIMIT_ROWS = 2_000_000
 # Above this a row-count mismatch is reported without example rows.
 EXPLAIN_LIMIT_ROWS = 1_000_000
@@ -46,8 +55,8 @@ TIER_NAMES = {0: "warm", 1: "cold"}
 CORE_JSON_SIDECARS = ("reference_policy.json",)
 CORE_BYTE_SIDECARS = ("chr_synonyms.txt",)
 CHROM_MANIFEST = "chrom_manifest.json"
-# manifest.json keys that describe the cache content. `sources` (paths, inode,
-# mtime), `source_manifest` and `cache_source_version` describe the build.
+# manifest.json keys that describe the cache content and decide the verdict,
+# with `chroms`. Any other key is reported as a note when it differs.
 PLUGIN_MANIFEST_FIELDS = (
     "plugin_name",
     "key_columns",
@@ -60,6 +69,15 @@ PLUGIN_MANIFEST_FIELDS = (
 )
 # A manifest written before the key existed means its default.
 PLUGIN_MANIFEST_DEFAULTS = {"lookup": "point"}
+# manifest.json keys that describe the build: the vepyr-plugins revision and
+# the name of its manifest file. `sources` (paths, inode, mtime, digests) is
+# build provenance too; `_source_notes` reports its digests.
+PLUGIN_PROVENANCE_FIELDS = ("cache_source_version", "source_manifest")
+# Seeds of the two 64-bit lanes of the 128-bit row hash (`_row_hashes`).
+_HASH_SEEDS = (
+    (0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9, 0x94D049BB133111EB, 0x2545F4914F6CDD1D),
+    (0xD6E8FEB86659FD93, 0xA0761D6478BD642F, 0xE7037ED1A0B428DB, 0x8EBC6AF09C88C6E3),
+)
 BUILT = "the rebuilt cache"
 PUBLISHED = "the published cache"
 # Shards are compared in parallel as streams; the two steps that load a whole
@@ -79,12 +97,27 @@ class ShardResult:
     rows_published: int | None = None
     tiers_built: dict[str, int] | None = None
     tiers_published: dict[str, int] | None = None
+    # The Parquet `created_by` strings: provenance, never compared.
+    writer_built: str | None = None
+    writer_published: str | None = None
     problems: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
         return not self.problems
+
+
+@dataclass(frozen=True)
+class RowDigest:
+    """What a shard holds, whatever the order of its rows.
+
+    `total` is the sum of the 128-bit hashes of all rows modulo 2**128, so it
+    counts a row as often as it occurs.
+    """
+
+    rows: int
+    total: int
 
 
 @dataclass
@@ -247,7 +280,8 @@ def _normalise(array: pa.Array) -> pa.Array:
 
     Floats become their bit patterns, so NaN equals NaN and 0.0 differs from
     -0.0. Dictionary, large and view encodings become the plain type, so only
-    the schema check reports an encoding change.
+    the schema check reports an encoding change. The same holds inside lists
+    and structs: a normalised nested column holds no float.
     """
     t = array.type
     try:
@@ -259,6 +293,30 @@ def _normalise(array: pa.Array) -> pa.Array:
             return array.cast(pa.string())
         if pa.types.is_large_binary(t) or t == pa.binary_view():
             return array.cast(pa.binary())
+        if pa.types.is_list(t) or pa.types.is_large_list(t):
+            # `values` ignores the offset of a sliced list; the validity and
+            # offset buffers are reused with that offset.
+            values = _normalise(array.values)
+            if values.type != t.value_type:
+                item = pa.field(t.value_field.name, values.type, t.value_field.nullable)
+                kind = pa.large_list if pa.types.is_large_list(t) else pa.list_
+                return pa.Array.from_buffers(
+                    kind(item),
+                    len(array),
+                    array.buffers()[:2],
+                    array.null_count,
+                    array.offset,
+                    [values],
+                )
+        elif pa.types.is_struct(t):
+            children = [_normalise(array.field(i)) for i in range(t.num_fields)]
+            if any(c.type != t.field(i).type for i, c in enumerate(children)):
+                fields = [
+                    pa.field(t.field(i).name, c.type, t.field(i).nullable)
+                    for i, c in enumerate(children)
+                ]
+                mask = array.is_null() if array.null_count else None
+                return pa.StructArray.from_arrays(children, fields=fields, mask=mask)
     except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
         pass
     return array
@@ -270,9 +328,12 @@ def _diff_mask(a: pa.Array, b: pa.Array) -> pa.Array:
         one_null = pc.xor(pc.is_null(a), pc.is_null(b))
         return pc.or_(one_null, pc.fill_null(pc.not_equal(a, b), False))
     except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
-        # Nested types have no element-wise comparison kernel.
+        # Nested types have no element-wise comparison kernel. `repr` is the
+        # form `_row_multiset` compares: a NaN that `_normalise` left in a
+        # nested value (a map, a fixed-size list) equals itself.
         return pa.array(
-            [x != y for x, y in zip(a.to_pylist(), b.to_pylist())], type=pa.bool_()
+            [repr(x) != repr(y) for x, y in zip(a.to_pylist(), b.to_pylist())],
+            type=pa.bool_(),
         )
 
 
@@ -346,21 +407,72 @@ def _normalised_table(file: pq.ParquetFile, columns: list[str]) -> pa.Table:
     return pa.table(arrays, names=columns)
 
 
+def _row_hashes(rows: pa.RecordBatch | pa.Table, lane: int) -> pl.Series:
+    """One UInt64 per row of normalised `rows`, from the values alone.
+
+    Polars hashes a row from its values, nested ones included: neither the
+    position of a row nor the batch it arrives in changes its hash. Both
+    shards are hashed in one process, so the hash need not be stable across
+    Polars versions. Polars hashes 0.0 like -0.0 and every NaN alike, which is
+    why the rows must be normalised (floats as bit patterns) first.
+    """
+    return pl.from_arrow(rows, rechunk=False).hash_rows(*_HASH_SEEDS[lane])
+
+
+def _exact_sum(hashes: pl.Series) -> int:
+    """The sum of UInt64 values as a Python integer, without wrap-around."""
+    half = 1 << 32
+    return int((hashes % half).sum()) + (int((hashes // half).sum()) << 32)
+
+
+def row_digest(
+    file: pq.ParquetFile, columns: list[str], batch_rows: int = BATCH_ROWS
+) -> RowDigest:
+    """The rows of a shard as a multiset, read as a stream in bounded memory.
+
+    A row's 128-bit hash is two independent 64-bit hashes of its normalised
+    values. The hashes are added modulo 2**128: the sum does not depend on the
+    order of the rows, and a row that occurs twice counts twice.
+    """
+    low = high = rows = 0
+    for batch in _batches(file, columns, batch_rows):
+        normalised = pa.RecordBatch.from_arrays(
+            [_normalise(batch.column(name)) for name in columns], names=columns
+        )
+        low += _exact_sum(_row_hashes(normalised, 0))
+        high += _exact_sum(_row_hashes(normalised, 1))
+        rows += batch.num_rows
+    return RowDigest(rows, (low + (high << 64)) % (1 << 128))
+
+
+def _sorted(table: pa.Table) -> pa.Table:
+    """A normalised table in an order that depends on its rows alone.
+
+    Scalar columns are sort keys as they are. Nested values have no order, so
+    one more key is the hash of each row's nested values: rows that tie on
+    every key hold the same values, and the caller compares the values.
+    """
+    nested = [
+        name
+        for name, t in zip(table.column_names, table.schema.types)
+        if pa.types.is_nested(t)
+    ]
+    keys = [table.column(n) for n in table.column_names if n not in nested]
+    if nested:
+        keys.append(_row_hashes(table.select(nested), 0).to_arrow())
+    names = [f"k{i}" for i in range(len(keys))]
+    order = pc.sort_indices(
+        pa.table(keys, names=names), sort_keys=[(n, "ascending") for n in names]
+    )
+    return table.take(order)
+
+
 def _same_rows(built, published, columns) -> bool:
     """True when both files hold the same rows, whatever their order."""
     a, b = _normalised_table(built, columns), _normalised_table(published, columns)
     if a.schema.types != b.schema.types:
         return False
-    keys = [
-        (name, "ascending")
-        for name, t in zip(columns, a.schema.types)
-        if not pa.types.is_nested(t)
-    ]
-    if not keys:
-        return False
-    a = a.take(pc.sort_indices(a, sort_keys=keys))
-    b = b.take(pc.sort_indices(b, sort_keys=keys))
-    return a.equals(b)
+    return _sorted(a).equals(_sorted(b))
 
 
 def _row_multiset(file: pq.ParquetFile, columns: list[str]) -> Counter:
@@ -427,6 +539,8 @@ def compare_parquet(
         fb.metadata.num_rows,
         fp.metadata.num_rows,
     )
+    result.writer_built = fb.metadata.created_by
+    result.writer_published = fp.metadata.created_by
     result.problems += schema_problems(fb.schema_arrow, fp.schema_arrow)
     result.tiers_built = _tier_counts(fb, batch_rows)
     result.tiers_published = _tier_counts(fp, batch_rows)
@@ -453,21 +567,41 @@ def compare_parquet(
     counts, examples = _positional_diff(fb, fp, columns, batch_rows)
     if not counts:
         return result
-    small = result.rows_built <= sort_limit_rows
-    with _WHOLE_SHARD:
-        reordered = small and _same_rows(fb, fp, columns)
+    # The shards differ when read in row order. Do they hold the same rows?
+    how, note = "", None
+    if result.rows_built <= sort_limit_rows:
+        with _WHOLE_SHARD:
+            reordered = _same_rows(fb, fp, columns)
+    else:
+        size = f"more than {sort_limit_rows:,} rows"
+        try:
+            reordered = row_digest(fb, columns, batch_rows) == row_digest(
+                fp, columns, batch_rows
+            )
+        except Exception as exc:  # noqa: BLE001 - e.g. a type Polars cannot hash
+            reordered = False
+            first = (str(exc).splitlines() or [""])[0]
+            note = (
+                f"{size}: no row digest ({type(exc).__name__}: {first}), so a "
+                "difference in row order alone is not told apart from a difference "
+                "in content"
+            )
+        else:
+            how = " (equal row digests)"
+            note = (
+                f"{size}: the row digests differ, so the rows are not the same in "
+                "another order; the counts per column are of rows compared by "
+                "position"
+            )
     if reordered:
         target = result.problems if strict_order else result.notes
-        target.append("same rows in a different order")
+        target.append(f"same rows in a different order{how}")
         return result
     detail = ", ".join(f"{name} ({n:,} rows)" for name, n in counts.most_common())
     result.problems.append(f"content: values differ in {detail}")
     result.problems += examples
-    if not small:
-        result.notes.append(
-            f"more than {sort_limit_rows:,} rows: a difference in row order alone "
-            "is not told apart from a difference in content"
-        )
+    if note:
+        result.notes.append(note)
     return result
 
 
@@ -598,6 +732,7 @@ def compare_core_cache(
                 report.problems.append(f"{name} is missing from {gone}")
         elif fb.read_bytes() != fp.read_bytes():
             report.problems.append(f"{name} differs between the two caches")
+    report.notes += _writer_notes(report.shards)
     return report
 
 
@@ -635,6 +770,46 @@ def _plugin_manifest_problems(built: dict, published: dict) -> list[str]:
 
 def _counts(entry: dict) -> str:
     return ", ".join(f"{k} {entry.get(k)}" for k in ("file", "rows", "warm", "cold"))
+
+
+def _plugin_provenance_notes(built: dict, published: dict) -> list[str]:
+    """What differs in manifest.json without deciding the verdict.
+
+    The published cache keeps the manifest revision and the source files it
+    was built from; a rebuild from another revision, or from another copy of
+    the source, is still the published cache when its rows are.
+    """
+    notes = []
+    compared = {*PLUGIN_MANIFEST_FIELDS, "chroms", "sources"}
+    for key in sorted((set(built) | set(published)) - compared):
+        vb, vp = built.get(key), published.get(key)
+        if vb == vp:
+            continue
+        kind = (
+            "build provenance"
+            if key in PLUGIN_PROVENANCE_FIELDS
+            else "not a compared field"
+        )
+        notes.append(
+            f"manifest.json: {key} is {_show(vb)} in {BUILT}, {_show(vp)} in "
+            f"{PUBLISHED} ({kind}; does not decide the verdict)"
+        )
+    return notes + _source_notes(built, published)
+
+
+def _writer_notes(shards: list[ShardResult]) -> list[str]:
+    """Parquet writers that differ between the two caches: provenance only."""
+    pairs = Counter(
+        (s.writer_built, s.writer_published)
+        for s in shards
+        if s.writer_built and s.writer_published
+        if s.writer_built != s.writer_published
+    )
+    return [
+        f"Parquet writer of {n} shard(s) is {_show(wb)} in {BUILT}, {_show(wp)} in "
+        f"{PUBLISHED} (build provenance; does not decide the verdict)"
+        for (wb, wp), n in pairs.most_common(3)
+    ]
 
 
 def _own_manifest_problem(shard: ShardResult, manifest: dict, where: str, built: bool):
@@ -678,6 +853,7 @@ def compare_plugin_cache(
             report.problems.append(f"manifest.json is missing or unreadable in {where}")
     if isinstance(mb, dict) and isinstance(mp, dict):
         report.problems += _plugin_manifest_problems(mb, mp)
+        report.notes += _plugin_provenance_notes(mb, mp)
     report.shards = _compare_shards(published.name, built, published, jobs, options)
     if not report.shards:
         report.problems.append("no Parquet shard in either cache")
@@ -687,6 +863,7 @@ def compare_plugin_cache(
                 problem = _own_manifest_problem(shard, manifest, where, is_built)
                 if problem:
                     shard.problems.append(problem)
+    report.notes += _writer_notes(report.shards)
     return report
 
 
@@ -711,6 +888,32 @@ def _require_revision(cache: Path, repo_id: str, revision: str, restage: str) ->
         raise RunnerNotReady(
             f"staged cache {cache} is not {repo_id}@{revision} "
             f"(.revision says {_show(got)}); {restage}"
+        )
+
+
+def _require_downloaded_revision(cache: Path, repo_id: str, revision: str) -> None:
+    """A cache downloaded in the job must hold the pinned commit, file by file.
+
+    A staged copy carries a `.revision` marker (`_require_revision`). A
+    download has none: huggingface_hub keeps the commit each file came from on
+    the first line of `.cache/huggingface/download/<file>.metadata`.
+    """
+    names = ["manifest.json", *sorted(p.name for p in cache.glob("*.parquet"))]
+    other = {}
+    for name in names:
+        meta = cache / ".cache" / "huggingface" / "download" / f"{name}.metadata"
+        try:
+            commit = meta.read_text(encoding="utf-8").splitlines()[0].strip()
+        except (OSError, IndexError, UnicodeDecodeError):
+            commit = None
+        if commit != revision:
+            other[name] = commit
+    if other:
+        name, commit = next(iter(other.items()))
+        raise ValueError(
+            f"downloaded cache {cache} is not {repo_id}@{revision}: {len(other)} of "
+            f"{len(names)} file(s) come from another or an unrecorded commit, e.g. "
+            f"{name} from {_show(commit)}"
         )
 
 
@@ -866,6 +1069,7 @@ def run_plugin(api, config: dict, plugin: str, data: Path, work: Path, jobs: int
                 show_progress=False,
             )
         )
+        _require_downloaded_revision(published, repo_id, pin)
     published_manifest = _load_json(published / "manifest.json")
     if not isinstance(published_manifest, dict):
         raise ValueError(f"{published}/manifest.json is missing or unreadable")
@@ -892,7 +1096,7 @@ def run_plugin(api, config: dict, plugin: str, data: Path, work: Path, jobs: int
     )
     built = out / "plugin" / plugin
     _log(f"comparing {built} with {published}")
-    report = compare_plugin_cache(
+    return compare_plugin_cache(
         built,
         published,
         label=(
@@ -901,10 +1105,6 @@ def run_plugin(api, config: dict, plugin: str, data: Path, work: Path, jobs: int
         ),
         jobs=jobs,
     )
-    report.notes += _source_notes(
-        _load_json(built / "manifest.json"), published_manifest
-    )
-    return report
 
 
 def run_target(
