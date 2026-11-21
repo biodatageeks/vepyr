@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Smoke check of the runner host: image present, staged data consistent, disk.
+# Usage: check.sh [data root] ["<selectors>"]. The selectors are those of
+# /parity-caches and stage-cache-inputs.sh; they add opt-in plugins to the
+# cache parity inputs that are checked.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; repo="$(cd "$here/../.." && pwd)"
 data="${1:-/data/vepyr}"
+selectors="${2:-}"
 tag="$(cat "$here/IMAGE")"
 docker image inspect "$tag" >/dev/null || { echo "image $tag missing: run build-image.sh"; exit 1; }
 python3 "$repo/e2e-testing/scripts/wgs_manifest.py" check --data "$data" --manifest "$repo/e2e-testing/golden/wgs-manifest.json"
@@ -26,4 +30,15 @@ fi
 mkdir -p /scratch/vepyr-wgs
 avail=$(df -Pk /scratch/vepyr-wgs | awk 'NR==2 {print $4}')
 [ "$avail" -gt $((20*1024*1024)) ] || { echo "less than 20 GB free under /scratch"; exit 1; }
+# /parity-caches inputs: what a job checks before it builds (staged caches at
+# the pinned revisions, raw caches, plugin sources, scratch per target), so that
+# a missing input shows here and not as a job that ends with exit code 3. A
+# host that stage-cache-inputs.sh never ran on serves /parity-wgs only.
+if [ -d "$data/vep-cache" ] || [ -d "$data/plugin-cache" ] || [ -d "$data/plugin-source" ]; then
+  python3 "$repo/ci/ci_helpers.py" cache-inputs --data "$data" --scratch /scratch/vepyr-wgs \
+    --published "$repo/src/vepyr/_published.py" \
+    --manifest "$repo/e2e-testing/golden/cache-parity-manifest.json" --select "$selectors"
+else
+  echo "cache parity inputs not staged: /parity-caches jobs would exit 3 here (run stage-cache-inputs.sh)"
+fi
 echo "runner OK: $tag, data consistent, $((avail/1024/1024)) GB free"

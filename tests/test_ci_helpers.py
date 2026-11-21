@@ -843,6 +843,177 @@ def test_cache_targets_cli(capsys):
     assert "unknown selector 'dbnsfp'" in capsys.readouterr().err
 
 
+# ---- /parity-caches inputs on a runner host (check.sh) --------------------
+
+INPUTS_CONFIG = {
+    "release": 116,
+    "assembly": "GRCh38",
+    "core": {
+        "ensembl": {"raw": "vep-cache/homo_sapiens/116_GRCh38", "scratch_gb": 60},
+        "merged": {"raw": "vep-cache/homo_sapiens_merged/116_GRCh38"},
+    },
+    "plugin_tiering_cache": "merged",
+    "plugins": {"small": {}, "big": {"opt_in": "large", "scratch_gb": 100}},
+}
+
+
+def stage_inputs(data: Path) -> None:
+    """Everything the jobs for ensembl, merged, plugin_small and plugin_big read."""
+    for cache_type in ("ensembl", "merged"):
+        cache = data / f"cache/116_GRCh38_{cache_type}"
+        cache.mkdir(parents=True)
+        marker = {
+            "repo_id": f"org/vepyr_116_GRCh38_{cache_type}",
+            "revision": CACHE_PINS[(116, "GRCh38", cache_type)],
+        }
+        (cache / ".revision").write_text(json.dumps(marker))
+        touch(data / INPUTS_CONFIG["core"][cache_type]["raw"], "info.txt")
+    for plugin in ("small", "big"):
+        cache = data / f"plugin-cache/116_GRCh38/plugin/{plugin}"
+        cache.mkdir(parents=True)
+        marker = {
+            "repo_id": f"org/vepyr_116_GRCh38_plugin_{plugin}",
+            "revision": CACHE_PINS[(116, "GRCh38", f"plugin_{plugin}")],
+        }
+        (cache / ".revision").write_text(json.dumps(marker))
+        sources = [{"file": "in.vcf.gz", "index": {"file": "in.vcf.gz.tbi"}}]
+        (cache / "manifest.json").write_text(json.dumps({"sources": sources}))
+        touch(data / f"plugin-source/{plugin}", "in.vcf.gz")
+        touch(data / f"plugin-source/{plugin}", "in.vcf.gz.tbi")
+
+
+def inputs(data: Path, targets: list[str], free: float | None = 500.0):
+    return ci_helpers.cache_inputs(
+        data, "org", CACHE_PINS, INPUTS_CONFIG, targets, free
+    )
+
+
+ALL_INPUT_TARGETS = ["ensembl", "merged", "plugin_small", "plugin_big"]
+
+
+def test_cache_inputs_complete_host_has_no_problem(tmp_path):
+    stage_inputs(tmp_path)
+    assert inputs(tmp_path, ALL_INPUT_TARGETS) == ([], [])
+
+
+def test_cache_inputs_empty_host_names_every_missing_input(tmp_path):
+    problems, warnings = inputs(tmp_path, ["ensembl", "plugin_small"])
+    text = "\n".join(problems)
+    assert (
+        f"{tmp_path}/cache/116_GRCh38_ensembl (the published cache to compare with) is not staged at org/vepyr_116_GRCh38_ensembl@{'1' * 40}"
+        in text
+    )
+    assert (
+        f"raw Ensembl VEP cache missing: {tmp_path}/vep-cache/homo_sapiens/116_GRCh38/info.txt"
+        in text
+    )
+    # A plugin job reads its tiers from the merged cache.
+    assert (
+        f"{tmp_path}/cache/116_GRCh38_merged (tiers of plugin caches) is not staged at"
+        in text
+    )
+    assert (
+        f"no staged source file for small under {tmp_path}/plugin-source/small" in text
+    )
+    assert len(problems) == 4
+    # The job downloads a published plugin cache it does not find staged.
+    assert warnings == [
+        f"published small cache is not staged at org/vepyr_116_GRCh38_plugin_small@{'4' * 40}: "
+        "the job downloads it; re-run ci/wgs-runner/stage-cache-inputs.sh to avoid that"
+    ]
+
+
+def test_cache_inputs_stale_marker_missing_source_and_scratch(tmp_path):
+    stage_inputs(tmp_path)
+    stale = {"repo_id": "org/vepyr_116_GRCh38_merged", "revision": "9" * 40}
+    (tmp_path / "cache/116_GRCh38_merged/.revision").write_text(json.dumps(stale))
+    (tmp_path / "plugin-source/big/in.vcf.gz.tbi").unlink()
+    problems, warnings = inputs(tmp_path, ALL_INPUT_TARGETS, free=70.0)
+    assert warnings == []
+    # 70 GiB are enough for ensembl (60) and not for plugin_big (100).
+    assert problems == [
+        f"{tmp_path}/cache/116_GRCh38_merged (the published cache to compare with) is not "
+        f"staged at org/vepyr_116_GRCh38_merged@{'2' * 40}: re-run ci/wgs-runner/stage-data.sh",
+        f"{tmp_path}/cache/116_GRCh38_merged (tiers of plugin caches) is not staged at "
+        f"org/vepyr_116_GRCh38_merged@{'2' * 40}: re-run ci/wgs-runner/stage-data.sh",
+        f"staged plugin source missing: {tmp_path}/plugin-source/big/in.vcf.gz.tbi; "
+        "re-run ci/wgs-runner/stage-cache-inputs.sh",
+        "plugin_big needs 100 GiB of scratch; 70 GiB are free",
+    ]
+    # Free space is not checked without a scratch directory.
+    assert "scratch" not in "\n".join(inputs(tmp_path, ["plugin_big"], free=None)[0])
+
+
+def test_cache_inputs_staged_plugin_cache_without_sources_is_a_problem(tmp_path):
+    stage_inputs(tmp_path)
+    (tmp_path / "plugin-cache/116_GRCh38/plugin/small/manifest.json").write_text("{}")
+    problems, _ = inputs(tmp_path, ["plugin_small"])
+    assert problems == [
+        f"{tmp_path}/plugin-cache/116_GRCh38/plugin/small/manifest.json lists no sources; "
+        "re-run ci/wgs-runner/stage-cache-inputs.sh"
+    ]
+
+
+def test_published_org_is_the_one_vepyr_uses(tmp_path):
+    namespace: dict = {}
+    exec(PUBLISHED_PY.read_text(), namespace)  # noqa: S102 - the repository's own file
+    org = ci_helpers.published_org(PUBLISHED_PY)
+    assert org == namespace["HF_ORG"]
+    # The repository names cache_inputs builds are the ones vepyr downloads from.
+    assert (
+        namespace["cache_repo_id"](116, "GRCh38", "merged")
+        == f"{org}/vepyr_116_GRCh38_merged"
+    )
+    assert (
+        namespace["plugin_repo_id"](116, "GRCh38", "clinvar")
+        == f"{org}/vepyr_116_GRCh38_plugin_clinvar"
+    )
+    other = tmp_path / "_published.py"
+    other.write_text("HF_ORG = some_call()\n")
+    with pytest.raises(ci_helpers.CiError, match="no HF_ORG string"):
+        ci_helpers.published_org(other)
+
+
+def test_cache_inputs_cli(tmp_path, capsys):
+    args = [
+        "cache-inputs",
+        "--data",
+        str(tmp_path),
+        "--published",
+        str(PUBLISHED_PY),
+        "--manifest",
+        str(CACHE_MANIFEST),
+    ]
+    assert ci_helpers.main([*args, "--select", "merged clinvar"]) == 1
+    err = capsys.readouterr().err
+    assert "cache parity input(s) missing for merged, plugin_clinvar:" in err
+    assert "- raw Ensembl VEP cache missing:" in err
+    assert (
+        "WARNING: published clinvar cache is not staged at biodatageeks/vepyr_116_GRCh38_plugin_clinvar@"
+        in err
+    )
+    # A complete host, for the committed pins and manifest.
+    pins = ci_helpers.published_pins(PUBLISHED_PY)
+    manifest = json.loads(CACHE_MANIFEST.read_text())
+    cache = tmp_path / "cache/116_GRCh38_merged"
+    cache.mkdir(parents=True)
+    marker = {
+        "repo_id": "biodatageeks/vepyr_116_GRCh38_merged",
+        "revision": pins[(116, "GRCh38", "merged")],
+    }
+    (cache / ".revision").write_text(json.dumps(marker))
+    touch(tmp_path / manifest["core"]["merged"]["raw"], "info.txt")
+    assert ci_helpers.main([*args, "--select", "merged"]) == 0
+    assert capsys.readouterr().out == "cache parity inputs present for: merged\n"
+    assert (
+        ci_helpers.main(
+            [*args, "--select", "merged", "--scratch", str(tmp_path / "none")]
+        )
+        == 1
+    )
+    assert "cannot read" in capsys.readouterr().err
+
+
 def test_caches_statuses_all_green(tmp_path):
     targets = ["merged", "plugin_clinvar"]
     for t in targets:

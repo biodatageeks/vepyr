@@ -72,12 +72,16 @@ It writes `/work/result.json` and `/work/summary.txt`.
    Needs `uvx`, `curl`, `rsync`, `python3` (3.11+) on the host.
 8. Run `ci/wgs-runner/check.sh` (as root or with passwordless sudo, so it can
    read the firewall rules; otherwise it warns and you check them by hand).
+   Once `stage-cache-inputs.sh` has run, it also checks the `/parity-caches`
+   inputs (see "Staged inputs").
 9. For `/parity-caches`, which runs every job on the host (see "Where the jobs
    run"): the runner service needs `gh` and `python3` (3.10 or newer) on its
    `PATH`, and `git` 2.28 or newer for the sparse checkouts. The `gha_runner`
    role installs none of them explicitly, so check each host as the runner
    user: `gh --version; python3 --version; git --version`. The jobs that call
-   `gh` or `python3` fail in their first step when one is missing.
+   `gh` or `python3` fail in their first step when one is missing. Every job
+   also counts the runner services on its host (`pgrep -cx Runner.Listener`,
+   which must print `1`) and fails when it finds more than one.
 
 ## Re-staging when the manifest changes
 
@@ -111,6 +115,12 @@ queued for 24 hours; a run whose report was cancelled leaves its statuses
 
 Do not register a second runner service on the same host: two jobs there would
 share one `/data/vepyr`, scratch disk and memory budget, and one workspace.
+The clean-up at the start of every job relies on this rule: it removes every
+container labelled `vepyr-wgs=1` on the host, which is a leftover only when no
+other job runs there. With a second runner it would remove the container of a
+running `/parity-wgs` or `/parity-caches` job. Every `/parity-caches` job
+therefore first counts the `Runner.Listener` processes and fails, removing
+nothing, when it finds more than one; `/parity-wgs` relies on the rule alone.
 
 ## Runtime
 
@@ -159,7 +169,8 @@ pinned in `src/vepyr/_published.py`
 
 Exit codes of `run-cache-parity.sh`: 0 the rebuilt cache is the published one,
 1 parity mismatch, 3 the runner is not ready (staged data missing or at
-another revision, scratch too small), anything else is an error. It writes
+another revision, scratch too small), anything else is an error (4 when
+`uv venv` or `uv pip install` of the wheel fails; the summary names the step). It writes
 `/work/result.json`, `/work/summary.txt` and
 `/work/out/reports/cache-parity.json` (every shard, with the differing columns
 and example rows).
@@ -211,8 +222,24 @@ is different: only its `profile` job runs here.
   counts of the `tier` column and of `manifest.json`. `verify_source` is strict
   when the published build verified the upstream digest, and `warn` when its
   input was a derived file (AlphaMissense's BGZF re-compression).
-- Rows in another order but otherwise identical pass with a note, for shards
-  of up to 2,000,000 rows; a larger shard is compared in row order only.
+- Rows in another order but otherwise identical pass with a note. A shard of
+  up to 2,000,000 rows is sorted and compared value by value. A larger shard
+  is never loaded whole: both copies are read as streams into a digest of
+  their rows (the sum, modulo 2^128, of a 128-bit hash of each row, with the
+  row count), which is the same for the same rows in any order and counts a
+  repeated row as often as it occurs. Equal digests pass with a note;
+  different digests fail, with the rows that differ by position counted per
+  column.
+- Floats are compared by bit pattern, also inside lists and structs: NaN
+  equals NaN and 0.0 differs from -0.0.
+- Build provenance never decides the verdict and is printed as notes: in a
+  plugin's `manifest.json` the `vepyr-plugins` revision
+  (`cache_source_version`), `source_manifest` and the digests of `sources`,
+  and in every shard the Parquet writer (`created_by`). A cache rebuilt from
+  another manifest revision is the published cache when its rows, schema and
+  tiers are. The key-value metadata that is compared (`bio.vep.cache_version`,
+  `bio.vep.cache_source_type`, `bio.vep.chromosomes` and the like) describes
+  the content; no key holds a build time or a tool version.
 
 ### Staged inputs
 
@@ -233,7 +260,10 @@ A plugin cache that is not staged, or is staged at another revision than the
 PR pins, is downloaded inside the job with `vepyr.download_plugin_cache` (the
 egress firewall allows the public internet, so Hugging Face is reachable from
 the container); staging it avoids the download and is what the opt-in plugins
-need. Core caches are never downloaded in a job: a staged core cache at
+need. A staged copy is used only when its `.revision` marker names the pin.
+A downloaded copy has no marker: the job requires that every file of it comes
+from the pinned commit, as `huggingface_hub` records per file, and ends as an
+error otherwise. Core caches are never downloaded in a job: a staged core cache at
 another revision ends the job with exit code 3. The plugin manifests are cloned from GitHub by
 `build_plugin_cache` itself.
 
@@ -253,8 +283,17 @@ byte-stable across htslib versions, so the job reports a digest that differs
 from the published build's as a note, not as a failure.
 
 A core job needs about 60 GB of scratch for the rebuilt cache (`scratch_gb` in
-the manifest; the job exits 3 when `/scratch` has less), which is more than the
-20 GB `check.sh` asks for.
+the manifest; the job exits 3 when `/scratch` has less).
+
+`check.sh [data root] ["<selectors>"]` checks all of this without running a
+job, once any of the three directories above exists: the `.revision` marker of
+each staged core cache, each raw cache, the source files that each staged
+plugin `manifest.json` lists, and the free scratch space each target needs. It
+checks the default targets, and an opt-in plugin when a selector names it
+(`check.sh /data/vepyr "core plugins cadd"`). A published plugin cache that is
+not staged at the pin is a warning, since the job downloads it. On a host where
+`stage-cache-inputs.sh` never ran, `check.sh` says so and still passes for
+`/parity-wgs`.
 
 ### Statuses
 

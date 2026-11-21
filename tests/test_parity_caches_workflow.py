@@ -23,6 +23,7 @@ PUBLISH = (ROOT / ".github/workflows/publish_to_pypi.yml").read_text()
 JOBS = ("command", "authorize", "build-wheel", "cache", "report")
 CLEAN = "Clean leftovers from earlier jobs"
 RUN_SCRIPT = (ROOT / "ci/wgs-runner/run-cache-parity.sh").read_text()
+CHECK_SCRIPT = (ROOT / "ci/wgs-runner/check.sh").read_text()
 
 
 def block(name: str) -> str:
@@ -76,6 +77,11 @@ def test_every_job_first_empties_the_workspace_and_fails_closed():
             clean.index(line)
             for line in (
                 "set -euo pipefail",
+                # One runner per host is what makes the removal below safe.
+                "runners=$(pgrep -cx Runner.Listener || true)",
+                '[ "${runners:-0}" -le 1 ] || { echo "::error::$runners runner'
+                " services on the host of $RUNNER_NAME; /parity-caches needs one"
+                ' runner per host"; exit 1; }',
                 "docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f",
                 'if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then',
                 'docker run --rm --network none -v "$GITHUB_WORKSPACE:/w"'
@@ -88,7 +94,10 @@ def test_every_job_first_empties_the_workspace_and_fails_closed():
             )
         ]
         assert order == sorted(order), job
-        assert "|| true" not in clean, job
+        # Nothing but the count of runners may fail without failing the step
+        # (pgrep exits 1 when it counts none).
+        assert clean.count("|| true") == 1, job
+        assert "-delete 2>/dev/null || true" not in clean, job
 
 
 def test_only_the_build_and_cache_jobs_check_out_the_pr():
@@ -425,6 +434,54 @@ def test_run_script_tells_mismatch_from_crash_by_the_verdict_line():
     assert '--name "caches/$target"' in RUN_SCRIPT
     assert "e2e-testing/golden/cache-parity-manifest.json" in RUN_SCRIPT
     assert "--report /work/out/reports/cache-parity.json" in RUN_SCRIPT
+
+
+def test_run_script_ends_a_failed_set_up_step_as_a_named_error():
+    # Without `set -e` a failed `uv venv` or `uv pip install` would only show
+    # later, as a missing interpreter (127) or a failed import.
+    assert "\nset -uo pipefail\n" in RUN_SCRIPT
+    function = RUN_SCRIPT[RUN_SCRIPT.index("setup_failed() {") :]
+    function = function[: function.index("\n}\n")]
+    assert 'echo "ERROR: $1" | tee /work/summary.txt' in function
+    assert '--name "caches/$target" --outcome error' in function
+    assert "--out /work/result.json" in function
+    assert function.rstrip().endswith("exit 4")
+    venv = RUN_SCRIPT.index("uv venv --python python3.12 /work/venv")
+    install = RUN_SCRIPT.index("uv pip install --python /work/venv/bin/python")
+    run = RUN_SCRIPT.index("cache_parity.py run")
+    assert RUN_SCRIPT.index("setup_failed() {") < venv < install < run
+    for start, end, message in (
+        (venv, install, "uv venv could not create the Python 3.12 environment"),
+        (install, run, "uv pip install failed for the wheel and its dependencies"),
+    ):
+        step = RUN_SCRIPT[start:end]
+        # The step's own exit code, not that of the `tee` behind it.
+        assert '2>&1 | tee -a /work/run.log\n[ "${PIPESTATUS[0]}" -eq 0 ] \\\n' in step
+        assert f'|| setup_failed "{message} (see run.log)"' in step
+    assert '[ -f "$wheel" ] || setup_failed "wheel not found: $wheel"' in RUN_SCRIPT
+    # run.log holds the set-up output too: the comparison appends to it.
+    assert RUN_SCRIPT.count("| tee /work/run.log") == 0
+    assert RUN_SCRIPT.count("| tee -a /work/run.log") == 3
+
+
+def test_check_script_checks_the_cache_parity_inputs():
+    assert 'selectors="${2:-}"' in CHECK_SCRIPT
+    call = CHECK_SCRIPT[CHECK_SCRIPT.index('ci_helpers.py" cache-inputs') :]
+    call = call[: call.index("\nelse\n")]
+    for argument in (
+        '--data "$data"',
+        "--scratch /scratch/vepyr-wgs",
+        '--published "$repo/src/vepyr/_published.py"',
+        '--manifest "$repo/e2e-testing/golden/cache-parity-manifest.json"',
+        '--select "$selectors"',
+    ):
+        assert argument in call, argument
+    # Only on a host where stage-cache-inputs.sh has staged something: a host
+    # that serves /parity-wgs alone still passes.
+    guard = 'if [ -d "$data/vep-cache" ] || [ -d "$data/plugin-cache" ] || [ -d "$data/plugin-source" ]; then'
+    assert guard in CHECK_SCRIPT
+    check = CHECK_SCRIPT.index('ci_helpers.py" cache-inputs')
+    assert CHECK_SCRIPT.index(guard) < check < CHECK_SCRIPT.index('echo "runner OK')
 
 
 def test_manifest_limits_fit_the_workflow():

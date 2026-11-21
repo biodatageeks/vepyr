@@ -83,8 +83,13 @@ jobs:
       - name: Clean leftovers from earlier jobs
         run: |
           set -euo pipefail
-          # A host takes one job at a time: a labelled container found here
-          # outlived a cancelled or timed-out job and may still be writing.
+          # Invariant: one runner service per host (ci/wgs-runner/README.md), so
+          # this job is the only one here and a labelled container found now
+          # outlived a cancelled or timed-out job and may still be writing. On
+          # a host with a second runner it could belong to a running
+          # /parity-wgs or /parity-caches job, so nothing is removed there.
+          runners=$(pgrep -cx Runner.Listener || true)
+          [ "${runners:-0}" -le 1 ] || { echo "::error::$runners runner services on the host of $RUNNER_NAME; /parity-caches needs one runner per host"; exit 1; }
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           # Entries the runner user cannot delete (a wheel build writes as
           # root) are deleted as root in the pinned image. `find` follows no
@@ -160,6 +165,8 @@ jobs:
         run: |
           set -euo pipefail
           # As in `command`: every later step starts in the workspace.
+          runners=$(pgrep -cx Runner.Listener || true)
+          [ "${runners:-0}" -le 1 ] || { echo "::error::$runners runner services on the host of $RUNNER_NAME; /parity-caches needs one runner per host"; exit 1; }
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
@@ -322,6 +329,8 @@ jobs:
         run: |
           set -euo pipefail
           # As in `command`.
+          runners=$(pgrep -cx Runner.Listener || true)
+          [ "${runners:-0}" -le 1 ] || { echo "::error::$runners runner services on the host of $RUNNER_NAME; /parity-caches needs one runner per host"; exit 1; }
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
@@ -445,6 +454,8 @@ jobs:
           set -euo pipefail
           # As in `command`; the label is shared with /parity-wgs, whose jobs
           # use the same hosts, and with the wheel build of this workflow.
+          runners=$(pgrep -cx Runner.Listener || true)
+          [ "${runners:-0}" -le 1 ] || { echo "::error::$runners runner services on the host of $RUNNER_NAME; /parity-caches needs one runner per host"; exit 1; }
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
@@ -582,6 +593,8 @@ jobs:
         run: |
           set -euo pipefail
           # As in `command`: every later step starts in the workspace.
+          runners=$(pgrep -cx Runner.Listener || true)
+          [ "${runners:-0}" -le 1 ] || { echo "::error::$runners runner services on the host of $RUNNER_NAME; /parity-caches needs one runner per host"; exit 1; }
           docker ps -aq --filter label=vepyr-wgs=1 | xargs -r docker rm -f
           if ! find "$GITHUB_WORKSPACE" -mindepth 1 -delete 2>/dev/null; then
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$BUILD_IMAGE" /w -mindepth 1 -delete
