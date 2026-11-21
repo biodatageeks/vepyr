@@ -69,6 +69,12 @@ DETAIL_HEAD = {
 # * time: HG002, merged cache, 8 workers, one invocation for the whole VCF on
 #   macOS (Apple M3 Max): fastVEP 101.4 s, vep-rs 209.2 s, vepyr 59.5 s
 #   (supplement Table 35); VEP 116.0 with 8 processes 5,372 s (panel E data).
+# * memory: peak resident set size of the same runs (supplement Table 35): fastVEP
+#   7.68 GiB, vep-rs 39.26 GiB, vepyr 9.14 GiB. VEP ran in Docker, where only the
+#   client process is measured, so it has no value.
+# The "Evaluation" row (streaming / lazy, pushdown) was removed on 2026-11-21 at the
+# request of the author: vep-rs allocates up to 39 GiB in one invocation, so
+# "streaming" is not established for it.
 # ---------------------------------------------------------------------------
 
 COMPACT_ROWS = [
@@ -81,8 +87,8 @@ COMPACT_ROWS = [
     ("plugins", "External annotation sources"),
     ("concordance", r"Records as in VEP, Ensembl / merged\textsuperscript{e}"),
     ("time", r"Whole genome, merged cache, 8 workers\textsuperscript{f}"),
+    ("memory", r"Peak memory in these runs\textsuperscript{f}"),
     ("ui", "Interfaces"),
-    ("evaluation", "Evaluation"),
     ("output", "Output"),
 ]
 
@@ -99,8 +105,8 @@ COMPACT = {
         "plugins": "yes",
         "concordance": "reference",
         "time": "89.5 min",
+        "memory": "not measured",
         "ui": "CLI, web, REST",
-        "evaluation": "streaming",
         "output": "VCF, tab, JSON",
     },
     "fastVEP": {
@@ -113,8 +119,8 @@ COMPACT = {
         "plugins": "yes",
         "concordance": r"37\% / 36\%",
         "time": "1.7 min",
+        "memory": "7.7 GiB",
         "ui": "CLI, web, REST",
-        "evaluation": "streaming",
         "output": "VCF, tab, JSON",
     },
     "vep-rs": {
@@ -127,8 +133,8 @@ COMPACT = {
         "plugins": "yes",
         "concordance": r"95\% / 46\%",
         "time": "3.5 min",
+        "memory": "39.3 GiB",
         "ui": "CLI",
-        "evaluation": "streaming",
         "output": "VCF, tab, JSON, Parquet",
     },
     "vepyr": {
@@ -141,8 +147,8 @@ COMPACT = {
         "plugins": "yes",
         "concordance": r"\textbf{100\% / 100\%}",
         "time": r"\textbf{1.0 min}",
+        "memory": "9.1 GiB",
         "ui": "Python API, SQL, CLI",
-        "evaluation": r"\textbf{lazy, \mbox{pushdown}}",
         "output": r"Polars DataFrame/\allowbreak LazyFrame, VCF",
     },
 }
@@ -176,8 +182,9 @@ PANEL_NOTES = [
     ),
     (
         "f",
-        r"Wall time for HG002 with the merged cache in one invocation, with 8 processes "
-        r"(VEP) or 8 workers, on macOS (Apple M3~Max).",
+        r"Wall time and peak memory of the process for HG002 with the merged cache in one "
+        r"invocation, with 8 processes (VEP) or 8 workers, on macOS (Apple M3~Max). VEP ran in "
+        r"a container and its memory was not measured.",
     ),
 ]
 
