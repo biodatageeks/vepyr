@@ -73,9 +73,11 @@ jobs:
         run: |
           # The pin (hex, 7-40) and the selectors are validated again in authorize.
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            echo "go=true" >> "$GITHUB_OUTPUT"
-            printf 'pin=%s\n' "${SHA_INPUT//[^0-9A-Za-z]/}" >> "$GITHUB_OUTPUT"
-            printf 'select=%s\n' "${SELECT_INPUT//[^0-9A-Za-z_ ]/}" >> "$GITHUB_OUTPUT"
+            {
+              echo "go=true"
+              printf 'pin=%s\n' "${SHA_INPUT//[^0-9A-Za-z]/}"
+              printf 'select=%s\n' "${SELECT_INPUT//[^0-9A-Za-z_ ]/}"
+            } >> "$GITHUB_OUTPUT"
           elif parsed=$(python3 ci/ci_helpers.py parity-caches-command --env COMMENT_BODY); then
             # Two lines, pin=<hex or empty> and select=<lowercase words>.
             echo "go=true" >> "$GITHUB_OUTPUT"
