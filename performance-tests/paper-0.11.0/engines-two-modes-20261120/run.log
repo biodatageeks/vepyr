@@ -1,0 +1,28 @@
+[14:10:06] merged HG002 split vepyr
+[14:10:23] merged HG002 split fastVEP
+[14:10:37] merged HG002 split vep-rs
+[14:10:52] merged HG002 whole vepyr
+[14:23:01] merged HG002 whole fastVEP
+[14:43:01] merged HG002 whole vep-rs
+[14:43:36] finished
+[14:43:37] merged ClinVar split vepyr
+[15:22:42] merged ClinVar split fastVEP
+[15:59:35] merged ClinVar split vep-rs
+[17:38:59] merged ClinVar whole vepyr
+[18:20:46] merged ClinVar whole fastVEP
+[18:48:40] merged ClinVar whole vep-rs
+[20:21:08] finished
+[20:21:09] ensembl HG002 split vepyr
+[20:29:18] ensembl HG002 split fastVEP
+[20:45:22] ensembl HG002 split vep-rs
+[21:17:31] ensembl HG002 whole vepyr
+[21:26:24] ensembl HG002 whole fastVEP
+[21:43:46] ensembl HG002 whole vep-rs
+[22:16:00] finished
+[22:16:02] ensembl ClinVar split vepyr
+[22:39:49] ensembl ClinVar split fastVEP
+[22:57:12] ensembl ClinVar split vep-rs
+[23:53:04] ensembl ClinVar whole vepyr
+[00:18:54] ensembl ClinVar whole fastVEP
+[00:38:49] ensembl ClinVar whole vep-rs
+[01:35:39] finished

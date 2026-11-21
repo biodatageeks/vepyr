@@ -1,0 +1,17 @@
+time,run,free_gib,released_gib,free_after_gib,inputs_resident_gib
+11:34:30,sentinel-1 before merged-HG002-split-fastVEP,0,25,25,-
+11:34:37,sentinel-2 before merged-HG002-split-fastVEP,25,0,25,-
+11:34:44,warmup split merged HG002 7 fastVEP w8,25,0,25,-
+11:34:53,measured split merged HG002 7 fastVEP w8,23,25,25,-
+11:35:00,measured split merged HG002 7 fastVEP w4,24,0,24,-
+11:35:07,measured split merged HG002 7 fastVEP w2,24,0,24,-
+11:35:19,measured split merged HG002 7 fastVEP w1,24,0,24,-
+11:35:42,sentinel-1 before merged-HG002-split-vep-rs,25,0,25,-
+11:35:49,sentinel-2 before merged-HG002-split-vep-rs,25,0,25,-
+11:35:56,warmup split merged HG002 7 vep-rs w8,24,0,24,-
+11:36:07,measured split merged HG002 7 vep-rs w8,24,0,24,-
+11:36:20,measured split merged HG002 7 vep-rs w4,24,0,24,-
+11:36:39,measured split merged HG002 7 vep-rs w2,24,0,24,-
+11:37:10,measured split merged HG002 7 vep-rs w1,24,0,24,-
+11:38:13,sentinel-1 before end,23,25,25,-
+11:38:20,sentinel-2 before end,24,0,24,-

@@ -1,0 +1,2 @@
+WARNING: --everything implies --regulatory, which has no effect: regulatory-feature annotation is not implemented, so no TFBS_* or regulatory_region_* consequence is emitted
+WARNING: cache /Users/mwiewior/research/benchmarks/merged-engine-comparison-20261107/all-chromosomes-w8/caches/chr22/cache-veprs carries no checksum manifest

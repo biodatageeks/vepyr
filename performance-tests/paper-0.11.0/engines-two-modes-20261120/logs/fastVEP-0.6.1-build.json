@@ -1,0 +1,11 @@
+{
+  "label": "fastVEP-0.6.1",
+  "commit": "4ca2a6e36c6785ff4002c3f75a62b4b57a8d6a04",
+  "started_utc": "2026-11-20T08:56:33Z",
+  "ended_utc": "2026-11-20T08:57:22Z",
+  "command": "cargo build --release --locked -p fastvep-cli --bin fastvep",
+  "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
+  "rustflags": "-C target-cpu=native",
+  "binary": "/Users/mwiewior/research/benchmarks/engines-two-modes-20261120/bin/fastVEP-0.6.1",
+  "sha256": "fc9332893440ed395bf9990351712087f8042a4965aed3320ffd4604b92d44bc"
+}

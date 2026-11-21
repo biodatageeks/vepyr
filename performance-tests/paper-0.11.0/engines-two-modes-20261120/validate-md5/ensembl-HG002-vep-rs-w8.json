@@ -1,0 +1,13 @@
+{
+ "records": 50861,
+ "md5": "172edeae2771e5bf887b5cc90d9216ab",
+ "order": [
+  "chr22"
+ ],
+ "contigs": {
+  "chr22": {
+   "records": 50861,
+   "md5": "172edeae2771e5bf887b5cc90d9216ab"
+  }
+ }
+}

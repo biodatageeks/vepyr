@@ -1,0 +1,5 @@
+Annotating: /Users/mwiewior/research/benchmarks/merged-engine-comparison-20261107/all-chromosomes-w8/HG002/chr20/prepared/HG002/input.vcf.gz -> /Users/mwiewior/research/benchmarks/engines-two-modes-20261120/fields-filled/whole/.pipe-fastVEP
+Loaded 21590 transcripts from cache /Users/mwiewior/research/benchmarks/merged-engine-comparison-20261107/all-chromosomes-w8/caches/chr20/fastVEP-main-merged116.cache
+Memory-mapped reference FASTA from /Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa (using .fai index)
+Loaded VEP cache info: species=homo_sapiens, assembly=GRCh38, 42 variation columns
+rc=0

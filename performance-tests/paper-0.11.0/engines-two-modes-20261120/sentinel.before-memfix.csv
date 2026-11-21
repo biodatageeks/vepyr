@@ -1,0 +1,11 @@
+time,before,wall_s,user_s,sys_s,bg_cpu_pct,mem_free_pct,swap_mb,power
+10:09:24,merged-HG002-split-vepyr,7.33,43.30,1.82,117,93,0,ACPower
+10:20:24,merged-HG002-split-fastVEP,7.36,43.45,1.92,154,94,0,ACPower
+10:38:18,merged-HG002-split-vep-rs,7.20,42.86,1.73,211,95,0,ACPower
+11:20:49,merged-HG002-whole-vepyr,9.07,42.88,2.40,134,96,0,ACPower
+11:34:44,merged-HG002-split-fastVEP,7.18,42.60,1.72,28,92,0,ACPower
+11:35:56,merged-HG002-split-vep-rs,7.13,42.61,1.67,123,92,0,ACPower
+11:38:28,end,7.16,42.52,1.62,166,92,0,ACPower
+11:39:50,merged-HG002-split-vepyr,7.15,42.44,1.71,22,92,0,ACPower
+11:41:08,merged-HG002-split-fastVEP,7.20,42.52,1.63,130,92,0,ACPower
+11:43:12,end,7.18,42.55,1.70,120,92,0,ACPower

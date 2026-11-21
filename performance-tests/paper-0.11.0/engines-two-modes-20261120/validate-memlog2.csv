@@ -1,0 +1,47 @@
+time,run,free_gib,released_gib,free_after_gib,inputs_resident_gib
+11:39:33,sentinel-1 before merged-HG002-split-vepyr,0,27,26,-
+11:39:43,sentinel-2 before merged-HG002-split-vepyr,24,0,24,-
+11:39:51,warmup split merged HG002 7 vepyr w8,24,0,24,-
+11:39:54,end of warmup split merged HG002 7 vepyr w8,21,,,
+11:39:54,measured split merged HG002 7 vepyr w8,22,0,22,-
+11:39:57,end of measured split merged HG002 7 vepyr w8,21,,,
+11:40:00,measured split merged HG002 7 vepyr w4,22,0,22,-
+11:40:04,end of measured split merged HG002 7 vepyr w4,21,,,
+11:40:04,measured split merged HG002 7 vepyr w2,22,0,22,-
+11:40:11,end of measured split merged HG002 7 vepyr w2,21,,,
+11:40:11,measured split merged HG002 7 vepyr w1,22,0,22,-
+11:40:21,end of measured split merged HG002 7 vepyr w1,20,,,
+11:40:24,warmup split merged HG002 8 vepyr w8,22,0,22,-
+11:40:27,end of warmup split merged HG002 8 vepyr w8,20,,,
+11:40:27,measured split merged HG002 8 vepyr w1,22,0,22,-
+11:40:36,end of measured split merged HG002 8 vepyr w1,20,,,
+11:40:38,measured split merged HG002 8 vepyr w2,22,0,22,-
+11:40:44,end of measured split merged HG002 8 vepyr w2,20,,,
+11:40:44,measured split merged HG002 8 vepyr w4,22,0,22,-
+11:40:48,end of measured split merged HG002 8 vepyr w4,20,,,
+11:40:48,measured split merged HG002 8 vepyr w8,22,0,22,-
+11:40:51,end of measured split merged HG002 8 vepyr w8,20,,,
+11:40:54,sentinel-1 before merged-HG002-split-fastVEP,21,0,21,-
+11:41:01,sentinel-2 before merged-HG002-split-fastVEP,21,0,21,-
+11:41:08,warmup split merged HG002 7 fastVEP w8,21,0,21,-
+11:41:14,end of warmup split merged HG002 7 fastVEP w8,19,,,
+11:41:14,measured split merged HG002 7 fastVEP w8,20,0,20,-
+11:41:18,end of measured split merged HG002 7 fastVEP w8,19,,,
+11:41:22,measured split merged HG002 7 fastVEP w4,20,0,20,-
+11:41:28,end of measured split merged HG002 7 fastVEP w4,19,,,
+11:41:28,measured split merged HG002 7 fastVEP w2,20,0,20,-
+11:41:40,end of measured split merged HG002 7 fastVEP w2,19,,,
+11:41:40,measured split merged HG002 7 fastVEP w1,20,0,20,-
+11:42:01,end of measured split merged HG002 7 fastVEP w1,18,,,
+11:42:04,warmup split merged HG002 8 fastVEP w8,20,0,20,-
+11:42:09,end of warmup split merged HG002 8 fastVEP w8,18,,,
+11:42:09,measured split merged HG002 8 fastVEP w1,19,0,19,-
+11:42:29,end of measured split merged HG002 8 fastVEP w1,18,,,
+11:42:31,measured split merged HG002 8 fastVEP w2,19,0,19,-
+11:42:42,end of measured split merged HG002 8 fastVEP w2,18,,,
+11:42:42,measured split merged HG002 8 fastVEP w4,19,0,19,-
+11:42:49,end of measured split merged HG002 8 fastVEP w4,18,,,
+11:42:49,measured split merged HG002 8 fastVEP w8,19,0,19,-
+11:42:53,end of measured split merged HG002 8 fastVEP w8,18,,,
+11:42:58,sentinel-1 before end,19,27,27,-
+11:43:05,sentinel-2 before end,27,0,27,-

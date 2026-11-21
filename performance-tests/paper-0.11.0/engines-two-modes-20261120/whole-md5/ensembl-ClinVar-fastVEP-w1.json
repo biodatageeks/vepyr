@@ -1,0 +1,133 @@
+{
+ "records": 4593372,
+ "md5": "126e7e449f7553fd7b777b7b4d7815da",
+ "order": [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+  "13",
+  "14",
+  "15",
+  "16",
+  "17",
+  "18",
+  "19",
+  "20",
+  "21",
+  "22",
+  "X",
+  "Y",
+  "MT"
+ ],
+ "contigs": {
+  "1": {
+   "records": 414715,
+   "md5": "ed1d9abac6f6b708d491d6dea0a1551c"
+  },
+  "2": {
+   "records": 401230,
+   "md5": "ec2cba32630e724e3fa2e87af7627017"
+  },
+  "3": {
+   "records": 251389,
+   "md5": "c06a9d11a5bdb373fac58cd527e7f628"
+  },
+  "4": {
+   "records": 163605,
+   "md5": "4719d64dd26f627f27e958d7bd9f13db"
+  },
+  "5": {
+   "records": 222343,
+   "md5": "b69c6d533ceba1cfd1f26a23e0f683c0"
+  },
+  "6": {
+   "records": 206599,
+   "md5": "0a471adb24534adbf81a1c12fe84d9ac"
+  },
+  "7": {
+   "records": 223219,
+   "md5": "5a9979ae65969ba3da347a8c466bf204"
+  },
+  "8": {
+   "records": 155536,
+   "md5": "03e1c231ac93e6e0cee4ec873f8a1d2f"
+  },
+  "9": {
+   "records": 203226,
+   "md5": "c7e633ad47564a4c94ea2c2496ee8ee9"
+  },
+  "10": {
+   "records": 171717,
+   "md5": "a3623e09898b06c25d81a546d55005ee"
+  },
+  "11": {
+   "records": 267817,
+   "md5": "e1840d3a5daf6b5cc90e584a8c91422e"
+  },
+  "12": {
+   "records": 211578,
+   "md5": "1be45e9c233df395a835ca53c921da52"
+  },
+  "13": {
+   "records": 90238,
+   "md5": "6e9ed7e2cbe7d713c1e041cfb1334551"
+  },
+  "14": {
+   "records": 145471,
+   "md5": "de25fffd4ef5f99d19cf51be2e8e05e4"
+  },
+  "15": {
+   "records": 159327,
+   "md5": "9449d9a27189fba8d439314b67801638"
+  },
+  "16": {
+   "records": 237223,
+   "md5": "b0fce39cd6d8290b5d5118b1bfda7205"
+  },
+  "17": {
+   "records": 277114,
+   "md5": "d2b7e0d548f971be2f372cd9b80d3394"
+  },
+  "18": {
+   "records": 76630,
+   "md5": "ef278d41b3f0c7b8af1cbfb62c59691a"
+  },
+  "19": {
+   "records": 261537,
+   "md5": "fd50c4e515ee8cd00d10d5f117b9c880"
+  },
+  "20": {
+   "records": 99377,
+   "md5": "e75f36227de2dccd654d97c724281213"
+  },
+  "21": {
+   "records": 51667,
+   "md5": "d75c62bd346d34fde9db19f46c38d2b3"
+  },
+  "22": {
+   "records": 99409,
+   "md5": "6d2f5acc3593527dc4a8b54d79e62bf4"
+  },
+  "X": {
+   "records": 198574,
+   "md5": "4179b7f4dc0c826307ac5819d53cdd25"
+  },
+  "Y": {
+   "records": 697,
+   "md5": "c44ce4d80d25c1c246ff2dd5b09edc49"
+  },
+  "MT": {
+   "records": 3134,
+   "md5": "6f5f9e537d3b072eda5d276f38687b82"
+  }
+ }
+}

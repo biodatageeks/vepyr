@@ -1,0 +1,118 @@
+{
+ "records": 4096123,
+ "md5": "4e914b81ca615c0ff04b90fa7cfe4144",
+ "order": [
+  "chr1",
+  "chr2",
+  "chr3",
+  "chr4",
+  "chr5",
+  "chr6",
+  "chr7",
+  "chr8",
+  "chr9",
+  "chr10",
+  "chr11",
+  "chr12",
+  "chr13",
+  "chr14",
+  "chr15",
+  "chr16",
+  "chr17",
+  "chr18",
+  "chr19",
+  "chr20",
+  "chr21",
+  "chr22"
+ ],
+ "contigs": {
+  "chr1": {
+   "records": 323430,
+   "md5": "d2150b81a15f278c96f476d20d7e59a0"
+  },
+  "chr2": {
+   "records": 331324,
+   "md5": "9c8e34f8d83eea6d0f42b383ff061634"
+  },
+  "chr3": {
+   "records": 288531,
+   "md5": "9c862f20ba2e9d6038e071f8194c5672"
+  },
+  "chr4": {
+   "records": 307295,
+   "md5": "d42ad58663fdc2a58cde08d5829103ef"
+  },
+  "chr5": {
+   "records": 264411,
+   "md5": "834393e9f0c2fe6cb7c984c7897932bf"
+  },
+  "chr6": {
+   "records": 271966,
+   "md5": "4d03b5d1321289b5abe29334fb83aa7f"
+  },
+  "chr7": {
+   "records": 234522,
+   "md5": "bcc434ff2e8f9e699b537b03542f0077"
+  },
+  "chr8": {
+   "records": 225240,
+   "md5": "63136a52c19dbb4fa002b20bccf62391"
+  },
+  "chr9": {
+   "records": 176111,
+   "md5": "238bba5d06579826a97610738591c038"
+  },
+  "chr10": {
+   "records": 213466,
+   "md5": "876f9870094870a85eb9e9be5dea2307"
+  },
+  "chr11": {
+   "records": 206822,
+   "md5": "16b1d45c6a8e9d3dee5fa6c9e010f9c3"
+  },
+  "chr12": {
+   "records": 197815,
+   "md5": "c315f5219dc381113e7c78d26d33556e"
+  },
+  "chr13": {
+   "records": 161419,
+   "md5": "59a76352fbfd9928ecf35cbf8b5cec21"
+  },
+  "chr14": {
+   "records": 133199,
+   "md5": "424af1f6d166f6a1ac17636d49086159"
+  },
+  "chr15": {
+   "records": 125179,
+   "md5": "97a4cd7b1d59b4ed0959b5106ed97b82"
+  },
+  "chr16": {
+   "records": 123358,
+   "md5": "9bb0bae8d934900c25d1e496c34f999e"
+  },
+  "chr17": {
+   "records": 108376,
+   "md5": "200213f4c024e1df92e8f5f88fb49664"
+  },
+  "chr18": {
+   "records": 119383,
+   "md5": "21fdc9375ba126c5675a2910516b9f52"
+  },
+  "chr19": {
+   "records": 90699,
+   "md5": "dc30f4b25778d802c722e1cf9212120e"
+  },
+  "chr20": {
+   "records": 86904,
+   "md5": "9164ea1a6b8e369ddb28924d6a18a3c0"
+  },
+  "chr21": {
+   "records": 55812,
+   "md5": "9c99f07ab19b4b096a331976906740b7"
+  },
+  "chr22": {
+   "records": 50861,
+   "md5": "f0bf8d45b26ca1b7bfd2dd6125baabf7"
+  }
+ }
+}
