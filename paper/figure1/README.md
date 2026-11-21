@@ -17,6 +17,9 @@ pdflatex figure1-page.tex                        # one journal page: figure + ca
 - `build_tikz.py` writes the scene as TikZ: one node per text line on the
   baseline of the SVG preview, fonts in points, the panel A table as a LaTeX
   `tabular`, the performance chart translated from its SVG.
+- Panel C1 names the open-source components with black-and-white logos
+  (`logos-bw/`, made by `make_logos.py` from the colour logos of the paper's
+  supplement). In the paper they are read from `figures/logos-bw/`.
 - `figure1-page.tex` reproduces the page of `oup-authoring-template`
   (`contemporary,large`), sets the caption below the figure and reports the
   space left on the page.

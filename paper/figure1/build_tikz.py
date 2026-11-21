@@ -14,6 +14,10 @@ Outputs, both \\input by figure1-page.tex and meant for Overleaf:
 * figure1-tikz.tex   the tikzpicture;
 * figure1-table.tex  the panel A table as a box (\\figonetable).
 
+The project logos of panel C1 are \\includegraphics nodes that read
+\\figonelogos/<name>, by default figures/logos-bw/<name> (copy logos-bw/
+there); figure1-page.tex points \\figonelogos at logos-bw/.
+
 Preamble needed: tikz with the arrows.meta library, xcolor and colortbl,
 array, booktabs and graphicx (the OUP class loads all but arrows.meta,
 colortbl and booktabs).
@@ -74,7 +78,9 @@ class Colors:
         return self.names.setdefault(value, f"f1c{value}")
 
     def definitions(self) -> str:
-        return "\n".join(rf"\definecolor{{{n}}}{{HTML}}{{{v}}}" for v, n in self.names.items())
+        return "\n".join(
+            rf"\definecolor{{{n}}}{{HTML}}{{{v}}}" for v, n in self.names.items()
+        )
 
 
 def escape(text: str, mono: bool) -> str:
@@ -112,8 +118,22 @@ def font(size_px: float, bold: bool, mono: bool, scale: float = 1.0) -> str:
     return rf"\fontsize{{{num(size)}}}{{{num(1.2 * size)}}}\selectfont{family}{weight}"
 
 
-def text_block(out, colors, x, y, w, h, lines, *, size, weight, align, color, mono,
-               bold_first=False) -> None:
+def text_block(
+    out,
+    colors,
+    x,
+    y,
+    w,
+    h,
+    lines,
+    *,
+    size,
+    weight,
+    align,
+    color,
+    mono,
+    bold_first=False,
+) -> None:
     """The lines of fig.svg_text_block, one node per baseline."""
     wrapped = fig.wrap_lines(lines, w, size, mono)
     lh = size * 1.27
@@ -136,7 +156,11 @@ def text_block(out, colors, x, y, w, h, lines, *, size, weight, align, color, mo
 
 
 def dash(dashed: bool, scale: float = 1.0) -> str:
-    return f",dash pattern=on {num(8 * scale * PT)}pt off {num(6 * scale * PT)}pt" if dashed else ""
+    return (
+        f",dash pattern=on {num(8 * scale * PT)}pt off {num(6 * scale * PT)}pt"
+        if dashed
+        else ""
+    )
 
 
 def box(out, colors, e: fig.Box) -> None:
@@ -153,15 +177,35 @@ def box(out, colors, e: fig.Box) -> None:
             rf"({num(e.x + e.width)},{num(e.y + e.height)});"
         )
     if any(e.lines):
-        text_block(out, colors, e.x + 6, e.y + 5, e.width - 12, e.height - 10, e.lines,
-                   size=e.font_size, weight=400, align=e.align, color=e.font_color,
-                   mono=e.mono, bold_first=e.bold_first)
+        text_block(
+            out,
+            colors,
+            e.x + 6,
+            e.y + 5,
+            e.width - 12,
+            e.height - 10,
+            e.lines,
+            size=e.font_size,
+            weight=400,
+            align=e.align,
+            color=e.font_color,
+            mono=e.mono,
+            bold_first=e.bold_first,
+        )
 
 
 def edge(out, colors, e: fig.Edge) -> None:
-    tip = f",-{{Triangle[length={num(8 * PT)}pt,width={num(8 * PT)}pt]}}" if e.arrow else ""
-    points = " -- ".join(f"({num(x)},{num(y)})" for x, y in ((e.x1, e.y1), *e.via, (e.x2, e.y2)))
-    out.append(rf"\draw[{colors(e.color)},line width={num(e.width * PT)}pt{tip}{dash(e.dashed)}] {points};")
+    tip = (
+        f",-{{Triangle[length={num(8 * PT)}pt,width={num(8 * PT)}pt]}}"
+        if e.arrow
+        else ""
+    )
+    points = " -- ".join(
+        f"({num(x)},{num(y)})" for x, y in ((e.x1, e.y1), *e.via, (e.x2, e.y2))
+    )
+    out.append(
+        rf"\draw[{colors(e.color)},line width={num(e.width * PT)}pt{tip}{dash(e.dashed)}] {points};"
+    )
 
 
 def svg_chart(out, colors, svg: str, x0: float, y0: float, k: float) -> None:
@@ -181,9 +225,13 @@ def svg_chart(out, colors, svg: str, x0: float, y0: float, k: float) -> None:
         dash_opt = ""
         if dashed:
             on, off = (float(v) for v in dashed.replace(",", " ").split()[:2])
-            dash_opt = f",dash pattern=on {num(on * k * PT)}pt off {num(off * k * PT)}pt"
+            dash_opt = (
+                f",dash pattern=on {num(on * k * PT)}pt off {num(off * k * PT)}pt"
+            )
         if tag == "text":
-            anchor = {"middle": "base", "end": "base east"}.get(a.get("text-anchor"), "base west")
+            anchor = {"middle": "base", "end": "base east"}.get(
+                a.get("text-anchor"), "base west"
+            )
             size = float(a.get("font-size", "16"))
             bold = a.get("font-weight", "400") in ("700", "bold")
             rotate = ""
@@ -204,16 +252,21 @@ def svg_chart(out, colors, svg: str, x0: float, y0: float, k: float) -> None:
             pts = [tuple(map(float, xy.split(","))) for xy in a["points"].split()]
             out.append(
                 rf"\draw[{colors(stroke or '#111111')},line width={num(width * k * PT)}pt{dash_opt}] "
-                + " -- ".join(p(x, y) for x, y in pts) + ";"
+                + " -- ".join(p(x, y) for x, y in pts)
+                + ";"
             )
         elif tag == "rect" and not a.get("width", "").endswith("%"):
             x, y = float(a["x"]), float(a["y"])
             w, h = float(a["width"]), float(a["height"])
-            opts = [f"fill={colors(a['fill'])}"] if a.get("fill", "none") != "none" else []
+            opts = (
+                [f"fill={colors(a['fill'])}"] if a.get("fill", "none") != "none" else []
+            )
             if stroke and stroke != "none":
                 opts.append(f"draw={colors(stroke)},line width={num(width * k * PT)}pt")
             if opts:
-                out.append(rf"\path[{','.join(opts)}] {p(x, y)} rectangle {p(x + w, y + h)};")
+                out.append(
+                    rf"\path[{','.join(opts)}] {p(x, y)} rectangle {p(x + w, y + h)};"
+                )
         elif tag == "circle":
             out.append(
                 rf"\path[fill={colors(a.get('fill', '#111111'))}] "
@@ -242,7 +295,8 @@ def table_file() -> str:
         "\\vbox{\\copy\\figonetablebox\\vskip 3pt\n"
         "\\hsize=\\wd\\figonetablebox \\parindent=0pt\n"
         "{\\fontsize{5.6}{6.8}\\selectfont\\color{muted}\\raggedright\n"
-        + notes.strip() + "\\par}}}}\n"
+        + notes.strip()
+        + "\\par}}}}\n"
     )
 
 
@@ -255,11 +309,29 @@ def main() -> None:
         if isinstance(e, fig.Box):
             box(body, colors, e)
         elif isinstance(e, fig.Label):
-            text_block(body, colors, e.x, e.y, e.width, e.height, e.lines,
-                       size=e.font_size, weight=e.weight, align=e.align, color=e.color,
-                       mono=e.mono)
+            text_block(
+                body,
+                colors,
+                e.x,
+                e.y,
+                e.width,
+                e.height,
+                e.lines,
+                size=e.font_size,
+                weight=e.weight,
+                align=e.align,
+                color=e.color,
+                mono=e.mono,
+            )
         elif isinstance(e, fig.Edge):
             edge(body, colors, e)
+        elif isinstance(e, fig.Logo):
+            body.append(
+                rf"\node[anchor=center,fill=white,inner sep={num(3 * PT)}pt] at "
+                rf"({num(e.x + e.width / 2)},{num(e.y + e.height / 2)}) "
+                rf"{{\includegraphics[width={num(e.width * PT)}pt,height={num(e.height * PT)}pt,"
+                rf"keepaspectratio]{{\figonelogos/{e.name}}}}};"
+            )
         else:
             data = base64.b64decode(e.data_uri.split(",", 1)[1]).decode("utf-8")
             if "glyph" in data:  # the comparison table, typeset by pdftocairo
@@ -269,21 +341,28 @@ def main() -> None:
                 )
             else:
                 svg = data.replace(" · ", ", ")
-                svg_chart(body, colors, svg, e.x, e.y, e.width / build_performance.WIDTH)
+                svg_chart(
+                    body, colors, svg, e.x, e.y, e.width / build_performance.WIDTH
+                )
     tikz = (
         "% Figure 1, generated by build_tikz.py from build_figure1_v2.py; do not edit by\n"
         "% hand, change the builders and regenerate. Width: \\textwidth of the\n"
         "% Bioinformatics template (488.5 pt). Needs \\input{figure1-table.tex} first.\n"
+        "\\providecommand{\\figonelogos}{figures/logos-bw}%\n"
         f"\\begin{{tikzpicture}}[x={PT:.6f}pt,y=-{PT:.6f}pt,"
         "every node/.style={inner sep=0pt,outer sep=0pt}]\n"
-        + colors.definitions() + "\n"
+        + colors.definitions()
+        + "\n"
         + f"\\useasboundingbox (0,0) rectangle ({v2.WIDTH},{height});\n"
-        + "\n".join(body) + "\n\\end{tikzpicture}%\n"
+        + "\n".join(body)
+        + "\n\\end{tikzpicture}%\n"
     )
     (HERE / "figure1-tikz.tex").write_text(tikz)
     (HERE / "figure1-table.tex").write_text(table_file())
-    print(f"wrote figure1-tikz.tex ({len(body)} commands, {v2.WIDTH} x {height} px "
-          f"= {v2.WIDTH * PT:.1f} x {height * PT:.1f} pt) and figure1-table.tex")
+    print(
+        f"wrote figure1-tikz.tex ({len(body)} commands, {v2.WIDTH} x {height} px "
+        f"= {v2.WIDTH * PT:.1f} x {height * PT:.1f} pt) and figure1-table.tex"
+    )
 
 
 if __name__ == "__main__":
