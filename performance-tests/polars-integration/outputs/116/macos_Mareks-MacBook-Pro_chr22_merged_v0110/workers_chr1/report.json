@@ -1,0 +1,125 @@
+[
+  {
+    "profile": "ensembl",
+    "workers": 1,
+    "rows": 323430,
+    "wall_s": 13.18,
+    "peak_rss_gb": 9.84,
+    "equal": true
+  },
+  {
+    "profile": "ensembl",
+    "workers": 2,
+    "rows": 323430,
+    "wall_s": 7.95,
+    "peak_rss_gb": 16.21,
+    "equal": true
+  },
+  {
+    "profile": "ensembl",
+    "workers": 4,
+    "rows": 323430,
+    "wall_s": 5.2,
+    "peak_rss_gb": 21.81,
+    "equal": true
+  },
+  {
+    "profile": "ensembl",
+    "workers": 8,
+    "rows": 323430,
+    "wall_s": 3.09,
+    "peak_rss_gb": 23.08,
+    "equal": true
+  },
+  {
+    "profile": "ensembl",
+    "workers": 8,
+    "rows": 323430,
+    "wall_s": null,
+    "peak_rss_gb": null,
+    "equal": true,
+    "check": "CSQ vs output_vcf"
+  },
+  {
+    "profile": "merged",
+    "workers": 1,
+    "rows": 323430,
+    "wall_s": 18.25,
+    "peak_rss_gb": 30.55,
+    "equal": true
+  },
+  {
+    "profile": "merged",
+    "workers": 2,
+    "rows": 323430,
+    "wall_s": 10.06,
+    "peak_rss_gb": 30.55,
+    "equal": true
+  },
+  {
+    "profile": "merged",
+    "workers": 4,
+    "rows": 323430,
+    "wall_s": 6.42,
+    "peak_rss_gb": 33.9,
+    "equal": true
+  },
+  {
+    "profile": "merged",
+    "workers": 8,
+    "rows": 323430,
+    "wall_s": 4.0,
+    "peak_rss_gb": 34.91,
+    "equal": true
+  },
+  {
+    "profile": "merged",
+    "workers": 8,
+    "rows": 323430,
+    "wall_s": null,
+    "peak_rss_gb": null,
+    "equal": true,
+    "check": "CSQ vs output_vcf"
+  },
+  {
+    "profile": "refseq",
+    "workers": 1,
+    "rows": 323430,
+    "wall_s": 12.94,
+    "peak_rss_gb": 43.64,
+    "equal": true
+  },
+  {
+    "profile": "refseq",
+    "workers": 2,
+    "rows": 323430,
+    "wall_s": 7.48,
+    "peak_rss_gb": 43.64,
+    "equal": true
+  },
+  {
+    "profile": "refseq",
+    "workers": 4,
+    "rows": 323430,
+    "wall_s": 4.82,
+    "peak_rss_gb": 43.64,
+    "equal": true
+  },
+  {
+    "profile": "refseq",
+    "workers": 8,
+    "rows": 323430,
+    "wall_s": 2.75,
+    "peak_rss_gb": 43.64,
+    "equal": true
+  },
+  {
+    "profile": "refseq",
+    "workers": 8,
+    "rows": 323430,
+    "wall_s": null,
+    "peak_rss_gb": null,
+    "equal": true,
+    "check": "CSQ vs output_vcf"
+  }
+]

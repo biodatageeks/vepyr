@@ -1,0 +1,1 @@
+0rows [00:00, ?rows/s]60rows [00:00, 96.54rows/s]60rows [00:00, 96.48rows/s]
