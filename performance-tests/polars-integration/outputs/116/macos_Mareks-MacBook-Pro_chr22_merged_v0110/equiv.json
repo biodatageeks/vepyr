@@ -1,0 +1,416 @@
+{
+ "R1": {
+  "reference_rows": 5457,
+  "collect": {
+   "rows_new": 5457,
+   "rows_old": 5457,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 5457,
+   "records_old": 5457,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 5457,
+   "rows_old": 5457,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "R2": {
+  "reference_rows": 60,
+  "collect": {
+   "rows_new": 60,
+   "rows_old": 60,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 60,
+   "records_old": 60,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 60,
+   "rows_old": 60,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "R3": {
+  "reference_rows": 131,
+  "collect": {
+   "rows_new": 131,
+   "rows_old": 131,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 131,
+   "records_old": 131,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 131,
+   "rows_old": 131,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q1": {
+  "reference_rows": 1106,
+  "collect": {
+   "rows_new": 1106,
+   "rows_old": 1106,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 1106,
+   "records_old": 1106,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 1106,
+   "rows_old": 1106,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q2": {
+  "reference_rows": 1246,
+  "collect": {
+   "rows_new": 1246,
+   "rows_old": 1246,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 1246,
+   "records_old": 1246,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 1246,
+   "rows_old": 1246,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q3": {
+  "reference_rows": 430,
+  "collect": {
+   "rows_new": 430,
+   "rows_old": 430,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 430,
+   "records_old": 430,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 430,
+   "rows_old": 430,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q4": {
+  "reference_rows": 2,
+  "collect": {
+   "rows_new": 2,
+   "rows_old": 2,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 2,
+   "records_old": 2,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 2,
+   "rows_old": 2,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q5": {
+  "reference_rows": 71,
+  "collect": {
+   "rows_new": 71,
+   "rows_old": 71,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 71,
+   "records_old": 71,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 71,
+   "rows_old": 71,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q6": {
+  "reference_rows": 443,
+  "collect": {
+   "rows_new": 443,
+   "rows_old": 443,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 443,
+   "records_old": 443,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 443,
+   "rows_old": 443,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q7": {
+  "reference_rows": 19,
+  "collect": {
+   "rows_new": 19,
+   "rows_old": 19,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 19,
+   "records_old": 19,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 19,
+   "rows_old": 19,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q8": {
+  "reference_rows": 33,
+  "collect": {
+   "rows_new": 33,
+   "rows_old": 33,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 33,
+   "records_old": 33,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 33,
+   "rows_old": 33,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q9": {
+  "reference_rows": 152,
+  "collect": {
+   "rows_new": 152,
+   "rows_old": 152,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 152,
+   "records_old": 152,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 152,
+   "rows_old": 152,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "Q10": {
+  "reference_rows": 5,
+  "collect": {
+   "rows_new": 5,
+   "rows_old": 5,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 5,
+   "records_old": 5,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 5,
+   "rows_old": 5,
+   "equal": true,
+   "shared_columns": 126,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "P1": {
+  "reference_rows": 73,
+  "collect": {
+   "rows_new": 73,
+   "rows_old": 73,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 73,
+   "records_old": 73,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 73,
+   "rows_old": 73,
+   "equal": true,
+   "shared_columns": 164,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "P2": {
+  "reference_rows": 5,
+  "collect": {
+   "rows_new": 5,
+   "rows_old": 5,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 5,
+   "records_old": 5,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 5,
+   "rows_old": 5,
+   "equal": true,
+   "shared_columns": 164,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "P3": {
+  "reference_rows": 16,
+  "collect": {
+   "rows_new": 16,
+   "rows_old": 16,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 16,
+   "records_old": 16,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 16,
+   "rows_old": 16,
+   "equal": true,
+   "shared_columns": 164,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "P4": {
+  "reference_rows": 3,
+  "collect": {
+   "rows_new": 3,
+   "rows_old": 3,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 3,
+   "records_old": 3,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 3,
+   "rows_old": 3,
+   "equal": true,
+   "shared_columns": 164,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ },
+ "P5": {
+  "reference_rows": 1,
+  "collect": {
+   "rows_new": 1,
+   "rows_old": 1,
+   "equal": true
+  },
+  "vcf": {
+   "records_new": 1,
+   "records_old": 1,
+   "equal": true
+  },
+  "parquet": {
+   "rows_new": 1,
+   "rows_old": 1,
+   "equal": true,
+   "shared_columns": 164,
+   "only_new": [
+    "_vcf_raw_info"
+   ],
+   "only_old": []
+  }
+ }
+}

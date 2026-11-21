@@ -1,0 +1,47 @@
+Rows to measure again after the driver (scripts/all.zsh) has finished
+
+1. One-shot (mode whole) rows of the panel merged:HG002 for vepyr and fastVEP.
+   Reason: they were measured before 2026-11-20 13:23, when the checksum step still read the 30 GiB output through
+   the file cache (scripts/contig_md5.cached-read.py). That read evicted the inputs of the engine, so the 4-worker
+   run started with 4-9 GiB of its inputs resident, the other runs with 14-19 GiB (memlog.csv, last column).
+   From the vep-rs block of that panel onwards the checksum reads with F_NOCACHE (scripts/contig_md5.py).
+   Procedure, when no driver is running:
+     cp runs.csv runs.before-remeasure.csv
+     remove from runs.csv the lines matching  ^(warmup|measured),whole,merged,HG002,all,(vepyr|fastVEP),
+     remove whole-md5/merged-HG002-vepyr-w{1,8}.json and whole-md5/merged-HG002-fastVEP-w{1,8}.json
+     RUN_PANELS=merged:HG002 RUN_MODES=whole RUN_ENGINES="vepyr fastVEP" zsh scripts/run.zsh >> run.log 2>&1
+   Compare the new rows with the removed ones before using them (expected: 4-worker runs a few percent faster,
+   the other worker counts unchanged).
+
+2. Check of the per-chromosome ClinVar blocks with the merged cache for interference (added 2026-11-20 17:45).
+   While these blocks were measured, other work ran on this machine at background priority (taskpolicy -b, efficiency
+   cores): 14:48-15:35 single-chromosome test runs of the three engines, Python parsing and LaTeX/figure builds;
+   15:40-17:40 the whole-genome field scans (fields-filled/scan_all.zsh: gzip + Python over the stored VEP outputs, and
+   fastVEP and vep-rs with one worker over HG002, up to 6 processes).
+   Blocks: vepyr 14:43-15:22, fastVEP 15:22-15:59, vep-rs 15:59-17:38.
+   Evidence so far: the sentinel read 7.15-7.24 s throughout; no memory release before a measured run; lowest free memory
+   after a run 9 GiB; the fastVEP block agrees with the 8 November measurement within 1.5% at every worker count
+   (as its HG002 block does). vep-rs is 8-13% slower than on 8 November on ClinVar and 5-8% on HG002 (measured before
+   any side work; Rust 1.94.0 instead of 1.91.1), so 3-5 points of the ClinVar difference are unexplained.
+   Procedure, when no driver and no other work is running:
+     RUN_PANELS=merged:ClinVar RUN_MODES=split RUN_ENGINES="vepyr vep-rs" RUN_CONTIGS="1 2 17 22" \
+       RUN_CSV=$PWD/recheck-clinvar.csv RUN_MEMLOG=$PWD/recheck-memlog.csv zsh scripts/run.zsh
+   Compare recheck-clinvar.csv with the same rows of runs.csv. If the sums differ by more than about 2% at any worker
+   count, remove the block's rows from runs.csv (keep a copy) and measure the whole block again.
+
+3. The whole-genome field scan of vep-rs 0.5.0 with the merged cache was stopped at 17:40 (3 of 22 chromosomes) to
+   keep the one-shot ClinVar runs undisturbed. Resume with  zsh fields-filled/scan_all.zsh vep-rs  when no benchmark
+   is running (finished chromosomes are skipped), then  python3 fields-filled/aggregate.py .
+
+Outcome (2026-11-21)
+- Item 2: re-check run 01:36-02:18 with nothing else on the host (recheck-clinvar.csv). Sums over chromosomes 1, 2, 17
+  and 22, re-check against runs.csv: vepyr -4.9 / -2.9 / -2.7 / -3.5 % at 1 / 2 / 4 / 8 workers, vep-rs -4.6 / -1.2 /
+  -3.2 / +0.7 %. Control on the same chromosomes of HG002 (recheck-hg002.csv, 06:37-06:49, measured the day before
+  with nothing else running; light git/grep work ran during the control): vepyr +3.9 / +2.4 / +1.6 / +3.3 %, vep-rs
+  +0.9 / +1.4 / +1.3 / +0.4 %. So the host was not faster on 2026-11-21, and the per-chromosome ClinVar rows of vepyr
+  and vep-rs with the merged cache in runs.csv are about 1-5 % too slow.
+  Decision of the user (2026-11-21, "skip point 4, keep the rows as they are"): the two blocks are NOT measured
+  again; Table 35 keeps the rows of runs.csv.
+- Item 3: done 2026-11-21 06:36 (fields-filled/whole/vep-rs-merged-HG002, 22 chromosomes). scan_all.zsh waits for
+  free memory, which nothing releases once the benchmark driver has ended: the scan stalled from 02:22; restarted
+  with FREE_MIN_VEPRS=2 and scan_all_fg.zsh (no taskpolicy -b).

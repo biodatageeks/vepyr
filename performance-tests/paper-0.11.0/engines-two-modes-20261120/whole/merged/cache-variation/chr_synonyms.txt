@@ -1,0 +1,1 @@
+/Users/mwiewior/workspace/data_vepyr/homo_sapiens_merged/116_GRCh38/chr_synonyms.txt

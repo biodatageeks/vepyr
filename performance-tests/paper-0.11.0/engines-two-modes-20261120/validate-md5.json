@@ -1,0 +1,214 @@
+{
+ "bundle_of": "validate-md5/",
+ "note": "Several result files merged into one; key = path inside the directory. Restore with performance-tests/paper-0.11.0/unpack_json_bundles.py.",
+ "files": {
+  "ensembl-ClinVar-fastVEP-w8.json": {
+   "records": 99409,
+   "md5": "6d2f5acc3593527dc4a8b54d79e62bf4",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "6d2f5acc3593527dc4a8b54d79e62bf4"
+    }
+   }
+  },
+  "ensembl-ClinVar-vep-rs-w8.json": {
+   "records": 99409,
+   "md5": "dce0d64e0ef9653a3a391e1d29335732",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "dce0d64e0ef9653a3a391e1d29335732"
+    }
+   }
+  },
+  "ensembl-ClinVar-vepyr-w1.json": {
+   "records": 99409,
+   "md5": "49d3a6845e69ce9e0d086af2dd1865f6",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "49d3a6845e69ce9e0d086af2dd1865f6"
+    }
+   }
+  },
+  "ensembl-ClinVar-vepyr-w8.json": {
+   "records": 99409,
+   "md5": "49d3a6845e69ce9e0d086af2dd1865f6",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "49d3a6845e69ce9e0d086af2dd1865f6"
+    }
+   }
+  },
+  "ensembl-HG002-fastVEP-w8.json": {
+   "records": 50861,
+   "md5": "d9735d78e940cd3a2b4e71a438341f6c",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "d9735d78e940cd3a2b4e71a438341f6c"
+    }
+   }
+  },
+  "ensembl-HG002-vep-rs-w8.json": {
+   "records": 50861,
+   "md5": "172edeae2771e5bf887b5cc90d9216ab",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "172edeae2771e5bf887b5cc90d9216ab"
+    }
+   }
+  },
+  "ensembl-HG002-vepyr-w1.json": {
+   "records": 50861,
+   "md5": "f0a0a7021c498d2b4e38c9caf5959f77",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "f0a0a7021c498d2b4e38c9caf5959f77"
+    }
+   }
+  },
+  "ensembl-HG002-vepyr-w8.json": {
+   "records": 50861,
+   "md5": "f0a0a7021c498d2b4e38c9caf5959f77",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "f0a0a7021c498d2b4e38c9caf5959f77"
+    }
+   }
+  },
+  "merged-ClinVar-fastVEP-w8.json": {
+   "records": 99409,
+   "md5": "83312b761df12c741c64b7be1bd21695",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "83312b761df12c741c64b7be1bd21695"
+    }
+   }
+  },
+  "merged-ClinVar-vep-rs-w8.json": {
+   "records": 99409,
+   "md5": "f89a72ee87ebf478c59fb270a82a26b7",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "f89a72ee87ebf478c59fb270a82a26b7"
+    }
+   }
+  },
+  "merged-ClinVar-vepyr-w1.json": {
+   "records": 99409,
+   "md5": "940cc318ba64fe2b0069129e4a8a1167",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "940cc318ba64fe2b0069129e4a8a1167"
+    }
+   }
+  },
+  "merged-ClinVar-vepyr-w8.json": {
+   "records": 99409,
+   "md5": "940cc318ba64fe2b0069129e4a8a1167",
+   "order": [
+    "22"
+   ],
+   "contigs": {
+    "22": {
+     "records": 99409,
+     "md5": "940cc318ba64fe2b0069129e4a8a1167"
+    }
+   }
+  },
+  "merged-HG002-fastVEP-w8.json": {
+   "records": 50861,
+   "md5": "e3dcc7ff2a8c4b62d668731780e87ba6",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "e3dcc7ff2a8c4b62d668731780e87ba6"
+    }
+   }
+  },
+  "merged-HG002-vep-rs-w8.json": {
+   "records": 50861,
+   "md5": "f0bf8d45b26ca1b7bfd2dd6125baabf7",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "f0bf8d45b26ca1b7bfd2dd6125baabf7"
+    }
+   }
+  },
+  "merged-HG002-vepyr-w1.json": {
+   "records": 50861,
+   "md5": "d5f1a8c3749b5f20656d845c8310380f",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  },
+  "merged-HG002-vepyr-w8.json": {
+   "records": 50861,
+   "md5": "d5f1a8c3749b5f20656d845c8310380f",
+   "order": [
+    "chr22"
+   ],
+   "contigs": {
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  }
+ }
+}

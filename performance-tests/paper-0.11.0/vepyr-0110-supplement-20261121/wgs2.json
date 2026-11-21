@@ -1,0 +1,721 @@
+{
+ "bundle_of": "wgs2/",
+ "note": "Several result files merged into one; key = path inside the directory. Restore with performance-tests/paper-0.11.0/unpack_json_bundles.py.",
+ "files": {
+  "w1.md5.json": {
+   "records": 4096123,
+   "md5": "157fca5b065c20eb7cec3e7a18ef28b7",
+   "order": [
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr4",
+    "chr5",
+    "chr6",
+    "chr7",
+    "chr8",
+    "chr9",
+    "chr10",
+    "chr11",
+    "chr12",
+    "chr13",
+    "chr14",
+    "chr15",
+    "chr16",
+    "chr17",
+    "chr18",
+    "chr19",
+    "chr20",
+    "chr21",
+    "chr22"
+   ],
+   "contigs": {
+    "chr1": {
+     "records": 323430,
+     "md5": "1e29c9e4fd8c1330a5fab4f8729741ca"
+    },
+    "chr2": {
+     "records": 331324,
+     "md5": "a680166dd0fcb9684c4296f5d43aa005"
+    },
+    "chr3": {
+     "records": 288531,
+     "md5": "00f6272a3b5a029f6a4f950bd22f963c"
+    },
+    "chr4": {
+     "records": 307295,
+     "md5": "d21891ca16f663bb7e7baeebcd5d90a1"
+    },
+    "chr5": {
+     "records": 264411,
+     "md5": "86c54516bd1ab43820f92bf30ada084a"
+    },
+    "chr6": {
+     "records": 271966,
+     "md5": "e2f38ce3b86749b92b64ba2aa1c033fc"
+    },
+    "chr7": {
+     "records": 234522,
+     "md5": "d0ec56865b4630ffe578820679137234"
+    },
+    "chr8": {
+     "records": 225240,
+     "md5": "85df74de4e464743c0b2c1f152af2614"
+    },
+    "chr9": {
+     "records": 176111,
+     "md5": "4475c62cd0328bfbece05ffec93e9a11"
+    },
+    "chr10": {
+     "records": 213466,
+     "md5": "39e48a781fe6881244f01013d218863a"
+    },
+    "chr11": {
+     "records": 206822,
+     "md5": "96c48a82df644bf862453ff29b8913b3"
+    },
+    "chr12": {
+     "records": 197815,
+     "md5": "0e0e30dc664aac1a0494daaf63c0ef87"
+    },
+    "chr13": {
+     "records": 161419,
+     "md5": "b623518397d64adee4ceca0acee8dfb8"
+    },
+    "chr14": {
+     "records": 133199,
+     "md5": "a607c610be7bb54566cf404bed71b980"
+    },
+    "chr15": {
+     "records": 125179,
+     "md5": "2c4211fe1b6d31480c2094c1e6328e8e"
+    },
+    "chr16": {
+     "records": 123358,
+     "md5": "dfbe5c7a8085f631b32a4c2e852f1d87"
+    },
+    "chr17": {
+     "records": 108376,
+     "md5": "927aa175d903867883ca3cf5a5a80510"
+    },
+    "chr18": {
+     "records": 119383,
+     "md5": "4c164d843269d3e205f53a47b7fbbcb2"
+    },
+    "chr19": {
+     "records": 90699,
+     "md5": "c4bfc70da67d9df40d44de993cd8cd60"
+    },
+    "chr20": {
+     "records": 86904,
+     "md5": "f963bae23f9eff65f88c8bcb84f30299"
+    },
+    "chr21": {
+     "records": 55812,
+     "md5": "a42bbf6468779da3c6ad0102c5bfd8e2"
+    },
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  },
+  "w1.metrics.json": {
+   "annotation_seconds": 221.9007312090107,
+   "cache_dir": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_type": "merged",
+   "compression": "plain",
+   "finished_at_utc": "2026-11-21T06:35:35.124435+00:00",
+   "input_vcf": "/Users/mwiewior/workspace/data_vepyr/input/HG002_normalized.vcf.gz",
+   "max_rss_kb": 4358448,
+   "output_bytes": 29418788420,
+   "output_records": 4096123,
+   "output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers1.vcf",
+   "preserve_record_layout": true,
+   "records_match_vep": true,
+   "reference_fasta": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+   "returned_output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers1.vcf",
+   "started_at_utc": "2026-11-21T06:31:40.277493+00:00",
+   "status": "ok",
+   "system_cpu_seconds": 26.749335000000002,
+   "total_script_seconds": 234.846942,
+   "user_cpu_seconds": 316.857854,
+   "vep_expected_records": 4096123,
+   "vepyr_module": "/Users/mwiewior/workspace/venvs/vepyr-0.11.0/lib/python3.12/site-packages/vepyr/__init__.py",
+   "vepyr_version": "0.11.0",
+   "workers": 1
+  },
+  "w2.md5.json": {
+   "records": 4096123,
+   "md5": "157fca5b065c20eb7cec3e7a18ef28b7",
+   "order": [
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr4",
+    "chr5",
+    "chr6",
+    "chr7",
+    "chr8",
+    "chr9",
+    "chr10",
+    "chr11",
+    "chr12",
+    "chr13",
+    "chr14",
+    "chr15",
+    "chr16",
+    "chr17",
+    "chr18",
+    "chr19",
+    "chr20",
+    "chr21",
+    "chr22"
+   ],
+   "contigs": {
+    "chr1": {
+     "records": 323430,
+     "md5": "1e29c9e4fd8c1330a5fab4f8729741ca"
+    },
+    "chr2": {
+     "records": 331324,
+     "md5": "a680166dd0fcb9684c4296f5d43aa005"
+    },
+    "chr3": {
+     "records": 288531,
+     "md5": "00f6272a3b5a029f6a4f950bd22f963c"
+    },
+    "chr4": {
+     "records": 307295,
+     "md5": "d21891ca16f663bb7e7baeebcd5d90a1"
+    },
+    "chr5": {
+     "records": 264411,
+     "md5": "86c54516bd1ab43820f92bf30ada084a"
+    },
+    "chr6": {
+     "records": 271966,
+     "md5": "e2f38ce3b86749b92b64ba2aa1c033fc"
+    },
+    "chr7": {
+     "records": 234522,
+     "md5": "d0ec56865b4630ffe578820679137234"
+    },
+    "chr8": {
+     "records": 225240,
+     "md5": "85df74de4e464743c0b2c1f152af2614"
+    },
+    "chr9": {
+     "records": 176111,
+     "md5": "4475c62cd0328bfbece05ffec93e9a11"
+    },
+    "chr10": {
+     "records": 213466,
+     "md5": "39e48a781fe6881244f01013d218863a"
+    },
+    "chr11": {
+     "records": 206822,
+     "md5": "96c48a82df644bf862453ff29b8913b3"
+    },
+    "chr12": {
+     "records": 197815,
+     "md5": "0e0e30dc664aac1a0494daaf63c0ef87"
+    },
+    "chr13": {
+     "records": 161419,
+     "md5": "b623518397d64adee4ceca0acee8dfb8"
+    },
+    "chr14": {
+     "records": 133199,
+     "md5": "a607c610be7bb54566cf404bed71b980"
+    },
+    "chr15": {
+     "records": 125179,
+     "md5": "2c4211fe1b6d31480c2094c1e6328e8e"
+    },
+    "chr16": {
+     "records": 123358,
+     "md5": "dfbe5c7a8085f631b32a4c2e852f1d87"
+    },
+    "chr17": {
+     "records": 108376,
+     "md5": "927aa175d903867883ca3cf5a5a80510"
+    },
+    "chr18": {
+     "records": 119383,
+     "md5": "4c164d843269d3e205f53a47b7fbbcb2"
+    },
+    "chr19": {
+     "records": 90699,
+     "md5": "c4bfc70da67d9df40d44de993cd8cd60"
+    },
+    "chr20": {
+     "records": 86904,
+     "md5": "f963bae23f9eff65f88c8bcb84f30299"
+    },
+    "chr21": {
+     "records": 55812,
+     "md5": "a42bbf6468779da3c6ad0102c5bfd8e2"
+    },
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  },
+  "w2.metrics.json": {
+   "annotation_seconds": 135.12791283300612,
+   "cache_dir": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_type": "merged",
+   "compression": "plain",
+   "finished_at_utc": "2026-11-21T06:29:58.414778+00:00",
+   "input_vcf": "/Users/mwiewior/workspace/data_vepyr/input/HG002_normalized.vcf.gz",
+   "max_rss_kb": 6479504,
+   "output_bytes": 29418788420,
+   "output_records": 4096123,
+   "output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers2.vcf",
+   "preserve_record_layout": true,
+   "records_match_vep": true,
+   "reference_fasta": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+   "returned_output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers2.vcf",
+   "started_at_utc": "2026-11-21T06:27:29.989159+00:00",
+   "status": "ok",
+   "system_cpu_seconds": 30.08934,
+   "total_script_seconds": 148.425619,
+   "user_cpu_seconds": 307.657288,
+   "vep_expected_records": 4096123,
+   "vepyr_module": "/Users/mwiewior/workspace/venvs/vepyr-0.11.0/lib/python3.12/site-packages/vepyr/__init__.py",
+   "vepyr_version": "0.11.0",
+   "workers": 2
+  },
+  "w4.md5.json": {
+   "records": 4096123,
+   "md5": "157fca5b065c20eb7cec3e7a18ef28b7",
+   "order": [
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr4",
+    "chr5",
+    "chr6",
+    "chr7",
+    "chr8",
+    "chr9",
+    "chr10",
+    "chr11",
+    "chr12",
+    "chr13",
+    "chr14",
+    "chr15",
+    "chr16",
+    "chr17",
+    "chr18",
+    "chr19",
+    "chr20",
+    "chr21",
+    "chr22"
+   ],
+   "contigs": {
+    "chr1": {
+     "records": 323430,
+     "md5": "1e29c9e4fd8c1330a5fab4f8729741ca"
+    },
+    "chr2": {
+     "records": 331324,
+     "md5": "a680166dd0fcb9684c4296f5d43aa005"
+    },
+    "chr3": {
+     "records": 288531,
+     "md5": "00f6272a3b5a029f6a4f950bd22f963c"
+    },
+    "chr4": {
+     "records": 307295,
+     "md5": "d21891ca16f663bb7e7baeebcd5d90a1"
+    },
+    "chr5": {
+     "records": 264411,
+     "md5": "86c54516bd1ab43820f92bf30ada084a"
+    },
+    "chr6": {
+     "records": 271966,
+     "md5": "e2f38ce3b86749b92b64ba2aa1c033fc"
+    },
+    "chr7": {
+     "records": 234522,
+     "md5": "d0ec56865b4630ffe578820679137234"
+    },
+    "chr8": {
+     "records": 225240,
+     "md5": "85df74de4e464743c0b2c1f152af2614"
+    },
+    "chr9": {
+     "records": 176111,
+     "md5": "4475c62cd0328bfbece05ffec93e9a11"
+    },
+    "chr10": {
+     "records": 213466,
+     "md5": "39e48a781fe6881244f01013d218863a"
+    },
+    "chr11": {
+     "records": 206822,
+     "md5": "96c48a82df644bf862453ff29b8913b3"
+    },
+    "chr12": {
+     "records": 197815,
+     "md5": "0e0e30dc664aac1a0494daaf63c0ef87"
+    },
+    "chr13": {
+     "records": 161419,
+     "md5": "b623518397d64adee4ceca0acee8dfb8"
+    },
+    "chr14": {
+     "records": 133199,
+     "md5": "a607c610be7bb54566cf404bed71b980"
+    },
+    "chr15": {
+     "records": 125179,
+     "md5": "2c4211fe1b6d31480c2094c1e6328e8e"
+    },
+    "chr16": {
+     "records": 123358,
+     "md5": "dfbe5c7a8085f631b32a4c2e852f1d87"
+    },
+    "chr17": {
+     "records": 108376,
+     "md5": "927aa175d903867883ca3cf5a5a80510"
+    },
+    "chr18": {
+     "records": 119383,
+     "md5": "4c164d843269d3e205f53a47b7fbbcb2"
+    },
+    "chr19": {
+     "records": 90699,
+     "md5": "c4bfc70da67d9df40d44de993cd8cd60"
+    },
+    "chr20": {
+     "records": 86904,
+     "md5": "f963bae23f9eff65f88c8bcb84f30299"
+    },
+    "chr21": {
+     "records": 55812,
+     "md5": "a42bbf6468779da3c6ad0102c5bfd8e2"
+    },
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  },
+  "w4.metrics.json": {
+   "annotation_seconds": 89.84725866699591,
+   "cache_dir": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_type": "merged",
+   "compression": "plain",
+   "finished_at_utc": "2026-11-21T06:25:55.545527+00:00",
+   "input_vcf": "/Users/mwiewior/workspace/data_vepyr/input/HG002_normalized.vcf.gz",
+   "max_rss_kb": 6933968,
+   "output_bytes": 29418788420,
+   "output_records": 4096123,
+   "output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers4.vcf",
+   "preserve_record_layout": true,
+   "records_match_vep": true,
+   "reference_fasta": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+   "returned_output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers4.vcf",
+   "started_at_utc": "2026-11-21T06:24:12.670687+00:00",
+   "status": "ok",
+   "system_cpu_seconds": 34.9381,
+   "total_script_seconds": 102.87484,
+   "user_cpu_seconds": 322.01543,
+   "vep_expected_records": 4096123,
+   "vepyr_module": "/Users/mwiewior/workspace/venvs/vepyr-0.11.0/lib/python3.12/site-packages/vepyr/__init__.py",
+   "vepyr_version": "0.11.0",
+   "workers": 4
+  },
+  "w8.md5.json": {
+   "records": 4096123,
+   "md5": "157fca5b065c20eb7cec3e7a18ef28b7",
+   "order": [
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr4",
+    "chr5",
+    "chr6",
+    "chr7",
+    "chr8",
+    "chr9",
+    "chr10",
+    "chr11",
+    "chr12",
+    "chr13",
+    "chr14",
+    "chr15",
+    "chr16",
+    "chr17",
+    "chr18",
+    "chr19",
+    "chr20",
+    "chr21",
+    "chr22"
+   ],
+   "contigs": {
+    "chr1": {
+     "records": 323430,
+     "md5": "1e29c9e4fd8c1330a5fab4f8729741ca"
+    },
+    "chr2": {
+     "records": 331324,
+     "md5": "a680166dd0fcb9684c4296f5d43aa005"
+    },
+    "chr3": {
+     "records": 288531,
+     "md5": "00f6272a3b5a029f6a4f950bd22f963c"
+    },
+    "chr4": {
+     "records": 307295,
+     "md5": "d21891ca16f663bb7e7baeebcd5d90a1"
+    },
+    "chr5": {
+     "records": 264411,
+     "md5": "86c54516bd1ab43820f92bf30ada084a"
+    },
+    "chr6": {
+     "records": 271966,
+     "md5": "e2f38ce3b86749b92b64ba2aa1c033fc"
+    },
+    "chr7": {
+     "records": 234522,
+     "md5": "d0ec56865b4630ffe578820679137234"
+    },
+    "chr8": {
+     "records": 225240,
+     "md5": "85df74de4e464743c0b2c1f152af2614"
+    },
+    "chr9": {
+     "records": 176111,
+     "md5": "4475c62cd0328bfbece05ffec93e9a11"
+    },
+    "chr10": {
+     "records": 213466,
+     "md5": "39e48a781fe6881244f01013d218863a"
+    },
+    "chr11": {
+     "records": 206822,
+     "md5": "96c48a82df644bf862453ff29b8913b3"
+    },
+    "chr12": {
+     "records": 197815,
+     "md5": "0e0e30dc664aac1a0494daaf63c0ef87"
+    },
+    "chr13": {
+     "records": 161419,
+     "md5": "b623518397d64adee4ceca0acee8dfb8"
+    },
+    "chr14": {
+     "records": 133199,
+     "md5": "a607c610be7bb54566cf404bed71b980"
+    },
+    "chr15": {
+     "records": 125179,
+     "md5": "2c4211fe1b6d31480c2094c1e6328e8e"
+    },
+    "chr16": {
+     "records": 123358,
+     "md5": "dfbe5c7a8085f631b32a4c2e852f1d87"
+    },
+    "chr17": {
+     "records": 108376,
+     "md5": "927aa175d903867883ca3cf5a5a80510"
+    },
+    "chr18": {
+     "records": 119383,
+     "md5": "4c164d843269d3e205f53a47b7fbbcb2"
+    },
+    "chr19": {
+     "records": 90699,
+     "md5": "c4bfc70da67d9df40d44de993cd8cd60"
+    },
+    "chr20": {
+     "records": 86904,
+     "md5": "f963bae23f9eff65f88c8bcb84f30299"
+    },
+    "chr21": {
+     "records": 55812,
+     "md5": "a42bbf6468779da3c6ad0102c5bfd8e2"
+    },
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  },
+  "w8.metrics.json": {
+   "annotation_seconds": 66.40508362500987,
+   "cache_dir": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_type": "merged",
+   "compression": "plain",
+   "finished_at_utc": "2026-11-21T06:22:36.509900+00:00",
+   "input_vcf": "/Users/mwiewior/workspace/data_vepyr/input/HG002_normalized.vcf.gz",
+   "max_rss_kb": 8817072,
+   "output_bytes": 29418788420,
+   "output_records": 4096123,
+   "output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers8.vcf",
+   "preserve_record_layout": true,
+   "records_match_vep": true,
+   "reference_fasta": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+   "returned_output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers8.vcf",
+   "started_at_utc": "2026-11-21T06:21:17.083912+00:00",
+   "status": "ok",
+   "system_cpu_seconds": 41.795997,
+   "total_script_seconds": 79.425988,
+   "user_cpu_seconds": 348.434088,
+   "vep_expected_records": 4096123,
+   "vepyr_module": "/Users/mwiewior/workspace/venvs/vepyr-0.11.0/lib/python3.12/site-packages/vepyr/__init__.py",
+   "vepyr_version": "0.11.0",
+   "workers": 8
+  },
+  "warmup.md5.json": {
+   "records": 4096123,
+   "md5": "157fca5b065c20eb7cec3e7a18ef28b7",
+   "order": [
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr4",
+    "chr5",
+    "chr6",
+    "chr7",
+    "chr8",
+    "chr9",
+    "chr10",
+    "chr11",
+    "chr12",
+    "chr13",
+    "chr14",
+    "chr15",
+    "chr16",
+    "chr17",
+    "chr18",
+    "chr19",
+    "chr20",
+    "chr21",
+    "chr22"
+   ],
+   "contigs": {
+    "chr1": {
+     "records": 323430,
+     "md5": "1e29c9e4fd8c1330a5fab4f8729741ca"
+    },
+    "chr2": {
+     "records": 331324,
+     "md5": "a680166dd0fcb9684c4296f5d43aa005"
+    },
+    "chr3": {
+     "records": 288531,
+     "md5": "00f6272a3b5a029f6a4f950bd22f963c"
+    },
+    "chr4": {
+     "records": 307295,
+     "md5": "d21891ca16f663bb7e7baeebcd5d90a1"
+    },
+    "chr5": {
+     "records": 264411,
+     "md5": "86c54516bd1ab43820f92bf30ada084a"
+    },
+    "chr6": {
+     "records": 271966,
+     "md5": "e2f38ce3b86749b92b64ba2aa1c033fc"
+    },
+    "chr7": {
+     "records": 234522,
+     "md5": "d0ec56865b4630ffe578820679137234"
+    },
+    "chr8": {
+     "records": 225240,
+     "md5": "85df74de4e464743c0b2c1f152af2614"
+    },
+    "chr9": {
+     "records": 176111,
+     "md5": "4475c62cd0328bfbece05ffec93e9a11"
+    },
+    "chr10": {
+     "records": 213466,
+     "md5": "39e48a781fe6881244f01013d218863a"
+    },
+    "chr11": {
+     "records": 206822,
+     "md5": "96c48a82df644bf862453ff29b8913b3"
+    },
+    "chr12": {
+     "records": 197815,
+     "md5": "0e0e30dc664aac1a0494daaf63c0ef87"
+    },
+    "chr13": {
+     "records": 161419,
+     "md5": "b623518397d64adee4ceca0acee8dfb8"
+    },
+    "chr14": {
+     "records": 133199,
+     "md5": "a607c610be7bb54566cf404bed71b980"
+    },
+    "chr15": {
+     "records": 125179,
+     "md5": "2c4211fe1b6d31480c2094c1e6328e8e"
+    },
+    "chr16": {
+     "records": 123358,
+     "md5": "dfbe5c7a8085f631b32a4c2e852f1d87"
+    },
+    "chr17": {
+     "records": 108376,
+     "md5": "927aa175d903867883ca3cf5a5a80510"
+    },
+    "chr18": {
+     "records": 119383,
+     "md5": "4c164d843269d3e205f53a47b7fbbcb2"
+    },
+    "chr19": {
+     "records": 90699,
+     "md5": "c4bfc70da67d9df40d44de993cd8cd60"
+    },
+    "chr20": {
+     "records": 86904,
+     "md5": "f963bae23f9eff65f88c8bcb84f30299"
+    },
+    "chr21": {
+     "records": 55812,
+     "md5": "a42bbf6468779da3c6ad0102c5bfd8e2"
+    },
+    "chr22": {
+     "records": 50861,
+     "md5": "d5f1a8c3749b5f20656d845c8310380f"
+    }
+   }
+  },
+  "warmup.metrics.json": {
+   "annotation_seconds": 61.61487395799486,
+   "cache_dir": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_type": "merged",
+   "compression": "plain",
+   "finished_at_utc": "2026-11-21T06:19:41.496776+00:00",
+   "input_vcf": "/Users/mwiewior/workspace/data_vepyr/input/HG002_normalized.vcf.gz",
+   "max_rss_kb": 9904544,
+   "output_bytes": 29418788420,
+   "output_records": 4096123,
+   "output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers8.vcf",
+   "preserve_record_layout": true,
+   "records_match_vep": true,
+   "reference_fasta": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+   "returned_output_vcf": "/Users/mwiewior/workspace/data_vepyr/output/116/vepyr_merged_worker_scaling_v0110/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers8.vcf",
+   "started_at_utc": "2026-11-21T06:18:26.746055+00:00",
+   "status": "ok",
+   "system_cpu_seconds": 42.11378,
+   "total_script_seconds": 74.750721,
+   "user_cpu_seconds": 351.317518,
+   "vep_expected_records": 4096123,
+   "vepyr_module": "/Users/mwiewior/workspace/venvs/vepyr-0.11.0/lib/python3.12/site-packages/vepyr/__init__.py",
+   "vepyr_version": "0.11.0",
+   "workers": 8
+  }
+ }
+}

@@ -1,0 +1,11 @@
+phase,mode,cache,dataset,contig,engine,workers,wall_s,user_s,sys_s,rss_gib,bg_cpu_pct,free_gib,swap_mb,out_bytes,records,md5,started
+warmup,split,merged,HG002,7,fastVEP,8,6.02,25.65,1.80,0.686,27,138,0,1661621844,-,-,2026-11-20T11:34:44
+measured,split,merged,HG002,7,fastVEP,8,4.71,25.38,1.14,0.645,22,138,0,1661621844,234522,cec797a52570d3b7761e9c1f0d8db02a,2026-11-20T11:34:53
+measured,split,merged,HG002,7,fastVEP,4,6.71,22.25,0.65,0.571,274,138,0,1661621844,-,-,2026-11-20T11:35:00
+measured,split,merged,HG002,7,fastVEP,2,11.76,21.06,0.66,0.498,20,138,0,1661621844,-,-,2026-11-20T11:35:07
+measured,split,merged,HG002,7,fastVEP,1,20.46,20.12,0.61,0.483,24,138,0,1661621844,234522,cec797a52570d3b7761e9c1f0d8db02a,2026-11-20T11:35:19
+warmup,split,merged,HG002,7,vep-rs,8,10.31,60.79,1.09,2.556,178,138,0,1671788402,-,-,2026-11-20T11:35:56
+measured,split,merged,HG002,7,vep-rs,8,10.41,60.70,1.10,2.581,122,138,0,1671788402,234522,bcc434ff2e8f9e699b537b03542f0077,2026-11-20T11:36:07
+measured,split,merged,HG002,7,vep-rs,4,18.19,59.70,0.91,2.414,125,138,0,1671788402,-,-,2026-11-20T11:36:20
+measured,split,merged,HG002,7,vep-rs,2,31.75,57.98,0.90,2.339,131,138,0,1671788402,-,-,2026-11-20T11:36:39
+measured,split,merged,HG002,7,vep-rs,1,57.62,56.98,0.96,2.295,31,138,0,1671788400,234522,bcc434ff2e8f9e699b537b03542f0077,2026-11-20T11:37:10

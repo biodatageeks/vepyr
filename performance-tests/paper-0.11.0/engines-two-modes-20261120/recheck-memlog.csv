@@ -1,0 +1,87 @@
+time,run,free_gib,released_gib,free_after_gib,inputs_resident_gib
+01:36:13,sentinel-1 before merged-ClinVar-split-vepyr,20,0,20,-
+01:36:20,sentinel-2 before merged-ClinVar-split-vepyr,20,0,20,-
+01:36:27,warmup split merged ClinVar 1 vepyr w8,20,0,20,-
+01:36:46,end of warmup split merged ClinVar 1 vepyr w8,12,,,
+01:36:48,measured split merged ClinVar 1 vepyr w8,18,0,18,-
+01:37:03,end of measured split merged ClinVar 1 vepyr w8,12,,,
+01:37:14,measured split merged ClinVar 1 vepyr w4,18,0,18,-
+01:37:36,end of measured split merged ClinVar 1 vepyr w4,12,,,
+01:37:40,measured split merged ClinVar 1 vepyr w2,18,0,18,-
+01:38:17,end of measured split merged ClinVar 1 vepyr w2,12,,,
+01:38:17,measured split merged ClinVar 1 vepyr w1,18,0,18,-
+01:39:17,end of measured split merged ClinVar 1 vepyr w1,12,,,
+01:39:30,warmup split merged ClinVar 2 vepyr w8,18,27,27,-
+01:40:08,end of warmup split merged ClinVar 2 vepyr w8,18,,,
+01:40:08,measured split merged ClinVar 2 vepyr w1,25,0,25,-
+01:41:54,end of measured split merged ClinVar 2 vepyr w1,18,,,
+01:42:05,measured split merged ClinVar 2 vepyr w2,25,0,25,-
+01:43:12,end of measured split merged ClinVar 2 vepyr w2,18,,,
+01:43:12,measured split merged ClinVar 2 vepyr w4,25,0,25,-
+01:44:01,end of measured split merged ClinVar 2 vepyr w4,18,,,
+01:44:01,measured split merged ClinVar 2 vepyr w8,25,0,25,-
+01:44:37,end of measured split merged ClinVar 2 vepyr w8,18,,,
+01:44:50,warmup split merged ClinVar 17 vepyr w8,25,0,25,-
+01:45:09,end of warmup split merged ClinVar 17 vepyr w8,17,,,
+01:45:09,measured split merged ClinVar 17 vepyr w8,24,0,24,-
+01:45:27,end of measured split merged ClinVar 17 vepyr w8,17,,,
+01:45:40,measured split merged ClinVar 17 vepyr w4,24,0,24,-
+01:46:04,end of measured split merged ClinVar 17 vepyr w4,17,,,
+01:46:04,measured split merged ClinVar 17 vepyr w2,24,0,24,-
+01:46:44,end of measured split merged ClinVar 17 vepyr w2,17,,,
+01:46:45,measured split merged ClinVar 17 vepyr w1,24,0,24,-
+01:47:53,end of measured split merged ClinVar 17 vepyr w1,17,,,
+01:48:05,warmup split merged ClinVar 22 vepyr w8,24,0,24,-
+01:48:10,end of warmup split merged ClinVar 22 vepyr w8,22,,,
+01:48:10,measured split merged ClinVar 22 vepyr w1,24,0,24,-
+01:48:25,end of measured split merged ClinVar 22 vepyr w1,22,,,
+01:48:28,measured split merged ClinVar 22 vepyr w2,24,0,24,-
+01:48:37,end of measured split merged ClinVar 22 vepyr w2,22,,,
+01:48:37,measured split merged ClinVar 22 vepyr w4,24,0,24,-
+01:48:43,end of measured split merged ClinVar 22 vepyr w4,22,,,
+01:48:43,measured split merged ClinVar 22 vepyr w8,24,0,24,-
+01:48:46,end of measured split merged ClinVar 22 vepyr w8,22,,,
+01:48:50,sentinel-1 before merged-ClinVar-split-vep-rs,24,0,24,-
+01:48:58,sentinel-2 before merged-ClinVar-split-vep-rs,23,0,23,-
+01:49:06,warmup split merged ClinVar 1 vep-rs w8,23,0,23,-
+01:49:34,end of warmup split merged ClinVar 1 vep-rs w8,16,,,
+01:49:34,measured split merged ClinVar 1 vep-rs w8,22,0,22,-
+01:50:02,end of measured split merged ClinVar 1 vep-rs w8,16,,,
+01:50:14,measured split merged ClinVar 1 vep-rs w4,22,0,22,-
+01:51:04,end of measured split merged ClinVar 1 vep-rs w4,16,,,
+01:51:04,measured split merged ClinVar 1 vep-rs w2,22,0,22,-
+01:52:39,end of measured split merged ClinVar 1 vep-rs w2,16,,,
+01:52:39,measured split merged ClinVar 1 vep-rs w1,22,0,22,-
+01:55:35,end of measured split merged ClinVar 1 vep-rs w1,16,,,
+01:55:46,warmup split merged ClinVar 2 vep-rs w8,22,0,22,-
+01:56:37,end of warmup split merged ClinVar 2 vep-rs w8,14,,,
+01:56:37,measured split merged ClinVar 2 vep-rs w1,21,0,21,-
+02:02:01,end of measured split merged ClinVar 2 vep-rs w1,14,,,
+02:02:13,measured split merged ClinVar 2 vep-rs w2,21,0,21,-
+02:05:10,end of measured split merged ClinVar 2 vep-rs w2,14,,,
+02:05:10,measured split merged ClinVar 2 vep-rs w4,21,0,21,-
+02:06:41,end of measured split merged ClinVar 2 vep-rs w4,14,,,
+02:06:42,measured split merged ClinVar 2 vep-rs w8,21,0,21,-
+02:07:32,end of measured split merged ClinVar 2 vep-rs w8,14,,,
+02:07:43,warmup split merged ClinVar 17 vep-rs w8,20,0,20,-
+02:08:18,end of warmup split merged ClinVar 17 vep-rs w8,13,,,
+02:08:18,measured split merged ClinVar 17 vep-rs w8,20,0,20,-
+02:08:51,end of measured split merged ClinVar 17 vep-rs w8,13,,,
+02:09:04,measured split merged ClinVar 17 vep-rs w4,20,0,20,-
+02:10:05,end of measured split merged ClinVar 17 vep-rs w4,13,,,
+02:10:05,measured split merged ClinVar 17 vep-rs w2,20,0,20,-
+02:12:02,end of measured split merged ClinVar 17 vep-rs w2,13,,,
+02:12:03,measured split merged ClinVar 17 vep-rs w1,20,0,20,-
+02:15:41,end of measured split merged ClinVar 17 vep-rs w1,13,,,
+02:15:53,warmup split merged ClinVar 22 vep-rs w8,20,0,20,-
+02:16:02,end of warmup split merged ClinVar 22 vep-rs w8,17,,,
+02:16:02,measured split merged ClinVar 22 vep-rs w1,19,0,19,-
+02:16:52,end of measured split merged ClinVar 22 vep-rs w1,17,,,
+02:16:55,measured split merged ClinVar 22 vep-rs w2,19,0,19,-
+02:17:22,end of measured split merged ClinVar 22 vep-rs w2,17,,,
+02:17:22,measured split merged ClinVar 22 vep-rs w4,19,0,19,-
+02:17:36,end of measured split merged ClinVar 22 vep-rs w4,17,,,
+02:17:36,measured split merged ClinVar 22 vep-rs w8,19,0,19,-
+02:17:44,end of measured split merged ClinVar 22 vep-rs w8,17,,,
+02:17:50,sentinel-1 before end,19,27,27,-
+02:17:59,sentinel-2 before end,25,0,25,-
