@@ -1,0 +1,22 @@
+date: 2026-11-21T21:28:30+01:00
+host: tgambin-desktop
+os: Ubuntu 22.04.3 LTS, kernel 6.8.0-138-generic
+cpu: AMD Ryzen 9 5950X 16-Core Processor, 32 hardware threads
+cpu frequency governor: schedutil
+memory: 62 GiB, swap 1 GiB
+storage: /dev/nvme0n1p5 (Patriot M.2 P300 1024GB), ext4 at /
+repository: 0.11.0 d75efcca66b585b04c76156fb59aef13bbaae9b3
+checksum script: ae3df1e:performance-tests/paper-0.11.0/engines-two-modes-20261120/scripts/contig_md5.cached-read.py
+python: 3.12.8 /home/tgambin/workspace/vepyr/venv/vepyr-0.11.0/bin/python
+vepyr: 0.11.0
+pyarrow: 24.0.0
+polars: 1.44.2
+huggingface-hub: 2.4.0
+vepyr wheel tags: cp310-abi3-manylinux2014_x86_64, cp310-abi3-manylinux_2_17_x86_64
+vepyr installed from: PyPI index
+cache: /home/tgambin/workspace/vep_data/cache/vepyr_0.11.0/116_GRCh38_merged
+cache download record: {"repo_id": "biodatageeks/vepyr_116_GRCh38_merged", "commit": "ac2c8ad979ad063816368b0720e6e4501d64a3f3"}
+cache size: 36G
+input: /home/tgambin/workspace/vep_data/input/HG002_normalized.vcf.gz sha256 76931747a93b077464046236fb7357e0bc8ca8e4581e6f19a95c97334867965b
+reference: /home/tgambin/workspace/vep_data/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+VEPYR_EXPECTED_VERSION: 0.11.0
