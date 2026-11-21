@@ -1,0 +1,3510 @@
+{
+ "bundle_of": "merged/",
+ "note": "Several result files merged into one; key = path inside the directory. Restore with performance-tests/paper-0.11.0/unpack_json_bundles.py.",
+ "files": {
+  "reports/fast_chr10_merged_116_report.json": {
+   "chrom": "chr10",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr10"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 213466,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.6,
+    "output_variants": 213466
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "39e48a781fe6881244f01013d218863a",
+     "vepyr_body_md5": "39e48a781fe6881244f01013d218863a",
+     "vep_records": 213466,
+     "vepyr_records": 213466,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "0a5235838129b6c1c49b3687a1453284",
+     "vepyr_body_md5": "0a5235838129b6c1c49b3687a1453284",
+     "vep_records": 213466,
+     "vepyr_records": 213466,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr11_merged_116_report.json": {
+   "chrom": "chr11",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr11"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 206822,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.9,
+    "output_variants": 206822
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "96c48a82df644bf862453ff29b8913b3",
+     "vepyr_body_md5": "96c48a82df644bf862453ff29b8913b3",
+     "vep_records": 206822,
+     "vepyr_records": 206822,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "b719be34d76168678b1cea07de8764ab",
+     "vepyr_body_md5": "b719be34d76168678b1cea07de8764ab",
+     "vep_records": 206822,
+     "vepyr_records": 206822,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr12_merged_116_report.json": {
+   "chrom": "chr12",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr12"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 197815,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.3,
+    "output_variants": 197815
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "0e0e30dc664aac1a0494daaf63c0ef87",
+     "vepyr_body_md5": "0e0e30dc664aac1a0494daaf63c0ef87",
+     "vep_records": 197815,
+     "vepyr_records": 197815,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "d35da92aff15e46ca8fd011dd898cc64",
+     "vepyr_body_md5": "d35da92aff15e46ca8fd011dd898cc64",
+     "vep_records": 197815,
+     "vepyr_records": 197815,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr13_merged_116_report.json": {
+   "chrom": "chr13",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr13"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 161419,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 2.3,
+    "output_variants": 161419
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "b623518397d64adee4ceca0acee8dfb8",
+     "vepyr_body_md5": "b623518397d64adee4ceca0acee8dfb8",
+     "vep_records": 161419,
+     "vepyr_records": 161419,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "22eff97e17c9bcb24a340542d6101504",
+     "vepyr_body_md5": "22eff97e17c9bcb24a340542d6101504",
+     "vep_records": 161419,
+     "vepyr_records": 161419,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr14_merged_116_report.json": {
+   "chrom": "chr14",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr14"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 133199,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 2.5,
+    "output_variants": 133199
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "a607c610be7bb54566cf404bed71b980",
+     "vepyr_body_md5": "a607c610be7bb54566cf404bed71b980",
+     "vep_records": 133199,
+     "vepyr_records": 133199,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "e581db6cc7a0f42c7104d439bc03908d",
+     "vepyr_body_md5": "e581db6cc7a0f42c7104d439bc03908d",
+     "vep_records": 133199,
+     "vepyr_records": 133199,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr15_merged_116_report.json": {
+   "chrom": "chr15",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr15"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 125179,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 2.5,
+    "output_variants": 125179
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "2c4211fe1b6d31480c2094c1e6328e8e",
+     "vepyr_body_md5": "2c4211fe1b6d31480c2094c1e6328e8e",
+     "vep_records": 125179,
+     "vepyr_records": 125179,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "99b7c352ade65ab1a9ce6332513f9034",
+     "vepyr_body_md5": "99b7c352ade65ab1a9ce6332513f9034",
+     "vep_records": 125179,
+     "vepyr_records": 125179,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr16_merged_116_report.json": {
+   "chrom": "chr16",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr16"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 123358,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 2.5,
+    "output_variants": 123358
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "dfbe5c7a8085f631b32a4c2e852f1d87",
+     "vepyr_body_md5": "dfbe5c7a8085f631b32a4c2e852f1d87",
+     "vep_records": 123358,
+     "vepyr_records": 123358,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "a9877a8c785d0a69e263358c9c779d2d",
+     "vepyr_body_md5": "a9877a8c785d0a69e263358c9c779d2d",
+     "vep_records": 123358,
+     "vepyr_records": 123358,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr17_merged_116_report.json": {
+   "chrom": "chr17",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr17"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 108376,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 4.4,
+    "output_variants": 108376
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "927aa175d903867883ca3cf5a5a80510",
+     "vepyr_body_md5": "927aa175d903867883ca3cf5a5a80510",
+     "vep_records": 108376,
+     "vepyr_records": 108376,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "7bc75c9aa3775ccbc527bfb0d55a387d",
+     "vepyr_body_md5": "7bc75c9aa3775ccbc527bfb0d55a387d",
+     "vep_records": 108376,
+     "vepyr_records": 108376,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr18_merged_116_report.json": {
+   "chrom": "chr18",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr18"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 119383,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 2.0,
+    "output_variants": 119383
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "4c164d843269d3e205f53a47b7fbbcb2",
+     "vepyr_body_md5": "4c164d843269d3e205f53a47b7fbbcb2",
+     "vep_records": 119383,
+     "vepyr_records": 119383,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "b815d5d473ca9aeec8c45127a1619161",
+     "vepyr_body_md5": "b815d5d473ca9aeec8c45127a1619161",
+     "vep_records": 119383,
+     "vepyr_records": 119383,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr19_merged_116_report.json": {
+   "chrom": "chr19",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr19"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 90699,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.0,
+    "output_variants": 90699
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "c4bfc70da67d9df40d44de993cd8cd60",
+     "vepyr_body_md5": "c4bfc70da67d9df40d44de993cd8cd60",
+     "vep_records": 90699,
+     "vepyr_records": 90699,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "aa5291de3c479ce18431b3a8845fb444",
+     "vepyr_body_md5": "aa5291de3c479ce18431b3a8845fb444",
+     "vep_records": 90699,
+     "vepyr_records": 90699,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr1_merged_116_report.json": {
+   "chrom": "chr1",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr1"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 323430,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 5.8,
+    "output_variants": 323430
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "1e29c9e4fd8c1330a5fab4f8729741ca",
+     "vepyr_body_md5": "1e29c9e4fd8c1330a5fab4f8729741ca",
+     "vep_records": 323430,
+     "vepyr_records": 323430,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "68f3fb0fa96313644633bd469f5ed4b9",
+     "vepyr_body_md5": "68f3fb0fa96313644633bd469f5ed4b9",
+     "vep_records": 323430,
+     "vepyr_records": 323430,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr20_merged_116_report.json": {
+   "chrom": "chr20",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr20"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 86904,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 1.6,
+    "output_variants": 86904
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "f963bae23f9eff65f88c8bcb84f30299",
+     "vepyr_body_md5": "f963bae23f9eff65f88c8bcb84f30299",
+     "vep_records": 86904,
+     "vepyr_records": 86904,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "39857fb3e125ea6d8d04c83823712267",
+     "vepyr_body_md5": "39857fb3e125ea6d8d04c83823712267",
+     "vep_records": 86904,
+     "vepyr_records": 86904,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr21_merged_116_report.json": {
+   "chrom": "chr21",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr21"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 55812,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 1.3,
+    "output_variants": 55812
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "a42bbf6468779da3c6ad0102c5bfd8e2",
+     "vepyr_body_md5": "a42bbf6468779da3c6ad0102c5bfd8e2",
+     "vep_records": 55812,
+     "vepyr_records": 55812,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "f1f1cadec368e51cecf93111bed841c7",
+     "vepyr_body_md5": "f1f1cadec368e51cecf93111bed841c7",
+     "vep_records": 55812,
+     "vepyr_records": 55812,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr22_merged_116_report.json": {
+   "chrom": "chr22",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr22"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 50861,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 1.6,
+    "output_variants": 50861
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "d5f1a8c3749b5f20656d845c8310380f",
+     "vepyr_body_md5": "d5f1a8c3749b5f20656d845c8310380f",
+     "vep_records": 50861,
+     "vepyr_records": 50861,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "9392f95c482497e25c362d1bb6f55ab5",
+     "vepyr_body_md5": "9392f95c482497e25c362d1bb6f55ab5",
+     "vep_records": 50861,
+     "vepyr_records": 50861,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr2_merged_116_report.json": {
+   "chrom": "chr2",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr2"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 331324,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 5.2,
+    "output_variants": 331324
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "a680166dd0fcb9684c4296f5d43aa005",
+     "vepyr_body_md5": "a680166dd0fcb9684c4296f5d43aa005",
+     "vep_records": 331324,
+     "vepyr_records": 331324,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "36bfe264cac5637ccf1b0303fcbe65ce",
+     "vepyr_body_md5": "36bfe264cac5637ccf1b0303fcbe65ce",
+     "vep_records": 331324,
+     "vepyr_records": 331324,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr3_merged_116_report.json": {
+   "chrom": "chr3",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr3"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 288531,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 4.5,
+    "output_variants": 288531
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "00f6272a3b5a029f6a4f950bd22f963c",
+     "vepyr_body_md5": "00f6272a3b5a029f6a4f950bd22f963c",
+     "vep_records": 288531,
+     "vepyr_records": 288531,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "24a8f9dae4783c1b7c91ef6dd1c3915b",
+     "vepyr_body_md5": "24a8f9dae4783c1b7c91ef6dd1c3915b",
+     "vep_records": 288531,
+     "vepyr_records": 288531,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr4_merged_116_report.json": {
+   "chrom": "chr4",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr4"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 307295,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 4.1,
+    "output_variants": 307295
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "d21891ca16f663bb7e7baeebcd5d90a1",
+     "vepyr_body_md5": "d21891ca16f663bb7e7baeebcd5d90a1",
+     "vep_records": 307295,
+     "vepyr_records": 307295,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "b1fcd295801ec9471efa9fccbef5e151",
+     "vepyr_body_md5": "b1fcd295801ec9471efa9fccbef5e151",
+     "vep_records": 307295,
+     "vepyr_records": 307295,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr5_merged_116_report.json": {
+   "chrom": "chr5",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr5"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 264411,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.3,
+    "output_variants": 264411
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "86c54516bd1ab43820f92bf30ada084a",
+     "vepyr_body_md5": "86c54516bd1ab43820f92bf30ada084a",
+     "vep_records": 264411,
+     "vepyr_records": 264411,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "d23050ceec5ba76e9a8ac970c0ef3d88",
+     "vepyr_body_md5": "d23050ceec5ba76e9a8ac970c0ef3d88",
+     "vep_records": 264411,
+     "vepyr_records": 264411,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr6_merged_116_report.json": {
+   "chrom": "chr6",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr6"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 271966,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 4.7,
+    "output_variants": 271966
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "e2f38ce3b86749b92b64ba2aa1c033fc",
+     "vepyr_body_md5": "e2f38ce3b86749b92b64ba2aa1c033fc",
+     "vep_records": 271966,
+     "vepyr_records": 271966,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "94487e34d59dcb596baa329ce7fa91ed",
+     "vepyr_body_md5": "94487e34d59dcb596baa329ce7fa91ed",
+     "vep_records": 271966,
+     "vepyr_records": 271966,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr7_merged_116_report.json": {
+   "chrom": "chr7",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr7"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 234522,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.4,
+    "output_variants": 234522
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "d0ec56865b4630ffe578820679137234",
+     "vepyr_body_md5": "d0ec56865b4630ffe578820679137234",
+     "vep_records": 234522,
+     "vepyr_records": 234522,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "221872dd78642a5b45dcb967cbb1b708",
+     "vepyr_body_md5": "221872dd78642a5b45dcb967cbb1b708",
+     "vep_records": 234522,
+     "vepyr_records": 234522,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr8_merged_116_report.json": {
+   "chrom": "chr8",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr8"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 225240,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.3,
+    "output_variants": 225240
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "85df74de4e464743c0b2c1f152af2614",
+     "vepyr_body_md5": "85df74de4e464743c0b2c1f152af2614",
+     "vep_records": 225240,
+     "vepyr_records": 225240,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "651bef10fc802dfe41cd98de429ee106",
+     "vepyr_body_md5": "651bef10fc802dfe41cd98de429ee106",
+     "vep_records": 225240,
+     "vepyr_records": 225240,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "reports/fast_chr9_merged_116_report.json": {
+   "chrom": "chr9",
+   "profile": "merged",
+   "release": "116",
+   "cache": "merged",
+   "cache_path": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+   "cache_identity": {
+    "vepyr_version": "0.11.0",
+    "cache_source_type": "merged",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116",
+    "contig": "chr9"
+   },
+   "supported_target": {
+    "vepyr_version": "0.11.0",
+    "cache_version": "116",
+    "vep_codebase_version": "116.0",
+    "api_version": "116",
+    "ensembl_core_revision": "c0cf13d",
+    "ensembl_variation_revision": "2fb834b",
+    "semantics": "116"
+   },
+   "build": {
+    "branch": "HEAD",
+    "vepyr_rev": "d75efcca66b5",
+    "vepyr_dirty": true,
+    "bio_functions_rev": "270438483073",
+    "dependencies": {
+     "datafusion-bio-format-core": {
+      "version": "1.17.0",
+      "declared_source": null,
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-core/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-ensembl-cache": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-ensembl-cache/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-format-vcf": {
+      "version": "1.17.0",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-formats.git?tag=v1.17.0#1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426/datafusion/bio-format-vcf/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-formats-f4a7f32bff6627c2/1b35426",
+      "revision": "1b35426f0fef8d2ceeb160ad7e825953dada14b5",
+      "dirty": false
+     },
+     "datafusion-bio-function-vep": {
+      "version": "0.25.1",
+      "declared_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1",
+      "declared_revision": null,
+      "effective_source": "git+https://github.com/biodatageeks/datafusion-bio-functions.git?tag=v0.27.1#270438483073544372350388d55876af6f9769f1",
+      "manifest_path": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384/datafusion/bio-function-vep/Cargo.toml",
+      "repo_root": "/Users/mwiewior/.cargo/git/checkouts/datafusion-bio-functions-232cd471a782bd70/2704384",
+      "revision": "270438483073544372350388d55876af6f9769f1",
+      "dirty": false
+     }
+    },
+    "cargo_lock_sha256": "cf2401b7e759220fe65a35a08b6f587673e4a45c01aaf3521050cc0f5682104f"
+   },
+   "benchmark_artifacts": {
+    "input_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+     "size": 156252944,
+     "mtime": 1775224337.5005143,
+     "mtime_ns": 1775224337500514222
+    },
+    "reference_fasta": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+     "size": 3151425851,
+     "mtime": 1775224367.4948483,
+     "mtime_ns": 1775224367494848298
+    },
+    "vep_reference_vcf": {
+     "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+     "size": 1709395431,
+     "mtime": 1785213073.0,
+     "mtime_ns": 1785213073000000000
+    }
+   },
+   "input_variants": 176111,
+   "annotation": {
+    "backend": "parquet",
+    "compression": "bgzf",
+    "time_s": 3.5,
+    "output_variants": 176111
+   },
+   "comparison": null,
+   "comparison_mode": "md5",
+   "md5": {
+    "strict": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "4475c62cd0328bfbece05ffec93e9a11",
+     "vepyr_body_md5": "4475c62cd0328bfbece05ffec93e9a11",
+     "vep_records": 176111,
+     "vepyr_records": 176111,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    },
+    "canonical": {
+     "body_match": true,
+     "header_match": false,
+     "count_match": true,
+     "vep_body_md5": "3dd6df314299f802345856428c543e7a",
+     "vepyr_body_md5": "3dd6df314299f802345856428c543e7a",
+     "vep_records": 176111,
+     "vepyr_records": 176111,
+     "notes": [
+      "header differs (234 vs 234 lines, each side's own provenance lines excluded)"
+     ],
+     "csq_order_ignored": false,
+     "clin_sig_order_only": 0
+    }
+   },
+   "reference_identity": {
+    "vep_version": "116.0",
+    "api_version": "116",
+    "cache_version": "116",
+    "cache_path": "/opt/vep/.vep/homo_sapiens_merged/116_GRCh38",
+    "assembly": "GRCh38.p14",
+    "ensembl_release": "116",
+    "ensembl_revision": "c0cf13d",
+    "ensembl_variation_release": "116",
+    "ensembl_variation_revision": "2fb834b",
+    "header": "##VEP=\"v116.0\" API=\"v116\" time=\"2026-07-27 19:07:30\" cache=\"/opt/vep/.vep/homo_sapiens_merged/116_GRCh38\" ensembl=116.c0cf13d ensembl-compara=116.46f80af ensembl-funcgen=116.90049ea ensembl-io=116.6afb5dc ensembl-variation=116.2fb834b 1000genomes=\"phase3\" COSMIC=\"102\" ClinVar=\"202509\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p14\" dbSNP=\"156\" gencode=\"GENCODE 50\" genebuild=\"GENCODE50\" gnomADe=\"v4.1\" gnomADg=\"v4.1\" polyphen=\"2.2.3\" refseq=\"GCF_000001405.40-RS_2025_08 - GCF_000001405.40_GRCh38.p14_genomic.gff\" regbuild=\"1.0\" sift=\"6.2.1\""
+   }
+  },
+  "results/116/_shared/normalized.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz",
+   "size": 156252944,
+   "mtime": 1775224337.5005143,
+   "mtime_ns": 1775224337500514222
+  },
+  "results/116/fast_chr1/input_chr1.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr1/vep_chr1_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr10/input_chr10.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr10/vep_chr10_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr11/input_chr11.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr11/vep_chr11_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr12/input_chr12.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr12/vep_chr12_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr13/input_chr13.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr13/vep_chr13_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr14/input_chr14.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr14/vep_chr14_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr15/input_chr15.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr15/vep_chr15_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr16/input_chr16.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr16/vep_chr16_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr17/input_chr17.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr17/vep_chr17_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr18/input_chr18.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr18/vep_chr18_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr19/input_chr19.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr19/vep_chr19_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr2/input_chr2.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr2/vep_chr2_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr20/input_chr20.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr20/vep_chr20_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr21/input_chr21.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr21/vep_chr21_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr22/input_chr22.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr22/vep_chr22_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr3/input_chr3.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr3/vep_chr3_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr4/input_chr4.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr4/vep_chr4_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr5/input_chr5.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr5/vep_chr5_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr6/input_chr6.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr6/vep_chr6_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr7/input_chr7.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr7/vep_chr7_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr8/input_chr8.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr8/vep_chr8_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  },
+  "results/116/fast_chr9/input_chr9.source.json": {
+   "path": "/Users/mwiewior/research/benchmarks/vepyr-0110-supplement-20261121/parity/merged/results/116/_shared/normalized.vcf.gz",
+   "size": 151003070,
+   "mtime": 1795250338.0,
+   "mtime_ns": 1795250338000000000
+  },
+  "results/116/fast_chr9/vep_chr9_merged.source.json": {
+   "path": "/Users/mwiewior/workspace/data_vepyr/output/116/HG002_annotated_wgs_everything_hgvs_merged.vcf.gz",
+   "size": 1709395431,
+   "mtime": 1785213073.0,
+   "mtime_ns": 1785213073000000000
+  }
+ }
+}

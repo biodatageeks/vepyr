@@ -54,3 +54,22 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 
 Console logs, stdout and stderr of the runs are not included; only results, the scripts that
 produced them and their metadata.
+
+## JSON bundles
+
+To keep the pull request small, the per-run JSON results of these sets are merged into one JSON
+file each. A bundle has `bundle_of` (the original directory), `note` and `files` (path inside that
+directory -> the original JSON content). Other files of these directories (GNU time logs, CSV, TSV)
+stay where they were.
+
+- `vepyr-0110-supplement-20261121/`: `wgs.json`, `wgs2.json`, `parity/{ensembl,merged,merged_plugins,merged_phenotypeorthologous,refseq}.json`
+  (per-chromosome reports and input source metadata of each profile), `parity/pick.json` (all
+  transcript-selection profiles, chromosomes 1 and 22)
+- `engines-two-modes-20261120/`: `whole-md5.json`, `whole-md5.before-remeasure.json`, `validate-md5.json`,
+  `fields-filled/whole/<engine>-<cache>-<dataset>.json` (per-chromosome field scans)
+- `../polars-integration/outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v0110/`: `A.json`, `B.json`,
+  `B_sliced.json`, `C.json`, `vep.json`
+
+Restore the original files with `python performance-tests/paper-0.11.0/unpack_json_bundles.py BUNDLE.json`
+(add `--out DIR` to write elsewhere); every bundle was checked to restore each file with identical
+content.

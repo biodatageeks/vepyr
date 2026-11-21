@@ -49,3 +49,11 @@ frame and records the extra column.
   `e5947c8`; it also contains example VCF record lines of the HG002 input.
 - VCF outputs and inputs (`workers_chr*/*.vcf.gz`, `workers_chr*/input/*.vcf.gz{,.tbi}`, about
   370 MB) and `__pycache__/`.
+
+## JSON bundles
+
+`A/`, `B/`, `B_sliced/`, `C/` and `vep/` (one JSON file per query, mode and worker count) are stored
+as one file each, `A.json`, `B.json`, `B_sliced.json`, `C.json` and `vep.json`, to keep the pull
+request small (key = file name inside the directory). `scripts/make_supplement.py` reads the
+directories, so restore them first with
+`python performance-tests/paper-0.11.0/unpack_json_bundles.py A.json B.json B_sliced.json C.json vep.json`.
