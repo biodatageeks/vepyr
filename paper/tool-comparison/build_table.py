@@ -55,7 +55,8 @@ DETAIL_HEAD = {
 # Measured cells (2026-11-20, supplement Section 10):
 # * fields: of the 80 (Ensembl cache) and 86 (merged cache) CSQ fields of VEP 116
 #   --everything, those with a value in at least one record of the tool's output
-#   for HG002 chr21. Ensembl: VEP fills all 80. Merged: VEP fills 85 (REFSEQ_MATCH
+#   for HG002 chr1-22 (whole-genome scans of 2026-11-21 give the counts first
+#   measured on chr21). Ensembl: VEP fills all 80. Merged: VEP fills 85 (REFSEQ_MATCH
 #   is empty in its output), vepyr the same 85, vep-rs 77 of the 82 it declares,
 #   fastVEP 67 of the 74 it declares. Ensembl details: fastVEP 0.6.1 declares 73 of the 80 (not SWISSPROT,
 #   TREMBL, UNIPARC, UNIPROT_ISOFORM, GENE_PHENO, DOMAINS, miRNA) and leaves
@@ -79,7 +80,7 @@ COMPACT_ROWS = [
     ("variants", "Declared variant classes"),
     ("plugins", "External annotation sources"),
     ("concordance", r"Records as in VEP, Ensembl / merged\textsuperscript{e}"),
-    ("time", r"Whole genome, 8 workers\textsuperscript{f}"),
+    ("time", r"Whole genome, merged cache, 8 workers\textsuperscript{f}"),
     ("ui", "Interfaces"),
     ("evaluation", "Evaluation"),
     ("output", "Output"),
@@ -153,7 +154,7 @@ PANEL_NOTES = [
         "a",
         r"Of the 80 and 86 \texttt{CSQ} fields of VEP~116 \texttt{--everything} with the "
         r"Ensembl and the merged cache, those with a value in at least one record of the "
-        r"output for chromosome~21 of HG002. VEP fills all 80; with the merged cache, "
+        r"output for HG002 (chromosomes 1--22). VEP fills all 80; with the merged cache, "
         r"\texttt{REFSEQ\_MATCH} is empty in its output as well.",
     ),
     (
