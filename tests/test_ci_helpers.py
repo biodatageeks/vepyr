@@ -900,20 +900,21 @@ def test_cache_inputs_empty_host_names_every_missing_input(tmp_path):
     problems, warnings = inputs(tmp_path, ["ensembl", "plugin_small"])
     text = "\n".join(problems)
     assert (
-        f"{tmp_path}/cache/116_GRCh38_ensembl (the published cache to compare with) is not staged at org/vepyr_116_GRCh38_ensembl@{'1' * 40}"
+        f"{tmp_path / 'cache' / '116_GRCh38_ensembl'} (the published cache to compare with) is not staged at org/vepyr_116_GRCh38_ensembl@{'1' * 40}"
         in text
     )
     assert (
-        f"raw Ensembl VEP cache missing: {tmp_path}/vep-cache/homo_sapiens/116_GRCh38/info.txt"
+        f"raw Ensembl VEP cache missing: {tmp_path / 'vep-cache' / 'homo_sapiens' / '116_GRCh38' / 'info.txt'}"
         in text
     )
     # A plugin job reads its tiers from the merged cache.
     assert (
-        f"{tmp_path}/cache/116_GRCh38_merged (tiers of plugin caches) is not staged at"
+        f"{tmp_path / 'cache' / '116_GRCh38_merged'} (tiers of plugin caches) is not staged at"
         in text
     )
     assert (
-        f"no staged source file for small under {tmp_path}/plugin-source/small" in text
+        f"no staged source file for small under {tmp_path / 'plugin-source' / 'small'}"
+        in text
     )
     assert len(problems) == 4
     # The job downloads a published plugin cache it does not find staged.
@@ -932,11 +933,11 @@ def test_cache_inputs_stale_marker_missing_source_and_scratch(tmp_path):
     assert warnings == []
     # 70 GiB are enough for ensembl (60) and not for plugin_big (100).
     assert problems == [
-        f"{tmp_path}/cache/116_GRCh38_merged (the published cache to compare with) is not "
+        f"{tmp_path / 'cache' / '116_GRCh38_merged'} (the published cache to compare with) is not "
         f"staged at org/vepyr_116_GRCh38_merged@{'2' * 40}: re-run ci/wgs-runner/stage-data.sh",
-        f"{tmp_path}/cache/116_GRCh38_merged (tiers of plugin caches) is not staged at "
+        f"{tmp_path / 'cache' / '116_GRCh38_merged'} (tiers of plugin caches) is not staged at "
         f"org/vepyr_116_GRCh38_merged@{'2' * 40}: re-run ci/wgs-runner/stage-data.sh",
-        f"staged plugin source missing: {tmp_path}/plugin-source/big/in.vcf.gz.tbi; "
+        f"staged plugin source missing: {tmp_path / 'plugin-source' / 'big' / 'in.vcf.gz.tbi'}; "
         "re-run ci/wgs-runner/stage-cache-inputs.sh",
         "plugin_big needs 100 GiB of scratch; 70 GiB are free",
     ]
@@ -949,7 +950,7 @@ def test_cache_inputs_staged_plugin_cache_without_sources_is_a_problem(tmp_path)
     (tmp_path / "plugin-cache/116_GRCh38/plugin/small/manifest.json").write_text("{}")
     problems, _ = inputs(tmp_path, ["plugin_small"])
     assert problems == [
-        f"{tmp_path}/plugin-cache/116_GRCh38/plugin/small/manifest.json lists no sources; "
+        f"{tmp_path / 'plugin-cache' / '116_GRCh38' / 'plugin' / 'small' / 'manifest.json'} lists no sources; "
         "re-run ci/wgs-runner/stage-cache-inputs.sh"
     ]
 

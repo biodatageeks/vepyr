@@ -558,7 +558,8 @@ def cache_inputs(
             if not raw:
                 add(f"{target} has no raw cache path in the parity manifest")
             elif not (data / raw / "info.txt").is_file():
-                add(f"raw Ensembl VEP cache missing: {data / raw}/info.txt; {restage}")
+                info = data / raw / "info.txt"
+                add(f"raw Ensembl VEP cache missing: {info}; {restage}")
             scratch(target, entry)
             continue
         plugin = target.removeprefix(PLUGIN_PREFIX)
@@ -580,7 +581,7 @@ def cache_inputs(
             if not sources.is_dir() or not any(sources.iterdir()):
                 add(f"no staged source file for {plugin} under {sources}; {restage}")
         elif not isinstance(published, dict) or not published.get("sources"):
-            add(f"{cache}/manifest.json lists no sources; {restage}")
+            add(f"{cache / 'manifest.json'} lists no sources; {restage}")
         else:
             for source in published["sources"]:
                 names = [source.get("file"), (source.get("index") or {}).get("file")]
