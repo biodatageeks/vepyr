@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "release": 116,
+  "assembly": "GRCh38",
+  "limits": {
+    "core": {
+      "timeout_minutes": 480,
+      "memory": "22g"
+    },
+    "plugin": {
+      "timeout_minutes": 120,
+      "memory": "22g"
+    }
+  },
+  "core": {
+    "ensembl": {
+      "raw": "vep-cache/homo_sapiens/116_GRCh38",
+      "scratch_gb": 60
+    },
+    "merged": {
+      "raw": "vep-cache/homo_sapiens_merged/116_GRCh38",
+      "scratch_gb": 60
+    },
+    "refseq": {
+      "raw": "vep-cache/homo_sapiens_refseq/116_GRCh38",
+      "scratch_gb": 60
+    }
+  },
+  "plugin_tiering_cache": "merged",
+  "plugins": {
+    "alphamissense": {},
+    "cadd": {
+      "opt_in": "88 GB of source files and a 71 GB cache; CADD is free for non-commercial use only",
+      "scratch_gb": 100,
+      "timeout_minutes": 1440
+    },
+    "clinvar": {"manifest_ref": "v0.2.1"},
+    "phenotypeorthologous": {},
+    "spliceai": {
+      "opt_in": "a 28.5 GB source file and a 23 GB cache; Illumina's SpliceAI licence restricts use",
+      "scratch_gb": 40,
+      "timeout_minutes": 720
+    }
+  }
+}

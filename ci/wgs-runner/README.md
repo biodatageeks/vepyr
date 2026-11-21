@@ -16,9 +16,9 @@ It writes `/work/result.json` and `/work/summary.txt`.
 1. Install Docker, add the runner user to the `docker` group and restart the
    runner service.
 2. Add the runner label `vepyr-wgs` (org settings, Actions, Runners, `gh-runner-bdg-1`).
-3. Restrict the runner group to repository `biodatageeks/vepyr` and workflow
-   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master`
-   where the plan allows it. **Currently not done** (see "Accepted residual
+3. Restrict the runner group to repository `biodatageeks/vepyr` and workflows
+   `biodatageeks/vepyr/.github/workflows/parity-wgs.yml@refs/heads/master` and
+   `.../parity-caches.yml@refs/heads/master` where the plan allows it. **Currently not done** (see "Accepted residual
    risk"): the runner is in the shared default group `bdg-runners`.
 4. Create `/data/vepyr` and `/scratch/vepyr-wgs`, owned by the runner user.
 5. **Mandatory: egress firewall.** Job containers run PR code with
@@ -72,6 +72,16 @@ It writes `/work/result.json` and `/work/summary.txt`.
    Needs `uvx`, `curl`, `rsync`, `python3` (3.11+) on the host.
 8. Run `ci/wgs-runner/check.sh` (as root or with passwordless sudo, so it can
    read the firewall rules; otherwise it warns and you check them by hand).
+   Once `stage-cache-inputs.sh` has run, it also checks the `/parity-caches`
+   inputs (see "Staged inputs").
+9. For `/parity-caches`, which runs every job on the host (see "Where the jobs
+   run"): the runner service needs `gh` and `python3` (3.10 or newer) on its
+   `PATH`, and `git` 2.28 or newer for the sparse checkouts. The `gha_runner`
+   role installs none of them explicitly, so check each host as the runner
+   user: `gh --version; python3 --version; git --version`. The jobs that call
+   `gh` or `python3` fail in their first step when one is missing. Every job
+   also counts the runner services on its host (`pgrep -cx Runner.Listener`,
+   which must print `1`) and fails when it finds more than one.
 
 ## Re-staging when the manifest changes
 
@@ -95,8 +105,22 @@ hosts at once. Further jobs queue FIFO (up to 24 hours)
 for a free host. The workflow still has no concurrency group, because GitHub
 keeps only one pending run per group and would evict a queued admin run.
 
+`/parity-caches` takes the same four hosts for every job, not only for its
+target matrix (`max-parallel: 4`): the command check, the authorization, the
+wheel build and the report each wait for a free host. While four long jobs
+run, a new `/parity-caches` comment gets no reaction or reply, and a finished
+run posts no statuses, until a host is free. GitHub cancels a job that has
+queued for 24 hours; a run whose report was cancelled leaves its statuses
+`pending`.
+
 Do not register a second runner service on the same host: two jobs there would
-share one `/data/vepyr`, scratch disk and memory budget.
+share one `/data/vepyr`, scratch disk and memory budget, and one workspace.
+The clean-up at the start of every job relies on this rule: it removes every
+container labelled `vepyr-wgs=1` on the host, which is a leftover only when no
+other job runs there. With a second runner it would remove the container of a
+running `/parity-wgs` or `/parity-caches` job. Every `/parity-caches` job
+therefore first counts the `Runner.Listener` processes and fails, removing
+nothing, when it finds more than one; `/parity-wgs` relies on the rule alone.
 
 ## Runtime
 
@@ -131,6 +155,153 @@ workflow's `WGS_IMAGE` in the same commit, merge, then run `build-image.sh`
 from a checkout of `master` on the runner. Jobs never pull the image; a tag
 that was not built locally fails fast.
 
+## Cache parity (`/parity-caches`)
+
+`.github/workflows/parity-caches.yml` uses the same four hosts, image,
+container hardening and admin-only authorization as `/parity-wgs`. Each job
+runs `run-cache-parity.sh <target> <wheel-path>` in the container: it rebuilds
+one published cache with the PR's wheel and compares it with the revision
+pinned in `src/vepyr/_published.py`
+(`e2e-testing/scripts/cache_parity.py`). A target is a cache type (`ensembl`,
+`merged`, `refseq`) or `plugin_<name>`; the list comes from master's
+`_published.py`, and timeouts, memory caps and the opt-in plugins from master's
+`e2e-testing/golden/cache-parity-manifest.json`.
+
+Exit codes of `run-cache-parity.sh`: 0 the rebuilt cache is the published one,
+1 parity mismatch, 3 the runner is not ready (staged data missing or at
+another revision, scratch too small), anything else is an error (4 when
+`uv venv` or `uv pip install` of the wheel fails; the summary names the step). It writes
+`/work/result.json`, `/work/summary.txt` and
+`/work/out/reports/cache-parity.json` (every shard, with the differing columns
+and example rows).
+
+### Where the jobs run
+
+All five jobs (`command`, `authorize`, `build-wheel`, `cache`, `report`) run on
+the `vepyr-wgs` hosts; the workflow uses no GitHub-hosted runner. `/parity-wgs`
+is different: only its `profile` job runs here.
+
+- `command`, `authorize` and `report` check out and run the workflow's own ref
+  only, which `authorize` requires to be `master`: its helper, pins and
+  manifest. They never check out the PR. A `/parity-caches` comment from
+  anyone starts `command` on a host; it runs master's parser on the comment
+  text and nothing else.
+- `build-wheel` builds the PR's wheel as `publish_to_pypi.yml` builds the
+  x86_64 release wheel on these hosts: `maturin-action` in the
+  `quay.io/pypa/manylinux2014_x86_64` image pinned by digest, in a `--rm`
+  container that installs Rust itself and mounts only the workspace. The
+  container runs as root on Docker's default network (the egress firewall of
+  step 5 applies), with `no-new-privileges`, without `NET_RAW` and `MKNOD`,
+  with a pid limit and, as in the release build, without a memory cap. It is
+  named and labelled `vepyr-wgs=1`, so a container that outlived a cancelled
+  job is removed by the next job on that host.
+- Around that container the host refuses a PR checkout that holds a symbolic
+  link (`maturin-action` reads `rust-toolchain.toml` and `pyproject.toml` on
+  the host), hides the runner's ssh agent and git credentials from
+  `maturin-action`, shadows `sudo`, and takes exactly one regular,
+  size-capped file with a wheel name out of `dist/` into a host-made
+  directory, from which the artifact is uploaded.
+- Every job starts by removing labelled containers and emptying the
+  workspace, as root in the pinned image when the runner user cannot delete an
+  entry (the wheel build writes as root), and fails if anything is left.
+  `build-wheel` does the same at its end, also after a failure.
+
+### What a job compares
+
+- Core cache: `vepyr.build_cache(..., local_cache=<raw cache>)` into scratch,
+  compared with `/data/vepyr/cache/<release>_<assembly>_<type>`, the copy
+  `stage-data.sh` already stages for `/parity-wgs`. Its `.revision` marker must
+  name the pinned revision, otherwise the job exits 3. Per entity and contig
+  shard: row count, schema (names, order, types, nullability, key-value
+  metadata) and every column in row order; also `chrom_manifest.json`,
+  `reference_policy.json` and `chr_synonyms.txt`.
+- Plugin cache: `vepyr.build_plugin_cache(...)` into scratch, for the contigs,
+  source files and `vepyr-plugins` commit that the published `manifest.json`
+  records (`chroms`, `sources`, `cache_source_version`), with tiers taken from
+  the staged `merged` cache. Compared like a core cache, plus the warm/cold
+  counts of the `tier` column and of `manifest.json`. `verify_source` is strict
+  when the published build verified the upstream digest, and `warn` when its
+  input was a derived file (AlphaMissense's BGZF re-compression).
+- Rows in another order but otherwise identical pass with a note. A shard of
+  up to 2,000,000 rows is sorted and compared value by value. A larger shard
+  is never loaded whole: both copies are read as streams into a digest of
+  their rows (the sum, modulo 2^128, of a 128-bit hash of each row, with the
+  row count), which is the same for the same rows in any order and counts a
+  repeated row as often as it occurs. Equal digests pass with a note;
+  different digests fail, with the rows that differ by position counted per
+  column.
+- Floats are compared by bit pattern, also inside lists and structs: NaN
+  equals NaN and 0.0 differs from -0.0.
+- Build provenance never decides the verdict and is printed as notes: in a
+  plugin's `manifest.json` the `vepyr-plugins` revision
+  (`cache_source_version`), `source_manifest` and the digests of `sources`,
+  and in every shard the Parquet writer (`created_by`). A cache rebuilt from
+  another manifest revision is the published cache when its rows, schema and
+  tiers are. The key-value metadata that is compared (`bio.vep.cache_version`,
+  `bio.vep.cache_source_type`, `bio.vep.chromosomes` and the like) describes
+  the content; no key holds a build time or a tool version.
+
+### Staged inputs
+
+`stage-cache-inputs.sh [--data /data/vepyr] [--select "<selectors>"]` stages
+them next to the `/parity-wgs` data (run `stage-data.sh` first). It needs
+`uvx`, `curl`, `python3`, `md5sum`, `tar`, and `bgzip`/`tabix` for
+AlphaMissense. Without `--select` it stages every default target; an opt-in
+plugin is staged only when named (`--select "core plugins cadd spliceai"`).
+
+| Path under `/data/vepyr` | Content | Size |
+|---|---|---|
+| `cache/116_GRCh38_{ensembl,merged,refseq}` | published core caches (from `stage-data.sh`) | 97 GB |
+| `vep-cache/homo_sapiens{,_merged,_refseq}/116_GRCh38` | raw Ensembl VEP caches, unpacked from `indexed_vep_cache/*_vep_116_GRCh38.tar.gz` and checked against Ensembl's `CHECKSUMS` | about 150 GB |
+| `plugin-cache/116_GRCh38/plugin/<plugin>` | published plugin cache at the pinned revision, with a `.revision` marker | 81 MB ClinVar, 541 MB AlphaMissense, 2 MB PhenotypeOrthologous |
+| `plugin-source/<plugin>/<file>` (+ index) | the files listed under `sources` in the published `manifest.json`, under the names recorded there, fetched from the recorded `url` and checked against the recorded `md5` | 192 MB ClinVar, 628 MB AlphaMissense, 3 MB PhenotypeOrthologous |
+
+A plugin cache that is not staged, or is staged at another revision than the
+PR pins, is downloaded inside the job with `vepyr.download_plugin_cache` (the
+egress firewall allows the public internet, so Hugging Face is reachable from
+the container); staging it avoids the download and is what the opt-in plugins
+need. A staged copy is used only when its `.revision` marker names the pin.
+A downloaded copy has no marker: the job requires that every file of it comes
+from the pinned commit, as `huggingface_hub` records per file, and ends as an
+error otherwise. Core caches are never downloaded in a job: a staged core cache at
+another revision ends the job with exit code 3. The plugin manifests are cloned from GitHub by
+`build_plugin_cache` itself.
+
+Opt-in plugins (`opt_in` in the manifest; not staged and not run unless
+named):
+
+| Plugin | Sources | Published cache | Why opt-in |
+|---|---|---|---|
+| CADD | 87.5 GB + 1.3 GB | 71 GB | size; free for non-commercial use only |
+| SpliceAI | 28.5 GB | 23 GB | size; Illumina's licence restricts use |
+
+dbNSFP has no published cache (its licence forbids redistribution), so it is
+not a target. AlphaMissense's build input is a BGZF re-compression of the
+upstream gzip file; the staging script prepares it as
+`vepyr-plugins/plugins/alphamissense/README.md` describes. BGZF output is not
+byte-stable across htslib versions, so the job reports a digest that differs
+from the published build's as a note, not as a failure.
+
+A core job needs about 60 GB of scratch for the rebuilt cache (`scratch_gb` in
+the manifest; the job exits 3 when `/scratch` has less).
+
+`check.sh [data root] ["<selectors>"]` checks all of this without running a
+job, once any of the three directories above exists: the `.revision` marker of
+each staged core cache, each raw cache, the source files that each staged
+plugin `manifest.json` lists, and the free scratch space each target needs. It
+checks the default targets, and an opt-in plugin when a selector names it
+(`check.sh /data/vepyr "core plugins cadd"`). A published plugin cache that is
+not staged at the pin is a warning, since the job downloads it. On a host where
+`stage-cache-inputs.sh` never ran, `check.sh` says so and still passes for
+`/parity-wgs`.
+
+### Statuses
+
+`parity/caches` is posted only by a run that covers every default target, and
+follows the rules of `parity/wgs`: `error` when any target hit missing data or
+a crash, `failure` for mismatches alone. `parity/caches/<target>` are
+informational. A run of selected targets posts only those.
+
 ## Accepted residual risk
 
 The runner agent and its `_work` directory persist between jobs. A hostile
@@ -146,15 +317,33 @@ Mitigations:
   files to a host-made directory from which all artifacts are uploaded;
 - the egress firewall (setup step 5) keeps job containers off the host and
   the LAN;
-- no secrets are available to the job, and its GitHub token is read-only;
-- privileged jobs (anything with secrets or write access) never run on this
-  machine;
+- no secrets are available to a job that runs PR code, and its GitHub token
+  is read-only;
+- privileged jobs of `/parity-wgs` (anything with secrets or write access)
+  never run on this machine; for `/parity-caches` see below;
 - `_work` and scratch are cleaned before and after each job;
 - a fork PR must pin the reviewed head (`/parity-wgs <sha>`), so a push after
   the admin's comment cannot run; any pinned SHA must equal the head.
 
 The main defence is the admin's review of the PR before commenting
 `/parity-wgs`. The upgrade path, if that is not enough, is ephemeral runners.
+
+**All `/parity-caches` jobs on these hosts (owner's decision, 2026-11-21).**
+Two things differ from `/parity-wgs`:
+
+- `authorize` and `report` run here with a token that can write commit
+  statuses and PR comments. They run master's code in an emptied workspace,
+  but a host on which earlier code gained the runner user (see the shared
+  runner group below) can use that token while such a job runs, for example
+  to post a green `parity/*` status.
+- The wheel is built from PR code here, as root in a container that can write
+  to the workspace. The job deletes that tree as root when it ends. If that
+  step does not run (the host reboots or the runner is killed during a
+  build), root-owned files written by PR code stay in the workspace. Every
+  `/parity-caches` job and the release build delete them as root before
+  anything else; the `profile` job of `/parity-wgs` ignores entries it cannot
+  delete and then runs `actions/checkout` in that directory. Giving that job
+  the same first step closes this.
 
 **Shared runner group (accepted 2026-10-11).** `gh-runner-bdg-1` is in the
 org's default runner group `bdg-runners`, which is not restricted to a

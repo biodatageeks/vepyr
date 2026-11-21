@@ -149,6 +149,37 @@ commit you reviewed: `/parity-wgs <sha>` (7+ hex characters, or
 a fresh, locked-down container with the staged data mounted read-only. Runner
 setup and the accepted residual risk are in `ci/wgs-runner/README.md`.
 
+### Cache parity (`/parity-caches`)
+
+An admin comment `/parity-caches` (or
+`gh workflow run parity-caches.yml -f pr=<n>`) rebuilds the published caches
+with the PR's wheel on the same self-hosted runners and compares each with the
+revision pinned in `src/vepyr/_published.py`: the three core caches
+(`vepyr.build_cache` from the raw Ensembl VEP caches) and the plugin caches
+(`vepyr.build_plugin_cache` from each plugin's source file). Every contig shard
+of every entity is compared on row count, schema, warm/cold tier counts
+(plugins) and the content of every column. It reports `parity/caches` and
+`parity/caches/<target>` on the PR head, where a target is a cache type or
+`plugin_<name>`.
+
+Words after the command select targets: `core`, `plugins`, a cache type
+(`merged`) or a plugin name (`clinvar`), for example
+`/parity-caches plugins merged`. A run of selected targets reports only their
+own statuses; `parity/caches` is posted when every default target ran. CADD and
+SpliceAI are opt-in because of their size and licences and run only when named.
+The command is admin-only and, as for `/parity-wgs`, a fork PR must pin the
+reviewed head: `/parity-caches <sha> [selectors]`. The staged inputs are listed
+in `ci/wgs-runner/README.md`.
+
+Every job of this workflow runs on the four self-hosted runners and none on a
+GitHub-hosted one: the command check, the authorization, the wheel build, the
+target jobs and the report. The jobs that hold a write-scoped token check out
+and run master's code only. PR code runs only in containers: the wheel build in
+the manylinux image that `publish_to_pypi.yml` pins by digest, the rebuild and
+comparison in the locked-down job container. While all four hosts are busy, a
+new `/parity-caches` comment is acknowledged, and a finished run is reported,
+only once a host is free.
+
 ## License
 
 [Apache-2.0](LICENSE)
