@@ -1,7 +1,7 @@
 # Position-column pages touched by the cache lookup (2026-11-21)
 
 Backs the page-count statement of main-text Figure 1 (panel C3) and Methods: with vepyr's cache
-layout, the records that a lookup actually matches lie on 65-72% fewer pages of the position column
+layout, the records that a lookup actually matches lie on 64-72% fewer pages of the position column
 than in a plain position-sorted file; the position-column scan itself is not reduced.
 
 ## Method
