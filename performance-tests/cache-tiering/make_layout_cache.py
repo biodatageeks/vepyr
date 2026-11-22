@@ -19,7 +19,7 @@ import subprocess
 from pathlib import Path
 
 LAYOUTS = ("tiered", "sorted")
-HEADROOM = 40 * 2**30
+HEADROOM = 20 * 2**30
 
 
 def free_bytes(path: Path) -> int:
@@ -43,7 +43,7 @@ def make_layout_cache(
     probe = Path(dest_root)
     while not probe.exists():
         probe = probe.parent
-    need = 2 * sum(s.stat().st_size for s in shards) + HEADROOM
+    need = sum(s.stat().st_size for s in shards) + HEADROOM
     if free_bytes(probe) < need:
         raise RuntimeError(
             f"not enough free disk on {probe}: {free_bytes(probe) / 2**30:.1f} GiB, "

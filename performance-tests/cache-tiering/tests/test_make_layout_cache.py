@@ -99,3 +99,14 @@ def test_unknown_layout_rejected(tmp_path, source, stub_relayout):
         mlc.make_layout_cache(
             source, tmp_path / "out", "random", ["chr22"], stub_relayout
         )
+
+
+def test_disk_needed_is_shards_plus_20_gib(
+    tmp_path, source, stub_relayout, monkeypatch
+):
+    # One copy of the rewritten shards plus 20 GiB headroom (per-chromosome outputs are small).
+    monkeypatch.setattr(mlc, "free_bytes", lambda path: 25 * 2**30)
+    cache = mlc.make_layout_cache(
+        source, tmp_path / "out", "sorted", ["chr22"], stub_relayout
+    )
+    assert (cache / "variation" / "chr22.parquet").exists()
