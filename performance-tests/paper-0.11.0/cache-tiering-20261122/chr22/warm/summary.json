@@ -1,0 +1,169 @@
+{
+  "layouts": [
+    {
+      "mode": "warm",
+      "layout": "sorted",
+      "workers": 1,
+      "n": 10,
+      "wall_s": {
+        "median": 4.535,
+        "min": 4.47,
+        "max": 4.61
+      },
+      "cpu_s": {
+        "median": 7.345000000000001,
+        "min": 7.26,
+        "max": 7.46
+      },
+      "user_s": {
+        "median": 6.835,
+        "min": 6.78,
+        "max": 6.91
+      },
+      "sys_s": {
+        "median": 0.5,
+        "min": 0.48,
+        "max": 0.55
+      },
+      "max_rss_kib": {
+        "median": 1196440.0,
+        "min": 1145472.0,
+        "max": 1273712.0
+      },
+      "annotation_s": {
+        "median": 4.140000000000001,
+        "min": 4.104,
+        "max": 4.196
+      }
+    },
+    {
+      "mode": "warm",
+      "layout": "tiered",
+      "workers": 1,
+      "n": 10,
+      "wall_s": {
+        "median": 3.48,
+        "min": 3.41,
+        "max": 3.53
+      },
+      "cpu_s": {
+        "median": 5.085,
+        "min": 4.97,
+        "max": 5.14
+      },
+      "user_s": {
+        "median": 4.59,
+        "min": 4.51,
+        "max": 4.63
+      },
+      "sys_s": {
+        "median": 0.49,
+        "min": 0.46,
+        "max": 0.51
+      },
+      "max_rss_kib": {
+        "median": 1288248.0,
+        "min": 1250576.0,
+        "max": 1343008.0
+      },
+      "annotation_s": {
+        "median": 3.1020000000000003,
+        "min": 3.049,
+        "max": 3.152
+      }
+    },
+    {
+      "mode": "warm",
+      "layout": "sorted",
+      "workers": 8,
+      "n": 10,
+      "wall_s": {
+        "median": 1.86,
+        "min": 1.82,
+        "max": 1.98
+      },
+      "cpu_s": {
+        "median": 7.720000000000001,
+        "min": 7.67,
+        "max": 7.77
+      },
+      "user_s": {
+        "median": 7.025,
+        "min": 6.98,
+        "max": 7.08
+      },
+      "sys_s": {
+        "median": 0.69,
+        "min": 0.66,
+        "max": 0.71
+      },
+      "max_rss_kib": {
+        "median": 1661576.0,
+        "min": 1621872.0,
+        "max": 1695712.0
+      },
+      "annotation_s": {
+        "median": 1.477,
+        "min": 1.441,
+        "max": 1.587
+      }
+    },
+    {
+      "mode": "warm",
+      "layout": "tiered",
+      "workers": 8,
+      "n": 10,
+      "wall_s": {
+        "median": 1.52,
+        "min": 1.5,
+        "max": 1.55
+      },
+      "cpu_s": {
+        "median": 5.7,
+        "min": 5.66,
+        "max": 5.74
+      },
+      "user_s": {
+        "median": 4.98,
+        "min": 4.95,
+        "max": 5.01
+      },
+      "sys_s": {
+        "median": 0.72,
+        "min": 0.7,
+        "max": 0.73
+      },
+      "max_rss_kib": {
+        "median": 1658616.0,
+        "min": 1620016.0,
+        "max": 1738960.0
+      },
+      "annotation_s": {
+        "median": 1.129,
+        "min": 1.124,
+        "max": 1.174
+      }
+    }
+  ],
+  "ratios": {
+    "warm": {
+      "1": {
+        "wall_s": 1.3031609195402298,
+        "cpu_s": 1.4444444444444446,
+        "user_s": 1.4891067538126361,
+        "sys_s": 1.0204081632653061,
+        "max_rss_kib": 0.9287342188771106,
+        "annotation_s": 1.3346228239845261
+      },
+      "8": {
+        "wall_s": 1.223684210526316,
+        "cpu_s": 1.3543859649122807,
+        "user_s": 1.4106425702811245,
+        "sys_s": 0.9583333333333333,
+        "max_rss_kib": 1.0017846204305276,
+        "annotation_s": 1.308237378210806
+      }
+    }
+  },
+  "invalid_runs": 0
+}

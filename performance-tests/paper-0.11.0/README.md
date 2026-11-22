@@ -28,7 +28,8 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 | Supplement Tables 32-36 (vepyr 0.11.0, vep-rs 0.5.0, fastVEP 0.6.1; per chromosome and whole VCF); main Figure 1A wall time, memory, records as in VEP | `performance-tests/paper-0.11.0/engines-two-modes-20261120/` (`runs.csv`, `whole-md5/`, `validate*`, `recheck-*`, `remeasure.txt`, `scripts/`) | this PR |
 | Main Figure 1A, "Fields filled" row; supplement Section 10 fields paragraph | `performance-tests/paper-0.11.0/engines-two-modes-20261120/fields-filled/` | this PR |
 | Main Figure 1A, VEP peak memory (3.4 GiB summed RSS, 1.9 GiB summed PSS) | `performance-tests/paper-0.11.0/vep-peakmem-fork7-20261121/` | this PR |
-| Main Figure 1, panel C3, and Methods: matched records on 64-72% fewer position-column pages | `performance-tests/paper-0.11.0/cache-pages-20261121/` | this PR |
+| Main Figure 1, panels C3 and C4, and Methods (cache layout): whole chr22 and whole-genome tiering effect, cold cache | `performance-tests/paper-0.11.0/cache-tiering-20261122/` | this PR |
+| Earlier page-only measurement of chr22 (superseded in the figure by `cache-tiering-20261122/`) | `performance-tests/paper-0.11.0/cache-pages-20261121/` | this PR |
 
 ## Directories of this PR
 

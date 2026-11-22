@@ -1,0 +1,326 @@
+{
+ "tiered": {
+  "layout": "tiered",
+  "contigs": [
+   "chr1",
+   "chr2",
+   "chr3",
+   "chr4",
+   "chr5",
+   "chr6",
+   "chr7",
+   "chr8",
+   "chr9",
+   "chr10",
+   "chr11",
+   "chr12",
+   "chr13",
+   "chr14",
+   "chr15",
+   "chr16",
+   "chr17",
+   "chr18",
+   "chr19",
+   "chr20",
+   "chr21",
+   "chr22"
+  ],
+  "source": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+  "relayout": {
+   "chr1": {
+    "rows": 144862602,
+    "runs": 2,
+    "start_pages": 141540,
+    "bytes": 2496624737
+   },
+   "chr2": {
+    "rows": 154083555,
+    "runs": 2,
+    "start_pages": 150550,
+    "bytes": 2630075318
+   },
+   "chr3": {
+    "rows": 142512214,
+    "runs": 2,
+    "start_pages": 139244,
+    "bytes": 2240728381
+   },
+   "chr4": {
+    "rows": 140630476,
+    "runs": 2,
+    "start_pages": 137405,
+    "bytes": 2174019242
+   },
+   "chr5": {
+    "rows": 134286229,
+    "runs": 2,
+    "start_pages": 131206,
+    "bytes": 2046542409
+   },
+   "chr6": {
+    "rows": 64359436,
+    "runs": 2,
+    "start_pages": 62884,
+    "bytes": 1582411660
+   },
+   "chr7": {
+    "rows": 61772247,
+    "runs": 2,
+    "start_pages": 60356,
+    "bytes": 1530654697
+   },
+   "chr8": {
+    "rows": 57875775,
+    "runs": 2,
+    "start_pages": 56549,
+    "bytes": 1423227178
+   },
+   "chr9": {
+    "rows": 48314328,
+    "runs": 2,
+    "start_pages": 47206,
+    "bytes": 1194060948
+   },
+   "chr10": {
+    "rows": 51543610,
+    "runs": 2,
+    "start_pages": 50361,
+    "bytes": 1275001311
+   },
+   "chr11": {
+    "rows": 52901456,
+    "runs": 2,
+    "start_pages": 51688,
+    "bytes": 1300647837
+   },
+   "chr12": {
+    "rows": 51142713,
+    "runs": 2,
+    "start_pages": 49970,
+    "bytes": 1262126289
+   },
+   "chr13": {
+    "rows": 38157860,
+    "runs": 2,
+    "start_pages": 37283,
+    "bytes": 914469538
+   },
+   "chr14": {
+    "rows": 34112670,
+    "runs": 2,
+    "start_pages": 33331,
+    "bytes": 850250032
+   },
+   "chr15": {
+    "rows": 31953447,
+    "runs": 2,
+    "start_pages": 31221,
+    "bytes": 801779777
+   },
+   "chr16": {
+    "rows": 34387791,
+    "runs": 2,
+    "start_pages": 33599,
+    "bytes": 884961935
+   },
+   "chr17": {
+    "rows": 31211598,
+    "runs": 2,
+    "start_pages": 30497,
+    "bytes": 809305446
+   },
+   "chr18": {
+    "rows": 29993293,
+    "runs": 2,
+    "start_pages": 29306,
+    "bytes": 719551689
+   },
+   "chr19": {
+    "rows": 23536329,
+    "runs": 2,
+    "start_pages": 22996,
+    "bytes": 641966829
+   },
+   "chr20": {
+    "rows": 24531053,
+    "runs": 2,
+    "start_pages": 23969,
+    "bytes": 602913182
+   },
+   "chr21": {
+    "rows": 14574753,
+    "runs": 2,
+    "start_pages": 14241,
+    "bytes": 367388700
+   },
+   "chr22": {
+    "rows": 15148238,
+    "runs": 2,
+    "start_pages": 14802,
+    "bytes": 397864519
+   }
+  }
+ },
+ "sorted": {
+  "layout": "sorted",
+  "contigs": [
+   "chr1",
+   "chr2",
+   "chr3",
+   "chr4",
+   "chr5",
+   "chr6",
+   "chr7",
+   "chr8",
+   "chr9",
+   "chr10",
+   "chr11",
+   "chr12",
+   "chr13",
+   "chr14",
+   "chr15",
+   "chr16",
+   "chr17",
+   "chr18",
+   "chr19",
+   "chr20",
+   "chr21",
+   "chr22"
+  ],
+  "source": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+  "relayout": {
+   "chr1": {
+    "rows": 144862602,
+    "runs": 1,
+    "start_pages": 141540,
+    "bytes": 2516946135
+   },
+   "chr2": {
+    "rows": 154083555,
+    "runs": 1,
+    "start_pages": 150550,
+    "bytes": 2650669413
+   },
+   "chr3": {
+    "rows": 142512214,
+    "runs": 1,
+    "start_pages": 139244,
+    "bytes": 2258729220
+   },
+   "chr4": {
+    "rows": 140630476,
+    "runs": 1,
+    "start_pages": 137405,
+    "bytes": 2192775474
+   },
+   "chr5": {
+    "rows": 134286229,
+    "runs": 1,
+    "start_pages": 131206,
+    "bytes": 2063013343
+   },
+   "chr6": {
+    "rows": 64359436,
+    "runs": 1,
+    "start_pages": 62884,
+    "bytes": 1598077381
+   },
+   "chr7": {
+    "rows": 61772247,
+    "runs": 1,
+    "start_pages": 60356,
+    "bytes": 1543806830
+   },
+   "chr8": {
+    "rows": 57875775,
+    "runs": 1,
+    "start_pages": 56549,
+    "bytes": 1435555390
+   },
+   "chr9": {
+    "rows": 48314328,
+    "runs": 1,
+    "start_pages": 47206,
+    "bytes": 1203898091
+   },
+   "chr10": {
+    "rows": 51543610,
+    "runs": 1,
+    "start_pages": 50361,
+    "bytes": 1286473236
+   },
+   "chr11": {
+    "rows": 52901456,
+    "runs": 1,
+    "start_pages": 51688,
+    "bytes": 1311950183
+   },
+   "chr12": {
+    "rows": 51142713,
+    "runs": 1,
+    "start_pages": 49970,
+    "bytes": 1273273015
+   },
+   "chr13": {
+    "rows": 38157860,
+    "runs": 1,
+    "start_pages": 37283,
+    "bytes": 922812088
+   },
+   "chr14": {
+    "rows": 34112670,
+    "runs": 1,
+    "start_pages": 33331,
+    "bytes": 857650456
+   },
+   "chr15": {
+    "rows": 31953447,
+    "runs": 1,
+    "start_pages": 31221,
+    "bytes": 808320598
+   },
+   "chr16": {
+    "rows": 34387791,
+    "runs": 1,
+    "start_pages": 33599,
+    "bytes": 891414414
+   },
+   "chr17": {
+    "rows": 31211598,
+    "runs": 1,
+    "start_pages": 30497,
+    "bytes": 815515625
+   },
+   "chr18": {
+    "rows": 29993293,
+    "runs": 1,
+    "start_pages": 29306,
+    "bytes": 725979887
+   },
+   "chr19": {
+    "rows": 23536329,
+    "runs": 1,
+    "start_pages": 22996,
+    "bytes": 646558083
+   },
+   "chr20": {
+    "rows": 24531053,
+    "runs": 1,
+    "start_pages": 23969,
+    "bytes": 607773742
+   },
+   "chr21": {
+    "rows": 14574753,
+    "runs": 1,
+    "start_pages": 14241,
+    "bytes": 370119620
+   },
+   "chr22": {
+    "rows": 15148238,
+    "runs": 1,
+    "start_pages": 14802,
+    "bytes": 400659586
+   }
+  }
+ }
+}

@@ -1,0 +1,169 @@
+{
+  "layouts": [
+    {
+      "mode": "cold",
+      "layout": "sorted",
+      "workers": 1,
+      "n": 3,
+      "wall_s": {
+        "median": 5.19,
+        "min": 5.07,
+        "max": 5.24
+      },
+      "cpu_s": {
+        "median": 7.38,
+        "min": 7.34,
+        "max": 7.53
+      },
+      "user_s": {
+        "median": 6.74,
+        "min": 6.71,
+        "max": 6.86
+      },
+      "sys_s": {
+        "median": 0.64,
+        "min": 0.63,
+        "max": 0.67
+      },
+      "max_rss_kib": {
+        "median": 1189008.0,
+        "min": 1158608.0,
+        "max": 1214608.0
+      },
+      "annotation_s": {
+        "median": 4.363,
+        "min": 4.311,
+        "max": 4.433
+      }
+    },
+    {
+      "mode": "cold",
+      "layout": "tiered",
+      "workers": 1,
+      "n": 3,
+      "wall_s": {
+        "median": 4.41,
+        "min": 4.36,
+        "max": 4.49
+      },
+      "cpu_s": {
+        "median": 5.13,
+        "min": 5.11,
+        "max": 5.2
+      },
+      "user_s": {
+        "median": 4.49,
+        "min": 4.48,
+        "max": 4.55
+      },
+      "sys_s": {
+        "median": 0.65,
+        "min": 0.62,
+        "max": 0.65
+      },
+      "max_rss_kib": {
+        "median": 1267552.0,
+        "min": 1226960.0,
+        "max": 1268080.0
+      },
+      "annotation_s": {
+        "median": 3.637,
+        "min": 3.635,
+        "max": 3.699
+      }
+    },
+    {
+      "mode": "cold",
+      "layout": "sorted",
+      "workers": 8,
+      "n": 3,
+      "wall_s": {
+        "median": 2.62,
+        "min": 2.53,
+        "max": 2.62
+      },
+      "cpu_s": {
+        "median": 8.05,
+        "min": 8.03,
+        "max": 8.06
+      },
+      "user_s": {
+        "median": 7.12,
+        "min": 7.06,
+        "max": 7.13
+      },
+      "sys_s": {
+        "median": 0.93,
+        "min": 0.93,
+        "max": 0.97
+      },
+      "max_rss_kib": {
+        "median": 1638736.0,
+        "min": 1611616.0,
+        "max": 1641696.0
+      },
+      "annotation_s": {
+        "median": 1.831,
+        "min": 1.728,
+        "max": 1.834
+      }
+    },
+    {
+      "mode": "cold",
+      "layout": "tiered",
+      "workers": 8,
+      "n": 3,
+      "wall_s": {
+        "median": 2.29,
+        "min": 2.22,
+        "max": 2.3
+      },
+      "cpu_s": {
+        "median": 6.02,
+        "min": 5.99,
+        "max": 6.19
+      },
+      "user_s": {
+        "median": 5.07,
+        "min": 5.04,
+        "max": 5.17
+      },
+      "sys_s": {
+        "median": 0.95,
+        "min": 0.95,
+        "max": 1.02
+      },
+      "max_rss_kib": {
+        "median": 1608320.0,
+        "min": 1593552.0,
+        "max": 1616752.0
+      },
+      "annotation_s": {
+        "median": 1.525,
+        "min": 1.481,
+        "max": 1.537
+      }
+    }
+  ],
+  "ratios": {
+    "cold": {
+      "1": {
+        "wall_s": 1.1768707482993197,
+        "cpu_s": 1.4385964912280702,
+        "user_s": 1.5011135857461024,
+        "sys_s": 0.9846153846153846,
+        "max_rss_kib": 0.9380348892984272,
+        "annotation_s": 1.1996150673632116
+      },
+      "8": {
+        "wall_s": 1.1441048034934498,
+        "cpu_s": 1.3372093023255816,
+        "user_s": 1.4043392504930965,
+        "sys_s": 0.9789473684210527,
+        "max_rss_kib": 1.0189116593712695,
+        "annotation_s": 1.200655737704918
+      }
+    }
+  },
+  "invalid_runs": 0
+}
