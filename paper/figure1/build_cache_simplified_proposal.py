@@ -43,7 +43,10 @@ LIGHT = "#dedede"
 # engine's lookup (datafusion-bio-functions 46d8c20); earlier value 920 -> 220
 # counted one probe per variant. Measurement notes: vepyr-paper session scratch
 # pages76/.
-PAGE_COUNTS = (907, 315)
+PAGE_COUNTS = (
+    10553,
+    3052,
+)  # chr22, all 11 buffers, rewritten sorted / tiered (WGS run 240e030)
 BASELINE_COMMON = (1, 18, 35, 52, 69, 86)
 BASELINE_RARE = (44, 92)
 GROUPED_COMMON = (1, 2, 3, 5, 7, 8)
@@ -170,14 +173,14 @@ def panel(code: str = "A3") -> fig.Scene:
         (312, PAGE_COUNTS[0], "#b6b6b6"),
         (421, PAGE_COUNTS[1], INK),
     ):
-        width = chart_width * count / 1000
+        width = chart_width * count / 12000
         s.box(chart_x, y, width, 30, "", fill=fill, stroke_width=0)
         s.label(
-            chart_x + width + 7, y - 5, 68, 39, f"{count:,}", font_size=25, weight=700
+            chart_x + width + 7, y - 5, 95, 39, f"{count:,}", font_size=25, weight=700
         )
     s.edge(chart_x, 472, chart_x + chart_width, 472, arrow=False, color=GREY, width=1)
-    for tick in (0, 500, 1000):
-        tx = chart_x + chart_width * tick / 1000
+    for tick in (0, 5000, 10000):
+        tx = chart_x + chart_width * tick / 12000
         s.edge(tx, 472, tx, 478, arrow=False, color=GREY, width=1)
         s.label(
             tx - 35, 481, 70, 28, f"{tick:,}", font_size=19, color=GREY, align="center"
@@ -193,7 +196,7 @@ def panel(code: str = "A3") -> fig.Scene:
         587,
         1196,
         30,
-        "HG002 chr22 · one 5,000-record buffer · VEP 116 merged cache",
+        "HG002 chr22 · all 11 buffers of 5,000 records · VEP 116 merged cache",
         font_size=22,
         color=GREY,
     )
