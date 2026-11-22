@@ -112,7 +112,7 @@ COMPACT = {
         "time": "89.5 min",
         "memory": "3.4 GiB",
         "ui": "CLI, web, REST",
-        "output": "VCF, tab, JSON",
+        "output": "VCF, TSV, JSON",
     },
     "fastVEP": {
         "lang": "Rust",
@@ -126,7 +126,7 @@ COMPACT = {
         "time": "1.7 min",
         "memory": "7.7 GiB",
         "ui": "CLI, web, REST",
-        "output": "VCF, tab, JSON",
+        "output": "VCF, TSV, JSON",
     },
     "vep-rs": {
         "lang": "Rust",
@@ -140,7 +140,7 @@ COMPACT = {
         "time": "3.5 min",
         "memory": "39.3 GiB",
         "ui": "CLI",
-        "output": "VCF, tab, JSON, Parquet",
+        "output": "VCF, TSV, JSON, Parquet",
     },
     "vepyr": {
         "lang": "Rust, Python",
@@ -154,7 +154,7 @@ COMPACT = {
         "time": r"\textbf{1.0 min}",
         "memory": "9.1 GiB",
         "ui": "Python API, SQL, CLI",
-        "output": r"Polars DataFrame/\allowbreak LazyFrame, VCF",
+        "output": r"Polars DataFrame/\allowbreak LazyFrame\textsuperscript{f}, VCF",
     },
 }
 
@@ -189,6 +189,11 @@ PANEL_NOTES = [
         r"Wall time and peak memory of the process for HG002 with the merged cache in one "
         r"invocation, with 8 processes (VEP, \texttt{--fork 7}) or 8 workers, on macOS (Apple "
         r"M3~Max). For VEP, the resident memory of all its processes, summed (1.9~GiB when memory shared between them is counted once).",
+    ),
+    (
+        "f",
+        r"A Polars LazyFrame can be written in any output format of Polars, including Parquet, "
+        r"JSON and TSV.",
     ),
 ]
 
