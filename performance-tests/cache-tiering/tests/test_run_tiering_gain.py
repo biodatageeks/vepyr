@@ -65,7 +65,7 @@ def test_summary_medians_and_ratio():
         and s[("tiered", 1)]["wall_s"]["max"] == 12.0
     )
     assert s[("sorted", 1)]["cpu_s"]["median"] == 18.0 + 1.0
-    ratio = rtg.summarize(rows)["ratios"][1]
+    ratio = rtg.summarize(rows)["ratios"]["warm"][1]
     assert ratio["wall_s"] == pytest.approx(22.0 / 11.0)
     assert ratio["cpu_s"] == pytest.approx(19.0 / 10.0)
 
@@ -126,21 +126,6 @@ def test_parse_time_file(tmp_path):
     }
 
 
-def test_purged_runs_reported_separately():
-    rows = [
-        row("tiered", 1, "r1", 10.0),
-        row("tiered", 1, "purged", 30.0),
-        row("sorted", 1, "purged", 40.0),
-    ]
-    s = rtg.summarize(rows)
-    assert s["layouts"][0]["n"] == 1
-    assert {(c["layout"], c["wall_s"]) for c in s["cold_start"]} == {
-        ("tiered", 30.0),
-        ("sorted", 40.0),
-    }
-    assert s["invalid_runs"] == 0
-
-
 def test_execute_shares_md5_reference(tmp_path, monkeypatch):
     monkeypatch.setattr(rtg, "free_disk_gib", lambda path: 100.0)
     ref = {}
@@ -149,5 +134,43 @@ def test_execute_shares_md5_reference(tmp_path, monkeypatch):
         return {**row(layout, w, label, 1.0), "contig_md5": {"chr22": label}}
 
     rtg.execute([("tiered", 1, "r1")], one, tmp_path, reference=ref)
-    rows = rtg.execute([("sorted", 1, "purged")], one, tmp_path, reference=ref)
+    rows = rtg.execute([("sorted", 1, "c1")], one, tmp_path, reference=ref)
     assert rows[0]["md5_ok"] is False
+
+
+def test_cold_schedule_has_no_warmup_and_c_labels():
+    s = rtg.schedule(["tiered", "sorted"], [1], 2, prefix="c", warmup=False)
+    assert s == [
+        ("tiered", 1, "c1"),
+        ("sorted", 1, "c1"),
+        ("sorted", 1, "c2"),
+        ("tiered", 1, "c2"),
+    ]
+
+
+def test_cold_runs_summarized_separately():
+    rows = [
+        row("tiered", 1, "r1", 10.0),
+        row("sorted", 1, "r1", 20.0),
+        {**row("tiered", 1, "c1", 30.0), "resident_pct": 0.5},
+        {**row("sorted", 1, "c1", 60.0), "resident_pct": 1.0},
+    ]
+    s = rtg.summarize(rows)
+    warm = {(e["layout"], e["mode"]): e for e in s["layouts"]}
+    assert warm[("tiered", "warm")]["wall_s"]["median"] == 10.0
+    assert warm[("tiered", "cold")]["wall_s"]["median"] == 30.0
+    assert s["ratios"]["warm"][1]["wall_s"] == pytest.approx(2.0)
+    assert s["ratios"]["cold"][1]["wall_s"] == pytest.approx(2.0)
+
+
+def test_cold_run_still_cached_is_invalid():
+    rows = [{**row("tiered", 1, "c1", 30.0), "resident_pct": 40.0}]
+    s = rtg.summarize(rows)
+    assert s["layouts"] == [] and s["invalid_runs"] == 1
+
+
+def test_resident_pct_of_fresh_file(tmp_path):
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"\1" * (1 << 20))
+    f.read_bytes()
+    assert rtg.resident_pct(f) > 90.0
