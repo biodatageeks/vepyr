@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Run and measure one Vepyr annotation call."""
+"""Run and measure one Vepyr annotation call.
+
+This process is what run_vepyr_worker_scaling.py times as the process wall:
+Python start-up, importing vepyr, the annotation and writing the output VCF.
+It deliberately never reads the output back. The record count that verifies
+the output is done by the parent after this process has exited, so the
+process wall matches the engine-comparison harness, which times a process
+that only imports vepyr and calls annotate().
+"""
 
 from __future__ import annotations
 
 import argparse
-import gzip
 import importlib.metadata
 import json
 import os
@@ -14,8 +21,6 @@ import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-
-COMPRESSED_SUFFIXES = (".gz", ".bgz", ".bgzf")
 
 
 # Guard against benchmarking a stale build: `uv sync` can silently leave an old
@@ -62,7 +67,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-vcf", required=True, type=Path)
     parser.add_argument("--metrics-json", required=True, type=Path)
     parser.add_argument("--workers", required=True, type=int)
-    parser.add_argument("--expected-records", required=True, type=int)
+    parser.add_argument(
+        "--expected-records",
+        type=int,
+        help=(
+            "Recorded in the metrics only; the parent runner verifies the "
+            "count after this process has exited"
+        ),
+    )
     parser.add_argument(
         "--compression",
         choices=("plain", "bgzf", "gzip"),
@@ -83,30 +95,6 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     return parser.parse_args()
-
-
-def open_vcf(path: Path):
-    """Open a VCF for reading, transparently for bgzf, gzip and plain files."""
-    # BGZF is a series of gzip members, so the stdlib reader handles it.
-    if path.suffix in COMPRESSED_SUFFIXES:
-        return gzip.open(path, "rb")
-    return path.open("rb")
-
-
-def count_vcf_records(path: Path) -> int:
-    count = 0
-    with open_vcf(path) as handle:
-        while True:
-            line = handle.readline()
-            if not line:
-                return 0
-            if not line.startswith(b"#"):
-                count = 1
-                break
-
-        while chunk := handle.read(8 * 1024 * 1024):
-            count += chunk.count(b"\n")
-    return count
 
 
 def write_json_atomic(path: Path, payload: dict[str, object]) -> None:
@@ -182,19 +170,9 @@ def main() -> int:
         metrics["system_cpu_seconds"] = usage.ru_stime - system_cpu_before
         metrics["max_rss_kb"] = usage.ru_maxrss // RSS_BYTES_PER_UNIT
         metrics["returned_output_vcf"] = str(lf)
-
-        output_records = count_vcf_records(args.output_vcf)
-        records_match = output_records == args.expected_records
-        metrics["output_records"] = output_records
-        metrics["records_match_vep"] = records_match
-        metrics["output_bytes"] = args.output_vcf.stat().st_size
-        metrics["status"] = "ok" if records_match else "record_count_mismatch"
-
-        if not records_match:
-            raise RuntimeError(
-                f"Vepyr wrote {output_records} records; "
-                f"VEP wrote {args.expected_records}"
-            )
+        # Not "ok" yet: the parent sets ok or record_count_mismatch once it has
+        # counted the output, outside the measured process.
+        metrics["status"] = "annotated"
     except Exception as exc:
         metrics["error"] = f"{type(exc).__name__}: {exc}"
         metrics["traceback"] = traceback.format_exc()

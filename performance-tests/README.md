@@ -116,8 +116,11 @@ That is the known fork-dependent VEP behaviour and not a vepyr mismatch.
 - VEP `--fork 1` still has a parent process; the separate no-fork run is VEP's
   serial path.
 - vepyr's `annotation_seconds` covers only the `vepyr.annotate()` call; the
-  process wall time also includes interpreter start-up and the record count
-  that verifies the output. The tables use the process wall time for the ratio.
+  process wall time of these runs also includes interpreter start-up and the
+  record count that verifies the output. The tables use the process wall time
+  for the ratio. The runner no longer times the record count (see
+  [the timing definition](vepyr/README.md#timing-definition)); these 0.7.0
+  figures were measured before that change.
 - Every whole-genome VEP run emitted the same 43 `Transcript-assembly mismatch`
   warnings (forked runs print each twice); they are kept in the
   `raw/*.stderr.txt` files.
