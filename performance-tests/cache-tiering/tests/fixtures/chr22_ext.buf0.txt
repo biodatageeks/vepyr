@@ -1,0 +1,4 @@
+FILE /Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged/variation/chr22.parquet
+  buf	recs	first_pos	last_pos	probes	cand_pages	warm_run_pages	cold_run_pages	ranges	p2_req_ranges	p2_req_bytes	p2_ops	p2_bytes	p2_start_pages_in_fetched_full	p2_touch	matched_rows	p3_req_ranges	p3_ops	p3_bytes	p3_all_leaf_pages_in_fetched
+  HIT buf=0 matched_rows=10808 hit_pages=315 (warm 83, cold 232) startonly_take: req_pages=315 ops=11 bytes=2441220 start_pages_in_fetched=1065
+  0	5000	15221405	19295843	10651	964	84	880	86	964	2235350	8	2798663	1217	1217	10808	8713	122	24626149	73330
