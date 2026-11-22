@@ -16,6 +16,7 @@
 - Engine crate: `datafusion-bio-function-vep`, git tag `v0.27.1`, feature `cache-builder` (same pin as vepyr `Cargo.toml:36`).
 - Source cache: `~/workspace/data_vepyr/cache/116_GRCh38_merged` (never modified). Input `~/workspace/data_vepyr/input/HG002_normalized.vcf.gz`, chr22 = 50,861 records; reference `~/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa`.
 - Layout names: `tiered` (current order, rewritten unchanged) and `sorted` (by `start`, `tier` = 1 for every row).
+- Both layouts are written with identical Parquet settings: `VariationParquetShardWriter` (i.e. `variation_writer_properties`: zstd(3), dictionary off, data page 4 KiB / 512 rows, page statistics, row-group cap `VARIATION_ROW_GROUP_ROWS`, sorting columns (tier, start)) and the same `--batch-rows`. `paramcheck` (Task 1) must pass before any timing. Page counts per column may differ because the 4 KiB limit depends on content; that is reported, not equalised.
 - Output VCFs are not kept: per-contig MD5 of record lines, then delete. A run whose MD5 differs from the other layout's is invalid.
 - Before every timed run: at least 20 GiB free memory (restore with the `ensure_free` method of `performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_vepyr_0.11.0_20261121/run.zsh`) and at least 40 GiB free disk. No other work on the host during timing.
 - Everything new lives under `performance-tests/cache-tiering/`. Results committed: CSV, JSON, Markdown only.
@@ -38,13 +39,14 @@
 - Test: `performance-tests/cache-tiering/relayout/tests/relayout.rs`
 
 **Interfaces:**
-- Produces: binary `relayout --input <parquet> --output <parquet> --layout tiered|sorted [--batch-rows 8192]`; prints one JSON line `{"rows":N,"runs":R,"start_pages":P,"bytes":B}`. Library fn `pub fn relayout(input: &Path, output: &Path, layout: Layout, batch_rows: usize) -> Result<Summary>`; `pub enum Layout { Tiered, Sorted }`; `pub struct Summary { rows: usize, runs: usize, start_pages: usize, bytes: u64 }` (runs = maximal non-decreasing `start` runs, from the page index).
+- Produces: binary `paramcheck <a.parquet> <b.parquet> [<original.parquet>]` → JSON with `identical_settings: bool`, the list of differing settings (empty when identical), and per file: row groups, rows per row group, pages per column (min/median/max rows and compressed bytes per page). Exit 1 if any setting differs (page counts excluded). Binary `relayout --input <parquet> --output <parquet> --layout tiered|sorted [--batch-rows 8192]`; prints one JSON line `{"rows":N,"runs":R,"start_pages":P,"bytes":B}`. Library fn `pub fn relayout(input: &Path, output: &Path, layout: Layout, batch_rows: usize) -> Result<Summary>`; `pub enum Layout { Tiered, Sorted }`; `pub struct Summary { rows: usize, runs: usize, start_pages: usize, bytes: u64 }` (runs = maximal non-decreasing `start` runs, from the page index).
 
 - [ ] **Step 1: Write the failing tests** on a synthetic shard written with `VariationParquetShardWriter` (two tiers, starts warm `[5,9,30]`, cold `[1,5,7,40]`):
   - `tiered_keeps_row_order`: output rows equal input rows in order; `runs == 2`.
   - `sorted_is_monotonic_single_tier`: `start` non-decreasing; every `tier == 1`; `runs == 1`; stable for equal `start` (warm row with start 5 before cold row with start 5).
   - `same_rows_both_layouts`: multiset of rows (all columns, `tier` excluded) equal between tiered and sorted outputs and the input.
   - `metadata_preserved`: Arrow schema (fields, types, nullability, schema metadata) and Parquet key-value metadata of output equal the input's; declared sorting columns `(tier, start)`.
+  - `writer_params_identical`: for the tiered and sorted outputs of the same input, the footers agree on: number of row groups and rows per row group, per column chunk codec and zstd level, encodings, dictionary page absent, statistics present, column index and offset index present, sorting columns, `created_by`, and Arrow/Parquet key-value metadata.
 - [ ] **Step 2: Run** `cargo test --manifest-path performance-tests/cache-tiering/relayout/Cargo.toml` — expect FAIL (no `relayout`).
 - [ ] **Step 3: Implement `relayout`**: read the whole shard with the parquet Arrow reader (chr22 fits in memory); `Sorted` = `lexsort_to_indices` on `start` with a stable index tiebreak, `take`, replace `tier` by `Int8` 1s; write with `VariationParquetShardWriter::create(output, schema)` in slices of `batch_rows`, copying the input's key-value metadata. `Summary.start_pages` and `runs` from the output's offset/column index.
 - [ ] **Step 4: Run** the tests — expect PASS. Then on the real shard: `relayout --input <cache>/variation/chr22.parquet --output /tmp/x.parquet --layout tiered` prints `rows` 15,148,238 and `runs` 2.
@@ -99,9 +101,9 @@
 ### Task 5: chr22 run and results
 
 **Files:**
-- Create: `performance-tests/cache-tiering/outputs/chr22_<date>/` (`README.md`, `runs.csv`, `summary.json`, `summary.md`, `pages.csv`, `layout-*.json`, `env.json`)
+- Create: `performance-tests/cache-tiering/outputs/chr22_<date>/` (`README.md`, `runs.csv`, `summary.json`, `summary.md`, `pages.csv`, `layout-*.json`, `paramcheck.json`, `env.json`)
 
-- [ ] **Step 1:** Build both caches (Task 2) under `~/workspace/data_vepyr/cache/tiering-gain/` for contig `chr22`; check both `layout.json`: equal `rows`, `runs` 2 vs 1.
+- [ ] **Step 1:** Build both caches (Task 2) under `~/workspace/data_vepyr/cache/tiering-gain/` for contig `chr22`; check both `layout.json`: equal `rows`, `runs` 2 vs 1; run `paramcheck tiered/…/chr22.parquet sorted/…/chr22.parquet <original chr22.parquet>` → `identical_settings: true` for the two rewritten files (save as `paramcheck.json` in the results; also record how the original differs, if at all). Stop if false.
 - [ ] **Step 2: Smoke:** one 1-worker run per layout; expect MD5 equal to each other and to the vepyr 0.11.0 chr22 output that matches VEP (the parity reports in PR #292). Stop if not.
 - [ ] **Step 3: Timed runs:** workers 1 and 8, 5 repeats, ABBA, plus `--purge-run`; nothing else running on the host.
 - [ ] **Step 4:** Task 4 page counts on the rewritten shards; write `README.md` with environment, protocol, the summary table (wall, CPU, peak RSS per layout and workers, ratio), page metrics, and a one-paragraph verdict on whether tiering helps on chr22.
