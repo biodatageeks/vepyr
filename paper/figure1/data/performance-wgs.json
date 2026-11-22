@@ -1,5 +1,5 @@
 {
-  "source_commit": "90bed527c8ab2c7900c971b1b368a986ac9cb852",
+  "source_commit": "f814e4d1135d8d2fbedc6cb0afa996c6085c88af",
   "dataset": "HG002 GRCh38 chr1\u201322",
   "records": 4096123,
   "cache_release": 116,
@@ -11,7 +11,7 @@
     {
       "platform": "linux",
       "cache_type": "merged",
-      "vepyr_version": "0.9.0",
+      "vepyr_version": "0.11.0",
       "runs": [
         {
           "tool": "Ensembl VEP",
@@ -24,15 +24,15 @@
         },
         {
           "tool": "vepyr",
-          "version": "0.9.0",
+          "version": "0.11.0",
           "parallelism": 1,
           "workers": 1,
-          "wall_seconds": 482.31,
+          "wall_seconds": 319.77,
           "output_records": 4096123,
-          "measured_at": "2026-10-02T21:00:13.268872+00:00",
-          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
-          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.time.txt",
-          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.metrics.json"
+          "measured_at": "2026-11-21T20:44:30.567863+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers1.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers1.metrics.json"
         },
         {
           "tool": "Ensembl VEP",
@@ -45,15 +45,15 @@
         },
         {
           "tool": "vepyr",
-          "version": "0.9.0",
+          "version": "0.11.0",
           "parallelism": 2,
           "workers": 2,
-          "wall_seconds": 320.53,
+          "wall_seconds": 195.13,
           "output_records": 4096123,
-          "measured_at": "2026-10-02T21:10:24.392347+00:00",
-          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
-          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.time.txt",
-          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.metrics.json"
+          "measured_at": "2026-11-21T20:39:30.901872+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers2.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers2.metrics.json"
         },
         {
           "tool": "Ensembl VEP",
@@ -66,15 +66,15 @@
         },
         {
           "tool": "vepyr",
-          "version": "0.9.0",
+          "version": "0.11.0",
           "parallelism": 4,
           "workers": 4,
-          "wall_seconds": 218.4,
+          "wall_seconds": 136.75,
           "output_records": 4096123,
-          "measured_at": "2026-10-02T21:17:55.519433+00:00",
-          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
-          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.time.txt",
-          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.metrics.json"
+          "measured_at": "2026-11-21T20:35:30.809086+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers4.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers4.metrics.json"
         },
         {
           "tool": "Ensembl VEP",
@@ -87,15 +87,15 @@
         },
         {
           "tool": "vepyr",
-          "version": "0.9.0",
+          "version": "0.11.0",
           "parallelism": 8,
           "workers": 8,
-          "wall_seconds": 216.11,
+          "wall_seconds": 102.19,
           "output_records": 4096123,
-          "measured_at": "2026-10-02T21:23:54.911148+00:00",
-          "summary": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv",
-          "time_log": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.time.txt",
-          "metrics": "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.metrics.json"
+          "measured_at": "2026-11-21T20:32:05.914242+00:00",
+          "summary": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/summary.tsv",
+          "time_log": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers8.time.txt",
+          "metrics": "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers8.metrics.json"
         }
       ]
     },
@@ -193,19 +193,19 @@
   ],
   "source_sha256": {
     "performance-tests/vep/outputs/116/merged_fork_scaling/summary.tsv": "f4ba7a4af4b8672ecc35e8dae2478e1507793812c47bd4e4bf6340b42a1c4ff8",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/summary.tsv": "c4e15d1feb388a2a62f98a46aa32273f49202b185d3ee8e1d0b287e3ea6d18b5",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/summary.tsv": "d7cdcf958dcb1ee067c3a4b43395bbc77615282a73c45e23f172ee4271f789c0",
     "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_forknone.time.txt": "20c500c6affde5ee3efebbfeee62969e3932356e454e3b0d9ff5cefad3acd6b6",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.metrics.json": "313ab84c7c4b28295620877202bdccb4e8c9d135177edd20bd0225a4515c6290",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers1.time.txt": "6add1ab0fa1298c8d4d8ba65abc20051d449fd9922e39254ab9ef641a34d67a1",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers1.metrics.json": "000ff8896ff70b7cb67e5f3d018e9b6979c5e0e94174885a106291a111a6c258",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers1.time.txt": "8db153121d526f0a76b2b793a96cdb39d04d59133693395f8693680499254cbb",
     "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork1.time.txt": "0431ce8adb9f968d4d93a1b35a30aaaa66ea644ba4499ccb5bff2367427a4c15",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.metrics.json": "24a6c00be561fba42b151af07a1f7d8f877e1a90e7a585fb5e6ec5c375262182",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers2.time.txt": "7180cae42921d00ada4c550a9906ad51ecc8a298a1e791055b6587252512a6de",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers2.metrics.json": "27228ecbe6acdd64383f0fef474bc01d0dc231a9a6f76890af5a77d52df180a5",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers2.time.txt": "9b717424b78ffaaa23dc9d396c4721ec937d01bb3d341869f111fc26559b5390",
     "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork3.time.txt": "c39ba044dcd038b7ead35e29f14a348ce4b3eb22b9a6b5565a3e1d267026fad2",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.metrics.json": "7d255a5d96c0db56b0dc9cf4040d1614d7a0c22df8950fffcf08c54f516da395",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers4.time.txt": "221b4eb009868bd42d4ac833708379a8795a6e3a0e5ea4731a8eb894a98c64a6",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers4.metrics.json": "bdd700e7e0c579957800b25a49123199945276245edac437c2f50de237fbf3b9",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers4.time.txt": "7d706f70bc9743518aca0678e4faf8e3691b6ffb4c04c9abe837035e17b91d78",
     "performance-tests/vep/outputs/116/merged_fork_scaling/raw/merged_fork7.time.txt": "fa92a81c18f53c340cd9153ea162c7f54e092cd6f42486039b1614b959c7c114",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.metrics.json": "ccfddac1b5eaaa3d38e88da72507453c62479705273592221c3ff0a613e10e5f",
-    "performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/merged_workers8.time.txt": "7b2455d572b54419383013bf950dce2e4347ce9a2f3417e171ebde91e75d674b",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers8.metrics.json": "15d1db571c6ee7291fd5e18c8dbf5d61d191cb71edb6279dc902f7d50d614e75",
+    "performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/raw/merged_workers8.time.txt": "09a6e700ee63e493254c0be46b2c6de59471a82231713c1b60062a6566b04c56",
     "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/summary.tsv": "e454aa0b650b00deec153159e20dbe76fc369654a25eb87ce32a505bf7bcca35",
     "performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/merged_fork_scaling_summary_7_3.tsv": "b4618e0a23a00987104e4043ef7e77aee3ea948c6be98d9766a95d5f540abab0",
     "performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_vepyr_0.11.0_20261121/raw/summary.tsv": "ac0e1a6f51675adb5e576dacaaeb9fb2e358d32930c6748a83c60552ab08548a",
