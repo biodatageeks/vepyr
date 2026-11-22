@@ -1,0 +1,15 @@
+{
+  "layout": "tiered",
+  "contigs": [
+    "chr22"
+  ],
+  "source": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged",
+  "relayout": {
+    "chr22": {
+      "rows": 15148238,
+      "runs": 2,
+      "start_pages": 14802,
+      "bytes": 398201486
+    }
+  }
+}
