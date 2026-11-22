@@ -26,11 +26,11 @@ SECTIONS = [
         "{:.0f} s",
     ),
     (
-        "Pages",
+        "Pages (start column; reading: 26 columns)",
         [
-            ("decoded: find rows (start)", 1034960, 1014300),
-            ("holding matches (start)", 245980, 1014268),
-            ("decoded: read rows (26 columns)", 7474811, 34683304),
+            ("start pages searched", 1034960, 1014300),
+            ("start pages holding a match", 245980, 1014268),
+            ("pages decoded to read matches", 7474811, 34683304),
         ],
         "pages",
     ),
