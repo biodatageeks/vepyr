@@ -1,8 +1,8 @@
-"""SPIKE (throwaway): panel C4 as the measured effect of the warm/cold layout.
+"""Panel C4: measured effect of the warm/cold layout of the variation cache.
 
-Whole HG002 genome (chr1-22), cold file cache, warm/cold (as shipped) vs the same rows sorted
-by position; sums of per-chromosome medians from vepyr branch perf/cache-tiering-gain,
-performance-tests/cache-tiering/outputs/wgs_20261122 (240e030).
+Whole HG002 genome (chr1-22), cold file cache, warm/cold vs the same rows sorted by position;
+sums of per-chromosome medians and page counts from vepyr performance-tests/cache-tiering
+(outputs/wgs_20261122, branch perf/cache-tiering-gain 240e030; also in PR #292).
 """
 
 from __future__ import annotations

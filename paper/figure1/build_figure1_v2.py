@@ -30,7 +30,7 @@ import re
 from pathlib import Path
 
 import build_cache_simplified_proposal as simplified
-import spike_c4_effect
+import build_layout_effect
 import build_cache_workflow_proposal as workflow
 import build_figure as fig
 import build_performance
@@ -189,7 +189,7 @@ def full_figure(performance_svg: str) -> tuple[fig.Scene, int]:
     )
     s.elements.extend(
         simplified.translated(
-            spike_c4_effect.effect_column("C4"), 40 + CONTENT - 520, y + 14
+            build_layout_effect.effect_column("C4"), 40 + CONTENT - 520, y + 14
         ).elements
     )
     y += BLOCK_HEIGHT + 14
