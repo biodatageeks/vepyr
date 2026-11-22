@@ -156,12 +156,12 @@ def panel(code: str = "A3") -> fig.Scene:
     )
 
     s.box(36, 530, 12, 16, "", fill=INK, stroke_width=1.2)
-    s.label(54, 521, 178, 33, "common hit", font_size=22)
-    s.box(251, 530, 12, 16, "", fill="white", stroke_width=1.6)
-    s.label(269, 521, 141, 33, "rare hit", font_size=22)
-    s.box(421, 529, 28, 18, "", fill="none", stroke_width=2.6)
-    s.label(455, 521, 172, 33, "matched page", font_size=22)
-    s.label(655, 521, 149, 33, "schematic", font_size=20, color=GREY, align="right")
+    s.label(54, 521, 330, 33, "common variant (MAF ≥ 1%)", font_size=21)
+    s.box(392, 530, 12, 16, "", fill="white", stroke_width=1.6)
+    s.label(410, 521, 170, 33, "rare variant", font_size=21)
+    s.box(588, 529, 28, 18, "", fill="none", stroke_width=2.6)
+    s.label(622, 521, 180, 33, "matched page", font_size=21)
+    s.label(655, 226, 149, 33, "schematic", font_size=20, color=GREY, align="right")
 
     # Linear zero-based chart. Counts are position-column pages holding matched
     # rows (see PAGE_COUNTS), not bytes, I/O calls or annotation wall time.
