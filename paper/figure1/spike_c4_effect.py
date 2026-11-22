@@ -28,11 +28,11 @@ SECTIONS = [
     (
         "Pages",
         [
-            ("decoded to find rows", 1.035, 1.014),
-            ("with matches", 0.24598, 1.014268),
-            ("decoded to read rows", 7.475, 34.683),
+            ("decoded: find rows (start)", 1034960, 1014300),
+            ("holding matches (start)", 245980, 1014268),
+            ("decoded: read rows (26 columns)", 7474811, 34683304),
         ],
-        "{:.2f} M",
+        "pages",
     ),
 ]
 
@@ -44,25 +44,28 @@ def effect_column(code: str = "C4", width: float = 520) -> fig.Scene:
     s.label(0, 14, 68, 44, code, font_size=31, weight=700)
     s.label(74, 15, width - 74, 42, "Layout effect", font_size=29, weight=700)
     s.label(0, 66, width, 84,
-            "Whole HG002 genome (chr1–22),\ncold file cache; sorted by\nposition = 100%", font_size=20)  # fmt: skip
+            "Whole HG002 genome (chr1–22),\ncold file cache; bar length:\nsorted by position = 100%", font_size=20)  # fmt: skip
 
     bar_max = 360  # width of 100%
     top = max(t / so for _, rows, _ in SECTIONS for _, t, so in rows)
     y = 172
-    for title, rows, _unit in SECTIONS:
+    for title, rows, unit in SECTIONS:
         s.label(0, y, width, 34, title, font_size=22, weight=700)
         s.edge(0, y + 38, width, y + 38, arrow=False, width=1.2)
         y += 54
         for name, tiered, sorted_ in rows:
             rel = tiered / sorted_
-            s.label(0, y, 320, 30, name, font_size=20)
+            s.label(0, y, 390, 30, name, font_size=20)
             s.label(width - 120, y, 120, 30, f"{rel - 1:+.0%}".replace("-", "–"), font_size=22,
                     weight=700, align="right")  # fmt: skip
-            for k, (value, fill) in enumerate(((rel, INK), (1.0, SORTED))):
+            for k, (value, fill, raw) in enumerate(
+                ((rel, INK, tiered), (1.0, SORTED, sorted_))
+            ):
                 by = y + 36 + k * 32
                 w = max(2.0, bar_max * value / top)
                 s.box(0, by, w, 24, "", fill=fill, stroke_width=0)
-                s.label(w + 8, by - 4, 120, 30, f"{value:.0%}", font_size=19)
+                text = f"{raw:,}" if unit == "pages" else f"{value:.0%}"
+                s.label(w + 8, by - 4, 150, 30, text, font_size=19)
             y += 124
         y += 24
 
