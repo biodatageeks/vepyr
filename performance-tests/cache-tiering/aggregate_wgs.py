@@ -111,6 +111,82 @@ def pages_totals(root: Path, chroms: list[str]) -> dict:
     return out
 
 
+LAYOUTS = ("tiered", "sorted", "original")
+
+
+def page_rows(root: Path, chroms: list[str], layouts=LAYOUTS) -> dict[str, dict]:
+    """Per chromosome and layout, page counts summed over all buffers of the page tool's output
+    (<root>/<chrom>/<layout>_ext.txt): pages matched, pages decoded to find the rows (position
+    column) and to read them (all columns), and both together."""
+    import pages_summary
+
+    out: dict[str, dict] = {}
+    for chrom in chroms:
+        per: dict[str, dict] = {}
+        for layout in layouts:
+            path = Path(root) / chrom / f"{layout}_ext.txt"
+            if not path.exists():
+                continue
+            bufs = pages_summary.parse(path).values()
+            find = sum(b["cand_pages"] for b in bufs)
+            read = sum(b["p3_req_ranges"] for b in bufs)
+            per[layout] = {
+                "hit_pages": sum(b["hit_pages"] for b in bufs),
+                "find_decoded": find,
+                "read_decoded": read,
+                "decoded": find + read,
+            }
+        if per:
+            out[chrom] = per
+    return out
+
+
+def page_totals_by_layout(rows: dict[str, dict]) -> dict[str, dict]:
+    tot: dict[str, dict] = {}
+    for per in rows.values():
+        for layout, vals in per.items():
+            cell = tot.setdefault(layout, {})
+            for k, v in vals.items():
+                cell[k] = cell.get(k, 0) + v
+    return tot
+
+
+def render_pages(rows: dict[str, dict], tot: dict[str, dict]) -> str:
+    layouts = [lay for lay in LAYOUTS if any(lay in per for per in rows.values())]
+    names = " / ".join(layouts)
+
+    def trio(per: dict, key: str) -> str:
+        return " / ".join(f"{per[lay][key]}" if lay in per else "-" for lay in layouts)
+
+    def red(per: dict, key: str, other: str) -> str:
+        if other in per and "tiered" in per and per[other][key]:
+            return f"{1 - per['tiered'][key] / per[other][key]:.1%}"
+        return "-"
+
+    lines = [
+        f"| Chromosome | pages matched ({names}) | pages decoded, find + read ({names}) | "
+        "decoded: tiered vs sorted | decoded: tiered vs original |",
+        "|---|---|---|---|---|",
+    ]
+    for chrom, per in list(rows.items()) + [("total", tot)]:
+        label = f"**{chrom}**" if chrom == "total" else chrom
+        lines.append(
+            f"| {label} | {trio(per, 'hit_pages')} | {trio(per, 'decoded')} | "
+            f"{red(per, 'decoded', 'sorted')} | {red(per, 'decoded', 'original')} |"
+        )
+    lines += [
+        "",
+        "Pages decoded split into find (position column) and read (all columns of the matched rows):",
+        "",
+    ]
+    for lay in layouts:
+        if lay in tot:
+            lines.append(
+                f"- {lay}: find {tot[lay]['find_decoded']:,}, read {tot[lay]['read_decoded']:,}"
+            )
+    return "\n".join(lines) + "\n"
+
+
 def _fmt(row_cell: dict | None, layout: str, m: str) -> str:
     if not row_cell or m not in row_cell.get(layout, {}):
         return "-"
@@ -187,6 +263,11 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("root", type=Path)
     ap.add_argument("--pages", type=Path)
+    ap.add_argument(
+        "--page-dir",
+        type=Path,
+        help="per-chromosome raw page-tool outputs, all layouts",
+    )
     ap.add_argument("--chroms", nargs="+", default=CHROMS)
     args = ap.parse_args()
     rows = chromosome_rows(args.root, args.chroms)
@@ -202,6 +283,11 @@ def main() -> None:
     }  # fmt: skip
     (args.root / "wgs_summary.json").write_text(json.dumps(serial, indent=2) + "\n")
     print(text)
+    if args.page_dir:
+        prows = page_rows(args.page_dir, args.chroms)
+        ptext = render_pages(prows, page_totals_by_layout(prows))
+        (args.root / "wgs_pages.md").write_text(ptext)
+        print(ptext)
 
 
 if __name__ == "__main__":

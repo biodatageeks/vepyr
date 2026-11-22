@@ -114,3 +114,36 @@ def test_render_shows_original_ratio(tmp_path):
     text = ag.render(rows, ag.totals(rows), None)
     assert "orig 1.10" in text
     assert "original / tiered" in text
+
+
+FIX = Path(__file__).resolve().parent / "fixtures"
+
+
+def make_page_dir(root: Path, chrom: str):
+    d = root / chrom
+    d.mkdir(parents=True)
+    (d / "tiered_ext.txt").write_text((FIX / "chr22_ext.buf0.txt").read_text())
+    (d / "sorted_ext.txt").write_text((FIX / "sorted_ext.buf0.txt").read_text())
+    (d / "original_ext.txt").write_text((FIX / "chr22_ext.buf0.txt").read_text())
+
+
+def test_page_rows_per_layout(tmp_path):
+    make_page_dir(tmp_path, "chr22")
+    rows = ag.page_rows(tmp_path, ["chr1", "chr22"], ["tiered", "sorted", "original"])
+    assert list(rows) == ["chr22"]
+    t, s = rows["chr22"]["tiered"], rows["chr22"]["sorted"]
+    assert (t["hit_pages"], s["hit_pages"]) == (315, 907)
+    assert (t["find_decoded"], s["find_decoded"]) == (964, 907)
+    assert (t["read_decoded"], s["read_decoded"]) == (8713, 25517)
+    assert t["decoded"] == 964 + 8713
+
+
+def test_page_totals_and_render(tmp_path):
+    make_page_dir(tmp_path, "chr21")
+    make_page_dir(tmp_path, "chr22")
+    rows = ag.page_rows(tmp_path, ["chr21", "chr22"], ["tiered", "sorted", "original"])
+    tot = ag.page_totals_by_layout(rows)
+    assert tot["tiered"]["hit_pages"] == 630
+    text = ag.render_pages(rows, tot)
+    assert "| chr22 | 315 / 907 / 315 |" in text
+    assert "total" in text
