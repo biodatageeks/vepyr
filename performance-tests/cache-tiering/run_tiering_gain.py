@@ -48,6 +48,7 @@ FIELDS = [
     "exit_status",
     "md5_ok",
     "resident_pct",
+    "released",
     "valid",
 ]
 METRICS = ("wall_s", "cpu_s", "user_s", "sys_s", "max_rss_kib", "annotation_s")
@@ -210,12 +211,21 @@ def free_memory_gib() -> float:
     return free * page / 2**30
 
 
-def ensure_free_memory(limit_gib: float, release_gib: int = 27) -> None:
-    """Push the file cache out by touching release_gib of memory once (benchmark protocol)."""
+def ensure_free_memory(limit_gib: float, release_gib: int = 27) -> bool:
+    """Push the file cache out by touching release_gib of memory once (benchmark protocol).
+
+    Returns whether a release was needed; stops the runner if memory is still low after it.
+    """
     if free_memory_gib() >= limit_gib:
-        return
+        return False
     code = "n=int(__import__('sys').argv[1])<<30\nb=bytearray(n)\nfor i in range(0,n,16384): b[i]=1"
     subprocess.run([sys.executable, "-I", "-c", code, str(release_gib)], check=True)
+    free = free_memory_gib()
+    if free < limit_gib:
+        raise SystemExit(
+            f"only {free:.1f} GiB free memory after a release; need {limit_gib} GiB"
+        )
+    return True
 
 
 def resident_pct(path: Path) -> float:
@@ -266,12 +276,12 @@ def make_run_one(args: argparse.Namespace) -> Callable[[str, int, str], dict]:
             / "variation"
             / f"{args.contig}.parquet"
         )
-        resident = None
+        released = False
         if mode(label) == "cold":
             subprocess.run(args.purge_cmd.split(), check=True)
-            resident = round(resident_pct(shard), 2)
         else:
-            ensure_free_memory(args.min_free_memory_gib)
+            released = ensure_free_memory(args.min_free_memory_gib)
+        resident = round(resident_pct(shard), 2)
         run_dir = args.workdir / "runs" / f"{layout}-w{workers}-{label}"
         archive = run_dir / "archive"
         archive.mkdir(parents=True, exist_ok=True)
@@ -292,13 +302,15 @@ def make_run_one(args: argparse.Namespace) -> Callable[[str, int, str], dict]:
         if proc.returncode != 0 or not time_file.exists():
             return {"layout": layout, "workers": workers, "label": label, "wall_s": None,
                     "user_s": 0.0, "sys_s": 0.0, "max_rss_kib": None, "annotation_s": None,
-                    "exit_status": proc.returncode or 1, "resident_pct": resident}  # fmt: skip
+                    "exit_status": proc.returncode or 1, "resident_pct": resident,
+                    "released": released}  # fmt: skip
         row = {
             "layout": layout,
             "workers": workers,
             "label": label,
             **parse_time_file(time_file),
             "resident_pct": resident,
+            "released": released,
         }
         metrics = json.loads(
             (archive / f"merged_workers{workers}.metrics.json").read_text()

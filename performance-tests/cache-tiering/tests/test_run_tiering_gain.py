@@ -174,3 +174,19 @@ def test_resident_pct_of_fresh_file(tmp_path):
     f.write_bytes(b"\1" * (1 << 20))
     f.read_bytes()
     assert rtg.resident_pct(f) > 90.0
+
+
+def test_memory_release_that_fails_stops_runner(monkeypatch):
+    monkeypatch.setattr(rtg, "free_memory_gib", lambda: 5.0)
+    monkeypatch.setattr(rtg.subprocess, "run", lambda *a, **k: None)
+    with pytest.raises(SystemExit, match="memory"):
+        rtg.ensure_free_memory(20.0)
+
+
+def test_memory_release_reported(monkeypatch):
+    levels = iter([5.0, 30.0])
+    monkeypatch.setattr(rtg, "free_memory_gib", lambda: next(levels))
+    monkeypatch.setattr(rtg.subprocess, "run", lambda *a, **k: None)
+    assert rtg.ensure_free_memory(20.0) is True
+    monkeypatch.setattr(rtg, "free_memory_gib", lambda: 30.0)
+    assert rtg.ensure_free_memory(20.0) is False

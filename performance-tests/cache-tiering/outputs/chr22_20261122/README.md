@@ -27,7 +27,11 @@ compared with the same rows sorted by `start` only? Design and plan:
 ## Timing
 
 Warm: 10 measured runs per layout and worker count after one discarded run each, ABBA order,
-free memory restored before each run (`warm/`). Cold: 3 runs per layout and worker count,
+free memory restored before each run (`warm/`). `warm/summary.*` were regenerated from `warm/runs.csv` with
+the current runner; `warm/env.json` lists `purge_run: True`, but that purge was not possible
+(`sudo -n purge` failed) and no cold run was made in the warm set. Releases of memory before
+warm runs were not logged in this set (the runner now records `released` and `resident_pct`
+for every run and stops if memory is still low after a release). Cold: 3 runs per layout and worker count,
 `sudo purge` before each, 0.0% of the variation shard resident in the page cache before every run
 (mincore, `cold/runs.csv` column `resident_pct`). Medians (min-max); ratio = sorted / tiered.
 
@@ -69,12 +73,16 @@ the 10 full buffers (`pages/pages.csv`, `pages/pages.json`).
 
 ## Verdict on chromosome 22
 
-The warm/cold layout makes vepyr faster: wall time is 18-30% shorter with one worker and 14-22%
-with eight, warm or cold, and CPU time is 34-44% lower in every case. The saving is user CPU:
-the matched records lie on about two thirds fewer pages, so about three quarters fewer pages are
-decoded to read their annotation. The position-column lookup itself is not reduced (slightly more
-pages and more, smaller reads), and from a cold file cache this extra I/O narrows the wall-time
-gain. Peak memory is unchanged with eight workers and 7% higher with one.
+The warm/cold layout makes vepyr faster. With the current layout, wall time is 15-23% shorter
+with one worker and 13-18% shorter with eight (the higher figure with a warm file cache, the lower
+from a cold one), and CPU time is 25-31% lower in every case; put the other way, the
+position-sorted layout takes 14-30% longer and needs 34-44% more CPU. The saving is user CPU: the
+matched records lie on about two thirds fewer pages, so about three quarters fewer pages are
+decoded to read their annotation. The position-column lookup itself is not reduced (1-5% more
+pages decoded). From a cold file cache the wall-time gain is smaller; the layout reads 13-26%
+fewer bytes for the matched rows but in more, smaller read operations (2-5 times as many), which
+may explain this; it was not measured directly. Peak memory is unchanged with eight workers and
+7-8% higher with one.
 
 Limits: one chromosome and one sample; the page counts come from a copy of the lookup, not from
 inside vepyr (0.11.0 has no page counter); the cold runs purge the whole OS file cache (FASTA,
