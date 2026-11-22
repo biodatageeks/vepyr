@@ -183,3 +183,56 @@ fn settings_difference_is_reported() {
     let diffs = settings_differences(&input, &other).unwrap();
     assert!(!diffs.is_empty(), "expected differences, got none");
 }
+
+/// Two sorted runs of several thousand rows with shared starts, read in small batches so the
+/// merge crosses many batch boundaries; the result must equal a stable sort of the input.
+#[test]
+fn streaming_sort_equals_stable_sort() {
+    let dir = tempfile::tempdir().unwrap();
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("tier", DataType::Int8, false),
+        Field::new("start", DataType::UInt32, false),
+        Field::new("allele_string", DataType::Utf8, true),
+    ]));
+    let mut warm: Vec<u32> = (0..1500u32).map(|i| (i * 7919) % 20000).collect();
+    let mut cold: Vec<u32> = (0..3500u32).map(|i| (i * 104729) % 20000).collect();
+    warm.sort();
+    cold.sort();
+    let tiers: Vec<i8> = warm
+        .iter()
+        .map(|_| 0)
+        .chain(cold.iter().map(|_| 1))
+        .collect();
+    let starts: Vec<u32> = warm.iter().chain(cold.iter()).copied().collect();
+    let labels: Vec<String> = (0..starts.len()).map(|i| format!("r{i}")).collect();
+    let batch = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            Arc::new(Int8Array::from(tiers)),
+            Arc::new(UInt32Array::from(starts.clone())),
+            Arc::new(StringArray::from(labels.clone())),
+        ],
+    )
+    .unwrap();
+    let input = dir.path().join("in.parquet");
+    let mut w = VariationParquetShardWriter::create(&input, schema).unwrap();
+    w.write(&batch).unwrap();
+    w.finish().unwrap();
+
+    let out = dir.path().join("sorted.parquet");
+    let s = relayout::relayout_with(&input, &out, Layout::Sorted, 333, 97).unwrap();
+    let mut expected: Vec<(u32, String)> = starts.into_iter().zip(labels).collect();
+    expected.sort_by_key(|(s, _)| *s); // stable
+    let b = read(&out);
+    let got: Vec<(u32, String)> = col_u32(&b, "start")
+        .into_iter()
+        .zip(col_str(&b, "allele_string"))
+        .collect();
+    assert_eq!(got, expected);
+    assert!(col_i8(&b, "tier").iter().all(|&t| t == 1));
+    assert_eq!((s.rows, s.runs), (5000, 1));
+
+    let t = dir.path().join("tiered.parquet");
+    relayout::relayout_with(&input, &t, Layout::Tiered, 333, 97).unwrap();
+    assert_eq!(col_u32(&read(&t), "start"), col_u32(&read(&input), "start"));
+}
