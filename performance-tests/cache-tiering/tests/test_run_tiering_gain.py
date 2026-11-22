@@ -190,3 +190,28 @@ def test_memory_release_reported(monkeypatch):
     assert rtg.ensure_free_memory(20.0) is True
     monkeypatch.setattr(rtg, "free_memory_gib", lambda: 30.0)
     assert rtg.ensure_free_memory(20.0) is False
+
+
+def test_schedule_three_layouts_rotates():
+    s = rtg.schedule(["tiered", "sorted", "original"], [1], 3)
+    assert s == [
+        ("tiered", 1, "warmup"), ("sorted", 1, "warmup"), ("original", 1, "warmup"),
+        ("tiered", 1, "r1"), ("sorted", 1, "r1"), ("original", 1, "r1"),
+        ("sorted", 1, "r2"), ("original", 1, "r2"), ("tiered", 1, "r2"),
+        ("original", 1, "r3"), ("tiered", 1, "r3"), ("sorted", 1, "r3"),
+    ]  # fmt: skip
+
+
+def test_ratios_against_tiered_for_every_layout():
+    rows = [
+        row("tiered", 1, "r1", 10.0),
+        row("sorted", 1, "r1", 13.0),
+        row("original", 1, "r1", 11.0),
+    ]
+    s = rtg.summarize(rows)
+    assert s["ratios"]["warm"][1]["wall_s"] == pytest.approx(
+        1.3
+    )  # sorted / tiered, as before
+    vs = s["ratios_vs_tiered"]["warm"][1]
+    assert vs["sorted"]["wall_s"] == pytest.approx(1.3)
+    assert vs["original"]["wall_s"] == pytest.approx(1.1)

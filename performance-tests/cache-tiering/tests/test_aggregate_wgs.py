@@ -89,3 +89,28 @@ def test_pages_totals(tmp_path):
         "reduction": pytest.approx(1 - 402 / 1304),
     }
     assert p["chromosomes"] == 2
+
+
+def test_original_arm_in_rows_and_totals(tmp_path):
+    d = tmp_path / "chr1"
+    d.mkdir()
+    layouts = [entry("warm", "tiered", 1, 10.0, 15.0), entry("warm", "sorted", 1, 13.0, 21.0),
+               entry("warm", "original", 1, 11.0, 16.0)]  # fmt: skip
+    (d / "summary.json").write_text(json.dumps({"layouts": layouts, "invalid_runs": 0}))
+    rows = ag.chromosome_rows(tmp_path, ["chr1"])
+    assert rows[0][("warm", 1)]["ratio_original"]["wall_s"] == pytest.approx(1.1)
+    t = ag.totals(rows)[("warm", 1)]
+    assert t["original"]["wall_s"] == pytest.approx(11.0)
+    assert t["ratio_original"]["wall_s"] == pytest.approx(1.1)
+
+
+def test_render_shows_original_ratio(tmp_path):
+    d = tmp_path / "chr1"
+    d.mkdir()
+    layouts = [entry("warm", "tiered", 1, 10.0, 15.0), entry("warm", "sorted", 1, 13.0, 21.0),
+               entry("warm", "original", 1, 11.0, 16.0)]  # fmt: skip
+    (d / "summary.json").write_text(json.dumps({"layouts": layouts, "invalid_runs": 0}))
+    rows = ag.chromosome_rows(tmp_path, ["chr1"])
+    text = ag.render(rows, ag.totals(rows), None)
+    assert "orig 1.10" in text
+    assert "original / tiered" in text

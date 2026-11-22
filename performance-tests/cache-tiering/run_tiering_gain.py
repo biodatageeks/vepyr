@@ -61,13 +61,18 @@ def schedule(
     prefix: str = "r",
     warmup: bool = True,
 ) -> list[tuple[str, int, str]]:
-    a, b = layouts
+    """Two layouts: ABBA order. More layouts: the order rotates by one each repeat."""
     out: list[tuple[str, int, str]] = []
+    k = len(layouts)
     for w in workers:
         if warmup:
-            out += [(a, w, "warmup"), (b, w, "warmup")]
+            out += [(layout, w, "warmup") for layout in layouts]
         for r in range(1, repeats + 1):
-            order = (a, b) if r % 2 else (b, a)
+            if k == 2:
+                order = layouts if r % 2 else layouts[::-1]
+            else:
+                shift = (r - 1) % k
+                order = layouts[shift:] + layouts[:shift]
             out += [(layout, w, f"{prefix}{r}") for layout in order]
     return out
 
@@ -154,8 +159,22 @@ def summarize(rows: list[dict]) -> dict:
                 for m in METRICS
                 if m in t and m in s and t[m]["median"]
             }
+    vs_tiered: dict[str, dict[int, dict]] = {}
+    for m_, layout, workers in sorted(by):
+        t, o = by.get((m_, "tiered", workers)), by[(m_, layout, workers)]
+        if layout != "tiered" and t:
+            vs_tiered.setdefault(m_, {}).setdefault(workers, {})[layout] = {
+                m: o[m]["median"] / t[m]["median"]
+                for m in METRICS
+                if m in t and m in o and t[m]["median"]
+            }
     invalid = sum(1 for r in rows if mode(r["label"]) is not None and not valid(r))
-    return {"layouts": layouts, "ratios": ratios, "invalid_runs": invalid}
+    return {
+        "layouts": layouts,
+        "ratios": ratios,
+        "ratios_vs_tiered": vs_tiered,
+        "invalid_runs": invalid,
+    }
 
 
 def free_disk_gib(path: Path) -> float:
@@ -356,6 +375,14 @@ def write_summary(summary: dict, out: Path) -> None:
                 f"- {m_}, {w} workers: "
                 + ", ".join(f"{m} {v:.3f}" for m, v in r.items())
             )
+    for m_, by_workers in summary.get("ratios_vs_tiered", {}).items():
+        for w, per in by_workers.items():
+            for layout, r in per.items():
+                if layout != "sorted":
+                    lines.append(
+                        f"- {m_}, {w} workers, {layout} / tiered: "
+                        + ", ".join(f"{m} {v:.3f}" for m, v in r.items())
+                    )
     lines.append(
         f"\nInvalid runs (failed, output differs, or cold run with > 5% of the shard cached): {summary['invalid_runs']}"
     )
@@ -382,6 +409,7 @@ def main() -> None:
     p.add_argument("--min-free-memory-gib", type=float, default=20.0)
     p.add_argument("--min-disk-gib", type=float, default=40.0)
     p.add_argument("--contig", default="chr22")
+    p.add_argument("--layouts", nargs="+", default=["tiered", "sorted"])
     p.add_argument(
         "--cold", type=int, default=0, help="cold repeats per layout and workers"
     )
@@ -391,14 +419,10 @@ def main() -> None:
     env = {"python": platform.python_version(), "platform": platform.platform(),
            "vepyr_python": str(args.vepyr_python), "args": {k: str(v) for k, v in vars(args).items()}}  # fmt: skip
     (args.workdir / "env.json").write_text(json.dumps(env, indent=2) + "\n")
-    plan = (
-        schedule(["tiered", "sorted"], args.workers, args.repeats)
-        if args.repeats
-        else []
-    )
+    plan = schedule(args.layouts, args.workers, args.repeats) if args.repeats else []
     if args.cold:
         plan += schedule(
-            ["tiered", "sorted"], args.workers, args.cold, prefix="c", warmup=False
+            args.layouts, args.workers, args.cold, prefix="c", warmup=False
         )
     run_one = make_run_one(args)
     rows = execute(

@@ -37,7 +37,7 @@ def chromosome_rows(root: Path, chroms: list[str]) -> list[dict]:
         row: dict = {"chrom": chrom, "invalid_runs": summary.get("invalid_runs", 0)}
         for e in summary["layouts"]:
             key = (e["mode"], e["workers"])
-            cell = row.setdefault(key, {"tiered": {}, "sorted": {}})
+            cell = row.setdefault(key, {"tiered": {}, "sorted": {}, "original": {}})
             cell[e["layout"]] = {m: e[m]["median"] for m in METRICS if m in e}
         for key, cell in row.items():
             if isinstance(key, tuple) and cell["tiered"] and cell["sorted"]:
@@ -45,6 +45,12 @@ def chromosome_rows(root: Path, chroms: list[str]) -> list[dict]:
                     m: cell["sorted"][m] / cell["tiered"][m]
                     for m in cell["tiered"]
                     if m in cell["sorted"] and cell["tiered"][m]
+                }
+            if isinstance(key, tuple) and cell["tiered"] and cell["original"]:
+                cell["ratio_original"] = {
+                    m: cell["original"][m] / cell["tiered"][m]
+                    for m in cell["tiered"]
+                    if m in cell["original"] and cell["tiered"][m]
                 }
         rows.append(row)
     return rows
@@ -64,8 +70,10 @@ def totals(rows: list[dict]) -> dict:
             "chromosomes": len(have),
             "tiered": {},
             "sorted": {},
+            "original": {},
             "ratio": {},
             "reduction": {},
+            "ratio_original": {},
         }
         for m in METRICS:
             if m == "max_rss_kib":
@@ -75,6 +83,11 @@ def totals(rows: list[dict]) -> dict:
             cell["tiered"][m], cell["sorted"][m] = t, s
             if t and s:
                 cell["ratio"][m], cell["reduction"][m] = s / t, 1 - t / s
+            if have and all(c["original"] for c in have):
+                o = sum(c["original"].get(m, 0.0) for c in have)
+                cell["original"][m] = o
+                if t and o:
+                    cell["ratio_original"][m] = o / t
         out[key] = cell
     return out
 
@@ -108,7 +121,9 @@ def render(rows: list[dict], tot: dict, pages: dict | None) -> str:
     keys = [("warm", 1), ("warm", 8), ("cold", 1), ("cold", 8)]
     head = (
         "| Chromosome | "
-        + " | ".join(f"{m} {w}w wall tiered/sorted (ratio)" for m, w in keys)
+        + " | ".join(
+            f"{m} {w}w wall tiered/sorted (ratio), orig/tiered" for m, w in keys
+        )
         + " | invalid |"
     )
     lines = [head, "|" + "---|" * (len(keys) + 2)]
@@ -116,7 +131,10 @@ def render(rows: list[dict], tot: dict, pages: dict | None) -> str:
     def cells(c: dict | None, metric: str) -> str:
         if not c or "ratio" not in c or metric not in c["ratio"]:
             return "-"
-        return f"{c['tiered'][metric]:.1f} / {c['sorted'][metric]:.1f} ({c['ratio'][metric]:.2f})"
+        text = f"{c['tiered'][metric]:.1f} / {c['sorted'][metric]:.1f} ({c['ratio'][metric]:.2f})"
+        if metric in c.get("ratio_original", {}):
+            text += f", orig {c['ratio_original'][metric]:.2f}"
+        return text
 
     for r in rows:
         lines.append(
@@ -137,6 +155,18 @@ def render(rows: list[dict], tot: dict, pages: dict | None) -> str:
                 f"- {k[0]}, {k[1]} workers: tiered {c['tiered']['cpu_s']:.1f} s, sorted {c['sorted']['cpu_s']:.1f} s, "
                 f"ratio {c['ratio']['cpu_s']:.3f}, reduction {c['reduction']['cpu_s']:.1%}; wall reduction "
                 f"{c['reduction']['wall_s']:.1%}"
+            )
+    lines += [
+        "",
+        "original / tiered (the shipped cache against the rewritten current layout):",
+        "",
+    ]
+    for k in keys:
+        c = tot.get(k)
+        if c and c.get("ratio_original"):
+            lines.append(
+                f"- {k[0]}, {k[1]} workers: "
+                + ", ".join(f"{m} {v:.3f}" for m, v in c["ratio_original"].items())
             )
     if pages:
         lines += [
