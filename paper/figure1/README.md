@@ -30,8 +30,9 @@ pdflatex figure1-page.tex                        # one journal page: figure + ca
 
 ## Panel E data
 
-Panel E is drawn from the paper repository's `generated/performance-wgs.json`, which its
-`tools/make_numbers.py` writes from `data/wgs_scaling.csv` (the same CSV gives supplement Table 17 and the
-main-text times). Set `FIGURE1_PERF_JSON` to that file; without it, `data/performance-wgs.json` (the frozen
-snapshot of `refresh_performance_data.py`) is used. `figure1-tikz.tex` records the SHA-256 of the data it was
-built from, and `tools/make_numbers.py --check` in the paper repository reports a figure built from other data.
+Panel E is drawn from the paper repository's `data/wgs_scaling.csv`, the CSV that also gives supplement
+Table 17 and the main-text times. Build with
+`FIGURE1_WGS_CSV=<paper repo>/data/wgs_scaling.csv python3 build_tikz.py` and copy `figure1-tikz.tex` to the
+paper's `figures/`. Without `FIGURE1_WGS_CSV`, `data/performance-wgs.json` (the frozen snapshot of
+`refresh_performance_data.py`) is used. `figure1-tikz.tex` records the SHA-256 of the file it was built from,
+and `tools/make_numbers.py --check` in the paper repository reports a figure built from another CSV.

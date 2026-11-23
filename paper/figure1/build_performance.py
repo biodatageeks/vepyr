@@ -7,6 +7,7 @@ checks the original summaries, metrics and GNU time logs from a Git revision.
 
 from __future__ import annotations
 
+import csv
 import html
 import json
 import math
@@ -14,9 +15,49 @@ import os
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-# The paper repository generates this data from its data/wgs_scaling.csv (tools/make_numbers.py);
-# FIGURE1_PERF_JSON points at that file, otherwise the frozen snapshot of refresh_performance_data.py.
-DATA = Path(os.environ.get("FIGURE1_PERF_JSON", HERE / "data/performance-wgs.json"))
+# Panel E is drawn from the paper repository's data/wgs_scaling.csv, the file that also gives
+# supplement Table 17 and the main-text times: FIGURE1_WGS_CSV points at it. Without it, the
+# frozen snapshot of refresh_performance_data.py (data/performance-wgs.json) is used.
+DATA = Path(os.environ.get("FIGURE1_WGS_CSV") or HERE / "data/performance-wgs.json")
+# What the paper CSV measures (HG002 chr1-22, merged cache 116, vepyr 0.11.0); the figure labels
+# assume it, so the CSV does not repeat it on every row.
+CSV_RUN = {"records": 4_096_123, "cache_type": "merged", "cache_release": 116}
+CSV_VEPYR_VERSION = "0.11.0"
+
+
+def load_data(path=DATA):
+    """The panel E data: the paper CSV (one row per platform and process count) or the JSON snapshot."""
+    if path.suffix != ".csv":
+        return json.loads(path.read_text())
+    panels = {}
+    for row in csv.DictReader(path.open(newline="")):
+        n = int(row["processes"])
+        runs = panels.setdefault(row["platform"], [])
+        runs.append(
+            {
+                "tool": "Ensembl VEP",
+                "parallelism": n,
+                "fork": row["vep_fork"],
+                "wall_seconds": float(row["vep_seconds"]),
+            }
+        )
+        runs.append(
+            {
+                "tool": "vepyr",
+                "version": CSV_VEPYR_VERSION,
+                "parallelism": n,
+                "wall_seconds": float(row["vepyr_seconds"]),
+            }
+        )
+    return {
+        **CSV_RUN,
+        "panels": [
+            {"platform": p, "vepyr_version": CSV_VEPYR_VERSION, "runs": r}
+            for p, r in panels.items()
+        ],
+    }
+
+
 WIDTH, HEIGHT = 1010, 780
 INK, MUTED, GRID = "#111111", "#555555", "#dddddd"
 LEVELS = (1, 2, 4, 8)
@@ -145,7 +186,7 @@ def chart(parts, x, title, subtitle, panel):
 
 
 def build_svg():
-    data = json.loads(DATA.read_text())
+    data = load_data()
     if (
         data["records"] != 4_096_123
         or data["cache_type"] != "merged"
