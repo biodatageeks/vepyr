@@ -1,5 +1,9 @@
 # Linux vepyr 0.11.0 merged worker scaling
 
+> Superseded by [`linux_tgambin_wgs_vepyr_0.11.0_pr293`](../linux_tgambin_wgs_vepyr_0.11.0_pr293) (2026-11-23,
+> median of three runs). In this set the process wall includes counting the 29.4 GB output's records
+> (about 12 s per run; vepyr PR #293), and each worker count ran once.
+
 Whole-genome HG002 GRCh38 measurements from 2026-11-21 with the merged
 release-116 cache and 8, 4, 2 and 1 workers. Only vepyr was measured, with the
 procedure of the macOS 0.11.0 set
