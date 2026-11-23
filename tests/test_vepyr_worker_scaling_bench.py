@@ -312,3 +312,26 @@ def test_power_source_on_linux(runner, tmp_path):
 
     (root / "AC" / "online").write_text("1\n")
     assert runner.detect_power_source(platform="linux", sysfs_root=root) == "AC Power"
+
+
+def test_record_count_reads_the_output_past_the_file_cache(
+    runner, tmp_path, monkeypatch
+):
+    # Reading the 29.4 GB output through the file cache evicts the cache files
+    # of the next run; the engine-comparison checksums read with F_NOCACHE.
+    import fcntl
+
+    if not hasattr(fcntl, "F_NOCACHE"):
+        pytest.skip("F_NOCACHE is macOS only")
+    calls = []
+    real = fcntl.fcntl
+
+    def spy(fd, cmd, *args):
+        calls.append(cmd)
+        return real(fd, cmd, *args)
+
+    monkeypatch.setattr(fcntl, "fcntl", spy)
+    vcf = tmp_path / "out.vcf"
+    vcf.write_bytes(b"##fileformat=VCFv4.2\n#CHROM\tPOS\n1\t1\n1\t2\n2\t3\n")
+    assert runner.count_vcf_records(vcf) == 3
+    assert fcntl.F_NOCACHE in calls

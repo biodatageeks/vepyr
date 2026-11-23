@@ -12,7 +12,9 @@ is not part of any reported time.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
+import fcntl
 import gzip
 import json
 import os
@@ -130,12 +132,23 @@ class ProcessMeasurement:
     max_rss_kb: int
 
 
+@contextlib.contextmanager
 def open_vcf(path: Path):
-    """Open a VCF for reading, transparently for bgzf, gzip and plain files."""
-    # BGZF is a series of gzip members, so the stdlib reader handles it.
-    if path.suffix in COMPRESSED_SUFFIXES:
-        return gzip.open(path, "rb")
-    return path.open("rb")
+    """Open a VCF for reading, transparently for bgzf, gzip and plain files.
+
+    On macOS the file is read with F_NOCACHE: reading the whole-genome output
+    (29.4 GB) through the file cache would evict the cache files of the next
+    run, as the checksums of the engine-comparison harness avoid.
+    """
+    with path.open("rb") as raw:
+        if hasattr(fcntl, "F_NOCACHE"):
+            fcntl.fcntl(raw.fileno(), fcntl.F_NOCACHE, 1)
+        # BGZF is a series of gzip members, so the stdlib reader handles it.
+        if path.suffix in COMPRESSED_SUFFIXES:
+            with gzip.GzipFile(fileobj=raw, mode="rb") as handle:
+                yield handle
+        else:
+            yield raw
 
 
 def count_vcf_records(path: Path) -> int:
