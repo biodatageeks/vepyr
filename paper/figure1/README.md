@@ -1,5 +1,12 @@
 # Figure 1
 
+> **Moved.** Since 2026-11-23 the Figure 1 generator is maintained in the paper repository
+> (`tools/figure1/`, inputs in `data/figure1/` and `data/wgs_scaling.csv`), where
+> `tools/make_numbers.py` runs it on every LaTeX compile, also on Overleaf. This folder is the
+> state it was moved from (53e037e) and is no longer updated; change the paper repository instead.
+> When `paper/tool-comparison` or `paper/hg002-tiered-annotation` produce new results, copy them
+> to the paper's `data/figure1/`.
+
 Panels: A tool comparison, B interactive analysis of HG002 with vepyr and
 polars-bio, C1–C4 architecture and cache, D query pushdown, E performance.
 The figure is TikZ, sized to the text width of the Bioinformatics template
