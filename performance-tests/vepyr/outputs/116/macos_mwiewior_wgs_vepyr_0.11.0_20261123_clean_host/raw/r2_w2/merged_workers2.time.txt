@@ -1,0 +1,7 @@
+	Command being timed: "/Users/mwiewior/workspace/venvs/vepyr-0.11.0/bin/python -P /Users/mwiewior/research/git/vepyr/.worktrees/scaling-untimed-count/performance-tests/vepyr/scripts/benchmark_vepyr_once.py --input-vcf /Users/mwiewior/workspace/data_vepyr/input/HG002_normalized.vcf.gz --cache-dir /Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged --cache-type merged --reference-fasta /Users/mwiewior/workspace/data_vepyr/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --output-vcf /Users/mwiewior/research/benchmarks/vepyr-0110-clean-host-20261123/scaling/r2_w2/ssd/HG002_annotated_wgs_everything_hgvs_vepyr_merged_workers2.vcf --metrics-json /Users/mwiewior/research/benchmarks/vepyr-0110-clean-host-20261123/scaling/r2_w2/ssd/merged_workers2.metrics.json --workers 2 --expected-records 4096123 --compression plain --preserve-record-layout on"
+	User time (seconds): 306.16
+	System time (seconds): 26.41
+	Percent of CPU this job got: 277%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:59.99
+	Maximum resident set size (kbytes): 6155568
+	Exit status: 0

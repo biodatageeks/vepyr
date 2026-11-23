@@ -1,0 +1,4 @@
+HG002, merged cache, one invocation for the whole VCF (medians of valid runs)
+engine   wall w1  w2  w4  w8 | CPU w1  w8 | speed-up | peak RSS w8 | n | checksums ok
+vepyr 190.2 115.7 75.2 54.1 | 325.6 383.1 | 6.02 | 9.41 | 12 | {'1'}
+runs still swapping after three attempts (excluded): none
