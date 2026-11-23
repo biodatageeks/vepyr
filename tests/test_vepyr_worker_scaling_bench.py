@@ -24,6 +24,12 @@ from pathlib import Path
 
 import pytest
 
+# The benchmark scripts are for the macOS and Linux benchmark hosts: they import the
+# Unix-only modules resource and fcntl.
+pytestmark = pytest.mark.skipif(
+    os.name == "nt", reason="benchmark scripts run on macOS and Linux only"
+)
+
 SCRIPTS = Path(__file__).parents[1] / "performance-tests/vepyr/scripts"
 
 
