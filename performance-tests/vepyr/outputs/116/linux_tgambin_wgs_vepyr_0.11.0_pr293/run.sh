@@ -34,7 +34,8 @@ export VEPYR_EXPECTED_VERSION=0.11.0
 S=$OUT/scripts
 mkdir -p "$RAW" "$S" "$SSD"
 git -C "$REPO" fetch -q origin perf/scaling-untimed-record-count || true
-for f in run_vepyr_worker_scaling.py benchmark_vepyr_once.py; do
+# The runner reads benchmark_workers.txt next to itself for its --workers default, even when --workers is given.
+for f in run_vepyr_worker_scaling.py benchmark_vepyr_once.py benchmark_workers.txt; do
   git -C "$REPO" show "$PR293_COMMIT:performance-tests/vepyr/scripts/$f" > "$S/$f"
 done
 git -C "$REPO" show "$MD5_SRC" > "$S/contig_md5.py"
@@ -85,7 +86,8 @@ run_once() { # label workers
     --ssd-output-dir "$SSD/$label" --archive-dir "$dir" --expected-records 4096123 --compression plain --force \
     --workers "$w" > "$dir/run.log" 2>&1 || { echo "FAILED $label, see $dir/run.log"; exit 1; }
   S1=$(pswpout)  # swap-outs during the timed run and the untimed record count, not the checksum
-  local vcf; vcf=$(ls "$dir"/*.vcf "$SSD/$label"/*.vcf 2>/dev/null | head -1)
+  # One of the two globs never matches; without `|| true`, ls's exit status 2 ends the script under pipefail.
+  local vcf; vcf=$(ls "$dir"/*.vcf "$SSD/$label"/*.vcf 2>/dev/null | head -1 || true)
   [ -n "$vcf" ] || { echo "$label: no output VCF, see $dir/run.log"; exit 1; }
   "$PY" -I "$S/contig_md5.py" "$vcf" "$dir/merged_workers$w.md5.json" > /dev/null
   rm -f -- "$vcf"
