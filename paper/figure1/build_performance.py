@@ -10,10 +10,13 @@ from __future__ import annotations
 import html
 import json
 import math
+import os
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DATA = HERE / "data/performance-wgs.json"
+# The paper repository generates this data from its data/wgs_scaling.csv (tools/make_numbers.py);
+# FIGURE1_PERF_JSON points at that file, otherwise the frozen snapshot of refresh_performance_data.py.
+DATA = Path(os.environ.get("FIGURE1_PERF_JSON", HERE / "data/performance-wgs.json"))
 WIDTH, HEIGHT = 1010, 780
 INK, MUTED, GRID = "#111111", "#555555", "#dddddd"
 LEVELS = (1, 2, 4, 8)
@@ -159,7 +162,7 @@ def build_svg():
         "<desc>Whole-process wall time on a shared logarithmic scale. "
         "VEP no fork, fork 1, 3 and 7 are paired with vepyr workers 1, 2, 4 and 8. "
         "Ratios are VEP time divided by vepyr time at each setting. "
-        "Endpoint labels show elapsed times. One run per setting.</desc>",
+        "Endpoint labels show elapsed times.</desc>",
         '<rect width="100%" height="100%" fill="white"/>',
         '<g font-family="Arial, Helvetica, sans-serif">',
     ]

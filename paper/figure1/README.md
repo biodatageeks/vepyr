@@ -7,7 +7,7 @@ The figure is TikZ, sized to the text width of the Bioinformatics template
 
 ```bash
 python3 ../tool-comparison/build_table.py --pdf  # panel A table
-python3 build_tikz.py                            # figure1-tikz.tex, figure1-table.tex
+FIGURE1_PERF_JSON=<paper>/generated/performance-wgs.json python3 build_tikz.py   # figure1-tikz.tex, figure1-table.tex
 pdflatex figure1-page.tex                        # one journal page: figure + caption
 ```
 
@@ -27,3 +27,11 @@ pdflatex figure1-page.tex                        # one journal page: figure + ca
   `\input{figure1-tikz.tex}` inside the figure; the OUP class already loads
   tikz, xcolor and array, so add `\usetikzlibrary{arrows.meta}`, `colortbl`
   and `booktabs`.
+
+## Panel E data
+
+Panel E is drawn from the paper repository's `generated/performance-wgs.json`, which its
+`tools/make_numbers.py` writes from `data/wgs_scaling.csv` (the same CSV gives supplement Table 17 and the
+main-text times). Set `FIGURE1_PERF_JSON` to that file; without it, `data/performance-wgs.json` (the frozen
+snapshot of `refresh_performance_data.py`) is used. `figure1-tikz.tex` records the SHA-256 of the data it was
+built from, and `tools/make_numbers.py --check` in the paper repository reports a figure built from other data.
