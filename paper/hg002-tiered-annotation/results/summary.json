@@ -18,9 +18,9 @@
   "biallelic_genes": 1,
   "mane_genes": 18352,
   "mane_genes_lt90": 1134,
-  "clingen_genes": 2302,
-  "clingen_genes_lt90": 83,
-  "clingen_genes_lt50": 19,
+  "clingen_genes": 2328,
+  "clingen_genes_lt90": 85,
+  "clingen_genes_lt50": 20,
   "clingen_lt90_segdup_gt50": 8,
   "clingen_lt90_difficult_gt50": 37,
   "clingen_falsedup": [
@@ -29,19 +29,21 @@
     "ICOSLG"
   ],
   "inheritance_counts": {
-    "maternal": 5,
-    "both": 1,
+    "unresolved": 1,
     "paternal": 3,
-    "unresolved": 1
+    "maternal": 5,
+    "both": 1
   },
   "seconds": {
-    "tier3_reads": 38.0,
-    "explode_mane": 18.0,
-    "total": 77.6
+    "tier3_reads": 46.1,
+    "tier3_reads_all": 68.5,
+    "parent_vcf_reads": 23.8,
+    "explode_mane": 16.1,
+    "total": 87.6
   },
   "versions": {
-    "vepyr": "0.10.0",
+    "vepyr": "0.11.0",
     "polars": "1.44.2",
-    "polars_bio": "0.36.2"
+    "polars_bio": "0.38.0"
   }
 }
