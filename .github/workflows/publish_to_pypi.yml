@@ -149,25 +149,33 @@ jobs:
 
   # Wheels build with `--profile dist` (fat LTO, one codegen unit; see
   # Cargo.toml). Its single-threaded final link peaked at 16.2 GB RSS on macOS
-  # arm64, more than GitHub's 16 GB Linux runners can be trusted to hold.
-  # - x86_64 builds on the org's self-hosted hosts (10 vCPU, 25 GB RAM, 64 GB
-  #   swap).
-  # - aarch64 builds natively on GitHub's arm64 runner, with a swapfile added
-  #   for the link. It cannot be cross-compiled on the self-hosted hosts:
-  #   rust-cross/manylinux2014-cross:aarch64 ships gcc 4.8, and libdeflate-sys
-  #   needs >= 4.9 and arm_acle.h. The manylinux_2_28 cross image would raise
-  #   the wheel's glibc floor from 2.17 to 2.28.
+  # arm64, more than GitHub's 16 GB Linux runners can be trusted to hold: on
+  # the hosted arm64 runner the aarch64 link swapped out 7.5 GiB. Both Linux
+  # wheels therefore build on the org's self-hosted x86_64 hosts (10 vCPU,
+  # 25 GB RAM, 64 GB swap), as polars-bio's do.
+  # - x86_64 builds natively in the manylinux2014 image.
+  # - aarch64 is cross-compiled in rust-cross/manylinux_2_28-cross and tested
+  #   on a native arm64 runner by linux-aarch64-smoke. The manylinux2014 cross
+  #   image cannot build it: it ships gcc 4.8, and libdeflate-sys needs >= 4.9
+  #   and arm_acle.h. The 2_28 image raises the aarch64 wheel's glibc floor
+  #   from 2.17 to 2.28, which costs no pip user: pyarrow, a required
+  #   dependency, publishes only manylinux_2_28 wheels for aarch64.
+  #   `--manylinux 2_28` states that floor, so the wheel tag does not depend on
+  #   which glibc symbols a build happens to link. A cross build cannot run the
+  #   image's interpreters, so the abi3 floor is named with `--interpreter`.
   #
   # The self-hosted hosts also run /parity-wgs. Its PR code only runs in a
   # locked-down container (no Docker socket), but host state persists between
   # jobs, and maturin-action reuses any local image carrying the requested tag
   # without pulling. The build images are therefore pinned by digest, which
   # only the registry's content can satisfy. Bump a digest by resolving the tag
-  # maturin-action would otherwise pick, quay.io/pypa/manylinux2014_<arch>:latest.
-  # With `container:` set, maturin-action's `manylinux` input picks nothing, and
-  # `auto` adds no `--manylinux` flag, so it is left unset; maturin derives the
-  # wheel tag from the image's glibc. The build container is `--rm` and
-  # installs Rust itself, so no CARGO_HOME carries over.
+  # maturin-action would otherwise pick: quay.io/pypa/manylinux2014_x86_64:latest
+  # and ghcr.io/rust-cross/manylinux_2_28-cross:aarch64 (the digest of the
+  # multi-platform index, not of one platform's image).
+  # With `container:` set, maturin-action's `manylinux` input picks no image and
+  # only adds the `--manylinux` flag; x86_64 leaves it unset, and maturin
+  # derives that wheel's tag from the image's glibc. The build container is
+  # `--rm` and installs Rust itself, so no CARGO_HOME carries over.
   #
   # That container runs as root and leaves `target/` and `dist/` root-owned in
   # the workspace. maturin-action hands them back with `sudo chown`, which fails
@@ -191,10 +199,13 @@ jobs:
             runner: [self-hosted, linux, x64, vepyr-wgs]
             timeout: 120
             container: quay.io/pypa/manylinux2014_x86_64@sha256:e6a785657009c612fe2a85fa933051d03a50ba62b1c5e47d62abcab546a2e423
+            interpreter: --find-interpreter
           - target: aarch64
-            runner: ubuntu-24.04-arm
+            runner: [self-hosted, linux, x64, vepyr-wgs]
             timeout: 300
-            container: quay.io/pypa/manylinux2014_aarch64@sha256:c2995cae5e2d433fbe757d1466486727b3edd68ba644cd60df253365f35fda9e
+            container: ghcr.io/rust-cross/manylinux_2_28-cross@sha256:ca53fa07ecf1c3e6408c51fbca64c036d9d29af832d3f8bb954910e89097f275
+            manylinux: "2_28"
+            interpreter: --interpreter python3.10
     steps:
       - name: Clean leftovers from earlier jobs
         env:
@@ -207,21 +218,6 @@ jobs:
             head -n 20 "$err"
             docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$IMAGE" /w -mindepth 1 -delete
           fi
-      - name: Add swap for the fat-LTO link (GitHub-hosted only)
-        if: matrix.target == 'aarch64'
-        run: |
-          set -euo pipefail
-          free -g; df -h /
-          # Leave 15 GiB of the root disk for the build; swap gets the rest, up to 32 GiB.
-          avail=$(df -BG --output=avail / | tail -1 | tr -dc 0-9)
-          size=$(( avail - 15 ))
-          if [ "$size" -gt 32 ]; then size=32; fi
-          [ "$size" -ge 8 ] || { echo "::error::only ${avail} GiB free on /, cannot add swap"; exit 1; }
-          sudo fallocate -l "${size}G" /swapfile-lto
-          sudo chmod 600 /swapfile-lto
-          sudo mkswap /swapfile-lto
-          sudo swapon /swapfile-lto
-          free -g
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.ref }}
@@ -233,7 +229,8 @@ jobs:
         with:
           target: ${{ matrix.target }}
           container: ${{ matrix.container }}
-          args: --profile dist --out dist --find-interpreter
+          manylinux: ${{ matrix.manylinux }}
+          args: --profile dist --out dist ${{ matrix.interpreter }}
           sccache: false
       - name: Report whether the build swapped
         if: always()
@@ -256,11 +253,12 @@ jobs:
           IMAGE: ${{ matrix.container }}
         run: docker run --rm --network none -v "$GITHUB_WORKSPACE:/w" --entrypoint find "$IMAGE" /w -mindepth 1 -delete
 
-  # No test tier runs the aarch64 wheel (they all take x86_64), so check the
-  # fat-LTO build on arm64 before it can be published: the import tests, plus
+  # No test tier runs the aarch64 wheel (they all take x86_64), and it is
+  # cross-compiled, so nothing has executed it yet. Check the fat-LTO build on
+  # a native arm64 runner before it can be published: the import tests, plus
   # the default golden suite, which annotates tests/data/golden against its
-  # Ensembl VEP output (~10 s). That catches an LTO miscompile, not just a
-  # broken link.
+  # Ensembl VEP output (~10 s). That catches an LTO or cross-build miscompile,
+  # not just a broken link.
   linux-aarch64-smoke:
     needs: [prepare, linux]
     runs-on: ubuntu-24.04-arm

@@ -48,8 +48,8 @@ strip = "symbols"
 # Measured on macOS arm64 (biodatageeks/polars-bio#511 for the method): wheel
 # 47.4 -> 34.5 MB, annotation 3-5% faster in wall and CPU time on HG002 and
 # ClinVar, byte-identical output. The cost is the build: 3.5x longer and a
-# single-threaded final link that peaked at 16.2 GB RSS, which is why the Linux
-# x86_64 wheel builds on the self-hosted runners and aarch64 adds swap.
+# single-threaded final link that peaked at 16.2 GB RSS, which is why both
+# Linux wheels build on the self-hosted runners (aarch64 is cross-compiled).
 # Reproduce a published wheel with `maturin build --profile dist`.
 [profile.dist]
 inherits = "release"
