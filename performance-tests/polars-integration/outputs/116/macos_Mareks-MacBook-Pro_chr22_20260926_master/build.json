@@ -1,0 +1,6 @@
+{
+  "note": "Experiment C and the parity gate re-run on released master. Experiment B re-times the vepyr side only; its VEP + filter_vep rows are reused from the 20260924 run (run_e2e.py --reuse-filter-vep), since neither depends on the vepyr build (same host, same VEP outputs, same filter_vep). Experiment A, B_sliced and the VEP timings are carried over from 20260924 too.",
+  "vepyr": "master 9e37d43 (#131 + #134) merged into perf/polars-supplement as cd95ad7",
+  "engine": "datafusion-bio-functions v0.23.0 (#262 + #261)",
+  "build": "RUSTFLAGS='-C target-cpu=native' uv sync --reinstall-package vepyr (release)"
+}

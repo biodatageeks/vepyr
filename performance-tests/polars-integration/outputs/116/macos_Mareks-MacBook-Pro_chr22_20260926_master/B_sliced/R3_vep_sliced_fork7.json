@@ -1,0 +1,67 @@
+{
+  "warmups": [
+    {
+      "cmd": [
+        "bash",
+        "-c",
+        "bcftools view -t chr22:29603520-29698598 -Oz -o /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/input/HG002_chr22.vcf.gz && tabix -f -p vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz && docker run --rm --user 501:20 --env HOME=/tmp -v /Users/mwiewior/workspace/data_vepyr:/data -v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_ensembl/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro ensemblorg/ensembl-vep:release_116.0 vep --dir /opt/vep/.vep --cache --assembly GRCh38 --hgvs --offline --vcf --no_stats --force_overwrite --everything --fasta /data/polars_integration/chr22/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --input_file /data/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz --output_file /data/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf --fork 7 && bash /Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.fv.vcf '(CHROM is chr22 and POS >= 29603520 and POS <= 29698598)'"
+      ],
+      "exit": 0,
+      "wall_s": 1.722687375266105,
+      "user_s": 0.08289099999999999,
+      "sys_s": 0.021262,
+      "max_rss_bytes": 27508736,
+      "load_1m_before": 3.62646484375
+    }
+  ],
+  "runs": [
+    {
+      "cmd": [
+        "bash",
+        "-c",
+        "bcftools view -t chr22:29603520-29698598 -Oz -o /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/input/HG002_chr22.vcf.gz && tabix -f -p vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz && docker run --rm --user 501:20 --env HOME=/tmp -v /Users/mwiewior/workspace/data_vepyr:/data -v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_ensembl/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro ensemblorg/ensembl-vep:release_116.0 vep --dir /opt/vep/.vep --cache --assembly GRCh38 --hgvs --offline --vcf --no_stats --force_overwrite --everything --fasta /data/polars_integration/chr22/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --input_file /data/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz --output_file /data/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf --fork 7 && bash /Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.fv.vcf '(CHROM is chr22 and POS >= 29603520 and POS <= 29698598)'"
+      ],
+      "exit": 0,
+      "wall_s": 1.7241262500174344,
+      "user_s": 0.084934,
+      "sys_s": 0.024477,
+      "max_rss_bytes": 27672576,
+      "load_1m_before": 3.576171875
+    },
+    {
+      "cmd": [
+        "bash",
+        "-c",
+        "bcftools view -t chr22:29603520-29698598 -Oz -o /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/input/HG002_chr22.vcf.gz && tabix -f -p vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz && docker run --rm --user 501:20 --env HOME=/tmp -v /Users/mwiewior/workspace/data_vepyr:/data -v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_ensembl/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro ensemblorg/ensembl-vep:release_116.0 vep --dir /opt/vep/.vep --cache --assembly GRCh38 --hgvs --offline --vcf --no_stats --force_overwrite --everything --fasta /data/polars_integration/chr22/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --input_file /data/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz --output_file /data/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf --fork 7 && bash /Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.fv.vcf '(CHROM is chr22 and POS >= 29603520 and POS <= 29698598)'"
+      ],
+      "exit": 0,
+      "wall_s": 1.725453166756779,
+      "user_s": 0.08777,
+      "sys_s": 0.024728999999999998,
+      "max_rss_bytes": 27656192,
+      "load_1m_before": 3.576171875
+    },
+    {
+      "cmd": [
+        "bash",
+        "-c",
+        "bcftools view -t chr22:29603520-29698598 -Oz -o /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/input/HG002_chr22.vcf.gz && tabix -f -p vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz && docker run --rm --user 501:20 --env HOME=/tmp -v /Users/mwiewior/workspace/data_vepyr:/data -v /Users/mwiewior/workspace/data_vepyr/homo_sapiens_ensembl/116_GRCh38:/opt/vep/.vep/homo_sapiens/116_GRCh38:ro ensemblorg/ensembl-vep:release_116.0 vep --dir /opt/vep/.vep --cache --assembly GRCh38 --hgvs --offline --vcf --no_stats --force_overwrite --everything --fasta /data/polars_integration/chr22/input/Homo_sapiens.GRCh38.dna.primary_assembly.fa --input_file /data/polars_integration/chr22/runs/B_sliced/R3.input.vcf.gz --output_file /data/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf --fork 7 && bash /Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.vep.vcf /Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B_sliced/R3.fork7.fv.vcf '(CHROM is chr22 and POS >= 29603520 and POS <= 29698598)'"
+      ],
+      "exit": 0,
+      "wall_s": 1.7695160834118724,
+      "user_s": 0.09150599999999999,
+      "sys_s": 0.023811,
+      "max_rss_bytes": 27607040,
+      "load_1m_before": 3.576171875
+    }
+  ],
+  "median_wall_s": 1.725453166756779,
+  "min_wall_s": 1.7241262500174344,
+  "max_wall_s": 1.7695160834118724,
+  "median_rss_bytes": 27656192,
+  "query": "R3",
+  "tool": "vep_sliced",
+  "fork": 7,
+  "processes": 8,
+  "rows": 131
+}

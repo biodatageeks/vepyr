@@ -1,0 +1,73 @@
+{
+  "warmups": [
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P1.fv.vcf",
+        "CADD_PHRED > 20"
+      ],
+      "exit": 0,
+      "wall_s": 76.50574050005525,
+      "user_s": 0.014546,
+      "sys_s": 0.012974,
+      "max_rss_bytes": 28065792,
+      "load_1m_before": 3.34375
+    }
+  ],
+  "runs": [
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P1.fv.vcf",
+        "CADD_PHRED > 20"
+      ],
+      "exit": 0,
+      "wall_s": 74.66806554235518,
+      "user_s": 0.015573,
+      "sys_s": 0.013108999999999999,
+      "max_rss_bytes": 28033024,
+      "load_1m_before": 3.12451171875
+    },
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P1.fv.vcf",
+        "CADD_PHRED > 20"
+      ],
+      "exit": 0,
+      "wall_s": 73.99302949989215,
+      "user_s": 0.014499,
+      "sys_s": 0.011757,
+      "max_rss_bytes": 28180480,
+      "load_1m_before": 3.59228515625
+    },
+    {
+      "cmd": [
+        "bash",
+        "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/plugins/fork0/rep0.vcf",
+        "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/A/P1.fv.vcf",
+        "CADD_PHRED > 20"
+      ],
+      "exit": 0,
+      "wall_s": 78.71806541690603,
+      "user_s": 0.015245,
+      "sys_s": 0.014027,
+      "max_rss_bytes": 28196864,
+      "load_1m_before": 3.4833984375
+    }
+  ],
+  "median_wall_s": 74.66806554235518,
+  "min_wall_s": 73.99302949989215,
+  "max_wall_s": 78.71806541690603,
+  "median_rss_bytes": 28180480,
+  "query": "P1",
+  "tool": "filter_vep",
+  "rows": 73
+}

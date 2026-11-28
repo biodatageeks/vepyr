@@ -1,0 +1,78 @@
+{
+  "query": "Q8",
+  "tool": "vep",
+  "fork": 3,
+  "processes": 4,
+  "annotate_median_wall_s": 101.29853262472898,
+  "filter": {
+    "warmups": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q8.fv.fork3.vcf",
+          "Consequence match missense_variant and SIFT match deleterious and PolyPhen match damaging"
+        ],
+        "exit": 0,
+        "wall_s": 42.5176844173111,
+        "user_s": 0.013913,
+        "sys_s": 0.012614,
+        "max_rss_bytes": 28016640,
+        "load_1m_before": 2.65576171875
+      }
+    ],
+    "runs": [
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q8.fv.fork3.vcf",
+          "Consequence match missense_variant and SIFT match deleterious and PolyPhen match damaging"
+        ],
+        "exit": 0,
+        "wall_s": 42.50309216603637,
+        "user_s": 0.014882,
+        "sys_s": 0.014558,
+        "max_rss_bytes": 27967488,
+        "load_1m_before": 2.591796875
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q8.fv.fork3.vcf",
+          "Consequence match missense_variant and SIFT match deleterious and PolyPhen match damaging"
+        ],
+        "exit": 0,
+        "wall_s": 42.1158352503553,
+        "user_s": 0.015602999999999999,
+        "sys_s": 0.016021999999999998,
+        "max_rss_bytes": 27983872,
+        "load_1m_before": 2.13525390625
+      },
+      {
+        "cmd": [
+          "bash",
+          "/Users/mwiewior/research/git/vepyr/performance-tests/polars-integration/scripts/filter_vep_once.sh",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/vep/core/fork3/rep0.vcf",
+          "/Users/mwiewior/workspace/data_vepyr/polars_integration/chr22/runs/B/Q8.fv.fork3.vcf",
+          "Consequence match missense_variant and SIFT match deleterious and PolyPhen match damaging"
+        ],
+        "exit": 0,
+        "wall_s": 41.490473499987274,
+        "user_s": 0.015937,
+        "sys_s": 0.016345,
+        "max_rss_bytes": 27869184,
+        "load_1m_before": 1.953125
+      }
+    ],
+    "median_wall_s": 42.1158352503553,
+    "min_wall_s": 41.490473499987274,
+    "max_wall_s": 42.50309216603637,
+    "median_rss_bytes": 27967488
+  },
+  "median_wall_s": 143.41436787508428
+}

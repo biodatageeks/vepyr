@@ -1,0 +1,6 @@
+{
+  "note": "Full re-run with every query on the release-116 merged cache (VEP and vepyr). VEP, filter_vep, the parity gate and experiments A, B, B_sliced and C are all measured in this run. C_old_build_pre_fix and verify_old_build.json are carried over from 20260926_master for the plugin-fix table (P1-P5, merged cache).",
+  "vepyr": "0.9.0 from PyPI (uv pip install vepyr==0.9.0 into the vepyr repo .venv), the version used for all performance tests in the paper",
+  "engine": "datafusion-bio-function-vep = { git = \"https://github.com/biodatageeks/datafusion-bio-functions.git\", tag = \"v0.23.0\", features = [\"cache-builder\"] }",
+  "build": "prebuilt PyPI wheel; not compiled with -C target-cpu=native, unlike the 20260924 and 20260926_master runs"
+}
