@@ -20,12 +20,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", required=True, type=Path)
     ap.add_argument("--repeats", type=int, default=3)
+    ap.add_argument("--queries", nargs="*", help="default: all")
     a = ap.parse_args()
     run_dir = PKG_ROOT / a.run_dir
     verify = json.loads((run_dir / "verify.json").read_text())
     tmp = WORK / "runs" / "A"
     tmp.mkdir(parents=True, exist_ok=True)
     for q in QUERIES:
+        if a.queries and q.id not in a.queries:
+            continue
         if q.id not in verify:
             print(f"{q.id}: excluded (not verified)")
             continue
