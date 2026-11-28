@@ -1,0 +1,18 @@
+== Mon Nov 23 07:24:28 CET 2026
+ 7:24  up 2 mins, 4 users, load averages: 12.27 10.07 4.48
+vm.swapusage: total = 0.00M  used = 0.00M  free = 0.00M  (encrypted)
+   3 	Indexing disabled.
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                             2900539.
+Pages active:                            535334.
+Pages inactive:                          323247.
+Pages speculative:                       222650.
+Pages throttled:                              0.
+Pages wired down:                        153670.
+Pages purgeable:                          72108.
+"Translation faults":                   3481678.
+Pages copy-on-write:                     460665.
+Pages zero filled:                      1179909.
+Pages reactivated:                          442.
+Now drawing from 'AC Power'
+/dev/disk3s5   1.8Ti   1.7Ti   139Gi    93%     11M  1.5G    1%   /System/Volumes/Data

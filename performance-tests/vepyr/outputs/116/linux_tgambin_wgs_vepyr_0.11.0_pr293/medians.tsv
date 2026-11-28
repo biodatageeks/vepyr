@@ -1,0 +1,5 @@
+workers	process_wall_median_s	annotation_median_s	peak_rss_median_gib	n
+1	302.09	301.85	3.29	3
+2	178.22	177.96	4.72	3
+4	110.37	110.12	4.78	3
+8	78.59	78.32	5.44	3

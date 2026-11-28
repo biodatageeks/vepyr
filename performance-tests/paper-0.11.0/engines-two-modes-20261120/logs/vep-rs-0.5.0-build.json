@@ -1,0 +1,11 @@
+{
+  "label": "vep-rs-0.5.0",
+  "commit": "1d848731f5d56880061213695985ae3b36bcfe1e",
+  "started_utc": "2026-11-20T08:57:22Z",
+  "ended_utc": "2026-11-20T08:58:22Z",
+  "command": "cargo build --release --locked -p vep-cli --bin vep",
+  "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
+  "rustflags": "-C target-cpu=native",
+  "binary": "/Users/mwiewior/research/benchmarks/engines-two-modes-20261120/bin/vep-rs-0.5.0",
+  "sha256": "43cc4e36ec1a8c707d71b4e8e098183685e8884cb64835bfa7be472fb0d58383"
+}

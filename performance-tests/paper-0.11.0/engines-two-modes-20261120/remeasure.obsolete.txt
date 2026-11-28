@@ -1,0 +1,8 @@
+Rows to re-measure after the run has finished (disk cleanup at the user's request ran 10:17:30-10:21:05 on 2026-11-20:
+du over ~/research/git, rm of 60 GiB of cargo target directories, two git worktree removals):
+  split merged HG002 vepyr   chromosomes 14-22 (warm-up and all worker counts)
+  split merged HG002 fastVEP chromosome 1      (warm-up and all worker counts)
+How: when no driver is running, copy runs.csv to runs.before-remeasure.csv, delete those rows (warmup and measured),
+then  RUN_PANELS=merged:HG002 RUN_MODES=split RUN_ENGINES=vepyr zsh scripts/run.zsh   and the same with
+RUN_ENGINES=fastVEP (the full contig list keeps the order of worker counts; existing rows are skipped).
+The sentinel during the cleanup read 7.36 s (healthy), so the effect was probably small.

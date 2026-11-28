@@ -1,0 +1,1129 @@
+{
+  "identical_settings": true,
+  "differences_a_b": [],
+  "differences_original_a": [
+    "only in A: created_by=Some(\"parquet-rs version 58.0.0\")",
+    "only in B: created_by=Some(\"parquet-rs version 59.3.2\")"
+  ],
+  "files": [
+    {
+      "file": "/Users/mwiewior/workspace/data_vepyr/cache/tiering-gain/tiered/116_GRCh38_merged/variation/chr22.parquet",
+      "rows": 15148238,
+      "runs": 2,
+      "start_pages": 14802,
+      "bytes": 398201486,
+      "pages": [
+        {
+          "column": "chrom",
+          "pages": 14812,
+          "rows_min_median_max": [
+            21,
+            1024,
+            1088
+          ],
+          "bytes_min_median_max": [
+            40,
+            43,
+            43
+          ]
+        },
+        {
+          "column": "start",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            189,
+            2452,
+            3427
+          ]
+        },
+        {
+          "column": "end",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            189,
+            2485,
+            3502
+          ]
+        },
+        {
+          "column": "allele_string",
+          "pages": 26657,
+          "rows_min_median_max": [
+            12,
+            515,
+            1061
+          ],
+          "bytes_min_median_max": [
+            131,
+            1044,
+            4092
+          ]
+        },
+        {
+          "column": "failed",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            35,
+            36,
+            56
+          ]
+        },
+        {
+          "column": "variation_name",
+          "pages": 20415,
+          "rows_min_median_max": [
+            64,
+            512,
+            1483
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            1840
+          ]
+        },
+        {
+          "column": "clin_sig",
+          "pages": 22614,
+          "rows_min_median_max": [
+            64,
+            512,
+            1533
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            981
+          ]
+        },
+        {
+          "column": "clin_sig_allele",
+          "pages": 22635,
+          "rows_min_median_max": [
+            64,
+            512,
+            1519
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            1296
+          ]
+        },
+        {
+          "column": "clin_sig_ref_allele",
+          "pages": 22618,
+          "rows_min_median_max": [
+            64,
+            512,
+            1408
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            447
+          ]
+        },
+        {
+          "column": "strand",
+          "pages": 29587,
+          "rows_min_median_max": [
+            64,
+            512,
+            960
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "clinical_impact",
+          "pages": 29507,
+          "rows_min_median_max": [
+            64,
+            512,
+            1024
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            120
+          ]
+        },
+        {
+          "column": "phenotype_or_disease",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            35,
+            54,
+            157
+          ]
+        },
+        {
+          "column": "pubmed",
+          "pages": 22519,
+          "rows_min_median_max": [
+            64,
+            512,
+            1428
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            3665
+          ]
+        },
+        {
+          "column": "somatic",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            35,
+            52,
+            157
+          ]
+        },
+        {
+          "column": "minor_allele",
+          "pages": 29587,
+          "rows_min_median_max": [
+            64,
+            512,
+            960
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "minor_allele_freq",
+          "pages": 29587,
+          "rows_min_median_max": [
+            64,
+            512,
+            960
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "clinvar_ids",
+          "pages": 22652,
+          "rows_min_median_max": [
+            64,
+            512,
+            1528
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            4776
+          ]
+        },
+        {
+          "column": "cosmic_ids",
+          "pages": 20419,
+          "rows_min_median_max": [
+            64,
+            512,
+            1526
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            2740
+          ]
+        },
+        {
+          "column": "dbsnp_ids",
+          "pages": 39974,
+          "rows_min_median_max": [
+            49,
+            281,
+            990
+          ],
+          "bytes_min_median_max": [
+            321,
+            1484,
+            3151
+          ]
+        },
+        {
+          "column": "tier",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            38,
+            40,
+            43
+          ]
+        },
+        {
+          "column": "af_global_alleles.list.item",
+          "pages": 15914,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1408
+          ],
+          "bytes_min_median_max": [
+            41,
+            243,
+            851
+          ]
+        },
+        {
+          "column": "af_global_freqs.list.item",
+          "pages": 20217,
+          "rows_min_median_max": [
+            6,
+            759,
+            1469
+          ],
+          "bytes_min_median_max": [
+            38,
+            589,
+            4954
+          ]
+        },
+        {
+          "column": "af_gnomade_alleles.list.item",
+          "pages": 18626,
+          "rows_min_median_max": [
+            28,
+            991,
+            1518
+          ],
+          "bytes_min_median_max": [
+            41,
+            41,
+            1776
+          ]
+        },
+        {
+          "column": "af_gnomade_freqs.list.item",
+          "pages": 23357,
+          "rows_min_median_max": [
+            45,
+            512,
+            1534
+          ],
+          "bytes_min_median_max": [
+            41,
+            41,
+            4863
+          ]
+        },
+        {
+          "column": "af_gnomadg_alleles.list.item",
+          "pages": 16455,
+          "rows_min_median_max": [
+            7,
+            977,
+            1493
+          ],
+          "bytes_min_median_max": [
+            41,
+            891,
+            3461
+          ]
+        },
+        {
+          "column": "af_gnomadg_freqs.list.item",
+          "pages": 57970,
+          "rows_min_median_max": [
+            1,
+            278,
+            1368
+          ],
+          "bytes_min_median_max": [
+            41,
+            2013,
+            5621
+          ]
+        }
+      ]
+    },
+    {
+      "file": "/Users/mwiewior/workspace/data_vepyr/cache/tiering-gain/sorted/116_GRCh38_merged/variation/chr22.parquet",
+      "rows": 15148238,
+      "runs": 1,
+      "start_pages": 14802,
+      "bytes": 400816013,
+      "pages": [
+        {
+          "column": "chrom",
+          "pages": 14812,
+          "rows_min_median_max": [
+            21,
+            1024,
+            1088
+          ],
+          "bytes_min_median_max": [
+            40,
+            43,
+            43
+          ]
+        },
+        {
+          "column": "start",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            191,
+            2427,
+            3496
+          ]
+        },
+        {
+          "column": "end",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            193,
+            2462,
+            3558
+          ]
+        },
+        {
+          "column": "allele_string",
+          "pages": 27771,
+          "rows_min_median_max": [
+            13,
+            511,
+            1076
+          ],
+          "bytes_min_median_max": [
+            79,
+            1047,
+            7000
+          ]
+        },
+        {
+          "column": "failed",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            35,
+            36,
+            74
+          ]
+        },
+        {
+          "column": "variation_name",
+          "pages": 20488,
+          "rows_min_median_max": [
+            64,
+            512,
+            1408
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            1828
+          ]
+        },
+        {
+          "column": "clin_sig",
+          "pages": 22835,
+          "rows_min_median_max": [
+            64,
+            512,
+            1433
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            881
+          ]
+        },
+        {
+          "column": "clin_sig_allele",
+          "pages": 22860,
+          "rows_min_median_max": [
+            64,
+            512,
+            1512
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            1232
+          ]
+        },
+        {
+          "column": "clin_sig_ref_allele",
+          "pages": 22843,
+          "rows_min_median_max": [
+            64,
+            512,
+            1408
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            462
+          ]
+        },
+        {
+          "column": "strand",
+          "pages": 29587,
+          "rows_min_median_max": [
+            64,
+            512,
+            960
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "clinical_impact",
+          "pages": 29507,
+          "rows_min_median_max": [
+            64,
+            512,
+            1024
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            120
+          ]
+        },
+        {
+          "column": "phenotype_or_disease",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            35,
+            52,
+            157
+          ]
+        },
+        {
+          "column": "pubmed",
+          "pages": 16635,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            2038
+          ]
+        },
+        {
+          "column": "somatic",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            35,
+            49,
+            157
+          ]
+        },
+        {
+          "column": "minor_allele",
+          "pages": 29587,
+          "rows_min_median_max": [
+            64,
+            512,
+            960
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "minor_allele_freq",
+          "pages": 29587,
+          "rows_min_median_max": [
+            64,
+            512,
+            960
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "clinvar_ids",
+          "pages": 22878,
+          "rows_min_median_max": [
+            64,
+            512,
+            1514
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            4251
+          ]
+        },
+        {
+          "column": "cosmic_ids",
+          "pages": 20526,
+          "rows_min_median_max": [
+            64,
+            512,
+            1528
+          ],
+          "bytes_min_median_max": [
+            34,
+            34,
+            2963
+          ]
+        },
+        {
+          "column": "dbsnp_ids",
+          "pages": 39959,
+          "rows_min_median_max": [
+            58,
+            279,
+            918
+          ],
+          "bytes_min_median_max": [
+            344,
+            1475,
+            3263
+          ]
+        },
+        {
+          "column": "tier",
+          "pages": 14802,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1472
+          ],
+          "bytes_min_median_max": [
+            40,
+            40,
+            40
+          ]
+        },
+        {
+          "column": "af_global_alleles.list.item",
+          "pages": 15931,
+          "rows_min_median_max": [
+            64,
+            1024,
+            1473
+          ],
+          "bytes_min_median_max": [
+            41,
+            261,
+            435
+          ]
+        },
+        {
+          "column": "af_global_freqs.list.item",
+          "pages": 20979,
+          "rows_min_median_max": [
+            10,
+            723,
+            1478
+          ],
+          "bytes_min_median_max": [
+            41,
+            779,
+            2263
+          ]
+        },
+        {
+          "column": "af_gnomade_alleles.list.item",
+          "pages": 18934,
+          "rows_min_median_max": [
+            64,
+            980,
+            1535
+          ],
+          "bytes_min_median_max": [
+            41,
+            41,
+            1613
+          ]
+        },
+        {
+          "column": "af_gnomade_freqs.list.item",
+          "pages": 23732,
+          "rows_min_median_max": [
+            34,
+            512,
+            1532
+          ],
+          "bytes_min_median_max": [
+            38,
+            41,
+            4283
+          ]
+        },
+        {
+          "column": "af_gnomadg_alleles.list.item",
+          "pages": 16307,
+          "rows_min_median_max": [
+            3,
+            966,
+            1503
+          ],
+          "bytes_min_median_max": [
+            41,
+            940,
+            3480
+          ]
+        },
+        {
+          "column": "af_gnomadg_freqs.list.item",
+          "pages": 57708,
+          "rows_min_median_max": [
+            2,
+            272,
+            1323
+          ],
+          "bytes_min_median_max": [
+            41,
+            2172,
+            5232
+          ]
+        }
+      ]
+    },
+    {
+      "file": "/Users/mwiewior/workspace/data_vepyr/cache/116_GRCh38_merged/variation/chr22.parquet",
+      "rows": 15148238,
+      "runs": 2,
+      "start_pages": 15381,
+      "bytes": 389598858,
+      "pages": [
+        {
+          "column": "chrom",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            38,
+            43,
+            44
+          ]
+        },
+        {
+          "column": "start",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            46,
+            2442,
+            3864
+          ]
+        },
+        {
+          "column": "end",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            46,
+            2474,
+            3917
+          ]
+        },
+        {
+          "column": "allele_string",
+          "pages": 16080,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1533
+          ],
+          "bytes_min_median_max": [
+            61,
+            1866,
+            7612
+          ]
+        },
+        {
+          "column": "failed",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            27,
+            36,
+            60
+          ]
+        },
+        {
+          "column": "variation_name",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            103,
+            1944
+          ]
+        },
+        {
+          "column": "clin_sig",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            1033
+          ]
+        },
+        {
+          "column": "clin_sig_allele",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            2192
+          ]
+        },
+        {
+          "column": "clin_sig_ref_allele",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            425
+          ]
+        },
+        {
+          "column": "strand",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "clinical_impact",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            111
+          ]
+        },
+        {
+          "column": "phenotype_or_disease",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            27,
+            53,
+            189
+          ]
+        },
+        {
+          "column": "pubmed",
+          "pages": 15382,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            4642
+          ]
+        },
+        {
+          "column": "somatic",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            27,
+            50,
+            177
+          ]
+        },
+        {
+          "column": "minor_allele",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "minor_allele_freq",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            34
+          ]
+        },
+        {
+          "column": "clinvar_ids",
+          "pages": 15382,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            34,
+            9254
+          ]
+        },
+        {
+          "column": "cosmic_ids",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            32,
+            104,
+            3871
+          ]
+        },
+        {
+          "column": "dbsnp_ids",
+          "pages": 16292,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1331
+          ],
+          "bytes_min_median_max": [
+            102,
+            5259,
+            6403
+          ]
+        },
+        {
+          "column": "tier",
+          "pages": 15381,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            36,
+            40,
+            40
+          ]
+        },
+        {
+          "column": "af_global_alleles.list.item",
+          "pages": 15383,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1535
+          ],
+          "bytes_min_median_max": [
+            41,
+            243,
+            803
+          ]
+        },
+        {
+          "column": "af_global_freqs.list.item",
+          "pages": 19162,
+          "rows_min_median_max": [
+            22,
+            769,
+            1525
+          ],
+          "bytes_min_median_max": [
+            38,
+            597,
+            5154
+          ]
+        },
+        {
+          "column": "af_gnomade_alleles.list.item",
+          "pages": 15492,
+          "rows_min_median_max": [
+            5,
+            1024,
+            1532
+          ],
+          "bytes_min_median_max": [
+            38,
+            41,
+            1635
+          ]
+        },
+        {
+          "column": "af_gnomade_freqs.list.item",
+          "pages": 19790,
+          "rows_min_median_max": [
+            18,
+            862,
+            1535
+          ],
+          "bytes_min_median_max": [
+            41,
+            244,
+            4862
+          ]
+        },
+        {
+          "column": "af_gnomadg_alleles.list.item",
+          "pages": 16363,
+          "rows_min_median_max": [
+            5,
+            975,
+            1494
+          ],
+          "bytes_min_median_max": [
+            41,
+            875,
+            5161
+          ]
+        },
+        {
+          "column": "af_gnomadg_freqs.list.item",
+          "pages": 58358,
+          "rows_min_median_max": [
+            3,
+            278,
+            1385
+          ],
+          "bytes_min_median_max": [
+            41,
+            2016,
+            5814
+          ]
+        }
+      ]
+    }
+  ]
+}

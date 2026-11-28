@@ -1,0 +1,14 @@
+time,run,free_gib,released_gib,free_after_gib
+07:24:28,warmup vepyr w8 a1,44,0,44
+07:25:36,r1 vepyr w8 a1,26,0,26
+07:28:02,r1 vepyr w4 a1,27,0,27
+07:29:19,r1 vepyr w2 a1,26,0,26
+07:31:16,r1 vepyr w1 a1,25,0,25
+07:35:53,r2 vepyr w1 a1,23,0,23
+07:40:27,r2 vepyr w2 a1,24,0,24
+07:42:23,r2 vepyr w4 a1,24,0,24
+07:43:38,r2 vepyr w8 a1,24,0,24
+07:46:00,r3 vepyr w8 a1,24,0,24
+07:48:21,r3 vepyr w4 a1,24,0,24
+07:49:38,r3 vepyr w2 a1,24,0,24
+07:51:34,r3 vepyr w1 a1,24,0,24

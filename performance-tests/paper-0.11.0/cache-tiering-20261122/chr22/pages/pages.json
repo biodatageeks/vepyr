@@ -1,0 +1,581 @@
+{
+  "metrics": {
+    "cand_pages": "position pages decoded to find the rows (phase 2)",
+    "p2_start_pages_in_fetched_full": "position pages covered by the bytes fetched in phase 2",
+    "p2_bytes": "bytes fetched in phase 2",
+    "p2_ops": "read operations in phase 2",
+    "hit_pages": "position pages holding a matched row",
+    "p3_req_ranges": "pages decoded to read the matched rows, all columns (phase 3)",
+    "p3_all_leaf_pages_in_fetched": "pages covered by the bytes fetched in phase 3",
+    "p3_bytes": "bytes fetched in phase 3",
+    "p3_ops": "read operations in phase 3"
+  },
+  "buffers": {
+    "0": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 949,
+        "sorted": 907,
+        "reduction": -0.04630650496141131
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1177,
+        "sorted": 1142,
+        "reduction": -0.030647985989492144
+      },
+      "p2_bytes": {
+        "tiered": 2803254,
+        "sorted": 2705422,
+        "reduction": -0.03616145651214486
+      },
+      "p2_ops": {
+        "tiered": 9,
+        "sorted": 6,
+        "reduction": -0.5
+      },
+      "hit_pages": {
+        "tiered": 300,
+        "sorted": 907,
+        "reduction": 0.6692392502756339
+      },
+      "p3_req_ranges": {
+        "tiered": 9022,
+        "sorted": 32451,
+        "reduction": 0.7219808326399803
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 104059,
+        "sorted": 88210,
+        "reduction": -0.17967350640516955
+      },
+      "p3_bytes": {
+        "tiered": 25718788,
+        "sorted": 29587644,
+        "reduction": 0.13075917771621148
+      },
+      "p3_ops": {
+        "tiered": 121,
+        "sorted": 68,
+        "reduction": -0.7794117647058822
+      }
+    },
+    "1": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 1064,
+        "sorted": 1046,
+        "reduction": -0.017208413001912115
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1290,
+        "sorted": 1263,
+        "reduction": -0.0213776722090262
+      },
+      "p2_bytes": {
+        "tiered": 3107109,
+        "sorted": 3024563,
+        "reduction": -0.027291876545471272
+      },
+      "p2_ops": {
+        "tiered": 6,
+        "sorted": 5,
+        "reduction": -0.19999999999999996
+      },
+      "hit_pages": {
+        "tiered": 281,
+        "sorted": 1046,
+        "reduction": 0.7313575525812619
+      },
+      "p3_req_ranges": {
+        "tiered": 8333,
+        "sorted": 35099,
+        "reduction": 0.762585828656087
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 75597,
+        "sorted": 82228,
+        "reduction": 0.0806416305881208
+      },
+      "p3_bytes": {
+        "tiered": 27924451,
+        "sorted": 34514376,
+        "reduction": 0.1909327579904675
+      },
+      "p3_ops": {
+        "tiered": 124,
+        "sorted": 48,
+        "reduction": -1.5833333333333335
+      }
+    },
+    "2": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 955,
+        "sorted": 941,
+        "reduction": -0.014877789585547196
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1175,
+        "sorted": 1165,
+        "reduction": -0.008583690987124415
+      },
+      "p2_bytes": {
+        "tiered": 2833278,
+        "sorted": 2787495,
+        "reduction": -0.016424424079684474
+      },
+      "p2_ops": {
+        "tiered": 5,
+        "sorted": 3,
+        "reduction": -0.6666666666666667
+      },
+      "hit_pages": {
+        "tiered": 288,
+        "sorted": 941,
+        "reduction": 0.69394261424017
+      },
+      "p3_req_ranges": {
+        "tiered": 8734,
+        "sorted": 32010,
+        "reduction": 0.7271477663230241
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 67968,
+        "sorted": 63912,
+        "reduction": -0.06346226060833637
+      },
+      "p3_bytes": {
+        "tiered": 26521260,
+        "sorted": 31009584,
+        "reduction": 0.14473989718791458
+      },
+      "p3_ops": {
+        "tiered": 83,
+        "sorted": 28,
+        "reduction": -1.9642857142857144
+      }
+    },
+    "3": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 1166,
+        "sorted": 1149,
+        "reduction": -0.014795474325500546
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1304,
+        "sorted": 1301,
+        "reduction": -0.002305918524212247
+      },
+      "p2_bytes": {
+        "tiered": 3169476,
+        "sorted": 3140890,
+        "reduction": -0.009101242004654786
+      },
+      "p2_ops": {
+        "tiered": 5,
+        "sorted": 2,
+        "reduction": -1.5
+      },
+      "hit_pages": {
+        "tiered": 309,
+        "sorted": 1149,
+        "reduction": 0.7310704960835509
+      },
+      "p3_req_ranges": {
+        "tiered": 9351,
+        "sorted": 39281,
+        "reduction": 0.7619459789720221
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 74861,
+        "sorted": 63284,
+        "reduction": -0.18293723532014416
+      },
+      "p3_bytes": {
+        "tiered": 27926454,
+        "sorted": 33051629,
+        "reduction": 0.15506573064825335
+      },
+      "p3_ops": {
+        "tiered": 99,
+        "sorted": 23,
+        "reduction": -3.304347826086956
+      }
+    },
+    "4": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 1264,
+        "sorted": 1230,
+        "reduction": -0.027642276422764178
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1570,
+        "sorted": 1565,
+        "reduction": -0.0031948881789136685
+      },
+      "p2_bytes": {
+        "tiered": 3798660,
+        "sorted": 3759457,
+        "reduction": -0.01042783572202044
+      },
+      "p2_ops": {
+        "tiered": 4,
+        "sorted": 3,
+        "reduction": -0.33333333333333326
+      },
+      "hit_pages": {
+        "tiered": 383,
+        "sorted": 1230,
+        "reduction": 0.6886178861788618
+      },
+      "p3_req_ranges": {
+        "tiered": 11447,
+        "sorted": 41367,
+        "reduction": 0.7232818430149637
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 76761,
+        "sorted": 85050,
+        "reduction": 0.09746031746031747
+      },
+      "p3_bytes": {
+        "tiered": 33031545,
+        "sorted": 40113913,
+        "reduction": 0.1765563982750823
+      },
+      "p3_ops": {
+        "tiered": 105,
+        "sorted": 35,
+        "reduction": -2.0
+      }
+    },
+    "5": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 1004,
+        "sorted": 985,
+        "reduction": -0.019289340101522834
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1211,
+        "sorted": 1207,
+        "reduction": -0.003314001657000798
+      },
+      "p2_bytes": {
+        "tiered": 2928873,
+        "sorted": 2899319,
+        "reduction": -0.010193428180893527
+      },
+      "p2_ops": {
+        "tiered": 4,
+        "sorted": 2,
+        "reduction": -1.0
+      },
+      "hit_pages": {
+        "tiered": 279,
+        "sorted": 985,
+        "reduction": 0.716751269035533
+      },
+      "p3_req_ranges": {
+        "tiered": 8323,
+        "sorted": 33668,
+        "reduction": 0.7527919686349056
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 68647,
+        "sorted": 64597,
+        "reduction": -0.06269641005000226
+      },
+      "p3_bytes": {
+        "tiered": 26222674,
+        "sorted": 31323749,
+        "reduction": 0.16285007902470428
+      },
+      "p3_ops": {
+        "tiered": 90,
+        "sorted": 25,
+        "reduction": -2.6
+      }
+    },
+    "6": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 1353,
+        "sorted": 1323,
+        "reduction": -0.0226757369614512
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1745,
+        "sorted": 1743,
+        "reduction": -0.0011474469305794432
+      },
+      "p2_bytes": {
+        "tiered": 4194153,
+        "sorted": 4164101,
+        "reduction": -0.007216923893056393
+      },
+      "p2_ops": {
+        "tiered": 5,
+        "sorted": 3,
+        "reduction": -0.6666666666666667
+      },
+      "hit_pages": {
+        "tiered": 346,
+        "sorted": 1323,
+        "reduction": 0.7384731670445956
+      },
+      "p3_req_ranges": {
+        "tiered": 10399,
+        "sorted": 42456,
+        "reduction": 0.755064066327492
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 83315,
+        "sorted": 86365,
+        "reduction": 0.035315231864760044
+      },
+      "p3_bytes": {
+        "tiered": 33922464,
+        "sorted": 45744423,
+        "reduction": 0.25843497905744706
+      },
+      "p3_ops": {
+        "tiered": 161,
+        "sorted": 33,
+        "reduction": -3.878787878787879
+      }
+    },
+    "7": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 963,
+        "sorted": 947,
+        "reduction": -0.01689545934530101
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1095,
+        "sorted": 1092,
+        "reduction": -0.0027472527472527375
+      },
+      "p2_bytes": {
+        "tiered": 2629504,
+        "sorted": 2600730,
+        "reduction": -0.011063816697619577
+      },
+      "p2_ops": {
+        "tiered": 4,
+        "sorted": 2,
+        "reduction": -1.0
+      },
+      "hit_pages": {
+        "tiered": 283,
+        "sorted": 947,
+        "reduction": 0.7011615628299894
+      },
+      "p3_req_ranges": {
+        "tiered": 8473,
+        "sorted": 32771,
+        "reduction": 0.7414482316682433
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 66586,
+        "sorted": 58363,
+        "reduction": -0.14089405959255008
+      },
+      "p3_bytes": {
+        "tiered": 24914007,
+        "sorted": 28956749,
+        "reduction": 0.13961311748083327
+      },
+      "p3_ops": {
+        "tiered": 88,
+        "sorted": 27,
+        "reduction": -2.259259259259259
+      }
+    },
+    "8": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 1023,
+        "sorted": 999,
+        "reduction": -0.024024024024023927
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1182,
+        "sorted": 1177,
+        "reduction": -0.004248088360237823
+      },
+      "p2_bytes": {
+        "tiered": 2844740,
+        "sorted": 2811824,
+        "reduction": -0.011706280336180264
+      },
+      "p2_ops": {
+        "tiered": 4,
+        "sorted": 2,
+        "reduction": -1.0
+      },
+      "hit_pages": {
+        "tiered": 263,
+        "sorted": 999,
+        "reduction": 0.7367367367367368
+      },
+      "p3_req_ranges": {
+        "tiered": 8005,
+        "sorted": 35155,
+        "reduction": 0.7722941260133693
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 69399,
+        "sorted": 63613,
+        "reduction": -0.090956251080754
+      },
+      "p3_bytes": {
+        "tiered": 23730707,
+        "sorted": 30541256,
+        "reduction": 0.22299505298668787
+      },
+      "p3_ops": {
+        "tiered": 105,
+        "sorted": 22,
+        "reduction": -3.7727272727272725
+      }
+    },
+    "9": {
+      "recs": 5000,
+      "cand_pages": {
+        "tiered": 816,
+        "sorted": 788,
+        "reduction": -0.035532994923857864
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 1017,
+        "sorted": 1002,
+        "reduction": -0.014970059880239583
+      },
+      "p2_bytes": {
+        "tiered": 2420227,
+        "sorted": 2369515,
+        "reduction": -0.021401848057513773
+      },
+      "p2_ops": {
+        "tiered": 3,
+        "sorted": 2,
+        "reduction": -0.5
+      },
+      "hit_pages": {
+        "tiered": 268,
+        "sorted": 788,
+        "reduction": 0.6598984771573604
+      },
+      "p3_req_ranges": {
+        "tiered": 8366,
+        "sorted": 29501,
+        "reduction": 0.7164163926646554
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 68467,
+        "sorted": 59403,
+        "reduction": -0.1525848862852044
+      },
+      "p3_bytes": {
+        "tiered": 21522255,
+        "sorted": 25648788,
+        "reduction": 0.1608860816347345
+      },
+      "p3_ops": {
+        "tiered": 91,
+        "sorted": 33,
+        "reduction": -1.7575757575757578
+      }
+    },
+    "10": {
+      "recs": 861,
+      "cand_pages": {
+        "tiered": 245,
+        "sorted": 238,
+        "reduction": -0.02941176470588225
+      },
+      "p2_start_pages_in_fetched_full": {
+        "tiered": 291,
+        "sorted": 289,
+        "reduction": -0.006920415224913601
+      },
+      "p2_bytes": {
+        "tiered": 656613,
+        "sorted": 647758,
+        "reduction": -0.013670228696519349
+      },
+      "p2_ops": {
+        "tiered": 3,
+        "sorted": 2,
+        "reduction": -0.5
+      },
+      "hit_pages": {
+        "tiered": 52,
+        "sorted": 238,
+        "reduction": 0.7815126050420168
+      },
+      "p3_req_ranges": {
+        "tiered": 1621,
+        "sorted": 7528,
+        "reduction": 0.7846705632306057
+      },
+      "p3_all_leaf_pages_in_fetched": {
+        "tiered": 35895,
+        "sorted": 26366,
+        "reduction": -0.3614124250929227
+      },
+      "p3_bytes": {
+        "tiered": 6930285,
+        "sorted": 9027547,
+        "reduction": 0.23231803722539468
+      },
+      "p3_ops": {
+        "tiered": 53,
+        "sorted": 16,
+        "reduction": -2.3125
+      }
+    }
+  },
+  "range_full_buffers": {
+    "cand_pages": [
+      -0.04630650496141131,
+      -0.014795474325500546
+    ],
+    "p2_start_pages_in_fetched_full": [
+      -0.030647985989492144,
+      -0.0011474469305794432
+    ],
+    "p2_bytes": [
+      -0.03616145651214486,
+      -0.007216923893056393
+    ],
+    "p2_ops": [
+      -1.5,
+      -0.19999999999999996
+    ],
+    "hit_pages": [
+      0.6598984771573604,
+      0.7384731670445956
+    ],
+    "p3_req_ranges": [
+      0.7164163926646554,
+      0.7722941260133693
+    ],
+    "p3_all_leaf_pages_in_fetched": [
+      -0.18293723532014416,
+      0.09746031746031747
+    ],
+    "p3_bytes": [
+      0.13075917771621148,
+      0.25843497905744706
+    ],
+    "p3_ops": [
+      -3.878787878787879,
+      -0.7794117647058822
+    ]
+  }
+}

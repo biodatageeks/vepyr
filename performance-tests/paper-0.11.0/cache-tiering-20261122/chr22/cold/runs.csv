@@ -1,0 +1,13 @@
+layout,workers,label,wall_s,user_s,sys_s,cpu_s,max_rss_kib,annotation_s,exit_status,md5_ok,resident_pct,valid
+tiered,1,c1,4.41,4.48,0.65,5.13,1226960,3.635,0,True,0.0,True
+sorted,1,c1,5.07,6.71,0.63,7.34,1158608,4.311,0,True,0.0,True
+sorted,1,c2,5.19,6.74,0.64,7.38,1189008,4.363,0,True,0.0,True
+tiered,1,c2,4.36,4.49,0.62,5.11,1267552,3.637,0,True,0.0,True
+tiered,1,c3,4.49,4.55,0.65,5.2,1268080,3.699,0,True,0.0,True
+sorted,1,c3,5.24,6.86,0.67,7.53,1214608,4.433,0,True,0.0,True
+tiered,8,c1,2.3,5.17,1.02,6.19,1593552,1.525,0,True,0.0,True
+sorted,8,c1,2.62,7.12,0.93,8.05,1611616,1.831,0,True,0.0,True
+sorted,8,c2,2.62,7.13,0.93,8.06,1641696,1.834,0,True,0.0,True
+tiered,8,c2,2.22,5.07,0.95,6.02,1616752,1.537,0,True,0.0,True
+tiered,8,c3,2.29,5.04,0.95,5.99,1608320,1.481,0,True,0.0,True
+sorted,8,c3,2.53,7.06,0.97,8.03,1638736,1.728,0,True,0.0,True

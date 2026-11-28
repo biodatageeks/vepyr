@@ -1,0 +1,49 @@
+FILE data/identity.parquet
+  rows=15148238 row_groups=16 start_pages=14802 runs=[(0, 802), (802, 14802)] start_page_bytes=35567231 avg_start_page_bytes=2403 all_leaf_pages=437778
+  run0 pages=802 rows=0..821248
+  warm_distinct_starts=604358
+  HYP buf=0 ext=false probes=4955 recs_with_warm_hit=4677 all_pages=949 warm_run_pages=74 probe_level_warm_first=295 (cold 221) record_level_warm_first=295 (cold 221)
+  HYP buf=0 ext=true probes=10651 recs_with_warm_hit=4780 all_pages=949 warm_run_pages=74 probe_level_warm_first=852 (cold 778) record_level_warm_first=212 (cold 138)
+  HYP buf=1 ext=false probes=4953 recs_with_warm_hit=4767 all_pages=1064 warm_run_pages=64 probe_level_warm_first=268 (cold 204) record_level_warm_first=268 (cold 204)
+  HYP buf=1 ext=true probes=10706 recs_with_warm_hit=4869 all_pages=1064 warm_run_pages=64 probe_level_warm_first=945 (cold 881) record_level_warm_first=179 (cold 115)
+  HYP buf=2 ext=false probes=4923 recs_with_warm_hit=4756 all_pages=955 warm_run_pages=63 probe_level_warm_first=255 (cold 192) record_level_warm_first=255 (cold 192)
+  HYP buf=2 ext=true probes=11050 recs_with_warm_hit=4890 all_pages=955 warm_run_pages=63 probe_level_warm_first=834 (cold 771) record_level_warm_first=147 (cold 84)
+  HYP buf=3 ext=false probes=4920 recs_with_warm_hit=4780 all_pages=1166 warm_run_pages=54 probe_level_warm_first=251 (cold 197) record_level_warm_first=251 (cold 197)
+  HYP buf=3 ext=true probes=11178 recs_with_warm_hit=4898 all_pages=1166 warm_run_pages=54 probe_level_warm_first=1011 (cold 957) record_level_warm_first=149 (cold 95)
+  HYP buf=4 ext=false probes=4933 recs_with_warm_hit=4716 all_pages=1264 warm_run_pages=78 probe_level_warm_first=324 (cold 246) record_level_warm_first=324 (cold 246)
+  HYP buf=4 ext=true probes=11453 recs_with_warm_hit=4861 all_pages=1264 warm_run_pages=78 probe_level_warm_first=1075 (cold 997) record_level_warm_first=203 (cold 125)
+  HYP buf=5 ext=false probes=4952 recs_with_warm_hit=4797 all_pages=1004 warm_run_pages=58 probe_level_warm_first=229 (cold 171) record_level_warm_first=229 (cold 171)
+  HYP buf=5 ext=true probes=11050 recs_with_warm_hit=4912 all_pages=1004 warm_run_pages=58 probe_level_warm_first=881 (cold 823) record_level_warm_first=137 (cold 79)
+  HYP buf=6 ext=false probes=4937 recs_with_warm_hit=4773 all_pages=1353 warm_run_pages=69 probe_level_warm_first=275 (cold 206) record_level_warm_first=275 (cold 206)
+  HYP buf=6 ext=true probes=11283 recs_with_warm_hit=4887 all_pages=1353 warm_run_pages=69 probe_level_warm_first=1088 (cold 1019) record_level_warm_first=178 (cold 109)
+  HYP buf=7 ext=false probes=4948 recs_with_warm_hit=4787 all_pages=962 warm_run_pages=60 probe_level_warm_first=251 (cold 191) record_level_warm_first=251 (cold 191)
+  HYP buf=7 ext=true probes=10884 recs_with_warm_hit=4894 all_pages=963 warm_run_pages=60 probe_level_warm_first=839 (cold 779) record_level_warm_first=162 (cold 102)
+  HYP buf=8 ext=false probes=4946 recs_with_warm_hit=4813 all_pages=1023 warm_run_pages=61 probe_level_warm_first=227 (cold 166) record_level_warm_first=227 (cold 166)
+  HYP buf=8 ext=true probes=10930 recs_with_warm_hit=4912 all_pages=1023 warm_run_pages=61 probe_level_warm_first=890 (cold 829) record_level_warm_first=143 (cold 82)
+  HYP buf=9 ext=false probes=4960 recs_with_warm_hit=4808 all_pages=816 warm_run_pages=66 probe_level_warm_first=228 (cold 162) record_level_warm_first=228 (cold 162)
+  HYP buf=9 ext=true probes=11254 recs_with_warm_hit=4912 all_pages=816 warm_run_pages=66 probe_level_warm_first=736 (cold 670) record_level_warm_first=144 (cold 78)
+  HYP buf=10 ext=false probes=857 recs_with_warm_hit=826 all_pages=245 warm_run_pages=15 probe_level_warm_first=44 (cold 29) record_level_warm_first=44 (cold 29)
+  HYP buf=10 ext=true probes=1921 recs_with_warm_hit=843 all_pages=245 warm_run_pages=15 probe_level_warm_first=192 (cold 177) record_level_warm_first=31 (cold 16)
+  buf	recs	first_pos	last_pos	probes	cand_pages	warm_run_pages	cold_run_pages	ranges	p2_req_ranges	p2_req_bytes	p2_ops	p2_bytes	p2_start_pages_in_fetched_full	p2_touch	matched_rows	p3_req_ranges	p3_ops	p3_bytes	p3_all_leaf_pages_in_fetched
+  HIT buf=0 matched_rows=10808 hit_pages=300 (warm 72, cold 228) startonly_take: req_pages=300 ops=11 bytes=2429426 start_pages_in_fetched=1022
+  0	5000	15221405	19295843	10651	949	74	875	73	949	2273587	9	2803254	1177	1177	10808	8223	118	24703507	71314
+  HIT buf=1 matched_rows=10931 hit_pages=281 (warm 63, cold 218) startonly_take: req_pages=281 ops=7 bytes=2884682 start_pages_in_fetched=1199
+  1	5000	19295955	23736706	10706	1064	64	1000	108	1064	2572316	6	3107109	1290	1290	10931	7753	120	27478486	55506
+  HIT buf=2 matched_rows=12074 hit_pages=288 (warm 63, cold 225) startonly_take: req_pages=288 ops=5 bytes=2671949 start_pages_in_fetched=1108
+  2	5000	23736745	26937807	11050	955	63	892	112	955	2297207	5	2833278	1175	1175	12074	7970	78	26168639	52037
+  HIT buf=3 matched_rows=12148 hit_pages=309 (warm 54, cold 255) startonly_take: req_pages=309 ops=5 bytes=2901179 start_pages_in_fetched=1193
+  3	5000	26937828	30465868	11178	1166	54	1112	96	1166	2832990	5	3169476	1304	1304	12148	8512	86	27908240	64677
+  HIT buf=4 matched_rows=12507 hit_pages=383 (warm 78, cold 305) startonly_take: req_pages=383 ops=6 bytes=3471146 start_pages_in_fetched=1436
+  4	5000	30466159	34615074	11453	1264	78	1186	149	1264	3053845	4	3798660	1570	1570	12507	10487	99	32650896	57317
+  HIT buf=5 matched_rows=11852 hit_pages=279 (warm 58, cold 221) startonly_take: req_pages=279 ops=3 bytes=2891493 start_pages_in_fetched=1195
+  5	5000	34615414	37768099	11050	1004	58	946	111	1004	2427180	4	2928873	1211	1211	11852	7679	87	25726765	49546
+  HIT buf=6 matched_rows=12579 hit_pages=346 (warm 69, cold 277) startonly_take: req_pages=346 ops=11 bytes=3585871 start_pages_in_fetched=1491
+  6	5000	37769216	42239453	11283	1353	69	1284	186	1353	3242412	5	4194153	1745	1745	12579	9596	148	33964703	68629
+  HIT buf=7 matched_rows=11589 hit_pages=283 (warm 60, cold 223) startonly_take: req_pages=283 ops=4 bytes=2541348 start_pages_in_fetched=1058
+  7	5000	42239478	44933185	10884	963	60	903	74	963	2317943	4	2629504	1095	1095	11589	7799	84	24522547	49321
+  HIT buf=8 matched_rows=11597 hit_pages=263 (warm 61, cold 202) startonly_take: req_pages=263 ops=6 bytes=2553101 start_pages_in_fetched=1059
+  8	5000	44933734	47826620	10930	1023	61	962	84	1023	2465639	4	2844740	1182	1182	11597	7261	98	23472455	51535
+  HIT buf=9 matched_rows=11526 hit_pages=268 (warm 66, cold 202) startonly_take: req_pages=268 ops=5 bytes=2167951 start_pages_in_fetched=906
+  9	5000	47827029	50182937	11254	816	66	750	77	816	1948957	3	2420227	1017	1017	11526	7349	82	21342565	49435
+  HIT buf=10 matched_rows=2229 hit_pages=52 (warm 15, cold 37) startonly_take: req_pages=52 ops=3 bytes=606899 start_pages_in_fetched=269
+  10	861	50183004	50793229	1921	245	15	230	30	245	555388	3	656613	291	291	2229	1461	50	6689327	27383
