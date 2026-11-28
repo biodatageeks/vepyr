@@ -1,0 +1,20 @@
+[package]
+name = "relayout"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Own workspace: not part of the vepyr build.
+[workspace]
+
+[dependencies]
+datafusion-bio-function-vep = { git = "https://github.com/biodatageeks/datafusion-bio-functions.git", tag = "v0.27.1", default-features = false, features = ["parquet-cache"] }
+parquet = { version = "=59.3.2", features = ["arrow"] }
+arrow = { version = "=59.3.3", default-features = false }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+debug = false
