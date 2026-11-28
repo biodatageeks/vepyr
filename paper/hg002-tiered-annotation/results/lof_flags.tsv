@@ -1,0 +1,8 @@
+flag	tier	variants
+last_exon	1	55
+ref_minor	1	13
+spliceai	2	3
+clinvar_benign	2	39
+50bp	3	4
+segdup	3	24
+lowmap	3	10
