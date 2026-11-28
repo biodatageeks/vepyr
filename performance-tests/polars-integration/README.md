@@ -32,7 +32,7 @@ outputs/116/<host>_chr22_<date>[_suffix]/   one run: results, csv/, build.json, 
 
 ## Prerequisites
 
-- A vepyr build as measured: from the repo root, `env -u CONDA_PREFIX RUSTFLAGS="-C target-cpu=native" uv sync --reinstall-package vepyr`. That is a release build with native CPU instructions; a `maturin develop` build is a different binary and not comparable.
+- The vepyr build to measure. The published run used the vepyr 0.11.0 PyPI wheel in its own virtual environment (with polars 1.44.2 and polars-bio 0.38.0); `run.sh` in the run directory checks the version before anything is timed. A local release build (`uv sync`) is also possible, but a `maturin develop` build is a different binary and not comparable.
 - Docker with `ensemblorg/ensembl-vep:release_116.0`, which runs VEP and `filter_vep`.
 - `bcftools`, `tabix` and `bgzip` on `PATH`.
 - Under `$DATA_VEPYR_DIR` (default `~/workspace/data_vepyr`):
@@ -59,7 +59,7 @@ directory.
 ```bash
 export DATA_VEPYR_DIR=~/workspace/data_vepyr PIBENCH_MAX_LOAD=4
 RUN=outputs/116/$(hostname -s)_chr22_$(date +%Y%m%d)
-PY=../../.venv/bin/python        # the native release build above
+PY=../../.venv/bin/python        # the Python of the vepyr build to measure
 
 bash scripts/prepare_chr22.sh                          # chr22 input under $PIBENCH_WORK (once)
 $PY scripts/run_vep.py --run-dir $RUN                  # VEP matrix: core + plugins x fork 0/1/3/7 (hours)
@@ -83,15 +83,16 @@ $PY scripts/run_e2e.py --run-dir $RUN --reuse-filter-vep outputs/116/<earlier ru
 
 This copies each query's VEP + `filter_vep` row instead of re-timing it (about 1 h instead
 of about 6.5 h). It is only valid while the VEP outputs, `filter_vep` and the host are
-unchanged, so say so in the run's `build.json`. `make_supplement.py`'s plugin-fix table also
-needs `C_old_build_pre_fix/` and `verify_old_build.json` copied across.
+unchanged, so say so in the run's `build.json` or `run.sh`. `make_supplement.py` also writes a
+plugin-fix table, which needs `C_old_build_pre_fix/` and `verify_old_build.json` of an earlier
+run; the paper no longer uses it.
 
 ## Measurement
 
 - Every configuration runs once as a discarded warm-up, then three times. Tables report the median.
 - Each run is its own subprocess, so peak RSS belongs to that run alone.
 - VEP `--fork N` runs N+1 processes, so it is paired with vepyr `workers=N+1`: fork 0/1/3/7 against workers 1/2/4/8.
-- Every query uses the release-116 merged cache, on both the VEP and the vepyr side. P1–P5 add SpliceAI, CADD, AlphaMissense, dbNSFP and ClinVar. Runs up to and including `…_20260926_master` used the Ensembl cache for the 13 queries without plugins.
+- Every query uses the release-116 merged cache, on both the VEP and the vepyr side. P1–P5 add SpliceAI, CADD, AlphaMissense, dbNSFP and ClinVar. The runs of September 2026, kept on the branch `archive-pre-0.11.0`, used the Ensembl cache for the 13 queries without plugins.
 - **The host is shared.** Other projects' Docker containers start on their own and add load. `PIBENCH_MAX_LOAD=4` was the working compromise on a 16-core M3 Max, because the default 2.0 never clears with them running. Check `uptime` and `docker ps` before a run, and discard numbers taken under load rather than explaining them away.
 
 ## Parity (every published run)
@@ -107,17 +108,18 @@ One difference is reported but not gated: polars-bio decodes the `%3D` in HGVSp 
 
 ## Deviations and caveats
 
-- **Region queries have two VEP baselines.** In `B/` VEP annotates the whole chromosome and then filters; that is the naive workflow and gives about 1,100× for R1–R3 at one process. `B_sliced/` slices the window first, which is the fair comparison: 23–52× on R1, 1.8–5.8× on R2 and R3. The supplement labels both.
+- **Region queries have two VEP baselines.** In `B/` VEP annotates the whole chromosome and then filters; that is the naive workflow. `B_sliced/` slices the window first, which is the fair comparison. The supplement labels both.
 - **VEP `--fork 7` with plugins** drifts from serial VEP output on 93 lines. The other fork counts match serial VEP.
-- **`C_old_build_pre_fix/` is partial.** The run before the plugin fixes was stopped mid-C to debug the plugin slowdown. It covers P1 and one P2 configuration; the plugin-fix table compares only those.
 
 ## Runs
 
-| Run | vepyr / engine | Notes |
+| Run | vepyr | Notes |
 |---|---|---|
-| `…_chr22_20260924` | vepyr #131 at `9501251`, engine #261 at `cd38a19` through a local Cargo `[patch]` | The first full run on a pre-release build with both plugin fixes. The plugin curve is flat from 4 to 8 workers (4.0 s at both). |
-| `…_chr22_20260926_master` | vepyr master `9e37d43`, engine `v0.23.0` (#261 + #262) | Parity and C re-run; B re-timed vepyr only (`--reuse-filter-vep` from 20260924); A, B_sliced and `vep/` carried over. Plugin queries at 8 processes: 4.07 → 3.31 s median (63× → 76× vs VEP + `filter_vep`). The core groups are unchanged, as expected for the Ensembl cache. |
-| `…_chr22_merged_v090` | vepyr 0.9.0 PyPI wheel, engine `v0.23.0` | Full re-run with every query on the merged cache: VEP, parity gate, A, B, B_sliced and C. Run with `run.sh` in the run directory. |
+| `…_chr22_merged_v0110` | vepyr 0.11.0 PyPI wheel | **Published run** (supplement Sections 8.3 and 8.5, main Figure 1D). Every query on the merged cache. Only vepyr was measured; the VEP side and the parity gate are reused from the 0.10.0 run, as the run's README explains. Also holds the 8.3 worker sweep (`workers_chr22/`, `workers_chr1/`). Run with `run.sh` in the run directory. |
 
-The engine-side cause of the old plugin plateau, and its fix, are in
+Earlier runs are not on master. `…_chr22_20260924`, `…_chr22_20260926_master` and
+`…_chr22_merged_v090` are on the branch `archive-pre-0.11.0`; the 0.10.0 run
+`…_chr22_merged_v0100` is on the branch `perf/polars-integration-harness`.
+
+The engine-side cause of the plugin plateau seen in the September 2026 runs, and its fix, are in
 `docs/superpowers/specs/2026-09-26-lf-run-pool-scaling-design.md`.
