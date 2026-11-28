@@ -24,7 +24,9 @@ RSS_UNIT = (
 
 
 def wait_for_quiet(
-    max_load: float, timeout_s: float = 900, poll_s: float = 15
+    max_load: float,
+    timeout_s: float = float(os.environ.get("PIBENCH_LOAD_TIMEOUT", "900")),
+    poll_s: float = 15,
 ) -> float:
     deadline = time.monotonic() + timeout_s
     while True:

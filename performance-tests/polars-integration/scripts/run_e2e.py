@@ -25,6 +25,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", required=True, type=Path)
     ap.add_argument("--repeats", type=int, default=3)
+    ap.add_argument("--queries", nargs="*", help="default: all")
     ap.add_argument(
         "--reuse-filter-vep",
         type=Path,
@@ -39,6 +40,8 @@ def main() -> None:
     tmp = WORK / "runs" / "B"
     tmp.mkdir(parents=True, exist_ok=True)
     for q in QUERIES:
+        if a.queries and q.id not in a.queries:
+            continue
         if q.id not in verify:
             print(f"{q.id}: excluded (not verified)")
             continue
