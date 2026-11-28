@@ -503,7 +503,8 @@ am = (
     lf.select("chrom", "start", "ref", "alt", "Feature", "Protein_position",
               "Amino_acids", "am_class", "am_pathogenicity")
       .filter(pl.col("am_class").list.contains("likely_pathogenic"))
-      .explode(["Feature", "Protein_position", "Amino_acids", "am_class", "am_pathogenicity"])
+      .explode(["Feature", "Protein_position", "Amino_acids", "am_class", "am_pathogenicity"],
+               empty_as_null=True)
       .filter(pl.col("am_class") == "likely_pathogenic")
       .collect()
 )
