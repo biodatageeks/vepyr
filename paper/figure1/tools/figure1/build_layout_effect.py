@@ -1,0 +1,84 @@
+"""Panel C4: measured effect of the warm/cold layout of the variation cache.
+
+Whole HG002 genome (chr1-22), cold file cache, warm/cold vs the same rows sorted by position;
+sums of per-chromosome medians and page counts from vepyr performance-tests/cache-tiering
+(outputs/wgs_20261122, branch perf/cache-tiering-gain 240e030; also in PR #292).
+"""
+
+from __future__ import annotations
+
+import tiering_data
+import build_figure as fig
+
+INK = "#111111"
+GREY = "#777777"
+SORTED = "#b6b6b6"
+
+# (label, tiered, sorted, unit formatter)
+_T = tiering_data.load()  # data/raw/cache_tiering_wgs
+SECTIONS = [
+    (
+        "CPU time (user + system)",
+        [
+            ("1 worker", *_T["time"][("cpu_s", 1)]),
+            ("8 workers", *_T["time"][("cpu_s", 8)]),
+        ],
+        "{:.0f} s",
+    ),
+    (
+        "Wall time",
+        [
+            ("1 worker", *_T["time"][("wall_s", 1)]),
+            ("8 workers", *_T["time"][("wall_s", 8)]),
+        ],
+        "{:.0f} s",
+    ),
+    (
+        "Pages (start column; reading: 26 columns)",
+        [
+            ("start pages searched", *_T["pages"]["searched"]),
+            ("start pages holding a match", *_T["pages"]["matched"]),
+            ("pages decoded to read matches", *_T["pages"]["read"]),
+        ],
+        "pages",
+    ),
+]
+
+
+def effect_column(code: str = "C4", width: float = 520) -> fig.Scene:
+    """Relative bars: the position-sorted layout is 100% in every row."""
+    s = fig.Scene()
+    s._counter = 36000
+    s.label(0, 14, 68, 44, code, font_size=31, weight=700)
+    s.label(74, 15, width - 74, 42, "Layout effect", font_size=29, weight=700)
+    s.label(0, 66, width, 84,
+            "Whole HG002 genome (chr1–22),\ncold file cache; bar length:\nsorted by position = 100%", font_size=20)  # fmt: skip
+
+    bar_max = 360  # width of 100%
+    top = max(t / so for _, rows, _ in SECTIONS for _, t, so in rows)
+    y = 172
+    for title, rows, unit in SECTIONS:
+        s.label(0, y, width, 34, title, font_size=22, weight=700)
+        s.edge(0, y + 38, width, y + 38, arrow=False, width=1.2)
+        y += 54
+        for name, tiered, sorted_ in rows:
+            rel = tiered / sorted_
+            s.label(0, y, 390, 30, name, font_size=20)
+            s.label(width - 120, y, 120, 30, f"{rel - 1:+.0%}".replace("-", "–"), font_size=22,
+                    weight=700, align="right")  # fmt: skip
+            for k, (value, fill, raw) in enumerate(
+                ((rel, INK, tiered), (1.0, SORTED, sorted_))
+            ):
+                by = y + 36 + k * 32
+                w = max(2.0, bar_max * value / top)
+                s.box(0, by, w, 24, "", fill=fill, stroke_width=0)
+                text = f"{raw:,}" if unit == "pages" else f"{value:.0%}"
+                s.label(w + 8, by - 4, 150, 30, text, font_size=19)
+            y += 124
+        y += 24
+
+    s.box(0, y + 8, 22, 16, "", fill=INK, stroke_width=0)
+    s.label(30, y, 300, 30, "warm/cold", font_size=19)
+    s.box(0, y + 42, 22, 16, "", fill=SORTED, stroke_width=0)
+    s.label(30, y + 34, 300, 30, "sorted by position", font_size=19)
+    return s
