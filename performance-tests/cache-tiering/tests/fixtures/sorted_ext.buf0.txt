@@ -1,0 +1,4 @@
+FILE data/sorted.parquet
+  buf	recs	first_pos	last_pos	probes	cand_pages	warm_run_pages	cold_run_pages	ranges	p2_req_ranges	p2_req_bytes	p2_ops	p2_bytes	p2_start_pages_in_fetched_full	p2_touch	matched_rows	p3_req_ranges	p3_ops	p3_bytes	p3_all_leaf_pages_in_fetched
+  HIT buf=0 matched_rows=10808 hit_pages=907 (warm 0, cold 907) startonly_take: req_pages=907 ops=6 bytes=2705422 start_pages_in_fetched=1142
+  0	5000	15221405	19295843	10651	907	907	0	81	907	2163658	6	2705422	1142	1142	10808	25517	65	28941949	60825

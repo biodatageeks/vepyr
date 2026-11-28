@@ -9,5 +9,6 @@ Methods sentence on the cache layout.
   cache), 1 and 8 workers, 3 warm + 2 cold repeats; README with all tables.
 - `chr22/`: the first, chromosome-22-only measurement (10 warm + 3 cold repeats).
 
-The tools (relayout, runner, page tool, aggregator) and their tests are on vepyr branch
-`perf/cache-tiering-gain` (results commit 240e030), `performance-tests/cache-tiering/`.
+The tools (relayout, runner, page tool, aggregator) and their tests are in
+[`performance-tests/cache-tiering/`](../../cache-tiering/), unchanged from branch
+`perf/cache-tiering-gain` at the results commit 240e030.
