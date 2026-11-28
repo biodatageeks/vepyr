@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
-"""Run each Vepyr worker setting on SSD, then archive artifacts on HDD."""
+"""Run each Vepyr worker setting on SSD, then archive artifacts on HDD.
+
+Timing definition: the process wall (``process_elapsed_wall``) covers one
+benchmark_vepyr_once.py process, that is Python start-up, importing vepyr,
+the annotation and writing the output VCF -- the same work the
+engine-comparison harness times. The record count that verifies the output
+reads the whole VCF back, so it runs here, after os.wait4 has returned, and
+is not part of any reported time.
+"""
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
+import fcntl
+import gzip
 import json
 import os
 import shutil
@@ -19,6 +30,13 @@ from pathlib import Path
 RSS_BYTES_PER_UNIT = 1024 if sys.platform == "darwin" else 1
 
 WORKERS_FILE = Path(__file__).resolve().parent / "benchmark_workers.txt"
+ONCE_SCRIPT = Path(__file__).resolve().parent / "benchmark_vepyr_once.py"
+
+COMPRESSED_SUFFIXES = (".gz", ".bgz", ".bgzf")
+POWER_SUPPLY_ROOT = Path("/sys/class/power_supply")
+AC_POWER = "AC Power"
+BATTERY_POWER = "Battery Power"
+UNKNOWN_POWER = "unknown"
 
 
 def read_worker_counts(path: Path = WORKERS_FILE) -> list[int]:
@@ -50,6 +68,8 @@ SUMMARY_FIELDS = [
     "time_file",
     "stderr_file",
     "stdout_file",
+    # Appended last so existing summaries keep their column order.
+    "power_source",
 ]
 
 
@@ -72,6 +92,14 @@ def parse_args() -> argparse.Namespace:
         help="Passed through to each measured run; 'off' is the ablation arm",
     )
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--require-ac-power",
+        action="store_true",
+        help=(
+            "refuse to start a run while the host is on battery power; the "
+            "power source is recorded for every run either way"
+        ),
+    )
     parser.add_argument(
         "--compression",
         choices=("plain", "bgzf", "gzip"),
@@ -102,6 +130,111 @@ class ProcessMeasurement:
     user_cpu_seconds: float
     system_cpu_seconds: float
     max_rss_kb: int
+
+
+@contextlib.contextmanager
+def open_vcf(path: Path):
+    """Open a VCF for reading, transparently for bgzf, gzip and plain files.
+
+    On macOS the file is read with F_NOCACHE: reading the whole-genome output
+    (29.4 GB) through the file cache would evict the cache files of the next
+    run, as the checksums of the engine-comparison harness avoid.
+    """
+    with path.open("rb") as raw:
+        if hasattr(fcntl, "F_NOCACHE"):
+            fcntl.fcntl(raw.fileno(), fcntl.F_NOCACHE, 1)
+        # BGZF is a series of gzip members, so the stdlib reader handles it.
+        if path.suffix in COMPRESSED_SUFFIXES:
+            with gzip.GzipFile(fileobj=raw, mode="rb") as handle:
+                yield handle
+        else:
+            yield raw
+
+
+def count_vcf_records(path: Path) -> int:
+    count = 0
+    with open_vcf(path) as handle:
+        while True:
+            line = handle.readline()
+            if not line:
+                return 0
+            if not line.startswith(b"#"):
+                count = 1
+                break
+
+        while chunk := handle.read(8 * 1024 * 1024):
+            count += chunk.count(b"\n")
+    return count
+
+
+def detect_power_source(
+    platform: str = sys.platform,
+    sysfs_root: Path = POWER_SUPPLY_ROOT,
+    run=subprocess.run,
+) -> str:
+    """Return "AC Power", "Battery Power" or "unknown" for this host.
+
+    A laptop on battery throttles, so runs on battery are not comparable with
+    runs on mains power and the source is recorded with every measurement.
+    """
+    if platform == "darwin":
+        try:
+            result = run(
+                ["pmset", "-g", "batt"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except OSError:
+            return UNKNOWN_POWER
+        first_line = (result.stdout or "").splitlines()[:1]
+        for source in (AC_POWER, BATTERY_POWER):
+            if first_line and f"'{source}'" in first_line[0]:
+                return source
+        return UNKNOWN_POWER
+
+    # Linux: mains adapters expose `online`; batteries do not. A server
+    # without any power_supply entry reports "unknown".
+    states = []
+    for online in sorted(sysfs_root.glob("*/online")):
+        try:
+            states.append(online.read_text(encoding="utf-8").strip())
+        except OSError:
+            continue
+    if not states:
+        return UNKNOWN_POWER
+    return AC_POWER if "1" in states else BATTERY_POWER
+
+
+def write_json_atomic(path: Path, payload: dict[str, object]) -> None:
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary, path)
+
+
+def verify_output(
+    metrics: dict[str, object], output_vcf: Path, expected_records: int
+) -> bool:
+    """Count the output's records and set the verification fields in place.
+
+    Runs after the measured process has exited, so reading the whole output
+    back is not part of the process wall. Returns whether the count matches.
+    """
+    output_records = count_vcf_records(output_vcf)
+    records_match = output_records == expected_records
+    metrics["output_records"] = output_records
+    metrics["records_match_vep"] = records_match
+    metrics["output_bytes"] = output_vcf.stat().st_size
+    metrics["status"] = "ok" if records_match else "record_count_mismatch"
+    if not records_match:
+        metrics["error"] = (
+            f"RuntimeError: Vepyr wrote {output_records} records; "
+            f"VEP wrote {expected_records}"
+        )
+    return records_match
 
 
 def format_elapsed(seconds: float) -> str:
@@ -252,8 +385,7 @@ def main() -> int:
     args = parse_args()
     validate_storage_paths(args)
 
-    script_dir = Path(__file__).resolve().parent
-    once_script = script_dir / "benchmark_vepyr_once.py"
+    once_script = ONCE_SCRIPT
     summary_path = args.archive_dir / "summary.tsv"
     # The engine picks bgzf from the extension, so the name has to agree.
     vcf_suffix = "" if args.compression == "plain" else ".gz"
@@ -269,6 +401,13 @@ def main() -> int:
             raise RuntimeError(
                 f"Only {free_bytes / 1024**3:.1f} GiB is free on the SSD; "
                 f"{args.minimum_free_gib:.1f} GiB is required before a run"
+            )
+
+        power_source = detect_power_source()
+        if power_source == BATTERY_POWER and args.require_ac_power:
+            raise RuntimeError(
+                f"workers={workers}: the host is on battery power and "
+                "--require-ac-power is set; connect the charger and rerun"
             )
 
         stem = (
@@ -323,7 +462,8 @@ def main() -> int:
 
         print(
             f"cache={args.cache_type} workers={workers}: "
-            f"measuring Vepyr on SSD ({free_bytes / 1024**3:.1f} GiB free)",
+            f"measuring Vepyr on SSD ({free_bytes / 1024**3:.1f} GiB free, "
+            f"power: {power_source})",
             flush=True,
         )
         with (
@@ -334,9 +474,18 @@ def main() -> int:
 
         write_time_report(ssd_paths["time"], command, measurement)
 
+        # Everything below happens after the measurement has stopped.
         metrics: dict[str, object] = {}
         if ssd_paths["metrics"].exists():
             metrics = json.loads(ssd_paths["metrics"].read_text(encoding="utf-8"))
+            metrics["power_source"] = power_source
+            if (
+                measurement.exit_status == 0
+                and metrics.get("status") == "annotated"
+                and ssd_paths["output"].exists()
+            ):
+                verify_output(metrics, ssd_paths["output"], args.expected_records)
+            write_json_atomic(ssd_paths["metrics"], metrics)
 
         moved: dict[str, Path | None] = {}
         print(
@@ -366,6 +515,7 @@ def main() -> int:
             "time_file": moved["time"] or "",
             "stderr_file": moved["stderr"] or "",
             "stdout_file": moved["stdout"] or "",
+            "power_source": power_source,
         }
         update_summary(summary_path, row)
 
@@ -373,6 +523,17 @@ def main() -> int:
             failures += 1
             print(
                 f"workers={workers}: failed; see {archive_paths['stderr']}",
+                file=sys.stderr,
+            )
+            break
+        # A count mismatch, or a run that never got verified, stops the sweep
+        # exactly as a failing child process does.
+        if row["status"] != "ok":
+            failures += 1
+            print(
+                f"workers={workers}: {row['status']}: "
+                f"{metrics.get('error', 'output not verified')}; "
+                f"see {archive_paths['metrics']}",
                 file=sys.stderr,
             )
             break

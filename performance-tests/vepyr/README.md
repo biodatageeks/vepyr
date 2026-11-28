@@ -36,8 +36,47 @@ lf = vepyr.annotate(
 )
 ```
 
-`annotation_seconds` measures only this call. Record counting, summary writes,
-and transfer to `vep_data2` happen after that timer has stopped.
+### Timing definition
+
+Two times are recorded for every worker count:
+
+- `annotation_seconds` (metrics JSON and `summary.tsv`) measures only the
+  `vepyr.annotate()` call inside the benchmark process.
+- `process_elapsed_wall` (`summary.tsv`, and the `*.time.txt` record in GNU
+  time's layout) measures the whole `benchmark_vepyr_once.py` process: Python
+  start-up, importing vepyr, the annotation and writing the output VCF. This
+  is the same work the engine-comparison harness times, which runs
+  `python -c 'import vepyr; vepyr.annotate(...)'`.
+
+The record count that verifies the output reads the whole VCF back (29.4 GB
+for the plain HG002 output). It runs in `run_vepyr_worker_scaling.py` after
+the benchmark process has exited and is not timed; it sets `output_records`,
+`records_match_vep`, `output_bytes` and `status` (`ok` or
+`record_count_mismatch`; a mismatch stops the sweep and the runner exits 1).
+Run on its own, `benchmark_vepyr_once.py` leaves `status` at `annotated`.
+Summary writes and the transfer to `vep_data2` are not timed either.
+
+Result sets measured before this definition counted the records inside the
+benchmark process, so their `process_elapsed_wall` includes reading the
+output back (at eight workers on the M3 Max, 79.7 s process wall against
+66.4 s of annotation) and is not comparable with the engine-comparison
+harness; their
+`annotation_seconds` is unaffected. That applies to every result set under
+`outputs/` on master, including `linux_vepyr_0.9.0_20261002` and
+`linux_vepyr_0.10.0_20261015`, and to `macos_mwiewior_wgs_vepyr_0.11.0_20261121`
+and `linux_tgambin_wgs_vepyr_0.11.0_20261121` on the
+`perf/paper-results-0.11.0` branch (PR #292).
+
+### Power source
+
+Each run records `power_source` (`AC Power`, `Battery Power` or `unknown`) in
+its metrics JSON and in `summary.tsv`: on macOS from the first line of
+`pmset -g batt`, on Linux from `/sys/class/power_supply/*/online` (`unknown`
+when the host exposes no power supply, as most servers do). A laptop on
+battery is slower, so pass `--require-ac-power` to refuse to start a run on
+battery. Result sets measured before this field existed do not record it;
+the macOS 0.11.0 set above was measured on battery power.
+
 Before every worker, the runner requires at least `40 GiB` of free SSD space.
 
 The default expected full-WGS record count is `4,096,123`. It can be overridden
