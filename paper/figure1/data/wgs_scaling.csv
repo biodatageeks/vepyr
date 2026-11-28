@@ -1,0 +1,9 @@
+platform,processes,vep_seconds,vep_source,vepyr_seconds,vepyr_peak_gib,vepyr_runs,vepyr_source,needs_rerun
+linux,1,39192,performance-tests/vep/outputs/116/merged_fork_scaling,302.09,3.29,3,performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/medians.tsv (median of 3 runs),0
+linux,2,21440,performance-tests/vep/outputs/116/merged_fork_scaling,178.22,4.72,3,performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/medians.tsv (median of 3 runs),0
+linux,4,11418,performance-tests/vep/outputs/116/merged_fork_scaling,110.37,4.78,3,performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/medians.tsv (median of 3 runs),0
+linux,8,6858,performance-tests/vep/outputs/116/merged_fork_scaling,78.59,5.44,3,performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/medians.tsv (median of 3 runs),0
+macos,1,31541,performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914,,,,data/raw/vepyr_clean_host_20261123_engines.csv (median of the valid runs),0
+macos,2,16149,performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914,,,,data/raw/vepyr_clean_host_20261123_engines.csv (median of the valid runs),0
+macos,4,9005,performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914,,,,data/raw/vepyr_clean_host_20261123_engines.csv (median of the valid runs),0
+macos,8,5372,performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914,,,,data/raw/vepyr_clean_host_20261123_engines.csv (median of the valid runs),0

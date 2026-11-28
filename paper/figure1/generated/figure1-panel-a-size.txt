@@ -1,0 +1,5 @@
+# Size of the Figure 1A table typeset by pdflatex with the class of vepyr-main.tex,
+# written by tools/figure1/panel_a.py; measured again when the table or class changes.
+sha256 f4022a4a43ac8cba2ff55014e35cf2c7df532bf9e6f9b95960810226c2a76f70
+width_pt 968.53154
+height_pt 175.46260
