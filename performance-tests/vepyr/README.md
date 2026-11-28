@@ -61,11 +61,12 @@ benchmark process, so their `process_elapsed_wall` includes reading the
 output back (at eight workers on the M3 Max, 79.7 s process wall against
 66.4 s of annotation) and is not comparable with the engine-comparison
 harness; their
-`annotation_seconds` is unaffected. That applies to every result set under
-`outputs/` on master, including `linux_vepyr_0.9.0_20261002` and
-`linux_vepyr_0.10.0_20261015`, and to `macos_mwiewior_wgs_vepyr_0.11.0_20261121`
-and `linux_tgambin_wgs_vepyr_0.11.0_20261121` on the
-`perf/paper-results-0.11.0` branch (PR #292).
+`annotation_seconds` is unaffected. That applies to
+`outputs/116/macos_mwiewior_wgs_vepyr_0.11.0_20261121` and
+`outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121`, and to the result sets
+of earlier vepyr versions, which are kept on the branch `archive-pre-0.11.0`.
+The sets `macos_mwiewior_wgs_vepyr_0.11.0_20261123_clean_host` and
+`linux_tgambin_wgs_vepyr_0.11.0_pr293` use this definition.
 
 ### Power source
 
@@ -75,7 +76,7 @@ its metrics JSON and in `summary.tsv`: on macOS from the first line of
 when the host exposes no power supply, as most servers do). A laptop on
 battery is slower, so pass `--require-ac-power` to refuse to start a run on
 battery. Result sets measured before this field existed do not record it;
-the macOS 0.11.0 set above was measured on battery power.
+`macos_mwiewior_wgs_vepyr_0.11.0_20261121` was measured on battery power.
 
 Before every worker, the runner requires at least `40 GiB` of free SSD space.
 

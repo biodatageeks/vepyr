@@ -68,7 +68,7 @@ the browser open, right after the cache had been copied and hashed; its discarde
 slower than the measured one, against 1.5% here.
 
 Against the macOS clean-host medians (195.01, 119.09, 76.81 and 55.21 s) the Linux process wall is 1.55, 1.50,
-1.44 and 1.42 times as long. Against Linux vepyr 0.10.0 (`linux_vepyr_0.10.0_20261015`: single runs, another
+1.44 and 1.42 times as long. Against Linux vepyr 0.10.0 (`linux_vepyr_0.10.0_20261015`, on the branch `archive-pre-0.11.0`: single runs, another
 order, outputs compressed on the HDD in between) the annotation is 1.65, 1.68, 1.84 and 2.10 times as fast at 1,
 2, 4 and 8 workers.
 

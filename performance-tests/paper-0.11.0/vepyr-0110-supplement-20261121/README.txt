@@ -7,8 +7,8 @@ wgs/    whole genome, merged cache, 8/4/2/1 workers after one discarded 8-worker
 wgs2/   the same again with nothing else running (run_wgs2.zsh): the set reported in the supplement.
 sweep   worker sweep (Section 8.3): outputs in the vepyr worktree .worktrees/polars-0110,
         performance-tests/polars-integration/outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v0110/workers_chr{22,1}
-writer/ writer memory (Section 8.4): writer_memory.py, writer_once.py; v0100.json reproduces the published 0.10.0
-        figures as a check of the method, v0110.json is the new measurement.
+writer/ writer memory (Section 8.4): writer_memory.py, writer_once.py; v0110.json is the measurement. v0100.json,
+        which reproduced the published 0.10.0 figures as a check of the method, is on the branch archive-pre-0.11.0.
 polars  Section 8.5: run.sh in the run directory above (stages prepare, equiv, pushdown, e2e, tables); VEP side
         reused from ..._v0100 because Docker was not available.
 chain.zsh runs everything in this order (console logs not included).

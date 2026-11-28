@@ -83,7 +83,7 @@ Ensembl VEP 116.0 record for record.
 
 ## Against Linux vepyr 0.10.0
 
-Reference: `linux_vepyr_0.10.0_20261015`, same host, input, reference and
+Reference: `linux_vepyr_0.10.0_20261015` (on the branch `archive-pre-0.11.0`), same host, input, reference and
 Python environment versions.
 
 | Workers | Annotation 0.10.0 | Annotation 0.11.0 | Speed-up | Process wall 0.10.0 | Process wall 0.11.0 | CPU 0.10.0 | CPU 0.11.0 | Peak RSS 0.10.0 | Peak RSS 0.11.0 |

@@ -17,15 +17,14 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 | Supplement Table 17, macOS rows; main Figure 1E, macOS curve; main-text whole-genome times (merged cache, 1/2/4/8 workers, median of three runs on a freshly started host) | `performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_vepyr_0.11.0_20261123_clean_host/` | this PR |
 | Same, earlier single run (superseded: record count inside the timed section, battery power) | `performance-tests/vepyr/outputs/116/macos_mwiewior_wgs_vepyr_0.11.0_20261121/` | this PR |
 | Same, harness logs of that run (memory log, run log, the unused first set) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/wgs2/` (reported), `wgs/` (first set, **not used**: other light work ran meanwhile) | this PR |
-| Supplement Table 17, Linux rows (merged cache only); main Figure 1E, Linux curve | `performance-tests/vepyr/outputs/116/linux_vepyr_0.9.0_20261002/vepyr_merged_worker_scaling/` (vepyr **0.9.0**) | master |
-| Same, re-run with vepyr 0.11.0 on the same host (median of three runs, PR #293 protocol; not yet in the paper, `wgs_scaling_rows.csv` holds its rows of `data/wgs_scaling.csv`) | `performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/` | this PR |
+| Supplement Table 17, Linux rows (merged cache only); main Figure 1E, Linux curve (median of three runs, PR #293 protocol; `wgs_scaling_rows.csv` holds its rows of `data/wgs_scaling.csv`) | `performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/` | this PR |
 | Same, earlier single run (superseded: record count inside the timed section) | `performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_20261121/` | this PR |
 | Ensembl VEP reference times, macOS (Table 17, Figure 1E) | `performance-tests/vep/outputs/116/macos_mwiewior_wgs_20260914/` | master |
 | Ensembl VEP fork scaling, Linux (Table 17 Linux rows, Figure 1E) | `performance-tests/vep/outputs/116/merged_fork_scaling/` | master |
-| Supplement Table 12 (interval routes) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/interval/` (`v0110.json`; `v0100.json` is the same measurement with vepyr 0.10.0; `time_routes.py`, `route1.py`) | this PR |
+| Supplement Table 12 (interval routes) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/interval/` (`v0110.json`; `time_routes.py`, `route1.py`) | this PR |
 | Supplement Section 8.3, Table 18 (LazyFrame worker sweep, chr22 and chr1) | `performance-tests/polars-integration/outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v0110/workers_chr22/`, `workers_chr1/` | this PR |
-| Supplement Section 8.4 (writer memory) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/writer/` (`v0110.json`; `v0100.json` reproduces the 0.10.0 values), `writer_memory.py`, `writer_once.py` | this PR |
-| Supplement Section 8.5, Tables 19-28, Figures 4, 6, 7; main Figure 1D | `performance-tests/polars-integration/outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v0110/` (A, B, B_sliced, C, csv, supplement); harness on branch `perf/polars-integration-harness` at `e5947c8` | this PR |
+| Supplement Section 8.4 (writer memory) | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/writer/` (`v0110.json`), `writer_memory.py`, `writer_once.py` | this PR |
+| Supplement Section 8.5, Tables 19-28, Figures 4, 6, 7; main Figure 1D | `performance-tests/polars-integration/outputs/116/macos_Mareks-MacBook-Pro_chr22_merged_v0110/` (A, B, B_sliced, C, csv, supplement, `verify.json`); harness in `performance-tests/polars-integration/` (identical to `e5947c8` of branch `perf/polars-integration-harness`) | this PR |
 | Supplement Table 31 (golden parity per profile and chromosome); main-text concordance with VEP | `performance-tests/paper-0.11.0/vepyr-0110-supplement-20261121/parity/` (per-profile reports, per-contig source metadata, logs; `pick/` for the pick-mode profiles) | this PR |
 | Supplement Tables 32-36 (vepyr 0.11.0, vep-rs 0.5.0, fastVEP 0.6.1; per chromosome and whole VCF); main Figure 1A wall time, memory, records as in VEP | `performance-tests/paper-0.11.0/engines-two-modes-20261120/` (`runs.csv`, `whole-md5/`, `validate*`, `recheck-*`, `remeasure.txt`, `scripts/`) | this PR |
 | Main Figure 1A, "Fields filled" row; supplement Section 10 fields paragraph | `performance-tests/paper-0.11.0/engines-two-modes-20261120/fields-filled/` | this PR |
@@ -52,11 +51,10 @@ lines wrapped. Their behaviour is unchanged (same AST, or only those import and 
 
 ## Open items
 
-- The Linux rows of supplement Table 17 (merged cache only since the RefSeq rows were removed) and
-  the Linux curve of Figure 1E are still vepyr 0.9.0. The re-run with 0.11.0 is in
-  `performance-tests/vepyr/outputs/116/linux_tgambin_wgs_vepyr_0.11.0_pr293/`; the paper does not
-  use it yet.
-- The trio analysis of main Figure 1B (4.2 min + 1.3 min) has no raw results located yet.
+- The trio analysis of main Figure 1B is not on master yet: it is proposed in PR #295
+  (`paper/hg002-tiered-annotation/`).
+- Results measured with vepyr versions before 0.11.0 are not kept on master; they are on the
+  branch `archive-pre-0.11.0`.
 
 Console logs, stdout and stderr of the runs are not included; only results, the scripts that
 produced them and their metadata.
